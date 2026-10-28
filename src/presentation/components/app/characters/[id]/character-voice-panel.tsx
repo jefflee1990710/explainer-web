@@ -22,7 +22,7 @@ export function CharacterVoicePanel({
   onSaved: (character: PublicCharacter) => void;
 }) {
   const { t } = useI18n();
-  const [enabled, setEnabled] = useState(Boolean(character.voice));
+  const [enabled, setEnabled] = useState(true);
   const [voice, setVoice] = useState<CharacterVoice>(
     character.voice
       ? { ...DEFAULT_CHARACTER_VOICE, ...character.voice, weight: character.voice.weight ?? "medium" }
@@ -88,6 +88,7 @@ export function CharacterVoicePanel({
       <CharacterVoiceFields
         name={character.name}
         enabled={enabled}
+        hideEnableCheckbox
         value={voice}
         disabled={busy}
         onEnabled={(next) => {

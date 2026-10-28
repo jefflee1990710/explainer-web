@@ -152,5 +152,5 @@ test("talking-head Phase B lock locks the on-screen speaker gender/timbre and fo
   );
   assert.doesNotMatch(lock, /unseen off-screen narrator/i);
   assert.doesNotMatch(lock, /short synced SFX/i);
-  assert.match(lock, /no sound effects \(no clapping, tapping, typing, or Foley SFX\)/i);
+  assert.match(lock, /no sound effects \(no dings, chimes, pops, whooshes, clapping, tapping, typing, or Foley SFX\)/i);
 });

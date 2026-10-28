@@ -1,12 +1,12 @@
 import { charactersCollection } from "@/dao";
-import type { CastMember, Character } from "@/model/character";
+import { resolveCharacterVoiceMode, type CastMember, type Character } from "@/model/character";
 import { isCharacterVoice } from "@/model/character-voice";
 import { VOICE_SAMPLE_LANGUAGES } from "@/model/character-voice-sample";
 import { inferFallbackCharacterVoice } from "@/service/director/character-voice";
 
 export function mergeCurrentCharacterVoices(
   cast: CastMember[] | undefined,
-  docs: Array<Pick<Character, "_id" | "voice" | "voiceSample" | "voiceSamples">>,
+  docs: Array<Pick<Character, "_id" | "voiceMode" | "voice" | "voiceSample" | "voiceSamples">>,
 ): CastMember[] | undefined {
   if (!cast?.length) return cast;
   const byId = new Map(docs.map((doc) => [doc._id.toHexString(), doc]));
@@ -21,25 +21,32 @@ export function mergeCurrentCharacterVoices(
         [member.name, member.spec?.identity, member.prompt].filter(Boolean).join("\n"),
       );
     }
-    if (doc.voiceSample?.elevenVoiceId && doc.voiceSample?.url) {
-      next.voiceSample = {
-        url: doc.voiceSample.url,
-        elevenVoiceId: doc.voiceSample.elevenVoiceId,
-      };
-    } else {
-      delete next.voiceSample;
-    }
-    if (doc.voiceSamples) {
-      const mapped: NonNullable<CastMember["voiceSamples"]> = {};
-      for (const lang of VOICE_SAMPLE_LANGUAGES) {
-        const s = doc.voiceSamples[lang];
-        if (s?.elevenVoiceId && s?.url) {
-          mapped[lang] = { url: s.url, elevenVoiceId: s.elevenVoiceId };
-        }
+    const mode = resolveCharacterVoiceMode(doc);
+    if (mode === "sample") {
+      if (doc.voiceSample?.elevenVoiceId && doc.voiceSample?.url) {
+        next.voiceSample = {
+          url: doc.voiceSample.url,
+          elevenVoiceId: doc.voiceSample.elevenVoiceId,
+        };
+      } else {
+        delete next.voiceSample;
       }
-      if (Object.keys(mapped).length > 0) next.voiceSamples = mapped;
-      else delete next.voiceSamples;
+      if (doc.voiceSamples) {
+        const mapped: NonNullable<CastMember["voiceSamples"]> = {};
+        for (const lang of VOICE_SAMPLE_LANGUAGES) {
+          const s = doc.voiceSamples[lang];
+          if (s?.elevenVoiceId && s?.url) {
+            mapped[lang] = { url: s.url, elevenVoiceId: s.elevenVoiceId };
+          }
+        }
+        if (Object.keys(mapped).length > 0) next.voiceSamples = mapped;
+        else delete next.voiceSamples;
+      } else {
+        delete next.voiceSamples;
+      }
     } else {
+      // When Voice lock is selected, do not use Demo voice.
+      delete next.voiceSample;
       delete next.voiceSamples;
     }
     return next;

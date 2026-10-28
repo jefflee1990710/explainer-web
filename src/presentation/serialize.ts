@@ -15,11 +15,13 @@ import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
-import type {
-  Character,
-  CharacterBlueprintKind,
-  CharacterBlueprintStage,
-  CharacterVersionStatus,
+import {
+  resolveCharacterVoiceMode,
+  type Character,
+  type CharacterBlueprintKind,
+  type CharacterBlueprintStage,
+  type CharacterVersionStatus,
+  type CharacterVoiceMode,
 } from "@/model/character";
 import type { CharacterSpec } from "@/model/character-spec";
 import type { Product } from "@/model/product";
@@ -677,6 +679,7 @@ export type PublicCharacter = {
   // Every style on this character, original first.
   styleIds: string[];
   styleName: string;
+  voiceMode: CharacterVoiceMode;
   voice: CharacterVoice | null;
   // Uploaded demo voice. The clone id stays on the server.
   voiceSample: {
@@ -789,6 +792,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     persona: parseCharacterPersona(character.persona),
     styleIds: characterStyleIds(character),
     styleName: character.styleId,
+    voiceMode: resolveCharacterVoiceMode(character),
     voice: parseCharacterVoice(character.voice),
     voiceSample: character.voiceSample
       ? {

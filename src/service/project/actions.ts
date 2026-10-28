@@ -52,7 +52,7 @@ import { sanitizeFolderName } from "@/service/folder";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
-import type { CastMember, Character } from "@/model/character";
+import { resolveCharacterVoiceMode, type CastMember, type Character } from "@/model/character";
 import { PRODUCT_MAX, type Product, type ProductShot } from "@/model/product";
 import { isProjectBusy } from "@/service/clip-stage";
 import { markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
@@ -380,6 +380,7 @@ async function buildCast(
       : inferFallbackCharacterVoice(
           [character.name, activeVersion.spec?.identity, activeVersion.prompt].filter(Boolean).join("\n"),
         );
+    const useDemoVoice = resolveCharacterVoiceMode(character) === "sample";
     cast.push({
       characterId: character._id,
       versionId: activeVersion.id,
@@ -393,7 +394,7 @@ async function buildCast(
       voice: resolvedVoice,
       ...(persona ? { persona } : {}),
       // Snapshot so a later sample change does not re-voice this video.
-      ...(character.voiceSample
+      ...(useDemoVoice && character.voiceSample
         ? {
             voiceSample: {
               url: character.voiceSample.url,
@@ -401,7 +402,7 @@ async function buildCast(
             },
           }
         : {}),
-      ...(character.voiceSamples
+      ...(useDemoVoice && character.voiceSamples
         ? (() => {
             const voiceSamples: NonNullable<CastMember["voiceSamples"]> = {};
             for (const [lang, s] of Object.entries(character.voiceSamples)) {

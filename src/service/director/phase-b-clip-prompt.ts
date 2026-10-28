@@ -130,6 +130,7 @@ export function clipPhaseBUserPrompt(input: {
       speechPace: input.speechPace,
       speakers: input.speakers,
       silent: isSilentOutfitSkill(input.skillSlug),
+      noSfx: true,
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,

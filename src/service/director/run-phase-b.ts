@@ -127,8 +127,8 @@ ${
     input.sceneTextOff
       ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers. The picture stays free of writing. "
       : ""
-  }Never request background music, BGM, a musical score, or an underscore. ${
-    silent ? "Sound effects only. No voice." : "Voice and short synced SFX only."
+  }Never request background music, BGM, a musical score, an underscore, or sound effects (no dings, chimes, pops, whooshes, or Foley SFX). ${
+    silent ? "Silent clip: no voice and no sound effects." : "Clean spoken voice only — no sound effects."
   }`;
 }
 
@@ -202,7 +202,7 @@ export async function runPhaseBForClip(
     speechPace: input.speechPace,
     speakers: input.cast,
     silent,
-    noSfx: talkingHead,
+    noSfx: true,
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Overlay-era talking-head stills say "no extra writing" and have no Subtitle sentence.

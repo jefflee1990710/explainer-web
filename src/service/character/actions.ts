@@ -72,7 +72,7 @@ import { toPublicCharacter, type PublicCharacter, type PublicStyle } from "@/pre
 import { isListedStyleId } from "@/service/style/list-selectable";
 import { listSelectableStyles } from "@/service/style/list";
 import type { PlanId } from "@/model/subscription";
-import type { Character, CharacterVersion } from "@/model/character";
+import type { Character, CharacterVersion, CharacterVoiceMode } from "@/model/character";
 import { characterVoiceForStorage, parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import { characterBlueprintVoiceInput, inferCharacterVoice } from "@/service/character/infer-voice";
 import { VOICE_FILL_LIMIT, VOICE_FILL_WINDOW_MS } from "@/service/character/voice-fill-rate";
@@ -668,7 +668,22 @@ export async function suggestCharacterVoiceAction(characterId: string): Promise<
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },
-      { $set: { voice, updatedAt: new Date() } },
+      { $set: { voice, voiceMode: "lock", updatedAt: new Date() } },
+    );
+    const videos = await videosCollection();
+    await videos.updateMany(
+      { "cast.characterId": character._id },
+      {
+        $unset: {
+          "cast.$[member].voiceSample": "",
+          "cast.$[member].voiceSamples": "",
+        },
+        $set: {
+          "cast.$[member].voice": voice,
+          updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "member.characterId": character._id }] },
     );
     revalidateCharacter(characterId);
     return reload(character._id);
@@ -695,9 +710,90 @@ export async function saveCharacterVoiceAction(
     await characters.updateOne(
       { _id: character._id },
       stored
-        ? { $set: { voice: stored, updatedAt: new Date() } }
+        ? { $set: { voice: stored, voiceMode: "lock", updatedAt: new Date() } }
         : { $unset: { voice: "" }, $set: { updatedAt: new Date() } },
     );
+    if (stored) {
+      const videos = await videosCollection();
+      await videos.updateMany(
+        { "cast.characterId": character._id },
+        {
+          $unset: {
+            "cast.$[member].voiceSample": "",
+            "cast.$[member].voiceSamples": "",
+          },
+          $set: {
+            "cast.$[member].voice": stored,
+            updatedAt: new Date(),
+          },
+        },
+        { arrayFilters: [{ "member.characterId": character._id }] },
+      );
+    }
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "儲存聲線失敗");
+  }
+}
+
+// Switches a character's active voice source between Voice lock ("lock") and Demo voice ("sample").
+export async function setCharacterVoiceModeAction(
+  characterId: string,
+  voiceMode: CharacterVoiceMode,
+): Promise<CharacterResult> {
+  try {
+    if (voiceMode !== "lock" && voiceMode !== "sample") {
+      return { ok: false, error: "聲線設定無效" };
+    }
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      { $set: { voiceMode, updatedAt: new Date() } },
+    );
+
+    const videos = await videosCollection();
+    if (voiceMode === "lock") {
+      await videos.updateMany(
+        { "cast.characterId": character._id },
+        {
+          $unset: {
+            "cast.$[member].voiceSample": "",
+            "cast.$[member].voiceSamples": "",
+          },
+          $set: { updatedAt: new Date() },
+        },
+        { arrayFilters: [{ "member.characterId": character._id }] },
+      );
+    } else {
+      const setFields: Record<string, unknown> = { updatedAt: new Date() };
+      if (character.voiceSample?.url && character.voiceSample?.elevenVoiceId) {
+        setFields["cast.$[member].voiceSample"] = {
+          url: character.voiceSample.url,
+          elevenVoiceId: character.voiceSample.elevenVoiceId,
+        };
+      }
+      if (character.voiceSamples) {
+        for (const [lang, s] of Object.entries(character.voiceSamples)) {
+          if (s?.url && s?.elevenVoiceId) {
+            setFields[`cast.$[member].voiceSamples.${lang}`] = {
+              url: s.url,
+              elevenVoiceId: s.elevenVoiceId,
+            };
+          }
+        }
+      }
+      await videos.updateMany(
+        { "cast.characterId": character._id },
+        { $set: setFields },
+        { arrayFilters: [{ "member.characterId": character._id }] },
+      );
+    }
+
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
@@ -833,6 +929,7 @@ export async function uploadCharacterVoiceSampleAction(
       { _id: character._id },
       {
         $set: {
+          voiceMode: "sample",
           voiceSample: newSampleDoc,
           [`voiceSamples.${language}`]: newSampleDoc,
           updatedAt: new Date(),
@@ -978,7 +1075,7 @@ export async function removeCharacterVoiceSampleAction(
         { _id: character._id },
         {
           $unset: { voiceSample: "", [`voiceSamples.${language}`]: "" },
-          $set: { updatedAt: new Date() },
+          $set: { voiceMode: "lock", updatedAt: new Date() },
         },
       );
       await videos.updateMany(

@@ -432,11 +432,11 @@ function fitFramePrompt(
         line
           .replace(
             /^Identity notes \([^)]+\):/,
-            "Identity notes (match identity only; relight from Scene and render matte porous skin):",
+            "Identity notes (preserve portrait face & exact real-photo porous skin texture; relight from Scene):",
           )
           .replace(
             /^A character board shows the SAME person twice:[\s\S]*$/,
-            "Character board = SAME person twice (face close-up left, full-body right); draw one figure only.",
+            "Character board = SAME person twice: copy face & exact real-photo porous skin texture from left close-up, body & outfit from right full-body; draw one figure only.",
           ),
       ),
     }),
@@ -445,7 +445,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: directional available window daylight and soft rim light from the window side (camera-right) with negative fill on the opposite interior side for a dimensional 1.4:1–1.8:1 facial shading (25–40% natural shadow falloff on the far cheek and nose bridge; override flat blueprint lighting, no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 CMOS sensor — clean digital color, no heavy 35mm film grain), raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, subtle under-eye and laugh-line texture, natural tooth detail, matte-natural skin with zero oily, waxy, porcelain, or plastic sheen, real fabric weave and lap contact shadows, soft background bokeh (no foreground obstructions).",
+          " Realism: directional available window daylight and soft rim light from the window side (camera-right) with negative fill on the opposite interior side for a dimensional 1.4:1–1.8:1 facial shading (25–40% natural shadow falloff on the far cheek and nose bridge; no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 CMOS sensor — clean digital color, no heavy 35mm film grain), faithfully preserve the character portrait's raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, subtle under-eye and laugh-line texture, natural tooth detail, matte-natural skin with zero oily, waxy, porcelain, or plastic sheen, real fabric weave and lap contact shadows, soft background bokeh (no foreground obstructions).",
         )
         .trim(),
     }),
@@ -457,7 +457,7 @@ function fitFramePrompt(
       ...p,
       renderDetail: p.renderDetail
         ? p.renderDetail.startsWith("Real human camera capture:")
-          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with directional available window daylight and negative fill on the shadow side (dimensional 1.4:1–1.8:1 facial shading, neutral/cool highlights unless a warm lamp is visible, below pure-white clipping) and raw unretouched matte-natural skin pores, peach-fuzz, under-eye micro-texture (override smooth blueprint; zero oily, waxy, or plastic sheen) with soft background bokeh."
+          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with directional available window daylight and negative fill on the shadow side (dimensional 1.4:1–1.8:1 facial shading, neutral/cool highlights unless a warm lamp is visible, below pure-white clipping) and faithfully preserve the character portrait's raw unretouched matte-natural skin pores, peach-fuzz, and under-eye micro-texture (zero oily, waxy, or plastic sheen) with soft background bokeh."
           : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with clean digital colour and no film grain, matte-natural skin pores (zero oily sheen), keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
         : "",
     }),

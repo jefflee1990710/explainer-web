@@ -161,7 +161,16 @@ export function lockDialogueSpeech(
     speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
   },
 ) {
-  let body = prompt.trim();
+  let body = prompt
+    .trim()
+    .replace(
+      /Spoken audio and short synced SFX only\./g,
+      "Clean spoken voice only — no sound effects (no dings, chimes, pops, whooshes, clapping, tapping, typing, or Foley SFX).",
+    )
+    .replace(
+      /, plus diegetic environmental sound effects synced to each physical action\./g,
+      ". Clean spoken voice only — no sound effects (no dings, chimes, whooshes, pops, or Foley SFX).",
+    );
   if (skillBansNarration(skillSlug)) {
     // A second pass must not quote the whole prompt, including an earlier mouth lock.
     const mouth = /(?:^|\n)Mouth: /.test(body)
@@ -176,11 +185,7 @@ export function lockDialogueSpeech(
     const shot = talkingShotForSkill(skillSlug) ?? "face";
     body = body
       .replace(/^ON-SCREEN SPEECH REQUIRED[^\n]*\n\n/, "")
-      .replace(/The unseen off-screen narrator MUST use/g, "The on-screen speaker MUST use")
-      .replace(
-        /Spoken audio and short synced SFX only\./g,
-        "Clean spoken voice only — no sound effects (no clapping, tapping, typing, or Foley SFX).",
-      );
+      .replace(/The unseen off-screen narrator MUST use/g, "The on-screen speaker MUST use");
     const hasInlineTalkingChoreography =
       /with continuous(?:, active syllable-by-syllable visible)? lip-sync|口型跟住講/.test(body) &&
       /changing shape every 1–2 seconds|每 1–2 秒換一個手勢|co-speech gesture excursion|自然拍點手勢/.test(

@@ -108,6 +108,12 @@ export async function saveCharacterVoiceAction(
   return service.saveCharacterVoiceAction(...args);
 }
 
+export async function setCharacterVoiceModeAction(
+  ...args: Parameters<typeof service.setCharacterVoiceModeAction>
+) {
+  return service.setCharacterVoiceModeAction(...args);
+}
+
 export async function uploadCharacterVoiceSampleAction(
   ...args: Parameters<typeof service.uploadCharacterVoiceSampleAction>
 ) {

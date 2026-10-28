@@ -32,6 +32,7 @@ export function CharacterVoiceFields({
   value,
   disabled,
   auto,
+  hideEnableCheckbox,
   onEnabled,
   onChange,
 }: {
@@ -41,26 +42,31 @@ export function CharacterVoiceFields({
   disabled?: boolean;
   // Create form: leaving the lock off still runs inference on submit.
   auto?: boolean;
+  // Character Voice tab: mode switcher already selects Voice lock vs Demo voice.
+  hideEnableCheckbox?: boolean;
   onEnabled: (enabled: boolean) => void;
   onChange: (value: CharacterVoice) => void;
 }) {
   const { t } = useI18n();
   const previewName = name.trim() || "NAME";
+  const showFields = hideEnableCheckbox ? true : enabled;
 
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm font-semibold">{t("characters.voiceTitle")}</legend>
       <p className="text-xs leading-5 text-muted">{t("characters.voiceHint")}</p>
-      <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm font-semibold">
-        <input
-          type="checkbox"
-          checked={enabled}
-          disabled={disabled}
-          onChange={(event) => onEnabled(event.target.checked)}
-        />
-        {t("characters.voiceEnabled")}
-      </label>
-      {enabled ? (
+      {!hideEnableCheckbox ? (
+        <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={enabled}
+            disabled={disabled}
+            onChange={(event) => onEnabled(event.target.checked)}
+          />
+          {t("characters.voiceEnabled")}
+        </label>
+      ) : null}
+      {showFields ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("characters.voiceGender")}>

@@ -20,7 +20,7 @@ export function castSpecLines(cast: CastMember[] | undefined, maxChars: number) 
 
 // What a board reference is, so the model reads both panels as one person.
 const BOARD_LAYOUT_NOTE =
-  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face from the close-up (facial identity and features only — override the blueprint's neutral expression with the Scene's emotion) and the body, outfit, and proportions from the standing figure. Never draw both panels.";
+  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face AND its exact real-photo skin texture (visible pores, peach-fuzz, fine lines, and matte-natural complexion) from the close-up (adjusting only the facial expression to match the Scene's emotion) and the body, outfit, and proportions from the standing figure. Never draw both panels.";
 
 export type CharacterLockSource = {
   cast?: CastMember[];
@@ -265,7 +265,7 @@ export function castParagraphForFrames(
     BLUEPRINT_REFERENCE_ONLY,
     ...(hasBoard(cast) ? [BOARD_LAYOUT_NOTE] : []),
     ...(specLines.length
-      ? [`Identity notes (match identity only; relight from the Scene's light source and render real porous human skin micro-texture, never copy blueprint lighting or airbrushed plastic skin): ${specLines.join(" | ")}`]
+      ? [`Identity notes (preserve the character portrait's exact facial geometry and real porous human skin micro-texture while lighting from the Scene's light source; never smooth into airbrushed or plastic skin): ${specLines.join(" | ")}`]
       : []),
     "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];

@@ -16,6 +16,7 @@ import {
 	type TextFontWeight,
 } from "@/opencut/text/primitives";
 import {
+	computeTunedSubtitleFontSize,
 	scaleSubtitleFontSizeForCanvas,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
@@ -28,7 +29,7 @@ export {
 	wrapSubtitleTextWithMeasure,
 };
 
-const SUBTITLE_MAX_WIDTH_RATIO = 0.84;
+const SUBTITLE_MAX_WIDTH_RATIO = 0.8;
 const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.08;
 const SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO = 0.12;
 const SUBTITLE_FONT_SIZE = 4.2;
@@ -262,14 +263,106 @@ function resolvePositionY({
 	);
 }
 
+/**
+ * Auto-detects the maximum wrapped line width across all subtitle cues in a track
+ * and tunes a unified `fontSize` so the widest subtitle spans ~86% of `canvasSize.width`
+ * (leaving ~7% horizontal padding on both left and right sides).
+ */
+export function autoTuneSubtitleTrackFontSize({
+	captions,
+	canvasSize,
+}: {
+	captions: SubtitleCue[];
+	canvasSize: { width: number; height: number };
+}): number | null {
+	if (captions.length === 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
+		return null;
+	}
+	const firstStyle = resolveSubtitleStyle({
+		style: captions[0].style,
+		canvasSize,
+	});
+	const baseFontSize = firstStyle.fontSize;
+	const targetVisualWidth = resolveTargetWidth({
+		canvasWidth: canvasSize.width,
+		placement: firstStyle.placement,
+	});
+
+	const ctx = createMeasurementContext();
+	if (ctx) {
+		const fontFamily = quoteFontFamily({ fontFamily: firstStyle.fontFamily });
+		const fontWeight = firstStyle.fontWeight;
+		const fontStyle = firstStyle.fontStyle === "italic" ? "italic" : "normal";
+		const scaledFontSize =
+			baseFontSize * (canvasSize.height / FONT_SIZE_SCALE_REFERENCE);
+		ctx.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${fontFamily}, sans-serif`;
+		setCanvasLetterSpacing({ ctx, letterSpacingPx: firstStyle.letterSpacing });
+
+		const bgHorizPad = firstStyle.background.enabled
+			? 2 *
+				(firstStyle.background.paddingX ?? DEFAULTS.text.background.paddingX) *
+				(baseFontSize / 15)
+			: 0;
+		const textMaxWidth = Math.max(120, targetVisualWidth - bgHorizPad);
+		const isSingleLineStyle = captions[0].style?.singleLine === true;
+		const hasDuoColors =
+			!isSingleLineStyle &&
+			Boolean(
+				firstStyle.background.secondaryColor ||
+					firstStyle.background.secondaryTextColor,
+			);
+
+		let maxVisualWidth = 0;
+		for (const cue of captions) {
+			const wrapped = wrapSubtitleText({
+				ctx,
+				text: cue.text,
+				maxWidth: isSingleLineStyle ? textMaxWidth * 1.12 : textMaxWidth,
+				preferTwoLines: hasDuoColors,
+			});
+			const m = measureWrappedTextBlock({
+				ctx,
+				content: wrapped,
+				canvasHeight: canvasSize.height,
+				textAlign: firstStyle.textAlign,
+				background: firstStyle.background,
+				fontSize: baseFontSize,
+				lineHeight: firstStyle.lineHeight,
+			});
+			maxVisualWidth = Math.max(maxVisualWidth, m.visualRect.width);
+		}
+
+		if (maxVisualWidth > 0) {
+			return computeTunedSubtitleFontSize({
+				baseFontSize,
+				canvasSize,
+				targetVisualWidth,
+				measuredMaxVisualWidth: maxVisualWidth,
+				texts: captions.map((c) => c.text),
+			});
+		}
+	}
+
+	return computeTunedSubtitleFontSize({
+		baseFontSize,
+		canvasSize,
+		targetVisualWidth,
+		texts: captions.map((c) => c.text),
+		paddingX: firstStyle.background.paddingX ?? DEFAULTS.text.background.paddingX,
+		backgroundEnabled: firstStyle.background.enabled,
+	});
+}
+
 export function buildSubtitleTextElement({
 	index,
 	caption,
 	canvasSize,
+	tunedFontSize,
 }: {
 	index: number;
 	caption: SubtitleCue;
 	canvasSize: { width: number; height: number };
+	tunedFontSize?: number;
 }): CreateTextElement {
 	const ctx = createMeasurementContext();
 	const style = resolveSubtitleStyle({
@@ -281,20 +374,20 @@ export function buildSubtitleTextElement({
 	});
 	const fontWeight = style.fontWeight;
 	const fontStyle = style.fontStyle === "italic" ? "italic" : "normal";
-	const scaledFontSize =
-		style.fontSize * (canvasSize.height / FONT_SIZE_SCALE_REFERENCE);
-	const fontString = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${fontFamily}, sans-serif`;
 	const maxWidth = resolveTargetWidth({
 		canvasWidth: canvasSize.width,
 		placement: style.placement,
 	});
 
+	let effectiveFontSize = tunedFontSize ?? style.fontSize;
 	let content = caption.text;
 	let positionX = 0;
 	let positionY = 0;
 
 	if (ctx) {
-		ctx.font = fontString;
+		const scaledFontSize =
+			effectiveFontSize * (canvasSize.height / FONT_SIZE_SCALE_REFERENCE);
+		ctx.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${fontFamily}, sans-serif`;
 		setCanvasLetterSpacing({ ctx, letterSpacingPx: style.letterSpacing });
 		const isSingleLineStyle = caption.style?.singleLine === true;
 		const hasDuoColors =
@@ -302,21 +395,51 @@ export function buildSubtitleTextElement({
 			Boolean(
 				style.background.secondaryColor || style.background.secondaryTextColor,
 			);
+		const bgHorizPad = style.background.enabled
+			? 2 *
+				(style.background.paddingX ?? DEFAULTS.text.background.paddingX) *
+				(effectiveFontSize / 15)
+			: 0;
+		const textMaxWidth = Math.max(120, maxWidth - bgHorizPad);
+
 		content = wrapSubtitleText({
 			ctx,
 			text: caption.text,
-			maxWidth: isSingleLineStyle ? maxWidth * 1.12 : maxWidth,
+			maxWidth: isSingleLineStyle ? textMaxWidth * 1.12 : textMaxWidth,
 			preferTwoLines: hasDuoColors,
 		});
-		const measurement = measureWrappedTextBlock({
+		let measurement = measureWrappedTextBlock({
 			ctx,
 			content,
 			canvasHeight: canvasSize.height,
 			textAlign: style.textAlign,
 			background: style.background,
-			fontSize: style.fontSize,
+			fontSize: effectiveFontSize,
 			lineHeight: style.lineHeight,
 		});
+
+		// Safety clamp: if this cue's visual width (including background padding) still exceeds maxWidth,
+		// scale effectiveFontSize down so it always leaves clean padding on the left and right sides.
+		if (measurement.visualRect.width > maxWidth && measurement.visualRect.width > 0) {
+			const shrinkRatio = maxWidth / measurement.visualRect.width;
+			effectiveFontSize = Math.max(
+				1.8,
+				Math.floor(effectiveFontSize * shrinkRatio * 10) / 10,
+			);
+			const nextScaledFontSize =
+				effectiveFontSize * (canvasSize.height / FONT_SIZE_SCALE_REFERENCE);
+			ctx.font = `${fontStyle} ${fontWeight} ${nextScaledFontSize}px ${fontFamily}, sans-serif`;
+			measurement = measureWrappedTextBlock({
+				ctx,
+				content,
+				canvasHeight: canvasSize.height,
+				textAlign: style.textAlign,
+				background: style.background,
+				fontSize: effectiveFontSize,
+				lineHeight: style.lineHeight,
+			});
+		}
+
 		positionX = resolvePositionX({
 			canvasWidth: canvasSize.width,
 			textAlign: style.textAlign,
@@ -338,7 +461,7 @@ export function buildSubtitleTextElement({
 		params: {
 			...DEFAULTS.text.element.params,
 			content,
-			fontSize: style.fontSize,
+			fontSize: effectiveFontSize,
 			fontFamily: style.fontFamily,
 			color: style.color,
 			textAlign: style.textAlign,

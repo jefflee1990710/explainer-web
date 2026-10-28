@@ -82,6 +82,7 @@ export async function listSoundEffectsAction(input: {
 }
 
 // Freesound background music (BGM) search filtered to longer instrumental beds.
+// Falls back to the raw query if adding "music" yields 0 results because Freesound uses strict AND matching.
 export async function listBgmTracksAction(input: {
   page?: number;
   query?: string;
@@ -92,18 +93,31 @@ export async function listBgmTracksAction(input: {
     await requireClerkUserId();
     const pageNum = input.page ?? 1;
     const rawQuery = input.query?.trim() || "";
-    const moodQuery = input.moodQuery?.trim() || "ambient instrumental background music";
-    const combinedQuery = rawQuery
-      ? `${rawQuery} instrumental music`
+    const moodQuery = input.moodQuery?.trim() || "ambient music";
+    const commercialOnly = input.commercialOnly ?? true;
+    const primaryQuery = rawQuery
+      ? /\bmusic\b/i.test(rawQuery)
+        ? rawQuery
+        : `${rawQuery} music`
       : moodQuery;
 
-    const freesoundPage = await searchFreesoundSounds({
+    let freesoundPage = await searchFreesoundSounds({
       page: pageNum,
-      query: combinedQuery,
-      commercialOnly: input.commercialOnly ?? true,
+      query: primaryQuery,
+      commercialOnly,
       durationMinSec: 15,
       durationMaxSec: 300,
     }).catch(() => ({ count: 0, hasNext: false, results: [] }));
+
+    if (freesoundPage.results.length === 0 && rawQuery && primaryQuery !== rawQuery) {
+      freesoundPage = await searchFreesoundSounds({
+        page: pageNum,
+        query: rawQuery,
+        commercialOnly,
+        durationMinSec: 15,
+        durationMaxSec: 300,
+      }).catch(() => ({ count: 0, hasNext: false, results: [] }));
+    }
 
     return {
       ok: true as const,

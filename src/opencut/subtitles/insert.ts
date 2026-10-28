@@ -4,7 +4,10 @@ import {
 	BatchCommand,
 	InsertElementCommand,
 } from "@/opencut/commands";
-import { buildSubtitleTextElement } from "./build-subtitle-text-element";
+import {
+	autoTuneSubtitleTrackFontSize,
+	buildSubtitleTextElement,
+} from "./build-subtitle-text-element";
 import type { SubtitleCue } from "./types";
 
 export const SUBTITLE_TRACK_NAME = "Subtitles · 字幕圖層";
@@ -55,6 +58,10 @@ export function insertCaptionChunksAsTextTrack({
 		? reusableTrack.id
 		: addTrackCommand!.getTrackId();
 	const canvasSize = editor.project.getActive().settings.canvasSize;
+	const tunedTrackFontSize = autoTuneSubtitleTrackFontSize({
+		captions,
+		canvasSize,
+	});
 	const insertCommands = captions.map(
 		(caption, index) =>
 			new InsertElementCommand({
@@ -63,6 +70,7 @@ export function insertCaptionChunksAsTextTrack({
 					index,
 					caption,
 					canvasSize,
+					tunedFontSize: tunedTrackFontSize ?? undefined,
 				}),
 			}),
 	);

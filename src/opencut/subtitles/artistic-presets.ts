@@ -38,7 +38,7 @@ export function quoteFontFamily({ fontFamily }: { fontFamily: string }): string 
 export function tokenizeMixedSubtitleLine(text: string): string[] {
 	const tokens: string[] = [];
 	const regex =
-		/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}][，。！？；：、）】」』》”’,.!?;:)\]]*|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|\s+/gu;
+		/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}][，。！？；：、）】」』》”’,.!?;:)\]]*|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}—–]+[—–]*|[—–]+|\s+/gu;
 	let match: RegExpExecArray | null;
 	while ((match = regex.exec(text)) !== null) {
 		tokens.push(match[0]);
@@ -161,8 +161,17 @@ export function wrapSubtitleTextWithMeasure({
 		}
 
 		// Whenever greedy wrapping produced 2 lines (e.g. 6 words on line 1 + 1 orphan word on line 2),
-		// or when preferTwoLines is requested on a 1-line caption, rebalance into 2 equal lines.
-		if (lines.length === 2 || (preferTwoLines && lines.length === 1)) {
+		// or when preferTwoLines is requested on a long-enough 1-line caption, rebalance into 2 equal wide lines.
+		const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(
+			trimmedParagraph,
+		);
+		const longEnoughForTwoLines = hasCjk
+			? trimmedParagraph.length >= 11
+			: trimmedParagraph.length >= 28 && trimmedParagraph.split(/\s+/).length >= 5;
+		if (
+			lines.length === 2 ||
+			(preferTwoLines && lines.length === 1 && longEnoughForTwoLines)
+		) {
 			const balanced = balanceTwoLineSubtitle({
 				text: trimmedParagraph,
 				maxWidth,
@@ -170,6 +179,20 @@ export function wrapSubtitleTextWithMeasure({
 			});
 			if (balanced) {
 				wrappedParagraphs.push(balanced);
+				continue;
+			}
+		}
+
+		// If greedy wrapping spilled into 3+ lines, check if a balanced 2-line split fits within a slightly wider bound
+		// (the font-size auto-tuner will then scale fontSize down so the 2 wide lines fit with left/right padding).
+		if (lines.length >= 3) {
+			const balancedWide = balanceTwoLineSubtitle({
+				text: trimmedParagraph,
+				maxWidth: maxWidth * 1.22,
+				measure,
+			});
+			if (balancedWide) {
+				wrappedParagraphs.push(balancedWide);
 				continue;
 			}
 		}
@@ -571,6 +594,74 @@ export function scaleSubtitleFontSizeForCanvas({
 	return Math.max(1.5, Math.round(baseFontSize * aspectFactor * 10) / 10);
 }
 
+/**
+ * Pure helper that tunes `baseFontSize` so the widest subtitle cue (wrapped into 1–2 lines)
+ * spans `targetVisualWidth` (~86% of canvasWidth, leaving ~7% padding on left and right).
+ */
+export function computeTunedSubtitleFontSize({
+	baseFontSize,
+	canvasSize,
+	targetVisualWidth,
+	measuredMaxVisualWidth,
+	texts,
+	paddingX = 24,
+	backgroundEnabled = false,
+}: {
+	baseFontSize: number;
+	canvasSize: { width: number; height: number };
+	targetVisualWidth: number;
+	measuredMaxVisualWidth?: number;
+	texts: string[];
+	paddingX?: number;
+	backgroundEnabled?: boolean;
+}): number {
+	const isVertical = canvasSize.height > canvasSize.width;
+	const minFontSize = isVertical ? 2.0 : 3.0;
+	const maxFontSize = isVertical ? 2.9 : 4.8;
+
+	if (measuredMaxVisualWidth && measuredMaxVisualWidth > 0) {
+		const ratio = targetVisualWidth / measuredMaxVisualWidth;
+		const tuned = Math.round(baseFontSize * ratio * 10) / 10;
+		return Math.max(minFontSize, Math.min(maxFontSize, tuned));
+	}
+
+	const scaledPx = baseFontSize * (canvasSize.height / 90);
+	const bgHorizPad = backgroundEnabled
+		? 2 * paddingX * (baseFontSize / 15) + 24
+		: 16;
+	let maxEstVisualWidth = 0;
+	for (const rawText of texts) {
+		const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(
+			rawText,
+		);
+		const charPx = hasCjk ? scaledPx * 0.96 : scaledPx * 0.54;
+		const shouldWrapTwoLines = hasCjk
+			? rawText.length >= 11
+			: rawText.length >= 28 && rawText.split(/\s+/).length >= 5;
+		const wrapped = shouldWrapTwoLines
+			? (balanceTwoLineSubtitle({
+					text: rawText,
+					maxWidth: 10000,
+					measure: (val) => val.length * charPx,
+				}) ?? rawText)
+			: rawText;
+		const longestLineChars = Math.max(
+			...wrapped.split("\n").map((line) => line.trim().length),
+			1,
+		);
+		maxEstVisualWidth = Math.max(
+			maxEstVisualWidth,
+			longestLineChars * charPx + bgHorizPad,
+		);
+	}
+	if (maxEstVisualWidth > 0) {
+		const ratio = targetVisualWidth / maxEstVisualWidth;
+		const tuned = Math.round(baseFontSize * ratio * 10) / 10;
+		return Math.max(minFontSize, Math.min(maxFontSize, tuned));
+	}
+	return baseFontSize;
+}
+
 export function resolveSubtitleStyleOverrides({
 	lookId,
 	fontFamilyOverride,
@@ -592,18 +683,23 @@ export type TimedVoSubtitleSegment = {
 	duration: number;
 };
 
-function splitLongClauseIntoChunks(clause: string, maxLatinWords = 7, maxCjkChars = 18): string[] {
+function splitLongClauseIntoChunks(
+	clause: string,
+	maxLatinWords = 11,
+	maxLatinChars = 59,
+	maxCjkChars = 24,
+): string[] {
 	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(clause);
 	if (hasCjk) {
 		if (clause.length <= maxCjkChars) return [clause];
 		const tokens = tokenizeMixedSubtitleLine(clause);
-		const parts = Math.max(2, Math.ceil(clause.length / 15));
+		const parts = Math.max(2, Math.ceil(clause.length / 20));
 		const targetLen = Math.ceil(clause.length / parts);
 		const chunks: string[] = [];
 		let current = "";
 		for (const tok of tokens) {
 			if (!current && /^\s+$/.test(tok)) continue;
-			if (current.length + tok.length > targetLen && current.trim().length >= 6 && chunks.length < parts - 1) {
+			if (current.length + tok.length > targetLen && current.trim().length >= 8 && chunks.length < parts - 1) {
 				chunks.push(current.trim());
 				current = /^\s+$/.test(tok) ? "" : tok;
 			} else {
@@ -614,26 +710,56 @@ function splitLongClauseIntoChunks(clause: string, maxLatinWords = 7, maxCjkChar
 		return chunks;
 	}
 
-	const words = clause.split(/\s+/).filter(Boolean);
-	if (words.length <= maxLatinWords) return [clause];
-	const parts = Math.max(2, Math.ceil(words.length / 6));
-	const wordsPerPart = Math.ceil(words.length / parts);
+	// Allow breaking around em/en-dashes so compound tokens like "generation—saving" don't create 31-char lines
+	const normalizedClause = clause.replace(/([A-Za-z0-9])([—–])([A-Za-z0-9])/g, "$1$2 $3");
+	const words = normalizedClause.split(/\s+/).filter(Boolean);
+	if (words.length <= maxLatinWords && normalizedClause.length <= maxLatinChars) {
+		return [normalizedClause];
+	}
+	const parts = Math.max(
+		2,
+		Math.ceil(Math.max(words.length / 10, normalizedClause.length / 54)),
+	);
+	const targetChars = Math.ceil(normalizedClause.length / parts);
 	const chunks: string[] = [];
-	for (let i = 0; i < words.length; i += wordsPerPart) {
-		chunks.push(words.slice(i, i + wordsPerPart).join(" "));
+	let currentWords: string[] = [];
+	let currentLen = 0;
+
+	for (let i = 0; i < words.length; i++) {
+		const w = words[i];
+		const nextLen = currentLen === 0 ? w.length : currentLen + 1 + w.length;
+		const remainingWords = words.length - i;
+		const remainingParts = parts - chunks.length - 1;
+		if (
+			currentWords.length >= 3 &&
+			chunks.length < parts - 1 &&
+			remainingWords >= remainingParts * 3 &&
+			nextLen > targetChars
+		) {
+			chunks.push(currentWords.join(" "));
+			currentWords = [w];
+			currentLen = w.length;
+		} else {
+			currentWords.push(w);
+			currentLen = nextLen;
+		}
+	}
+	if (currentWords.length > 0) {
+		chunks.push(currentWords.join(" "));
 	}
 	return chunks;
 }
 
 /**
  * Splits a clip's spoken VO line into natural timed subtitle segments when it contains
- * multiple clauses/sentences, keeping each cue concise (1–2 lines) and timed proportionally.
+ * multiple clauses/sentences, auto-detecting the max comfortable wide 1–2 line length
+ * and timing each segment proportionally.
  */
 export function splitVoIntoSubtitleSegments({
 	line,
 	startTime,
 	duration,
-	maxClauseChars = 18,
+	maxClauseChars,
 }: {
 	line: string;
 	startTime: number;
@@ -642,6 +768,9 @@ export function splitVoIntoSubtitleSegments({
 }): TimedVoSubtitleSegment[] {
 	const cleaned = line.trim().replace(/\s+/g, " ");
 	if (!cleaned || duration <= 0) return [];
+
+	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(cleaned);
+	const effectiveMaxClauseChars = maxClauseChars ?? (hasCjk ? 22 : 52);
 
 	// Split at major CJK/Latin punctuation and English sentence-ending periods (without splitting "Scro.io")
 	const rawClauses = cleaned
@@ -660,12 +789,17 @@ export function splitVoIntoSubtitleSegments({
 		];
 	}
 
-	// Merge very short adjacent clauses so subtitles don't flash too fast
+	// Merge very short adjacent clauses so subtitles don't flash too fast or look stubby
 	const merged: string[] = [];
 	for (const clause of rawClauses) {
 		const prev = merged[merged.length - 1];
-		if (prev && prev.length + 1 + clause.length <= maxClauseChars) {
-			merged[merged.length - 1] = `${prev} ${clause}`;
+		const sep = hasCjk ? " " : " ";
+		if (
+			prev &&
+			prev.length + sep.length + clause.length <= effectiveMaxClauseChars &&
+			!/[！？!?]$/.test(prev)
+		) {
+			merged[merged.length - 1] = `${prev}${sep}${clause}`;
 		} else {
 			merged.push(clause);
 		}

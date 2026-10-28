@@ -273,10 +273,6 @@ export function ScroVideoSync() {
 							typeof sampleEl.params.fontFamily === "string"
 								? sampleEl.params.fontFamily
 								: baseStyle.fontFamily,
-						fontSize:
-							typeof sampleEl.params.fontSize === "number"
-								? sampleEl.params.fontSize
-								: baseStyle.fontSize,
 						color:
 							typeof sampleEl.params.color === "string"
 								? sampleEl.params.color

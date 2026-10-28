@@ -76,6 +76,8 @@ export type CharacterPreset = {
   createdAt: Date;
 };
 
+export type CharacterVoiceMode = "lock" | "sample";
+
 // Reusable character owned by one user.
 export type Character = {
   _id: ObjectId;
@@ -87,6 +89,8 @@ export type Character = {
   starterGift?: boolean;
   // City, tone, and hobbies. Not part of the blueprint or the voice timbre.
   persona?: CharacterPersona;
+  // Which voice source is active: "lock" (acoustic prompt lock) or "sample" (cloned demo voice).
+  voiceMode?: CharacterVoiceMode;
   // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
   voice?: CharacterVoice;
   // Demo voice the clip audio is converted to after generation.
@@ -167,6 +171,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   styleId: z.string(),
   starterGift: z.boolean().optional(),
   persona: characterPersonaSchema.optional(),
+  voiceMode: z.enum(["lock", "sample"]).optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: characterVoiceSampleSchema.optional(),
   voiceSamples: characterVoiceSamplesMapSchema.optional(),
@@ -193,3 +198,18 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   voiceSamples: castVoiceSamplesMapSchema.optional(),
   persona: characterPersonaSchema.optional(),
 });
+
+// Resolves which voice mode ("lock" or "sample") is active for a character.
+export function resolveCharacterVoiceMode(
+  doc: Pick<Character, "voiceMode" | "voice" | "voiceSample" | "voiceSamples">,
+): CharacterVoiceMode {
+  if (doc.voiceMode === "lock" || doc.voiceMode === "sample") {
+    return doc.voiceMode;
+  }
+  const hasSample = Boolean(
+    doc.voiceSample?.url ||
+      (doc.voiceSamples && Object.values(doc.voiceSamples).some((s) => Boolean(s?.url))),
+  );
+  return hasSample ? "sample" : "lock";
+}
+

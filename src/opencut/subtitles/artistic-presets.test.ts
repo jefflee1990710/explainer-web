@@ -4,6 +4,7 @@ import { splitFontStack } from "@/opencut/fonts/google-fonts";
 import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
 import {
 	ARTISTIC_SUBTITLE_PRESETS,
+	computeTunedSubtitleFontSize,
 	EXTRA_SUBTITLE_STYLE_CARDS,
 	quoteFontFamily,
 	resolveSubtitleStyleOverrides,
@@ -145,8 +146,42 @@ test("scaleSubtitleFontSizeForCanvas keeps 9:16 vertical subtitle pixel height c
 		startTime: 35,
 		duration: 5,
 	});
-	assert.ok(englishSegments.length >= 3, `expected >= 3 short cues, got ${englishSegments.length}`);
+	assert.ok(englishSegments.length >= 2, `expected >= 2 wide cues, got ${englishSegments.length}`);
 	assert.ok(englishSegments.some((seg) => seg.text.includes("Scro.io")));
+});
+
+test("splitVoIntoSubtitleSegments and computeTunedSubtitleFontSize produce wide balanced subtitles and tuned font size", () => {
+	const vo =
+		"Stop wasting money on ads for your SaaS! If you are currently running a personal brand or a business, and you find it incredibly difficult to make videos to explain concepts or your products, you can try using Scro. All you need to do is hand over the details you want to introduce and your key highlights to Scro Director. It will then generate storyboards and produce the video based on your requirements. It's time to break free from the endless loop of repetitive generation—saving you both money and time!";
+	const segments = splitVoIntoSubtitleSegments({
+		line: vo,
+		startTime: 0,
+		duration: 32,
+	});
+	// Every segment should be wide and balanced (no tiny 2-word stubs like "to Scro Director")
+	for (const seg of segments) {
+		assert.ok(
+			seg.text.split(/\s+/).length >= 4,
+			`expected wide segment with >= 4 words, got "${seg.text}"`,
+		);
+	}
+	const canvasSize = { width: 1080, height: 1920 };
+	const baseFontSize = scaleSubtitleFontSizeForCanvas({
+		baseFontSize: 4.2,
+		canvasSize,
+	});
+	const tunedFontSize = computeTunedSubtitleFontSize({
+		baseFontSize,
+		canvasSize,
+		targetVisualWidth: 1080 * 0.86,
+		texts: segments.map((s) => s.text),
+		paddingX: 28,
+		backgroundEnabled: true,
+	});
+	assert.ok(
+		tunedFontSize >= 2.0 && tunedFontSize <= 3.4,
+		`expected tunedFontSize in [2.0, 3.4], got ${tunedFontSize}`,
+	);
 });
 
 test("wrapSubtitleTextWithMeasure balances 2-line subtitles so word counts are even instead of leaving 1 orphan word", () => {

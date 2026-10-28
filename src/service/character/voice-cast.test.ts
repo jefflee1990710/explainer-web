@@ -69,3 +69,62 @@ test("mergeCurrentCharacterVoices removes stale voiceSample when character sampl
   const merged = mergeCurrentCharacterVoices(cast, [characterDoc]);
   assert.equal(merged?.[0]?.voiceSample, undefined);
 });
+
+test("mergeCurrentCharacterVoices omits voiceSample and voiceSamples when voiceMode is 'lock'", () => {
+  const charId = new ObjectId("6ae0d86cf75348b44a26322c");
+  const verId = new ObjectId("6ae14d3b7d449728658a0f98");
+
+  const cast: CastMember[] = [
+    {
+      characterId: charId,
+      versionId: verId,
+      name: "Scro",
+      blueprintUrl: "https://example.com/scro.png",
+      prompt: "",
+      voiceSample: {
+        url: "https://example.com/sting.mp3",
+        elevenVoiceId: "fE3jtPUA7zZ3vjTekQhI",
+      },
+      voiceSamples: {
+        en: {
+          url: "https://example.com/sting.mp3",
+          elevenVoiceId: "fE3jtPUA7zZ3vjTekQhI",
+        },
+      },
+    },
+  ];
+
+  const characterDoc = {
+    _id: charId,
+    voiceMode: "lock" as const,
+    voice: {
+      gender: "female" as const,
+      age: "young-adult" as const,
+      pitch: "high" as const,
+      resonance: "bright" as const,
+      texture: "soft" as const,
+      weight: "light" as const,
+      note: "gentle and airy tone",
+    },
+    voiceSample: {
+      url: "https://example.com/sting.mp3",
+      durationSeconds: 6.03,
+      elevenVoiceId: "fE3jtPUA7zZ3vjTekQhI",
+      uploadedAt: new Date("2026-10-28T19:27:06.316Z"),
+    },
+    voiceSamples: {
+      en: {
+        url: "https://example.com/sting.mp3",
+        durationSeconds: 6.03,
+        elevenVoiceId: "fE3jtPUA7zZ3vjTekQhI",
+        uploadedAt: new Date("2026-10-28T19:27:06.316Z"),
+      },
+    },
+  };
+
+  const merged = mergeCurrentCharacterVoices(cast, [characterDoc]);
+  assert.equal(merged?.[0]?.voice?.gender, "female");
+  assert.equal(merged?.[0]?.voiceSample, undefined);
+  assert.equal(merged?.[0]?.voiceSamples, undefined);
+});
+

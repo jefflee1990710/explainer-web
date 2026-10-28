@@ -8,7 +8,7 @@ const start = ticks(400);
 const duration = ticks(300);
 
 describe("scro clip preview plan", () => {
-	it("seeks to the clip start and plays when the playhead is elsewhere", () => {
+	it("seeks to the clip start without auto-playing when the playhead is elsewhere", () => {
 		assert.deepEqual(
 			scroClipPreviewPlan({
 				currentTime: ticks(0),
@@ -16,11 +16,11 @@ describe("scro clip preview plan", () => {
 				duration,
 				shouldPlay: true,
 			}),
-			{ seekTo: start, play: true },
+			{ seekTo: start, play: false },
 		);
 	});
 
-	it("keeps the current frame when the playhead is already inside the clip", () => {
+	it("jumps to the clip start without auto-playing even when the playhead is inside the clip", () => {
 		assert.deepEqual(
 			scroClipPreviewPlan({
 				currentTime: ticks(500),
@@ -28,7 +28,7 @@ describe("scro clip preview plan", () => {
 				duration,
 				shouldPlay: true,
 			}),
-			{ seekTo: null, play: true },
+			{ seekTo: start, play: false },
 		);
 	});
 

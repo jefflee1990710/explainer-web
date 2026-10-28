@@ -452,7 +452,7 @@ ${
         ? `Voice lock: every speaker uses this verbatim: adult ${voice.en}, ${voice.fingerprint}. Do not invent a timbre from the look. No narrator.`
         : `Narrator voice lock: ${voice.label} (adult ${voice.en}), ${voice.fingerprint}. Copy it verbatim. Do not invent a timbre from the look.`
 }
-Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
+Audio: no background music and no sound effects (no dings, chimes, pops, whooshes, or Foley SFX). bgmDirection and each clip bgmSfx MUST be "none". Clean spoken voiceover only.
 On-canvas text: ${
   sceneText.enabled
     ? SCENE_TEXT_PRESETS[sceneText.language].label

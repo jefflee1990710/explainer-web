@@ -44,10 +44,9 @@ export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
 export const VOICE_IDS = Object.keys(VOICE_PRESETS) as VoiceGender[];
 
 export const NO_BGM_RULE =
-  "No background music, no BGM, no musical score, no underscore. Spoken audio and short synced SFX only.";
+  "No background music, no BGM, no musical score, no underscore, and no sound effects (no dings, chimes, pops, whooshes, clapping, tapping, typing, or Foley SFX). Clean spoken voice only.";
 
-export const NO_BGM_NO_SFX_RULE =
-  "No background music, no BGM, no musical score, no underscore, and no sound effects (no clapping, tapping, typing, or Foley SFX). Clean spoken voice only.";
+export const NO_BGM_NO_SFX_RULE = NO_BGM_RULE;
 
 export function isVoiceGender(value: string): value is VoiceGender {
   return VOICE_IDS.includes(value as VoiceGender);
@@ -66,7 +65,7 @@ export function phaseAAudioHint(
   voiceGender?: string,
   options?: { bansNarration?: boolean; speakers?: NamedVoice[]; silent?: boolean },
 ) {
-  const tail = `${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+  const tail = `${NO_BGM_RULE} bgmDirection and every clip bgmSfx must be "none" (no background music and no sound effects).`;
   if (options?.silent) {
     return `No voiceover, no narrator, and no spoken words. Every clip's englishVo MUST be "(no dialogue)". ${tail}`;
   }

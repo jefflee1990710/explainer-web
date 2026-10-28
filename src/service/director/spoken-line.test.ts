@@ -162,7 +162,7 @@ test("lockDialogueSpeech for talking-head locks on-screen female voice at the to
   );
   assert.doesNotMatch(locked, /unseen off-screen narrator/i);
   assert.doesNotMatch(locked, /short synced SFX/i);
-  assert.match(locked, /no sound effects \(no clapping, tapping, typing, or Foley SFX\)/i);
+  assert.match(locked, /no sound effects \(no dings, chimes, pops, whooshes, clapping, tapping, typing, or Foley SFX\)/i);
   assert.ok(locked.length < 4000, `expected deduplicated prompt < 4000 chars, got ${locked.length}`);
   assert.equal(
     lockDialogueSpeech(locked, "talking-head-director", line, ["Scro"], undefined, {

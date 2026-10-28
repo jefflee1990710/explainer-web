@@ -25,8 +25,7 @@ import { localizedStyleName } from "@/util/style-i18n";
 import { isStyleId, type StyleId } from "@/model/style-id";
 import { CharacterPersonaPanel } from "@/presentation/components/app/characters/[id]/character-persona-panel";
 import { CharacterStyleColumn } from "@/presentation/components/app/characters/[id]/character-style-column";
-import { CharacterVoicePanel } from "@/presentation/components/app/characters/[id]/character-voice-panel";
-import { CharacterVoiceSamplePanel } from "@/presentation/components/app/characters/[id]/character-voice-sample-panel";
+import { CharacterVoiceModeSwitcher } from "@/presentation/components/app/characters/[id]/character-voice-mode-switcher";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import type { PlanId } from "@/model/subscription";
 import { characterStyleLimit } from "@/service/character/style-limit";
@@ -347,12 +346,9 @@ export function CharacterWorkspace({
       ) : (
         <section
           aria-label={t("characters.voiceTitle")}
-          className="grid min-h-0 flex-1 gap-4 overflow-y-auto md:grid-cols-2 md:items-start"
+          className="min-h-0 flex-1 overflow-y-auto"
         >
-          <CharacterVoicePanel character={character} onSaved={setCharacter} />
-          <div className="[&>div]:mt-0">
-            <CharacterVoiceSamplePanel character={character} onSaved={setCharacter} />
-          </div>
+          <CharacterVoiceModeSwitcher character={character} onSaved={setCharacter} />
         </section>
       )}
 
