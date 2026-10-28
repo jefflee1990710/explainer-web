@@ -10,6 +10,7 @@ export type SubtitleStyleCard = {
 	name: string;
 	previewUrl: string;
 	drawLook?: string;
+	singleLine?: boolean;
 };
 
 function buildCardTextStyle({
@@ -23,6 +24,7 @@ function buildCardTextStyle({
 	line1Style: CSSProperties;
 	line2Style: CSSProperties;
 	lines: string[];
+	isSingleLine: boolean;
 } {
 	const preset = resolveArtisticSubtitlePreset(lookId);
 	const { style } = preset;
@@ -66,7 +68,7 @@ function buildCardTextStyle({
 		fontWeight: style.fontWeight === "bold" ? 800 : 500,
 		fontStyle: style.fontStyle ?? "normal",
 		textShadow: shadows.length > 0 ? shadows.join(", ") : undefined,
-		padding: bgEnabled ? "1px 6px" : undefined,
+		padding: bgEnabled ? "2px 9px" : undefined,
 		borderRadius: bgEnabled ? radiusPx : undefined,
 		border:
 			bgEnabled && (bgStyle === "brutalist" || bgStyle === "skew")
@@ -78,7 +80,7 @@ function buildCardTextStyle({
 						: undefined,
 		boxShadow:
 			bgEnabled && bgStyle === "brutalist"
-				? "2px 2px 0 #111111"
+				? "2.5px 2.5px 0 #111111"
 				: bgEnabled && bgStyle === "torn"
 					? "0 1px 3px rgba(0,0,0,0.28)"
 					: undefined,
@@ -104,16 +106,18 @@ function buildCardTextStyle({
 	};
 
 	const lines = preset.sampleText.split("\n").filter(Boolean);
+	const isSingleLine = Boolean(style.singleLine) || lines.length === 1;
 
 	return {
 		containerStyle: { background: preset.cardBg },
 		line1Style,
 		line2Style,
 		lines: lines.length > 0 ? lines : [preset.sampleText],
+		isSingleLine,
 	};
 }
 
-// Artistic subtitle style cards rendered with live bilingual Google Fonts + stroke/shadow/pill styling.
+// Wide, low-profile subtitle style strip cards that showcase only the subtitle lettering look.
 export function ScroSubtitleStyleGrid({
 	styles,
 	selectedId,
@@ -128,7 +132,7 @@ export function ScroSubtitleStyleGrid({
 	onSelect: (id: string) => void;
 }) {
 	return (
-		<div className="mt-2 grid grid-cols-2 gap-2" role="listbox" aria-label={label}>
+		<div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2" role="listbox" aria-label={label}>
 			{styles.map((style) => {
 				const active = style.id === selectedId;
 				const lookId = style.drawLook || style.id;
@@ -144,27 +148,38 @@ export function ScroSubtitleStyleGrid({
 						aria-selected={active}
 						onClick={() => onSelect(style.id)}
 						className={cn(
-							"flex flex-col gap-1 rounded-md border p-1 text-left transition",
+							"flex cursor-pointer flex-col gap-1 rounded-lg border p-1.5 text-left transition",
 							active
-								? "border-foreground bg-secondary shadow-xs"
-								: "border-transparent hover:bg-muted",
+								? "border-[#12141c] bg-[#f4f4f5] ring-2 ring-[#12141c]/15"
+								: "border-[#e4e4e7] bg-white hover:border-[#12141c]/40 hover:bg-[#fafafa]",
 						)}
 					>
+						{/* Wide, compact strip preview (not a tall 16:9 box) */}
 						<div
 							style={preview.containerStyle}
-							className="flex aspect-video w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded-sm px-1.5"
+							className="flex h-14 w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md px-3 py-1.5"
 						>
 							{preview.lines.map((lineText, idx) => (
 								<span
 									key={idx}
 									style={idx % 2 === 1 ? preview.line2Style : preview.line1Style}
-									className="max-w-full truncate text-center text-[10px] leading-tight select-none"
+									className={cn(
+										"max-w-full truncate text-center leading-tight select-none",
+										preview.isSingleLine ? "text-xs" : "text-[11px]",
+									)}
 								>
 									{lineText}
 								</span>
 							))}
 						</div>
-						<span className="truncate px-0.5 text-xs font-medium">{style.name}</span>
+						<div className="flex items-center justify-between gap-1.5 px-0.5">
+							<span className="truncate text-[11px] font-semibold text-[#12141c]">
+								{style.name}
+							</span>
+							<span className="shrink-0 rounded bg-[#f4f4f5] px-1.5 py-0.2 text-[9px] font-medium text-[#5c6170]">
+								{preview.isSingleLine ? "單行 1-Line" : "雙行 2-Line"}
+							</span>
+						</div>
 					</button>
 				);
 			})}

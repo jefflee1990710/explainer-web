@@ -338,13 +338,16 @@ export function buildSubtitleTextElement({
 	if (ctx) {
 		ctx.font = fontString;
 		setCanvasLetterSpacing({ ctx, letterSpacingPx: style.letterSpacing });
-		const hasDuoColors = Boolean(
-			style.background.secondaryColor || style.background.secondaryTextColor,
-		);
+		const isSingleLineStyle = caption.style?.singleLine === true;
+		const hasDuoColors =
+			!isSingleLineStyle &&
+			Boolean(
+				style.background.secondaryColor || style.background.secondaryTextColor,
+			);
 		content = wrapSubtitleText({
 			ctx,
 			text: caption.text,
-			maxWidth,
+			maxWidth: isSingleLineStyle ? maxWidth * 1.12 : maxWidth,
 			preferTwoLines: hasDuoColors,
 		});
 		const measurement = measureWrappedTextBlock({

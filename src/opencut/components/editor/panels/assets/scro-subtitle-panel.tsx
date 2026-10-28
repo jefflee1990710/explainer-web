@@ -5,7 +5,6 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
 import { useScroSubtitleCatalog, useScroSubtitleVideoId } from "@/opencut/embed/scro-subtitle-store";
 import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
-import { SubtitleTrackStyleControls } from "@/opencut/components/editor/panels/assets/subtitle-track-style-controls";
 import { ScroSubtitleDesignDialog } from "@/opencut/components/editor/panels/assets/scro-subtitle-design-dialog";
 import { Button } from "@/opencut/components/ui/button";
 import { Input } from "@/opencut/components/ui/input";
@@ -15,6 +14,7 @@ import { TEXT_FONT_PRESETS } from "@/opencut/text/font-presets";
 import { quoteFontFamily } from "@/opencut/text/primitives";
 import {
 	ARTISTIC_SUBTITLE_PRESETS,
+	EXTRA_SUBTITLE_STYLE_CARDS,
 	resolveSubtitleStyleOverrides,
 	splitVoIntoSubtitleSegments,
 } from "@/opencut/subtitles/artistic-presets";
@@ -61,8 +61,21 @@ export function ScroSubtitlePanel() {
 	}, []);
 
 	const ui = catalog?.ui;
+	const allStyles = useMemo(() => {
+		const base = catalog?.styles ?? [];
+		const seen = new Set(base.map((s) => s.id));
+		const merged = [...base];
+		for (const extra of EXTRA_SUBTITLE_STYLE_CARDS) {
+			if (!seen.has(extra.id)) {
+				seen.add(extra.id);
+				merged.push(extra);
+			}
+		}
+		return merged;
+	}, [catalog?.styles]);
+
 	const selectedStyleId =
-		pickedStyleId && catalog?.styles.some((style) => style.id === pickedStyleId)
+		pickedStyleId && allStyles.some((style) => style.id === pickedStyleId)
 			? pickedStyleId
 			: catalog?.selectedId ?? "clean";
 
@@ -109,8 +122,8 @@ export function ScroSubtitlePanel() {
 		if (!hasExisting) return;
 
 		const styleCard =
-			catalog.styles.find((item) => item.id === nextStyleId) ??
-			catalog.styles[0];
+			allStyles.find((item) => item.id === nextStyleId) ??
+			allStyles[0];
 		if (!styleCard) return;
 		const lookId = styleCard.drawLook || styleCard.id;
 		const styleOverrides = resolveSubtitleStyleOverrides({
@@ -165,8 +178,8 @@ export function ScroSubtitlePanel() {
 	const generate = async (styleIdToUse = selectedStyleId) => {
 		if (!catalog || !ui || busy || !videoId) return;
 		const styleCard =
-			catalog.styles.find((item) => item.id === styleIdToUse) ??
-			catalog.styles[0];
+			allStyles.find((item) => item.id === styleIdToUse) ??
+			allStyles[0];
 		if (!styleCard) return;
 		if (catalog.lines.length === 0) {
 			setMessage(ui.noLines);
@@ -259,8 +272,8 @@ export function ScroSubtitlePanel() {
 	}
 
 	const currentStyleCard =
-		catalog.styles.find((item) => item.id === selectedStyleId) ??
-		catalog.styles[0];
+		allStyles.find((item) => item.id === selectedStyleId) ??
+		allStyles[0];
 
 	return (
 		<div className="flex h-full flex-col">
@@ -376,9 +389,6 @@ export function ScroSubtitlePanel() {
 						</div>
 					</div>
 				</div>
-
-				{/* Existing Subtitle Track batch controls (position Y + dual colors) when track exists */}
-				<SubtitleTrackStyleControls compact />
 			</div>
 
 			<div className="border-t p-3">
@@ -399,7 +409,7 @@ export function ScroSubtitlePanel() {
 					disabled={busy || catalog.lines.length === 0 || !videoId}
 					onClick={() => setDesignDialogOpen(true)}
 				>
-					{busy ? ui.generating : `${ui.generate} · 選擇字幕設計`}
+					{busy ? ui.generating : "Next 下一步"}
 				</Button>
 				{message ? <p className="text-muted-foreground mt-2 text-xs">{message}</p> : null}
 				{catalog.lines.length === 0 ? (
@@ -410,7 +420,7 @@ export function ScroSubtitlePanel() {
 			<ScroSubtitleDesignDialog
 				open={designDialogOpen}
 				onOpenChange={setDesignDialogOpen}
-				styles={catalog.styles}
+				styles={allStyles}
 				selectedId={selectedStyleId}
 				fontFamilyOverride={activeFontOverride}
 				fontLabel={selectedFontLabel}

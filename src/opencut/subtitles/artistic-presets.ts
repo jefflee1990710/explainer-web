@@ -1,4 +1,10 @@
 import type { SubtitleStyleOverrides } from "./types";
+import {
+	EXTRA_ARTISTIC_SUBTITLE_PRESETS,
+	EXTRA_SUBTITLE_STYLE_CARDS,
+} from "./extra-presets";
+
+export { EXTRA_SUBTITLE_STYLE_CARDS };
 
 const GENERIC_CSS_FAMILIES = new Set([
 	"sans-serif",
@@ -447,6 +453,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 			},
 		},
 	},
+	...EXTRA_ARTISTIC_SUBTITLE_PRESETS,
 };
 
 export function resolveArtisticSubtitlePreset(lookId?: string): ArtisticSubtitlePreset {

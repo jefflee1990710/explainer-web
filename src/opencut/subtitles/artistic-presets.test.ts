@@ -4,6 +4,7 @@ import { splitFontStack } from "@/opencut/fonts/google-fonts";
 import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
 import {
 	ARTISTIC_SUBTITLE_PRESETS,
+	EXTRA_SUBTITLE_STYLE_CARDS,
 	quoteFontFamily,
 	resolveSubtitleStyleOverrides,
 	scaleSubtitleFontSizeForCanvas,
@@ -63,6 +64,16 @@ test("every artistic subtitle preset defines a bilingual Google Font stack and s
 	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.secondaryColor, "#64E338");
 	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.secondaryTextColor, "#141414");
 	assert.ok(TEXT_FONT_PRESETS.length >= 15);
+	assert.ok(
+		EXTRA_SUBTITLE_STYLE_CARDS.length >= 50,
+		`expected >= 50 extra subtitle styles, got ${EXTRA_SUBTITLE_STYLE_CARDS.length}`,
+	);
+	assert.ok(
+		Object.keys(ARTISTIC_SUBTITLE_PRESETS).length >= 63,
+		`expected >= 63 total presets, got ${Object.keys(ARTISTIC_SUBTITLE_PRESETS).length}`,
+	);
+	const singleLineCards = EXTRA_SUBTITLE_STYLE_CARDS.filter((c) => c.singleLine);
+	assert.ok(singleLineCards.length >= 25, `expected >= 25 single-line designs, got ${singleLineCards.length}`);
 });
 
 test("wrapSubtitleTextWithMeasure wraps Cantonese CJK and English mixed lines without spaces", () => {

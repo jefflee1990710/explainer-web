@@ -44,6 +44,8 @@ export interface SubtitleStyleOverrides {
 	shadowOffsetX?: number;
 	shadowOffsetY?: number;
 	shadowBlur?: number;
+	/** When true, keep short/medium cues on a single line instead of auto-splitting into 2 lines. */
+	singleLine?: boolean;
 	placement?: SubtitlePlacementStyle;
 }
 
