@@ -131,6 +131,28 @@ describe("fit full-length placements", () => {
 		assert.equal(patches[0]?.durationSeconds, 5.05);
 		assert.equal(patches[0]?.trimEndSeconds, 0);
 	});
+
+	it("restores Clip 1 to the start of the timeline if nonOverlappingMainTrackStart pushed it to the end during image-to-video swap", () => {
+		const patches = fitFullLengthPlacements({
+			storyboard: [
+				{ clipNumber: 1, durationSeconds: 6 },
+				{ clipNumber: 2, durationSeconds: 5 },
+				{ clipNumber: 3, durationSeconds: 5 },
+				{ clipNumber: 4, durationSeconds: 6 },
+			],
+			elements: [
+				element({ id: "c2", clip: 2, start: 0, duration: 5, file: null }),
+				element({ id: "c3", clip: 3, start: 5, duration: 5, file: null }),
+				element({ id: "c4", clip: 4, start: 10, duration: 6, file: null }),
+				element({ id: "c1", clip: 1, start: 16, duration: 6.584, file: 6.584 }),
+			],
+		});
+		const byId = new Map(patches.map((patch) => [patch.id, patch]));
+		assert.equal(byId.get("c1")?.startSeconds, 0);
+		assert.ok(Math.abs((byId.get("c2")?.startSeconds ?? 0) - 6.584) < 0.001);
+		assert.ok(Math.abs((byId.get("c3")?.startSeconds ?? 0) - 11.584) < 0.001);
+		assert.ok(Math.abs((byId.get("c4")?.startSeconds ?? 0) - 16.584) < 0.001);
+	});
 });
 
 describe("main track non-overlapping placement", () => {

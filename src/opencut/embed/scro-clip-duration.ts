@@ -145,7 +145,24 @@ export function fitFullLengthPlacements({
 }): FitPatch[] {
 	if (elements.length === 0) return [];
 	const byNumber = new Map(storyboard.map((clip) => [clip.clipNumber, clip.durationSeconds]));
+	const clipCounts = new Map<number, number>();
+	for (const element of elements) {
+		if (element.clipNumber == null) continue;
+		clipCounts.set(element.clipNumber, (clipCounts.get(element.clipNumber) ?? 0) + 1);
+	}
+	const hasSplitStoryClip = Array.from(clipCounts.values()).some((count) => count > 1);
 	const sorted = [...elements].sort((a, b) => {
+		// Keep unsplit storyboard clips (Clip 1, Clip 2, Clip 3...) in their canonical
+		// storyboard order so a longer generated video pushed to the tail by
+		// nonOverlappingMainTrackStart during image->video swap returns to its true slot.
+		if (
+			!hasSplitStoryClip &&
+			a.clipNumber != null &&
+			b.clipNumber != null &&
+			a.clipNumber !== b.clipNumber
+		) {
+			return a.clipNumber - b.clipNumber;
+		}
 		if (Math.abs(a.startSeconds - b.startSeconds) > 0.02) {
 			return a.startSeconds - b.startSeconds;
 		}
@@ -162,11 +179,6 @@ export function fitFullLengthPlacements({
 		string,
 		{ duration: number; trimStart: number; trimEnd: number; source: number }
 	>();
-	const clipCounts = new Map<number, number>();
-	for (const element of sorted) {
-		if (element.clipNumber == null) continue;
-		clipCounts.set(element.clipNumber, (clipCounts.get(element.clipNumber) ?? 0) + 1);
-	}
 
 	for (const element of sorted) {
 		if (element.clipNumber == null) continue;
