@@ -22,13 +22,13 @@ export const TTS_WITH_TIMESTAMPS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const;
 
-// Talking-head creator videos use lower stability (0.28) and expressive style (0.35)
-// so speech has authentic human pitch variation, emphasis, and natural breath pauses
+// Talking-head creator videos use lower stability (0.28) and higher expressive style (0.55)
+// so speech has stronger pitch/energy swings that drive visible lip-sync, plus natural breath pauses
 // instead of a flat newsreader cadence.
 export const TALKING_HEAD_TTS_VOICE_SETTINGS = {
   stability: 0.28,
   similarity_boost: 0.95,
-  style: 0.35,
+  style: 0.55,
   use_speaker_boost: true,
 } as const;
 
@@ -369,7 +369,7 @@ async function fetchWithRateLimitRetry(
 }
 
 // Text-to-speech with character-level timestamps using Eleven v4.
-// When `conversational: true` (talking-head), uses expressive prosody (stability 0.28, style 0.35)
+// When `conversational: true` (talking-head), uses expressive prosody (stability 0.28, style 0.55)
 // and natural inter-sentence breath pauses.
 export async function synthesizeSpeechWithTimestamps(
   voiceId: string,

@@ -40,10 +40,10 @@ export function talkingRealismMotion(language: VoLanguage | undefined, scene: Re
     const hold = scene.openingPhoto
       ? "the light stays as in the first frame"
       : "the natural window side light and clean digital camera color stay fixed, the lived-in room background bokeh stays steady, and focus stays tack-sharp on the face (no heavy vintage film grain or cinematic LUT)";
-    return `Realism: organic handheld iPhone selfie micro-sway of about 1–2 degrees (never a locked tripod statue), natural blinks every few seconds, both eyes staying locked directly on the camera lens center, speech-energy-driven lip and jaw articulation with moist lip highlight and slight left/right smile asymmetry (never a frozen presenter half-smile while talking; zero exaggerated mouth opening, zero excessive jaw swing, zero rubbery cheeks), small breaths that lift the chest and shoulders at natural real-time speed, unfiltered matte-natural human skin keeps its visible pores and fine hair with zero plastic or oily specular sheen, ${hold}.`;
+    return `Realism: organic handheld iPhone selfie micro-sway of about 1–2 degrees (never a locked tripod statue), natural blinks every few seconds, both eyes staying locked directly on the camera lens center, hyper-visible speech-energy lip-sync on every syllable (stressed opens ~45–55%, quiet ~20–30%, pauses fully close with a tiny lip press; glossy moist lip highlight; changing left/right smile asymmetry; never a frozen presenter half-smile or closed mouth while audio speaks; zero cartoon O-mouth, zero excessive jaw swing, zero rubbery cheeks), speech-driven eyebrow and cheek micro-expressions, small breaths that lift the chest and shoulders at natural real-time speed, unfiltered matte-natural human skin keeps its visible pores and fine hair with zero plastic or oily specular sheen, ${hold}.`;
   }
   const hold = scene.openingPhoto
     ? "光線同第一幀一樣"
     : "自然單側窗光同清透真實相機色彩固定唔變，真實室內空間虛化穩定，焦點一直清晰喺塊臉（無厚重菲林顆粒或復古濾鏡）";
-  return `真實感：有機手持 iPhone 自拍微晃約 1–2 度（唔好死鎖腳架），每幾秒自然眨眼，雙眼全程穩定直望鏡頭中心，口型同下巴跟住語音能量開合、唇有水潤高光、微笑左右輕微唔對稱（講嘢時唔好凍住播音員淺笑；無誇張張大嘴、無下巴大幅擺動或面部拉扯變形），細細啖呼吸令心口同膊頭自然起伏，無濾鏡真實皮膚保持毛孔同細汗毛、無油光或塑膠反光，${hold}。`;
+  return `真實感：有機手持 iPhone 自拍微晃約 1–2 度（唔好死鎖腳架），每幾秒自然眨眼，雙眼全程穩定直望鏡頭中心，每個音節都有明顯跟語音能量嘅口型（重音開約 45–55%、輕音約 20–30%、停頓時完全合唇並輕輕抿一下；唇有水潤高光；微笑左右唔對稱會跟住講嘢變化；有聲時絕對唔好凍住播音員淺笑或合口唔郁；無卡通大 O 嘴、無下巴大幅擺動或面部拉扯變形），眉毛同面頰跟重音微動，細細啖呼吸令心口同膊頭自然起伏，無濾鏡真實皮膚保持毛孔同細汗毛、無油光或塑膠反光，${hold}。`;
 }
