@@ -1166,9 +1166,9 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className="flex min-h-full w-full flex-1 flex-col justify-between gap-6 p-6 sm:px-8 sm:py-7 lg:px-10"
+              className="flex min-h-full w-full flex-1 flex-col justify-between gap-4 p-4 sm:px-6 sm:py-5 lg:px-8"
             >
-              <div className="space-y-6">
+              <div className="space-y-4">
               <input type="hidden" name="projectId" value={projectId} />
 
               <BriefSetupModeBar
@@ -1223,10 +1223,10 @@ export function NewProjectForm({
                   />
 
                   {/* 02 Visual Style & 03 Characters */}
-                  <div className="grid gap-4 md:grid-cols-2 lg:items-stretch">
+                  <div className="grid gap-3 md:grid-cols-2 lg:items-stretch">
                     <div
                       data-tour-id="visual-style-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
                     >
                       <Section
                         step="02"
@@ -1248,7 +1248,7 @@ export function NewProjectForm({
 
                     <div
                       data-tour-id="character-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
                     >
                       <Section
                         step="03"
@@ -1665,7 +1665,7 @@ export function NewProjectForm({
                           ? t("brief.footer.restartWarning")
                           : project
                             ? t("brief.footer.editBriefWarning")
-                            : t("brief.footer.noCharge")
+                            : null
                         : t("brief.wizard.stepCount", {
                             current: wizardStep + 1,
                             total: talkingHead ? 3 : 4,
