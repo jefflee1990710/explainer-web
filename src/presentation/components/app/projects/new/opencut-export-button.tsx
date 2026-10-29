@@ -124,16 +124,30 @@ export function OpenCutExportButton({
           ? new File([buffer], filename, { type: "video/mp4" })
           : null;
 
-      if (targetId === "native_share") {
-        if (file && typeof navigator !== "undefined" && typeof navigator.share === "function") {
-          const shareData = { files: [file], title: shareTitle, text: shareTitle };
-          if (!navigator.canShare || navigator.canShare(shareData)) {
-            await navigator.share(shareData).catch(() => {});
-            return;
-          }
+      const isInstagramTarget =
+        targetId === "instagram_reel" ||
+        targetId === "instagram_story" ||
+        targetId === "instagram_post";
+
+      // On mobile devices (iOS / Android), use Web Share API with the MP4 file if supported
+      // so the native Instagram Reel / Story / Post sheet opens with the video attached directly.
+      if (
+        (targetId === "native_share" ||
+          (isInstagramTarget &&
+            typeof navigator !== "undefined" &&
+            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))) &&
+        file &&
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function"
+      ) {
+        const shareData = { files: [file], title: shareTitle, text: shareTitle };
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          if (popup && !popup.closed) popup.close();
+          await navigator.share(shareData).catch(() => {});
+          return;
         }
-        return;
       }
+      if (targetId === "native_share") return;
 
       const spec = ALL_EXPORT_SHARE_TARGETS.find((item) => item.id === targetId);
       let hostedUrl = fallbackShareUrl(project);

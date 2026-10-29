@@ -60,23 +60,23 @@ export const INSTAGRAM_EXPORT_TARGETS: readonly ExportShareTargetSpec[] = [
     id: "instagram_reel",
     titleZh: "Instagram Reel",
     titleEn: "Share as IG Reel",
-    subtitleZh: "匯出 MP4 並直開 IG Reels 發佈畫面",
-    subtitleEn: "Export MP4 & open IG Reels composer",
+    subtitleZh: "下載 MP4、複製文案並打開 IG（撳左側「+ 建立」上傳）",
+    subtitleEn: "Download MP4, copy caption & open IG (click '+' Create)",
     badge: "最常用",
   },
   {
     id: "instagram_story",
     titleZh: "Instagram Story 限時動態",
     titleEn: "Share to IG Story",
-    subtitleZh: "匯出 MP4 並開啟 IG Story 限時動態分享",
-    subtitleEn: "Export MP4 & open IG Story sharing",
+    subtitleZh: "下載 MP4、複製文案並打開 IG 限時動態分享",
+    subtitleEn: "Download MP4, copy caption & open IG Story",
   },
   {
     id: "instagram_post",
     titleZh: "Instagram Post 貼文",
     titleEn: "Share as IG Post",
-    subtitleZh: "匯出 MP4 並開啟 IG 貼文建立畫面",
-    subtitleEn: "Export MP4 & open IG Post creator",
+    subtitleZh: "下載 MP4、複製文案並打開 IG（撳左側「+ 建立」上傳）",
+    subtitleEn: "Download MP4, copy caption & open IG (click '+' Create)",
   },
 ];
 
@@ -151,10 +151,10 @@ export function buildExportShareTargetUrl({
   switch (targetId) {
     case "whatsapp":
       return `https://wa.me/?text=${encodeURIComponent(combinedText)}`;
+    // Instagram Web has no standalone `/reels/create/` URL (it returns "Sorry, this page isn't available.");
+    // Reels, Stories, and Posts are uploaded via the left-sidebar "+" (Create) modal on `https://www.instagram.com/`.
     case "instagram_reel":
-      return "https://www.instagram.com/reels/create/";
     case "instagram_story":
-      return "https://www.instagram.com/?story=create";
     case "instagram_post":
       return "https://www.instagram.com/";
     case "tiktok":

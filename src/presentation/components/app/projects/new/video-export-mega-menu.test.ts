@@ -33,11 +33,11 @@ test("buildExportShareTargetUrl formats WhatsApp, IG Reel/Story/Post, and social
 
   assert.equal(
     buildExportShareTargetUrl({ targetId: "instagram_reel", title: "Reel" }),
-    "https://www.instagram.com/reels/create/",
+    "https://www.instagram.com/",
   );
   assert.equal(
     buildExportShareTargetUrl({ targetId: "instagram_story", title: "Story" }),
-    "https://www.instagram.com/?story=create",
+    "https://www.instagram.com/",
   );
   assert.equal(
     buildExportShareTargetUrl({ targetId: "instagram_post", title: "Post" }),

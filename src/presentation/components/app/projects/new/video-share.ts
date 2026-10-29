@@ -46,7 +46,7 @@ export function videoShareHref(id: VideoShareId, videoUrl: string, caption?: str
     if (text) params.set("text", text);
     return `https://twitter.com/intent/tweet?${params.toString()}`;
   }
-  if (id === "instagram_reel") return "https://www.instagram.com/reels/create";
+  if (id === "instagram_reel") return "https://www.instagram.com/";
   if (id === "instagram_post") return "https://www.instagram.com/";
   if (id === "tiktok") return "https://www.tiktok.com/tiktokstudio/upload";
   return "https://www.youtube.com/upload";
