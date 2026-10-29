@@ -14,12 +14,12 @@ const VIDEO_KNEE_LUT_EXPR =
 export const REALISTIC_VIDEO_GRADE_FILTER =
   `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',setsar=1`;
 
-// Subtle iPhone CMOS sensor micro-texture filter for Talking-Head / Avatar IV videos:
-// - Restores natural high-frequency skin pore micro-texture (`unsharp` + luma-only temporal CMOS noise `c0s=1.8:c0f=t+u`)
-//   to break up neural lip-sync temporal skin smoothing
+// Stronger iPhone CMOS sensor micro-texture filter for Talking-Head / Avatar IV videos:
+// - Restores high-frequency skin pore micro-texture (`unsharp` + luma-only temporal CMOS noise `c0s=2.8:c0f=t+u`)
+//   to break up neural lip-sync temporal skin smoothing without a vintage film look
 // - Does NOT apply the darkening highlight LUT so iPhone Smart HDR skin tones, eye catchlights, and lip moisture stay bright
 export const TALKING_HEAD_SENSOR_GRAIN_FILTER =
-  "unsharp=3:3:0.25:3:3:0.0,noise=c0s=1.8:c0f=t+u,setsar=1";
+  "unsharp=3:3:0.4:3:3:0.0,noise=c0s=2.8:c0f=t+u,setsar=1";
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [

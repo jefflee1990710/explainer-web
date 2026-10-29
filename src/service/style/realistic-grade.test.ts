@@ -23,7 +23,7 @@ test("talkingHeadSensorGrainArgs applies subtle iPhone CMOS luma micro-grain and
   assert.ok(args.includes(TALKING_HEAD_SENSOR_GRAIN_FILTER));
   assert.ok(args.includes("-pix_fmt"));
   assert.equal(args[args.indexOf("-pix_fmt") + 1], "yuv420p");
-  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /unsharp=3:3:0\.25/);
-  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /noise=c0s=1\.8:c0f=t\+u/);
+  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /unsharp=3:3:0\.4/);
+  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /noise=c0s=2\.8:c0f=t\+u/);
   assert.doesNotMatch(TALKING_HEAD_SENSOR_GRAIN_FILTER, /lutrgb=/);
 });
