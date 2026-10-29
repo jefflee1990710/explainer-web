@@ -22,7 +22,7 @@ const FACE_EN: PerformanceSlots = {
     "0.0–0.5s head tilted slightly down in thought before lifting gaze onto the lens, eyebrows softly lifted, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
-    "most of the time (~90%) both hands rest calmly on the lap or armchair armrest in a neutral rest position (or one hand holds a small tactile prop near the chin/chest); only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
+    "most of the time (~90%) both hands rest calmly on the lap or armchair armrest in a neutral rest position (or one hand holds a compact handheld wireless lavalier microphone near the chin/upper chest); only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
   headMotion:
     "proximal torso, pelvis, and shoulders stay anchored in the armchair; the head starts tilted slightly down for the first 0.5s before lifting to lock eyes on the lens, with a subtle 1–2 degree prosodic nod on stressed words, a subtle left-to-right head shake on disbelief/negative words, and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
@@ -36,7 +36,7 @@ const FACE_YUE: PerformanceSlots = {
   hookBeat: "0.0–0.5s 頭微垂思考隨即抬眼鎖定鏡頭，眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
-    "近九成時間雙手自然放鬆放喺大髀或扶手椅休息位（Neutral Rest，或一隻手拎住小道具做支點）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
+    "近九成時間雙手自然放鬆放喺大髀或扶手椅休息位（Neutral Rest，或一隻手兩指輕捏住迷你手提無線收音咪停喺下巴／胸口前做支點）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
   headMotion:
     "腰部、軀幹同雙肩保持固定喺同一位置（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭 0.5 秒由微垂自然抬起，之後頭部正對鏡頭，喺重音字有 1–2 度嘅微幅點頭、否定字眼時輕輕左右搖頭，雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
