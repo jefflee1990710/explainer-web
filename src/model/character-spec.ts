@@ -85,13 +85,29 @@ export function sanitizeSpecSkinTone(skinTone: string) {
     .trim();
 }
 
+// Strip baked-in expression words ("wide smile", "showing upper teeth", "smiling almond eyes")
+// from stored face geometry so talking-head stills do not lock a permanent toothy grin.
+export function sanitizeSpecFace(face: string) {
+  return face
+    .replace(/\bsmiling\s+(?=(?:almond\s+)?eyes\b)/gi, "")
+    .replace(
+      /\b(?:wide|broad|bright|big|toothy|full)\s+smil(?:e|ing)(?:\s+mouth)?(?:\s+showing\s+(?:upper\s+)?teeth)?\b/gi,
+      "natural well-proportioned lips",
+    )
+    .replace(/\bshowing\s+(?:upper\s+|white\s+)?teeth\b/gi, "lips gently closed")
+    .replace(/\s{2,}/g, " ")
+    .replace(/,\s*,/g, ",")
+    .trim();
+}
+
 // One compact line for image prompts. Frame prompts share a tight character cap,
 // so this stays short and skips the palette (the attached image carries colour).
 export function characterSpecLine(spec: CharacterSpec, maxChars = 320) {
   const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
+  const face = spec.face ? sanitizeSpecFace(spec.face) : "";
   const parts = [
     spec.identity,
-    spec.face && `face: ${spec.face}`,
+    face && `face: ${face}`,
     spec.hair && `hair: ${spec.hair}`,
     skin && `skin: ${skin}`,
     spec.body && `build: ${spec.body}`,

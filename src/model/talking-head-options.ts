@@ -224,23 +224,23 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Head-to-feet standing frame — widest talking-head zoom.",
     descriptionZhHant: "頭到腳全身站姿，對鏡講稿最廣的取景。",
     startPoseEn:
-      "Character: the only person in the frame, head to feet fully visible, standing in a candid, relaxed contrapposto creator stance (weight resting naturally on one hip with the other knee slightly soft, torso angled 10–15 degrees off-square while head turns to look straight into the lens, feet planted at a natural staggered shoulder-width stance with clear dark contact shadows on the floor — NEVER standing stiffly at attention, NEVER symmetrical mannequin posture, NEVER hands stiffly clasped over the stomach), one arm hanging loosely by the side or thumb lightly near the trouser pocket, the other hand raised naturally at waist-to-lower-chest height with an open conversational palm mid-thought, lips gently closed or barely parted ready to speak (no wide toothy grin), warm candid expression.",
+      "Character: the only person in the frame, head to feet fully visible, standing in a candid, relaxed contrapposto creator stance (weight resting naturally on one hip with the other knee slightly soft, torso angled 10 degrees off-square while the head turns to look straight into the lens, feet planted at a natural staggered stance with clear dark contact shadows on the floor — NEVER standing stiffly at attention, NEVER symmetrical mannequin posture), both arms resting calmly down (one thumb hooked lightly at the trouser pocket edge and the other arm hanging naturally relaxed by the side — NO raised hands in mid-air, NO gesturing hands, NO clasped hands over the stomach), lips gently closed in a calm, natural, unforced expression with ZERO teeth visible (never a wide toothy grin or studio smile), soft lived-in eyes with natural upper-lid relaxation.",
     endPoseEn:
-      "Character: still the only person in the frame, head to feet fully visible in the same relaxed contrapposto creator stance with weight shifted slightly to the other hip, eyes locked on the lens, mouth just closed into a warm natural half-smile, the gesturing hand settling naturally down toward waist level while the other arm stays relaxed at the side, feet grounded on the floor.",
+      "Character: still the only person in the frame, head to feet fully visible in the same relaxed contrapposto creator stance, eyes locked on the lens, lips gently closed in a calm natural expression with zero teeth visible, both arms resting calmly down by the pocket/side with no raised hands, feet grounded on the floor.",
     startPoseYue:
-      "角色：畫面只有呢一個人，頭到腳全身入鏡，以自然真實創作者「三七步」放鬆站姿企喺畫面（重心自然放喺一邊髖部、另一隻膝頭微鬆，上身微側 10–15 度再轉頭直望鏡頭，雙腳自然微錯開企喺地面並有清晰真實落腳陰影——絕對唔好雙腳併攏立正罰企、唔好似公仔模型對稱僵硬、唔好雙手死板合十放喺肚前），一隻手自然放鬆垂喺身旁或輕貼褲袋邊，另一隻手自然抬到腰至下胸高度掌心微開好似同朋友傾緊偈，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情生動自然唔擺拍。",
+      "角色：畫面只有呢一個人，頭到腳全身入鏡，以自然真實創作者「三七步」放鬆站姿企喺畫面（重心自然放喺一邊髖部、另一隻膝頭微鬆，上身微側 10 度再轉頭直望鏡頭，雙腳自然微錯開企喺地面並有清晰真實落腳陰影——絕對唔好雙腳併攏立正罰企、唔好似公仔模型對稱僵硬），雙手自然放鬆放低（一隻手拇指輕搭西褲袋邊，另一隻手自然垂放身側——絕對唔好舉起隻手喺半空比手勢、唔好雙手合十放肚前），雙唇自然輕合唔露牙（完全唔好露齒笑、唔好影樓假笑，神情平靜自然真實，眼神柔和唔瞪眼）。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，頭到腳全身入鏡保持自然放鬆三七步站姿，重心輕微換過少少，正面直望鏡頭，口部合上變成自然淺笑，原本做手勢隻手自然收落腰側，另一隻手放鬆垂低，雙腳穩踏地面。",
+      "角色：畫面仍然只有呢一個人，頭到腳全身入鏡保持自然放鬆三七步站姿，正面直望鏡頭，雙唇自然輕合唔露牙，雙手仍然自然放鬆放低喺褲袋邊同身側（唔好舉手），雙腳穩踏地面。",
     cameraEn:
-      "Camera: candid creator reel shot at 2.5m distance on a 35mm f/2.0 lens at chest-to-eye height with a subtle 3/4 room angle so the window sits 45 degrees to one side (never flat straight-on passport framing, never backlit silhouette against a window directly behind the back), locked full-body so head to feet stay in frame, face tack-sharp and background softly blurred. No microphone.",
+      "Camera: candid creator reel shot at 1.9m distance on a 50mm f/1.8 standard portrait lens at chest-to-eye height with a subtle 3/4 room angle so the window sits 45 degrees to one side (never wide-angle distortion, never flat straight-on passport framing, never backlit silhouette against a window directly behind the back), locked full-body so head to feet stay in frame filling 85% of the vertical height so the face is large and detailed, face tack-sharp and background softly blurred. No microphone.",
     cameraYue:
-      "鏡頭：離人物約 2.5 米、35mm f/2.0 胸口至視線高度實拍全身（微斜 3/4 空間角度，令大窗喺人物側面 45 度打側光，絕對唔好正對背後大窗背光企正中間似證件相），頭到腳全身自然入鏡，畫面側邊帶少少柔和虛化嘅前景檯角或綠植增加空間層次，塊臉清晰銳利、背景自然光學虛化。冇咪。",
+      "鏡頭：離人物約 1.9 米、50mm f/1.8 標準人像焦段、胸口至視線高度實拍全身（微斜 3/4 空間角度，令大窗喺人物側面 45 度打自然側光，人物佔垂直畫面高度約 85% 令塊臉夠大夠清晰，絕對唔好廣角拉長變形、唔好背光企正中間似證件相），頭到腳全身自然入鏡，塊臉五官毛孔清晰銳利、背景自然光學虛化。冇咪。",
     gestureEn:
-      "relaxed contrapposto standing body language with subtle hip-to-hip weight transfer and natural torso sway; one hand stays relaxed by the side while the active hand makes conversational open-palm gestures between waist and chest height on key points, never frozen clasped hands or stiff robotic posture",
+      "calm, grounded standing posture with subtle breathing and gentle 1–2 degree head nods; both arms and hands stay calm and relaxed down at the sides/pocket with NO hand waving or mid-air gestures",
     gestureYue:
-      "自然放鬆三七步站姿，身體重心會隨講嘢輕微轉移同自然呼吸微動；一隻手放鬆垂低，另一隻手隨重點自然抬起喺腰胸之間做傾偈手勢，絕對唔好雙手死合肚前或好似機械人罰企",
+      "自然放鬆站姿，只有細微呼吸同 1–2 度自然點頭；雙手全程自然放鬆垂喺褲袋邊同身側，絕對唔好揮手或舉手做動作",
     geminiPreviewPrompt:
-      "Full-body vertical 9:16 photorealistic portrait of a friendly young East Asian creator standing in a relaxed contrapposto stance (weight on one hip, torso slightly angled, one hand relaxed by pocket, other hand in a casual mid-speech gesture at waist height) in a sunlit room with 45-degree side window daylight and floor contact shadows, head to feet fully visible, 35mm f/2.0, clean modern camera look.",
+      "Full-body vertical 9:16 photorealistic portrait of a friendly young East Asian creator standing in a relaxed contrapposto stance (weight on one hip, torso slightly angled, one thumb hooked lightly in pocket, other arm relaxed at side, lips gently closed with no teeth showing) in a sunlit room with 45-degree side window daylight and floor contact shadows, head to feet fully visible, 50mm f/1.8, clean modern camera look.",
     previewUrl: "/talking-head-poses/full-body.webp",
   },
   {

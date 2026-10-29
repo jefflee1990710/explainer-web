@@ -436,7 +436,7 @@ function fitFramePrompt(
           )
           .replace(
             /^A character board shows the SAME person twice:[\s\S]*$/,
-            "Character board = SAME person twice: copy face & exact real-photo porous skin texture from left close-up, body & outfit from right full-body; draw one figure only.",
+            "Character board = SAME person twice: copy facial bone structure & hair from left close-up and outfit from right full-body, but override any board toothy smile or flat light (keep lips gently closed with zero teeth, real skin pores, and Scene directional side light); draw one figure only.",
           ),
       ),
     }),

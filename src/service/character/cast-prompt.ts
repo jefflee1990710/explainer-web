@@ -20,7 +20,7 @@ export function castSpecLines(cast: CastMember[] | undefined, maxChars: number) 
 
 // What a board reference is, so the model reads both panels as one person.
 const BOARD_LAYOUT_NOTE =
-  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face AND its exact real-photo skin texture (visible pores, peach-fuzz, fine lines, and matte-natural complexion) from the close-up (adjusting only the facial expression to match the Scene's emotion) and the body, outfit, and proportions from the standing figure. Never draw both panels.";
+  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the facial bone structure, hair, and outfit from the board, but OVERRIDE any flat studio lighting, airbrushed skin, or wide toothy smile in the board — render raw unretouched real human skin with visible pores, peach-fuzz, natural asymmetrical eye softness, and the exact closed-lip expression and directional window lighting described in the Scene. Never draw both panels.";
 
 export type CharacterLockSource = {
   cast?: CastMember[];

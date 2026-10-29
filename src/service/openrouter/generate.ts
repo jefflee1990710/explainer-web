@@ -170,7 +170,7 @@ export async function submitOpenRouterImage(
   const key = assertOpenRouterKey();
   const fetchFn = options?.fetch ?? fetch;
   const payload = JSON.stringify(openRouterImageBody(input));
-  let response: Response;
+  let response: Response | undefined;
   try {
     response = await fetchFn(OPENROUTER_IMAGES_URL, {
       method: "POST",
@@ -179,23 +179,34 @@ export async function submitOpenRouterImage(
         "Content-Type": "application/json",
       },
       body: payload,
-      signal: AbortSignal.timeout(8 * 60_000),
+      signal: AbortSignal.timeout(75_000),
     });
   } catch (error) {
     if (options?.fetch) throw error;
-    const fallbackBody = openRouterImageBody({
-      ...input,
-      resolution: "1k",
-    });
-    response = await fetchFn(OPENROUTER_IMAGES_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(fallbackBody),
-      signal: AbortSignal.timeout(8 * 60_000),
-    });
+    const fallbackBody = JSON.stringify(
+      openRouterImageBody({
+        ...input,
+        resolution: "1k",
+      }),
+    );
+    let lastErr: unknown = error;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await fetchFn(OPENROUTER_IMAGES_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: fallbackBody,
+          signal: AbortSignal.timeout(90_000),
+        });
+        break;
+      } catch (retryErr) {
+        lastErr = retryErr;
+      }
+    }
+    if (!response) throw lastErr;
   }
 
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -264,7 +275,7 @@ export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
   "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add organic handheld iPhone selfie micro-sway of about 1–2 degrees (tiny irregular drift and settle — never a locked tripod statue, never large pans or zooms). PRIORITY — hyper-visible speech-energy lip-sync: the mouth MUST actively reshape on every syllable in hard sync with the audio waveform — stressed / loud syllables open ~45–55%, quiet syllables ~20–30%, and every pause fully closes the lips with a tiny lip press; keep glossy moist lip highlight and clear left/right smile asymmetry that changes while talking; NEVER hold a frozen presenter half-smile, toothy grin, or closed mouth while audio is speaking. Jaw, lips, and cheeks move independently per phoneme (clean bilabial m/b/p closure, soft dental/fricative shapes) — never rubbery whole-face warp, never wide rounded cartoon O-mouth, never grimace, never eyes squinted shut into an exaggerated laugh. Upper face stays alive with speech-driven eyebrow lifts, tiny cheek pushes, and ocular micro-saccades on emphasis words; natural blinks every few seconds; eyes locked on the lens. Soft hair-strand / flyaway physics follow 1–2° prosodic head nods and breathing shoulders. Keep shoulders grounded with only brief co-speech micro-motion on key emphasis.";
 
 export const HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT =
-  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add organic handheld creator-camera micro-sway of about 1–2 degrees (never a frozen mannequin statue, never large pans or zooms). Natural full-body creator performance: the speaker stands in a relaxed contrapposto posture with fluid hip-to-hip weight transfer, subtle torso turns and slight forward leans on emphasis beats, natural shoulder breathing, and conversational open-palm hand gestures at waist-to-chest height that rise naturally on key phrases and settle smoothly (NEVER freeze the arms or hands in a stiff clasped pose, NEVER stand like a rigid robot at attention, and NEVER wave frantically). PRIORITY — hyper-visible speech-energy lip-sync: the mouth MUST actively reshape on every syllable in hard sync with the audio waveform — stressed / loud syllables open ~45–55%, quiet syllables ~20–30%, and every pause fully closes the lips with a tiny lip press; keep glossy moist lip highlight and clear left/right smile asymmetry that changes while talking; NEVER hold a frozen presenter half-smile, toothy grin, or closed mouth while audio is speaking. Jaw, lips, and cheeks move independently per phoneme (clean bilabial m/b/p closure, soft dental/fricative shapes) — never rubbery whole-face warp, never wide rounded cartoon O-mouth, never grimace. Upper face stays alive with speech-driven eyebrow lifts, tiny cheek pushes, natural head tilts/nods, and natural blinks every few seconds with eyes locked on the lens.";
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Keep both arms and hands calm, relaxed, and still down at the sides/pocket throughout the video — NO hand gestures, NO waving, NO raising arms, and NO blurry hand motion. Add only subtle, natural human breathing and gentle 1–2 degree head nods on emphasis words. PRIORITY — natural, lifelike real-person facial articulation and lip-sync: the mouth reshapes smoothly and realistically on every syllable in sync with the audio (~25–35% natural conversational mouth opening, clean lip closure on bilabial m/b/p sounds and pauses, relaxed jaw and soft natural cheeks — NEVER a wide toothy grin, NEVER exaggerated jaw swing, NEVER rubbery face warp, and NEVER glassy wide-staring eyes). Upper face stays softly alive with subtle speech-driven brow micro-movements and natural blinks every few seconds while eyes stay warmly focused on the lens.";
 
 export function heyGenAvatarIvMotionPrompt(poseId?: string | null): string {
   if (poseId === "full-body" || poseId === "waist-up") {
