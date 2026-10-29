@@ -81,7 +81,6 @@ import { probeAudioSeconds, stripVideoAudio, swapClipVoice } from "@/service/voi
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
 import { CANTONESE_VOICE_ID, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import {
-  HEYGEN_AVATAR_IV_MOTION_PROMPT,
   heyGenAvatarIvMotionPrompt,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
 } from "@/service/openrouter/generate";
