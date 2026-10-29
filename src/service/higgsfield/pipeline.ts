@@ -82,6 +82,7 @@ import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args
 import { CANTONESE_VOICE_ID, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import {
   HEYGEN_AVATAR_IV_MOTION_PROMPT,
+  heyGenAvatarIvMotionPrompt,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
 } from "@/service/openrouter/generate";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
@@ -748,13 +749,14 @@ export async function sendClipVideo(
         "audio/mpeg",
       );
       referenceAudioUrl = preGeneratedVoUrl;
+      const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId);
       const projects = await videosCollection();
       await projects.updateOne(
         { _id: project._id },
         {
           $set: {
             "clips.$[clip].prompt": audioFirstTalkingHead
-              ? HEYGEN_AVATAR_IV_MOTION_PROMPT
+              ? avatarIvPrompt
               : videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
@@ -782,7 +784,7 @@ export async function sendClipVideo(
     }
     const submitted = await submitClipVideo({
       model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-      prompt: HEYGEN_AVATAR_IV_MOTION_PROMPT,
+      prompt: heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId),
       aspectRatio: project.aspectRatio,
       durationSeconds,
       startImageUrl: start,

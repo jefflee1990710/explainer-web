@@ -224,23 +224,23 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Head-to-feet standing frame — widest talking-head zoom.",
     descriptionZhHant: "頭到腳全身站姿，對鏡講稿最廣的取景。",
     startPoseEn:
-      "Character: the only person in the frame, standing upright and centered, head to feet fully visible, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), calm confident half-smile, hands lightly resting together at waist level in a relaxed presenter stance, feet planted in place.",
+      "Character: the only person in the frame, head to feet fully visible, standing in a candid, relaxed contrapposto creator stance (weight resting naturally on one hip with the other knee slightly soft, torso angled 10–15 degrees off-square while head turns to look straight into the lens, feet planted at a natural staggered shoulder-width stance with clear dark contact shadows on the floor — NEVER standing stiffly at attention, NEVER symmetrical mannequin posture, NEVER hands stiffly clasped over the stomach), one arm hanging loosely by the side or thumb lightly near the trouser pocket, the other hand raised naturally at waist-to-lower-chest height with an open conversational palm mid-thought, lips gently closed or barely parted ready to speak (no wide toothy grin), warm candid expression.",
     endPoseEn:
-      "Character: still the only person in the frame, still standing upright and centered head to feet, eyes locked on the lens, mouth just closed into a calm confident half-smile, hands returned to resting lightly together at waist level, feet in the same place.",
+      "Character: still the only person in the frame, head to feet fully visible in the same relaxed contrapposto creator stance with weight shifted slightly to the other hip, eyes locked on the lens, mouth just closed into a warm natural half-smile, the gesturing hand settling naturally down toward waist level while the other arm stays relaxed at the side, feet grounded on the floor.",
     startPoseYue:
-      "角色：畫面只有呢一個人，企直置中，頭到腳全身入鏡，直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情自信從容帶柔和淺笑，雙手自然輕合喺腰腹前方，雙腳企穩唔郁。",
+      "角色：畫面只有呢一個人，頭到腳全身入鏡，以自然真實創作者「三七步」放鬆站姿企喺畫面（重心自然放喺一邊髖部、另一隻膝頭微鬆，上身微側 10–15 度再轉頭直望鏡頭，雙腳自然微錯開企喺地面並有清晰真實落腳陰影——絕對唔好雙腳併攏立正罰企、唔好似公仔模型對稱僵硬、唔好雙手死板合十放喺肚前），一隻手自然放鬆垂喺身旁或輕貼褲袋邊，另一隻手自然抬到腰至下胸高度掌心微開好似同朋友傾緊偈，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情生動自然唔擺拍。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然企直置中頭到腳全身入鏡，正面直望鏡頭，口部合上變成自信淺笑，雙手自然收返輕合喺腰腹前方，雙腳留喺同一個位置。",
+      "角色：畫面仍然只有呢一個人，頭到腳全身入鏡保持自然放鬆三七步站姿，重心輕微換過少少，正面直望鏡頭，口部合上變成自然淺笑，原本做手勢隻手自然收落腰側，另一隻手放鬆垂低，雙腳穩踏地面。",
     cameraEn:
-      "Camera: a phone fixed on a phone tripod at eye level, locked full-body so head to feet stay in frame, 24mm f/1.8, face sharp and background softly blurred. No microphone.",
+      "Camera: candid creator reel shot at 2.5m distance on a 35mm f/2.0 lens at chest-to-eye height with a subtle 3/4 room angle so the window sits 45 degrees to one side (never flat straight-on passport framing, never backlit silhouette against a window directly behind the back), locked full-body so head to feet stay in frame, face tack-sharp and background softly blurred. No microphone.",
     cameraYue:
-      "鏡頭：手機固定喺視線高度腳架鎖定全身，頭到腳都留喺畫面，24mm f/1.8，塊臉清楚、背景少少朦。冇咪。",
+      "鏡頭：離人物約 2.5 米、35mm f/2.0 胸口至視線高度實拍全身（微斜 3/4 空間角度，令大窗喺人物側面 45 度打側光，絕對唔好正對背後大窗背光企正中間似證件相），頭到腳全身自然入鏡，畫面側邊帶少少柔和虛化嘅前景檯角或綠植增加空間層次，塊臉清晰銳利、背景自然光學虛化。冇咪。",
     gestureEn:
-      "standing steady with grounded shoulders; hands rest lightly together at waist level ~90% of the time and make a brief open-palm presenter gesture at lower-chest height on key emphasis words before returning to rest",
+      "relaxed contrapposto standing body language with subtle hip-to-hip weight transfer and natural torso sway; one hand stays relaxed by the side while the active hand makes conversational open-palm gestures between waist and chest height on key points, never frozen clasped hands or stiff robotic posture",
     gestureYue:
-      "站姿穩定唔搖晃；雙手近九成時間輕合喺腰腹前，只喺重點詞出現時單手微抬做約 0.5 秒主持拍點手勢再收返腰前",
+      "自然放鬆三七步站姿，身體重心會隨講嘢輕微轉移同自然呼吸微動；一隻手放鬆垂低，另一隻手隨重點自然抬起喺腰胸之間做傾偈手勢，絕對唔好雙手死合肚前或好似機械人罰企",
     geminiPreviewPrompt:
-      "Full-body vertical 9:16 photorealistic portrait of a friendly young East Asian creator standing upright centered in a sunlit lived-in room, head to feet fully visible, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), hands lightly clasped at waist level, soft window daylight, 24mm f/1.8, clean modern phone camera look.",
+      "Full-body vertical 9:16 photorealistic portrait of a friendly young East Asian creator standing in a relaxed contrapposto stance (weight on one hip, torso slightly angled, one hand relaxed by pocket, other hand in a casual mid-speech gesture at waist height) in a sunlit room with 45-degree side window daylight and floor contact shadows, head to feet fully visible, 35mm f/2.0, clean modern camera look.",
     previewUrl: "/talking-head-poses/full-body.webp",
   },
   {

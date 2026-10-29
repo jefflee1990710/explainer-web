@@ -263,6 +263,16 @@ export type OpenRouterClipVideoRequestBody = {
 export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
   "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add organic handheld iPhone selfie micro-sway of about 1–2 degrees (tiny irregular drift and settle — never a locked tripod statue, never large pans or zooms). PRIORITY — hyper-visible speech-energy lip-sync: the mouth MUST actively reshape on every syllable in hard sync with the audio waveform — stressed / loud syllables open ~45–55%, quiet syllables ~20–30%, and every pause fully closes the lips with a tiny lip press; keep glossy moist lip highlight and clear left/right smile asymmetry that changes while talking; NEVER hold a frozen presenter half-smile, toothy grin, or closed mouth while audio is speaking. Jaw, lips, and cheeks move independently per phoneme (clean bilabial m/b/p closure, soft dental/fricative shapes) — never rubbery whole-face warp, never wide rounded cartoon O-mouth, never grimace, never eyes squinted shut into an exaggerated laugh. Upper face stays alive with speech-driven eyebrow lifts, tiny cheek pushes, and ocular micro-saccades on emphasis words; natural blinks every few seconds; eyes locked on the lens. Soft hair-strand / flyaway physics follow 1–2° prosodic head nods and breathing shoulders. Keep shoulders grounded with only brief co-speech micro-motion on key emphasis.";
 
+export const HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT =
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add organic handheld creator-camera micro-sway of about 1–2 degrees (never a frozen mannequin statue, never large pans or zooms). Natural full-body creator performance: the speaker stands in a relaxed contrapposto posture with fluid hip-to-hip weight transfer, subtle torso turns and slight forward leans on emphasis beats, natural shoulder breathing, and conversational open-palm hand gestures at waist-to-chest height that rise naturally on key phrases and settle smoothly (NEVER freeze the arms or hands in a stiff clasped pose, NEVER stand like a rigid robot at attention, and NEVER wave frantically). PRIORITY — hyper-visible speech-energy lip-sync: the mouth MUST actively reshape on every syllable in hard sync with the audio waveform — stressed / loud syllables open ~45–55%, quiet syllables ~20–30%, and every pause fully closes the lips with a tiny lip press; keep glossy moist lip highlight and clear left/right smile asymmetry that changes while talking; NEVER hold a frozen presenter half-smile, toothy grin, or closed mouth while audio is speaking. Jaw, lips, and cheeks move independently per phoneme (clean bilabial m/b/p closure, soft dental/fricative shapes) — never rubbery whole-face warp, never wide rounded cartoon O-mouth, never grimace. Upper face stays alive with speech-driven eyebrow lifts, tiny cheek pushes, natural head tilts/nods, and natural blinks every few seconds with eyes locked on the lens.";
+
+export function heyGenAvatarIvMotionPrompt(poseId?: string | null): string {
+  if (poseId === "full-body" || poseId === "waist-up") {
+    return HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT;
+  }
+  return HEYGEN_AVATAR_IV_MOTION_PROMPT;
+}
+
 export function openRouterVideoAudioLipSyncBody(input: {
   model?: string;
   prompt?: string;
@@ -308,7 +318,9 @@ export function openRouterHeyGenAudioVideoBody(input: {
   const configured = clipVideoResolution();
   const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const effectivePrompt = isAvatarIv
-    ? HEYGEN_AVATAR_IV_MOTION_PROMPT
+    ? input.prompt === HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+      ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+      : HEYGEN_AVATAR_IV_MOTION_PROMPT
     : capOpenRouterVideoPrompt(input.prompt);
   return {
     model,

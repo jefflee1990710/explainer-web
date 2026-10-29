@@ -230,7 +230,7 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
   assert.equal(heygenBody.resolution, "1080p");
   assert.match(heygenBody.prompt, /hyper-visible speech-energy lip-sync/);
   assert.match(heygenBody.prompt, /45–55%/);
-  assert.match(heygenBody.prompt, /never exaggerate wide rounded O-mouth shapes/);
+  assert.match(heygenBody.prompt, /never wide rounded cartoon O-mouth/);
   assert.deepEqual(heygenBody.input_references, [
     { type: "image_url", image_url: { url: "https://blob/start.png" } },
     { type: "audio_url", audio_url: { url: "https://blob/vo.mp3" } },
