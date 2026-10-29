@@ -243,6 +243,73 @@ function clipCloseLandingYue(
   ];
   return { closeFace, closeBeat: unanchoredHands[variant] };
 }
+const QUESTION_BEAT_RE =
+  /[?？]|\b(?:have you|did you|why|how|what if|ever wondered|do you)\b|有冇|有無|點解|點樣|係咪|知唔知|諗過/i;
+const PROBLEM_BEAT_RE =
+  /\b(?:hard|difficult|problem|bad|lose|waste|risk|fear|worry|struggle|never|cannot|can't|don't|fail|mistake|crisis)\b|唔好|好難|冇安全感|無安全感|蝕|貴|慘|危機|煩惱|唔夠|裁員|失業|辛苦|死路|問題|但係|單靠/i;
+const CTA_POSITIVE_BEAT_RE =
+  /\b(?:free|dm|comment|join|sign up|click|follow|bonus|gift|welcome)\b|免費|報名|留言|快啲|送俾|即刻|好處|幫自己|增加收入|生財/i;
+
+export type FacialBeatTone = "question" | "serious" | "earnest" | "warm-cta";
+
+export function classifySentenceFacialTone(sentence: string, isLast: boolean): FacialBeatTone {
+  const s = sentence.trim();
+  if (PROBLEM_BEAT_RE.test(s)) return "serious";
+  if (QUESTION_BEAT_RE.test(s)) return "question";
+  if (isLast && CTA_POSITIVE_BEAT_RE.test(s)) return "warm-cta";
+  return "earnest";
+}
+
+function splitScriptClausesForFacialPlan(script: string): string[] {
+  return script
+    .replace(/\r\n/g, "\n")
+    .split(/(?<=[。！？!?\n])/u)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+// Director-planned per-sentence micro-expression arc based on the spoken text content.
+// All movements are strictly small-amplitude (1–2mm brow/cheek, 1–2° head), never laughing
+// or holding a fixed smile through serious or problem clauses.
+export function planTalkingHeadFacialExpressionArc(
+  script: string,
+  language?: VoLanguage,
+): string {
+  const clauses = splitScriptClausesForFacialPlan(script);
+  if (clauses.length === 0) return "";
+  const isZh = language === "yue" || language === "zh";
+  const steps = clauses.map((clause, idx) => {
+    const tone = classifySentenceFacialTone(clause, idx === clauses.length - 1);
+    const snippet = clause.length > 28 ? `${clause.slice(0, 27)}…` : clause;
+    if (isZh) {
+      if (tone === "question") {
+        return `第 ${idx + 1} 句（「${snippet}」— 提問／引發思考）：收起笑容，眼神專注直望鏡頭，眉頭極輕微上揚 1–2mm 帶出好奇發問感，面部動作極細`;
+      }
+      if (tone === "serious") {
+        return `第 ${idx + 1} 句（「${snippet}」— 痛點／現實問題）：絕對唔好笑，轉為認真沉穩嘅平靜嚴肅神情，眉心極輕微聚攏 1–2mm、下巴穩定配 1 度極細微搖頭，呈現真實共鳴感`;
+      }
+      if (tone === "warm-cta") {
+        return `第 ${idx + 1} 句（「${snippet}」— 結尾邀請／正面呼籲）：眉心舒展放鬆，眼神溫和篤定，去到句尾先帶出極輕微克制嘅閉唇淺笑（唔好張口大笑或瞇眼）配 1 度微幅點頭`;
+      }
+      return `第 ${idx + 1} 句（「${snippet}」— 核心觀點／方法分享）：神情平靜誠懇、自信篤定（唔好傻笑），配 1 度極細微重音點頭與穩定眼神`;
+    }
+    if (tone === "question") {
+      return `Beat ${idx + 1} ("${snippet}" — hook question): no smile; calm inquisitive gaze with a tiny 1–2mm inner-brow lift and small mouth movements`;
+    }
+    if (tone === "serious") {
+      return `Beat ${idx + 1} ("${snippet}" — problem/pain point): zero smiling or laughing; shift to a serious, empathetic, grounded expression with a tiny 1–2mm brow knit and a subtle 1° head shake`;
+    }
+    if (tone === "warm-cta") {
+      return `Beat ${idx + 1} ("${snippet}" — positive CTA): brows relax open, earnest encouraging eyes, settling into a brief, subtle closed-lip half-smile only at the very end with a 1° nod (never a big laugh or eye squint)`;
+    }
+    return `Beat ${idx + 1} ("${snippet}" — core insight/solution): calm, earnest, matter-of-fact confidence with a neutral un-smiled mouth while speaking and a subtle 1° prosodic nod`;
+  });
+
+  return isZh
+    ? `導演逐句微表情規劃（全程面部動作幅度極細 1–2mm、嚴禁由頭笑到尾，按台詞語義自然切換）：${steps.join("；")}。`
+    : `Director content-driven micro-expression plan (keep all facial movements very small 1–2mm; NEVER laugh or hold a constant smile — shift expression subtly per sentence meaning): ${steps.join("; ")}.`;
+}
+
 function anchorSide() {
   return "right" as const;
 }
@@ -322,7 +389,8 @@ export function talkingMotionLine(input: {
     const subtitleTail = hideSubtitle ? "" : ` ${subtitle}`;
     const transition = "";
     const speakStart = first ? "0.4" : "0";
-    return `${open}; ${speakStart}–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${subtitleTail}`;
+    const facialArc = planTalkingHeadFacialExpressionArc(input.line, "en");
+    return `${open}; ${speakStart}–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${facialArc ? ` ${facialArc}` : ""}${subtitleTail}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
@@ -365,9 +433,10 @@ export function talkingMotionLine(input: {
     ? "鏡頭由第一幀到最後一幀保持 30–40cm 鎖骨以上自拍構圖，24mm f/1.8，有機手持微晃 1–2 度，唔好變焦、唔好換鏡、唔好跳鏡。"
     : "鏡頭由第一幀到最後一幀保持同一構圖，有機手持微晃 1–2 度，唔好變焦、唔好換鏡、唔好跳鏡。";
   const hold = hideSubtitle ? "" : "，大字幕保持唔郁";
-  const fadeOutClause = hideSubtitle ? "" : "，大字幕向下淡出";
+  const fadeOutClause = hideSubtitle ? "" : `，大字幕向下淡出`;
   const subtitleTail = hideSubtitle ? "" : subtitle;
   const transition = "";
   const speakStart = first ? "0.4" : "0";
-  return `${open}；${speakStart}–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${subtitleTail}`;
+  const facialArc = planTalkingHeadFacialExpressionArc(input.line, input.language);
+  return `${open}；${speakStart}–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${facialArc ? `${facialArc}` : ""}${subtitleTail}`;
 }

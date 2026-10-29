@@ -1,6 +1,7 @@
 import type { GenerationStatus } from "@/model/generation-job";
-import type { AspectRatio } from "@/model/project";
+import type { AspectRatio, VoLanguage } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
 import { submitGoogleStudioImage } from "@/service/google/studio-image";
 import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
@@ -272,16 +273,37 @@ export type OpenRouterClipVideoRequestBody = {
 };
 
 export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
-  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add subtle organic handheld micro-sway of about 1 degree (never a locked statue, never large pans or zooms). Keep the speaker facing the camera with eyes steady and calmly focused on the camera lens center. PRIORITY 1 — CALM, UNDERSTATED UPPER FACE & CHEEKS (ZERO OVER-ACTING): Keep the forehead, eyebrows, eyes, and cheeks calm, composed, and relaxed throughout the entire video — NO eyebrow gymnastics (no dramatic brow raising or furrowing), NO eye-squinting Duchenne smiles, NO big toothy grins, NO head shaking, and NO theatrical facial expressions. Only quiet natural blinks every few seconds and a barely perceptible 1-degree nod at sentence pauses. PRIORITY 2 — RESTRAINED, EFFORTLESS CONVERSATIONAL LIP-SYNC: (1) Small, understated ~20–25% vertical jaw opening like casual close-mic indoor speech (never open the mouth wide into a large vertical oval, never gape like a puppet); (2) Smooth phrase co-articulation — keep the mouth softly parted and gliding fluidly between syllables inside a phrase rather than snapping open and closed on every single word, closing the lips gently only on bilabial m/b/p consonants and sentence pauses; (3) Relaxed neutral mouth corners and cheeks while speaking so rounded vowels (o/u/w) form only a subtle, natural lip rounding — NEVER pull into a wide smile, toothy grin, or exaggerated cartoon O-mouth while talking; (4) Lower lip cushions and covers the lower teeth at all times (never expose both rows of teeth, never rubbery whole-face warp, never grimace).";
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Add subtle organic handheld micro-sway of about 1 degree (never a locked statue, never large pans or zooms). Keep the speaker facing the camera with eyes steady and calmly focused on the camera lens center. PRIORITY 1 — SMALL-AMPLITUDE, CONTENT-DRIVEN MICRO-EXPRESSIONS (NEVER JUST LAUGH OR HOLD A CONSTANT SMILE): (1) Keep all facial movements very small and subtle (1–2mm brow and cheek shifts, 1-degree head nods/shakes — ZERO theatrical over-acting, ZERO eye-squinting laughs, ZERO big toothy grins); (2) Do NOT smile or laugh continuously — adapt the micro-expression to the spoken content: use a calm inquisitive look with a tiny 1–2mm inner-brow lift on opening questions, shift to a serious, empathetic, un-smiled expression with a subtle 1–2mm brow knit and tiny 1° head shake on problem or pain-point sentences, hold an earnest composed expression with a 1° nod on solution/insight sentences, and allow only a brief, subtle closed-lip corner soften at the final positive CTA. PRIORITY 2 — RESTRAINED, SMALL CONVERSATIONAL LIP-SYNC: (1) Small, understated ~18–25% vertical jaw opening like casual close-mic indoor speech (never open the mouth wide into a large vertical oval, never gape like a puppet); (2) Smooth phrase co-articulation — keep the mouth softly parted and gliding fluidly between syllables inside a phrase rather than snapping open and closed on every single word, closing the lips gently only on bilabial m/b/p consonants and sentence pauses; (3) Relaxed neutral mouth corners and cheeks while speaking so rounded vowels (o/u/w) form only a subtle, natural lip rounding — NEVER pull into a wide smile, laugh, toothy grin, or exaggerated cartoon O-mouth while talking; (4) Lower lip cushions and covers the lower teeth at all times (never expose both rows of teeth, never rubbery whole-face warp, never grimace).";
 
 export const HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT =
-  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Keep both arms and hands calm, relaxed, and still down at the sides/pocket throughout the video — NO hand gestures, NO waving, NO raising arms, and NO blurry hand motion. Add only subtle, natural human breathing and a barely perceptible 1-degree head nod at sentence pauses while facing the camera. PRIORITY 1 — CALM, UNDERSTATED UPPER FACE & CHEEKS (ZERO OVER-ACTING): Keep the forehead, eyebrows, eyes, and cheeks calm, composed, and relaxed — NO dramatic brow raising or furrowing, NO eye-squinting smiles, NO big toothy grins, and NO theatrical facial acting. PRIORITY 2 — RESTRAINED, EFFORTLESS CONVERSATIONAL LIP-SYNC: (1) Small, understated ~20–25% vertical jaw opening (never gape wide); (2) Smooth phrase co-articulation gliding fluidly between words without snapping open/shut on every syllable, closing lips gently only on bilabial m/b/p sounds and pauses; (3) Relaxed neutral mouth corners while speaking so o/u/w vowels form only a subtle natural rounding — NEVER hold a stretched smile, toothy grin, or exaggerated cartoon O-mouth while talking; (4) Lower lip cushions and covers the lower teeth at all times (never show both rows of teeth, never rubbery face warp). Natural blinks every few seconds while eyes stay calmly focused on the lens.";
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Keep both arms and hands calm, relaxed, and still down at the sides/pocket throughout the video — NO hand gestures, NO waving, NO raising arms, and NO blurry hand motion. Add only subtle, natural human breathing and a barely perceptible 1-degree head nod or shake matching the sentence meaning while facing the camera. PRIORITY 1 — SMALL-AMPLITUDE, CONTENT-DRIVEN MICRO-EXPRESSIONS (NEVER JUST LAUGH OR HOLD A CONSTANT SMILE): Keep all facial movements very small (1–2mm brow/cheek micro-shifts; ZERO eye-squinting laughs, ZERO big toothy grins, ZERO theatrical facial acting) and vary the expression subtly based on the text content — inquisitive on questions, serious and un-smiled with a tiny brow knit on problems/pain points, earnest and composed on solutions, and a subtle closed-lip soften only at the closing CTA. PRIORITY 2 — RESTRAINED, SMALL CONVERSATIONAL LIP-SYNC: (1) Small, understated ~18–25% vertical jaw opening (never gape wide); (2) Smooth phrase co-articulation gliding fluidly between words without snapping open/shut on every syllable, closing lips gently only on bilabial m/b/p sounds and pauses; (3) Relaxed neutral mouth corners while speaking so o/u/w vowels form only a subtle natural rounding — NEVER hold a stretched smile, laugh, toothy grin, or exaggerated cartoon O-mouth while talking; (4) Lower lip cushions and covers the lower teeth at all times (never show both rows of teeth, never rubbery face warp). Natural blinks every few seconds while eyes stay calmly focused on the lens.";
 
-export function heyGenAvatarIvMotionPrompt(poseId?: string | null): string {
-  if (poseId === "full-body" || poseId === "waist-up") {
-    return HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT;
+export function heyGenAvatarIvMotionPrompt(
+  poseId?: string | null,
+  options?: {
+    spokenScript?: string;
+    directorMotionNote?: string;
+    language?: VoLanguage;
+  },
+): string {
+  const base =
+    poseId === "full-body" || poseId === "waist-up"
+      ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+      : HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  const directorArcMatch = options?.directorMotionNote?.match(
+    /(?:Director content-driven micro-expression plan|導演逐句微表情規劃)[^]*?(?=\s*(?:Realism:|真實感：)|$)/,
+  );
+  if (directorArcMatch?.[0]) {
+    return `${base} ${directorArcMatch[0].trim()}`;
   }
-  return HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  if (options?.spokenScript?.trim()) {
+    const fallbackArc = planTalkingHeadFacialExpressionArc(
+      options.spokenScript,
+      options.language,
+    );
+    if (fallbackArc) return `${base} ${fallbackArc}`;
+  }
+  return base;
 }
 
 export function openRouterVideoAudioLipSyncBody(input: {
@@ -329,8 +351,9 @@ export function openRouterHeyGenAudioVideoBody(input: {
   const configured = clipVideoResolution();
   const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const effectivePrompt = isAvatarIv
-    ? input.prompt === HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
-      ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+    ? input.prompt.startsWith(HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT) ||
+      input.prompt.startsWith(HEYGEN_AVATAR_IV_MOTION_PROMPT)
+      ? capOpenRouterVideoPrompt(input.prompt)
       : HEYGEN_AVATAR_IV_MOTION_PROMPT
     : capOpenRouterVideoPrompt(input.prompt);
   return {

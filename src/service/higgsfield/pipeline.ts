@@ -758,7 +758,11 @@ export async function sendClipVideo(
         "audio/mpeg",
       );
       referenceAudioUrl = preGeneratedVoUrl;
-      const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId);
+      const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
+        spokenScript: spokenLine,
+        directorMotionNote: clipRow?.motionCamera,
+        language: project.language,
+      });
       const projects = await videosCollection();
       await projects.updateOne(
         { _id: project._id },
@@ -793,7 +797,11 @@ export async function sendClipVideo(
     }
     const submitted = await submitClipVideo({
       model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-      prompt: heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId),
+      prompt: heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
+        spokenScript: spokenLine,
+        directorMotionNote: clipRow?.motionCamera,
+        language: project.language,
+      }),
       aspectRatio: project.aspectRatio,
       durationSeconds,
       startImageUrl: start,
