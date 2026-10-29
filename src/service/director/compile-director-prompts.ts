@@ -1,6 +1,7 @@
 import type { IDirectorBehavior } from "@/model/director";
 import type { PerformanceSlots } from "@/model/director-performance";
-import { PROFILE_KEYS, type DirectorProfile, type SkillReference } from "@/model/skill";
+import { PROFILE_KEYS, type DirectorProfile } from "@/model/director-profile";
+import type { SkillReference } from "@/model/skill";
 import { PROFILE_LABELS_EN } from "@/service/director/profile";
 
 export const DEFAULT_CUSTOM_DIRECTOR_BEHAVIOR: IDirectorBehavior = {
