@@ -53,12 +53,12 @@ function characterBlueprintStyleLines(style: RenderableStyle) {
     ...style,
     look: style.look
       .replace(
-        /sculpted by[^.]+?\([^)]+\),\s*/i,
-        "sculpted by directional three-quarter window daylight with a dimensional 1.4:1 to 1.8:1 portrait contrast ratio (25–40% shadow falloff with negative fill on the far cheek that highlights skin pores and micro-relief while keeping both eyes clearly readable), ",
+        /(?:sculpted|lit) by[^.]+?\([^)]+\),\s*/i,
+        "lit by soft, even, diffused ambient daylight with a low, gradual tonal transition across the face (subtle natural shading under the chin and around the eyes, non-reflective diffuse matte skin with zero skin reflectivity), ",
       ),
     palette:
       style.palette.length > 100
-        ? "rich daylight skin tones and dimensional 1.4:1–1.8:1 three-quarter contrast in clean digital colour with no film grain (neutral-cool key light on skin with negative fill on the shadow side)"
+        ? "natural daylight skin tones and soft, low-contrast diffused ambient lighting in clean digital colour with no film grain"
         : style.palette,
   });
 }
@@ -97,7 +97,7 @@ const FACE_GEOMETRY_LOCK = [
 
 // Board images only. The full realistic rule plus catalog lines used to push the likeness lines past the budget.
 const REALISTIC_BOARD_RENDER_RULE =
-  "Realistic texture: a real photograph on a modern full-frame digital camera (true-to-life colour, no film stock, no film LUT, no film grain), three-quarter window key light with a 1.4:1 to 1.8:1 portrait contrast ratio and 25–40% shadow falloff with negative fill on the far cheek keeping the whole face and both eyes readable; a believable non-model person with real skin pores, peach-fuzz, fine lines, natural tooth variation, matte-natural skin (zero oily or plastic sheen, de-filtered if smooth), flyaway strands, and fabric weave; no film grain; never airbrushed, waxy, porcelain, glossy, or beauty-filtered. Identity portrait: 85mm portrait lens at f/1.8. Full body: 50mm lens at f/4. Soft directional light and real skin texture stay on the person.";
+  "Realistic texture: a real photograph on a modern full-frame digital camera (true-to-life colour, no film stock, no film LUT, no film grain), soft, even, diffused ambient daylight with a low, gradual tonal transition keeping the face and eyes evenly lit (no harsh side-light contrast, no half-dark face); a believable non-model person with real skin pores, peach-fuzz, fine lines, natural tooth variation, non-reflective matte skin (zero skin reflectivity, zero oily/plastic sheen, de-filtered if smooth), flyaway strands, and fabric weave; never airbrushed, waxy, porcelain, or glossy. Identity portrait: 85mm portrait lens at f/1.8. Full body: 50mm lens at f/4. Soft directional light and real skin texture stay on the person.";
 
 // Shorter sheet-ground rule for board images, which carry the long likeness block.
 const BOARD_SHEET_GROUND =

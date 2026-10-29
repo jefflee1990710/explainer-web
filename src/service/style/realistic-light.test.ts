@@ -93,12 +93,12 @@ test("realistic style fields and rules enforce the 12 de-plastic rules across Ph
   assert.match(REALISTIC_PRODUCT_RENDER_RULE, /keep highlights neutral or cool unless a warm practical lamp, sunset, or fire is visible/);
   assert.match(REALISTIC_SET_RENDER_RULE, /Keep highlights neutral or cool unless a warm practical lamp, sunset, or fire is visible/);
 
-  // Rule 11: grazing directional key light + negative fill on the shadow side + 1.4:1-1.8:1 face contrast + matte-natural skin (no flat front beauty light, no oily sheen)
-  assert.match(REALISTIC_STYLE_FIELDS.look, /grazing directional key light from the visible light-source side with negative fill on the shadow side/);
-  assert.match(REALISTIC_STYLE_FIELDS.look, /matte-natural skin finish with zero oily or plastic specular sheen/);
-  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /grazing directional key from the side or three-quarter angle with negative fill on the shadow side/);
-  assert.match(REALISTIC_FRAME_RENDER_RULE, /sculpt faces and surfaces with grazing directional light, negative fill on the shadow side \(1\.4:1 to 1\.8:1 cheek-to-cheek contrast ratio/);
-  assert.match(REALISTIC_VIDEO_DETAIL_RULE, /grazing directional light, negative fill on the shadow side, matte-natural skin pores/);
+  // Rule 11: soft diffused ambient light with low, gradual tonal transition + non-reflective diffuse matte skin (zero skin reflectivity, no harsh side-light contrast, no oily sheen)
+  assert.match(REALISTIC_STYLE_FIELDS.look, /soft diffused ambient room light or gentle window daylight with a low, gradual tonal transition across the face/);
+  assert.match(REALISTIC_STYLE_FIELDS.look, /non-reflective diffuse matte-natural skin finish with zero skin reflectivity/);
+  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /soft diffused ambient room light or gentle window daylight with a low, gradual tonal transition across the face/);
+  assert.match(REALISTIC_FRAME_RENDER_RULE, /light faces and surfaces with soft diffused ambient room light or gentle window daylight and a low, gradual tonal transition across the face/);
+  assert.match(REALISTIC_VIDEO_DETAIL_RULE, /soft diffused ambient light with low, gradual tonal transitions across the face/);
 
   // Restrained real-person mouth and jaw articulation across all realistic style videos
   assert.match(REALISTIC_STYLE_FIELDS.motion, /restrained real-person facial and mouth articulation/);
@@ -202,7 +202,8 @@ test("all directors receive realistic de-plastic rules for both built-in realist
       assert.match(framePrompt, /below pure-white clipping/, `missing highlight protection in ${skillSlug}`);
     } else {
       assert.match(framePrompt, /Realistic light & camera:/, `missing realistic frame render rule for ${skillSlug}`);
-      assert.match(framePrompt, /grazing directional light, negative fill on the shadow side/, `missing Rule 11 in ${skillSlug}`);
+      assert.match(framePrompt, /soft diffused ambient room light or gentle window daylight/, `missing Rule 11 in ${skillSlug}`);
+      assert.match(framePrompt, /non-reflective diffuse matte-natural skin/, `missing non-reflective skin rule in ${skillSlug}`);
       assert.match(framePrompt, /below pure-white clipping/, `missing Rule 06 in ${skillSlug}`);
       assert.match(framePrompt, /keep shadow blacks clean and neutral/, `missing Rule 07 in ${skillSlug}`);
       assert.doesNotMatch(framePrompt, /Kodak Gold 200|Canon AE-1|halation on bright sources/, `film look too heavy in ${skillSlug}`);

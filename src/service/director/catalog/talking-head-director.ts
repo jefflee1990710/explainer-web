@@ -57,7 +57,7 @@ const raw = {
       "headMotion": "a constant small side-to-side sway of a few degrees, distinct head turns and tilts left and right, brief thoughtful glances slightly off-camera or down at the hands before looking back into the lens, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock",
       "anchorProp": "",
       "set": "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head",
-      "light": "directional soft window daylight from one side with natural 1.4:1–1.8:1 cheek-to-cheek shadow falloff, bright eye catchlights, and moist lip highlight — no flat beauty-ring fill, no studio light"
+      "light": "soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face and soft natural eye catchlights — no harsh side-light contrast, no flat beauty-ring glare, no studio light"
     },
     "yue": {
       "restingFace": "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",

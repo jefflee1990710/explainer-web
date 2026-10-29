@@ -74,8 +74,9 @@ test("de-plastic light and camera optics rules reach realistic only, never flat 
     assert.doesNotMatch(text, /grazing|negative fill|film grain|Realistic light|85mm portrait lens|creamy bokeh/);
   }
   const block = sceneDetailDirectorBlock({ realistic: true });
-  assert.match(block, /grazing directional key/);
-  assert.match(block, /negative fill on the shadow side/);
+  assert.match(block, /soft diffused ambient room light or gentle window daylight/);
+  assert.match(block, /low, gradual tonal transition across the face/);
+  assert.match(block, /zero skin reflectivity/);
   assert.match(block, /soft neutral daylight with gently cooler shadows/);
   assert.match(block, /never vague phrases like beautiful colors/);
   assert.match(block, /warm practical lamp, sunset, or fire is visible/);
@@ -86,12 +87,12 @@ test("de-plastic light and camera optics rules reach realistic only, never flat 
   assert.doesNotMatch(block, /Portra-style|film feel|subtle film grain/);
   assert.match(block, /full shot \/ medium shot \/ close-up \/ extreme close-up/);
   const render = frameRenderDetail({ realistic: true });
-  assert.match(render, /never flat front beauty light, waxy airbrushed skin, oily specular sheen, or vague 'beautiful colors'/);
+  assert.match(render, /never waxy airbrushed skin, reflective skin hot spots, oily specular sheen, or vague 'beautiful colors'/);
   assert.match(render, /24mm \/ 35mm \/ 50mm \/ 85mm portrait lens/);
   assert.match(render, /deep focus f\/11 for environment or f\/4 to f\/1\.4 creamy bokeh background/);
   assert.match(render, /no film grain/);
   assert.doesNotMatch(render, /Portra-style|film feel|subtle film grain/);
-  assert.match(phaseBDetailRules({ realistic: true }), /No flat front fill and no waxy plastic skin/);
+  assert.match(phaseBDetailRules({ realistic: true }), /No flat beauty-filter fill and no waxy or reflective plastic skin/);
   assert.equal(frameRenderDetail(), FRAME_RENDER_DETAIL);
   assert.equal(phaseBDetailRules(), PHASE_B_DETAIL_RULES);
 });

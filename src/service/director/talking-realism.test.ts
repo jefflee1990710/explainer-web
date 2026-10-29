@@ -11,8 +11,9 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
   assert.equal(clips.length, 1);
   for (const clip of clips) {
     for (const scene of [clip.startScene, clip.endScene]) {
-      assert.match(scene, /Light source: .*rim light/);
+      assert.match(scene, /Light source: .*low, gradual tonal transition/);
       assert.match(scene, /Skin & camera sensor: .*hyper-visible pore texture/);
+      assert.match(scene, /ZERO skin reflectivity/);
       assert.match(scene, /iPhone 16 Pro 24mm f\/1\.8|Sony ZV-E1/);
       assert.match(scene, /zero heavy vintage 35mm film grain/);
       assert.match(scene, /Depth: natural shallow depth of field/);
@@ -68,7 +69,7 @@ test("realistic talking-head skin forbids glossy or oily sheen and sanitizes bea
   }
   const yue = planTalkingHeadClips({ source: "今日教你一招。記住試下。", language: "yue", realistic: true });
   assert.doesNotMatch(yue[0].startScene, /額頭同鼻有少少自然油光/);
-  assert.match(yue[0].startScene, /絕對唔好有油光/);
+  assert.match(yue[0].startScene, /絕對唔可以有任何反光、高光白點、油光/);
 
   assert.equal(
     sanitizeSpecSkinTone("fair, pinkish undertones, smooth matte finish, rosy cheeks"),
