@@ -62,7 +62,7 @@ test("talking motion follows 5-phase co-speech gesture kinematics (rest -> prepa
     totalClips: 3,
   });
   assert.match(motion, /calm, composed, relaxed neutral expression with lips gently closed or softly parted/);
-  assert.match(motion, /small-amplitude, text-driven micro-expression shifts/);
+  assert.match(motion, /clear, readable, text-driven facial expression shifts/);
   assert.match(motion, /Director content-driven micro-expression plan/);
   assert.match(motion, /preparation.*stroke.*hold.*retraction/i);
   assert.match(motion, /both hands resting calmly on the lap/);

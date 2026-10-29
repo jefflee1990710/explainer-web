@@ -269,8 +269,8 @@ function splitScriptClausesForFacialPlan(script: string): string[] {
 }
 
 // Director-planned per-sentence micro-expression arc based on the spoken text content.
-// All movements are strictly small-amplitude (1–2mm brow/cheek, 1–2° head), never laughing
-// or holding a fixed smile through serious or problem clauses.
+// Expressions are clearly readable (3–4mm brow/eye shifts, 2–3° head language) and noticeably
+// contrasted by sentence meaning, without ever laughing or grinning blankly through serious lines.
 export function planTalkingHeadFacialExpressionArc(
   script: string,
   language?: VoLanguage,
@@ -283,31 +283,31 @@ export function planTalkingHeadFacialExpressionArc(
     const snippet = clause.length > 28 ? `${clause.slice(0, 27)}…` : clause;
     if (isZh) {
       if (tone === "question") {
-        return `第 ${idx + 1} 句（「${snippet}」— 提問／引發思考）：收起笑容，眼神專注直望鏡頭，眉頭極輕微上揚 1–2mm 帶出好奇發問感，面部動作極細`;
+        return `第 ${idx + 1} 句（「${snippet}」— 好奇提問／引發思考）：收起笑容，雙眼微睜提亮並專注望實鏡頭，眉頭清晰自然上揚 3–4mm、頭微傾 2–3 度帶出明顯好奇發問感`;
       }
       if (tone === "serious") {
-        return `第 ${idx + 1} 句（「${snippet}」— 痛點／現實問題）：絕對唔好笑，轉為認真沉穩嘅平靜嚴肅神情，眉心極輕微聚攏 1–2mm、下巴穩定配 1 度極細微搖頭，呈現真實共鳴感`;
+        return `第 ${idx + 1} 句（「${snippet}」— 痛點／現實問題）：絕對唔好笑，明顯收起笑意轉為認真凝重神情，眉心清晰微蹙聚攏 3–4mm、眼神沉穩配 2–3 度自然搖頭，呈現真實共鳴與無奈感`;
       }
       if (tone === "warm-cta") {
-        return `第 ${idx + 1} 句（「${snippet}」— 結尾邀請／正面呼籲）：眉心舒展放鬆，眼神溫和篤定，去到句尾先帶出極輕微克制嘅閉唇淺笑（唔好張口大笑或瞇眼）配 1 度微幅點頭`;
+        return `第 ${idx + 1} 句（「${snippet}」— 驚喜亮點／結尾邀請）：眉心舒展、雙眼提亮有神並自然揚眉 3mm，去到句尾帶出溫暖柔和嘅閉唇淺笑（唔好張口露齒大笑或瞇眼）配 2–3 度肯定點頭與上身微傾`;
       }
-      return `第 ${idx + 1} 句（「${snippet}」— 核心觀點／方法分享）：神情平靜誠懇、自信篤定（唔好傻笑），配 1 度極細微重音點頭與穩定眼神`;
+      return `第 ${idx + 1} 句（「${snippet}」— 篤定自信／方法分享）：神情誠懇篤定、眼神堅定有神（唔好傻笑），隨重音字做出清晰 2–3 度肯定點頭`;
     }
     if (tone === "question") {
-      return `Beat ${idx + 1} ("${snippet}" — hook question): no smile; calm inquisitive gaze with a tiny 1–2mm inner-brow lift and small mouth movements`;
+      return `Beat ${idx + 1} ("${snippet}" — hook question): no smile; noticeably inquisitive gaze with a clear 3–4mm inner-brow lift, slightly widened alert eyes, and a 2–3° head tilt`;
     }
     if (tone === "serious") {
-      return `Beat ${idx + 1} ("${snippet}" — problem/pain point): zero smiling or laughing; shift to a serious, empathetic, grounded expression with a tiny 1–2mm brow knit and a subtle 1° head shake`;
+      return `Beat ${idx + 1} ("${snippet}" — problem/pain point): zero smiling or laughing; visibly shift to a serious, empathetic, grounded expression with a clear 3–4mm brow furrow and a 2–3° head shake`;
     }
     if (tone === "warm-cta") {
-      return `Beat ${idx + 1} ("${snippet}" — positive CTA): brows relax open, earnest encouraging eyes, settling into a brief, subtle closed-lip half-smile only at the very end with a 1° nod (never a big laugh or eye squint)`;
+      return `Beat ${idx + 1} ("${snippet}" — positive highlight & CTA): brows lift 3mm and eyes brighten with warm enthusiasm, settling into a warm closed-lip half-smile at the end with a 2–3° nod (never a big toothy laugh or eye squint)`;
     }
-    return `Beat ${idx + 1} ("${snippet}" — core insight/solution): calm, earnest, matter-of-fact confidence with a neutral un-smiled mouth while speaking and a subtle 1° prosodic nod`;
+    return `Beat ${idx + 1} ("${snippet}" — core insight/solution): earnest, confident expression with focused eyes and a clear 2–3° prosodic nod on the key words`;
   });
 
   return isZh
-    ? `導演逐句微表情規劃（全程面部動作幅度極細 1–2mm、嚴禁由頭笑到尾，按台詞語義自然切換）：${steps.join("；")}。`
-    : `Director content-driven micro-expression plan (keep all facial movements very small 1–2mm; NEVER laugh or hold a constant smile — shift expression subtly per sentence meaning): ${steps.join("; ")}.`;
+    ? `導演逐句微表情編排（面部微表情清晰有層次 3–4mm、情緒對比鮮明自然、嚴禁由頭笑到尾或木口木面）：${steps.join("；")}。`
+    : `Director content-driven micro-expression plan (clear, readable 3–4mm facial expression shifts with 2–3° head language; NEVER laugh or hold a constant smile — contrast expressions visibly per sentence meaning): ${steps.join("; ")}.`;
 }
 
 function anchorSide() {
