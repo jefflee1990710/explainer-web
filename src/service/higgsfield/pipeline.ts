@@ -246,10 +246,14 @@ export async function sendFrame(
       )
       .catch(() => {});
   }
-  // A turnaround sheet shows the same person many times. Send the character board / standing lock as-is so likeness matches the blueprint.
+  // A turnaround sheet shows the same person many times. Send the character board / standing lock
+  // together with the original uploaded photo (for realistic / talking-head) so likeness matches the real person 100%.
+  const realistic = isRealisticStyle(style);
   const locked =
     project.cast && project.cast.length > 0
-      ? await withSceneCharacterLocks(project.cast, plan.refs)
+      ? await withSceneCharacterLocks(project.cast, plan.refs, {
+          includeOriginalPhoto: realistic || project.skillSlug === TALKING_HEAD_SKILL_SLUG,
+        })
       : plan.refs;
   // The previous still's caption is what Grok copies. Keep the character
   // blueprint and drop that still so the quoted line is drawn fresh.
@@ -257,7 +261,6 @@ export async function sendFrame(
     ? locked.filter((url) => url !== plan.anchor?.url)
     : locked;
   const finalPrompt = prompt;
-  const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
     model,

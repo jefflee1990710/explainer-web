@@ -87,11 +87,12 @@ export function sanitizeSpecSkinTone(skinTone: string) {
 
 // One compact line for image prompts. Frame prompts share a tight character cap,
 // so this stays short and skips the palette (the attached image carries colour).
-export function characterSpecLine(spec: CharacterSpec, maxChars = 320) {
+export function characterSpecLine(spec: CharacterSpec, maxChars = 420) {
   const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
+  const faceCombined = [spec.face, spec.faceDetail].filter(Boolean).join(", ");
   const parts = [
     spec.identity,
-    spec.face && `face: ${spec.face}`,
+    faceCombined && `face: ${faceCombined}`,
     spec.hair && `hair: ${spec.hair}`,
     skin && `skin: ${skin}`,
     spec.body && `build: ${spec.body}`,

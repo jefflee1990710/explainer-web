@@ -6,6 +6,16 @@ import { cropBlueprintFront } from "@/service/higgsfield/outfit-identity";
 import { persistBuffer } from "@/service/higgsfield/persist";
 
 const lockUrlCache = new Map<string, Promise<string>>();
+const origPhotoCache = new Map<string, Promise<string | undefined>>();
+
+async function resolveOriginalPhotoUrl(member: CastMember): Promise<string | undefined> {
+  const characters = await charactersCollection();
+  const character = await characters.findOne({ _id: member.characterId });
+  const version =
+    character?.versions.find((item) => item.id.equals(member.versionId)) ??
+    character?.versions[0];
+  return version?.referenceImageUrls?.[0] || version?.referenceImageUrl || undefined;
+}
 
 // A board (portrait + one standing figure) goes in whole: the close-up carries the face.
 // Legacy sheets use the standing preview when it exists, else the cropped front figure.
@@ -59,12 +69,14 @@ async function resolveLockUrl(member: CastMember, options?: { preferPortrait?: b
 
 // Swap each blueprint sheet in the reference list for that character's single standing lock
 // (or their 1:1 close-up portrait when `preferPortrait: true` for seated talking-head).
+// When `includeOriginalPhoto: true`, also prepend the user's original uploaded reference photo
+// right before the blueprint so Seedream anchors 100% to the real person's facial likeness.
 export async function withSceneCharacterLocks(
   cast: CastMember[],
   refs: string[],
-  options?: { preferPortrait?: boolean },
+  options?: { preferPortrait?: boolean; includeOriginalPhoto?: boolean },
 ) {
-  const replacements = new Map<string, string>();
+  const replacements = new Map<string, string[]>();
   const modeKey = options?.preferPortrait ? "portrait" : "default";
   await Promise.all(
     cast.map(async (member) => {
@@ -78,8 +90,22 @@ export async function withSceneCharacterLocks(
         });
         lockUrlCache.set(key, pending);
       }
-      replacements.set(member.blueprintUrl, await pending);
+      const lockUrl = await pending;
+      if (options?.includeOriginalPhoto) {
+        const origKey = `${String(member.characterId)}:${String(member.versionId)}`;
+        let origPending = origPhotoCache.get(origKey);
+        if (!origPending) {
+          origPending = resolveOriginalPhotoUrl(member).catch(() => undefined);
+          origPhotoCache.set(origKey, origPending);
+        }
+        const origUrl = await origPending;
+        if (origUrl && origUrl !== lockUrl && !refs.includes(origUrl)) {
+          replacements.set(member.blueprintUrl, [origUrl, lockUrl]);
+          return;
+        }
+      }
+      replacements.set(member.blueprintUrl, [lockUrl]);
     }),
   );
-  return refs.map((url) => replacements.get(url) ?? url);
+  return refs.flatMap((url) => replacements.get(url) ?? [url]);
 }

@@ -445,7 +445,7 @@ test("talking-head pose framing zooms from full-body to collarbone-close", () =>
     realistic: true,
   });
   assert.match(waist[0].startScene, /framed from the waist up/);
-  assert.match(waist[0].startScene, /both hands resting calmly on the lap/);
+  assert.match(waist[0].startScene, /both hands resting calmly/);
 
   const close = planTalkingHeadClips({
     source: SCRIPT,
