@@ -27,7 +27,7 @@ const FACE_EN: PerformanceSlots = {
     "proximal torso, pelvis, and shoulders stay anchored and stable facing the camera; the head faces the camera with clear, natural 2–3 degree content-driven movements (a 2–3° nod on key points, a 2–3° head shake on negative/problem clauses, a slight 2° head tilt on questions) and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
   set: "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head",
-  light: "soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face and soft natural eye catchlights — no harsh side-light contrast, no flat beauty-ring glare, no studio light",
+  light: "warm-toned (3400K–4200K golden-amber indoor warmth), soft, even, diffused ambient indoor light and warm window daylight with a low, gradual tonal transition across the face and soft natural eye catchlights — no cold blue/grey cast, no harsh side-light contrast, no flat beauty-ring glare, no studio light",
 };
 
 const FACE_YUE: PerformanceSlots = {
@@ -41,21 +41,21 @@ const FACE_YUE: PerformanceSlots = {
     "腰部、軀幹同雙肩保持固定正面向住鏡頭（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，隨台詞語義做出清晰自然嘅 2–3 度點頭（肯定重點位）、2–3 度輕微搖頭（否定／痛點位）或 2–3 度微傾（好奇提問位），雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
   set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗",
-  light: "柔和均勻嘅室內漫射環境光配自然窗光，面部光暗過渡柔和自然、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",
+  light: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）室內漫射環境光配溫暖窗光，面部光暗過渡柔和自然、膚色溫暖紅潤、無冷白偏藍感、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",
 };
 
 const FULL_BODY_EN: PerformanceSlots = {
   ...FACE_EN,
   anchorProp: "",
   set: "the same plain background in every clip, no new props",
-  light: "ordinary daylight from a window to one side, unchanged",
+  light: "warm golden-amber daylight from a window to one side (3400K–4200K warm indoor tone), unchanged",
 };
 
 const FULL_BODY_YUE: PerformanceSlots = {
   ...FACE_YUE,
   anchorProp: "",
   set: "全程同一個簡潔背景，冇新道具",
-  light: "一邊窗嘅自然日光，不變",
+  light: "一邊窗嘅溫暖暖色調自然日光（3400K–4200K 暖色溫），不變",
 };
 
 export const DEFAULT_PERFORMANCE: Record<TalkingShot, SystemPerformance> = {
