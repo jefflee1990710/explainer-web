@@ -11,6 +11,7 @@ export type SubtitleCatalogStyle = {
 export type SubtitleCatalogLine = {
   clipNumber: number;
   line: string;
+  cues?: string[];
 };
 
 export type SubtitleCatalogUi = {
@@ -41,7 +42,7 @@ export function buildSubtitleCatalog({
   label,
   ui,
 }: {
-  clips: Array<{ clipNumber: number; englishVo?: string; startVo?: string }>;
+  clips: Array<{ clipNumber: number; englishVo?: string; startVo?: string; subtitleCues?: string[] }>;
   subtitleLook: SubtitleLook;
   textStyleId?: string;
   textStyles: Array<{ id: string; name: string; imageUrl: string; baseLookId?: string }>;
@@ -69,7 +70,8 @@ export function buildSubtitleCatalog({
     .flatMap((clip) => {
       const line = (clip.englishVo || clip.startVo || "").trim();
       if (!line) return [];
-      return [{ clipNumber: clip.clipNumber, line }];
+      const cues = clip.subtitleCues?.map((c) => c.trim()).filter(Boolean);
+      return [{ clipNumber: clip.clipNumber, line, ...(cues && cues.length > 0 ? { cues } : {}) }];
     });
   const selectedId = textStyleId && styles.some((style) => style.id === textStyleId) ? textStyleId : subtitleLook;
   return { styles, lines, selectedId, ui };

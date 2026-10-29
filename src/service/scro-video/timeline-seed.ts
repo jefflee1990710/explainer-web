@@ -14,6 +14,7 @@ type StoryboardSeedRow = {
   durationSeconds?: number;
   timeRange?: string;
   englishVo?: string;
+  subtitleCues?: string[];
   startVo?: string;
   endVo?: string;
   explainerScene?: string;
@@ -51,6 +52,7 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       name: `Clip ${view.clipNumber}`,
       timeRange: row?.timeRange,
       englishVo: view.englishVo ?? row?.englishVo,
+      subtitleCues: row?.subtitleCues,
       startVo: view.startVo ?? row?.startVo,
       endVo: view.endVo ?? row?.endVo,
       explainerScene: view.explainerScene ?? row?.explainerScene,

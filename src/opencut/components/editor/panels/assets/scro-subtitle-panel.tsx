@@ -221,6 +221,7 @@ export function ScroSubtitlePanel() {
 			}
 
 			const captions: SubtitleCue[] = [];
+			const canvasSize = project.settings.canvasSize;
 			for (const line of placedLines) {
 				const slot = slots.get(line.clipNumber);
 				if (!slot) continue;
@@ -230,6 +231,8 @@ export function ScroSubtitlePanel() {
 					line: line.line,
 					startTime: startSeconds,
 					duration: durationSeconds,
+					canvasSize,
+					cues: line.cues,
 				});
 				segments.forEach((seg, segIndex) => {
 					captions.push({

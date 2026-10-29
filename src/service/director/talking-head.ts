@@ -306,12 +306,13 @@ export function planTalkingHeadClips(input: {
   // Optional director instruction (e.g. custom background/setting notes) and Phase A visualWorld.
   directorInstruction?: string;
   visualWorld?: string;
-  // Optional Argon-generated clips from Phase A so we preserve Argon's sentence-by-sentence facial choreography, motionPrompt, and expressiveness.
+  // Optional Argon-generated clips from Phase A so we preserve Argon's sentence-by-sentence facial choreography, motionPrompt, expressiveness, and subtitleCues.
   argonClips?: Array<{
     clipNumber?: number;
     motionCamera?: string;
     motionPrompt?: string;
     expressiveness?: "low" | "medium" | "high";
+    subtitleCues?: string[];
     englishVo?: string;
   }>;
   pace?: SpeechPace;
@@ -432,6 +433,7 @@ export function planTalkingHeadClips(input: {
               .join(" "),
             expressiveness:
               input.argonClips.find((c) => c.expressiveness)?.expressiveness ?? "medium",
+            subtitleCues: input.argonClips.flatMap((c) => c.subtitleCues ?? []),
           }
         : input.argonClips?.[index];
     const argonFacialChoreography = extractArgonFacialChoreography(
@@ -442,6 +444,10 @@ export function planTalkingHeadClips(input: {
       argonRow?.motionPrompt?.trim() ||
       argonFacialChoreography ||
       planTalkingHeadFacialExpressionArc(line, input.language);
+    const resolvedSubtitleCues =
+      argonRow?.subtitleCues && argonRow.subtitleCues.length > 0
+        ? argonRow.subtitleCues.map((c) => c.trim()).filter(Boolean)
+        : undefined;
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -470,6 +476,7 @@ export function planTalkingHeadClips(input: {
       ),
       motionPrompt: resolvedMotionPrompt,
       expressiveness: resolvedExpressiveness,
+      ...(resolvedSubtitleCues ? { subtitleCues: resolvedSubtitleCues } : {}),
       englishVo: line,
       bgmSfx: input.language === "yue" || input.language === "zh" ? "無" : "none",
     });
@@ -545,6 +552,9 @@ export function talkingHeadDirectorBlock(
       : `On-camera handheld selfie speech: seated, eyes locked on the lens, continuous speech-energy lip-sync with moist lips, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck into a presenter smile. Never a greeting wave. Never stand up.`,
     `Face pattern (facial micro-expressions should be clearly readable and expressive ~3–4mm with 2–3° head language — neither a frozen poker face nor exaggerated theatrical laughing; NEVER just laugh or hold a constant smile): resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     "CRITICAL DIRECTOR FACIAL CHOREOGRAPHY (`motionPrompt`, `expressiveness`, and `motionCamera`): As the Director, you MUST analyze every sentence/clause of the spoken script and populate each clip's `motionPrompt` and `expressiveness` fields (as well as `motionCamera`): (1) Set `expressiveness` to `\"medium\"` by default (use `\"low\"` only for deadpan/somber scripts; NEVER use `\"high\"` unless the user explicitly asks for high-energy acting, as `\"high\"` distorts mouth shapes); (2) In `motionPrompt` (and `motionCamera`, prefixed with `導演逐句微表情編排：` for Cantonese/Chinese or `Director sentence-by-sentence facial expression choreography:` for English), write a detailed sentence-by-sentence facial expression choreography covering EVERY sentence in the script: specify the time window, the quoted clause, the emotion label (e.g. 好奇提問/Curiosity, 疑惑反問/Puzzled doubt, 認真凝重/Serious concern, 共鳴無奈/Empathetic understanding, 篤定自信/Earnest conviction, 驚喜亮點/Bright excitement, or 親切邀請/Warm invitation), and the clear ~3–4mm brow/eye micro-acting and 2–3° head language while keeping natural co-articulated lip-sync (~25–30% jaw opening, lower teeth covered by the lower lip, never laughing through serious lines).",
+    _aspectRatio === "16:9"
+      ? "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into natural semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order). Because this is a 16:9 landscape video (subtitle sits at the bottom), each `subtitleCues` item can be a full clause of ~8–12 English words (~44–60 characters) or ~14–22 Chinese/Cantonese characters. Never break inside a compound token like `Scro.io`."
+      : "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into short, punchy semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order) so each subtitle cue can be rendered LARGE on a 9:16 vertical Reel (subtitle sits just below the vertical middle). Keep each `subtitleCues` item to ~4–7 English words (~20–34 characters) or ~7–12 Chinese/Cantonese characters, breaking cleanly at natural grammatical boundaries, conjunctions (`and`, `or`, `but`, `so`, `to`, `that`, `when`, `if`), or em-dashes (`—`). Never break inside a compound token like `Scro.io`.",
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
       ? ["Realism (Cinematic realistic): every still is shot on a handheld iPhone 16 Pro 24mm f/1.8 selfie or Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor (clean true-to-life digital color, zero heavy 35mm film grain or retro LUT) at 30–40cm collarbone-up framing with the face filling 60–65% of 9:16, naming soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face (soft minimal shadows under the chin and around the eyes, never harsh dramatic side-light contrast, never a half-dark face, never flat beauty-ring glare, keep highlights soft below clipping), unfiltered non-reflective diffuse matte real skin pores and fine facial hair (zero skin reflectivity, zero shiny hot spots), and a lived-in room corner (bedhead/door/window) with natural optical shallow depth of field and no foreground objects blocking the frame."]

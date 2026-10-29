@@ -17,21 +17,25 @@ import {
 } from "@/opencut/text/primitives";
 import {
 	computeTunedSubtitleFontSize,
+	defaultSubtitleVerticalMarginRatio,
 	scaleSubtitleFontSizeForCanvas,
+	SUBTITLE_BOTTOM_MARGIN_RATIO,
+	SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
 } from "./artistic-presets";
 import type { SubtitleCue, SubtitleStyleOverrides } from "./types";
 
 export {
+	defaultSubtitleVerticalMarginRatio,
 	scaleSubtitleFontSizeForCanvas,
+	SUBTITLE_BOTTOM_MARGIN_RATIO,
+	SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
 };
 
 const SUBTITLE_MAX_WIDTH_RATIO = 0.8;
-const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.08;
-const SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO = 0.12;
 const SUBTITLE_FONT_SIZE = 4.2;
 const MEASUREMENT_CANVAS_SIZE = 4096;
 
@@ -144,10 +148,7 @@ function resolveSubtitleStyle({
 		baseFontSize,
 		canvasSize,
 	});
-	const defaultBottomMargin =
-		canvasSize.height > canvasSize.width
-			? SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO
-			: SUBTITLE_BOTTOM_MARGIN_RATIO;
+	const defaultBottomMargin = defaultSubtitleVerticalMarginRatio(canvasSize);
 
 	return {
 		fontFamily: style?.fontFamily ?? "Arial",
@@ -382,7 +383,14 @@ export function buildSubtitleTextElement({
 	let effectiveFontSize = tunedFontSize ?? style.fontSize;
 	let content = caption.text;
 	let positionX = 0;
-	let positionY = 0;
+	let positionY = resolvePositionY({
+		canvasHeight: canvasSize.height,
+		placement: style.placement,
+		visualRect: {
+			top: -Math.round(canvasSize.height * 0.03),
+			height: Math.round(canvasSize.height * 0.06),
+		},
+	});
 
 	if (ctx) {
 		const scaledFontSize =

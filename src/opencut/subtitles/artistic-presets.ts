@@ -6,6 +6,20 @@ import {
 
 export { EXTRA_SUBTITLE_STYLE_CARDS };
 
+// Landscape (16:9 / 1:1): default near the bottom edge (8% inset from bottom).
+export const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.08;
+// Vertical Reel (9:16): default just below the vertical middle (~60–62% from top, 34% above bottom).
+export const SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO = 0.34;
+
+export function defaultSubtitleVerticalMarginRatio(canvasSize: {
+	width: number;
+	height: number;
+}): number {
+	return canvasSize.height > canvasSize.width
+		? SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO
+		: SUBTITLE_BOTTOM_MARGIN_RATIO;
+}
+
 const GENERIC_CSS_FAMILIES = new Set([
 	"sans-serif",
 	"serif",
@@ -166,8 +180,8 @@ export function wrapSubtitleTextWithMeasure({
 			trimmedParagraph,
 		);
 		const longEnoughForTwoLines = hasCjk
-			? trimmedParagraph.length >= 11
-			: trimmedParagraph.length >= 28 && trimmedParagraph.split(/\s+/).length >= 5;
+			? trimmedParagraph.length >= 8
+			: trimmedParagraph.length >= 18 && trimmedParagraph.split(/\s+/).length >= 4;
 		if (
 			lines.length === 2 ||
 			(preferTwoLines && lines.length === 1 && longEnoughForTwoLines)
@@ -616,8 +630,8 @@ export function computeTunedSubtitleFontSize({
 	backgroundEnabled?: boolean;
 }): number {
 	const isVertical = canvasSize.height > canvasSize.width;
-	const minFontSize = isVertical ? 2.0 : 3.0;
-	const maxFontSize = isVertical ? 2.9 : 4.8;
+	const minFontSize = isVertical ? 2.2 : 3.0;
+	const maxFontSize = isVertical ? 3.5 : 4.8;
 
 	if (measuredMaxVisualWidth && measuredMaxVisualWidth > 0) {
 		const ratio = targetVisualWidth / measuredMaxVisualWidth;
@@ -636,8 +650,8 @@ export function computeTunedSubtitleFontSize({
 		);
 		const charPx = hasCjk ? scaledPx * 0.96 : scaledPx * 0.54;
 		const shouldWrapTwoLines = hasCjk
-			? rawText.length >= 11
-			: rawText.length >= 28 && rawText.split(/\s+/).length >= 5;
+			? rawText.length >= 8
+			: rawText.length >= 18 && rawText.split(/\s+/).length >= 4;
 		const wrapped = shouldWrapTwoLines
 			? (balanceTwoLineSubtitle({
 					text: rawText,
@@ -683,23 +697,235 @@ export type TimedVoSubtitleSegment = {
 	duration: number;
 };
 
+// Natural English clause / phrase starter words where a subtitle split reads cleanly BEFORE this word.
+const LATIN_BREAK_BEFORE_WORDS = new Set([
+	"and",
+	"or",
+	"but",
+	"so",
+	"because",
+	"when",
+	"while",
+	"if",
+	"unless",
+	"until",
+	"before",
+	"after",
+	"that",
+	"which",
+	"who",
+	"where",
+	"to",
+	"for",
+	"from",
+	"with",
+	"without",
+	"into",
+	"onto",
+	"upon",
+	"by",
+	"on",
+	"in",
+	"at",
+	"about",
+	"through",
+	"across",
+	"based",
+	"saving",
+	"making",
+	"giving",
+	"turning",
+	"helping",
+	"is",
+	"are",
+	"was",
+	"were",
+	"you",
+]);
+
+// Words that bind tightly to the NEXT word — never end a subtitle chunk on one of these.
+const LATIN_NO_BREAK_AFTER_WORDS = new Set([
+	"a",
+	"an",
+	"the",
+	"your",
+	"my",
+	"our",
+	"their",
+	"his",
+	"her",
+	"its",
+	"this",
+	"that",
+	"these",
+	"those",
+	"every",
+	"each",
+	"some",
+	"any",
+	"no",
+	"both",
+	"of",
+	"to",
+	"for",
+	"in",
+	"on",
+	"at",
+	"by",
+	"with",
+	"from",
+	"into",
+	"onto",
+	"about",
+	"through",
+	"between",
+	"under",
+	"over",
+	"i",
+	"you",
+	"he",
+	"she",
+	"it",
+	"we",
+	"they",
+	"is",
+	"are",
+	"was",
+	"were",
+	"be",
+	"been",
+	"will",
+	"would",
+	"can",
+	"could",
+	"should",
+	"must",
+	"do",
+	"does",
+	"did",
+	"have",
+	"has",
+	"had",
+	"then",
+	"incredibly",
+	"currently",
+	"really",
+	"very",
+	"so",
+	"too",
+	"quite",
+	"extremely",
+	"repetitive",
+	"endless",
+	"personal",
+	"key",
+]);
+
+// Two-word collocations that should stay together rather than splitting in the middle.
+const LATIN_TIGHT_BIGRAMS = new Set([
+	"hand over",
+	"break free",
+	"based on",
+	"find it",
+	"want to",
+	"need to",
+	"have to",
+	"try using",
+	"scro director",
+]);
+
+function cleanLinearWord(word: string): string {
+	return word.toLowerCase().replace(/^[^a-z0-9']+|[,.!?;:—–"')\]]+$/g, "");
+}
+
+function splitLatinWordsAtBestPhraseBoundary(
+	words: string[],
+	maxWords: number,
+	maxChars: number,
+): string[] {
+	const full = words.join(" ");
+	if (words.length <= maxWords && full.length <= maxChars) {
+		return [full];
+	}
+
+	const idealRatio = Math.min(0.55, maxChars / Math.max(full.length, 1));
+	const idealIdx = Math.max(1, Math.min(words.length - 2, Math.round(words.length * idealRatio) - 1));
+	let bestSplitAfter = -1;
+	let bestScore = Number.NEGATIVE_INFINITY;
+
+	for (let i = 1; i < words.length - 1; i++) {
+		const leftWords = words.slice(0, i + 1);
+		const rightWords = words.slice(i + 1);
+		const leftText = leftWords.join(" ");
+		if (leftWords.length > maxWords + 1 || leftText.length > maxChars + 6) continue;
+		if (leftWords.length < 2 || rightWords.length < 2) continue;
+
+		const prevWord = cleanLinearWord(words[i]);
+		const nextWord = cleanLinearWord(words[i + 1]);
+		const bigram = `${prevWord} ${nextWord}`;
+
+		let score = 0;
+		// Distance from ideal split point
+		score -= Math.abs(i - idealIdx) * 3.5;
+		if (leftWords.length <= maxWords && leftText.length <= maxChars) {
+			score += 10;
+		} else {
+			score -= 15;
+		}
+		// Prefer breaking before a conjunction / preposition / clause starter
+		if (LATIN_BREAK_BEFORE_WORDS.has(nextWord)) {
+			score += 18;
+		}
+		// Strongly penalize breaking after determiners, prepositions, auxiliaries, or modifiers
+		if (LATIN_NO_BREAK_AFTER_WORDS.has(prevWord)) {
+			score -= 40;
+		}
+		// Strongly penalize breaking inside tight two-word collocations
+		if (LATIN_TIGHT_BIGRAMS.has(bigram)) {
+			score -= 35;
+		}
+
+		if (score > bestScore) {
+			bestScore = score;
+			bestSplitAfter = i;
+		}
+	}
+
+	if (bestSplitAfter < 0) {
+		bestSplitAfter = Math.min(maxWords - 1, Math.floor(words.length / 2) - 1);
+	}
+
+	const left = words.slice(0, bestSplitAfter + 1);
+	const right = words.slice(bestSplitAfter + 1);
+	return [
+		...splitLatinWordsAtBestPhraseBoundary(left, maxWords, maxChars),
+		...splitLatinWordsAtBestPhraseBoundary(right, maxWords, maxChars),
+	];
+}
+
 function splitLongClauseIntoChunks(
 	clause: string,
-	maxLatinWords = 11,
-	maxLatinChars = 59,
-	maxCjkChars = 24,
+	maxLatinWords = 7,
+	maxLatinChars = 36,
+	maxCjkChars = 13,
 ): string[] {
 	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(clause);
 	if (hasCjk) {
 		if (clause.length <= maxCjkChars) return [clause];
+		const targetChunkSize = Math.max(8, maxCjkChars - 2);
 		const tokens = tokenizeMixedSubtitleLine(clause);
-		const parts = Math.max(2, Math.ceil(clause.length / 20));
+		const parts = Math.max(2, Math.ceil(clause.length / targetChunkSize));
 		const targetLen = Math.ceil(clause.length / parts);
+		const minLen = Math.max(5, Math.floor(targetLen * 0.6));
 		const chunks: string[] = [];
 		let current = "";
 		for (const tok of tokens) {
 			if (!current && /^\s+$/.test(tok)) continue;
-			if (current.length + tok.length > targetLen && current.trim().length >= 8 && chunks.length < parts - 1) {
+			if (
+				current.length + tok.length > targetLen &&
+				current.trim().length >= minLen &&
+				chunks.length < parts - 1
+			) {
 				chunks.push(current.trim());
 				current = /^\s+$/.test(tok) ? "" : tok;
 			} else {
@@ -710,74 +936,72 @@ function splitLongClauseIntoChunks(
 		return chunks;
 	}
 
-	// Allow breaking around em/en-dashes so compound tokens like "generation—saving" don't create 31-char lines
+	// Allow breaking around em/en-dashes so compound tokens like "generation—saving" split cleanly
+	const dashParts = clause
+		.split(/\s*[—–]+\s*/u)
+		.map((part) => part.trim())
+		.filter(Boolean);
+	if (dashParts.length > 1) {
+		return dashParts.flatMap((part) =>
+			splitLongClauseIntoChunks(part, maxLatinWords, maxLatinChars, maxCjkChars),
+		);
+	}
+
 	const normalizedClause = clause.replace(/([A-Za-z0-9])([—–])([A-Za-z0-9])/g, "$1$2 $3");
 	const words = normalizedClause.split(/\s+/).filter(Boolean);
-	if (words.length <= maxLatinWords && normalizedClause.length <= maxLatinChars) {
-		return [normalizedClause];
-	}
-	const parts = Math.max(
-		2,
-		Math.ceil(Math.max(words.length / 10, normalizedClause.length / 54)),
-	);
-	const targetChars = Math.ceil(normalizedClause.length / parts);
-	const chunks: string[] = [];
-	let currentWords: string[] = [];
-	let currentLen = 0;
-
-	for (let i = 0; i < words.length; i++) {
-		const w = words[i];
-		const nextLen = currentLen === 0 ? w.length : currentLen + 1 + w.length;
-		const remainingWords = words.length - i;
-		const remainingParts = parts - chunks.length - 1;
-		if (
-			currentWords.length >= 3 &&
-			chunks.length < parts - 1 &&
-			remainingWords >= remainingParts * 3 &&
-			nextLen > targetChars
-		) {
-			chunks.push(currentWords.join(" "));
-			currentWords = [w];
-			currentLen = w.length;
-		} else {
-			currentWords.push(w);
-			currentLen = nextLen;
-		}
-	}
-	if (currentWords.length > 0) {
-		chunks.push(currentWords.join(" "));
-	}
-	return chunks;
+	return splitLatinWordsAtBestPhraseBoundary(words, maxLatinWords, maxLatinChars);
 }
 
 /**
- * Splits a clip's spoken VO line into natural timed subtitle segments when it contains
- * multiple clauses/sentences, auto-detecting the max comfortable wide 1–2 line length
- * and timing each segment proportionally.
+ * Splits a clip's spoken VO line into natural timed subtitle segments:
+ * - For 9:16 Vertical Reels / 1:1 (`isLandscape = false`): splits into shorter, punchy semantic
+ *   phrases (~4–7 English words / ~22–36 chars, or ~8–13 CJK chars) so each subtitle renders BIGGER.
+ * - For 16:9 Landscape (`isLandscape = true`): allows longer subtitle clauses (~8–12 English words
+ *   / ~44–62 chars, or ~15–22 CJK chars) to take advantage of the wide horizontal frame.
  */
 export function splitVoIntoSubtitleSegments({
 	line,
 	startTime,
 	duration,
 	maxClauseChars,
+	isLandscape,
+	canvasSize,
+	cues,
 }: {
 	line: string;
 	startTime: number;
 	duration: number;
 	maxClauseChars?: number;
+	isLandscape?: boolean;
+	canvasSize?: { width: number; height: number };
+	cues?: string[];
 }): TimedVoSubtitleSegment[] {
 	const cleaned = line.trim().replace(/\s+/g, " ");
 	if (!cleaned || duration <= 0) return [];
 
+	const landscape =
+		isLandscape ??
+		(canvasSize ? canvasSize.width > canvasSize.height : false);
 	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(cleaned);
-	const effectiveMaxClauseChars = maxClauseChars ?? (hasCjk ? 22 : 52);
+	const maxLatinWords = landscape ? 12 : 7;
+	const maxLatinChars = maxClauseChars ?? (landscape ? 60 : 36);
+	const maxCjkChars = maxClauseChars ?? (landscape ? 22 : 13);
+	const mergeMaxChars = maxClauseChars ?? (hasCjk ? (landscape ? 20 : 10) : landscape ? 52 : 26);
 
-	// Split at major CJK/Latin punctuation and English sentence-ending periods (without splitting "Scro.io")
-	const rawClauses = cleaned
-		.split(/(?:(?<=[。！？!?；;，,])\s*|(?<=\b[A-Za-z0-9'")\]]{2,}\.)\s+)/u)
-		.map((part) => part.replace(/[，,。；;]+$/u, "").replace(/\.$/u, "").trim())
-		.filter(Boolean)
-		.flatMap((clause) => splitLongClauseIntoChunks(clause));
+	const initialClauses =
+		cues && cues.length > 0
+			? cues
+					.map((c) => c.trim())
+					.filter(Boolean)
+			: cleaned
+					// Split at major CJK/Latin punctuation and English sentence-ending periods (without splitting "Scro.io")
+					.split(/(?:(?<=[。！？!?；;，,])\s*|(?<=\b[A-Za-z0-9'")\]]{2,}\.)\s+)/u)
+					.map((part) => part.replace(/[，,。；;]+$/u, "").replace(/\.$/u, "").trim())
+					.filter(Boolean);
+
+	const rawClauses = initialClauses.flatMap((clause) =>
+		splitLongClauseIntoChunks(clause, maxLatinWords, maxLatinChars, maxCjkChars),
+	);
 
 	if (rawClauses.length <= 1) {
 		return [
@@ -789,14 +1013,19 @@ export function splitVoIntoSubtitleSegments({
 		];
 	}
 
-	// Merge very short adjacent clauses so subtitles don't flash too fast or look stubby
+	// Merge only tiny adjacent clauses so subtitles don't flash too fast, while keeping 9:16 cues short and large
 	const merged: string[] = [];
 	for (const clause of rawClauses) {
 		const prev = merged[merged.length - 1];
-		const sep = hasCjk ? " " : " ";
+		const sep = " ";
+		const combinedWords = prev
+			? `${prev} ${clause}`.trim().split(/\s+/).length
+			: 0;
+		const canMergeWords = hasCjk || combinedWords <= (landscape ? 11 : 6);
 		if (
 			prev &&
-			prev.length + sep.length + clause.length <= effectiveMaxClauseChars &&
+			canMergeWords &&
+			prev.length + sep.length + clause.length <= mergeMaxChars &&
 			!/[！？!?]$/.test(prev)
 		) {
 			merged[merged.length - 1] = `${prev}${sep}${clause}`;

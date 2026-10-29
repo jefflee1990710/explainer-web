@@ -15,6 +15,7 @@ export const storyboardRowSchema = z.object({
   explainerScene: z.string(),
   motionCamera: z.string(),
   englishVo: z.string(),
+  subtitleCues: z.array(z.string()).optional(),
   startScene: z.string().optional(),
   endScene: z.string().optional(),
   startVo: z.string().optional(),

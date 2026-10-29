@@ -332,10 +332,15 @@ export function ScroVideoSync() {
 
 			// 2. Build fresh subtitle cues from the current storyboard/clip VO lines and main-track slots
 			const afterDeleteScene = editor.scenes.getActiveScene();
+			const canvasSize = editor.project.getActiveOrNull()?.settings.canvasSize;
+			const catalogLinesByClip = new Map(
+				(catalog?.lines ?? []).map((l) => [l.clipNumber, l.cues]),
+			);
 			const voLines = clips
 				.map((c) => ({
 					clipNumber: c.clipNumber,
 					line: (c.englishVo || c.startVo || "").trim(),
+					cues: c.subtitleCues ?? catalogLinesByClip.get(c.clipNumber),
 				}))
 				.filter((item) => item.line.length > 0);
 			if (voLines.length === 0) return;
@@ -355,6 +360,8 @@ export function ScroVideoSync() {
 					line: item.line,
 					startTime: startSeconds,
 					duration: durationSeconds,
+					canvasSize,
+					cues: item.cues,
 				});
 				segments.forEach((seg, segIndex) => {
 					captions.push({

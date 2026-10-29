@@ -13,6 +13,7 @@ export type ScroSubtitleStyle = {
 export type ScroSubtitleLine = {
 	clipNumber: number;
 	line: string;
+	cues?: string[];
 };
 
 export type ScroSubtitleUi = {

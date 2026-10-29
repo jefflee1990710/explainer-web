@@ -21,6 +21,7 @@ export type ScroVideoSeedClip = {
   name: string;
   timeRange?: string;
   englishVo?: string;
+  subtitleCues?: string[];
   startVo?: string;
   endVo?: string;
   explainerScene?: string;

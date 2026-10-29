@@ -178,6 +178,8 @@ export type StoryboardRow = {
   // Talking-head director native HeyGen Avatar IV motion_prompt and expressiveness ("low" | "medium" | "high").
   motionPrompt?: string;
   expressiveness?: "low" | "medium" | "high";
+  // Director-planned semantic subtitle cues (shorter for 9:16 Reels so text renders bigger; longer for 16:9 landscape).
+  subtitleCues?: string[];
 };
 
 // Prop tiles for the video-wide white-background object sheet.
@@ -492,6 +494,7 @@ const storyboardRowSchema = z.object({
   backgroundSetId: z.string().optional(),
   motionPrompt: z.string().optional(),
   expressiveness: z.enum(["low", "medium", "high"]).optional(),
+  subtitleCues: z.array(z.string()).optional(),
 });
 
 const objectSheetItemSchema = z.object({

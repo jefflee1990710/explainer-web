@@ -5,11 +5,14 @@ import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-sub
 import {
 	ARTISTIC_SUBTITLE_PRESETS,
 	computeTunedSubtitleFontSize,
+	defaultSubtitleVerticalMarginRatio,
 	EXTRA_SUBTITLE_STYLE_CARDS,
 	quoteFontFamily,
 	resolveSubtitleStyleOverrides,
 	scaleSubtitleFontSizeForCanvas,
 	splitVoIntoSubtitleSegments,
+	SUBTITLE_BOTTOM_MARGIN_RATIO,
+	SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
 } from "@/opencut/subtitles/artistic-presets";
@@ -151,21 +154,34 @@ test("scaleSubtitleFontSizeForCanvas keeps 9:16 vertical subtitle pixel height c
 	assert.ok(englishSegments.some((seg) => seg.text.includes("Scro.io")));
 });
 
-test("splitVoIntoSubtitleSegments and computeTunedSubtitleFontSize produce wide balanced subtitles and tuned font size", () => {
+test("splitVoIntoSubtitleSegments splits 9:16 Reel VO into shorter cues for bigger text and allows longer cues on 16:9 landscape", () => {
 	const vo =
 		"Stop wasting money on ads for your SaaS! If you are currently running a personal brand or a business, and you find it incredibly difficult to make videos to explain concepts or your products, you can try using Scro. All you need to do is hand over the details you want to introduce and your key highlights to Scro Director. It will then generate storyboards and produce the video based on your requirements. It's time to break free from the endless loop of repetitive generation—saving you both money and time!";
-	const segments = splitVoIntoSubtitleSegments({
+	const reelSegments = splitVoIntoSubtitleSegments({
 		line: vo,
 		startTime: 0,
 		duration: 32,
+		canvasSize: { width: 1080, height: 1920 },
 	});
-	// Every segment should be wide and balanced (no tiny 2-word stubs like "to Scro Director")
-	for (const seg of segments) {
+	const landscapeSegments = splitVoIntoSubtitleSegments({
+		line: vo,
+		startTime: 0,
+		duration: 32,
+		canvasSize: { width: 1920, height: 1080 },
+	});
+
+	assert.ok(
+		reelSegments.length > landscapeSegments.length,
+		`expected 9:16 Reel to have more (shorter) subtitle segments (${reelSegments.length}) than 16:9 landscape (${landscapeSegments.length})`,
+	);
+	for (const seg of reelSegments) {
+		const wordCount = seg.text.split(/\s+/).length;
 		assert.ok(
-			seg.text.split(/\s+/).length >= 4,
-			`expected wide segment with >= 4 words, got "${seg.text}"`,
+			wordCount <= 8,
+			`expected 9:16 Reel segment to stay short (<= 8 words), got ${wordCount}: "${seg.text}"`,
 		);
 	}
+
 	const canvasSize = { width: 1080, height: 1920 };
 	const baseFontSize = scaleSubtitleFontSizeForCanvas({
 		baseFontSize: 4.2,
@@ -175,14 +191,26 @@ test("splitVoIntoSubtitleSegments and computeTunedSubtitleFontSize produce wide 
 		baseFontSize,
 		canvasSize,
 		targetVisualWidth: 1080 * 0.86,
-		texts: segments.map((s) => s.text),
+		texts: reelSegments.map((s) => s.text),
 		paddingX: 28,
 		backgroundEnabled: true,
 	});
 	assert.ok(
-		tunedFontSize >= 2.0 && tunedFontSize <= 3.4,
-		`expected tunedFontSize in [2.0, 3.4], got ${tunedFontSize}`,
+		tunedFontSize >= 2.2 && tunedFontSize <= 3.5,
+		`expected tunedFontSize in [2.2, 3.5], got ${tunedFontSize}`,
 	);
+
+	// 9:16 Reel defaults to middle-below (34% margin from bottom), while 16:9 Landscape defaults to bottom (8% margin from bottom).
+	assert.equal(
+		defaultSubtitleVerticalMarginRatio({ width: 1080, height: 1920 }),
+		SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO,
+	);
+	assert.equal(SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO, 0.34);
+	assert.equal(
+		defaultSubtitleVerticalMarginRatio({ width: 1920, height: 1080 }),
+		SUBTITLE_BOTTOM_MARGIN_RATIO,
+	);
+	assert.equal(SUBTITLE_BOTTOM_MARGIN_RATIO, 0.08);
 });
 
 test("wrapSubtitleTextWithMeasure balances 2-line subtitles so word counts are even instead of leaving 1 orphan word", () => {
