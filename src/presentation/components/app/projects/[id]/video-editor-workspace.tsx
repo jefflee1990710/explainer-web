@@ -118,7 +118,6 @@ export function VideoEditorWorkspace({
         <NewProjectForm
           key={video?.id ?? "new"}
           projectId={folderId}
-          folderName={folderName}
           skills={skills}
           styles={styles}
           characters={characters}

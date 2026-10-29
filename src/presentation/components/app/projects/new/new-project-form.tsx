@@ -124,7 +124,6 @@ import { VoicePicker } from "@/presentation/components/app/projects/new/voice-pi
 import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
 import {
   defaultCastIdsForStyle,
-  initialSourceFromFolderName,
   readBriefDefaults,
   writeBriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
@@ -187,7 +186,6 @@ function chosenTextStyleId(
 
 export function NewProjectForm({
   projectId,
-  folderName,
   skills,
   styles,
   characters,
@@ -200,7 +198,6 @@ export function NewProjectForm({
   onStepNav,
 }: {
   projectId: string;
-  folderName?: string;
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
@@ -235,7 +232,7 @@ export function NewProjectForm({
     initialVideo?.styleId || lastBrief?.styleId || pickerDefaultStyleId(styles),
   );
   const [source, setSource] = useState(
-    initialVideo?.source || initialSourceFromFolderName(folderName),
+    initialVideo?.source || "",
   );
   const [spokenScript, setSpokenScript] = useState(
     initialVideo?.spokenScript ||
@@ -1270,7 +1267,6 @@ export function NewProjectForm({
                       setSpokenScript(val);
                       if (error) setError("");
                     }}
-                    prefilledFromFolder={Boolean(initialSourceFromFolderName(folderName))}
                     disabled={briefBusy}
                   />
 

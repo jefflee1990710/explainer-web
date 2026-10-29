@@ -12,7 +12,6 @@ export function QuickScriptCard({
   talkingHead,
   spokenScript,
   onSpokenScriptChange,
-  prefilledFromFolder,
   disabled,
 }: {
   step?: string;
@@ -21,7 +20,6 @@ export function QuickScriptCard({
   talkingHead: boolean;
   spokenScript: string;
   onSpokenScriptChange: (value: string) => void;
-  prefilledFromFolder?: boolean;
   disabled?: boolean;
 }) {
   const { t, locale } = useI18n();
@@ -32,13 +30,6 @@ export function QuickScriptCard({
       : locale === "zh-Hans"
         ? "输入一句话主题或完整脚本（或点下方“示例脚本”一键填入），再选好下方视觉风格与角色，即可直接按右下角“开始制作”！"
         : "Enter your topic or full script (or click a sample script below), pick your visual style and character below, and click “Start” right away!";
-
-  const prefilledBanner =
-    locale === "zh-Hant"
-      ? "✨ 已自動帶入你剛輸入的專案主題！可直接按右下角「產生分鏡」，或繼續補充細節。"
-      : locale === "zh-Hans"
-        ? "✨ 已自动带入你刚输入的项目主题！可直接按右下角“生成分镜”，或继续补充细节。"
-        : "✨ Pre-filled from your project title! You can click “Generate Storyboard” right away or add more detail.";
 
   const directorNoteLabel =
     locale === "zh-Hant"
@@ -52,20 +43,13 @@ export function QuickScriptCard({
       data-tour-id="instruction-card"
       className="rounded-2xl border-2 border-accent-ink bg-white p-4 shadow-[4px_4px_0_0_#12141c] sm:p-5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
-            {step}
-          </span>
-          <h3 className="font-display text-base font-bold text-foreground">
-            {t("brief.section02.title")}
-          </h3>
-        </div>
-        {prefilledFromFolder && source.trim().length > 0 ? (
-          <span className="rounded-full bg-lime/35 px-3 py-1 text-xs font-semibold text-accent-ink">
-            {prefilledBanner}
-          </span>
-        ) : null}
+      <div className="flex items-center gap-2.5">
+        <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
+          {step}
+        </span>
+        <h3 className="font-display text-base font-bold text-foreground">
+          {t("brief.section02.title")}
+        </h3>
       </div>
 
       <p className="mt-1 text-xs leading-5 text-muted">{quickHint}</p>

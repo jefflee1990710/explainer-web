@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   defaultCastIdsForStyle,
-  initialSourceFromFolderName,
   sanitizeBriefDefaults,
   type BriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
@@ -100,12 +99,3 @@ test("defaultCastIdsForStyle auto-selects matching ready characters for Step 01"
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 0), []);
 });
 
-test("initialSourceFromFolderName rescues prompt-like folder names typed during onboarding", () => {
-  assert.equal(initialSourceFromFolderName("Testing 1"), "");
-  assert.equal(initialSourceFromFolderName("新項目"), "");
-  assert.equal(initialSourceFromFolderName("My First Project"), "");
-  assert.equal(
-    initialSourceFromFolderName("10年前我的媽媽可以看到一萬厘米的高山高樹和九千萬厘米的人。"),
-    "10年前我的媽媽可以看到一萬厘米的高山高樹和九千萬厘米的人。",
-  );
-});
