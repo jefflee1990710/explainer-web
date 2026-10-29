@@ -34,6 +34,7 @@ import {
   isFollowShotSkill,
   isOutfitChangeSkill,
   isOutfitReelSkill,
+  isStreetLookbookSkill,
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   isTalkingBrollSkill,
@@ -43,6 +44,7 @@ import {
   listicleDirectorBlock,
   outfitChangeDirectorBlock,
   outfitReelDirectorBlock,
+  streetLookbookDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
@@ -388,6 +390,7 @@ ${
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
     isOutfitReelSkill(input.skill.slug) ? outfitReelDirectorBlock() : "",
     isOutfitChangeSkill(input.skill.slug) ? outfitChangeDirectorBlock() : "",
+    isStreetLookbookSkill(input.skill.slug) ? streetLookbookDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
     isWorkflowPromoSkill(input.skill.slug) ? workflowPromoDirectorBlock() : "",
     isStyleSwitchSkill(input.skill.slug)

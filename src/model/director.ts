@@ -100,6 +100,7 @@ export const DIRECTOR_SLUGS = [
   "workflow-promo-director",
   "style-switch-director",
   "editorial-interview-director",
+  "street-lookbook-director",
 ] as const;
 
 export type DirectorSlug = (typeof DIRECTOR_SLUGS)[number];

@@ -5,6 +5,7 @@ import { getDirectorBySlug } from "@/service/director/catalog";
 export const SURPRISE_INTERVIEW_SKILL_SLUG = "surprise-interview-director";
 export const OUTFIT_REEL_SKILL_SLUG = "outfit-reel-director";
 export const OUTFIT_CHANGE_SKILL_SLUG = "outfit-change-director";
+export const STREET_LOOKBOOK_SKILL_SLUG = "street-lookbook-director";
 export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
 const CHAIN_FROM_CLIP_2 = new Set([
@@ -26,14 +27,26 @@ export function isOutfitChangeSkill(skillSlug?: string) {
   return skillSlug === OUTFIT_CHANGE_SKILL_SLUG;
 }
 
+export function isStreetLookbookSkill(skillSlug?: string) {
+  return skillSlug === STREET_LOOKBOOK_SKILL_SLUG;
+}
+
 // Clothes come from clothing photos; face stays on the character blueprint.
 export function isWardrobeBuildSkill(skillSlug?: string) {
-  return isOutfitReelSkill(skillSlug) || isOutfitChangeSkill(skillSlug);
+  return (
+    isOutfitReelSkill(skillSlug) ||
+    isOutfitChangeSkill(skillSlug) ||
+    isStreetLookbookSkill(skillSlug)
+  );
 }
 
 // No voiceover, no narrator lock, SFX only.
 export function isSilentOutfitSkill(skillSlug?: string) {
-  return isOutfitReelSkill(skillSlug) || isOutfitChangeSkill(skillSlug);
+  return (
+    isOutfitReelSkill(skillSlug) ||
+    isOutfitChangeSkill(skillSlug) ||
+    isStreetLookbookSkill(skillSlug)
+  );
 }
 
 export function isFollowShotSkill(skillSlug?: string) {

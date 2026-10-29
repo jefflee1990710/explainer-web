@@ -15,10 +15,12 @@ import {
   isOutfitChangeSkill,
   isOutfitReelSkill,
   isSilentOutfitSkill,
+  isStreetLookbookSkill,
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   OUTFIT_CHANGE_SKILL_SLUG,
   OUTFIT_REEL_SKILL_SLUG,
+  STREET_LOOKBOOK_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
 } from "@/service/director/clip-continuity";
 import { talkingHeadDurationHint, isTalkingHeadSkill } from "@/service/director/talking-head";
@@ -37,11 +39,13 @@ export {
   FOLLOW_SHOT_SKILL_SLUG,
   OUTFIT_CHANGE_SKILL_SLUG,
   OUTFIT_REEL_SKILL_SLUG,
+  STREET_LOOKBOOK_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
   isFollowShotSkill,
   isOutfitChangeSkill,
   isOutfitReelSkill,
   isSilentOutfitSkill,
+  isStreetLookbookSkill,
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
 };
@@ -939,6 +943,14 @@ export function outfitChangeDirectorBlock() {
     "One empty cream-white room: plain wall, no furniture, no window props, no shelf. The camera is locked for the whole video: eye-level three-quarter, waist-up to mid-thigh, centered, same crop, same subject size. No gimbal rotation, no push, no zoom, no handheld shake.",
     "Clip count follows the duration preset. Prefer one clothing photo per clip. If the brief asks buttoned or unbuttoned of the same piece, alternate those two styling variants. The next clip is a hard cut to a different complete look, not a camera move on the same outfit.",
     "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
+  ].join(" ");
+}
+
+export function streetLookbookDirectorBlock() {
+  return [
+    "This is a STREET FASHION LOOKBOOK (Esquire / Paris Fashion Week clothing demo). Exactly one attached character. In every clip, the character is already dressed in the complete outfit from that clip's assigned clothing reference image (`referenceImageIds`). Never copy the face, hair, or body of the model inside the clothing photo — face, hair, non-reflective matte skin texture, and proportions stay 100% on the character blueprint, while garments (cut, silhouette, collar/lapel structure, buttons/toggles, fabric weight, trousers, and boots/shoes) match the clothing reference 100%.",
+    "Stage the lookbook across textured urban architectural locations in natural daylight (stone steps, iron canal bridge railing, European street façade with street sign, vintage lamppost) and cycle through 3 distinct editorial camera framings across clips: (1) `full-body-silhouette` (low-angle or eye-level full-body showing head-to-toe garment drape and trousers/footwear, seated on stone steps or leaning on a lamppost/wall), (2) `medium-garment-detail` (waist-up or chest-up profile/3-4 shot highlighting collar structure, knit/fabric weave, toggle closures, and layering as the character leans on a bridge railing or holds the coat collar up near their chin), and (3) `back-over-shoulder` (medium 3/4 back view showing rear tailoring or a coat draped over one shoulder while turning the head in profile).",
+    "Maintain a cool, contemplative, editorial demeanour: mostly off-camera pensive gazes with one calm direct-to-lens look, and composed micro-actions (hand resting on chin, one hand in coat pocket, arms crossed leaning against a pole, or holding up a coat collar). The mouth stays softly closed at all times (zero lip-sync). `englishVo` MUST be \"(no dialogue)\" on every clip.",
   ].join(" ");
 }
 

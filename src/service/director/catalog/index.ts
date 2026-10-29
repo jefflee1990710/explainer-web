@@ -24,6 +24,7 @@ import { outfitChangeDirector } from "@/service/director/catalog/outfit-change-d
 import { workflowPromoDirector } from "@/service/director/catalog/workflow-promo-director";
 import { styleSwitchDirector } from "@/service/director/catalog/style-switch-director";
 import { editorialInterviewDirector } from "@/service/director/catalog/editorial-interview-director";
+import { streetLookbookDirector } from "@/service/director/catalog/street-lookbook-director";
 
 export const DIRECTORS: readonly IDirector[] = [
   cartoonExplainerVideoDirector,
@@ -46,6 +47,7 @@ export const DIRECTORS: readonly IDirector[] = [
   workflowPromoDirector,
   styleSwitchDirector,
   editorialInterviewDirector,
+  streetLookbookDirector,
 ].sort((a, b) => a.sortOrder - b.sortOrder);
 
 export const DIRECTORS_BY_SLUG: Record<DirectorSlug, IDirector> = Object.fromEntries(

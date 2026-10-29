@@ -261,6 +261,7 @@ export const briefZhHant = {
     "follow-shot-director": "第三人稱連續",
     "outfit-change-director": "換裝快切",
     "editorial-interview-director": "雜誌人物專訪",
+    "street-lookbook-director": "街拍時裝 Lookbook（衣服 Demo）",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
@@ -283,6 +284,8 @@ export const briefZhHant = {
     "outfit-change-director": "同一間空白白房、鏡頭鎖死。每段硬切到一套全新造型。",
     "editorial-interview-director":
       "模擬 Esquire / GQ 雜誌人物專訪：微側 15° 對畫外受訪 A-Roll 穿插生活態度與產品工藝體驗 B-Roll。",
+    "street-lookbook-director":
+      "模擬時裝週街拍 Lookbook（衣服 Demo）：角色換上你上傳的衣服參考圖，在城市街頭建築場景交替展示全身輪廓、半身領口布料細節與回眸剪裁。",
   },
   skillGuide: {
     labels: {
@@ -399,6 +402,12 @@ export const briefZhHant = {
         structure: "三幕式專訪弧：專業／創作執著 → 日常儀式共鳴與產品工藝 → 金句收尾",
         picture: "三分法坐姿微側 15° 望向畫外訪問者，穿插生活創作、海景窗前沉思與手持產品體驗 B-Roll",
         frames: "A-Roll 回到固定專訪空間；B-Roll 主角閉口專注動作並搭配畫外獨白",
+      },
+      "street-lookbook-director": {
+        voice: "無旁白，僅保留環境與衣物布料微音效",
+        structure: "街頭多角度節奏快切：全身輪廓比例 ↔ 半身領口／扣具布料細節 ↔ 3/4 背影回眸剪裁",
+        picture: "石階、運河鐵橋、街角建築與復古街燈。五官與髮型鎖定角色藍圖；服裝 100% 依上傳衣服參考圖",
+        frames: "每段切換街頭角落與時裝姿態，全方位展示參考圖服裝的版型與垂墜質感",
       },
     },
   },

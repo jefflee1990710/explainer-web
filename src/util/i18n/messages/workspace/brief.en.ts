@@ -265,6 +265,7 @@ export const briefEn = {
     "follow-shot-director": "Follow shot",
     "outfit-change-director": "Outfit change",
     "editorial-interview-director": "Editorial profile interview",
+    "street-lookbook-director": "Street fashion lookbook",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
@@ -288,6 +289,8 @@ export const briefEn = {
     "outfit-change-director": "Same empty white room and locked camera. Each clip hard-cuts to a new complete look.",
     "editorial-interview-director":
       "Magazine-style profile interview (Esquire / GQ style): alternates a seated 15° off-camera interview with lifestyle & product-in-hand B-roll.",
+    "street-lookbook-director":
+      "Editorial street-fashion clothing demo (Paris Fashion Week lookbook style): showcases uploaded outfits across architectural street spots in full-body, medium detail, and over-the-shoulder cuts.",
   },
   skillGuide: {
     labels: {
@@ -404,6 +407,12 @@ export const briefEn = {
         structure: "3-act editorial arc: Craft philosophy → Daily routine & product craft → Closing aphorism",
         picture: "Seated rule-of-thirds interview looking 15° off-camera, intercut with lifestyle action & product close-ups",
         frames: "A-roll returns to the locked interview room; B-roll keeps the character's mouth closed while VO plays",
+      },
+      "street-lookbook-director": {
+        voice: "No voiceover; subtle urban & fabric Foley only",
+        structure: "Multi-angle urban montage: Full-body silhouette ↔ Medium collar/fabric detail ↔ 3/4 back-over-shoulder",
+        picture: "Architectural street spots (stone steps, canal bridge, lamppost). Face stays on blueprint; outfits match clothing reference photos 100%",
+        frames: "Each clip stages a distinct street spot and editorial pose showcasing the assigned clothing reference",
       },
     },
   },
