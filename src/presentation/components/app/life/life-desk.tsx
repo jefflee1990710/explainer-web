@@ -34,6 +34,7 @@ import {
   EMPTY_LIFE_LOOK,
   LifePresetTree,
   lifePresetsFromPublic,
+  lifeStylesFromPublic,
   type LifeLookSelection,
 } from "@/presentation/components/app/life/life-preset-tree";
 import { LifeWardrobePicker } from "@/presentation/components/app/life/life-wardrobe-picker";
@@ -270,9 +271,10 @@ export function LifeDesk({
     [people, characterId],
   );
 
-  // Wardrobe dialog edits presets in place, so the tree stays current without a reload.
+  // Wardrobe dialog edits presets and style versions in place, so the tree stays current without a reload.
   const onDressUpdated = useCallback((next: PublicCharacter) => {
-    const presets = lifePresetsFromPublic(next.presets);
+    const styles = lifeStylesFromPublic(next);
+    const presets = lifePresetsFromPublic(next.presets, next);
     const newest = [...next.versions]
       .filter((version) => version.status === "completed")
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
@@ -282,14 +284,27 @@ export function LifeDesk({
         const previewUrl = newest
           ? newest.portraitUrl || newest.profileUrl || newest.blueprintUrl || item.previewUrl
           : item.previewUrl;
-        return { ...item, name: next.name, previewUrl, ready: Boolean(previewUrl), presets };
+        return {
+          ...item,
+          name: next.name,
+          styleId: next.styleId,
+          previewUrl,
+          ready: Boolean(previewUrl),
+          styles,
+          presets,
+        };
       }),
     );
     setLook((current) => {
       if (!current.presetId) return current;
       const match = presets.find((preset) => preset.id === current.presetId);
       if (!match) return EMPTY_LIFE_LOOK;
-      return { versionId: match.versionId, presetId: match.id, thumbUrl: match.thumbUrl };
+      return {
+        versionId: match.versionId,
+        presetId: match.id,
+        thumbUrl: match.thumbUrl,
+        styleId: match.styleId,
+      };
     });
   }, []);
 
@@ -932,11 +947,20 @@ export function LifeDesk({
               look={look}
               disabled={pending !== ""}
               onSelectDefault={() => setLook(EMPTY_LIFE_LOOK)}
+              onSelectStyle={(styleLook) =>
+                setLook({
+                  versionId: styleLook.versionId || null,
+                  presetId: null,
+                  thumbUrl: styleLook.thumbUrl,
+                  styleId: styleLook.styleId,
+                })
+              }
               onSelectPreset={(preset) =>
                 setLook({
                   versionId: preset.versionId,
                   presetId: preset.id,
                   thumbUrl: preset.thumbUrl,
+                  styleId: preset.styleId,
                 })
               }
               onManage={() => setDressOpen(true)}

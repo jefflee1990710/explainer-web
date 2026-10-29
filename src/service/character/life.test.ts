@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId } from "mongodb";
-import { runLifeShotJob, toPublicShot } from "@/service/character/life";
+import {
+  runLifeShotJob,
+  toPublicLifePresets,
+  toPublicLifeStyles,
+  toPublicShot,
+} from "@/service/character/life";
+import type { Character } from "@/model/character";
 import type { LifeShot } from "@/model/life-shot";
 
 test("toPublicShot defaults legacy records without status to completed when resultUrl exists", () => {
@@ -106,4 +112,89 @@ test("runLifeShotJob refunds credits and marks the shot failed when provider thr
     },
     $unset: { spendKey: "" },
   });
+});
+
+test("toPublicLifeStyles and toPublicLifePresets expose all supported styles and additional completed versions for an AI influencer", () => {
+  const vReal1 = new ObjectId("6ae0d86cf75348b44a26322b");
+  const vPaper1 = new ObjectId("6ae14c67432f67b5ccf3496b");
+  const vReal2 = new ObjectId("6ae14d3b7d449728658a0f98");
+  const vPaper2 = new ObjectId("6ae24eb4e6e724cfa700ba77");
+
+  const character: Character = {
+    _id: new ObjectId("6ae0d86cf75348b44a26322c"),
+    userId: new ObjectId("6ad41b30702dcbe4c357a7ff"),
+    clerkUserId: "user_1",
+    name: "Scro",
+    styleId: "realistic",
+    defaultVersionId: vReal2,
+    styleDefaults: {
+      realistic: vReal2,
+      "paper-cutout": vPaper2,
+    },
+    versions: [
+      {
+        id: vReal1,
+        styleId: "realistic",
+        prompt: "base realistic",
+        status: "completed",
+        creditsCharged: true,
+        blueprintUrl: "https://blob/real1.png",
+        portraitUrl: "https://blob/real1-portrait.png",
+        createdAt: new Date("2026-10-28T01:00:00Z"),
+      },
+      {
+        id: vPaper1,
+        styleId: "paper-cutout",
+        prompt: "base paper",
+        status: "completed",
+        creditsCharged: true,
+        blueprintUrl: "https://blob/paper1.png",
+        portraitUrl: "https://blob/paper1-portrait.png",
+        createdAt: new Date("2026-10-28T02:00:00Z"),
+      },
+      {
+        id: vReal2,
+        styleId: "realistic",
+        prompt: "edited realistic",
+        editInstruction: "Top: Navy blazer. Isolated wardrobe piece cw_123.",
+        status: "completed",
+        creditsCharged: true,
+        blueprintUrl: "https://blob/real2.png",
+        portraitUrl: "https://blob/real2-portrait.png",
+        createdAt: new Date("2026-10-28T03:00:00Z"),
+      },
+      {
+        id: vPaper2,
+        styleId: "paper-cutout",
+        prompt: "edited paper",
+        editInstruction: "Top: Navy blazer; Pants: Grey shorts.",
+        status: "completed",
+        creditsCharged: true,
+        blueprintUrl: "https://blob/paper2.png",
+        portraitUrl: "https://blob/paper2-portrait.png",
+        createdAt: new Date("2026-10-28T04:00:00Z"),
+      },
+    ],
+    createdAt: new Date("2026-10-28T00:00:00Z"),
+    updatedAt: new Date("2026-10-28T04:00:00Z"),
+  };
+
+  const styles = toPublicLifeStyles(character);
+  assert.deepEqual(
+    styles.map((s) => ({ styleId: s.styleId, versionId: s.versionId })),
+    [
+      { styleId: "realistic", versionId: vReal2.toHexString() },
+      { styleId: "paper-cutout", versionId: vPaper2.toHexString() },
+    ],
+  );
+
+  const presets = toPublicLifePresets(character);
+  assert.equal(presets.length, 2);
+  assert.deepEqual(
+    presets.map((p) => ({ styleId: p.styleId, versionId: p.versionId })),
+    [
+      { styleId: "paper-cutout", versionId: vPaper1.toHexString() },
+      { styleId: "realistic", versionId: vReal1.toHexString() },
+    ],
+  );
 });

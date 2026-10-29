@@ -22,6 +22,11 @@ import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
 import {
+  characterStyleIds,
+  resolveVersionForStyle,
+  versionStyleId,
+} from "@/service/character/character-styles";
+import {
   sanitizeWardrobePicks,
   wardrobePickPrompts,
   type CharacterWardrobePart,
@@ -50,6 +55,15 @@ export type PublicLifePreset = {
   id: string;
   name: string;
   versionId: string;
+  styleId: string;
+  thumbUrl: string | null;
+  detail: string | null;
+};
+
+// Supported style look for this AI influencer (one entry per completed style on the character).
+export type PublicLifeStyleLook = {
+  styleId: string;
+  versionId: string;
   thumbUrl: string | null;
   detail: string | null;
 };
@@ -57,29 +71,91 @@ export type PublicLifePreset = {
 export type PublicLifeCharacter = {
   id: string;
   name: string;
+  styleId: string;
   previewUrl: string | null;
   persona: CharacterPersona | null;
   ready: boolean;
+  styles: PublicLifeStyleLook[];
   presets: PublicLifePreset[];
 };
 
-// Completed presets only. A preset whose blueprint is missing or still generating is hidden.
+// All supported styles for this character that have a completed blueprint version.
+export function toPublicLifeStyles(character: Character): PublicLifeStyleLook[] {
+  const styleIds = characterStyleIds(character);
+  const out: PublicLifeStyleLook[] = [];
+  for (const styleId of styleIds) {
+    const version = resolveVersionForStyle(character, styleId);
+    if (!version) continue;
+    out.push({
+      styleId,
+      versionId: version.id.toHexString(),
+      thumbUrl: version.portraitUrl || version.profileUrl || version.blueprintUrl || null,
+      detail: version.editInstruction?.trim() || null,
+    });
+  }
+  return out;
+}
+
+function cleanLookDetailLabel(editInstruction?: string): string | null {
+  if (!editInstruction) return null;
+  const cleaned = editInstruction
+    .replace(/\s*Isolated wardrobe piece [\w-]+\.?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || null;
+}
+
+// Completed presets + any additional completed outfit versions not already covered by a style default or preset.
 export function toPublicLifePresets(character: Character): PublicLifePreset[] {
-  return [...(character.presets || [])]
+  const explicitPresets: PublicLifePreset[] = [...(character.presets || [])]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .flatMap((preset) => {
       const target = character.versions.find((version) => version.id.equals(preset.versionId));
       if (!target || target.status !== "completed" || !target.blueprintUrl) return [];
+      const styleId = preset.styleId || versionStyleId(character, target);
       return [
         {
           id: preset.id.toHexString(),
           name: preset.name,
           versionId: preset.versionId.toHexString(),
+          styleId,
           thumbUrl: target.portraitUrl || target.profileUrl || target.blueprintUrl || null,
-          detail: target.editInstruction?.trim() || null,
+          detail: cleanLookDetailLabel(target.editInstruction),
         },
       ];
     });
+
+  const styleDefaultVersionIds = new Set(
+    toPublicLifeStyles(character).map((s) => s.versionId),
+  );
+  const presetVersionIds = new Set(explicitPresets.map((p) => p.versionId));
+
+  const extraVersionPresets: PublicLifePreset[] = [...character.versions]
+    .filter(
+      (v) =>
+        v.status === "completed" &&
+        Boolean(v.blueprintUrl) &&
+        !styleDefaultVersionIds.has(v.id.toHexString()) &&
+        !presetVersionIds.has(v.id.toHexString()),
+    )
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((v) => {
+      const styleId = versionStyleId(character, v);
+      const detail = cleanLookDetailLabel(v.editInstruction);
+      const shortName = detail
+        ? detail.replace(/^(?:Top|Pants|Hair|Shoes|Accessory):\s*/i, "").slice(0, 28)
+        : "Original look";
+      return {
+        id: `ver_${v.id.toHexString()}`,
+        name: shortName,
+        versionId: v.id.toHexString(),
+        styleId,
+        thumbUrl: v.portraitUrl || v.profileUrl || v.blueprintUrl || null,
+        detail,
+      };
+    });
+
+  return [...explicitPresets, ...extraVersionPresets];
 }
 
 export type PublicLifeShot = {
@@ -155,9 +231,11 @@ export async function listLifePage(clerkUserId: string) {
     return {
       id: character._id.toHexString(),
       name: character.name,
+      styleId: character.styleId,
       previewUrl: identity,
       persona: parseCharacterPersona(character.persona),
       ready: Boolean(identity),
+      styles: toPublicLifeStyles(character),
       presets: toPublicLifePresets(character),
     };
   });
