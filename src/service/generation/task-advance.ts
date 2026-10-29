@@ -1,4 +1,4 @@
-import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { mediaUrlFromResponse, fetchHiggsfieldStatus } from "@/service/higgsfield/generate";
 import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipeline";
@@ -56,7 +56,7 @@ export async function advanceOwnedJobs(clerkUserId: string) {
     .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1 } })
     .limit(200)
     .toArray();
-  const directors = await (await userDirectorsCollection())
+  const directors = await (await directorsCollection())
     .find({ ownerClerkUserId: clerkUserId, isActive: true }, { projection: { _id: 1 } })
     .limit(200)
     .toArray();

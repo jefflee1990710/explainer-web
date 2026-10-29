@@ -85,9 +85,15 @@ test("custom skill without a template fails with the skill-missing error", async
   });
 });
 
-test("custom skill without a baseSlug fails without calling the loader", async () => {
+test("custom skill without a baseSlug and without standalone prompt/behavior fails without calling the loader", async () => {
   for (const baseSlug of [undefined, ""]) {
-    const custom = skill({ slug: "custom-1", baseSlug, ownerClerkUserId: "u1" });
+    const custom = skill({
+      slug: "custom-1",
+      baseSlug,
+      ownerClerkUserId: "u1",
+      systemPrompt: "",
+      behavior: undefined,
+    });
     await assert.rejects(
       resolveRunSkill(custom, async () => {
         throw new Error("must not load");
@@ -95,4 +101,23 @@ test("custom skill without a baseSlug fails without calling the loader", async (
       MissingTemplateError,
     );
   }
+});
+
+test("standalone custom director with its own compiled systemPrompt runs independently without loading any template", async () => {
+  const standalone = skill({
+    slug: "custom-standalone",
+    baseSlug: undefined,
+    ownerClerkUserId: "u1",
+    title: "My Standalone Director",
+    systemPrompt: "STANDALONE CONTRACT",
+    customProfile: { ...emptyProfile(), hook: "Open on the founder" },
+    extraInstructions: "Keep lighting warm",
+  });
+  const run = await resolveRunSkill(standalone, async () => {
+    throw new Error("must never query system templates for standalone custom director");
+  });
+  assert.equal(run.slug, "custom-standalone");
+  assert.match(run.systemPrompt, /^STANDALONE CONTRACT/);
+  assert.match(run.systemPrompt, /Open on the founder/);
+  assert.match(run.systemPrompt, /Keep lighting warm/);
 });

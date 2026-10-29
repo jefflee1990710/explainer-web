@@ -663,9 +663,11 @@ export async function sendClipVideo(
   const skill = await loadSkill(project);
   const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const editorialInterviewBroll =
-    isEditorialInterviewSkill(skill.slug) && /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
+    (isEditorialInterviewSkill(skill.slug) || Boolean(skill.behavior && skill.behavior.speechMode === "lip-sync" && !skill.behavior.audioFirstLipSync)) &&
+    /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
   const audioFirstTalkingHead =
     skill.slug === TALKING_HEAD_SKILL_SLUG ||
+    Boolean(skill.behavior?.audioFirstLipSync && !editorialInterviewBroll) ||
     (isEditorialInterviewSkill(skill.slug) && !editorialInterviewBroll);
   const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import Link from "next/link";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -187,14 +188,22 @@ export function SkillSelectDialog({
               {t("brief.skill.dialogSubtitle")}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-            className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 text-sm font-bold text-muted hover:text-foreground"
-          >
-            ✕
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/app/directors"
+              className="inline-flex h-8 items-center rounded-full border border-accent-ink/20 bg-white px-3 text-xs font-bold text-foreground transition hover:border-accent-ink hover:bg-lime/25"
+            >
+              ＋ {t("directors.mineSection")}
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("common.close")}
+              className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 text-sm font-bold text-muted hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Search Input at Top of Dialog */}
@@ -218,8 +227,8 @@ export function SkillSelectDialog({
             </p>
           ) : hasCustom ? (
             <>
-              {renderGridSection(t("directors.systemSection"), systemSkills)}
               {renderGridSection(t("directors.mineSection"), customSkills)}
+              {renderGridSection(t("directors.systemSection"), systemSkills)}
             </>
           ) : (
             renderGridSection(null, systemSkills)

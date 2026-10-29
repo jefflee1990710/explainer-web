@@ -1,6 +1,8 @@
 import { characterStyleIds, resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
+import { normalizeDirectorBehavior } from "@/service/director/compile-director-prompts";
+import type { IDirectorBehavior } from "@/model/director";
 import { emptyPerformance } from "@/service/director/performance";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
@@ -306,6 +308,7 @@ export function toPublicSkills(skills: Skill[]): PublicSkill[] {
 // Director detail payload: public profile fields and the AI chat — never the skill prompt.
 export type PublicDirector = PublicSkill & {
   baseSlug?: string;
+  behavior?: IDirectorBehavior;
   profile?: SystemProfile;
   customProfile?: DirectorProfile;
   extraInstructions?: string;
@@ -339,14 +342,19 @@ export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirecto
 export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): PublicDirector {
   const custom = isCustomSkill(skill);
   const hasOwnPreview = Boolean(skill.previewUrl);
+  const resolvedProfile = skill.customProfile ?? (skill.profile ? parseSystemProfile(skill.profile) : undefined);
   return {
     ...toPublicSkill(skill, inheritedPreviewUrl),
     baseSlug: skill.baseSlug,
+    ...(skill.behavior ? { behavior: normalizeDirectorBehavior(skill.behavior) } : {}),
     profile: custom || !skill.profile ? undefined : parseSystemProfile(skill.profile),
-    customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,
+    customProfile: custom ? { ...emptyProfile(), ...resolvedProfile } : undefined,
     extraInstructions: custom ? skill.extraInstructions ?? "" : undefined,
     performance: custom ? undefined : skill.performance?.en,
-    customPerformance: custom && skill.customPerformance ? { ...emptyPerformance(), ...skill.customPerformance } : undefined,
+    customPerformance:
+      custom && (skill.customPerformance || skill.performance?.en)
+        ? { ...emptyPerformance(), ...(skill.customPerformance ?? skill.performance?.en) }
+        : undefined,
     previewStatus: skill.previewStatus ?? "idle",
     // Only an owned still can disable regenerate. Inherited template stills stay replaceable.
     previewHash: hasOwnPreview ? skill.previewHash : undefined,

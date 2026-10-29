@@ -2,14 +2,22 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { skillsCollection, userDirectorsCollection } from "@/dao";
+import { directorsCollection, skillsCollection } from "@/dao";
+import type { IDirectorBehavior } from "@/model/director";
+import type { DirectorChatMessage, Skill } from "@/model/skill";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { customSkillSlug } from "@/service/director/behavior-slug";
-import { customSelectableFilter, isHiddenPickerSkill, systemSelectableFilter } from "@/service/director/selectable-skills";
 import { loadDirectorImageParts } from "@/service/character/cast-prompt";
-import { directorModel } from "@/service/director/model";
+import { analyzeReferenceVideoToDirector } from "@/service/director/analyze-reference-video";
+import { customSkillSlug } from "@/service/director/behavior-slug";
+import { getDirectorById, getDirectorBySlug } from "@/service/director/catalog";
+import { directorAsSkill } from "@/service/director/catalog-skill";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
+import {
+  compileDirectorPrompts,
+  DEFAULT_CUSTOM_DIRECTOR_BEHAVIOR,
+  normalizeDirectorBehavior,
+} from "@/service/director/compile-director-prompts";
 import {
   directorChatSystemPrompt,
   directorChatUserPrompt,
@@ -23,13 +31,19 @@ import {
   type DirectorEdit,
   type DraftField,
 } from "@/service/director/director-edits";
-import { parseSystemProfile } from "@/service/director/profile";
+import { directorModel } from "@/service/director/model";
+import { emptyPerformance } from "@/service/director/performance";
+import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
+import {
+  customSelectableFilter,
+  isHiddenPickerSkill,
+  systemSelectableFilter,
+} from "@/service/director/selectable-skills";
 import {
   toPublicDirector,
   toPublicDirectorChat,
   type PublicDirector,
 } from "@/presentation/serialize";
-import type { DirectorChatMessage, Skill } from "@/model/skill";
 
 const TITLE_MAX = 60;
 const DESCRIPTION_MAX = 300;
@@ -37,7 +51,6 @@ const MESSAGE_MAX = 2000;
 const HISTORY_SENT = 20;
 const CHAT_KEPT = 100;
 
-// Field names are validated by applyDirectorEdits (profile, extraInstructions, performance.*).
 const directorChatSchema = z.object({
   summary: z.string(),
   edits: z.array(z.object({ field: z.string(), content: z.string() })),
@@ -65,7 +78,6 @@ function fail(error: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
 }
 
-// Validated name + description, or the zh-Hant error to show.
 function parseMeta(
   rawTitle: unknown,
   rawDescription: unknown,
@@ -80,36 +92,42 @@ function parseMeta(
   return { ok: true, title, description };
 }
 
-// Active custom director owned by this user, or null for invalid / missing / not-owned / deleted ids.
 async function ownedDirector(id: string, clerkUserId: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
-  const directors = await userDirectorsCollection();
+  const directors = await directorsCollection();
   return (await directors.findOne({
     _id: new ObjectId(id),
     ...customSelectableFilter(clerkUserId),
   })) as Skill | null;
 }
 
-// Detail-page read: a system skill or one of the user's own directors.
+// Detail-page read: checks built-in catalog first, then legacy skills, then the user's `directors` collection.
 export async function loadDirectorForUser(clerkUserId: string, id: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
+  const fromCatalog = getDirectorById(id);
+  if (fromCatalog && !isHiddenPickerSkill(fromCatalog)) {
+    return directorAsSkill(fromCatalog);
+  }
   const oid = new ObjectId(id);
+  const directors = await directorsCollection();
+  const custom = (await directors.findOne({
+    ...customSelectableFilter(clerkUserId),
+    _id: oid,
+  })) as Skill | null;
+  if (custom) return custom;
+
   const skills = await skillsCollection();
   const system = (await skills.findOne({
     ...systemSelectableFilter(),
     _id: oid,
   })) as Skill | null;
-  if (system) return system;
-  const directors = await userDirectorsCollection();
-  return (await directors.findOne({
-    ...customSelectableFilter(clerkUserId),
-    _id: oid,
-  })) as Skill | null;
+  return system;
 }
 
-// Custom directors reuse the system template still.
 export async function toPublicDirectorWithPreview(skill: Skill): Promise<PublicDirector> {
   if (skill.previewUrl || !skill.baseSlug) return toPublicDirector(skill);
+  const fromCatalog = getDirectorBySlug(skill.baseSlug);
+  if (fromCatalog?.previewUrl) return toPublicDirector(skill, fromCatalog.previewUrl);
   const skills = await skillsCollection();
   const template = await skills.findOne({
     slug: skill.baseSlug,
@@ -118,46 +136,128 @@ export async function toPublicDirectorWithPreview(skill: Skill): Promise<PublicD
   return toPublicDirector(skill, template?.previewUrl);
 }
 
-// Fork a system skill into a new custom director owned by the user.
+// Create a 100% standalone custom director in `directorsCollection()` — either deep-copied from a template or blank.
 export async function createDirectorAction(input: {
-  templateSlug: string;
+  templateSlug?: string;
   title: string;
   description: string;
+  suggestedUseCase?: string;
 }): Promise<CreateDirectorResult> {
   try {
     const user = await requireAppUser();
     const meta = parseMeta(input?.title, input?.description);
     if (!meta.ok) return meta;
 
-    const skills = await skillsCollection();
-    const template = (await skills.findOne({
-      slug: String(input?.templateSlug ?? ""),
-      ownerClerkUserId: { $exists: false },
-      isActive: true,
-    })) as Skill | null;
-    if (!template?.profile || isHiddenPickerSkill(template)) return { ok: false, error: "找不到模板" };
+    const rawSlug = String(input?.templateSlug ?? "").trim();
+    const isBlank = !rawSlug || rawSlug === "__blank__";
+
+    let sourceSkill: Skill | null = null;
+    if (!isBlank) {
+      const catalogTemplate = getDirectorBySlug(rawSlug);
+      if (catalogTemplate && !isHiddenPickerSkill(catalogTemplate)) {
+        sourceSkill = directorAsSkill(catalogTemplate);
+      } else {
+        const skills = await skillsCollection();
+        const dbTemplate = (await skills.findOne({
+          slug: rawSlug,
+          ownerClerkUserId: { $exists: false },
+          isActive: true,
+        })) as Skill | null;
+        if (dbTemplate && !isHiddenPickerSkill(dbTemplate)) {
+          sourceSkill = dbTemplate;
+        }
+      }
+      if (!sourceSkill) return { ok: false, error: "找不到模板" };
+    }
 
     const _id = new ObjectId();
+    const slug = customSkillSlug(_id);
     const now = new Date();
-    const directors = await userDirectorsCollection();
-    await directors.insertOne({
-      _id,
-      slug: customSkillSlug(_id),
+
+    const copiedProfile = sourceSkill?.profile
+      ? { ...parseSystemProfile(sourceSkill.profile) }
+      : sourceSkill?.customProfile
+        ? { ...emptyProfile(), ...sourceSkill.customProfile }
+        : emptyProfile();
+
+    const copiedBehavior = normalizeDirectorBehavior(
+      sourceSkill?.behavior,
+      DEFAULT_CUSTOM_DIRECTOR_BEHAVIOR,
+    );
+
+    const copiedPerformance = sourceSkill?.performance?.en
+      ? { ...sourceSkill.performance.en }
+      : copiedBehavior.speechMode === "lip-sync"
+        ? emptyPerformance()
+        : undefined;
+
+    const compiled = compileDirectorPrompts({
+      slug,
       title: meta.title,
       description: meta.description,
-      // Custom directors never hold prompt text; they run on the template via baseSlug.
-      systemPrompt: "",
-      references: [],
-      customProfile: { ...parseSystemProfile(template.profile) },
+      suggestedUseCase: input.suggestedUseCase || sourceSkill?.suggestedUseCase,
+      behavior: copiedBehavior,
+      profile: copiedProfile,
+      performance: copiedPerformance,
       extraInstructions: "",
-      // On-camera read templates carry performance slots; the fork edits the English set.
-      ...(template.performance ? { customPerformance: { ...template.performance.en } } : {}),
-      inputSchema: template.inputSchema,
-      higgsfieldDefaults: template.higgsfieldDefaults,
+    });
+
+    const directors = await directorsCollection();
+    await directors.insertOne({
+      _id,
+      slug,
+      title: meta.title,
+      description: meta.description,
+      suggestedUseCase:
+        input.suggestedUseCase?.trim() ||
+        sourceSkill?.suggestedUseCase ||
+        copiedProfile.bestFor ||
+        meta.description,
+      // 100% standalone copy: carries its own compiled systemPrompt, references, behavior, and profile.
+      systemPrompt: sourceSkill?.systemPrompt
+        ? `${sourceSkill.systemPrompt}\n\n${compiled.systemPrompt}`
+        : compiled.systemPrompt,
+      references:
+        sourceSkill?.references && sourceSkill.references.length > 0
+          ? sourceSkill.references.map((r) => ({ ...r }))
+          : compiled.references,
+      behavior: copiedBehavior,
+      profile: copiedProfile,
+      customProfile: copiedProfile,
+      extraInstructions: "",
+      ...(copiedPerformance
+        ? {
+            performance: {
+              en: copiedPerformance,
+              yue: sourceSkill?.performance?.yue ?? copiedPerformance,
+            },
+            customPerformance: copiedPerformance,
+          }
+        : {}),
+      inputSchema: sourceSkill?.inputSchema
+        ? {
+            ...sourceSkill.inputSchema,
+            aspectRatios: [...sourceSkill.inputSchema.aspectRatios],
+            durationPresets: [...sourceSkill.inputSchema.durationPresets],
+          }
+        : {
+            requiresSource: true,
+            aspectRatios: ["16:9", "9:16", "1:1"],
+            durationPresets: ["micro", "short", "punchy", "full"],
+            optionalCharacterImage: true,
+          },
+      higgsfieldDefaults: sourceSkill?.higgsfieldDefaults
+        ? { ...sourceSkill.higgsfieldDefaults }
+        : {
+            imageModel: "alibaba/qwen-image-3/text-to-image",
+            imageQuality: "medium",
+            imageResolution: "1k",
+            videoModel: "minimax/h3/image-to-video",
+          },
+      ...(sourceSkill?.previewUrl ? { previewUrl: sourceSkill.previewUrl } : {}),
       isActive: true,
-      sortOrder: template.sortOrder,
+      sortOrder: sourceSkill?.sortOrder ?? 50,
       ownerClerkUserId: user.clerkUserId,
-      baseSlug: template.slug,
       chat: [],
       createdAt: now,
       updatedAt: now,
@@ -171,11 +271,103 @@ export async function createDirectorAction(input: {
   }
 }
 
-// Save name, description, profile fields, and extra instructions of a custom director.
+// Analyze a reference video / IG Reel URL or uploaded MP4 file and create a standalone custom director.
+export async function createDirectorFromReferenceVideoAction(
+  formData: FormData,
+): Promise<CreateDirectorResult> {
+  try {
+    const user = await requireAppUser();
+    const videoUrl = String(formData.get("videoUrl") ?? "").trim();
+    const titleHint = String(formData.get("title") ?? "").trim();
+    const notes = String(formData.get("notes") ?? "").trim();
+    const file = formData.get("file");
+
+    let videoBytes: Uint8Array | undefined;
+    let mimeType = "video/mp4";
+    if (file instanceof File && file.size > 0) {
+      if (file.size > 40 * 1024 * 1024) {
+        return { ok: false, error: "參考影片檔案請細於 40MB" };
+      }
+      videoBytes = new Uint8Array(await file.arrayBuffer());
+      mimeType = file.type || "video/mp4";
+    }
+
+    const blueprint = await analyzeReferenceVideoToDirector({
+      videoUrl,
+      videoBytes,
+      mimeType,
+      titleHint,
+      notes,
+    });
+
+    const _id = new ObjectId();
+    const slug = customSkillSlug(_id);
+    const now = new Date();
+    const compiled = compileDirectorPrompts({
+      slug,
+      title: blueprint.title,
+      description: blueprint.description,
+      suggestedUseCase: blueprint.suggestedUseCase,
+      behavior: blueprint.behavior,
+      profile: blueprint.profile,
+      performance: blueprint.performance,
+      extraInstructions: blueprint.extraInstructions,
+    });
+
+    const directors = await directorsCollection();
+    await directors.insertOne({
+      _id,
+      slug,
+      title: blueprint.title,
+      description: blueprint.description,
+      suggestedUseCase: blueprint.suggestedUseCase,
+      systemPrompt: compiled.systemPrompt,
+      references: compiled.references,
+      behavior: blueprint.behavior,
+      profile: blueprint.profile,
+      customProfile: blueprint.profile,
+      extraInstructions: blueprint.extraInstructions,
+      ...(blueprint.performance
+        ? {
+            performance: { en: blueprint.performance, yue: blueprint.performance },
+            customPerformance: blueprint.performance,
+          }
+        : {}),
+      inputSchema: {
+        requiresSource: !blueprint.behavior.requiresSpokenScript,
+        aspectRatios: ["16:9", "9:16", "1:1"],
+        durationPresets: ["micro", "short", "punchy", "full"],
+        optionalCharacterImage: true,
+      },
+      higgsfieldDefaults: {
+        imageModel: "alibaba/qwen-image-3/text-to-image",
+        imageQuality: "medium",
+        imageResolution: "1k",
+        videoModel: "minimax/h3/image-to-video",
+      },
+      isActive: true,
+      sortOrder: 50,
+      ownerClerkUserId: user.clerkUserId,
+      chat: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const id = _id.toHexString();
+    revalidateDirector(id);
+    return { ok: true, id };
+  } catch (error) {
+    return fail(error, "分析參考影片建立導演失敗");
+  }
+}
+
+// Save name, description, behavior switches, profile fields, performance slots, and extra instructions of a standalone custom director.
 export async function saveDirectorAction(input: {
   id: string;
   title: string;
   description: string;
+  suggestedUseCase?: string;
+  behavior?: Partial<IDirectorBehavior>;
   customProfile: DirectorDraft["customProfile"];
   extraInstructions: string;
   customPerformance?: DirectorDraft["customPerformance"];
@@ -190,21 +382,55 @@ export async function saveDirectorAction(input: {
       customProfile: input.customProfile,
       extraInstructions: input.extraInstructions,
       customPerformance: input.customPerformance,
+      behavior: input.behavior ?? skill.behavior,
     });
     if (!parsed.ok) return parsed;
 
-    const directors = await userDirectorsCollection();
+    const nextBehavior = normalizeDirectorBehavior(
+      input.behavior ?? parsed.draft.behavior ?? skill.behavior,
+      skill.behavior ?? DEFAULT_CUSTOM_DIRECTOR_BEHAVIOR,
+    );
+    const nextPerf =
+      parsed.draft.customPerformance ??
+      skill.customPerformance ??
+      (nextBehavior.speechMode === "lip-sync" ? emptyPerformance() : undefined);
+
+    const compiled = compileDirectorPrompts({
+      slug: skill.slug,
+      title: meta.title,
+      description: meta.description,
+      suggestedUseCase: input.suggestedUseCase ?? skill.suggestedUseCase,
+      behavior: nextBehavior,
+      profile: parsed.draft.customProfile,
+      performance: nextPerf,
+      extraInstructions: parsed.draft.extraInstructions,
+    });
+
+    const directors = await directorsCollection();
     const updated = (await directors.findOneAndUpdate(
       { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       {
         $set: {
           title: meta.title,
           description: meta.description,
+          suggestedUseCase:
+            input.suggestedUseCase?.trim() ||
+            parsed.draft.customProfile.bestFor ||
+            meta.description,
+          behavior: nextBehavior,
+          profile: parsed.draft.customProfile,
           customProfile: parsed.draft.customProfile,
           extraInstructions: parsed.draft.extraInstructions,
-          // Only directors that already have slots may save them; others keep none.
-          ...(parsed.draft.customPerformance && skill.customPerformance
-            ? { customPerformance: parsed.draft.customPerformance }
+          systemPrompt: compiled.systemPrompt,
+          references: compiled.references,
+          ...(nextPerf
+            ? {
+                performance: {
+                  en: nextPerf,
+                  yue: skill.performance?.yue ?? nextPerf,
+                },
+                customPerformance: nextPerf,
+              }
             : {}),
           updatedAt: new Date(),
         },
@@ -225,7 +451,7 @@ export async function deleteDirectorAction(id: string): Promise<DeleteDirectorRe
   try {
     const user = await requireAppUser();
     if (!ObjectId.isValid(id)) return { ok: false, error: "找不到 Director" };
-    const directors = await userDirectorsCollection();
+    const directors = await directorsCollection();
     const now = new Date();
     const removed = await directors.updateOne(
       { _id: new ObjectId(id), ownerClerkUserId: user.clerkUserId, isActive: true },
@@ -252,7 +478,6 @@ function parseChatImageUrl(value: unknown): string | undefined {
   }
 }
 
-// Ask the AI to edit the current draft; persists the exchange, never the draft.
 export async function sendDirectorChatAction(input: {
   id: string;
   message: string;
@@ -276,8 +501,9 @@ export async function sendDirectorChatAction(input: {
     const parsed = parseDraft(input?.draft);
     if (!parsed.ok) return parsed;
     const draft = parsed.draft;
-    // A client that did not send slots still gets them editable from the saved director.
-    if (!draft.customPerformance && skill.customPerformance) draft.customPerformance = { ...skill.customPerformance };
+    if (!draft.customPerformance && skill.customPerformance) {
+      draft.customPerformance = { ...skill.customPerformance };
+    }
 
     if (chatRateLimited(skill.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
 
@@ -324,7 +550,6 @@ export async function sendDirectorChatAction(input: {
     if (!applied.ok) return applied;
     if (applied.changedFields.length === 0) return { ok: false, error: "AI 沒有修改任何欄位" };
 
-    // One final edit per changed field (duplicates and no-op edits dropped).
     const edits: DirectorEdit[] = applied.changedFields.map((field) => ({
       field,
       content: draftFieldValue(applied.draft, field),
@@ -343,7 +568,7 @@ export async function sendDirectorChatAction(input: {
       createdAt: now,
     };
 
-    const directors = await userDirectorsCollection();
+    const directors = await directorsCollection();
     const pushed = await directors.updateOne(
       { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       { $push: { chat: { $each: [userMsg, assistantMsg], $slice: -CHAT_KEPT } } },

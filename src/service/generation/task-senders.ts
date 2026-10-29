@@ -2,7 +2,7 @@ import {
   charactersCollection,
   saveClipPhaseBPrompt,
   textStylesCollection,
-  userDirectorsCollection,
+  directorsCollection,
   videosCollection,
 } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
@@ -128,7 +128,7 @@ async function sendTextStylePreview(job: GenerationJob): Promise<Sent> {
 // Load the custom director by id and send its 5-frame preview strip.
 async function sendDirectorPreview(job: GenerationJob): Promise<Sent> {
   if (!job.skillId) throw new PermanentJobError("找不到 Director");
-  const directors = await userDirectorsCollection();
+  const directors = await directorsCollection();
   const doc = await directors.findOne({ _id: job.skillId });
   if (!doc) throw new PermanentJobError("找不到 Director");
   const model = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;

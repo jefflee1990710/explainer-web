@@ -1,3 +1,4 @@
+import type { IDirectorBehavior } from "@/model/director";
 import {
   PERFORMANCE_FIELDS,
   performanceKeyOf,
@@ -5,6 +6,7 @@ import {
   type PerformanceSlots,
 } from "@/model/director-performance";
 import { PROFILE_KEYS, type DirectorProfile } from "@/model/director-profile";
+import { normalizeDirectorBehavior } from "@/service/director/compile-director-prompts";
 import { PERFORMANCE_FIELD_MAX, parsePerformanceSlots } from "@/service/director/performance";
 import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, parseProfile } from "@/service/director/profile";
 
@@ -17,6 +19,7 @@ export type DirectorDraft = {
   customProfile: DirectorProfile;
   extraInstructions: string;
   customPerformance?: PerformanceSlots;
+  behavior?: IDirectorBehavior;
 };
 
 // One full-field replacement proposed by the AI.
@@ -52,6 +55,7 @@ export function applyDirectorEdits(
     customProfile: { ...draft.customProfile },
     extraInstructions: draft.extraInstructions,
     ...(draft.customPerformance ? { customPerformance: { ...draft.customPerformance } } : {}),
+    ...(draft.behavior ? { behavior: { ...draft.behavior } } : {}),
   };
   for (const edit of edits) {
     const perfKey = performanceKeyOf(edit.field);
@@ -88,6 +92,9 @@ export function parseDraft(raw: unknown): { ok: true; draft: DirectorDraft } | {
     const perf = parsePerformanceSlots(source.customPerformance);
     if (!perf.ok) return perf;
     draft.customPerformance = perf.slots;
+  }
+  if (source.behavior && typeof source.behavior === "object") {
+    draft.behavior = normalizeDirectorBehavior(source.behavior as Partial<IDirectorBehavior>);
   }
   return { ok: true, draft };
 }

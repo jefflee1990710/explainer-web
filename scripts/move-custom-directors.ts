@@ -4,13 +4,13 @@
  * Usage: npx tsx scripts/move-custom-directors.ts
  */
 import { loadEnvConfig } from "@next/env";
-import { skillsCollection, userDirectorsCollection } from "@/dao";
+import { skillsCollection, directorsCollection } from "@/dao";
 
 loadEnvConfig(process.cwd());
 
 async function main() {
   const skills = await skillsCollection();
-  const directors = await userDirectorsCollection();
+  const directors = await directorsCollection();
   const docs = await skills.find({ ownerClerkUserId: { $exists: true, $type: "string", $ne: "" } }).toArray();
   let moved = 0;
   for (const doc of docs) {

@@ -20,7 +20,7 @@ export { mcpApiKeysCollection } from "@/dao/mcp-api-keys";
 export { mcpToolCallsCollection } from "@/dao/mcp-tool-calls";
 export { videoTemplatesCollection } from "@/dao/video-templates";
 export { userStylesCollection } from "@/dao/user-styles";
-export { userDirectorsCollection } from "@/dao/user-directors";
+export { directorsCollection } from "@/dao/directors";
 export { postsCollection } from "@/dao/posts";
 export { productsCollection } from "@/dao/products";
 export { textStylesCollection } from "@/dao/text-styles";

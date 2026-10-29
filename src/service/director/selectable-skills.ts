@@ -1,3 +1,4 @@
+import { directorsCollection } from "@/dao";
 import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
 import { DIRECTORS, getDirectorBySlug } from "@/service/director/catalog";
@@ -51,15 +52,43 @@ export function sortSelectableSkills(skills: Skill[]): Skill[] {
   return [...system, ...custom];
 }
 
-// Picker list from hardcoded directors.
-export async function listSelectableSkills(_clerkUserId?: string): Promise<Skill[]> {
-  return DIRECTORS.filter((director) => director.isActive && !isHiddenPickerSkill(director)).map(directorAsSkill);
+// Picker list from hardcoded directors plus the user's standalone custom directors in MongoDB (`directors` collection).
+export async function listSelectableSkills(clerkUserId?: string): Promise<Skill[]> {
+  const systemSkills = DIRECTORS.filter(
+    (director) => director.isActive && !isHiddenPickerSkill(director),
+  ).map(directorAsSkill);
+  if (!clerkUserId) return systemSkills;
+  try {
+    const col = await directorsCollection();
+    const userDocs = (await col
+      .find(customSelectableFilter(clerkUserId))
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .toArray()) as Skill[];
+    const visibleCustom = userDocs.filter((doc) => !isHiddenPickerSkill(doc));
+    return sortSelectableSkills([...systemSkills, ...visibleCustom]);
+  } catch {
+    return systemSkills;
+  }
 }
 
-// One built-in director by slug, only if active and selectable in the picker.
-export async function findSelectableSkill(_clerkUserId: string, slug: string): Promise<Skill | null> {
+// One built-in or user-owned director by slug, only if active and selectable in the picker.
+export async function findSelectableSkill(clerkUserId: string, slug: string): Promise<Skill | null> {
   if (!slug) return null;
   const director = getDirectorBySlug(slug);
-  if (!director || !director.isActive || isHiddenPickerSkill(director)) return null;
-  return directorAsSkill(director);
+  if (director && director.isActive && !isHiddenPickerSkill(director)) {
+    return directorAsSkill(director);
+  }
+  if (!clerkUserId) return null;
+  try {
+    const col = await directorsCollection();
+    const custom = (await col.findOne({
+      slug,
+      ...customSelectableFilter(clerkUserId),
+    })) as Skill | null;
+    if (!custom || isHiddenPickerSkill(custom)) return null;
+    return custom;
+  } catch {
+    return null;
+  }
 }

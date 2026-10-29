@@ -155,6 +155,10 @@ export interface IDirectorBehavior {
   allowsOpeningPhotoUpload: boolean;
   allowsBrandLogoUpload: boolean;
   hiddenInPicker: boolean;
+  /** Routes lip-sync clips (or A-roll clips) to HeyGen Avatar IV (up to 120s) instead of 5-12s keyframe video. */
+  audioFirstLipSync?: boolean;
+  /** Locks face/hair to the character blueprint while taking outfits 100% from attached clothing reference images. */
+  wardrobeBuild?: boolean;
 }
 
 export interface IDirector {

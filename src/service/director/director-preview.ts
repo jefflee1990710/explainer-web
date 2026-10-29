@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { ObjectId } from "mongodb";
-import { userDirectorsCollection } from "@/dao";
+import { directorsCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { DirectorChatMessage, DirectorPreviewStatus, Skill } from "@/model/skill";
 import { requireAppUser } from "@/service/auth";
@@ -127,7 +127,7 @@ function fail(error: unknown, fallback: string): { ok: false; error: string } {
 
 async function ownedActiveDirector(id: string, clerkUserId: string) {
   if (!ObjectId.isValid(id)) return null;
-  const collection = await userDirectorsCollection();
+  const collection = await directorsCollection();
   return collection.findOne({
     _id: new ObjectId(id),
     ownerClerkUserId: clerkUserId,
@@ -143,7 +143,7 @@ async function releaseUnqueuedSpend(input: {
   spendKey: string;
   writeThrew: boolean;
 }) {
-  const collection = await userDirectorsCollection();
+  const collection = await directorsCollection();
   let resetThrew = false;
   let resetMatchedCount = 0;
   try {
@@ -207,7 +207,7 @@ export async function generateDirectorPreviewAction(input: {
     directorId = doc._id;
     previewStartedAt = now;
     const previewChatCreatedAt = parseChatCreatedAt(input.chatCreatedAt);
-    const collection = await userDirectorsCollection();
+    const collection = await directorsCollection();
     const claimed = await collection.updateOne(
       directorPreviewClaimFilter({
         directorId: doc._id,
@@ -284,7 +284,7 @@ async function claimPreviewRefund(
   ownerClerkUserId: string,
   previewStartedAt: Date,
 ) {
-  const directors = await userDirectorsCollection();
+  const directors = await directorsCollection();
   const claimed = await directors.updateOne(
     { ...ownedPreviewFilter(directorId, previewStartedAt), previewCreditsCharged: true },
     {
@@ -318,7 +318,7 @@ export async function syncDirectorPreviewJob(
   outputUrl?: string,
 ) {
   if (!job.skillId) return;
-  const directors = await userDirectorsCollection();
+  const directors = await directorsCollection();
   const doc = await directors.findOne({ _id: job.skillId });
   if (!doc?.previewStartedAt || !isCurrentPreview(doc, job)) return;
   const startedAt = doc.previewStartedAt;

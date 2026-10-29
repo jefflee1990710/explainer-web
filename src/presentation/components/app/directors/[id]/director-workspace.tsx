@@ -33,6 +33,7 @@ function formFromDirector(director: PublicDirector): DirectorForm {
   return {
     title: director.title,
     description: director.description,
+    behavior: director.behavior,
     customProfile: director.customProfile ?? emptyProfile(),
     extraInstructions: director.extraInstructions ?? "",
     // Only on-camera read forks carry performance slots.
@@ -44,7 +45,8 @@ function formDirty(saved: DirectorForm, draft: DirectorForm) {
   return (
     changedDraftFields(saved, draft).length > 0 ||
     draft.title !== saved.title ||
-    draft.description !== saved.description
+    draft.description !== saved.description ||
+    JSON.stringify(draft.behavior ?? null) !== JSON.stringify(saved.behavior ?? null)
   );
 }
 
@@ -76,7 +78,10 @@ export function DirectorWorkspace({
   const previewCurrent = useDirectorPreviewCurrent(initial.hasOwnPreview ? initial.previewHash : undefined, draft);
   useStylePreviewPoll(previewStatus);
 
-  savedRef.current = saved;
+  useEffect(() => {
+    savedRef.current = saved;
+  }, [saved]);
+
   const changedFields = changedDraftFields(saved, draft);
   const dirty = director.isCustom && formDirty(saved, draft);
   useUnsavedWarning(dirty || saving || pendingSave);
@@ -223,7 +228,12 @@ export function DirectorWorkspace({
             previewBusy={previewStatus === "generating"}
             onChange={onChange}
           />
-          <DirectorInfoPanel director={director} draft={draft} changedFields={changedFields} />
+          <DirectorInfoPanel
+            director={director}
+            draft={draft}
+            changedFields={changedFields}
+            onChange={onChange}
+          />
         </div>
         {director.isCustom ? (
           <DirectorChatDrawer>

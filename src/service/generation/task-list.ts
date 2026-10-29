@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection, postsCollection, productsCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { postHeadline } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
@@ -186,7 +186,7 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
     .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1, name: 1 } })
     .limit(200)
     .toArray();
-  const directors = await (await userDirectorsCollection())
+  const directors = await (await directorsCollection())
     .find({ ownerClerkUserId: clerkUserId, isActive: true }, { projection: { _id: 1, title: 1 } })
     .limit(200)
     .toArray();

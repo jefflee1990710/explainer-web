@@ -45,6 +45,7 @@ export function AppShell({
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
     { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },
+    { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "assets" },
     { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "assets" },
     { href: "/app/products", label: t("nav.products"), icon: "products", section: "assets" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "account" },

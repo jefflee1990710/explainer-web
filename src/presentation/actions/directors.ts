@@ -18,6 +18,12 @@ export async function createDirectorAction(
   return service.createDirectorAction(...args);
 }
 
+export async function createDirectorFromReferenceVideoAction(
+  ...args: Parameters<typeof service.createDirectorFromReferenceVideoAction>
+) {
+  return service.createDirectorFromReferenceVideoAction(...args);
+}
+
 export async function saveDirectorAction(
   ...args: Parameters<typeof service.saveDirectorAction>
 ) {
