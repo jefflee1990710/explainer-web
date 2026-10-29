@@ -160,6 +160,11 @@ export const briefEn = {
     scriptLabel: "Script to read",
     scriptPlaceholder: "Hello. This product saves you an hour every week.\nTry it today.",
   },
+  talkingHeadPose: {
+    title: "Talking-head pose",
+    hint: "Choose framing zoom — from full body down to the intimate collarbone close-up.",
+    aria: "Talking-head pose",
+  },
   submit: {
     submitting: "Submitting…",
     regenerate: "Generate again",

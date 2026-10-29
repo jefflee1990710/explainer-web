@@ -5,6 +5,8 @@ import {
   DEFAULT_TALKING_HEAD_POSE_ID,
   getTalkingHeadBackground,
   getTalkingHeadPose,
+  talkingHeadPoseOwnsFraming,
+  talkingHeadPoseShot,
 } from "@/model/talking-head-options";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
@@ -291,7 +293,10 @@ export function planTalkingHeadClips(input: {
   // Cinematic realistic style: add light source, skin detail, and foreground depth.
   realistic?: boolean;
 }): TalkingHeadClipPlan[] {
-  const talkingShot: TalkingShot = input.shot === "full-body" ? "full-body" : "face";
+  const poseForcesFullBody = talkingHeadPoseShot(input.talkingHeadPoseId) === "full-body";
+  const talkingShot: TalkingShot =
+    poseForcesFullBody || input.shot === "full-body" ? "full-body" : "face";
+  const resolvedShot = poseForcesFullBody ? "full-body" : input.shot;
   const maxClipSeconds =
     talkingShot === "full-body" ? FULL_BODY_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS;
   const lines = balanceTalkingHeadLines(input.source, input.pace, {
@@ -328,7 +333,7 @@ export function planTalkingHeadClips(input: {
     const seconds = plannedClipSeconds(line, input.pace, maxClipSeconds);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
     const scene = {
-      shot: input.shot,
+      shot: resolvedShot,
       belowCenter,
       background: input.background,
       talkingHeadBackgroundId: input.talkingHeadBackgroundId,
@@ -340,7 +345,11 @@ export function planTalkingHeadClips(input: {
       realistic: input.realistic,
       clipIndex: index,
     };
-    const realism = { fullBody: talkingShot === "full-body", openingPhoto: input.openingPhoto };
+    const realism = {
+      fullBody: talkingShot === "full-body",
+      openingPhoto: input.openingPhoto,
+      poseOwnsFraming: talkingHeadPoseOwnsFraming(input.talkingHeadPoseId),
+    };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     const nextLine = index + 1 < lines.length ? lines[index + 1] : undefined;
@@ -509,6 +518,7 @@ function withStillRealism(still: string, language: VoLanguage | undefined, scene
   const clause = talkingRealismStill(language, {
     fullBody: scene.shot === "full-body",
     openingPhoto: scene.openingPhoto,
+    poseOwnsFraming: talkingHeadPoseOwnsFraming(scene.talkingHeadPoseId),
   });
   return !isChineseScaffolding(language) ? `${still.trim()} ${clause}` : `${still.trim()}${clause}`;
 }

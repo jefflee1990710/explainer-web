@@ -84,6 +84,12 @@ import {
 } from "@/service/director/talking-head";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { TalkingHeadBackgroundField } from "@/presentation/components/app/projects/new/talking-head-background-field";
+import { TalkingHeadPoseField } from "@/presentation/components/app/projects/new/talking-head-pose-field";
+import {
+  DEFAULT_TALKING_HEAD_POSE_ID,
+  isTalkingHeadPoseId,
+  type TalkingHeadPoseId,
+} from "@/model/talking-head-options";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type {
   PublicCharacter,
@@ -300,6 +306,11 @@ export function NewProjectForm({
   const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
     initialVideo?.backgroundImageUrls || [],
   );
+  const [talkingHeadPoseId, setTalkingHeadPoseId] = useState<TalkingHeadPoseId>(() =>
+    isTalkingHeadPoseId(initialVideo?.talkingHeadPoseId)
+      ? initialVideo.talkingHeadPoseId
+      : DEFAULT_TALKING_HEAD_POSE_ID,
+  );
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
@@ -491,6 +502,9 @@ export function NewProjectForm({
         JSON.stringify(talkingHead ? [] : clipDrafts) &&
       JSON.stringify(project.backgroundImageUrls || []) ===
         JSON.stringify(talkingHeadBackground ? backgroundImageUrls : []) &&
+      (talkingHeadBackground
+        ? (project.talkingHeadPoseId || DEFAULT_TALKING_HEAD_POSE_ID) === talkingHeadPoseId
+        : true) &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index]) &&
       project.cast.every((member) => {
@@ -528,6 +542,7 @@ export function NewProjectForm({
     }
     if (talkingHeadBackground) {
       formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
+      formData.set("talkingHeadPoseId", talkingHeadPoseId);
     }
     for (const id of characterIds) formData.append("characterIds", id);
     if (Object.keys(characterSelections).length > 0) {
@@ -723,6 +738,11 @@ export function NewProjectForm({
     setReferenceImages(toReferenceDrafts(video.referenceImages));
     setClipDrafts(video.clipDrafts || []);
     setBackgroundImageUrls(video.backgroundImageUrls || []);
+    setTalkingHeadPoseId(
+      isTalkingHeadPoseId(video.talkingHeadPoseId)
+        ? video.talkingHeadPoseId
+        : DEFAULT_TALKING_HEAD_POSE_ID,
+    );
   }
 
   const onRestart = useCallback(() => {
@@ -1494,6 +1514,11 @@ export function NewProjectForm({
 
                       {talkingHeadBackground ? (
                         <div className="border-t border-accent-ink/10 pt-4">
+                          <TalkingHeadPoseField
+                            value={talkingHeadPoseId}
+                            onChange={setTalkingHeadPoseId}
+                            disabled={briefBusy}
+                          />
                           <TalkingHeadBackgroundField
                             value={backgroundImageUrls}
                             onChange={setBackgroundImageUrls}

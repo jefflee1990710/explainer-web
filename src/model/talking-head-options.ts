@@ -161,21 +161,32 @@ export const TALKING_HEAD_BACKGROUNDS: readonly TalkingHeadBackgroundOption[] = 
   },
 ] as const;
 
+/** Framing zoom ladder for talking-head: full body → waist → chest → collarbone close-up. */
+export const TALKING_HEAD_POSE_FRAMINGS = [
+  "full-body",
+  "waist-up",
+  "chest-up",
+  "collarbone-close",
+] as const;
+
+export type TalkingHeadPoseFraming = (typeof TALKING_HEAD_POSE_FRAMINGS)[number];
+
 export const TALKING_HEAD_POSE_IDS = [
-  "seated-sofa-lap",
-  "seated-desk-hands",
-  "seated-lean-in",
-  "seated-elbow-rest",
-  "standing-waist-up",
-  "seated-open-palm",
+  "full-body",
+  "waist-up",
+  "chest-up",
+  "collarbone-close",
 ] as const;
 
 export type TalkingHeadPoseId = (typeof TALKING_HEAD_POSE_IDS)[number];
 
-export const DEFAULT_TALKING_HEAD_POSE_ID: TalkingHeadPoseId = "seated-sofa-lap";
+/** Default matches the refined intimate selfie angle (collarbone-up, face 60–65%). */
+export const DEFAULT_TALKING_HEAD_POSE_ID: TalkingHeadPoseId = "collarbone-close";
 
 export type TalkingHeadPoseOption = {
   id: TalkingHeadPoseId;
+  /** Framing zoom step — drives shot size / realism crop. */
+  framing: TalkingHeadPoseFraming;
   nameEn: string;
   nameZhHant: string;
   nameZhHans: string;
@@ -205,166 +216,116 @@ export type TalkingHeadPoseOption = {
 
 export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
   {
-    id: "seated-sofa-lap",
-    nameEn: "Seated Relaxed (Hands on Lap)",
-    nameZhHant: "輕鬆坐姿（雙手放膝）",
-    nameZhHans: "轻松坐姿（双手放膝）",
-    descriptionEn: "Seated upright and relaxed, hands resting calmly on the lap with subtle single-hand beats.",
-    descriptionZhHant: "自然坐直放鬆、雙手安放膝上，講到重點字時單手輕抬做拍點手勢。",
+    id: "full-body",
+    framing: "full-body",
+    nameEn: "Full Body",
+    nameZhHant: "全身",
+    nameZhHans: "全身",
+    descriptionEn: "Head-to-feet standing frame — widest talking-head zoom.",
+    descriptionZhHant: "頭到腳全身站姿，對鏡講稿最廣的取景。",
     startPoseEn:
-      "Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), eyebrows softly lifted in a relaxed warm half-smile, head tilted 1–2 degrees, a live unposed expression. Both hands resting calmly on the lap in a natural neutral rest position.",
+      "Character: the only person in the frame, standing upright and centered, head to feet fully visible, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), calm confident half-smile, hands lightly resting together at waist level in a relaxed presenter stance, feet planted in place.",
     endPoseEn:
-      "Character: still the only person in the frame, still seated centered, facing the camera with eyes on the lens, mouth just closed into a calm warm half-smile, both hands resting calmly on the lap in a natural neutral rest position.",
+      "Character: still the only person in the frame, still standing upright and centered head to feet, eyes locked on the lens, mouth just closed into a calm confident half-smile, hands returned to resting lightly together at waist level, feet in the same place.",
     startPoseYue:
-      "角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似用手機實拍，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），眉毛微微揚起、神情自然放鬆帶柔和淺笑，頭微傾 1–2 度，神情自然唔擺拍。雙手自然放鬆放喺大髀休息位置。",
+      "角色：畫面只有呢一個人，企直置中，頭到腳全身入鏡，直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情自信從容帶柔和淺笑，雙手自然輕合喺腰腹前方，雙腳企穩唔郁。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然坐住，正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定。",
+      "角色：畫面仍然只有呢一個人，仍然企直置中頭到腳全身入鏡，正面直望鏡頭，口部合上變成自信淺笑，雙手自然收返輕合喺腰腹前方，雙腳留喺同一個位置。",
     cameraEn:
-      "Camera: a phone fixed on a phone tripod, locked. Lens is 24mm at f/1.8, the face sharp and the background a little soft. Head and torso stay in frame. Both hands stay inside the frame. Do not stand up. No microphone.",
+      "Camera: a phone fixed on a phone tripod at eye level, locked full-body so head to feet stay in frame, 24mm f/1.8, face sharp and background softly blurred. No microphone.",
     cameraYue:
-      "鏡頭：手機固定喺手機腳架，鎖定唔郁。鏡頭係 24mm f/1.8，塊臉清楚、背景少少朦。頭同上身留喺畫面。兩隻手都留喺畫面入面。唔好企起身，冇咪。",
+      "鏡頭：手機固定喺視線高度腳架鎖定全身，頭到腳都留喺畫面，24mm f/1.8，塊臉清楚、背景少少朦。冇咪。",
     gestureEn:
-      "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion and returns smoothly to the lap",
-    gestureYue:
-      "近九成時間雙手自然放鬆放喺大髀休息位；只喺核心重點詞出現時，單一慣用手輕輕抬起做約 0.5 秒自然拍點手勢再收返落大髀",
-    geminiPreviewPrompt:
-      "Medium shot waist-up portrait of a friendly young East Asian creator sitting upright and relaxed on a sofa, looking directly into the camera lens with a calm warm half-smile (lips gently closed, no toothy grin), both hands resting naturally on the lap, clean sunlit room softly blurred behind, 24mm f/1.8, photorealistic.",
-    previewUrl: "/talking-head-poses/seated-sofa-lap.webp",
-  },
-  {
-    id: "seated-desk-hands",
-    nameEn: "Seated at Desk (Hands Clasped on Desk)",
-    nameZhHant: "書桌前坐姿（雙手輕放桌面）",
-    nameZhHans: "书桌前坐姿（双手轻放桌面）",
-    descriptionEn: "Seated at a clean desk with forearms and hands resting lightly on the tabletop.",
-    descriptionZhHant: "坐在書桌／辦公桌前，前臂與雙手自然輕放桌面，專業創作者講解姿態。",
-    startPoseEn:
-      "Character: the only person in the frame, seated centered at a clean desk, head, torso, and forearms in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), a composed friendly half-smile, both forearms and hands resting lightly on the desk surface in front.",
-    endPoseEn:
-      "Character: still the only person in the frame, still seated centered at the desk, facing the camera with eyes on the lens, mouth just closed into a calm friendly half-smile, both hands resting lightly back on the desk surface.",
-    startPoseYue:
-      "角色：畫面只有呢一個人，坐喺乾淨書檯／工作檯前置中，頭、上身同前臂喺畫面，直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情專業親切帶柔和淺笑，前臂同雙手自然輕放喺面前檯面休息位置。",
-    endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然坐喺書檯前置中，正面直望鏡頭，呢句講完、口部合上變成自然淺笑，雙手自然收返放喺面前檯面休息位置，坐姿穩定。",
-    cameraEn:
-      "Camera: a phone fixed on a phone tripod across the desk, locked at 24mm f/1.8, face sharp and background softly blurred. Head, torso, and hands on the desk surface stay in frame. Do not stand up. No microphone.",
-    cameraYue:
-      "鏡頭：手機固定喺檯面腳架鎖定唔郁，24mm f/1.8，塊臉清楚、背景少少朦。頭、上身同放喺檯面嘅雙手留喺畫面入面。唔好企起身，冇咪。",
-    gestureEn:
-      "both forearms rest lightly on the desk surface ~90% of the time; on key emphasis words, one hand lifts slightly off the desk for a brief ~0.5s open-palm beat and settles back onto the desk",
-    gestureYue:
-      "近九成時間前臂同雙手輕放喺檯面；只喺重點字眼時單手由檯面微抬做約 0.5 秒自然拍點手勢，隨即收返落檯面",
-    geminiPreviewPrompt:
-      "Medium shot waist-up portrait of a young East Asian creator seated at a clean wooden desk, looking directly into the camera lens with a calm friendly half-smile (lips gently closed, no wide toothy grin), forearms and loosely clasped hands resting naturally on the desk surface in the lower frame, soft window daylight, 24mm f/1.8, photorealistic.",
-    previewUrl: "/talking-head-poses/seated-desk-hands.webp",
-  },
-  {
-    id: "seated-lean-in",
-    nameEn: "Seated Leaning In (Engaged Close Talk)",
-    nameZhHant: "前傾傾談坐姿（拉近距離感）",
-    nameZhHans: "前倾倾谈坐姿（拉近距离感）",
-    descriptionEn: "Upper body leaning slightly forward toward the camera like sharing an insider tip with a friend.",
-    descriptionZhHant: "上身微微向鏡頭前傾，眼神專注親切，好似同朋友私下分享貼士。",
-    startPoseEn:
-      "Character: the only person in the frame, seated centered and leaning slightly forward (~10 degrees) toward the camera like sharing a personal secret with one friend, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), warm engaged eyebrows, hands resting relaxed together near the front of the lap.",
-    endPoseEn:
-      "Character: still the only person in the frame, still seated leaning slightly forward toward the lens, mouth just closed into a warm knowing half-smile, hands resting together calmly on the lap.",
-    startPoseYue:
-      "角色：畫面只有呢一個人，坐住置中而且上身微微向鏡頭前傾（好似同朋友私下分享貼士），雙眼專注直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），眼神親切有神，雙手自然交疊放喺大髀前方休息位。",
-    endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然坐住並保持上身微微前傾，正面直望鏡頭，口部合上變成親切淺笑，雙手自然收返放喺大髀前方，坐姿穩定。",
-    cameraEn:
-      "Camera: a phone fixed on a phone tripod, locked at 24mm f/1.8 medium close-up from waist up, the face sharp and background softly blurred. Head, leaning torso, and hands stay in frame. No microphone.",
-    cameraYue:
-      "鏡頭：手機固定喺腳架鎖定唔郁，24mm f/1.8 腰部以上中近景，塊臉清楚、背景柔和虛化。頭、微傾上身同雙手留喺畫面入面。冇咪。",
-    gestureEn:
-      "torso stays gently leaned in toward the camera; hands rest calmly on the lap and make one small, intimate open-palm gesture at lower-chest height on the key point before returning to rest",
-    gestureYue:
-      "上身保持穩定微前傾；雙手平時放喺大髀，去到核心重點字時單手喺胸腹前做一個細幅自然攤掌手勢再收返落大髀",
-    geminiPreviewPrompt:
-      "Medium close-up portrait of a young East Asian creator seated and leaning slightly forward toward the camera lens with an engaged, warm conversational half-smile (lips gently closed, no toothy grin), hands resting relaxed together on the lap, soft daylight studio/home background bokeh, 24mm f/1.8, photorealistic.",
-    previewUrl: "/talking-head-poses/seated-lean-in.webp",
-  },
-  {
-    id: "seated-elbow-rest",
-    nameEn: "Seated Armrest / Side Angle",
-    nameZhHant: "側身靠扶手坐姿（隨性自然）",
-    nameZhHans: "侧身靠扶手坐姿（随性自然）",
-    descriptionEn: "Torso angled ~15° with one arm resting on the sofa armrest/cushion, face turned to the lens.",
-    descriptionZhHant: "身體微側約 15 度、一手輕靠扶手或抱枕，臉部正對鏡頭，感覺輕鬆隨性。",
-    startPoseEn:
-      "Character: the only person in the frame, seated comfortably with torso angled ~15 degrees to one side while the face and eyes turn directly into the camera lens, lips gently closed or barely parted ready to speak (no wide toothy grin), one forearm resting on the armrest/cushion and the other hand resting on the lap.",
-    endPoseEn:
-      "Character: still the only person in the frame, still seated with torso angled ~15 degrees and face turned straight to the camera lens, mouth just closed into a relaxed half-smile, one forearm on the armrest and the other hand resting on the lap.",
-    startPoseYue:
-      "角色：畫面只有呢一個人，輕鬆坐住、上身微側約 15 度但塊臉同雙眼正對直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），一隻前臂自然輕靠扶手／椅邊，另一隻手自然放喺大髀休息位。",
-    endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然保持上身微側 15 度、塊臉正對直望鏡頭，口部合上變成輕鬆淺笑，一隻手輕靠扶手、另一隻手放喺大髀，坐姿穩定。",
-    cameraEn:
-      "Camera: a phone fixed on a phone tripod, locked at 24mm f/1.8, face sharp and background softly blurred. Head, angled torso, and both hands stay in frame. Do not stand up. No microphone.",
-    cameraYue:
-      "鏡頭：手機固定喺腳架鎖定唔郁，24mm f/1.8，塊臉清楚、背景少少朦。頭、微側上身同雙手留喺畫面入面。唔好企起身，冇咪。",
-    gestureEn:
-      "one forearm stays anchored on the armrest while the free hand rests on the lap and makes a brief ~0.5s conversational beat on key words before settling back",
-    gestureYue:
-      "一隻手前臂穩定輕靠扶手，另一隻手放喺大髀並喺重點字眼做約 0.5 秒自然手勢再收返原位",
-    geminiPreviewPrompt:
-      "Medium shot waist-up portrait of a young East Asian creator sitting in a comfortable armchair/sofa with torso angled 15 degrees to the side and face turned directly to the camera lens, calm warm half-smile (lips gently closed, no toothy grin), one forearm resting on the armrest and the other hand on the lap, 24mm f/1.8, photorealistic.",
-    previewUrl: "/talking-head-poses/seated-elbow-rest.webp",
-  },
-  {
-    id: "standing-waist-up",
-    nameEn: "Standing Waist-Up (Presenter Stance)",
-    nameZhHant: "站立半身（主持演講姿態）",
-    nameZhHans: "站立半身（主持演讲姿态）",
-    descriptionEn: "Standing upright framed from the waist up, hands lightly clasped at waist level.",
-    descriptionZhHant: "腰部以上站立中景，雙手自然輕合於腰腹前，呈現自信主講人氣場。",
-    startPoseEn:
-      "Character: the only person in the frame, standing upright and centered, framed from the waist up (medium shot), eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), confident calm half-smile, hands lightly resting together at waist level in a relaxed presenter stance.",
-    endPoseEn:
-      "Character: still the only person in the frame, still standing upright and centered framed from the waist up, eyes locked on the lens, mouth just closed into a calm confident half-smile, hands returned to resting lightly together at waist level.",
-    startPoseYue:
-      "角色：畫面只有呢一個人，企直置中（腰部以上半身中景），直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情自信從容帶柔和淺笑，雙手自然輕合喺腰腹前方休息位置。",
-    endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然企直置中（腰部以上半身中景），正面直望鏡頭，呢句講完、口部合上變成自信淺笑，雙手自然收返輕合喺腰腹前方休息位置。",
-    cameraEn:
-      "Camera: a phone fixed on a phone tripod at eye level, locked at 24mm f/1.8, framed from the waist up (head, torso, and both hands in frame). Face sharp, background softly blurred. No microphone.",
-    cameraYue:
-      "鏡頭：手機固定喺視線高度嘅腳架鎖定唔郁，24mm f/1.8 腰部以上半身中景（頭、上身同雙手都留喺畫面入面），塊臉清楚、背景少少朦。冇咪。",
-    gestureEn:
-      "standing steady with grounded shoulders; hands rest lightly together at waist level ~90% of the time and make a brief, composed open-palm presenter gesture at lower-chest height on key emphasis words before returning to rest",
+      "standing steady with grounded shoulders; hands rest lightly together at waist level ~90% of the time and make a brief open-palm presenter gesture at lower-chest height on key emphasis words before returning to rest",
     gestureYue:
       "站姿穩定唔搖晃；雙手近九成時間輕合喺腰腹前，只喺重點詞出現時單手微抬做約 0.5 秒主持拍點手勢再收返腰前",
     geminiPreviewPrompt:
-      "Medium waist-up portrait of a confident young East Asian creator standing upright in a modern studio/office, looking directly into the camera lens with a calm friendly half-smile (lips gently closed, no toothy grin), hands lightly clasped together at waist level in a natural presenter posture, 24mm f/1.8 shallow depth of field, photorealistic.",
-    previewUrl: "/talking-head-poses/standing-waist-up.webp",
+      "Full-body vertical 9:16 photorealistic portrait of a friendly young East Asian creator standing upright centered in a sunlit lived-in room, head to feet fully visible, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), hands lightly clasped at waist level, soft window daylight, 24mm f/1.8, clean modern phone camera look.",
+    previewUrl: "/talking-head-poses/full-body.webp",
   },
   {
-    id: "seated-open-palm",
-    nameEn: "Seated Expressive (Open-Palm Explain)",
-    nameZhHant: "坐姿手勢講解（單手微開）",
-    nameZhHans: "坐姿手势讲解（单手微开）",
-    descriptionEn: "Seated centered with one hand gently raised at lower-chest height in an explaining gesture.",
-    descriptionZhHant: "坐姿置中，一隻手自然微抬於胸腹前做講解手勢，另一隻手安放膝上。",
+    id: "waist-up",
+    framing: "waist-up",
+    nameEn: "Waist-Up",
+    nameZhHant: "腰部以上",
+    nameZhHans: "腰部以上",
+    descriptionEn: "Medium waist-up frame — seated or standing torso with hands in view.",
+    descriptionZhHant: "腰部以上中景，上身與雙手入鏡，適合一般對鏡講解。",
     startPoseEn:
-      "Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), eyebrows softly lifted, one hand resting calmly on the lap while the other hand is held relaxed at lower-chest height with a soft open palm ready to explain.",
+      "Character: the only person in the frame, seated and centered, framed from the waist up, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), eyebrows softly lifted in a relaxed warm half-smile, head tilted 1–2 degrees, both hands resting calmly on the lap in a natural neutral rest position.",
     endPoseEn:
-      "Character: still the only person in the frame, still seated centered, facing the camera with eyes on the lens, mouth just closed into a warm half-smile, both hands resting calmly on the lap.",
+      "Character: still the only person in the frame, still seated centered framed from the waist up, facing the camera with eyes on the lens, mouth just closed into a calm warm half-smile, both hands resting calmly on the lap.",
     startPoseYue:
-      "角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情自然帶柔和淺笑，一隻手自然放喺大髀休息位，另一隻手喺胸腹前輕輕微抬、掌心自然微開準備講解。",
+      "角色：畫面只有呢一個人，坐住置中，腰部以上半身中景，頭同上身喺畫面，直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），眉毛微微揚起、神情自然放鬆帶柔和淺笑，頭微傾 1–2 度，雙手自然放鬆放喺大髀休息位置。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，仍然坐住置中，正面直望鏡頭，口部合上變成自然淺笑，雙手自然收返落大髀休息位置，坐姿穩定。",
+      "角色：畫面仍然只有呢一個人，仍然坐住置中腰部以上半身中景，正面直望鏡頭，口部合上變成自然淺笑，雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定。",
     cameraEn:
-      "Camera: a phone fixed on a phone tripod, locked. Lens is 24mm at f/1.8, the face sharp and the background a little soft. Head, torso, and both hands stay inside the frame. Do not stand up. No microphone.",
+      "Camera: a phone fixed on a phone tripod, locked waist-up medium shot at 24mm f/1.8, face sharp and background softly blurred. Head, torso, and both hands stay in frame. Do not stand up. No microphone.",
     cameraYue:
-      "鏡頭：手機固定喺手機腳架，鎖定唔郁。鏡頭係 24mm f/1.8，塊臉清楚、背景少少朦。頭、上身同兩隻手都留喺畫面入面。唔好企起身，冇咪。",
+      "鏡頭：手機固定喺腳架鎖定唔郁，24mm f/1.8 腰部以上半身中景，塊臉清楚、背景少少朦。頭、上身同雙手留喺畫面入面。唔好企起身，冇咪。",
     gestureEn:
-      "one hand stays resting on the lap while the explaining hand makes smooth, restrained conversational beats at lower-chest height on key words and settles calmly back to the lap",
+      "most of the time (~90%) both hands rest calmly on the lap; on the single main key word, one dominant hand makes a brief ~0.5s co-speech gesture and returns smoothly to the lap",
     gestureYue:
-      "一隻手安放喺大髀，另一隻講解手喺胸腹前隨重點字做克制自然嘅拍點手勢，句尾自然收返落大髀",
+      "近九成時間雙手自然放喺大髀；只喺核心重點詞出現時，單一慣用手輕輕抬起做約 0.5 秒自然拍點手勢再收返落大髀",
     geminiPreviewPrompt:
-      "Medium shot waist-up portrait of a young East Asian creator sitting centered on a sofa, looking directly into the camera lens with a calm warm half-smile (lips gently closed, no toothy grin), one hand resting on the lap and the other hand gently raised at lower-chest height in a natural open-palm explaining gesture, 24mm f/1.8, photorealistic.",
-    previewUrl: "/talking-head-poses/seated-open-palm.webp",
+      "Vertical 9:16 waist-up medium portrait of a friendly young East Asian creator sitting upright on a sofa, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), both hands resting on the lap, soft lived-in room bokeh behind, 24mm f/1.8, photorealistic phone camera look.",
+    previewUrl: "/talking-head-poses/waist-up.webp",
+  },
+  {
+    id: "chest-up",
+    framing: "chest-up",
+    nameEn: "Chest-Up",
+    nameZhHant: "胸口以上",
+    nameZhHans: "胸口以上",
+    descriptionEn: "Tighter medium close-up from upper chest — shoulders and face fill more of the frame.",
+    descriptionZhHant: "胸口以上較近中近景，肩膀與面部佔比較大，仍可見少許肩線。",
+    startPoseEn:
+      "Character: the only person in the frame, seated and centered, framed from the upper chest up (shoulders visible, no waist or lap), eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), warm engaged half-smile, head tilted 1–2 degrees, a live unposed expression.",
+    endPoseEn:
+      "Character: still the only person in the frame, still seated centered framed from the upper chest up, facing the camera with eyes on the lens, mouth just closed into a warm half-smile, shoulders steady.",
+    startPoseYue:
+      "角色：畫面只有呢一個人，坐住置中，由上胸口裁切（見到雙肩，唔好見到腰或大髀），直望鏡頭，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），神情親切有神帶柔和淺笑，頭微傾 1–2 度，神情自然唔擺拍。",
+    endPoseYue:
+      "角色：畫面仍然只有呢一個人，仍然坐住置中由上胸口裁切，正面直望鏡頭，口部合上變成親切淺笑，雙肩穩定。",
+    cameraEn:
+      "Camera: a phone fixed on a phone tripod, locked medium close-up from upper chest up at 24mm f/1.8, face sharp and background softly blurred. Shoulders stay in frame; no waist, lap, or hands. No microphone.",
+    cameraYue:
+      "鏡頭：手機固定喺腳架鎖定唔郁，24mm f/1.8 上胸口以上中近景，塊臉清楚、背景柔和虛化。雙肩留喺畫面；唔好見到腰、大髀或雙手。冇咪。",
+    gestureEn:
+      "shoulders stay grounded; expression carries emphasis with subtle brow and cheek micro-movements — no hands in frame",
+    gestureYue:
+      "雙肩穩定；重點靠眉毛同面頰微表情帶出，雙手唔入鏡",
+    geminiPreviewPrompt:
+      "Vertical 9:16 medium close-up from upper chest of a young East Asian creator looking into the camera with a calm warm half-smile (lips gently closed, no toothy grin), shoulders visible, no waist or hands in frame, soft window side light and lived-in room bokeh, 24mm f/1.8, photorealistic.",
+    previewUrl: "/talking-head-poses/chest-up.webp",
+  },
+  {
+    id: "collarbone-close",
+    framing: "collarbone-close",
+    nameEn: "Collarbone Close-Up",
+    nameZhHant: "鎖骨特寫",
+    nameZhHans: "锁骨特写",
+    descriptionEn: "Intimate collarbone-up selfie — face fills 60–65% of vertical 9:16 (tightest zoom).",
+    descriptionZhHant: "鎖骨以上自拍大特寫，臉佔直式畫面約 60–65%，最近距離取景。",
+    startPoseEn:
+      "Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), eyebrows softly lifted, a relaxed warm half-smile, head tilted 1–2 degrees, a live unposed expression.",
+    endPoseEn:
+      "Character: still an intimate collarbone-up selfie close-up, facing the camera with eyes on the lens, mouth just closed into a warm half-smile, same collarbone-up crop with face still filling 60–65% of frame.",
+    startPoseYue:
+      "角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），直望鏡頭好似用手持手機自拍，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），眉毛微微揚起、神情自然放鬆帶柔和淺笑，頭微傾 1–2 度，神情自然唔擺拍。",
+    endPoseYue:
+      "角色：仍然係鎖骨以上自拍大特寫，正面直望鏡頭，口部合上變成自然淺笑，裁切同開頭一樣、塊臉仍然佔畫面 60–65%，雙手唔入鏡。",
+    cameraEn:
+      "Camera: handheld iPhone front-camera selfie at 30–40cm, 24mm f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16 (subtle 10° high-angle; no waist, lap, thighs, or hands). Organic 1–2° handheld micro-sway. No microphone.",
+    cameraYue:
+      "鏡頭：手持 iPhone 前置自拍 30–40cm，24mm f/1.8，由鎖骨／上胸口裁切，塊臉佔 9:16 直式畫面 60–65%（微高角度 10 度；唔好拍腰、大髀或雙手）。有機手持微晃 1–2 度。冇咪。",
+    gestureEn:
+      "no hands in frame; speech energy shows in mouth, brows, and cheeks only",
+    gestureYue:
+      "雙手唔入鏡；講嘢能量只靠口型、眉毛同面頰微表情",
+    geminiPreviewPrompt:
+      "Vertical 9:16 intimate collarbone-up selfie close-up of a young East Asian creator, face filling about 60-65% of the frame, looking directly into the front camera with a calm warm half-smile (lips gently closed, no toothy grin), no hands waist or lap visible, soft side window light, lived-in bedroom corner softly blurred behind, iPhone 16 Pro 24mm f/1.8 photorealistic.",
+    previewUrl: "/talking-head-poses/collarbone-close.webp",
   },
 ] as const;
 
@@ -415,6 +376,18 @@ export function resolveTalkingHeadPose(
   id: string | undefined | null,
 ): TalkingHeadPoseOption {
   return getTalkingHeadPose(id) ?? POSE_BY_ID.get(DEFAULT_TALKING_HEAD_POSE_ID)!;
+}
+
+/** When the chosen pose is full-body, force the full-body talking-head shot path. */
+export function talkingHeadPoseShot(
+  id: string | undefined | null,
+): "full-body" | undefined {
+  return getTalkingHeadPose(id)?.framing === "full-body" ? "full-body" : undefined;
+}
+
+/** Non-default poses own Character/Camera framing — skip the built-in collarbone crop. */
+export function talkingHeadPoseOwnsFraming(id: string | undefined | null): boolean {
+  return Boolean(id && isTalkingHeadPoseId(id) && id !== DEFAULT_TALKING_HEAD_POSE_ID);
 }
 
 export function localizedTalkingHeadBackground(

@@ -423,3 +423,36 @@ test("every talking-head clip endScene explicitly closes the mouth so next-clip 
     assert.match(yueClips[i].startScene, /口部合上/, `clip ${i + 1} startScene must inherit 口部合上`);
   }
 });
+
+test("talking-head pose framing zooms from full-body to collarbone-close", () => {
+  const full = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "en",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "full-body",
+    realistic: true,
+  });
+  assert.match(full[0].startScene, /head to feet fully visible/);
+  assert.match(full[0].startScene, /locked full-body/);
+  assert.doesNotMatch(full[0].startScene, /face fills 60–65%/);
+
+  const waist = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "en",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "waist-up",
+    realistic: true,
+  });
+  assert.match(waist[0].startScene, /framed from the waist up/);
+  assert.match(waist[0].startScene, /both hands resting calmly on the lap/);
+
+  const close = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "en",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "collarbone-close",
+    realistic: true,
+  });
+  assert.match(close[0].startScene, /collarbone-up selfie close-up/);
+  assert.match(close[0].startScene, /face fills 60–65%/);
+});

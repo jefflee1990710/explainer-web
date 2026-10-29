@@ -158,6 +158,11 @@ export const briefZhHant = {
     scriptLabel: "角色講稿",
     scriptPlaceholder: "大家好。這個產品每星期幫你省一個小時。\n今日就試一次。",
   },
+  talkingHeadPose: {
+    title: "對鏡姿勢／取景",
+    hint: "選擇取景遠近：由全身一路 zoom in 到鎖骨自拍特寫。",
+    aria: "對鏡姿勢／取景",
+  },
   submit: {
     submitting: "送出中…",
     regenerate: "重新產生",
