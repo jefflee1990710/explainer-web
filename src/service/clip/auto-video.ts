@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
-import { generationJobsCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, usersCollection, videosCollection } from "@/dao";
 import { consumeCredits, refundCredits } from "@/service/billing/credits";
+import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
@@ -241,6 +242,14 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
 
     const fresh = await projects.findOne({ _id: projectId });
     if (!fresh) return;
+    // Skip auto-video silently if the wallet cannot cover this clip's video cost,
+    // keeping the finished scene frame ready instead of marking the clip failed.
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId: fresh.clerkUserId });
+    const cost = clipVideoCost(fresh, clipNumber);
+    if (!user || (!hasUnlimitedCredits(user.email) && user.credits < cost)) {
+      continue;
+    }
     const started = await claimAndStartClipVideo(fresh.clerkUserId, fresh, clipNumber);
     if (!started.ok && started.retry) remaining.push(clipNumber);
   }

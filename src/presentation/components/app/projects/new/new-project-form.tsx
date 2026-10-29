@@ -125,6 +125,8 @@ import { SpeechPacePicker } from "@/presentation/components/app/projects/new/spe
 import {
   defaultCastIdsForStyle,
   readBriefDefaults,
+  resolveInitialSceneTextLanguage,
+  resolveInitialVoLanguage,
   writeBriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
@@ -210,7 +212,7 @@ export function NewProjectForm({
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
@@ -240,18 +242,46 @@ export function NewProjectForm({
         ? talkingHeadScriptFromClips(initialVideo?.phaseA?.clips || [])
         : ""),
   );
-  const [language, setLanguage] = useState<VoLanguage>(
-    initialVideo?.language || lastBrief?.language || "en",
+  const [languageExplicit, setLanguageExplicit] = useState<boolean>(
+    () => Boolean(lastBrief?.languageExplicit),
   );
+  const [languageOverride, setLanguage] = useState<VoLanguage | null>(() => {
+    if (initialVideo?.language) return initialVideo.language;
+    if (lastBrief?.language && (lastBrief.languageExplicit || lastBrief.language !== "en")) {
+      return lastBrief.language;
+    }
+    return null;
+  });
+  const language: VoLanguage =
+    languageOverride ??
+    resolveInitialVoLanguage({
+      initialLanguage: initialVideo?.language,
+      lastBrief,
+      locale,
+    });
   const [voiceGender, setVoiceGender] = useState<VoiceGender>(
     initialVideo?.voiceGender || lastBrief?.voiceGender || DEFAULT_VOICE_GENDER,
   );
   const [speechPace, setSpeechPace] = useState<SpeechPace>(
     initialVideo?.speechPace || lastBrief?.speechPace || DEFAULT_SPEECH_PACE,
   );
-  const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextChoice>(
-    initialVideo?.sceneTextLanguage || lastBrief?.sceneTextLanguage || "en",
-  );
+  const [sceneTextOverride, setSceneTextLanguage] = useState<SceneTextChoice | null>(() => {
+    if (initialVideo?.sceneTextLanguage) return initialVideo.sceneTextLanguage;
+    if (
+      lastBrief?.sceneTextLanguage &&
+      (lastBrief.languageExplicit || lastBrief.sceneTextLanguage !== "en")
+    ) {
+      return lastBrief.sceneTextLanguage;
+    }
+    return null;
+  });
+  const sceneTextLanguage: SceneTextChoice =
+    sceneTextOverride ??
+    resolveInitialSceneTextLanguage({
+      initialSceneTextLanguage: initialVideo?.sceneTextLanguage,
+      lastBrief,
+      locale,
+    });
   const [textStyleId, setTextStyleId] = useState(() =>
     chosenTextStyleId(initialVideo, lastBrief?.textStyleId, textStyles),
   );
@@ -964,12 +994,28 @@ export function NewProjectForm({
     }
   }
 
+  function onVoLanguageChange(nextLanguage: VoLanguage) {
+    setLanguageExplicit(true);
+    setLanguage(nextLanguage);
+    // Keep on-screen text language aligned in Quick Setup unless scene text was turned off.
+    if (sceneTextLanguage !== "none") {
+      if (nextLanguage === "yue") {
+        setSceneTextLanguage("zh-Hant");
+      } else if (nextLanguage === "zh") {
+        setSceneTextLanguage(locale === "zh-Hans" ? "zh-Hans" : "zh-Hant");
+      } else {
+        setSceneTextLanguage("en");
+      }
+    }
+  }
+
   useEffect(() => {
     if (!skillSlug || !aspectRatio) return;
     writeBriefDefaults(projectId, {
       skillSlug,
       styleId,
       language,
+      ...(languageExplicit ? { languageExplicit: true } : {}),
       voiceGender,
       speechPace,
       sceneTextLanguage,
@@ -984,6 +1030,7 @@ export function NewProjectForm({
     skillSlug,
     styleId,
     language,
+    languageExplicit,
     voiceGender,
     speechPace,
     sceneTextLanguage,
@@ -1253,6 +1300,8 @@ export function NewProjectForm({
                       setSpokenScript(val);
                       if (error) setError("");
                     }}
+                    language={language}
+                    onLanguageChange={onVoLanguageChange}
                     disabled={briefBusy}
                   />
 
@@ -1576,7 +1625,7 @@ export function NewProjectForm({
                         >
                           <LanguagePicker
                             value={language}
-                            onChange={setLanguage}
+                            onChange={onVoLanguageChange}
                             disabled={briefBusy}
                             dialogueOnly={dialogueOnly}
                           />
@@ -1617,7 +1666,10 @@ export function NewProjectForm({
                         >
                           <SceneTextPicker
                             language={sceneTextLanguage}
-                            onLanguageChange={setSceneTextLanguage}
+                            onLanguageChange={(next) => {
+                              setLanguageExplicit(true);
+                              setSceneTextLanguage(next);
+                            }}
                             disabled={briefBusy}
                           />
                         </Section>

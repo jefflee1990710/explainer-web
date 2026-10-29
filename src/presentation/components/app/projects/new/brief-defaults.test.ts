@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   defaultCastIdsForStyle,
+  defaultSceneTextLanguageForLocale,
+  defaultVoLanguageForLocale,
+  resolveInitialSceneTextLanguage,
+  resolveInitialVoLanguage,
   sanitizeBriefDefaults,
   type BriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
@@ -97,5 +101,42 @@ test("defaultCastIdsForStyle auto-selects matching ready characters for Step 01"
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 2), ["a", "b"]);
   assert.deepEqual(defaultCastIdsForStyle(characters, "paper-cutout", 2), []);
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 0), []);
+});
+
+test("defaultVoLanguageForLocale defaults zh-Hant to Cantonese (yue) and zh-Hans to Mandarin (zh)", () => {
+  assert.equal(defaultVoLanguageForLocale("zh-Hant"), "yue");
+  assert.equal(defaultVoLanguageForLocale("zh-Hans"), "zh");
+  assert.equal(defaultVoLanguageForLocale("en"), "en");
+  assert.equal(defaultSceneTextLanguageForLocale("zh-Hant"), "zh-Hant");
+  assert.equal(defaultSceneTextLanguageForLocale("zh-Hans"), "zh-Hans");
+  assert.equal(defaultSceneTextLanguageForLocale("en"), "en");
+});
+
+test("resolveInitialVoLanguage upgrades legacy unchosen 'en' defaults to 'yue' when UI is zh-Hant", () => {
+  assert.equal(
+    resolveInitialVoLanguage({ locale: "zh-Hant" }),
+    "yue",
+  );
+  assert.equal(
+    resolveInitialVoLanguage({
+      locale: "zh-Hant",
+      lastBrief: raw({ language: "en", languageExplicit: undefined }),
+    }),
+    "yue",
+  );
+  assert.equal(
+    resolveInitialVoLanguage({
+      locale: "zh-Hant",
+      lastBrief: raw({ language: "en", languageExplicit: true }),
+    }),
+    "en",
+  );
+  assert.equal(
+    resolveInitialSceneTextLanguage({
+      locale: "zh-Hant",
+      lastBrief: raw({ sceneTextLanguage: "en", languageExplicit: undefined }),
+    }),
+    "zh-Hant",
+  );
 });
 

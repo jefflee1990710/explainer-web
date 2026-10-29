@@ -1,8 +1,21 @@
 "use client";
 
+import type { VoLanguage } from "@/model/project";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
+
+const QUICK_LANGUAGE_OPTIONS: ReadonlyArray<{
+  id: VoLanguage;
+  labelZhHant: string;
+  labelZhHans: string;
+  labelEn: string;
+}> = [
+  { id: "yue", labelZhHant: "廣東話", labelZhHans: "广东话", labelEn: "Cantonese" },
+  { id: "zh", labelZhHant: "國語", labelZhHans: "普通话", labelEn: "Mandarin" },
+  { id: "en", labelZhHant: "English", labelZhHans: "English", labelEn: "English" },
+  { id: "ja", labelZhHant: "日本語", labelZhHans: "日本語", labelEn: "Japanese" },
+];
 
 // Compact script card on Quick Setup (after Video type). Step badge defaults to 02.
 export function QuickScriptCard({
@@ -12,6 +25,8 @@ export function QuickScriptCard({
   talkingHead,
   spokenScript,
   onSpokenScriptChange,
+  language,
+  onLanguageChange,
   disabled,
 }: {
   step?: string;
@@ -20,6 +35,8 @@ export function QuickScriptCard({
   talkingHead: boolean;
   spokenScript: string;
   onSpokenScriptChange: (value: string) => void;
+  language?: VoLanguage;
+  onLanguageChange?: (value: VoLanguage) => void;
   disabled?: boolean;
 }) {
   const { t, locale } = useI18n();
@@ -49,13 +66,47 @@ export function QuickScriptCard({
       data-tour-id="instruction-card"
       className="rounded-2xl border-2 border-accent-ink bg-white p-4 shadow-[4px_4px_0_0_#12141c] sm:p-5"
     >
-      <div className="flex items-center gap-2.5">
-        <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
-          {step}
-        </span>
-        <h3 className="font-display text-base font-bold text-foreground">
-          {talkingHead ? t("brief.talkingHead.scriptTitle") : t("brief.section02.title")}
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
+            {step}
+          </span>
+          <h3 className="font-display text-base font-bold text-foreground">
+            {talkingHead ? t("brief.talkingHead.scriptTitle") : t("brief.section02.title")}
+          </h3>
+        </div>
+
+        {language && onLanguageChange ? (
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-accent-ink/15 bg-paper p-0.5">
+            <span className="px-2 text-[11px] font-medium text-muted">
+              {locale === "zh-Hant" ? "語音：" : locale === "zh-Hans" ? "语音：" : "Voice:"}
+            </span>
+            {QUICK_LANGUAGE_OPTIONS.map((opt) => {
+              const active = language === opt.id;
+              const label =
+                locale === "zh-Hant"
+                  ? opt.labelZhHant
+                  : locale === "zh-Hans"
+                    ? opt.labelZhHans
+                    : opt.labelEn;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onLanguageChange(opt.id)}
+                  className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                    active
+                      ? "bg-accent-ink text-lime shadow-xs"
+                      : "text-muted hover:text-foreground"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <p className="mt-1 text-xs leading-5 text-muted">{quickHint}</p>

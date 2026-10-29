@@ -20,6 +20,7 @@ export type BriefDefaults = {
   skillSlug: string;
   styleId: string;
   language: VoLanguage;
+  languageExplicit?: boolean;
   narrationEnabled?: boolean;
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
@@ -30,6 +31,55 @@ export type BriefDefaults = {
   durationPreset: DurationPreset;
   characterIds: string[];
 };
+
+// Map the UI locale to the most natural default voiceover language for new videos.
+// Traditional Chinese (zh-Hant) defaults to Hong Kong Cantonese ("yue").
+export function defaultVoLanguageForLocale(locale?: string): VoLanguage {
+  if (locale === "zh-Hant") return "yue";
+  if (locale === "zh-Hans") return "zh";
+  return "en";
+}
+
+// Map the UI locale to the matching on-screen scene text / subtitle language.
+export function defaultSceneTextLanguageForLocale(locale?: string): SceneTextChoice {
+  if (locale === "zh-Hant") return "zh-Hant";
+  if (locale === "zh-Hans") return "zh-Hans";
+  return "en";
+}
+
+// Resolve initial voiceover language for NewProjectForm, upgrading legacy auto-saved "en" defaults when UI is zh-Hant/zh-Hans.
+export function resolveInitialVoLanguage(input: {
+  initialLanguage?: VoLanguage;
+  lastBrief?: BriefDefaults;
+  locale?: string;
+}): VoLanguage {
+  if (input.initialLanguage) return input.initialLanguage;
+  const fallback = defaultVoLanguageForLocale(input.locale);
+  if (!input.lastBrief?.language) return fallback;
+  if (input.lastBrief.languageExplicit || input.locale === "en" || input.lastBrief.language !== "en") {
+    return input.lastBrief.language;
+  }
+  return fallback;
+}
+
+// Resolve initial scene text language for NewProjectForm, keeping it aligned with the UI locale unless explicitly chosen.
+export function resolveInitialSceneTextLanguage(input: {
+  initialSceneTextLanguage?: SceneTextChoice;
+  lastBrief?: BriefDefaults;
+  locale?: string;
+}): SceneTextChoice {
+  if (input.initialSceneTextLanguage) return input.initialSceneTextLanguage;
+  const fallback = defaultSceneTextLanguageForLocale(input.locale);
+  if (!input.lastBrief?.sceneTextLanguage) return fallback;
+  if (
+    input.lastBrief.languageExplicit ||
+    input.locale === "en" ||
+    input.lastBrief.sceneTextLanguage !== "en"
+  ) {
+    return input.lastBrief.sceneTextLanguage;
+  }
+  return fallback;
+}
 
 type Catalog = {
   skills: Array<{ slug: string; behaviorSlug?: string }>;
@@ -61,6 +111,8 @@ export function sanitizeBriefDefaults(
       ? input.styleId
       : pickerDefaultStyleId(catalog.styles);
   const language = typeof input.language === "string" && isVoLanguage(input.language) ? input.language : "en";
+  const languageExplicit =
+    typeof input.languageExplicit === "boolean" ? input.languageExplicit : undefined;
   const narrationEnabled =
     typeof input.narrationEnabled === "boolean" ? input.narrationEnabled : undefined;
   const voiceGender =
@@ -102,6 +154,7 @@ export function sanitizeBriefDefaults(
     skillSlug,
     styleId,
     language,
+    ...(languageExplicit !== undefined ? { languageExplicit } : {}),
     ...(narrationEnabled !== undefined ? { narrationEnabled } : {}),
     voiceGender,
     speechPace,

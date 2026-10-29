@@ -1,12 +1,19 @@
+import { redirect } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { projectsCollection, videosCollection } from "@/dao";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { toPublicFolder, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
 import { DashboardView } from "@/presentation/components/app/dashboard-view";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ stay?: string }>;
+}) {
+  const query = searchParams ? await searchParams : undefined;
   const user = await requireAppUser();
   const folders = await projectsCollection();
   const videos = await videosCollection();
@@ -19,6 +26,24 @@ export default async function DashboardPage() {
       .toArray(),
     videos.find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION }).toArray(),
   ]);
+
+  // First-time users with 0 videos jump straight into Quick Setup instead of landing on an empty dashboard.
+  if (videoDocs.length === 0 && query?.stay !== "1") {
+    let targetFolderId = folderDocs[0]?._id?.toHexString();
+    if (!targetFolderId) {
+      const now = new Date();
+      const inserted = await folders.insertOne({
+        userId: user._id,
+        clerkUserId: user.clerkUserId,
+        name: "我的第一個專案",
+        createdAt: now,
+        updatedAt: now,
+      });
+      targetFolderId = inserted.insertedId.toHexString();
+    }
+    redirect(folderVideoPath(targetFolderId));
+  }
+
   const subscribed = isSubscriptionActive(sub);
   const videosByFolder = new Map<string, Project[]>();
   for (const video of videoDocs) {

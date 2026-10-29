@@ -46,6 +46,14 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   await assertCanSpendCredits(user, plan.cost);
   const spendKey = await consumeCredits(project.clerkUserId, plan.cost);
   try {
+    // Flag Clip 1 for automatic video generation as soon as its scene frame(s) finish,
+    // so new videos immediately deliver an animated, voiced first clip in OpenCut.
+    if (plan.frames.includes(1)) {
+      await projects.updateOne(
+        { _id: project._id },
+        { $addToSet: { autoVideoClips: 1 }, $set: { updatedAt: new Date() } },
+      );
+    }
     await enqueueClipFrameJobs(project, plan.frames);
     // One plate per clip; the plan cost above already includes them.
     await enqueueSubtitlePlateJobs(project);

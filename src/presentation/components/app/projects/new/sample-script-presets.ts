@@ -29,7 +29,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     labelZhHans: "💡 复利效应解说",
     labelEn: "💡 Compound Interest Explainer",
     sourceZhHant:
-      "為甚麼巴菲特說複利是世界第八大奇蹟？假設你每天存下買一杯咖啡的 100 元，投入年化報酬率 8% 的指數基金。前 5 年你可能覺得增長很慢，但到了第 20 年，利息產生的收益會正式超越你每年投入的本金。越早開始，時間就是你最強大的槓桿。",
+      "點解巴菲特話複利係世界第八大奇蹟？假設你每日儲起買一杯咖啡嘅 40 蚊，擺入年化回報率 8% 嘅指數基金。頭 5 年你可能會覺得升得好慢，但去到第 20 年，利息產生嘅回報就會正式超越你每年擺入去嘅本金。越早開始，時間就係你最強大嘅槓桿。",
     sourceZhHans:
       "为什么巴菲特说复利是世界第八大奇迹？假设你每天存下买一杯咖啡的 25 元，投入年化收益率 8% 的指数基金。前 5 年你可能觉得增长很慢，但到了第 20 年，利息产生的收益会正式超越你每年投入的本金。越早开始，时间就是你最强大的杠杆。",
     sourceEn:
@@ -39,7 +39,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     instructionEn:
       "Warm and direct to camera, like sharing a money tip with one friend. Side window light, steady pace, no hard sell.",
     spokenZhHant:
-      "為甚麼巴菲特說複利是世界第八大奇蹟？假設你每天存下一杯咖啡的錢，投入年化報酬率 8% 的指數基金。前五年增長好慢，但到第二十年，利息會正式超過你每年存入的本金。越早開始，時間就是你最強的槓桿。",
+      "點解巴菲特話複利係世界第八大奇蹟？假設你每日儲起買一杯咖啡嘅錢，擺入年化回報八厘嘅指數基金。頭五年升得好慢，但去到第二十年，利息就會正式超過你每年入嘅本金。越早開始，時間就係你最強嘅槓桿。",
     spokenZhHans:
       "为什么巴菲特说复利是世界第八大奇迹？假设你每天存下一杯咖啡的钱，投入年化收益率 8% 的指数基金。前五年增长很慢，但到第二十年，利息会正式超过你每年存入的本金。越早开始，时间就是你最强的杠杆。",
     spokenEn:
@@ -51,7 +51,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     labelZhHans: "⏱️ 番茄工作法",
     labelEn: "⏱️ Pomodoro Focus Method",
     sourceZhHant:
-      "總是分心滑手機、工作做不完？試試看 25 分鐘番茄工作法！第一，選好今天最重要的一件事；第二，設定 25 分鐘倒數計時，期間完全關閉通知；第三，時間到就強制休息 5 分鐘讓大腦充電。透過短衝刺取代長時間消耗，專注力立馬翻倍。",
+      "成日分心撳電話、做嘢做極都做唔完？試下 25 分鐘番茄工作法啦！第一，揀定今日最重要嘅一件事；第二，校 25 分鐘倒數計時，期間完全熄晒通知；第三，一夠鐘就強制休息 5 分鐘俾大腦叉電。用短衝刺代替長時間消耗，專注力即刻翻倍。",
     sourceZhHans:
       "总是分心刷手机、工作做不完？试试看 25 分钟番茄工作法！第一，选好今天最重要的一件事；第二，设定 25 分钟倒数计时，期间完全关闭通知；第三，时间到就强制休息 5 分钟让大脑充电。通过短冲刺取代长时间消耗，专注力立马翻倍。",
     sourceEn:
@@ -61,7 +61,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     instructionEn:
       "Upbeat and practical, teaching one focus trick to a friend. Few gestures; a small nod only on the key points.",
     spokenZhHant:
-      "成日分心滑手機？試下二十五分鐘番茄工作法。第一步，揀今日最重要的一件事。第二步，設二十五分鐘倒數，期間關掉所有通知。第三步，時間一到就休息五分鐘。短衝刺，勝過捱足幾個鐘。",
+      "成日分心撳電話？試下二十五分鐘番茄工作法啦。第一步，揀今日最重要嘅一件事。第二步，校二十五分鐘倒數，期間熄晒所有通知。第三步，時間一到就抖五分鐘。短衝刺，好過捱足幾個鐘。",
     spokenZhHans:
       "成天分心刷手机？试试二十五分钟番茄工作法。第一步，选今天最重要的一件事。第二步，设二十五分钟倒数，期间关掉所有通知。第三步，时间一到就休息五分钟。短冲刺，胜过熬足几个小时。",
     spokenEn:
@@ -73,7 +73,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     labelZhHans: "🚀 AI 时代职场竞争力",
     labelEn: "🚀 AI Era Productivity",
     sourceZhHant:
-      "AI 不會淘汰你，但會用 AI 的人正在取代不用 AI 的人。過去做一支解說短片需要寫腳本、畫分鏡、錄音與剪輯花上整整三天；現在只要把核心觀點寫下來，AI 導演就能在幾分鐘內幫你拆好鏡頭、產出視覺畫面。把重複工作交給工具，把時間留給真正的創意。",
+      "AI 唔會淘汰你，但識用 AI 嘅人正喺度取代唔用 AI 嘅人。以前整一條解說短片要寫稿、畫分鏡、錄音同剪片，足足搞三日；而家只要將核心觀點寫低，AI 導演喺幾分鐘內就幫你拆好鏡頭、整埋畫面。將重複嘅工序交俾工具，將時間留返俾真正嘅創意。",
     sourceZhHans:
       "AI 不会淘汰你，但会用 AI 的人正在取代不用 AI 的人。过去做一支解说短片需要写脚本、画分镜、录音与剪辑花上整整三天；现在只要把核心观点写下来，AI 导演就能在几分钟内帮你拆好镜头、产出视觉画面。把重复工作交给工具，把时间留给真正的创意。",
     sourceEn:
@@ -83,7 +83,7 @@ export const SAMPLE_PRESETS: readonly SamplePreset[] = [
     instructionEn:
       "Confident, not salesy. Look into the lens and share one workplace observation. Quiet background, no extra on-screen words.",
     spokenZhHant:
-      "AI 唔會淘汰你，但識用 AI 的人正在取代唔用的人。以前一支解說片要寫稿、畫分鏡、錄音同剪接，足足三日。而家你只要寫低核心觀點，幾分鐘就拆好鏡頭。重複的工作交給工具，時間留給真正的創意。",
+      "AI 唔會淘汰你，但識用 AI 嘅人正喺度取代唔用嘅人。以前一條解說片要寫稿、畫分鏡、錄音同剪接，足足三日。而家你只要寫低核心觀點，幾分鐘就拆好鏡頭。重複嘅工作交俾工具，時間留返俾真正嘅創意。",
     spokenZhHans:
       "AI 不会淘汰你，但会用 AI 的人正在取代不用的人。以前一支解说片要写稿、画分镜、录音和剪辑，足足三天。现在你只要写下核心观点，几分钟就拆好镜头。重复的工作交给工具，时间留给真正的创意。",
     spokenEn:

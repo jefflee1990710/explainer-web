@@ -24,7 +24,7 @@ export function VideoEditorBreadcrumb({
     <nav aria-label={t("video.editor.breadcrumbAria")} className="min-w-0">
       <ol className="flex min-w-0 items-center gap-1.5 text-sm">
         <li className="shrink-0">
-          <Link href="/app" className={linkClass}>
+          <Link href="/app?stay=1" className={linkClass}>
             {t("nav.projects")}
           </Link>
         </li>

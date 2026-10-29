@@ -153,6 +153,11 @@ export async function runPhaseAJob(
       baseStyleId: style.baseStyleId,
     });
 
+    const initialAutoVideoClips =
+      !options?.clipsOnly && nextPhaseA.clips.some((clip) => clip.clipNumber === 1)
+        ? [1]
+        : undefined;
+
     await projects.updateOne(
       { _id: projectId },
       {
@@ -160,9 +165,13 @@ export async function runPhaseAJob(
         $set: {
           phaseA: nextPhaseA,
           subtitleOverlay,
+          ...(initialAutoVideoClips ? { autoVideoClips: initialAutoVideoClips } : {}),
           updatedAt: new Date(),
         },
-        $unset: { error: "", autoVideoClips: "" },
+        $unset: {
+          error: "",
+          ...(initialAutoVideoClips ? {} : { autoVideoClips: "" }),
+        },
       },
     );
     // Same as the old approve action: lock the character still before frames.

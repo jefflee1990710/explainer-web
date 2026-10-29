@@ -19,3 +19,10 @@ test("talking-head samples fill a different director note and spoken script", ()
     }
   }
 });
+
+test("zh-Hant sample scripts use colloquial Hong Kong Cantonese phrasing", () => {
+  for (const preset of SAMPLE_PRESETS) {
+    assert.match(preset.sourceZhHant, /嘅|係|唔|點解|成日/);
+    assert.match(preset.spokenZhHant, /嘅|係|唔|點解|成日/);
+  }
+});
