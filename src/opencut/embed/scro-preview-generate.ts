@@ -55,3 +55,20 @@ export function scroPreviewCanStartVideo(clip?: ScroClipActionClip | null) {
 	if (clip.stage !== "frames_ready" && !clip.retryVideo) return false;
 	return Boolean(clip.posterUrl || clip.hasStartFrame);
 }
+
+/** True while a clip's video (or frames) is actively generating on the timeline / preview. */
+export function scroClipIsGeneratingVideo(
+	clip?: Pick<ScroVideoSeedClip, "stage" | "wait"> | null,
+): boolean {
+	if (!clip) return false;
+	return clip.stage === "video_generating";
+}
+
+/** Human-readable status label for a clip whose video is currently generating. */
+export function scroVideoGeneratingLabel(
+	clip?: Pick<ScroVideoSeedClip, "stage" | "wait"> | null,
+): string {
+	if (!clip) return "Generating video…";
+	if (clip.wait === "queued") return "Queued video…";
+	return "Generating video…";
+}

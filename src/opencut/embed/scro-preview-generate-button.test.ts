@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	scroClipIsGeneratingVideo,
 	scroClipPrimaryKind,
 	scroPreviewCanStartVideo,
 	scroVideoActionLabel,
+	scroVideoGeneratingLabel,
 } from "@/opencut/embed/scro-preview-generate";
 
 describe("scro preview generate button", () => {
@@ -96,6 +98,29 @@ describe("scro preview generate button", () => {
 				staleFrames: true,
 			}),
 			"frames",
+		);
+	});
+
+	it("reports video_generating state and status labels for main viewer and timeline track preview", () => {
+		assert.equal(
+			scroClipIsGeneratingVideo({ stage: "video_generating" }),
+			true,
+		);
+		assert.equal(
+			scroClipIsGeneratingVideo({ stage: "frames_ready" }),
+			false,
+		);
+		assert.equal(
+			scroClipIsGeneratingVideo({ stage: "video_ready" }),
+			false,
+		);
+		assert.equal(
+			scroVideoGeneratingLabel({ stage: "video_generating", wait: "running" }),
+			"Generating video…",
+		);
+		assert.equal(
+			scroVideoGeneratingLabel({ stage: "video_generating", wait: "queued" }),
+			"Queued video…",
 		);
 	});
 });

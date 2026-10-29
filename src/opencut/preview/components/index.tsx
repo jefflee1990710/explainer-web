@@ -648,7 +648,7 @@ function PreviewCanvas({
 									instances={overlayInstances}
 									plane="over-interaction"
 								/>
-								{previewLoading || waitingForStill ? null : (
+								{waitingForStill ? null : (
 									<ScroPreviewGenerateButton
 										scene={{
 											left: viewport.sceneLeft,

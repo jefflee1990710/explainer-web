@@ -13,6 +13,7 @@ import {
 	MediaLoadingMark,
 	useMediaImageReady,
 } from "@/opencut/components/loading-media-image";
+import { Spinner } from "@/opencut/components/ui/spinner";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { AudioWaveform, WAVEFORM_GAIN_SAMPLE_COUNT } from "./audio-waveform";
@@ -1173,6 +1174,8 @@ function TiledMediaContent({
 		: freshStill ??
 			(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
 	const imageReady = useMediaImageReady(imageUrl);
+	const isVideoGenerating = clip?.stage === "video_generating";
+	const generatingBadgeText = clip?.wait === "queued" ? "Queued…" : "Generating…";
 
 	if (waitingForStill) {
 		return (
@@ -1183,9 +1186,17 @@ function TiledMediaContent({
 	if (!imageUrl) {
 		return (
 			<div className="flex size-full items-center gap-2 bg-[#2b303c] px-2.5">
+				{isVideoGenerating ? (
+					<Spinner className="size-3.5 shrink-0 text-amber-400" />
+				) : null}
 				<span className="truncate text-xs font-semibold text-white">
 					{element.name || mediaAsset?.name || "Clip"}
 				</span>
+				{isVideoGenerating ? (
+					<span className="ml-auto shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+						{generatingBadgeText}
+					</span>
+				) : null}
 			</div>
 		);
 	}
@@ -1206,10 +1217,24 @@ function TiledMediaContent({
 				) : (
 					<MediaLoadingMark className="text-white" />
 				)}
+				{isVideoGenerating ? (
+					<div className="absolute inset-0 flex items-center justify-center bg-black/45">
+						<Spinner className="size-3.5 text-amber-400" />
+					</div>
+				) : null}
 			</div>
 			<span className="min-w-0 flex-1 truncate text-xs font-semibold text-white">
 				{displayLabel}
 			</span>
+			{isVideoGenerating ? (
+				<span
+					className="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300"
+					role="status"
+				>
+					<Spinner className="size-2.5 shrink-0 text-amber-400" />
+					<span>{generatingBadgeText}</span>
+				</span>
+			) : null}
 			{hasElementEffects({ element }) ? (
 				<div className="pr-1.5">
 					<EffectsButton element={element} track={track} />
