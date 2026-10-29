@@ -4,8 +4,8 @@ import { characterSpecLine } from "@/model/character-spec";
 // Text the director and image prompts share so every stage names the same cast.
 
 // Frame prompts share a tight cap with the scene text; notes stay short there.
-const FRAME_SPEC_CHARS = 320;
-const DIRECTOR_SPEC_CHARS = 400;
+const FRAME_SPEC_CHARS = 480;
+const DIRECTOR_SPEC_CHARS = 480;
 
 function hasBoard(cast: CastMember[] | undefined) {
   return Boolean(cast?.some((member) => member.blueprintKind === "board"));

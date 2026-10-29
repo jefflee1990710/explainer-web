@@ -302,8 +302,8 @@ export function talkingMotionLine(input: {
     const open = !first
       ? `0–0.4s she stays in the exact framing of the first frame, ${seated ? "seated, " : ""}same crop, same distance, eyes locked on the lens, ${hook}${propReady}, mouth immediately opening into this line (never holding the first frame frozen)${fadeInClause}, no cut and no jump`
       : seated
-        ? `0–0.5s she starts with her head tilted slightly down in thought, inhales, blinks once, seated, and lifts her head with eyes locked on the lens, ${hook}${propReady}, both hands resting calmly on the lap, mouth opening${fadeInClause}`
-        : `0–0.5s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, mouth opening${fadeInClause}`;
+        ? `0–0.4s she inhales, blinks once, seated facing the camera, eyes locked on the lens, ${hook}${propReady}, both hands resting calmly on the lap, mouth opening${fadeInClause}`
+        : `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, mouth opening${fadeInClause}`;
     const { closeFace, closeBeat } = clipCloseLandingEn(
       input.clipNumber,
       last,
@@ -350,8 +350,8 @@ export function talkingMotionLine(input: {
   const open = !first
     ? `0–0.4s 保持第一幀嘅構圖，${seated ? "坐住、" : ""}同一個裁切、同一距離、直望鏡頭、${hook}${propReady}、第一幀即刻開口講呢句（唔好將第一幀定格）${fadeInClause}、冇切鏡、冇跳鏡`
     : seated
-      ? `0–0.5s 坐住、頭微垂思考後吸一口氣抬起頭、眨眼、直望鏡頭、${hook}${propReady}、雙手自然放喺大髀休息位、準備開口${fadeInClause}`
-      : `0–0.5s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、準備開口${fadeInClause}`;
+      ? `0–0.4s 坐住、吸一口氣、眨眼、直望鏡頭、${hook}${propReady}、雙手自然放喺大髀休息位、準備開口${fadeInClause}`
+      : `0–0.4s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、準備開口${fadeInClause}`;
   const { closeFace, closeBeat } = clipCloseLandingYue(
     input.clipNumber,
     last,

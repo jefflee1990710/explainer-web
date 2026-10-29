@@ -15,32 +15,32 @@ export const PERFORMANCE_FIELD_MAX = 600;
 // Mirrors skills/<dir>/performance.json — the seeded copy is the editable source.
 const FACE_EN: PerformanceSlots = {
   restingFace:
-    "a relaxed, friendly half-smile with lips gently closed or softly parted (no wide toothy grin), eyebrows relaxed and slightly lifted, slouched comfortably in a velvet armchair, eyes locked on the lens like talking to one friend",
+    "a relaxed, friendly half-smile with lips gently closed or softly parted (no wide toothy grin), eyebrows relaxed and slightly lifted, facing the camera directly with eyes locked on the lens like talking to one friend",
   emphasisBeat:
-    "a subtle brow lift and dynamic contrasted micro-expressions (furrowing the brows, squinting the eyelids slightly, and giving a subtle left-to-right head shake on negative/disbelief words, then lifting the eyebrows with a deliberate slow downward nod on the reveal) and restrained, phoneme-accurate lip articulation with small natural jaw movement (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm half-smile",
+    "a subtle brow lift and dynamic contrasted micro-expressions (furrowing the brows and giving a subtle head shake on negative/disbelief words, then lifting the eyebrows with a gentle nod on the reveal) and restrained, co-articulated phoneme-accurate lip articulation with small ~20–30% natural jaw movement, relaxed neutral mouth corners for natural lip rounding on o/u/w sounds, and lower teeth covered by the lower lip (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm half-smile",
   hookBeat:
-    "0.0–0.5s head tilted slightly down in thought before lifting gaze onto the lens, eyebrows softly lifted, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
+    "eyebrows softly lifted, facing the camera directly with eyes locked on the lens, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
-    "most of the time (~90%) both hands rest calmly on the lap or armchair armrest in a neutral rest position (or one hand holds a compact handheld wireless lavalier microphone near the chin/upper chest); only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
+    "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position (or one hand holds a compact handheld wireless lavalier microphone near the chin/upper chest when a mic prop is used); only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
   headMotion:
-    "proximal torso, pelvis, and shoulders stay anchored in the armchair; the head starts tilted slightly down for the first 0.5s before lifting to lock eyes on the lens, with a subtle 1–2 degree prosodic nod on stressed words, a subtle left-to-right head shake on disbelief/negative words, and both eyes locked directly on the lens center the whole time",
+    "proximal torso, pelvis, and shoulders stay anchored and stable facing the camera; the head faces the camera with a subtle 1–2 degree prosodic nod on stressed words, a subtle head shake on negative words, and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
-  set: "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head (or a cozy indie-film armchair corner with wall clock, framed art, wooden bookshelf, and warm table lamp)",
+  set: "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head",
   light: "soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face and soft natural eye catchlights — no harsh side-light contrast, no flat beauty-ring glare, no studio light",
 };
 
 const FACE_YUE: PerformanceSlots = {
-  restingFace: "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，慵懶靠喺扶手椅上，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
-  emphasisBeat: "講到重點字眼時隨台詞做出反差微表情（否定或質疑詞時眉心微蹙、雙眼微瞇並輕輕左右搖頭；轉折亮點時眉毛自然微揚、眼神專注有神並向下慢點頭），口型精準克制、下巴同嘴部開合幅度自然細緻（無誇張張大嘴），語氣過渡平順自然",
-  hookBeat: "0.0–0.5s 頭微垂思考隨即抬眼鎖定鏡頭，眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
+  restingFace: "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，正面向住鏡頭，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
+  emphasisBeat: "講到重點字眼時隨台詞做出自然反差微表情（否定或質疑詞時眉心微蹙並輕微搖頭；轉折亮點時眉毛自然微揚、眼神專注有神並輕輕點頭），口型連貫流暢唔逐字啪嘴、下巴同嘴部開合幅度自然細緻（約 20–30% 克制開合，講嘢時嘴角放鬆令圓唇音自然微嘟、下唇遮住下排牙齒，無誇張張大嘴），語氣過渡平順自然",
+  hookBeat: "正面向住鏡頭、直望鏡頭中心，眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
-    "近九成時間雙手自然放鬆放喺大髀或扶手椅休息位（Neutral Rest，或一隻手兩指輕捏住迷你手提無線收音咪停喺下巴／胸口前做支點）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
+    "近九成時間雙手自然放鬆放喺大髀休息位（Neutral Rest，或一隻手兩指輕捏住迷你手提無線收音咪停喺胸口前做支點）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
   headMotion:
-    "腰部、軀幹同雙肩保持固定喺同一位置（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭 0.5 秒由微垂自然抬起，之後頭部正對鏡頭，喺重音字有 1–2 度嘅微幅點頭、否定字眼時輕輕左右搖頭，雙眼全程穩定直望鏡頭中心",
+    "腰部、軀幹同雙肩保持固定正面向住鏡頭（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，喺重音字有 1–2 度嘅微幅點頭、否定字眼時輕微搖頭，雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
-  set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗（或 Indie 短片感絨布扶手椅配掛鐘、畫框、木書櫃同暖光小檯燈）",
+  set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗",
   light: "柔和均勻嘅室內漫射環境光配自然窗光，面部光暗過渡柔和自然、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",
 };
 

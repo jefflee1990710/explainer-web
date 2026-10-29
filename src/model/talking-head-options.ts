@@ -252,11 +252,11 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Medium waist-up frame — seated or standing torso with hands in view.",
     descriptionZhHant: "腰部以上中景，上身與雙手入鏡，適合一般對鏡講解。",
     startPoseEn:
-      "Character: the only person in the frame, framed from the waist up, standing or seated in a natural relaxed slightly angled posture, head and torso in frame, eyes locked into the lens, keeping the character's exact authentic warm smile, smiling eye curvature, and apple cheeks from the reference photo, head tilted 1–2 degrees, one hand lightly tucked in the trouser pocket or both hands resting calmly down.",
+      "Character: the only person in the frame, framed from the waist up, facing the camera directly and centered, head and torso in frame, eyes locked straight into the lens, keeping the character's exact authentic warm smile, smiling eye curvature, and apple cheeks from the reference photo, head tilted 1–2 degrees, one hand lightly holding a compact handheld wireless lavalier mic near the upper chest or both hands resting calmly down.",
     endPoseEn:
-      "Character: still the only person in the frame, framed from the waist up, facing the camera with eyes on the lens, mouth just closed into a calm warm half-smile, hands resting calmly down.",
+      "Character: still the only person in the frame, framed from the waist up, facing the camera directly with eyes on the lens, mouth just closed into a calm warm half-smile, hands resting calmly down.",
     startPoseYue:
-      "角色：畫面只有呢一個人，腰部以上半身中景，頭同上身喺畫面，身體自然微側放鬆、直望鏡頭，完全保留真人參考相與角色藍圖原本親切自然嘅溫暖笑容、彎彎笑眼同蘋果肌神韻，頭微傾 1–2 度，一隻手輕插西褲袋口或雙手自然放鬆放低。",
+      "角色：畫面只有呢一個人，腰部以上半身中景，正面向住鏡頭置中，頭同上身喺畫面，雙眼直望鏡頭中心，完全保留真人參考相與角色藍圖原本親切自然嘅溫暖笑容、彎彎笑眼同蘋果肌神韻，頭微傾 1–2 度，雙手自然放鬆放低或單手輕捏住迷你手提無線咪。",
     endPoseYue:
       "角色：畫面仍然只有呢一個人，腰部以上半身中景，正面直望鏡頭，口部合上變成自然淺笑，雙手自然放鬆放低，雙肩保持穩定。",
     cameraEn:

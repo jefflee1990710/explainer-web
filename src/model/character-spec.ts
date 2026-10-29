@@ -87,17 +87,19 @@ export function sanitizeSpecSkinTone(skinTone: string) {
 
 // One compact line for image prompts. Frame prompts share a tight character cap,
 // so this stays short and skips the palette (the attached image carries colour).
-export function characterSpecLine(spec: CharacterSpec, maxChars = 420) {
+// Put `outfit` right after `identity` & `hair` so `outfit` is NEVER truncated when
+// `faceDetail` is long.
+export function characterSpecLine(spec: CharacterSpec, maxChars = 480) {
   const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
   const faceCombined = [spec.face, spec.faceDetail].filter(Boolean).join(", ");
   const parts = [
     spec.identity,
-    faceCombined && `face: ${faceCombined}`,
+    spec.outfit && `outfit: ${spec.outfit}`,
     spec.hair && `hair: ${spec.hair}`,
+    faceCombined && `face: ${faceCombined}`,
     skin && `skin: ${skin}`,
     spec.body && `build: ${spec.body}`,
     spec.marks && `marks: ${spec.marks}`,
-    spec.outfit && `outfit: ${spec.outfit}`,
   ].filter((part): part is string => Boolean(part));
   const text = parts.join("; ");
   return text.length > maxChars ? `${text.slice(0, maxChars - 1).trimEnd()}…` : text;
