@@ -12,7 +12,7 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
   for (const clip of clips) {
     for (const scene of [clip.startScene, clip.endScene]) {
       assert.match(scene, /Light source: .*low, gradual tonal transition/);
-      assert.match(scene, /Skin & camera sensor: .*hyper-visible pore texture/);
+      assert.match(scene, /Skin & camera sensor: .*visible pores/);
       assert.match(scene, /ZERO skin reflectivity/);
       assert.match(scene, /iPhone 16 Pro 24mm f\/1\.8|Sony ZV-E1/);
       assert.match(scene, /zero heavy vintage 35mm film grain/);
@@ -43,14 +43,14 @@ test("an opening photo keeps its own light and framing; only skin detail is adde
     openingPhoto: true,
     realistic: true,
   });
-  assert.match(clips[0].startScene, /Skin & camera sensor: .*hyper-visible pore texture/);
+  assert.match(clips[0].startScene, /Skin & camera sensor: .*visible pores/);
   assert.doesNotMatch(clips[0].startScene, /Light source:|foreground element/);
   assert.doesNotMatch(clips[0].motionCamera, /rim light/);
 });
 
 test("Cantonese realistic stills use the Cantonese realism clause", () => {
   const clips = planTalkingHeadClips({ source: "今日教你一招。記住試下。", language: "yue", realistic: true });
-  assert.match(clips[0].startScene, /真實感：光源：.*皮膚與相機質感：.*睇到毛孔.*景深：/);
+  assert.match(clips[0].startScene, /真實感：光源：.*皮膚與相機質感：.*毛孔.*景深：/);
   assert.match(clips[0].motionCamera, /真實感：有機手持 iPhone 自拍微晃/);
   assert.match(clips[0].motionCamera, /每幾秒自然眨眼/);
 });

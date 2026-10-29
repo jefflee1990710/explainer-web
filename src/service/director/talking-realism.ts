@@ -25,7 +25,7 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
           ? "iPhone 16 Pro 24mm f/1.8 camera or Sony ZV-E1 creator camera capture"
           : "iPhone 16 Pro 24mm f/1.8 camera or Sony ZV-E1 at 30–40cm intimate selfie distance";
     const skin =
-      `Skin & camera sensor: authentic real-person smartphone / creator camera capture (${captureEn} — clean, bright, true-to-life phone HDR color, zero heavy vintage 35mm film grain or retro film LUT); copy and preserve the attached character portrait's exact facial identity and raw unretouched non-reflective diffuse matte human skin with hyper-visible pore texture across cheeks, nose bridge, forehead, chin, and temples (because real porous skin diffuses light rather than reflecting it: clearly readable individual pores, ZERO skin reflectivity, ZERO shiny hot spots on the forehead, nose bridge, or cheekbones, and zero oily, waxy, or glossy specular sheen and zero porcelain shine), fine peach-fuzz hair, natural under-eye, nasolabial, and cheek skin micro-relief with subtle uneven tone, individual wispy bangs and loose flyaway hair strands falling naturally across the forehead and ears, and real fabric weave on the collar/shoulders. Never smooth porcelain, silicone, airbrushed, reflective, or plastic skin.`;
+      `Skin & camera sensor: authentic real-person smartphone / creator camera capture (${captureEn} — clean, bright, true-to-life phone HDR color, zero heavy vintage 35mm film grain or retro film LUT); faithfully copy and preserve the attached character blueprint's exact facial identity and natural human skin texture (visible pores, fine peach-fuzz hair, natural skin micro-relief, and a non-reflective diffuse matte-natural complexion with ZERO skin reflectivity, zero shiny hot spots, and zero oily, waxy, or glossy specular sheen), loose flyaway hair strands, and real fabric weave. Never smooth porcelain, silicone, airbrushed, reflective, or plastic skin.`;
     const depth = scene.fullBody
       ? "Depth: natural 50mm f/1.8 optical depth of field — the standing person is tack-sharp with soft grounded floor shadows and the background room/window view falls into realistic optical bokeh (never a flat pasted wallpaper backdrop), with no foreground objects blocking any corner of the frame."
       : scene.poseOwnsFraming
@@ -44,7 +44,7 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
         ? "現代真人 iPhone 16 Pro 24mm f/1.8 腳架／Sony ZV-E1 實拍"
         : "現代真人 iPhone 16 Pro 手機近距離（30–40cm）自拍／Sony ZV-E1 實拍";
   const skin =
-    `皮膚與相機質感：以${captureYue}（色彩清透亮麗、無厚重複古 35mm 菲林粗顆粒或暗沉濾鏡）；忠實保留角色肖像嘅五官與零反光啞光真實人類皮膚，因為真實皮膚有毛孔同肌理所以只會漫反射而唔會反光：超清晰睇到毛孔（面頰、鼻樑、額頭、下巴同太陽穴都有清楚獨立毛孔，絕唔美顏磨皮）、細微汗毛、眼下／法令紋／面頰自然微浮雕紋理同輕微膚色不均（額頭、鼻樑、蘋果肌、面頰、下巴、鎖骨同手部絕對唔可以有任何反光、高光白點、油光、水光、蠟質反光、陶瓷感或金屬塑膠感），額前碎髮同耳邊髮絲自然散落，領口衣物有真實布料織紋。唔好陶瓷咁滑、唔好磨皮、唔好反光皮膚。`;
+    `皮膚與相機質感：以${captureYue}（色彩清透亮麗、無厚重複古 35mm 菲林粗顆粒或暗沉濾鏡）；忠實保留角色藍圖嘅五官樣貌與自然啞光真實人類皮膚（保留藍圖自然毛孔、細微汗毛同真實膚質，因為皮膚有肌理所以只會漫反射而唔會反光：額頭、鼻樑、蘋果肌、面頰、下巴、鎖骨同手部絕對唔可以有任何反光、高光白點、油光、水光、蠟質反光、陶瓷感或金屬塑膠感），自然散落碎髮，領口衣物有真實布料織紋。唔好陶瓷咁滑、唔好磨皮、唔好反光皮膚。`;
   const depth = scene.fullBody
     ? "景深：真實 50mm f/1.8 光學淺景深——人物清晰銳利，背後室內與窗外景觀自然光學虛化（絕對唔好似平面背景紙貼圖），畫面四角唔好加任何遮住人物嘅雜物。"
     : scene.poseOwnsFraming

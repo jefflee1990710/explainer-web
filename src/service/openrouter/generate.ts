@@ -179,7 +179,7 @@ export async function submitOpenRouterImage(
         "Content-Type": "application/json",
       },
       body: payload,
-      signal: AbortSignal.timeout(75_000),
+      signal: AbortSignal.timeout(180_000),
     });
   } catch (error) {
     if (options?.fetch) throw error;
@@ -199,7 +199,7 @@ export async function submitOpenRouterImage(
             "Content-Type": "application/json",
           },
           body: fallbackBody,
-          signal: AbortSignal.timeout(90_000),
+          signal: AbortSignal.timeout(180_000),
         });
         break;
       } catch (retryErr) {

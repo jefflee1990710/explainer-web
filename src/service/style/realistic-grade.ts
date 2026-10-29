@@ -11,19 +11,11 @@ import { runFfmpeg } from "@/service/reel/concat";
 const VIDEO_KNEE_LUT_EXPR =
   "clip(if(lte(val,180),5+val*0.975,180+(val-180)*0.6),4,228)";
 
-// Soft specular roll-off above 175 so forehead, nose bridge, and cheekbones stay diffuse matte
-// without darkening midtones (0..175 stays 100% untouched).
-const MATTE_SKIN_KNEE_LUT_EXPR =
-  "if(lte(val,175),val,175+(val-175)*0.55)";
-
 export const REALISTIC_VIDEO_GRADE_FILTER =
   `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',setsar=1`;
 
-// Stronger iPhone CMOS sensor micro-texture filter for Talking-Head / Avatar IV videos:
-// - Restores high-frequency skin pore micro-texture (`unsharp` + luma-only temporal CMOS noise `c0s=2.8:c0f=t+u`)
-// - Gently rolls off only specular hot spots above 175 (`MATTE_SKIN_KNEE_LUT_EXPR`) so skin never looks reflective or oily while 0..175 midtones stay 100% untouched
-export const TALKING_HEAD_SENSOR_GRAIN_FILTER =
-  `lutrgb=r='${MATTE_SKIN_KNEE_LUT_EXPR}':g='${MATTE_SKIN_KNEE_LUT_EXPR}':b='${MATTE_SKIN_KNEE_LUT_EXPR}',unsharp=3:3:0.4:3:3:0.0,noise=c0s=2.8:c0f=t+u,setsar=1`;
+// Keep the clean native Avatar IV colour and skin fidelity from the character blueprint; only ensure yuv420p compatibility.
+export const TALKING_HEAD_SENSOR_GRAIN_FILTER = "setsar=1";
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [
