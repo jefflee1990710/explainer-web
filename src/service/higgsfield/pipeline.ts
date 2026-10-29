@@ -761,6 +761,7 @@ export async function sendClipVideo(
       const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
         spokenScript: spokenLine,
         directorMotionNote: clipRow?.motionCamera,
+        motionPrompt: clipRow?.motionPrompt,
         language: project.language,
       });
       const projects = await videosCollection();
@@ -795,13 +796,17 @@ export async function sendClipVideo(
     if (!referenceAudioUrl || !spokenLine?.trim()) {
       throw new Error("坐定對嘴需要角色語音同呢句對白");
     }
+    const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
+      spokenScript: spokenLine,
+      directorMotionNote: clipRow?.motionCamera,
+      motionPrompt: clipRow?.motionPrompt,
+      language: project.language,
+    });
     const submitted = await submitClipVideo({
       model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-      prompt: heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
-        spokenScript: spokenLine,
-        directorMotionNote: clipRow?.motionCamera,
-        language: project.language,
-      }),
+      prompt: avatarIvPrompt,
+      motionPrompt: clipRow?.motionPrompt || avatarIvPrompt,
+      expressiveness: clipRow?.expressiveness || "medium",
       aspectRatio: project.aspectRatio,
       durationSeconds,
       startImageUrl: start,

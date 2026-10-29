@@ -236,6 +236,8 @@ export const submitCharacterStill = submitImage;
 export async function submitClipVideo(
   input: {
     prompt: string;
+    motionPrompt?: string;
+    expressiveness?: "low" | "medium" | "high";
     aspectRatio: AspectRatio;
     durationSeconds: number;
     startImageUrl: string;
@@ -258,6 +260,8 @@ export async function submitClipVideo(
       {
         model,
         prompt: input.prompt,
+        motionPrompt: input.motionPrompt,
+        expressiveness: input.expressiveness,
         aspectRatio: input.aspectRatio,
         durationSeconds: input.durationSeconds,
         startImageUrl: input.startImageUrl,

@@ -67,9 +67,19 @@ export const startOnlyPhaseASchema = phaseASchema.extend({
   clips: z.array(startOnlyStoryboardRowSchema).min(1),
 });
 
+export type HeyGenExpressiveness = "low" | "medium" | "high";
+
+export const heyGenExpressivenessSchema = z.enum(["low", "medium", "high"]);
+
 // Talking-head clips can run up to 120s on HeyGen Avatar IV (total script <= 240s enforced in talkingHeadPlanError).
+export const talkingHeadStoryboardRowSchema = storyboardRowSchema.extend({
+  durationSeconds: z.number().min(5).max(120),
+  motionPrompt: z.string().optional(),
+  expressiveness: heyGenExpressivenessSchema.optional(),
+});
+
 export const talkingHeadPhaseASchema = phaseASchema.extend({
-  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(5).max(120) })).min(1),
+  clips: z.array(talkingHeadStoryboardRowSchema).min(1),
 });
 
 // One clip's video prompt (per-clip Phase B).

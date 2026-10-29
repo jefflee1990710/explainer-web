@@ -12,7 +12,14 @@ import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
-import { hasAnchorProp, speakOnlyThisClip, talkingMotionLine, talkingShotForSkill, type TalkingShot } from "@/service/director/talking-performance";
+import {
+  hasAnchorProp,
+  planTalkingHeadFacialExpressionArc,
+  speakOnlyThisClip,
+  talkingMotionLine,
+  talkingShotForSkill,
+  type TalkingShot,
+} from "@/service/director/talking-performance";
 import { talkingRealismMotion, talkingRealismStill } from "@/service/director/talking-realism";
 import { toWrittenChinese } from "@/service/director/written-chinese";
 import { mediaSrc } from "@/util/media-src";
@@ -203,6 +210,8 @@ export type TalkingHeadClipPlan = {
   startScene: string;
   endScene: string;
   motionCamera: string;
+  motionPrompt?: string;
+  expressiveness?: "low" | "medium" | "high";
   englishVo: string;
   bgmSfx: string;
 };
@@ -297,8 +306,14 @@ export function planTalkingHeadClips(input: {
   // Optional director instruction (e.g. custom background/setting notes) and Phase A visualWorld.
   directorInstruction?: string;
   visualWorld?: string;
-  // Optional Argon-generated clips from Phase A so we preserve Argon's sentence-by-sentence facial choreography.
-  argonClips?: Array<{ clipNumber?: number; motionCamera?: string; englishVo?: string }>;
+  // Optional Argon-generated clips from Phase A so we preserve Argon's sentence-by-sentence facial choreography, motionPrompt, and expressiveness.
+  argonClips?: Array<{
+    clipNumber?: number;
+    motionCamera?: string;
+    motionPrompt?: string;
+    expressiveness?: "low" | "medium" | "high";
+    englishVo?: string;
+  }>;
   pace?: SpeechPace;
   language?: VoLanguage;
   aspectRatio?: string;
@@ -399,7 +414,7 @@ export function planTalkingHeadClips(input: {
               "導演逐句微表情編排：",
               ...input.argonClips
                 .map((c, idx) => {
-                  const extracted = extractArgonFacialChoreography(c.motionCamera);
+                  const extracted = extractArgonFacialChoreography(c.motionPrompt || c.motionCamera);
                   if (!extracted) return "";
                   const body = extracted
                     .replace(
@@ -411,9 +426,22 @@ export function planTalkingHeadClips(input: {
                 })
                 .filter(Boolean),
             ].join("；"),
+            motionPrompt: input.argonClips
+              .map((c) => c.motionPrompt?.trim())
+              .filter(Boolean)
+              .join(" "),
+            expressiveness:
+              input.argonClips.find((c) => c.expressiveness)?.expressiveness ?? "medium",
           }
         : input.argonClips?.[index];
-    const argonFacialChoreography = extractArgonFacialChoreography(argonRow?.motionCamera);
+    const argonFacialChoreography = extractArgonFacialChoreography(
+      argonRow?.motionPrompt || argonRow?.motionCamera,
+    );
+    const resolvedExpressiveness = argonRow?.expressiveness ?? "medium";
+    const resolvedMotionPrompt =
+      argonRow?.motionPrompt?.trim() ||
+      argonFacialChoreography ||
+      planTalkingHeadFacialExpressionArc(line, input.language);
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -440,6 +468,8 @@ export function planTalkingHeadClips(input: {
         }),
         input.realistic ? talkingRealismMotion(input.language, realism) : "",
       ),
+      motionPrompt: resolvedMotionPrompt,
+      expressiveness: resolvedExpressiveness,
       englishVo: line,
       bgmSfx: input.language === "yue" || input.language === "zh" ? "無" : "none",
     });
@@ -514,7 +544,7 @@ export function talkingHeadDirectorBlock(
       ? `On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave.`
       : `On-camera handheld selfie speech: seated, eyes locked on the lens, continuous speech-energy lip-sync with moist lips, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck into a presenter smile. Never a greeting wave. Never stand up.`,
     `Face pattern (facial micro-expressions should be clearly readable and expressive ~3–4mm with 2–3° head language — neither a frozen poker face nor exaggerated theatrical laughing; NEVER just laugh or hold a constant smile): resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
-    "CRITICAL DIRECTOR FACIAL CHOREOGRAPHY (REQUIRED IN motionCamera): As the Director, you MUST analyze every sentence/clause of the spoken script and write a detailed, expressive sentence-by-sentence facial expression choreography inside each clip's `motionCamera` field (prefixed with `導演逐句微表情編排：` for Cantonese/Chinese or `Director sentence-by-sentence facial expression choreography:` for English). Make sure the micro-expressions are clearly visible and noticeably contrasted across different sentence emotions (not stiff or frozen): for EVERY sentence or clause in the spoken script, specify: (1) the exact time window and quoted clause/words, (2) the specific emotion label matching the content — e.g. 好奇提問/Curiosity, 疑惑反問/Puzzled doubt, 認真凝重/Serious concern, 共鳴無奈/Empathetic understanding, 篤定自信/Earnest conviction, 驚喜亮點/Bright excitement, or 親切邀請/Warm invitation — and (3) the clear, readable facial & head micro-acting (3–4mm noticeable brow lift or brow furrow, expressive eye engagement/brightening, 2–3° head tilt/nod/shake, slight 1–2° torso lean on emphasis, and a warm closed-lip half-smile on positive reveals/CTA) while strictly forbidding continuous laughing or a wide toothy grin.",
+    "CRITICAL DIRECTOR FACIAL CHOREOGRAPHY (`motionPrompt`, `expressiveness`, and `motionCamera`): As the Director, you MUST analyze every sentence/clause of the spoken script and populate each clip's `motionPrompt` and `expressiveness` fields (as well as `motionCamera`): (1) Set `expressiveness` to `\"medium\"` by default (use `\"low\"` only for deadpan/somber scripts; NEVER use `\"high\"` unless the user explicitly asks for high-energy acting, as `\"high\"` distorts mouth shapes); (2) In `motionPrompt` (and `motionCamera`, prefixed with `導演逐句微表情編排：` for Cantonese/Chinese or `Director sentence-by-sentence facial expression choreography:` for English), write a detailed sentence-by-sentence facial expression choreography covering EVERY sentence in the script: specify the time window, the quoted clause, the emotion label (e.g. 好奇提問/Curiosity, 疑惑反問/Puzzled doubt, 認真凝重/Serious concern, 共鳴無奈/Empathetic understanding, 篤定自信/Earnest conviction, 驚喜亮點/Bright excitement, or 親切邀請/Warm invitation), and the clear ~3–4mm brow/eye micro-acting and 2–3° head language while keeping natural co-articulated lip-sync (~25–30% jaw opening, lower teeth covered by the lower lip, never laughing through serious lines).",
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
       ? ["Realism (Cinematic realistic): every still is shot on a handheld iPhone 16 Pro 24mm f/1.8 selfie or Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor (clean true-to-life digital color, zero heavy 35mm film grain or retro LUT) at 30–40cm collarbone-up framing with the face filling 60–65% of 9:16, naming soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face (soft minimal shadows under the chin and around the eyes, never harsh dramatic side-light contrast, never a half-dark face, never flat beauty-ring glare, keep highlights soft below clipping), unfiltered non-reflective diffuse matte real skin pores and fine facial hair (zero skin reflectivity, zero shiny hot spots), and a lived-in room corner (bedhead/door/window) with natural optical shallow depth of field and no foreground objects blocking the frame."]
@@ -746,8 +776,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
         ? selectedPose
           ? selectedPose.startPoseEn
           : fullBody
-            ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed cheeks, calm open eyes), ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-            : `Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed cheeks, calm open eyes), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop}`
+            ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, with a natural mid-speech softly parted mouth (~4–6mm gap showing a subtle hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled, calm open eyes), ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
+            : `Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a natural mid-speech softly parted mouth (~4–6mm gap showing a subtle hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled, calm open eyes), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop}`
         : selectedPose
           ? `${selectedPose.endPoseEn}${sameFrame}`
           : fullBody
@@ -776,8 +806,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       ? selectedPose
         ? selectedPose.startPoseYue
         : fullBody
-          ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-          : `角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），${lensPlaceYue}，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}`
+          ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
+          : `角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），${lensPlaceYue}，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}`
       : selectedPose
         ? `${selectedPose.endPoseYue}${sameFrame}`
         : fullBody

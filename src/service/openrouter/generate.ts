@@ -261,6 +261,8 @@ export type OpenRouterClipVideoRequestBody = {
   resolution: string;
   generate_audio?: boolean;
   callback_url?: string;
+  motion_prompt?: string;
+  expressiveness?: "low" | "medium" | "high";
   frame_images?: OpenRouterVideoFrameImage[];
   input_references?: OpenRouterVideoInputReference[];
 };
@@ -276,6 +278,7 @@ export function heyGenAvatarIvMotionPrompt(
   options?: {
     spokenScript?: string;
     directorMotionNote?: string;
+    motionPrompt?: string;
     language?: VoLanguage;
   },
 ): string {
@@ -283,6 +286,12 @@ export function heyGenAvatarIvMotionPrompt(
     poseId === "full-body" || poseId === "waist-up"
       ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
       : HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  if (options?.motionPrompt?.trim()) {
+    const cleanedMotion = options.motionPrompt
+      .replace(/\s*(?:Realism:|真實感：)[\s\S]*$/i, "")
+      .trim();
+    if (cleanedMotion) return `${base} ${cleanedMotion}`;
+  }
   const directorArcMatch = options?.directorMotionNote?.match(
     /(?:Director sentence-by-sentence facial expression choreography|Director content-driven micro-expression plan|導演逐句微表情(?:編排|規劃))[^]*?(?=\s*(?:Realism:|真實感：)|$)/,
   );
@@ -334,6 +343,8 @@ export function openRouterVideoAudioLipSyncBody(input: {
 export function openRouterHeyGenAudioVideoBody(input: {
   model?: string;
   prompt: string;
+  motionPrompt?: string;
+  expressiveness?: "low" | "medium" | "high";
   aspectRatio: AspectRatio;
   durationSeconds?: number;
   startImageUrl: string;
@@ -349,9 +360,17 @@ export function openRouterHeyGenAudioVideoBody(input: {
       ? capOpenRouterVideoPrompt(input.prompt)
       : HEYGEN_AVATAR_IV_MOTION_PROMPT
     : capOpenRouterVideoPrompt(input.prompt);
+  const nativeMotionPrompt = isAvatarIv
+    ? capOpenRouterVideoPrompt(input.motionPrompt?.trim() || effectivePrompt)
+    : undefined;
+  const nativeExpressiveness = isAvatarIv
+    ? input.expressiveness || "medium"
+    : undefined;
   return {
     model,
     prompt: effectivePrompt,
+    ...(nativeMotionPrompt ? { motion_prompt: nativeMotionPrompt } : {}),
+    ...(nativeExpressiveness ? { expressiveness: nativeExpressiveness } : {}),
     aspect_ratio: input.aspectRatio,
     ...(isAvatarIv
       ? {}
@@ -494,6 +513,8 @@ export async function submitOpenRouterClipVideo(
   input: {
     model?: string;
     prompt: string;
+    motionPrompt?: string;
+    expressiveness?: "low" | "medium" | "high";
     aspectRatio: AspectRatio;
     durationSeconds: number;
     startImageUrl: string;
@@ -517,6 +538,8 @@ export async function submitOpenRouterClipVideo(
       ? openRouterHeyGenAudioVideoBody({
           model: input.model,
           prompt: input.prompt,
+          motionPrompt: input.motionPrompt,
+          expressiveness: input.expressiveness,
           aspectRatio: input.aspectRatio,
           durationSeconds: input.durationSeconds,
           startImageUrl: input.startImageUrl,

@@ -175,6 +175,9 @@ export type StoryboardRow = {
   backgroundSetId?: string;
   // ISO time the user last edited this row; newer than submittedAt ⇒ stale media.
   editedAt?: string;
+  // Talking-head director native HeyGen Avatar IV motion_prompt and expressiveness ("low" | "medium" | "high").
+  motionPrompt?: string;
+  expressiveness?: "low" | "medium" | "high";
 };
 
 // Prop tiles for the video-wide white-background object sheet.
@@ -487,6 +490,8 @@ const storyboardRowSchema = z.object({
   editedAt: z.string().optional(),
   endUsesStartStill: z.boolean().optional(),
   backgroundSetId: z.string().optional(),
+  motionPrompt: z.string().optional(),
+  expressiveness: z.enum(["low", "medium", "high"]).optional(),
 });
 
 const objectSheetItemSchema = z.object({

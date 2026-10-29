@@ -85,17 +85,20 @@ export function sanitizeSpecSkinTone(skinTone: string) {
     .trim();
 }
 
-// Strip baked-in portrait smile words ("wide smile", "showing upper teeth", "smiling almond eyes")
-// from stored face geometry so talking-head start frames do not lock raised apple-cheek smile tension
-// that lip-sync video models amplify into squinting eyes and exaggerated toothy grins.
+// Strip baked-in portrait grin words ("wide smile", "smiling almond eyes") from stored face geometry
+// so talking-head start frames use a natural mid-speech softly parted mouth with a subtle upper-teeth anchor
+// rather than a wide toothy grin or tightly sealed lips.
 export function sanitizeSpecFace(face: string) {
   return face
     .replace(/\bsmiling\s+(?=(?:almond\s+)?eyes\b)/gi, "")
     .replace(
       /\b(?:wide|broad|bright|big|toothy|full)\s+smil(?:e|ing)(?:\s+mouth)?(?:\s+showing\s+(?:upper\s+)?teeth)?\b/gi,
-      "natural well-proportioned lips gently closed",
+      "natural well-proportioned lips softly parted mid-speech showing a subtle hint of natural upper front teeth",
     )
-    .replace(/\bshowing\s+(?:upper\s+|white\s+)?teeth\b/gi, "lips gently closed")
+    .replace(
+      /\bshowing\s+(?:upper\s+|white\s+)?teeth\b/gi,
+      "lips softly parted showing a subtle hint of natural upper front teeth",
+    )
     .replace(/\brounded\s+cheekbones\b/gi, "soft natural cheekbones")
     .replace(/\s{2,}/g, " ")
     .replace(/,\s*,/g, ",")

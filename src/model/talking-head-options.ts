@@ -224,11 +224,11 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Head-to-feet standing frame — widest talking-head zoom.",
     descriptionZhHant: "頭到腳全身站姿，對鏡講稿最廣的取景。",
     startPoseEn:
-      "Character: the only person in the frame, head to feet fully visible, standing in a candid, relaxed contrapposto creator stance (weight resting naturally on one hip with the other knee slightly soft, torso angled 10 degrees off-square while the head turns to look straight into the lens, feet planted at a natural staggered stance with clear dark contact shadows on the floor — NEVER standing stiffly at attention, NEVER symmetrical mannequin posture), both arms resting calmly down (one hand tucked lightly at the trouser pocket and the other arm hanging naturally relaxed by the side — NO raised hands in mid-air, NO gesturing hands, NO clasped hands over the stomach), with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed flat cheeks, calm open un-squinted eyes).",
+      "Character: the only person in the frame, head to feet fully visible, standing in a candid, relaxed contrapposto creator stance (weight resting naturally on one hip with the other knee slightly soft, torso angled 10 degrees off-square while the head turns to look straight into the lens, feet planted at a natural staggered stance with clear dark contact shadows on the floor — NEVER standing stiffly at attention, NEVER symmetrical mannequin posture), both arms resting calmly down (one hand tucked lightly at the trouser pocket and the other arm hanging naturally relaxed by the side — NO raised hands in mid-air, NO gesturing hands, NO clasped hands over the stomach), with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes).",
     endPoseEn:
-      "Character: still the only person in the frame, head to feet fully visible in the same relaxed contrapposto creator stance, eyes locked on the lens, lips gently closed in a calm neutral expression, both arms resting calmly down by the pocket/side with no raised hands, feet grounded on the floor.",
+      "Character: still the only person in the frame, head to feet fully visible in the same relaxed contrapposto creator stance, eyes locked on the lens, lips gently closed in a calm natural expression, both arms resting calmly down by the pocket/side with no raised hands, feet grounded on the floor.",
     startPoseYue:
-      "角色：畫面只有呢一個人，頭到腳全身入鏡，以自然真實創作者「三七步」放鬆站姿企喺畫面（重心自然放喺一邊髖部、另一隻膝頭微鬆，上身微側 10 度再轉頭直望鏡頭，雙腳自然微錯開企喺地面並有清晰真實落腳陰影——絕對唔好雙腳併攏立正罰企、唔好似公仔模型對稱僵硬），雙手自然放鬆放低（一隻手輕插西褲袋口，另一隻手自然垂放身側——絕對唔好舉起隻手喺半空比手勢、唔好雙手合十放肚前），神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然平穩唔瞇眼笑）。",
+      "角色：畫面只有呢一個人，頭到腳全身入鏡，以自然真實創作者「三七步」放鬆站姿企喺畫面（重心自然放喺一邊髖部、另一隻膝頭微鬆，上身微側 10 度再轉頭直望鏡頭，雙腳自然微錯開企喺地面並有清晰真實落腳陰影——絕對唔好雙腳併攏立正罰企、唔好似公仔模型對稱僵硬），雙手自然放鬆放低（一隻手輕插西褲袋口，另一隻手自然垂放身側——絕對唔好舉起隻手喺半空比手勢、唔好雙手合十放肚前），正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然平穩唔瞇眼）。",
     endPoseYue:
       "角色：畫面仍然只有呢一個人，頭到腳全身入鏡保持自然放鬆三七步站姿，正面直望鏡頭，雙唇自然輕合保持平靜神情，雙手仍然自然放鬆放低喺褲袋邊同身側（唔好舉手），雙腳穩踏地面。",
     cameraEn:
@@ -252,11 +252,11 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Medium waist-up frame — seated or standing torso with hands in view.",
     descriptionZhHant: "腰部以上中景，上身與雙手入鏡，適合一般對鏡講解。",
     startPoseEn:
-      "Character: the only person in the frame, framed from the waist up, facing the camera directly and centered, head and torso in frame, eyes locked straight into the lens with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed flat cheeks, calm open un-squinted eyes), head tilted 1–2 degrees, one hand lightly holding a compact handheld wireless lavalier mic near the upper chest or both hands resting calmly down.",
+      "Character: the only person in the frame, framed from the waist up, facing the camera directly and centered, head and torso in frame, eyes locked straight into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, one hand lightly holding a compact handheld wireless lavalier mic near the upper chest or both hands resting calmly down.",
     endPoseEn:
       "Character: still the only person in the frame, framed from the waist up, facing the camera directly with eyes on the lens, lips gently closed in a calm neutral expression, hands resting calmly down.",
     startPoseYue:
-      "角色：畫面只有呢一個人，腰部以上半身中景，正面向住鏡頭置中，頭同上身喺畫面，雙眼平穩直望鏡頭中心，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），頭微傾 1–2 度，雙手自然放鬆放低或單手輕捏住迷你手提無線咪。",
+      "角色：畫面只有呢一個人，腰部以上半身中景，正面向住鏡頭置中，頭同上身喺畫面，雙眼平穩直望鏡頭中心，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，雙手自然放鬆放低或單手輕捏住迷你手提無線咪。",
     endPoseYue:
       "角色：畫面仍然只有呢一個人，腰部以上半身中景，正面直望鏡頭，雙唇自然輕合保持平靜神情，雙手自然放鬆放低，雙肩保持穩定。",
     cameraEn:
@@ -280,11 +280,11 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Tighter medium close-up from upper chest — shoulders and face fill more of the frame.",
     descriptionZhHant: "胸口以上較近中近景，肩膀與面部佔比較大，仍可見少許肩線。",
     startPoseEn:
-      "Character: the only person in the frame, framed from the upper chest up (shoulders visible, no waist or lap), eyes locked into the lens with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed flat cheeks, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression.",
+      "Character: the only person in the frame, framed from the upper chest up (shoulders visible, no waist or lap), eyes locked into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression.",
     endPoseEn:
       "Character: still the only person in the frame, still seated centered framed from the upper chest up, facing the camera with eyes on the lens, lips gently closed in a calm neutral expression, shoulders steady.",
     startPoseYue:
-      "角色：畫面只有呢一個人，由上胸口裁切（見到雙肩，唔好見到腰或大髀），直望鏡頭，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），頭微傾 1–2 度，神情自然唔擺拍。",
+      "角色：畫面只有呢一個人，由上胸口裁切（見到雙肩，唔好見到腰或大髀），直望鏡頭，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，神情自然唔擺拍。",
     endPoseYue:
       "角色：畫面仍然只有呢一個人，仍然坐住置中由上胸口裁切，正面直望鏡頭，雙唇自然輕合保持平靜神情，雙肩穩定。",
     cameraEn:
@@ -308,11 +308,11 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     descriptionEn: "Intimate collarbone-up selfie — face fills 60–65% of vertical 9:16 (tightest zoom).",
     descriptionZhHant: "鎖骨以上自拍大特寫，臉佔直式畫面約 60–65%，最近距離取景。",
     startPoseEn:
-      "Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed flat cheeks, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression.",
+      "Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression.",
     endPoseEn:
       "Character: still an intimate collarbone-up selfie close-up, facing the camera with eyes on the lens, lips gently closed in a calm neutral expression, same collarbone-up crop with face still filling 60–65% of frame.",
     startPoseYue:
-      "角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），直望鏡頭好似用手持手機自拍，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），頭微傾 1–2 度，神情自然唔擺拍。",
+      "角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），直望鏡頭好似用手持手機自拍，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，神情自然唔擺拍。",
     endPoseYue:
       "角色：仍然係鎖骨以上自拍大特寫，正面直望鏡頭，雙唇自然輕合保持平靜神情，裁切同開頭一樣、塊臉仍然佔畫面 60–65%，雙手唔入鏡。",
     cameraEn:
