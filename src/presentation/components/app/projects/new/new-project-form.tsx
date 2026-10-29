@@ -124,6 +124,7 @@ import { VoicePicker } from "@/presentation/components/app/projects/new/voice-pi
 import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
 import {
   defaultCastIdsForStyle,
+  pickerDefaultSkillSlug,
   readBriefDefaults,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
@@ -223,8 +224,7 @@ export function NewProjectForm({
   const [skillSlug, setSkillSlug] = useState(
     (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
       (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
-      skills[0]?.slug ||
-      "",
+      pickerDefaultSkillSlug(skills),
   );
   // Picked director; form rules follow its behaviour (template) slug.
   const selectedSkill = skills.find((item) => item.slug === skillSlug);

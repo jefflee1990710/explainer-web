@@ -81,10 +81,23 @@ export function resolveInitialSceneTextLanguage(input: {
   return fallback;
 }
 
+export const PICKER_DEFAULT_SKILL_SLUG = "paper-cutout-explainer-video-director";
+export const DEFAULT_STARTER_CHARACTER_NAME = "Aera";
+
+// Default director pre-selected for new videos when "paper-cutout-explainer-video-director" is offered.
+export function pickerDefaultSkillSlug(
+  offered: ReadonlyArray<{ slug: string }>,
+): string {
+  if (offered.some((skill) => skill.slug === PICKER_DEFAULT_SKILL_SLUG)) {
+    return PICKER_DEFAULT_SKILL_SLUG;
+  }
+  return offered[0]?.slug || "";
+}
+
 type Catalog = {
   skills: Array<{ slug: string; behaviorSlug?: string }>;
   styles: Array<{ id: string }>;
-  characters: Array<{ id: string; styleId: string; styleIds?: string[] }>;
+  characters: Array<{ id: string; name?: string; styleId: string; styleIds?: string[] }>;
   textStyles?: Array<{ id: string }>;
 };
 
@@ -104,7 +117,7 @@ export function sanitizeBriefDefaults(
   const skillSlug =
     typeof input.skillSlug === "string" && catalog.skills.some((skill) => skill.slug === input.skillSlug)
       ? input.skillSlug
-      : catalog.skills[0]?.slug;
+      : pickerDefaultSkillSlug(catalog.skills);
   if (!skillSlug) return undefined;
   const styleId =
     typeof input.styleId === "string" && catalog.styles.some((style) => style.id === input.styleId)
@@ -187,9 +200,11 @@ export function writeBriefDefaults(projectId: string, defaults: BriefDefaults) {
 }
 
 // Auto-pick matching ready characters when a new video starts or changes style so Step 01 is immediately actionable.
+// Prefers the default system starter character "Aera" when she matches the selected style.
 export function defaultCastIdsForStyle(
   characters: ReadonlyArray<{
     id: string;
+    name?: string;
     styleId: string;
     styleIds?: string[];
     previewUrl?: string | null;
@@ -204,6 +219,12 @@ export function defaultCastIdsForStyle(
     return styles.includes(styleId);
   });
   if (matching.length < requiredCount) return [];
-  return matching.slice(0, requiredCount).map((character) => character.id);
+  const targetName = DEFAULT_STARTER_CHARACTER_NAME.toLowerCase();
+  const ordered = [...matching].sort((a, b) => {
+    const aPreferred = a.name?.trim().toLowerCase() === targetName ? 0 : 1;
+    const bPreferred = b.name?.trim().toLowerCase() === targetName ? 0 : 1;
+    return aPreferred - bPreferred;
+  });
+  return ordered.slice(0, requiredCount).map((character) => character.id);
 }
 

@@ -4,6 +4,7 @@ import {
   defaultCastIdsForStyle,
   defaultSceneTextLanguageForLocale,
   defaultVoLanguageForLocale,
+  pickerDefaultSkillSlug,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
   sanitizeBriefDefaults,
@@ -96,11 +97,36 @@ test("sanitize ignores junk and never stores source", () => {
   assert.equal(sanitizeBriefDefaults({ source: "secret" }, { skills, styles, characters }), undefined);
 });
 
-test("defaultCastIdsForStyle auto-selects matching ready characters for Step 01", () => {
+test("defaultCastIdsForStyle auto-selects matching ready characters for Step 01 and prioritizes Aera", () => {
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 1), ["a"]);
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 2), ["a", "b"]);
   assert.deepEqual(defaultCastIdsForStyle(characters, "paper-cutout", 2), []);
   assert.deepEqual(defaultCastIdsForStyle(characters, "doodle", 0), []);
+  assert.deepEqual(
+    defaultCastIdsForStyle(
+      [
+        { id: "other-realistic", name: "Maya", styleId: "realistic", previewUrl: "/maya.jpg" },
+        { id: "aera-id", name: "Aera", styleId: "realistic", previewUrl: "/aera.jpg" },
+      ],
+      "realistic",
+      1,
+    ),
+    ["aera-id"],
+  );
+});
+
+test("pickerDefaultSkillSlug defaults to paper-cutout-explainer-video-director (02)", () => {
+  assert.equal(
+    pickerDefaultSkillSlug([
+      { slug: "cartoon-explainer-video-director" },
+      { slug: "paper-cutout-explainer-video-director" },
+    ]),
+    "paper-cutout-explainer-video-director",
+  );
+  assert.equal(
+    pickerDefaultSkillSlug([{ slug: "story-short-director" }]),
+    "story-short-director",
+  );
 });
 
 test("defaultVoLanguageForLocale defaults zh-Hant to Cantonese (yue) and zh-Hans to Mandarin (zh)", () => {
