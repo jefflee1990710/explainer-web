@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { UxDiagnosticsReport } from "@/service/analytics/ux-diagnostics";
+import { UserCreationsDialog } from "@/app/scroadmin/analytics/user-creations-dialog";
+import type {
+  UserDiagnosticRow,
+  UxDiagnosticsReport,
+} from "@/service/analytics/ux-diagnostics";
 
 function severityBadgeClass(
   severity: "high" | "medium" | "low" | "healthy",
@@ -37,6 +41,10 @@ export function UxAnalyticsDashboard({
 }) {
   const [selectedStage, setSelectedStage] = useState<string>("all");
   const [tab, setTab] = useState<"diagnosis" | "users" | "events">("diagnosis");
+  const [inspectingUser, setInspectingUser] = useState<Pick<
+    UserDiagnosticRow,
+    "clerkUserId" | "email" | "name" | "credits"
+  > | null>(null);
 
   const filteredUsers =
     selectedStage === "all"
@@ -353,12 +361,30 @@ export function UxAnalyticsDashboard({
                 {filteredUsers.map((u) => (
                   <tr key={u.clerkUserId} className="hover:bg-zinc-50/80">
                     <td className="whitespace-nowrap px-3 py-3">
-                      <span className="font-semibold text-[#12141c]">{u.email}</span>
-                      {u.name ? (
-                        <span className="ml-2 text-[11px] text-zinc-500">
-                          ({u.name})
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInspectingUser({
+                            clerkUserId: u.clerkUserId,
+                            email: u.email,
+                            name: u.name,
+                            credits: u.credits,
+                          })
+                        }
+                        className="group inline-flex cursor-pointer items-center gap-1.5 text-left hover:underline"
+                      >
+                        <span className="font-semibold text-[#12141c] group-hover:text-emerald-700">
+                          {u.email}
                         </span>
-                      ) : null}
+                        {u.name ? (
+                          <span className="text-[11px] text-zinc-500 group-hover:text-emerald-700">
+                            ({u.name})
+                          </span>
+                        ) : null}
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 group-hover:bg-[#12141c] group-hover:text-[#c6f24b]">
+                          查看作品 ↗
+                        </span>
+                      </button>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <span
@@ -453,7 +479,27 @@ export function UxAnalyticsDashboard({
                         {ev.event}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-zinc-700">
-                        {ev.userEmail || ev.clerkUserId || "訪客 (Anon)"}
+                        {ev.clerkUserId ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matched = report.users.find(
+                                (u) => u.clerkUserId === ev.clerkUserId,
+                              );
+                              setInspectingUser({
+                                clerkUserId: ev.clerkUserId!,
+                                email: matched?.email || ev.userEmail || ev.clerkUserId!,
+                                name: matched?.name || "User",
+                                credits: matched?.credits ?? 0,
+                              });
+                            }}
+                            className="cursor-pointer font-medium text-[#12141c] underline decoration-zinc-300 underline-offset-2 hover:text-emerald-700"
+                          >
+                            {ev.userEmail || ev.clerkUserId}
+                          </button>
+                        ) : (
+                          "訪客 (Anon)"
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5 font-mono text-zinc-600">
                         {ev.path || "—"}
@@ -469,6 +515,11 @@ export function UxAnalyticsDashboard({
           )}
         </section>
       ) : null}
+
+      <UserCreationsDialog
+        user={inspectingUser}
+        onClose={() => setInspectingUser(null)}
+      />
     </div>
   );
 }

@@ -2,6 +2,11 @@
 
 import { headers } from "next/headers";
 import type { UxEventCategory } from "@/model/ux-event";
+import { resolveScroAdmin } from "@/service/academy/admin";
+import {
+  getAdminUserCreations,
+  type AdminUserCreationsDetail,
+} from "@/service/analytics/user-creations";
 import { persistUxEvent } from "@/service/analytics/ux-tracker";
 
 export type ClientUxEventPayload = {
@@ -37,5 +42,30 @@ export async function recordClientUxEventAction(
     return { ok: true };
   } catch {
     return { ok: false };
+  }
+}
+
+// Admin-only Server Action to inspect all creations (videos, characters, life photos, failed jobs) of a specific user.
+export async function getAdminUserCreationsAction(
+  clerkUserId: string,
+): Promise<
+  | { ok: true; data: AdminUserCreationsDetail }
+  | { ok: false; error: string }
+> {
+  try {
+    const auth = await resolveScroAdmin();
+    if (!auth.ok) {
+      return { ok: false, error: "無權限讀取用戶創作資料" };
+    }
+    const detail = await getAdminUserCreations(clerkUserId);
+    if (!detail) {
+      return { ok: false, error: "找不到該用戶的資料" };
+    }
+    return { ok: true, data: detail };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "讀取用戶創作失敗",
+    };
   }
 }
