@@ -355,9 +355,23 @@ export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): Pu
   };
 }
 
-function chatCreatedAt(value: Date | string) {
+function toIsoDate(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
+}
+
+function toOptionalIsoDate(value: Date | string | undefined) {
+  return value === undefined ? undefined : toIsoDate(value);
+}
+
+function toTimestampMs(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  const ms = date.getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+function chatCreatedAt(value: Date | string) {
+  return toIsoDate(value);
 }
 
 function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneChats"] {
@@ -455,9 +469,9 @@ export function toPublicVideo(video: Project): PublicVideo {
     finalStatus: video.finalStatus,
     finalFingerprint: video.finalFingerprint,
     finalError: video.finalError,
-    finalQueuedAt: video.finalQueuedAt?.toISOString(),
+    finalQueuedAt: toOptionalIsoDate(video.finalQueuedAt),
     error: video.error,
-    createdAt: video.createdAt.toISOString(),
+    createdAt: toIsoDate(video.createdAt),
   };
 }
 
@@ -484,7 +498,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
     language: video.language || "en",
-    createdAt: video.createdAt.toISOString(),
+    createdAt: toIsoDate(video.createdAt),
     previewUrls,
     error: video.error,
     videosDone: counts.videosDone,
@@ -495,8 +509,8 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     propsDone: locks.propsDone,
     platesTotal: locks.platesTotal,
     platesDone: locks.platesDone,
-    postedAt: video.postedAt?.toISOString(),
-    archivedAt: video.archivedAt?.toISOString(),
+    postedAt: toOptionalIsoDate(video.postedAt),
+    archivedAt: toOptionalIsoDate(video.archivedAt),
   };
 }
 
@@ -528,7 +542,7 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
 }
 
 function videoRecencyMs(video: Pick<Project, "createdAt" | "updatedAt">) {
-  return (video.updatedAt ?? video.createdAt).getTime();
+  return toTimestampMs(video.updatedAt ?? video.createdAt);
 }
 
 export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder {
@@ -546,7 +560,7 @@ export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder 
     videoCount: videos.length,
     previewUrl: previewUrls[0] || null,
     previewUrls,
-    createdAt: folder.createdAt.toISOString(),
+    createdAt: toIsoDate(folder.createdAt),
     videos: cards,
   };
 }
