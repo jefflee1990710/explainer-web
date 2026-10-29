@@ -260,6 +260,7 @@ export const briefZhHant = {
     "outfit-reel-director": "試衫",
     "follow-shot-director": "第三人稱連續",
     "outfit-change-director": "換裝快切",
+    "editorial-interview-director": "雜誌人物專訪",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
@@ -280,6 +281,8 @@ export const briefZhHant = {
     "outfit-reel-director": "第一段已經穿好參考圖的整套衣服。每段換一個鏡頭。",
     "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
     "outfit-change-director": "同一間空白白房、鏡頭鎖死。每段硬切到一套全新造型。",
+    "editorial-interview-director":
+      "模擬 Esquire / GQ 雜誌人物專訪：微側 15° 對畫外受訪 A-Roll 穿插生活態度與產品工藝體驗 B-Roll。",
   },
   skillGuide: {
     labels: {
@@ -390,6 +393,12 @@ export const briefZhHant = {
         structure: "每段一套完整造型，硬切換裝。段數跟片長走",
         picture: "空白乳白房間、鎖死腰上鏡頭。衣服跟該段參考圖。臉留在角色藍圖",
         frames: "每張靜幀同一鏡頭同一房間，只換衣服",
+      },
+      "editorial-interview-director": {
+        voice: "主角第一人稱獨白：A-Roll 對畫外受訪開口講，B-Roll 作為畫外音無縫延續",
+        structure: "三幕式專訪弧：專業／創作執著 → 日常儀式共鳴與產品工藝 → 金句收尾",
+        picture: "三分法坐姿微側 15° 望向畫外訪問者，穿插生活創作、海景窗前沉思與手持產品體驗 B-Roll",
+        frames: "A-Roll 回到固定專訪空間；B-Roll 主角閉口專注動作並搭配畫外獨白",
       },
     },
   },

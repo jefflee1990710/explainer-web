@@ -33,14 +33,23 @@ const slugs = [
   "outfit-change-director",
   "workflow-promo-director",
   "style-switch-director",
+  "editorial-interview-director",
 ] as const;
 
 function names(values: string[]): VideoNames {
-  return Object.fromEntries(slugs.map((slug, index) => [slug, values[index]])) as VideoNames;
+  return Object.fromEntries(
+    slugs.map((slug, index) => [slug, values[index] ?? "Editorial profile interview"]),
+  ) as VideoNames;
 }
 
 function blurbs(values: string[]): VideoBlurbs {
-  return Object.fromEntries(slugs.map((slug, index) => [slug, values[index]])) as VideoBlurbs;
+  return Object.fromEntries(
+    slugs.map((slug, index) => [
+      slug,
+      values[index] ??
+        "Magazine-style profile interview: alternates a seated 15° off-camera interview with lifestyle & product-in-hand B-roll.",
+    ]),
+  ) as VideoBlurbs;
 }
 
 // Performance slot labels are English-only for now; packs fall back to them.
@@ -77,6 +86,7 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "换装快切",
       "流程与成效宣传",
       "跨风格角色快切",
+      "杂志人物专访",
     ]),
     blurbs: blurbs([
       "把概念做成白板涂鸦讲解。先确认分镜，再导出 clips。",
@@ -98,6 +108,7 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "同一间空白白房、镜头锁死。每段硬切到一套全新造型。",
       "开场钩子、三步产品流程拆解、数据与 ROI 成果展示，最后收束于品牌片尾。",
       "同一个角色最多跨越 4 种视觉风格，在不同画风间硬切同时锁定同一张脸与穿搭。",
+      "模拟 Esquire / GQ 杂志人物专访：微侧 15° 对画外受访 A-Roll 穿插生活态度与产品工艺体验 B-Roll。",
     ]),
     directors: ui({
       title: "导演",

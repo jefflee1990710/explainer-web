@@ -264,6 +264,7 @@ export const briefEn = {
     "outfit-reel-director": "Outfit reel",
     "follow-shot-director": "Follow shot",
     "outfit-change-director": "Outfit change",
+    "editorial-interview-director": "Editorial profile interview",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
@@ -285,6 +286,8 @@ export const briefEn = {
     "outfit-reel-director": "Already wearing the full outfit from the reference image. Each clip is a different camera move.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
     "outfit-change-director": "Same empty white room and locked camera. Each clip hard-cuts to a new complete look.",
+    "editorial-interview-director":
+      "Magazine-style profile interview (Esquire / GQ style): alternates a seated 15° off-camera interview with lifestyle & product-in-hand B-roll.",
   },
   skillGuide: {
     labels: {
@@ -395,6 +398,12 @@ export const briefEn = {
         structure: "One complete look per clip. Hard cut between looks. Clip count follows the duration",
         picture: "Empty cream-white room, locked waist-up camera. Clothes match that clip's reference. Face stays on the blueprint",
         frames: "Same camera and room on every still. Only the outfit changes",
+      },
+      "editorial-interview-director": {
+        voice: "First-person monologue by the character: spoken on-camera in A-roll and continuing as off-screen VO over B-roll",
+        structure: "3-act editorial arc: Craft philosophy → Daily routine & product craft → Closing aphorism",
+        picture: "Seated rule-of-thirds interview looking 15° off-camera, intercut with lifestyle action & product close-ups",
+        frames: "A-roll returns to the locked interview room; B-roll keeps the character's mouth closed while VO plays",
       },
     },
   },

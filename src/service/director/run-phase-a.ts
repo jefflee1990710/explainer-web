@@ -37,6 +37,7 @@ import {
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   isTalkingBrollSkill,
+  isEditorialInterviewSkill,
   isWorkflowPromoSkill,
   isStyleSwitchSkill,
   listicleDirectorBlock,
@@ -49,6 +50,7 @@ import {
   styleSwitchDirectorBlock,
   surpriseInterviewDirectorBlock,
   talkingBrollDirectorBlock,
+  editorialInterviewDirectorBlock,
   verticalSafeAreaDirectorLine,
   workflowPromoDirectorBlock,
 } from "@/service/director/skill-rules";
@@ -366,6 +368,7 @@ ${
     sceneText.enabled && skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
     sceneText.enabled && isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",
     isTalkingBrollSkill(input.skill.slug) ? talkingBrollDirectorBlock() : "",
+    isEditorialInterviewSkill(input.skill.slug) ? editorialInterviewDirectorBlock() : "",
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",

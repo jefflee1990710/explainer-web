@@ -30,6 +30,7 @@ export const OPENING_SKILL_SLUG = "opening-director";
 export const ENDING_SKILL_SLUG = "ending-director";
 export const COMPARISON_CARD_SKILL_SLUG = "comparison-card-director";
 export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
+export const EDITORIAL_INTERVIEW_SKILL_SLUG = "editorial-interview-director";
 export const WORKFLOW_PROMO_SKILL_SLUG = "workflow-promo-director";
 export const STYLE_SWITCH_SKILL_SLUG = "style-switch-director";
 export {
@@ -179,6 +180,10 @@ export function isComparisonCardSkill(skillSlug?: string) {
 
 export function isTalkingBrollSkill(skillSlug?: string) {
   return skillSlug === TALKING_BROLL_SKILL_SLUG;
+}
+
+export function isEditorialInterviewSkill(skillSlug?: string) {
+  return skillSlug === EDITORIAL_INTERVIEW_SKILL_SLUG;
 }
 
 export function isWorkflowPromoSkill(skillSlug?: string) {
@@ -955,6 +960,15 @@ export function talkingBrollDirectorBlock() {
     "Voiceover is spoken by an unseen off-screen narrator across all clips. On-camera: the one attached character, medium close-up, eyes to the lens, rich and expressive facial expressions (animated eyebrows, expressive eyes, natural emotional shifts) while their mouth stays closed (no lip-sync), same background and light as the first on-camera clip.",
     "B-roll: the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line or \"(no dialogue)\".",
     "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
+  ].join(" ");
+}
+
+export function editorialInterviewDirectorBlock() {
+  return [
+    "This is an EDITORIAL PROFILE INTERVIEW (Esquire / GQ / Monocle style). The protagonist delivers a calm, reflective first-person monologue across a 3-act arc: Act 1 (personal craft & devotion to detail) → Act 2 (how that standard shapes their daily routine & tactile product craft) → Act 3 (effortless hands-on experience & closing signature aphorism).",
+    "narrativeJob MUST begin with either `interview-a-roll` or `lifestyle-b-roll`. Clip 1 and the final clip MUST be `interview-a-roll`. Alternate rhythmically between `interview-a-roll` and `lifestyle-b-roll`.",
+    "In every `interview-a-roll` clip: stage the protagonist seated in one consistent high-end architectural space (e.g. sunlit harbour-view suite or designer studio), framed waist-up or chest-up using the rule of thirds, looking 15 degrees off-camera toward an unseen interviewer beside the lens (never staring dead-center into the lens like a selfie), speaking `englishVo` on camera with calm, restrained lip articulation and composed hand gestures (or holding the attached product at chest height when discussing it).",
+    "In every `lifestyle-b-roll` clip: show the protagonist in action (practicing their craft such as playing an instrument or working, standing in silhouette looking out a floor-to-ceiling harbour window, inspecting the attached product's metal/material craft up close, or using the product in their morning routine). During `lifestyle-b-roll`, the protagonist's mouth stays firmly closed (zero lip-sync) while their first-person voiceover (`englishVo`) continues seamlessly off-screen.",
   ].join(" ");
 }
 
