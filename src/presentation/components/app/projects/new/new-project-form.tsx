@@ -1439,6 +1439,17 @@ export function NewProjectForm({
                             </div>
                           ) : null}
                         </div>
+
+                        {/* Talking-head only: framing zoom lives with Style & Cast. */}
+                        {talkingHeadBackground ? (
+                          <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                            <TalkingHeadPoseField
+                              value={talkingHeadPoseId}
+                              onChange={setTalkingHeadPoseId}
+                              disabled={briefBusy}
+                            />
+                          </div>
+                        ) : null}
                       </motion.div>
                     ) : wizardStep === 1 ? (
                   <motion.div
@@ -1514,11 +1525,6 @@ export function NewProjectForm({
 
                       {talkingHeadBackground ? (
                         <div className="border-t border-accent-ink/10 pt-4">
-                          <TalkingHeadPoseField
-                            value={talkingHeadPoseId}
-                            onChange={setTalkingHeadPoseId}
-                            disabled={briefBusy}
-                          />
                           <TalkingHeadBackgroundField
                             value={backgroundImageUrls}
                             onChange={setBackgroundImageUrls}
