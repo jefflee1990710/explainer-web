@@ -93,8 +93,8 @@ export function SkillPicker({
           </button>
         </div>
 
-        {selected || value ? (
-          <div className={sideBySideGuide ? "lg:col-span-7" : ""}>
+        {sideBySideGuide && (selected || value) ? (
+          <div className="lg:col-span-7">
             <SkillGuideRows slug={selected?.behaviorSlug || value} />
           </div>
         ) : null}
