@@ -41,15 +41,15 @@ export type TalkingHeadBackgroundOption = {
 export const TALKING_HEAD_BACKGROUNDS: readonly TalkingHeadBackgroundOption[] = [
   {
     id: "cozy-bookshelf-sofa",
-    nameEn: "Cozy Home Sofa & Bookshelf",
-    nameZhHant: "居家沙發與書架",
-    nameZhHans: "居家沙发与书架",
-    descriptionEn: "Warm home living room sofa with a wooden bookshelf softly blurred behind.",
-    descriptionZhHant: "溫暖居家客廳沙發，後方有柔和虛化的木質書架與自然窗光。",
-    setEn: "the same cozy fabric sofa at home in every clip, a warm wooden bookshelf lined with books softly blurred behind the head",
-    lightEn: "warm-toned (3400K–4200K golden-amber indoor warmth) soft daylight from a side window blended with cozy warm room tone, no cold blue cast, no studio light",
-    setYue: "全程同一張屋企溫暖布藝沙發，木書架同書本喺頭後面柔和虛化",
-    lightYue: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）側窗日光配溫暖室內光，膚色溫暖紅潤、無冷白偏藍感，冇影樓燈",
+    nameEn: "Cozy Indie Studio & Armchair",
+    nameZhHant: "溫暖文青工作室與扶手椅",
+    nameZhHans: "温暖文青工作室与扶手椅",
+    descriptionEn: "Olive velvet armchair, warm cream wall with yellow clock & art prints, wooden bookshelf & glowing warm table lamp.",
+    descriptionZhHant: "橄欖綠絲絨扶手椅，後方米白牆配芥末黃掛鐘與木框畫、木書架與溫暖檯燈散景。",
+    setEn: "a richly layered cozy indie creative studio room with 3 distinct depth planes: Fore/Midground is a textured olive-green velvet armchair; Background wall (left/center) is a warm cream wall decorated with a mustard-yellow round minimalist wall clock and two small wooden-framed abstract art prints; Background right (deeper plane) is a warm wooden bookshelf filled with books, vinyl records, and a glowing warm table lamp casting a soft 3400K–4200K tungsten accent glow in the background bokeh",
+    lightEn: "warm-toned (3400K–4200K golden-amber indoor warmth) soft diffused key light from the front-left balanced with the warm tungsten table lamp glow in the background, no cold blue cast, no studio light",
+    setYue: "層次豐富嘅溫暖文青創作工作室（三層景深：前景係有質感嘅橄欖綠絲絨扶手椅；左後方米白色牆身掛住芥末黃圓形簡約掛鐘同兩幅細木框抽象畫；右後方深處係溫暖木書架擺滿書本、黑膠唱片同一盞亮起暖黃光嘅檯燈散景）",
+    lightYue: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）室內漫射主光配合背景暖光檯燈，膚色溫暖紅潤、無冷白偏藍感，冇影樓燈",
     geminiPreviewPrompt:
       "Empty interior background plate for a creator talking-head video, no people. A cozy modern apartment living room with a warm beige fabric sofa centered in frame, a tidy wooden bookshelf with books and a small ceramic vase softly blurred in the background, soft natural daylight streaming from a side window on the right, shot on 24mm f/1.8 lens with shallow depth of field, clean realistic photography.",
     previewUrl: "/talking-head-backgrounds/cozy-bookshelf-sofa.webp",
@@ -249,24 +249,24 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     nameEn: "Waist-Up",
     nameZhHant: "腰部以上",
     nameZhHans: "腰部以上",
-    descriptionEn: "Medium waist-up frame — seated or standing torso with hands in view.",
-    descriptionZhHant: "腰部以上中景，上身與雙手入鏡，適合一般對鏡講解。",
+    descriptionEn: "Seated in a velvet armchair, holding a compact wireless lavalier mic.",
+    descriptionZhHant: "坐喺絲絨扶手椅上，單手輕捏迷你無線收音咪對鏡講解。",
     startPoseEn:
-      "Character: the only person in the frame, framed from the waist up, facing the camera directly and centered, head and torso in frame, eyes locked straight into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, one hand lightly holding a compact handheld wireless lavalier mic near the upper chest or both hands resting calmly down.",
+      "Character: the only person in the frame, framed from the waist up, SEATED comfortably upright in an olive-green velvet armchair (NEVER standing), facing the camera directly and centered, head and torso in frame, eyes locked straight into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees. Her right hand lightly holds a compact matte-black rectangular handheld wireless lavalier microphone between thumb and index finger near her upper chest/chin while her left hand rests calmly on her lap.",
     endPoseEn:
-      "Character: still the only person in the frame, framed from the waist up, facing the camera directly with eyes on the lens, lips gently closed in a calm neutral expression, hands resting calmly down.",
+      "Character: still the only person in the frame, framed from the waist up, still SEATED upright in the same olive-green velvet armchair facing the camera directly with eyes on the lens, lips gently closed in a calm neutral expression, right hand still holding the compact matte-black wireless lavalier microphone near her upper chest and left hand resting calmly on her lap.",
     startPoseYue:
-      "角色：畫面只有呢一個人，腰部以上半身中景，正面向住鏡頭置中，頭同上身喺畫面，雙眼平穩直望鏡頭中心，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，雙手自然放鬆放低或單手輕捏住迷你手提無線咪。",
+      "角色：畫面只有呢一個人，腰部以上半身中景，舒適端正坐喺橄欖綠絲絨扶手椅上面（絕對唔好企起身），正面向住鏡頭置中，頭同上身喺畫面，雙眼平穩直望鏡頭中心，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度。右手拇指與食指輕捏住一個細小啞光黑色方形無線領夾收音咪（compact matte-black wireless lavalier mic）舉喺上胸／下巴下方位置，左手自然放鬆放喺大髀。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，腰部以上半身中景，正面直望鏡頭，雙唇自然輕合保持平靜神情，雙手自然放鬆放低，雙肩保持穩定。",
+      "角色：畫面仍然只有呢一個人，腰部以上半身中景，仍然端正坐喺同一張橄欖綠絲絨扶手椅上面，正面直望鏡頭，雙唇自然輕合保持平靜神情，右手仍然輕捏住迷你黑色無線收音咪停喺上胸前、左手放喺大髀，雙肩保持穩定。",
     cameraEn:
-      "Camera: a phone fixed on a phone tripod, locked waist-up medium shot at 24mm f/1.8, face sharp and background softly blurred. Head, torso, and both hands stay in frame. Do not stand up. No microphone.",
+      "Camera: locked 35mm f/1.8 lens at seated eye level, waist-up medium portrait (subject fills ~55–60% of frame), face tack-sharp and background softly blurred with creamy optical bokeh. Head, seated torso in the armchair, and the hand holding the compact wireless mic stay in frame. Do not stand up.",
     cameraYue:
-      "鏡頭：手機固定喺腳架鎖定唔郁，24mm f/1.8 腰部以上半身中景，塊臉清楚、背景少少朦。頭、上身同雙手留喺畫面入面。唔好企起身，冇咪。",
+      "鏡頭：35mm f/1.8 標準人像鏡頭固定喺坐姿視線高度鎖定唔郁，腰部以上半身坐姿中景（人物佔畫面約 55–60%），塊臉清晰銳利、背景柔和奶油光學虛化。頭、坐喺扶手椅嘅上身同右手拎住嘅迷你無線收音咪留喺畫面入面。絕對唔好企起身。",
     gestureEn:
-      "most of the time (~90%) both hands rest calmly on the lap; on the single main key word, one dominant hand makes a brief ~0.5s co-speech gesture and returns smoothly to the lap",
+      "seated upright in the armchair; the right hand holds the compact matte-black wireless lavalier mic steadily near the upper chest/chin as a fixed anchor while the left hand rests calmly on the lap",
     gestureYue:
-      "近九成時間雙手自然放喺大髀；只喺核心重點詞出現時，單一慣用手輕輕抬起做約 0.5 秒自然拍點手勢再收返落大髀",
+      "端正坐喺扶手椅上；右手穩定輕捏住迷你黑色無線收音咪停喺上胸口前做支點，左手自然放鬆放喺大髀",
     geminiPreviewPrompt:
       "Vertical 9:16 waist-up medium portrait of a friendly young East Asian creator sitting upright on a sofa, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), both hands resting on the lap, soft lived-in room bokeh behind, 24mm f/1.8, photorealistic phone camera look.",
     previewUrl: "/talking-head-poses/waist-up.webp",

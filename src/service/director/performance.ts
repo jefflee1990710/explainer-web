@@ -26,8 +26,8 @@ const FACE_EN: PerformanceSlots = {
   headMotion:
     "proximal torso, pelvis, and shoulders stay anchored and stable facing the camera; the head faces the camera with clear, natural 2–3 degree content-driven movements (a 2–3° nod on key points, a 2–3° head shake on negative/problem clauses, a slight 2° head tilt on questions) and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
-  set: "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head",
-  light: "warm-toned (3400K–4200K golden-amber indoor warmth), soft, even, diffused ambient indoor light and warm window daylight with a low, gradual tonal transition across the face and soft natural eye catchlights — no cold blue/grey cast, no harsh side-light contrast, no flat beauty-ring glare, no studio light",
+  set: "a richly layered cozy indie creative studio room: seated in a textured olive-green velvet armchair in the midground, a warm cream wall with a mustard-yellow round wall clock and two small wooden-framed abstract art prints behind on the left, and a warm wooden bookshelf with books, vinyl records, and a glowing warm table lamp softly blurred in the background on the right",
+  light: "warm-toned (3400K–4200K golden-amber indoor warmth), soft, even, diffused ambient indoor light balanced with a warm tungsten table lamp glow and a low, gradual tonal transition across the face and soft natural eye catchlights — no cold blue/grey cast, no harsh side-light contrast, no flat beauty-ring glare, no studio light",
 };
 
 const FACE_YUE: PerformanceSlots = {
@@ -40,8 +40,8 @@ const FACE_YUE: PerformanceSlots = {
   headMotion:
     "腰部、軀幹同雙肩保持固定正面向住鏡頭（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，隨台詞語義做出清晰自然嘅 2–3 度點頭（肯定重點位）、2–3 度輕微搖頭（否定／痛點位）或 2–3 度微傾（好奇提問位），雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
-  set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗",
-  light: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）室內漫射環境光配溫暖窗光，面部光暗過渡柔和自然、膚色溫暖紅潤、無冷白偏藍感、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",
+  set: "層次豐富嘅溫暖文青創作工作室：坐喺橄欖綠絲絨扶手椅上面，左後方米白色牆身掛住芥末黃圓形簡約掛鐘同兩幅細木框抽象畫，右後方係溫暖木書架擺滿書本、黑膠唱片同一盞亮起暖黃光嘅檯燈柔和虛化",
+  light: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）室內漫射環境光配背景暖光檯燈，面部光暗過渡柔和自然、膚色溫暖紅潤、無冷白偏藍感、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",
 };
 
 const FULL_BODY_EN: PerformanceSlots = {

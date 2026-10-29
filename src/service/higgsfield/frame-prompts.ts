@@ -523,8 +523,8 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
 }
 
 // Prop sheet then empty-set plate for this clip. Sit after the character so faces win.
-// Talking-head stills anchored to Clip 1's start already lock the room and props to attached image 1;
-// attaching the 3x3 empty-set plate alongside it causes the model to pick a different cell per clip.
+// Talking-head stills use their own preset room/set description (e.g. olive velvet armchair + indie studio)
+// so they never attach a stale 3x3 empty-set background plate that would override the armchair or mic.
 // Whiteboard concept explainers (2D full-bleed whiteboard canvas) also skip the 3x3 architectural
 // background plate so the model never draws a 3D building/landscape or copies a 16:9 cell aspect ratio.
 export function videoLockReferenceUrls(
@@ -532,7 +532,8 @@ export function videoLockReferenceUrls(
   clipNumber: number,
   options?: { anchor?: { kind: FrameAnchorKind } },
 ): string[] {
-  if (isTalkingHeadSkill(project.skillSlug) && options?.anchor?.kind === "clip-start") {
+  void options;
+  if (isTalkingHeadSkill(project.skillSlug)) {
     return [];
   }
   const urls: string[] = [];

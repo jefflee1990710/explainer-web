@@ -78,7 +78,7 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(talkingHeadDirectorBlock(), /60–65%/);
   assert.match(clips[0].startScene, /seated|selfie|collarbone/i);
   assert.match(clips[0].startScene, /24mm at f\/1\.8|24mm f\/1\.8/);
-  assert.match(clips[0].startScene, /lived-in bedroom corner|bedhead or door frame/);
+  assert.match(clips[0].startScene, /olive-green velvet armchair|cozy indie creative studio/);
   assert.match(clips[0].startScene, /handheld|micro-sway|60–65%/);
   assert.doesNotMatch(clips[0].startScene, /unseen phone/);
   assert.doesNotMatch(clips[0].startScene, /\bsofa at home\b/);
@@ -445,7 +445,8 @@ test("talking-head pose framing zooms from full-body to collarbone-close", () =>
     realistic: true,
   });
   assert.match(waist[0].startScene, /framed from the waist up/);
-  assert.match(waist[0].startScene, /both hands resting calmly/);
+  assert.match(waist[0].startScene, /SEATED comfortably upright in an olive-green velvet armchair/);
+  assert.match(waist[0].startScene, /wireless lavalier microphone/);
 
   const close = planTalkingHeadClips({
     source: SCRIPT,
