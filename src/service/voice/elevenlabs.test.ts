@@ -16,6 +16,8 @@ import {
   synthesizeSpeech,
   synthesizeSpeechWithTimestamps,
   TALKING_HEAD_TTS_VOICE_SETTINGS,
+  TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE,
+  talkingHeadTtsVoiceSettings,
   TTS_WITH_TIMESTAMPS_VOICE_SETTINGS,
   withTimedLipSyncPrompt,
 } from "@/service/voice/elevenlabs";
@@ -315,7 +317,21 @@ test("conversational synthesizeSpeechWithTimestamps uses expressive voice settin
 
   assert.equal(capturedBody?.text, "Hello there! ... Welcome to Scro.");
   assert.deepEqual(capturedBody?.voice_settings, TALKING_HEAD_TTS_VOICE_SETTINGS);
-  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.stability, 0.7);
-  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.similarity_boost, 1);
-  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.style, 0);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.stability, 0.28);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.similarity_boost, 0.95);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.style, 0.55);
+
+  await synthesizeSpeechWithTimestamps("voice123", "有冇諗過呢個方法？即刻試下啦！", {
+    apiKey: "test-xi-key",
+    fetch: fakeFetch,
+    conversational: true,
+    language: "yue",
+  });
+  assert.equal(capturedBody?.text, "有冇諗過呢個方法？ ... 即刻試下啦！");
+  assert.deepEqual(capturedBody?.voice_settings, TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE.yue);
+  assert.equal(talkingHeadTtsVoiceSettings("yue").stability, 0.7);
+  assert.equal(talkingHeadTtsVoiceSettings("yue").similarity_boost, 1);
+  assert.equal(talkingHeadTtsVoiceSettings("yue").style, 0);
+  assert.deepEqual(talkingHeadTtsVoiceSettings("en"), TALKING_HEAD_TTS_VOICE_SETTINGS);
+  assert.deepEqual(talkingHeadTtsVoiceSettings("zh"), TALKING_HEAD_TTS_VOICE_SETTINGS);
 });

@@ -734,6 +734,7 @@ export async function sendClipVideo(
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
         conversational: audioFirstTalkingHead,
+        language: project.language,
       });
       if (audioFirstTalkingHead) {
         const voicedSeconds = (await probeAudioSeconds(audio, "mp3")) ?? prompt.durationSeconds;

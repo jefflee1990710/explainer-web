@@ -22,15 +22,43 @@ export const TTS_WITH_TIMESTAMPS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const;
 
-// Talking-head creator videos use calm, natural prosody (stability 0.70, similarity_boost 1.0, style 0)
-// so Cantonese 9-tone contours and cloned voice timbre stay 100% authentic without pitch spikes
-// that cause lip-sync models to over-animate the speaker's face.
+// Default talking-head creator TTS settings (English and non-Cantonese languages):
+// lower stability (0.28) and higher expressive style (0.55) for conversational pitch/energy swings.
 export const TALKING_HEAD_TTS_VOICE_SETTINGS = {
-  stability: 0.7,
-  similarity_boost: 1,
-  style: 0,
+  stability: 0.28,
+  similarity_boost: 0.95,
+  style: 0.55,
   use_speaker_boost: true,
 } as const;
+
+// Per-language overrides for talking-head TTS. Cantonese (yue) is a 9-tone language where
+// low stability causes tone drift and foreign-sounding accent bleed, so it uses higher stability (0.70),
+// 1.0 similarity_boost, and 0 style; all other languages fall back to TALKING_HEAD_TTS_VOICE_SETTINGS.
+export const TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE: Partial<
+  Record<
+    VoiceSampleLanguage,
+    {
+      readonly stability: number;
+      readonly similarity_boost: number;
+      readonly style: number;
+      readonly use_speaker_boost: boolean;
+    }
+  >
+> = {
+  yue: {
+    stability: 0.7,
+    similarity_boost: 1,
+    style: 0,
+    use_speaker_boost: true,
+  },
+} as const;
+
+export function talkingHeadTtsVoiceSettings(language?: VoiceSampleLanguage | string) {
+  if (language && language in TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE) {
+    return TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE[language as VoiceSampleLanguage]!;
+  }
+  return TALKING_HEAD_TTS_VOICE_SETTINGS;
+}
 
 // Inserts natural human breathing pauses (`... `) at sentence boundaries when a
 // talking-head script contains multiple sentences, so the avatar briefly closes its
@@ -369,12 +397,17 @@ async function fetchWithRateLimitRetry(
 }
 
 // Text-to-speech with character-level timestamps using Eleven v4.
-// When `conversational: true` (talking-head), uses expressive prosody (stability 0.28, style 0.55)
-// and natural inter-sentence breath pauses.
+// When `conversational: true` (talking-head), resolves per-language settings via
+// `talkingHeadTtsVoiceSettings(options.language)` (Cantonese `yue` uses stability 0.70 / similarity 1.0 / style 0;
+// English and other languages use stability 0.28 / similarity 0.95 / style 0.55) and inserts inter-sentence breath pauses.
 export async function synthesizeSpeechWithTimestamps(
   voiceId: string,
   text: string,
-  options?: FetchOptions & { modelId?: string; conversational?: boolean },
+  options?: FetchOptions & {
+    modelId?: string;
+    conversational?: boolean;
+    language?: VoiceSampleLanguage | string;
+  },
 ): Promise<{ audio: Buffer; alignment?: ElevenLabsAlignment }> {
   const fetchFn = options?.fetch ?? fetch;
   const cleaned = options?.conversational
@@ -382,7 +415,7 @@ export async function synthesizeSpeechWithTimestamps(
     : cleanSpokenDialogueLine(text);
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
   const voiceSettings = options?.conversational
-    ? TALKING_HEAD_TTS_VOICE_SETTINGS
+    ? talkingHeadTtsVoiceSettings(options.language)
     : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
   const response = await fetchWithRateLimitRetry(
     fetchFn,
