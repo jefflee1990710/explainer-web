@@ -1,10 +1,17 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
 import { isScroSubtitleName } from "@/opencut/embed/scro-subtitle-slots";
+import { useScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
 import { isSubtitleTrack } from "@/opencut/subtitles/insert";
+import {
+	EXTRA_SUBTITLE_STYLE_CARDS,
+	resolveSubtitleStyleOverrides,
+} from "@/opencut/subtitles/artistic-presets";
+import { buildSubtitleTextElement } from "@/opencut/subtitles/build-subtitle-text-element";
+import { ScroSubtitleDesignDialog } from "@/opencut/components/editor/panels/assets/scro-subtitle-design-dialog";
 import { SectionField } from "@/opencut/components/section";
 import { ColorPicker } from "@/opencut/components/ui/color-picker";
 import { Button } from "@/opencut/components/ui/button";
@@ -19,6 +26,7 @@ import {
 import { loadFullFont } from "@/opencut/fonts/google-fonts";
 import { TEXT_FONT_PRESETS } from "@/opencut/text/font-presets";
 import { quoteFontFamily } from "@/opencut/text/primitives";
+import { mediaTimeToSeconds } from "@/opencut/wasm";
 import type { TextElement, TextTrack } from "@/opencut/timeline";
 import type { TextBackgroundStyle } from "@/opencut/text/background";
 import { cn } from "@/opencut/utils/ui";
@@ -255,6 +263,23 @@ export function SubtitleTrackStyleControls({
 	const editor = useEditor();
 	const scene = useEditor((e) => e.scenes.getActiveSceneOrNull());
 	const project = useEditor((e) => e.project.getActiveOrNull());
+	const catalog = useScroSubtitleCatalog();
+	const [designDialogOpen, setDesignDialogOpen] = useState(false);
+	const [pickedStyleId, setPickedStyleId] = useState<string | null>(null);
+	const [applyingDesign, setApplyingDesign] = useState(false);
+
+	const allStyles = useMemo(() => {
+		const base = catalog?.styles ?? [];
+		const seen = new Set(base.map((s) => s.id));
+		const merged = [...base];
+		for (const extra of EXTRA_SUBTITLE_STYLE_CARDS) {
+			if (!seen.has(extra.id)) {
+				seen.add(extra.id);
+				merged.push(extra);
+			}
+		}
+		return merged;
+	}, [catalog?.styles]);
 
 	if (!scene || !project) return null;
 
@@ -348,7 +373,81 @@ export function SubtitleTrackStyleControls({
 		});
 	};
 
+	const selectedStyleId =
+		pickedStyleId && allStyles.some((style) => style.id === pickedStyleId)
+			? pickedStyleId
+			: catalog?.selectedId ?? allStyles[0]?.id ?? "clean";
+
+	const currentStyleCard =
+		allStyles.find((item) => item.id === selectedStyleId) ?? allStyles[0] ?? null;
+
+	const applyDesignPresetToTrack = async (nextStyleId: string) => {
+		const styleCard =
+			allStyles.find((item) => item.id === nextStyleId) ?? allStyles[0];
+		if (!styleCard) return;
+		setApplyingDesign(true);
+		try {
+			const lookId = styleCard.drawLook || styleCard.id;
+			const styleOverrides = resolveSubtitleStyleOverrides({
+				lookId,
+				fontFamilyOverride: null,
+			});
+			if (styleOverrides.fontFamily) {
+				await loadFullFont({ family: styleOverrides.fontFamily });
+			}
+			const canvasSize = project.settings.canvasSize;
+			let index = 0;
+			const nextOverlay = scene.tracks.overlay.map((track) => {
+				if (track.id !== subtitleTrack.id || track.type !== "text") return track;
+				return {
+					...track,
+					elements: track.elements.map((el) => {
+						if (
+							subtitleElements.length > 0 &&
+							!isScroSubtitleName({ name: el.name })
+						) {
+							return el;
+						}
+						const rawText = String(el.params.content ?? "")
+							.replace(/\n+/g, " ")
+							.trim();
+						const rebuilt = buildSubtitleTextElement({
+							index: index++,
+							caption: {
+								name: el.name,
+								text: rawText,
+								startTime: mediaTimeToSeconds({ time: el.startTime }),
+								duration: mediaTimeToSeconds({ time: el.duration }),
+								style: styleOverrides,
+							},
+							canvasSize,
+						});
+						return {
+							...el,
+							params: {
+								...el.params,
+								...rebuilt.params,
+								...(typeof el.params["transform.positionY"] === "number"
+									? { "transform.positionY": el.params["transform.positionY"] }
+									: {}),
+							},
+						};
+					}),
+				};
+			});
+			editor.timeline.updateTracks({
+				...scene.tracks,
+				overlay: nextOverlay,
+			});
+			armScroSync();
+		} finally {
+			setApplyingDesign(false);
+		}
+	};
+
 	const inFontPresets = TEXT_FONT_PRESETS.some((item) => item.family === fontFamily);
+	const currentFontPreset = TEXT_FONT_PRESETS.find((item) => item.family === fontFamily);
+	const fontLabel = currentFontPreset?.label ?? fontFamily;
 
 	return (
 		<div className="divide-border flex flex-col divide-y">
@@ -375,6 +474,25 @@ export function SubtitleTrackStyleControls({
 						</Button>
 					) : null}
 				</div>
+
+				<SectionField label="Visual Design · 選擇字幕視覺設計">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="flex h-8 w-full items-center justify-between px-3 text-xs font-medium"
+						onClick={() => setDesignDialogOpen(true)}
+					>
+						<span className="truncate">
+							{currentStyleCard
+								? `${currentStyleCard.name} · 選擇字幕視覺設計`
+								: "選擇字幕視覺設計 · Choose Subtitle Style"}
+						</span>
+						<span className="text-muted-foreground ml-2 shrink-0 text-[11px]">
+							{allStyles.length} 款 ▸
+						</span>
+					</Button>
+				</SectionField>
 
 				<SectionField label="Font Family · 字體類型">
 					<Select
@@ -674,6 +792,28 @@ export function SubtitleTrackStyleControls({
 					</SectionField>
 				</div>
 			</div>
+
+			<ScroSubtitleDesignDialog
+				open={designDialogOpen}
+				onOpenChange={setDesignDialogOpen}
+				styles={allStyles}
+				selectedId={selectedStyleId}
+				fontFamilyOverride={fontFamily}
+				fontLabel={fontLabel}
+				busy={applyingDesign}
+				generateLabel="套用至全軌字幕"
+				generatingLabel="套用中…"
+				confirmLabel="套用至全軌字幕"
+				onSelectStyle={(id) => {
+					setPickedStyleId(id);
+					void applyDesignPresetToTrack(id);
+				}}
+				onConfirmGenerate={() => {
+					void applyDesignPresetToTrack(selectedStyleId).then(() => {
+						setDesignDialogOpen(false);
+					});
+				}}
+			/>
 		</div>
 	);
 }

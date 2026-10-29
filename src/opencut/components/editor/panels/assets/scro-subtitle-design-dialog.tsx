@@ -30,8 +30,9 @@ export function ScroSubtitleDesignDialog({
 	fontFamilyOverride,
 	fontLabel,
 	busy,
-	generateLabel: _generateLabel,
+	generateLabel,
 	generatingLabel,
+	confirmLabel,
 	onSelectStyle,
 	onConfirmGenerate,
 }: {
@@ -44,6 +45,7 @@ export function ScroSubtitleDesignDialog({
 	busy: boolean;
 	generateLabel: string;
 	generatingLabel: string;
+	confirmLabel?: string;
 	onSelectStyle: (id: string) => void;
 	onConfirmGenerate: () => void;
 }) {
@@ -153,7 +155,7 @@ export function ScroSubtitleDesignDialog({
 						disabled={busy}
 						onClick={onConfirmGenerate}
 					>
-						{busy ? generatingLabel : "套用設計並生成"}
+						{busy ? generatingLabel : confirmLabel || generateLabel || "套用設計並生成"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
