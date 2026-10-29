@@ -43,7 +43,7 @@ export function TalkingHeadPoseField({
   }, [open]);
 
   return (
-    <div className="mt-5">
+    <div>
       <p className="text-sm font-semibold">{t("brief.talkingHeadPose.title")}</p>
       <p className="mt-1 text-xs text-muted">{t("brief.talkingHeadPose.hint")}</p>
 
