@@ -60,12 +60,26 @@ export function talkingHeadTtsVoiceSettings(language?: VoiceSampleLanguage | str
   return TALKING_HEAD_TTS_VOICE_SETTINGS;
 }
 
-// ElevenLabs `eleven_v4` G2P occasionally leaks the Mandarin alveolar nasal `diǎn` for
-// colloquial Cantonese `點` (`dim2` with bilabial `-m` closure) in phrases like `點樣` / `點解` / `點算`,
-// or reads written `有無` as `mou4` instead of colloquial `有冇` (`mou5`).
-// Rewriting `點` to its exact Cantonese Tone-2 `dim2` homophone `踮` (and `有無` -> `有冇`) for the TTS
-// request body forces a crisp Cantonese `dim2` (`-m` bilabial closure + high-rising Tone 2) while
-// keeping the original script text intact for subtitles and UI.
+/**
+ * Workaround for an ElevenLabs `eleven_v4` Cantonese G2P (Grapheme-to-Phoneme) bug:
+ *
+ * Why this is needed:
+ * 1. Even when `language_code: "yue"` is explicitly passed, ElevenLabs `eleven_v4`'s internal
+ *    G2P converter frequently falls back to Mandarin phonology (`diǎn`, alveolar `-n` coda)
+ *    for the high-frequency character `點` (especially after English code-switching words like
+ *    "Webinar 就係教大家點樣做"), instead of the authentic Hong Kong Cantonese `dim2` (which
+ *    requires a complete bilabial `-m` lip closure and high-rising Tone 2).
+ * 2. ElevenLabs does not support Cantonese Jyutping or IPA phoneme tags in the TTS text payload.
+ * 3. Written `有無` is also read as literary `mou4` instead of colloquial Cantonese `有冇` (`mou5`).
+ *
+ * What this function does:
+ * - Rewrites only the outgoing TTS request text (leaving storyboard scripts, UI text, and
+ *   on-screen subtitles completely untouched):
+ *   - `有無` -> `有冇` (`mou5`)
+ *   - Colloquial `點` (in `點樣`, `點解`, `點算`, `點做`, `快點`, etc.) -> `踮`, which is an
+ *     unambiguous Cantonese `dim2` homophone (same Tone 2 + bilabial `-m` closure) in
+ *     ElevenLabs' G2P dictionary so the model always pronounces a clean Cantonese `dim2`.
+ */
 export function normalizeCantoneseTtsPhonetics(text: string): string {
   return text
     .replace(/有無/gu, "有冇")
