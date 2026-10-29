@@ -4,8 +4,9 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 
-// Compact top-of-page script & sample-prompt card on Quick Setup so 01 Instruction, 02 Visual Style, and 03 Characters all fit above the fold on 1 screen.
+// Compact script card on Quick Setup (after Video type). Step badge defaults to 02.
 export function QuickScriptCard({
+  step = "02",
   source,
   onSourceChange,
   talkingHead,
@@ -14,6 +15,7 @@ export function QuickScriptCard({
   prefilledFromFolder,
   disabled,
 }: {
+  step?: string;
   source: string;
   onSourceChange: (value: string) => void;
   talkingHead: boolean;
@@ -53,7 +55,7 @@ export function QuickScriptCard({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
-            01
+            {step}
           </span>
           <h3 className="font-display text-base font-bold text-foreground">
             {t("brief.section02.title")}

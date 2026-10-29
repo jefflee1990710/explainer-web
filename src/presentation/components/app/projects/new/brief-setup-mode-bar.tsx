@@ -5,7 +5,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 export type BriefSetupMode = "quick" | "details";
 
 // Segmented mode toggle at the top of the Create Video brief form:
-// lets users switch between Simple Quick Setup (Content + Style + Character) and Full 4-Step Details Setup.
+// lets users switch between Simple Quick Setup (Video type + Content + Style + Character) and Full Details.
 export function BriefSetupModeBar({
   mode,
   onChange,
@@ -39,10 +39,10 @@ export function BriefSetupModeBar({
 
   const quickSub =
     locale === "zh-Hant"
-      ? "只需填寫內容、選擇風格與角色即可一鍵生成；其他規格自動套用預設值。"
+      ? "先選影片類型，再填內容、風格與角色即可一鍵生成；其他規格自動套用預設值。"
       : locale === "zh-Hans"
-        ? "只需填写内容、选择风格与角色即可一键生成；其他规格自动套用默认值。"
-        : "Just enter content, pick character & visual style, and generate. Other settings stay on defaults.";
+        ? "先选视频类型，再填内容、风格与角色即可一键生成；其他规格自动套用默认值。"
+        : "Pick video type first, then content, style & character. Other settings stay on defaults.";
 
   const detailsSub =
     locale === "zh-Hant"

@@ -1225,8 +1225,40 @@ export function NewProjectForm({
                   transition={{ duration: 0.25, ease }}
                   className="space-y-4"
                 >
-                  {/* 01 Content / Script */}
+                  {/* 01 Video type (director) — first choice in Quick Setup */}
+                  <div
+                    data-tour-id="video-type-card"
+                    className="rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
+                  >
+                    <Section
+                      step="01"
+                      title={t("brief.section01.title")}
+                      hint={t("brief.section01.hint")}
+                    >
+                      <SkillPicker
+                        skills={skills}
+                        value={skillSlug}
+                        onChange={onSkillChange}
+                        disabled={briefBusy}
+                      />
+                      {talkingHead ? (
+                        <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
+                      ) : null}
+                    </Section>
+                    {talkingHeadBackground ? (
+                      <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                        <TalkingHeadPoseField
+                          value={talkingHeadPoseId}
+                          onChange={setTalkingHeadPoseId}
+                          disabled={briefBusy}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* 02 Content / Script */}
                   <QuickScriptCard
+                    step="02"
                     source={source}
                     onSourceChange={(val) => {
                       setSource(val);
@@ -1242,14 +1274,14 @@ export function NewProjectForm({
                     disabled={briefBusy}
                   />
 
-                  {/* 02 Visual Style & 03 Characters */}
+                  {/* 03 Visual Style & 04 Characters */}
                   <div className="grid gap-3 md:grid-cols-2 lg:items-stretch">
                     <div
                       data-tour-id="visual-style-card"
                       className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
                     >
                       <Section
-                        step="02"
+                        step="03"
                         title={t("brief.visualStyle.title")}
                         hint={t("brief.visualStyle.hint")}
                         equalHeaderHeight
@@ -1271,7 +1303,7 @@ export function NewProjectForm({
                       className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
                     >
                       <Section
-                        step="03"
+                        step="04"
                         title={t("brief.cast.title")}
                         hint={
                           castNeed === 2
