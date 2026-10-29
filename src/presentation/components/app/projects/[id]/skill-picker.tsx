@@ -6,13 +6,9 @@ import { SkillGuideRows } from "@/presentation/components/app/projects/[id]/skil
 import { SkillSelectDialog } from "@/presentation/components/app/projects/[id]/skill-select-dialog";
 import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 import type { PublicSkill } from "@/presentation/serialize";
-import {
-  localizedVideoBlurb,
-  localizedVideoType,
-  localizedVideoUseCase,
-} from "@/util/video-type-i18n";
+import { localizedVideoType } from "@/util/video-type-i18n";
 
-// Clickable trigger that opens the Video Type (Director) Selection Dialog and shows description + suggested use cases below.
+// Clickable trigger that opens the Video Type (Director) Selection Dialog.
 export function SkillPicker({
   skills,
   value,
@@ -41,23 +37,6 @@ export function SkillPicker({
       ? localizedVideoType(t, value, value)
       : t("brief.skill.aria");
 
-  const selectedDescription = selected
-    ? selected.isCustom
-      ? selected.description
-      : localizedVideoBlurb(t, selected.slug, selected.description)
-    : "";
-
-  const selectedUseCase = selected
-    ? selected.isCustom
-      ? selected.suggestedUseCase ||
-        localizedVideoUseCase(t, selected.behaviorSlug, "")
-      : localizedVideoUseCase(
-          t,
-          selected.slug,
-          selected.suggestedUseCase || "",
-        )
-    : "";
-
   let subtitle = "";
   if (selected?.isCustom) {
     const template = system.find(
@@ -69,8 +48,6 @@ export function SkillPicker({
       template?.title || selected.behaviorSlug,
     );
     subtitle = t("directors.templateBadge", { name: templateName });
-  } else if (selectedDescription) {
-    subtitle = selectedDescription;
   }
 
   if (skills.length === 0) {
@@ -122,32 +99,6 @@ export function SkillPicker({
           </div>
         ) : null}
       </div>
-
-      {/* Selected Director Description & Suggested Use Case Below */}
-      {selected && (selectedDescription || selectedUseCase) ? (
-        <div className="grid gap-3 rounded-xl border border-accent-ink/10 bg-paper/50 px-4 py-3 sm:grid-cols-2">
-          {selectedDescription ? (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                {t("brief.skill.descriptionLabel")}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-foreground/90">
-                {selectedDescription}
-              </p>
-            </div>
-          ) : null}
-          {selectedUseCase ? (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                {t("brief.skill.useCaseLabel")}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-foreground/90">
-                {selectedUseCase}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
       {open ? (
         <SkillSelectDialog
