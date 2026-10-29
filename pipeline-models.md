@@ -38,6 +38,6 @@
 | 功能模組 | 供應商 (Provider) | 模型 ID (Model) | 用途 | 對應程式碼 |
 |---|---|---|---|---|
 | **角色定裝板 / 衣櫃試穿 / 生活照 (Character Board & Life Shots)** | OpenRouter (`/api/v1/images`) | **`bytedance-seed/seedream-5-0-pro`** | 角色正面特寫 + 全身定裝圖、換裝、生活照生成 | `src/service/character/generate.ts`<br>`src/service/life/generate.ts` |
-| **姿勢編輯 (Pose Edit)** | Google AI Studio | **`google/gemini-3-pro-image`** (Nano Banana Pro) | 根據骨架／參考圖調整角色動作 | `src/service/google/studio-image.ts`<br>`src/service/pose-edit/send.ts` |
+| **姿勢編輯 (Pose Edit)** | OpenRouter (`/api/v1/images`) | **`bytedance-seed/seedream-5-0-pro`** | 根據骨架／參考圖調整角色動作 | `src/service/openrouter/generate.ts` |
 | **聲音複製 (Instant Voice Clone)** | ElevenLabs | **`/v1/voices/add`** | 從用戶錄音或上傳音檔建立 `elevenVoiceId` | `src/service/voice/elevenlabs.ts` (`createVoiceClone`) |
 | **AI 音效生成 (Editor SFX)** | ElevenLabs | **`/v1/sound-generation`** | 編輯器內自動與手動生成轉場／動作音效 | `src/service/sound-effect/elevenlabs-sfx.ts` |

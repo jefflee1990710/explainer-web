@@ -12,7 +12,6 @@ import {
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
   IDEOGRAM_PROMPT_MAX,
-  NANO_BANANA_PRO_IMAGE_MODEL,
   SEEDREAM_5_PRO_IMAGE_MODEL,
   imageModelForSubmit,
   resolveImageRoute,
@@ -102,9 +101,9 @@ export async function submitImage(input: {
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
-  // Explicit Seedream or Banana Pro is kept. Other callers follow the scene route.
+  // Explicit Seedream 5.0 Pro is kept. Other callers follow the scene route.
   const model =
-    input.model === SEEDREAM_5_PRO_IMAGE_MODEL || input.model === NANO_BANANA_PRO_IMAGE_MODEL
+    input.model === SEEDREAM_5_PRO_IMAGE_MODEL
       ? input.model
       : imageModelForSubmit(route, refs.length > 0);
   // Ideogram takes one image. The first URL is the composition lock, or the

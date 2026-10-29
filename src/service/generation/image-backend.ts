@@ -2,7 +2,6 @@ import { hasAlicloudKey } from "@/service/alicloud/dashscope";
 import {
   hasOpenRouterKey,
   OPENROUTER_GPT_5_IMAGE_MODEL,
-  OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
 } from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
@@ -19,10 +18,9 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → 產圖模型。生成時只讀呢張表。
- * 分鏡、場景鎖、封面與生活照用 Seedream 5.0 Pro（`bytedance-seed/seedream-5-0-pro`），走 OpenRouter。
- * 角色藍圖也用同一模型。最多 14 張參考圖。
+ * 全系統分鏡、場景鎖、封面、生活照、姿勢編輯與角色藍圖一律使用 Seedream 5.0 Pro（`bytedance-seed/seedream-5-0-pro`），走 OpenRouter。
+ * 最多 14 張參考圖。
  */
-export const NANO_BANANA_PRO_IMAGE_MODEL = OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL;
 export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;
 export const GPT_5_IMAGE_MODEL = OPENROUTER_GPT_5_IMAGE_MODEL;
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";

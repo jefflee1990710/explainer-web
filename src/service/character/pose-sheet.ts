@@ -1,28 +1,35 @@
-import { generateImage } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import sharp from "sharp";
 import {
   characterPoseRevisionPrompt,
   characterPoseSheetPrompt,
   type CharacterLookSelection,
 } from "@/service/character/character-look";
+import {
+  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+  submitOpenRouterImage,
+} from "@/service/openrouter/generate";
 
-const MODEL = process.env.CHARACTER_LOOK_PREVIEW_MODEL || "gemini-2.5-flash-image";
-
-function googleImage() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) throw new Error("尚未設定 GOOGLE_GENERATIVE_AI_API_KEY");
-  return createGoogleGenerativeAI({ apiKey }).image(MODEL);
+async function imageUrlToBuffer(imageUrl: string): Promise<Buffer> {
+  if (imageUrl.startsWith("data:")) {
+    return Buffer.from(imageUrl.split(",")[1] || "", "base64");
+  }
+  const response = await fetch(imageUrl);
+  if (!response.ok) throw new Error(`無法下載姿勢圖（${response.status}）`);
+  return Buffer.from(await response.arrayBuffer());
 }
 
-// One Gemini still: four views plus four different full-body poses.
+// One Seedream 5.0 Pro still: four views plus four different full-body poses.
 export async function renderCharacterPoseSheet(selection: CharacterLookSelection) {
-  const { image } = await generateImage({
-    model: googleImage(),
+  const result = await submitOpenRouterImage({
+    model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
     prompt: characterPoseSheetPrompt(selection),
     aspectRatio: "1:1",
+    resolution: "2k",
   });
-  const webp = await sharp(Buffer.from(image.uint8Array))
+  const imageUrl = result.images?.[0]?.url;
+  if (!imageUrl) throw new Error("未回傳姿勢圖");
+  const raw = await imageUrlToBuffer(imageUrl);
+  const webp = await sharp(raw)
     .resize(1600, 1600, { fit: "cover" })
     .webp({ quality: 84 })
     .toBuffer();
@@ -32,13 +39,12 @@ export async function renderCharacterPoseSheet(selection: CharacterLookSelection
 const COMMENT_MAX = 400;
 const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 
-type SheetAspect = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+type SheetAspect = "1:1" | "16:9" | "9:16" | "3:4";
 
 const SHEET_SIZE: Record<SheetAspect, { width: number; height: number }> = {
   "1:1": { width: 1600, height: 1600 },
   "16:9": { width: 1600, height: 900 },
   "9:16": { width: 900, height: 1600 },
-  "4:3": { width: 1600, height: 1200 },
   "3:4": { width: 1200, height: 1600 },
 };
 
@@ -63,7 +69,6 @@ function sheetAspect(width: number, height: number): SheetAspect {
   const ratio = width / height;
   const options: Array<{ id: SheetAspect; value: number }> = [
     { id: "1:1", value: 1 },
-    { id: "4:3", value: 4 / 3 },
     { id: "3:4", value: 3 / 4 },
     { id: "16:9", value: 16 / 9 },
     { id: "9:16", value: 9 / 16 },
@@ -84,15 +89,17 @@ export async function reviseCharacterPoseSheet(
   const meta = await sharp(source).metadata();
   const aspectRatio = sheetAspect(meta.width || 1600, meta.height || 1600);
   const size = SHEET_SIZE[aspectRatio];
-  const { image } = await generateImage({
-    model: googleImage(),
-    prompt: {
-      images: [dataUrl],
-      text: characterPoseRevisionPrompt(selection, note),
-    },
+  const result = await submitOpenRouterImage({
+    model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+    prompt: characterPoseRevisionPrompt(selection, note),
     aspectRatio,
+    resolution: "2k",
+    referenceImageUrls: [dataUrl],
   });
-  const webp = await sharp(Buffer.from(image.uint8Array))
+  const imageUrl = result.images?.[0]?.url;
+  if (!imageUrl) throw new Error("未回傳修改後的姿勢圖");
+  const raw = await imageUrlToBuffer(imageUrl);
+  const webp = await sharp(raw)
     .resize(size.width, size.height, { fit: "cover" })
     .webp({ quality: 84 })
     .toBuffer();

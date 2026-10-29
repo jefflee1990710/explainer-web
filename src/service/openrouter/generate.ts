@@ -2,7 +2,6 @@ import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
-import { submitGoogleStudioImage } from "@/service/google/studio-image";
 import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
@@ -11,8 +10,6 @@ export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
-// Google Nano Banana Pro (legacy image model). Scene stills and pose edits use Seedream.
-export const OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL = "google/gemini-3-pro-image";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
 export const OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL = "heygen/avatar-iv";
@@ -164,10 +161,6 @@ export async function submitOpenRouterImage(
   },
   options?: FetchOptions,
 ): Promise<GenerationSubmitResult> {
-  // Nano Banana Pro bills the Google AI Studio key, not OpenRouter.
-  if (input.model === OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL) {
-    return submitGoogleStudioImage(input, options);
-  }
   const key = assertOpenRouterKey();
   const fetchFn = options?.fetch ?? fetch;
   const payload = JSON.stringify(openRouterImageBody(input));

@@ -1,5 +1,4 @@
-import { generateImage, generateText, Output } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateText, Output } from "ai";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
@@ -22,9 +21,10 @@ import {
 } from "@/service/character/character-look";
 import { directorModel } from "@/service/director/model";
 import { persistBuffer } from "@/service/higgsfield/persist";
-
-const PREVIEW_IMAGE_MODEL =
-  process.env.CHARACTER_LOOK_PREVIEW_MODEL || "gemini-2.5-flash-image";
+import {
+  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+  submitOpenRouterImage,
+} from "@/service/openrouter/generate";
 
 const analyzeSchema = z.object({
   part: z.enum(["hair", "top", "pants", "shoes", "accessory"]),
@@ -83,12 +83,6 @@ export function buildCustomLookStudioPrompt(
     case "accessory":
       return `${baseFrame} Subject: one head-and-shoulders or torso mannequin wearing or holding the fashion accessory, front view. The fashion accessory is: ${clean}. Make the accessory clean, stylish, and unmistakable.`;
   }
-}
-
-function googleImageModel() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) throw new Error("尚未設定 GOOGLE_GENERATIVE_AI_API_KEY");
-  return createGoogleGenerativeAI({ apiKey }).image(PREVIEW_IMAGE_MODEL);
 }
 
 /** Upload an image and use Gemini 3.8 Flash Vision to extract cloth, hairstyle, or accessory metadata. */
@@ -194,12 +188,18 @@ export async function createCustomWardrobeItemAction(input: {
     let previewImageUrl = refUrl;
     if (input.generateStudioPreview !== false) {
       try {
-        const { image } = await generateImage({
-          model: googleImageModel(),
+        const result = await submitOpenRouterImage({
+          model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
           prompt: buildCustomLookStudioPrompt(input.part, cleanPrompt),
           aspectRatio: "1:1",
+          resolution: "1k",
         });
-        const webpBuffer = await sharp(Buffer.from(image.uint8Array))
+        const imageUrl = result.images?.[0]?.url;
+        if (!imageUrl) throw new Error("Seedream 未回傳預覽圖");
+        const rawBuf = imageUrl.startsWith("data:")
+          ? Buffer.from(imageUrl.split(",")[1] || "", "base64")
+          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+        const webpBuffer = await sharp(rawBuf)
           .resize(1024, 1024, { fit: "cover" })
           .webp({ quality: 82 })
           .toBuffer();

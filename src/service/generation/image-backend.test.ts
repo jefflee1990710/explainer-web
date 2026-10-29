@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   IMAGE_ROUTE_BY_SCENE_TEXT,
-  NANO_BANANA_PRO_IMAGE_MODEL,
   SEEDREAM_5_PRO_IMAGE_MODEL,
   imageModelForRealism,
   imageModelForSubmit,
@@ -11,7 +10,6 @@ import {
 } from "@/service/generation/image-backend";
 
 test("scene-text routes use Seedream 5.0 Pro", () => {
-  assert.equal(NANO_BANANA_PRO_IMAGE_MODEL, "google/gemini-3-pro-image");
   assert.equal(SEEDREAM_5_PRO_IMAGE_MODEL, "bytedance-seed/seedream-5-0-pro");
 
   assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.backend, "openrouter");
