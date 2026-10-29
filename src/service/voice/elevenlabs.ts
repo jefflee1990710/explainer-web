@@ -60,6 +60,28 @@ export function talkingHeadTtsVoiceSettings(language?: VoiceSampleLanguage | str
   return TALKING_HEAD_TTS_VOICE_SETTINGS;
 }
 
+// ElevenLabs `eleven_v4` G2P occasionally leaks the Mandarin alveolar nasal `diǎn` for
+// colloquial Cantonese `點` (`dim2` with bilabial `-m` closure) in phrases like `點樣` / `點解` / `點算`,
+// or reads written `有無` as `mou4` instead of colloquial `有冇` (`mou5`).
+// Rewriting `點` to its exact Cantonese Tone-2 `dim2` homophone `踮` (and `有無` -> `有冇`) for the TTS
+// request body forces a crisp Cantonese `dim2` (`-m` bilabial closure + high-rising Tone 2) while
+// keeping the original script text intact for subtitles and UI.
+export function normalizeCantoneseTtsPhonetics(text: string): string {
+  return text
+    .replace(/有無/gu, "有冇")
+    .replace(/點(?=[樣解算做講睇知算好搞得])/gu, "踮")
+    .replace(/(?<=[有幾快慢早遲差少多])點(?![A-Za-z0-9])/gu, "踮");
+}
+
+export function elevenLabsLanguageCode(
+  language?: VoiceSampleLanguage | string,
+): string | undefined {
+  if (!language) return undefined;
+  if (language === "yue") return "yue";
+  if (language === "zh") return "zh";
+  return language;
+}
+
 // Inserts natural human breathing pauses (`... `) at sentence boundaries when a
 // talking-head script contains multiple sentences, so the avatar briefly closes its
 // mouth, blinks, and takes a breath between sentences instead of reading nonstop.
@@ -410,13 +432,18 @@ export async function synthesizeSpeechWithTimestamps(
   },
 ): Promise<{ audio: Buffer; alignment?: ElevenLabsAlignment }> {
   const fetchFn = options?.fetch ?? fetch;
-  const cleaned = options?.conversational
+  const rawCleaned = options?.conversational
     ? formatConversationalBreathPauses(text)
     : cleanSpokenDialogueLine(text);
+  const cleaned =
+    options?.language === "yue"
+      ? normalizeCantoneseTtsPhonetics(rawCleaned)
+      : rawCleaned;
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
   const voiceSettings = options?.conversational
     ? talkingHeadTtsVoiceSettings(options.language)
     : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
+  const languageCode = elevenLabsLanguageCode(options?.language);
   const response = await fetchWithRateLimitRetry(
     fetchFn,
     `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_128`,
@@ -429,6 +456,7 @@ export async function synthesizeSpeechWithTimestamps(
       body: JSON.stringify({
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
+        ...(languageCode ? { language_code: languageCode } : {}),
         voice_settings: voiceSettings,
       }),
       signal: AbortSignal.timeout(120_000),
@@ -599,11 +627,16 @@ export function matchClauseWindows(
 export async function synthesizeSpeech(
   voiceId: string,
   text: string,
-  options?: FetchOptions & { modelId?: string },
+  options?: FetchOptions & { modelId?: string; language?: VoiceSampleLanguage | string },
 ): Promise<Buffer> {
   const fetchFn = options?.fetch ?? fetch;
-  const cleaned = cleanSpokenDialogueLine(text);
+  const rawCleaned = cleanSpokenDialogueLine(text);
+  const cleaned =
+    options?.language === "yue"
+      ? normalizeCantoneseTtsPhonetics(rawCleaned)
+      : rawCleaned;
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
+  const languageCode = elevenLabsLanguageCode(options?.language);
   const response = await fetchWithRateLimitRetry(
     fetchFn,
     `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
@@ -616,6 +649,7 @@ export async function synthesizeSpeech(
       body: JSON.stringify({
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
+        ...(languageCode ? { language_code: languageCode } : {}),
         voice_settings: STS_VOICE_SETTINGS,
       }),
       signal: AbortSignal.timeout(120_000),

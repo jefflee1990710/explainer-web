@@ -11,6 +11,7 @@ import {
   formatConversationalBreathPauses,
   groupAlignmentTokens,
   matchClauseWindows,
+  normalizeCantoneseTtsPhonetics,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
@@ -321,13 +322,18 @@ test("conversational synthesizeSpeechWithTimestamps uses expressive voice settin
   assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.similarity_boost, 0.95);
   assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.style, 0.55);
 
-  await synthesizeSpeechWithTimestamps("voice123", "有冇諗過呢個方法？即刻試下啦！", {
+  await synthesizeSpeechWithTimestamps("voice123", "有無諗過教大家點樣做？即刻試下啦！", {
     apiKey: "test-xi-key",
     fetch: fakeFetch,
     conversational: true,
     language: "yue",
   });
-  assert.equal(capturedBody?.text, "有冇諗過呢個方法？ ... 即刻試下啦！");
+  assert.equal(capturedBody?.text, "有冇諗過教大家踮樣做？ ... 即刻試下啦！");
+  assert.equal(capturedBody?.language_code, "yue");
+  assert.equal(
+    normalizeCantoneseTtsPhonetics("有無諗過教大家點樣做？點解唔試下？"),
+    "有冇諗過教大家踮樣做？踮解唔試下？",
+  );
   assert.deepEqual(capturedBody?.voice_settings, TALKING_HEAD_TTS_VOICE_SETTINGS_BY_LANGUAGE.yue);
   assert.equal(talkingHeadTtsVoiceSettings("yue").stability, 0.7);
   assert.equal(talkingHeadTtsVoiceSettings("yue").similarity_boost, 1);
