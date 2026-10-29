@@ -87,7 +87,12 @@ import {
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isBookendSkill, isSilentOutfitSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
+import {
+  isBookendSkill,
+  isEditorialInterviewSkill,
+  isSilentOutfitSkill,
+  skillUsesOnScreenLipSync,
+} from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
@@ -656,7 +661,12 @@ export async function sendClipVideo(
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
   // Seated talking-head sends the start still plus the ElevenLabs mp3 to HeyGen Avatar IV (up to 120s).
   const skill = await loadSkill(project);
-  const audioFirstTalkingHead = skill.slug === TALKING_HEAD_SKILL_SLUG;
+  const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  const editorialInterviewBroll =
+    isEditorialInterviewSkill(skill.slug) && /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
+  const audioFirstTalkingHead =
+    skill.slug === TALKING_HEAD_SKILL_SLUG ||
+    (isEditorialInterviewSkill(skill.slug) && !editorialInterviewBroll);
   const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
@@ -674,7 +684,7 @@ export async function sendClipVideo(
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(skill.slug);
   const performance = talkingShot ? resolvePerformance(skill, talkingShot, "en") : undefined;
-  const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
+  const spokenLine = clipRow?.englishVo;
   const subtitlePrompt = prompt.prompt;
   // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
   const clipStyleId = resolveClipStyleId(project, clipNumber) ?? project.styleId;
@@ -683,7 +693,7 @@ export async function sendClipVideo(
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
-  const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
+  const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug) && !editorialInterviewBroll;
   const narratorOnly = !usesLipSync && !isSilentOutfitSkill(project.skillSlug);
   const motionPrompt = isRealisticStyle(style)
     ? lockRealisticVideoLight(subtitlePrompt, { selfShot, narratorOnly })
@@ -692,7 +702,7 @@ export async function sendClipVideo(
   let videoPrompt = withCantonesePronunciation(
     lockDialogueSpeech(
       motionPrompt,
-      project.skillSlug,
+      editorialInterviewBroll ? "cartoon-explainer-video-director" : project.skillSlug,
       spokenLine,
       currentCast?.map((member) => member.name),
       performance,
@@ -711,12 +721,12 @@ export async function sendClipVideo(
   const voiceId =
     project.narrationEnabled !== false && (project.language === "yue" || !isBookendSkill(project.skillSlug))
       ? resolveVoiceSwapId({ ...project, cast: currentCast }) ||
-        (audioFirstTalkingHead
+        (audioFirstTalkingHead || editorialInterviewBroll
           ? voiceSwapVoiceId(currentCast, project.language) || CANTONESE_VOICE_ID
           : null)
       : null;
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
-  const expandVideoToVo = isDualBeatSkill(project.skillSlug);
+  const expandVideoToVo = isDualBeatSkill(project.skillSlug) || editorialInterviewBroll;
   let durationSeconds = prompt.durationSeconds;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
@@ -1062,15 +1072,23 @@ export async function applyJobStatus(input: {
             cast: await withCurrentCharacterVoices(project.cast),
           })
         : null;
-    const spokenLine =
+    const clipRowForJob =
       project && job.kind === "video"
-        ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)?.englishVo
+        ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
+    const spokenLine = clipRowForJob?.englishVo;
+    const editorialInterviewBrollJob = Boolean(
+      project &&
+        isEditorialInterviewSkill(project.skillSlug) &&
+        /b[-_ ]?roll/i.test(clipRowForJob?.narrativeJob || ""),
+    );
     const storedClip =
       project && job.kind === "video"
         ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
-    const usesLipSync = Boolean(project && skillUsesOnScreenLipSync(project.skillSlug));
+    const usesLipSync = Boolean(
+      project && skillUsesOnScreenLipSync(project.skillSlug) && !editorialInterviewBrollJob,
+    );
     const audioFirstTalkingHead =
       job.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
       Boolean(
@@ -1086,7 +1104,9 @@ export async function applyJobStatus(input: {
             voUrl: storedClip?.voUrl,
             onsetSeconds: storedClip?.voOnsetSeconds,
             lipSync: usesLipSync,
-            expandVideoToVo: Boolean(project && isDualBeatSkill(project.skillSlug)),
+            expandVideoToVo: Boolean(
+              project && (isDualBeatSkill(project.skillSlug) || editorialInterviewBrollJob),
+            ),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
               requestId: job.requestId,
