@@ -680,9 +680,11 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
-    const sameFrame = fullBody
-      ? " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump."
-      : " Same camera and collarbone-up selfie crop as the opening still: face still fills 60–65% of frame, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump, no hands entering frame.";
+    const sameFrame = selectedPose
+      ? " Same camera, body posture, and framing as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump."
+      : fullBody
+        ? " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump."
+        : " Same camera and collarbone-up selfie crop as the opening still: face still fills 60–65% of frame, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump, no hands entering frame.";
     const endVar = endPoseVariationEn(
       clipIndex,
       fullBody,
@@ -710,9 +712,11 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
-  const sameFrame = fullBody
-    ? "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。"
-    : "鏡頭同鎖骨以上自拍裁切同開頭畫面一致：塊臉仍然佔畫面 60–65%，同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡，雙手唔入鏡。";
+  const sameFrame = selectedPose
+    ? "鏡頭、站姿或坐姿同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。"
+    : fullBody
+      ? "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。"
+      : "鏡頭同鎖骨以上自拍裁切同開頭畫面一致：塊臉仍然佔畫面 60–65%，同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡，雙手唔入鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
   const lensPlaceYue =
     scene.customSet || scene.background || hasNonDefaultBg

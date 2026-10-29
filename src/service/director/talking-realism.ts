@@ -17,8 +17,12 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
   if (language !== "yue" && language !== "zh") {
     const light =
       "Light source: directional soft window daylight from one side with iPhone Smart HDR and soft rim light (1.4:1–1.8:1 cheek-to-cheek contrast, clear nose-bridge shadow, 25–40% natural falloff on the far cheek, bright circular eye catchlights on dark contact-lens/iris pupils, warm subsurface scattering on the lit cheek, and natural lip moisture on both lips; never flat frontal beauty-ring fill that erases cheek shadows, never harsh dark half-face cinema blackouts; keep window highlights below pure-white clipping).";
+    const captureEn =
+      scene.fullBody || scene.poseOwnsFraming
+        ? "iPhone 16 Pro 24mm f/1.8 camera or Sony ZV-E1 creator camera capture"
+        : "iPhone 16 Pro 24mm f/1.8 camera or Sony ZV-E1 at 30–40cm intimate selfie distance";
     const skin =
-      "Skin & camera sensor: authentic real-person smartphone front-camera / creator selfie capture (iPhone 16 Pro 24mm f/1.8 camera or Sony ZV-E1 at 30–40cm intimate selfie distance — clean, bright, true-to-life phone HDR color, zero heavy vintage 35mm film grain or retro film LUT); copy and preserve the attached character portrait's exact facial identity and raw unretouched human skin with hyper-visible pore texture across cheeks, nose bridge, forehead, chin, and temples (clearly readable individual pores in the lit cheek, never beauty-smoothed), fine peach-fuzz hair catching the side light on the jawline and upper lip, natural under-eye, nasolabial, and cheek skin micro-relief with soft uneven tone, natural individual tooth enamel detail, natural lower-lip moisture reflection, and a clean matte-natural complexion (zero oily, waxy, or glossy specular sheen and zero porcelain shine on the forehead, nose, cheeks, or collarbones), individual wispy bangs and loose flyaway hair strands falling naturally across the forehead and ears, and real fabric weave on the collar/shoulders. Never smooth porcelain, silicone, airbrushed, or plastic skin.";
+      `Skin & camera sensor: authentic real-person smartphone / creator camera capture (${captureEn} — clean, bright, true-to-life phone HDR color, zero heavy vintage 35mm film grain or retro film LUT); copy and preserve the attached character portrait's exact facial identity and raw unretouched human skin with hyper-visible pore texture across cheeks, nose bridge, forehead, chin, and temples (clearly readable individual pores in the lit cheek, never beauty-smoothed), fine peach-fuzz hair catching the side light on the jawline and upper lip, natural under-eye, nasolabial, and cheek skin micro-relief with soft uneven tone, natural individual tooth enamel detail, natural lower-lip moisture reflection, and a clean matte-natural complexion (zero oily, waxy, or glossy specular sheen and zero porcelain shine on the forehead, nose, cheeks, or collarbones), individual wispy bangs and loose flyaway hair strands falling naturally across the forehead and ears, and real fabric weave on the collar/shoulders. Never smooth porcelain, silicone, airbrushed, or plastic skin.`;
     const depth = scene.fullBody
       ? "Depth: natural shallow depth of field — the person is tack-sharp and the background falls into soft optical bokeh, like a real mirrorless or smartphone creator camera, with no foreground objects blocking any corner of the frame."
       : scene.poseOwnsFraming
@@ -29,8 +33,12 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
   }
   const light =
     "光源：真實 iPhone Smart HDR 單側窗邊定向柔和自然光加柔和輪廓光 rim light（臉頰光比約 1.4:1–1.8:1，鼻樑有清晰自然陰影、遠側面頰有 25–40% 自然暗落，雙眼瞳孔有清晰明亮嘅眼神光 Catchlights、受光面頰有暖色次表面散射、雙唇有自然水潤光澤；絕對唔好正面美顏環形燈把面頰陰影抹平，亦唔好一邊死黑戲劇影；窗光唔過曝死白）。";
+  const captureYue =
+    scene.fullBody || scene.poseOwnsFraming
+      ? "現代真人 iPhone 16 Pro 24mm f/1.8 腳架／Sony ZV-E1 實拍"
+      : "現代真人 iPhone 16 Pro 手機近距離（30–40cm）自拍／Sony ZV-E1 實拍";
   const skin =
-    "皮膚與相機質感：以現代真人 iPhone 16 Pro 手機近距離（30–40cm）自拍／Sony ZV-E1 實拍（色彩清透亮麗、無厚重複古 35mm 菲林粗顆粒或暗沉濾鏡）；忠實保留角色肖像嘅五官與零塑膠感真實人類皮膚，超清晰睇到毛孔（受光面頰、鼻樑、額頭、下巴同太陽穴都有清楚獨立毛孔，絕唔美顏磨皮）、側光下睇到面頰同唇上細微汗毛、眼下／法令紋／面頰自然微浮雕紋理同輕微膚色不均、自然水潤唇澤同次表面散射質感（額頭、鼻樑、面頰同鎖骨絕對唔好有油光、蠟質反光、陶瓷感或塑膠高光白點），額前碎髮同耳邊髮絲根根分明具空氣感，領口衣物有真實布料織紋。唔好陶瓷咁滑、唔好磨皮、唔好塑膠皮膚。";
+    `皮膚與相機質感：以${captureYue}（色彩清透亮麗、無厚重複古 35mm 菲林粗顆粒或暗沉濾鏡）；忠實保留角色肖像嘅五官與零塑膠感真實人類皮膚，超清晰睇到毛孔（受光面頰、鼻樑、額頭、下巴同太陽穴都有清楚獨立毛孔，絕唔美顏磨皮）、側光下睇到面頰同唇上細微汗毛、眼下／法令紋／面頰自然微浮雕紋理同輕微膚色不均、自然水潤唇澤同次表面散射質感（額頭、鼻樑、面頰同鎖骨絕對唔好有油光、蠟質反光、陶瓷感或塑膠高光白點），額前碎髮同耳邊髮絲根根分明具空氣感，領口衣物有真實布料織紋。唔好陶瓷咁滑、唔好磨皮、唔好塑膠皮膚。`;
   const depth = scene.fullBody
     ? "景深：自然淺景深，人物清晰銳利、背景自然光學虛化，好似真人用無反或手機相機實拍，畫面四角唔好加任何前景遮擋物。"
     : scene.poseOwnsFraming

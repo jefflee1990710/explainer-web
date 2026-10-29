@@ -106,6 +106,7 @@ import {
   TALKING_HEAD_SKILL_SLUG,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
+import { talkingHeadPoseOwnsFraming } from "@/model/talking-head-options";
 import { chargedVideoCredits, FRAME_COST, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
 import { isSilentSpokenLine, lockDialogueSpeech } from "@/service/director/spoken-line";
@@ -247,11 +248,13 @@ export async function sendFrame(
       .catch(() => {});
   }
   // A turnaround sheet shows the same person many times. Send one standing figure per character
-  // (or the 1:1 close-up portrait for seated talking-head so the model never zooms out to draw full-body legs/shorts).
+  // (or the 1:1 close-up portrait for default collarbone-close talking-head so the model never zooms out to draw full-body legs/shorts).
   const locked =
     project.cast && project.cast.length > 0
       ? await withSceneCharacterLocks(project.cast, plan.refs, {
-          preferPortrait: project.skillSlug === TALKING_HEAD_SKILL_SLUG,
+          preferPortrait:
+            project.skillSlug === TALKING_HEAD_SKILL_SLUG &&
+            !talkingHeadPoseOwnsFraming(project.talkingHeadPoseId),
         })
       : plan.refs;
   // The previous still's caption is what Grok copies. Keep the character
