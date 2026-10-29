@@ -806,7 +806,7 @@ export async function sendClipVideo(
       model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
       prompt: avatarIvPrompt,
       motionPrompt: clipRow?.motionPrompt || avatarIvPrompt,
-      expressiveness: clipRow?.expressiveness || "medium",
+      expressiveness: clipRow?.expressiveness || "low",
       aspectRatio: project.aspectRatio,
       durationSeconds,
       startImageUrl: start,

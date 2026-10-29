@@ -229,8 +229,8 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
   assert.equal(heygenBody.model, "heygen/avatar-iv");
   assert.equal(heygenBody.resolution, "1080p");
   assert.match(heygenBody.prompt, /EXPRESSIVE, READABLE CONTENT-DRIVEN MICRO-EXPRESSIONS/);
-  assert.match(heygenBody.prompt, /25–30%/);
-  assert.match(heygenBody.prompt, /exaggerated cartoon O-mouth/);
+  assert.match(heygenBody.prompt, /20–25%/);
+  assert.match(heygenBody.prompt, /cartoon O-mouth/);
   assert.deepEqual(heygenBody.input_references, [
     { type: "image_url", image_url: { url: "https://blob/start.png" } },
     { type: "audio_url", audio_url: { url: "https://blob/vo.mp3" } },
