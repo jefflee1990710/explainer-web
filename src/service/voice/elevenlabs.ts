@@ -22,13 +22,13 @@ export const TTS_WITH_TIMESTAMPS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const;
 
-// Talking-head creator videos use lower stability (0.28) and higher expressive style (0.55)
-// so speech has stronger pitch/energy swings that drive visible lip-sync, plus natural breath pauses
-// instead of a flat newsreader cadence.
+// Talking-head creator videos use calm, natural prosody (stability 0.70, similarity_boost 1.0, style 0)
+// so Cantonese 9-tone contours and cloned voice timbre stay 100% authentic without pitch spikes
+// that cause lip-sync models to over-animate the speaker's face.
 export const TALKING_HEAD_TTS_VOICE_SETTINGS = {
-  stability: 0.28,
-  similarity_boost: 0.95,
-  style: 0.55,
+  stability: 0.7,
+  similarity_boost: 1,
+  style: 0,
   use_speaker_boost: true,
 } as const;
 

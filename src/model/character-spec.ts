@@ -85,13 +85,33 @@ export function sanitizeSpecSkinTone(skinTone: string) {
     .trim();
 }
 
+// Strip baked-in portrait smile words ("wide smile", "showing upper teeth", "smiling almond eyes")
+// from stored face geometry so talking-head start frames do not lock raised apple-cheek smile tension
+// that lip-sync video models amplify into squinting eyes and exaggerated toothy grins.
+export function sanitizeSpecFace(face: string) {
+  return face
+    .replace(/\bsmiling\s+(?=(?:almond\s+)?eyes\b)/gi, "")
+    .replace(
+      /\b(?:wide|broad|bright|big|toothy|full)\s+smil(?:e|ing)(?:\s+mouth)?(?:\s+showing\s+(?:upper\s+)?teeth)?\b/gi,
+      "natural well-proportioned lips gently closed",
+    )
+    .replace(/\bshowing\s+(?:upper\s+|white\s+)?teeth\b/gi, "lips gently closed")
+    .replace(/\brounded\s+cheekbones\b/gi, "soft natural cheekbones")
+    .replace(/\s{2,}/g, " ")
+    .replace(/,\s*,/g, ",")
+    .trim();
+}
+
 // One compact line for image prompts. Frame prompts share a tight character cap,
 // so this stays short and skips the palette (the attached image carries colour).
 // Put `outfit` right after `identity` & `hair` so `outfit` is NEVER truncated when
 // `faceDetail` is long.
 export function characterSpecLine(spec: CharacterSpec, maxChars = 480) {
   const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
-  const faceCombined = [spec.face, spec.faceDetail].filter(Boolean).join(", ");
+  const faceCombined = [spec.face, spec.faceDetail]
+    .filter(Boolean)
+    .map((part) => sanitizeSpecFace(part!))
+    .join(", ");
   const parts = [
     spec.identity,
     spec.outfit && `outfit: ${spec.outfit}`,

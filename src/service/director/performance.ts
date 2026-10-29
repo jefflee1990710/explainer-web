@@ -15,11 +15,11 @@ export const PERFORMANCE_FIELD_MAX = 600;
 // Mirrors skills/<dir>/performance.json — the seeded copy is the editable source.
 const FACE_EN: PerformanceSlots = {
   restingFace:
-    "a relaxed, friendly half-smile with lips gently closed or softly parted (no wide toothy grin), eyebrows relaxed and slightly lifted, facing the camera directly with eyes locked on the lens like talking to one friend",
+    "a calm, composed, relaxed neutral expression with lips gently closed or softly parted (no wide toothy grin, no raised apple-cheek smile tension, no squinting eyes), eyebrows relaxed in a neutral resting position, facing the camera directly with calm open eyes locked on the lens like talking to one friend",
   emphasisBeat:
-    "a subtle brow lift and dynamic contrasted micro-expressions (furrowing the brows and giving a subtle head shake on negative/disbelief words, then lifting the eyebrows with a gentle nod on the reveal) and restrained, co-articulated phoneme-accurate lip articulation with small ~20–30% natural jaw movement, relaxed neutral mouth corners for natural lip rounding on o/u/w sounds, and lower teeth covered by the lower lip (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm half-smile",
+    "a subtle brow lift with calm, composed upper-face restraint (no exaggerated brow furrowing, no eye-squinting grins, no theatrical facial over-acting) and restrained, co-articulated phoneme-accurate lip articulation with small ~20–25% natural jaw movement, relaxed neutral mouth corners for subtle lip rounding on o/u/w sounds, and lower teeth covered by the lower lip (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a calm neutral expression",
   hookBeat:
-    "eyebrows softly lifted, facing the camera directly with eyes locked on the lens, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
+    "eyebrows relaxed, facing the camera directly with calm open eyes locked on the lens, a composed relaxed neutral expression with lips gently closed or barely parted ready to speak (no wide toothy grin, no squinting eyes)",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
     "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position (or one hand holds a compact handheld wireless lavalier microphone near the chin/upper chest when a mic prop is used); only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
@@ -31,14 +31,14 @@ const FACE_EN: PerformanceSlots = {
 };
 
 const FACE_YUE: PerformanceSlots = {
-  restingFace: "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，正面向住鏡頭，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
-  emphasisBeat: "講到重點字眼時隨台詞做出自然反差微表情（否定或質疑詞時眉心微蹙並輕微搖頭；轉折亮點時眉毛自然微揚、眼神專注有神並輕輕點頭），口型連貫流暢唔逐字啪嘴、下巴同嘴部開合幅度自然細緻（約 20–30% 克制開合，講嘢時嘴角放鬆令圓唇音自然微嘟、下唇遮住下排牙齒，無誇張張大嘴），語氣過渡平順自然",
-  hookBeat: "正面向住鏡頭、直望鏡頭中心，眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
+  restingFace: "平靜自然、放鬆克制嘅溫和神情，雙唇輕合或自然微啟（絕對唔好張開口露齒大笑、唔好擠眉弄眼或瞇眼大笑）、下巴自然放鬆，正面向住鏡頭，眼神平穩直望鏡頭好似同朋友平靜傾偈",
+  emphasisBeat: "上半臉（額頭、眉毛、眼部同蘋果肌）保持平靜放鬆克制（唔好誇張挑眉皺眉、唔好瞇眼大笑或搖頭晃腦），口型連貫流暢唔逐字啪嘴、下巴同嘴部開合幅度細緻克制（約 20–25% 輕微自然開合，講嘢時嘴角同面頰放鬆令圓唇音自然微斂、下唇遮住下排牙齒，無誇張張大嘴或大 O 嘴），語氣過渡平順自然",
+  hookBeat: "正面向住鏡頭、直望鏡頭中心，神情平靜自然、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑或誇張表情）",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
     "近九成時間雙手自然放鬆放喺大髀休息位（Neutral Rest，或一隻手兩指輕捏住迷你手提無線收音咪停喺胸口前做支點）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
   headMotion:
-    "腰部、軀幹同雙肩保持固定正面向住鏡頭（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，喺重音字有 1–2 度嘅微幅點頭、否定字眼時輕微搖頭，雙眼全程穩定直望鏡頭中心",
+    "腰部、軀幹同雙肩保持固定正面向住鏡頭（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部穩定正對鏡頭，只喺句尾停頓有約 1 度極細微自然點頭，雙眼全程平穩直望鏡頭中心",
   anchorProp: "",
   set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗",
   light: "柔和均勻嘅室內漫射環境光配自然窗光，面部光暗過渡柔和自然、無誇張陰陽面反差——唔好正面美顏環形燈，冇影樓燈",

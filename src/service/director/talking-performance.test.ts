@@ -61,14 +61,14 @@ test("talking motion follows 5-phase co-speech gesture kinematics (rest -> prepa
     clipNumber: 1,
     totalClips: 3,
   });
-  assert.match(motion, /relaxed, friendly half-smile with lips gently closed or softly parted/);
+  assert.match(motion, /calm, composed, relaxed neutral expression with lips gently closed or softly parted/);
   assert.match(motion, /subtle brow lift/);
   assert.match(motion, /preparation.*stroke.*hold.*retraction/i);
   assert.match(motion, /both hands resting calmly on the lap/);
   assert.doesNotMatch(motion, /right then left hand|left then right hand/);
   assert.doesNotMatch(motion, /every 1–2 seconds/);
   assert.doesNotMatch(motion, /two-handed open-palm shrug/);
-  assert.match(motion, /relaxed warm half-smile with lips gently closed or barely parted ready to speak \(no wide toothy grin\) as the hook/);
+  assert.match(motion, /composed relaxed neutral expression with lips gently closed or barely parted ready to speak \(no wide toothy grin, no squinting eyes\) as the hook/);
   assert.doesNotMatch(motion, /unseen phone/);
   assert.doesNotMatch(motion, /sharing a secret/);
 });

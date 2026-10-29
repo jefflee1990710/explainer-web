@@ -697,8 +697,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
         ? selectedPose
           ? selectedPose.startPoseEn
           : fullBody
-            ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, keeping the character's exact authentic warm smile and smiling eye curvature from the reference photo, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-            : `Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens, keeping the character's exact authentic warm smile, smiling eye curvature, and apple cheeks from the reference photo, ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop}`
+            ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed cheeks, calm open eyes), ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
+            : `Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a calm, composed, neutral resting expression (lips gently closed with zero smile tension and zero teeth visible, relaxed cheeks, calm open eyes), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop}`
         : selectedPose
           ? `${selectedPose.endPoseEn}${sameFrame}`
           : fullBody
@@ -727,8 +727,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       ? selectedPose
         ? selectedPose.startPoseYue
         : fullBody
-          ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，完全保留真人參考相與角色藍圖原本親切自然嘅溫暖笑容、彎彎笑眼同蘋果肌神韻，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-          : `角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），${lensPlaceYue}，完全保留真人參考相與角色藍圖原本親切自然嘅溫暖笑容、彎彎笑眼同蘋果肌神韻，${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}`
+          ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
+          : `角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），${lensPlaceYue}，神情平靜自然克制（雙唇自然輕合唔露牙、面頰放鬆唔擠蘋果肌、雙眼自然張開唔瞇眼笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}`
       : selectedPose
         ? `${selectedPose.endPoseYue}${sameFrame}`
         : fullBody
