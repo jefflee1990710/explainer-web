@@ -17,13 +17,13 @@ test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=180 and ro
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /noise=/);
 });
 
-test("talkingHeadSensorGrainArgs applies subtle iPhone CMOS luma micro-grain and yuv420p without darkening highlights", () => {
+test("talkingHeadSensorGrainArgs applies matte specular knee roll-off (>175), CMOS luma micro-grain, and yuv420p while keeping midtones untouched", () => {
   const args = talkingHeadSensorGrainArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(TALKING_HEAD_SENSOR_GRAIN_FILTER));
   assert.ok(args.includes("-pix_fmt"));
   assert.equal(args[args.indexOf("-pix_fmt") + 1], "yuv420p");
+  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /lte\(val,175\)/);
   assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /unsharp=3:3:0\.4/);
   assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /noise=c0s=2\.8:c0f=t\+u/);
-  assert.doesNotMatch(TALKING_HEAD_SENSOR_GRAIN_FILTER, /lutrgb=/);
 });
