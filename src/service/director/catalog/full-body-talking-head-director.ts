@@ -57,7 +57,7 @@ const raw = {
       "headMotion": "a constant small side-to-side sway of a few degrees, distinct head turns and tilts left and right, brief thoughtful glances slightly off-camera or down at the hands before looking back into the lens, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock",
       "anchorProp": "",
       "set": "the same plain background in every clip, no new props",
-      "light": "ordinary daylight from a window to one side, unchanged"
+      "light": "warm golden-amber daylight from a window to one side (3400K–4200K warm indoor tone), unchanged"
     },
     "yue": {
       "restingFace": "露少少牙嘅親切笑容，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
@@ -68,7 +68,7 @@ const raw = {
       "headMotion": "全程有幾度嘅細幅左右搖擺，頭部明顯左右轉向同傾斜、思考時眼神短暫望向側邊或者望一望雙手再望返鏡頭、重音位點頭、下巴跌一跌再抬起，講到重點時上身明顯前傾靠近鏡頭、再坐返後或者喺沙發微移重心；膊頭自然郁動",
       "anchorProp": "",
       "set": "全程同一個簡潔背景，冇新道具",
-      "light": "一邊窗嘅自然日光，不變"
+      "light": "一邊窗嘅溫暖暖色調自然日光（3400K–4200K 暖色溫），不變"
     }
   },
   "behavior": {

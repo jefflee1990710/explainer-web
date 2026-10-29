@@ -33,7 +33,6 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 import {
   gradeRealisticVideoBuffer,
   gradeTalkingHeadSensorTextureBuffer,
-  gradeWarmTalkingHeadImageBuffer,
 } from "@/service/style/realistic-grade";
 import { isRealisticStyle, isSelfShotCreatorSkill, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
@@ -1183,12 +1182,8 @@ export async function applyJobStatus(input: {
               job.kind === "frame"
                 ? await stripLetterboxBars(buffer).catch(() => buffer)
                 : buffer;
-            const warmed =
-              job.kind === "frame" && audioFirstTalkingHead
-                ? await gradeWarmTalkingHeadImageBuffer(unboxed).catch(() => unboxed)
-                : unboxed;
-            if (!canvasColor) return warmed;
-            return flattenToCanvas(warmed, canvasColor).catch(
+            if (!canvasColor) return unboxed;
+            return flattenToCanvas(unboxed, canvasColor).catch(
               (error: unknown) => {
                 // Keep the original bytes rather than failing the job, but
                 // leave a trace so a broken flatten is not invisible.
@@ -1196,7 +1191,7 @@ export async function applyJobStatus(input: {
                   "[higgsfield] flatten failed; persisting original bytes",
                   { requestId: job.requestId, error },
                 );
-                return warmed;
+                return unboxed;
               },
             );
           }

@@ -17,13 +17,12 @@ test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=180 and ro
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /noise=/);
 });
 
-test("talkingHeadSensorGrainArgs applies warm colour balance and yuv420p without artificial noise or darkening LUTs", () => {
+test("talkingHeadSensorGrainArgs keeps clean blueprint skin fidelity and yuv420p without artificial noise or darkening LUTs", () => {
   const args = talkingHeadSensorGrainArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(TALKING_HEAD_SENSOR_GRAIN_FILTER));
   assert.ok(args.includes("-pix_fmt"));
   assert.equal(args[args.indexOf("-pix_fmt") + 1], "yuv420p");
-  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /colorbalance=/);
-  assert.match(TALKING_HEAD_SENSOR_GRAIN_FILTER, /setsar=1/);
+  assert.equal(TALKING_HEAD_SENSOR_GRAIN_FILTER, "setsar=1");
   assert.doesNotMatch(TALKING_HEAD_SENSOR_GRAIN_FILTER, /lutrgb=|noise=/);
 });

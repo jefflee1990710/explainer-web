@@ -47,9 +47,9 @@ export const TALKING_HEAD_BACKGROUNDS: readonly TalkingHeadBackgroundOption[] = 
     descriptionEn: "Warm home living room sofa with a wooden bookshelf softly blurred behind.",
     descriptionZhHant: "溫暖居家客廳沙發，後方有柔和虛化的木質書架與自然窗光。",
     setEn: "the same cozy fabric sofa at home in every clip, a warm wooden bookshelf lined with books softly blurred behind the head",
-    lightEn: "ordinary soft daylight from a window to one side, no studio light",
+    lightEn: "warm-toned (3400K–4200K golden-amber indoor warmth) soft daylight from a side window blended with cozy warm room tone, no cold blue cast, no studio light",
     setYue: "全程同一張屋企溫暖布藝沙發，木書架同書本喺頭後面柔和虛化",
-    lightYue: "一邊窗嘅自然柔和日光，冇影樓燈",
+    lightYue: "溫暖柔和嘅暖色調（3400K–4200K 暖黃琥珀色溫）側窗日光配溫暖室內光，膚色溫暖紅潤、無冷白偏藍感，冇影樓燈",
     geminiPreviewPrompt:
       "Empty interior background plate for a creator talking-head video, no people. A cozy modern apartment living room with a warm beige fabric sofa centered in frame, a tidy wooden bookshelf with books and a small ceramic vase softly blurred in the background, soft natural daylight streaming from a side window on the right, shot on 24mm f/1.8 lens with shallow depth of field, clean realistic photography.",
     previewUrl: "/talking-head-backgrounds/cozy-bookshelf-sofa.webp",

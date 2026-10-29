@@ -300,13 +300,17 @@ export async function runPhaseA(input: {
     baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
   });
 
-  const generated = await generateText({
-    model: storyboardModel(),
-    providerOptions: storyboardProviderOptions(),
-    output: Output.object({
-      schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
-    }),
-    system: `${skillPromptForPhaseA(input.skill, input.style)}
+  // content-filter throws on `.output` and stores "No output generated."
+  // Talking-head clips are planned deterministically in `planTalkingHeadClips`, so keep the storyboard even if the LLM call times out or is filtered.
+  let output: PhaseAProposal | undefined;
+  try {
+    const generated = await generateText({
+      model: storyboardModel(),
+      providerOptions: storyboardProviderOptions(),
+      output: Output.object({
+        schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
+      }),
+      system: `${skillPromptForPhaseA(input.skill, input.style)}
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
@@ -431,13 +435,13 @@ Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
 Never skip the setup gate values already supplied.
 ${sceneDescriptionLanguageLock(input.language)}`,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Director instruction (optional planning notes — not spoken unless this skill has no separate script):
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Director instruction (optional planning notes — not spoken unless this skill has no separate script):
 ${input.source.trim() || "(none — use the selected director's default concept, cast, products, and reference images to craft an engaging video)"}
 ${
   talkingHead
@@ -469,25 +473,26 @@ On-canvas text: ${
 ${characterNote}
 ${productImages.length ? `Product references (${productNames}) are attached after the character blueprints and before any brand logo. Keep the product photorealistic and identical to those images in every scene that shows it. Do not restyle the product into the visual style.\n` : ""}${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene, character, and product references). Use it as-is in startScene / endScene.\n` : ""}${clipDraftsBlock}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
-          },
-          ...references.parts,
-          ...sketchPartsWithLabels,
-          ...((references.parts.length || sketchPartsWithLabels.length) && characterImages.length
-            ? [{ type: "text" as const, text: "Character blueprints follow (not scene references):" }]
-            : []),
-          ...characterImages,
-          ...productImages,
-          ...logoImages,
-        ],
-      },
-    ],
-  });
-
-  // content-filter throws on `.output` and stores "No output generated."
-  // Talking-head clips do not come from the model, so keep the storyboard.
-  let output: PhaseAProposal | undefined;
-  if (generated.finishReason === "stop") {
-    output = generated.output ?? undefined;
+            },
+            ...references.parts,
+            ...sketchPartsWithLabels,
+            ...((references.parts.length || sketchPartsWithLabels.length) && characterImages.length
+              ? [{ type: "text" as const, text: "Character blueprints follow (not scene references):" }]
+              : []),
+            ...characterImages,
+            ...productImages,
+            ...logoImages,
+          ],
+        },
+      ],
+    });
+    if (generated.finishReason === "stop") {
+      output = generated.output ?? undefined;
+    } else if (!talkingHead && generated.finishReason === "content-filter") {
+      throw new Error("這次題材被模型拒絕，請改寫場景描述後再試。");
+    }
+  } catch (err) {
+    if (!talkingHead) throw err;
   }
   if (!output) {
     if (talkingHead) {
@@ -497,8 +502,6 @@ Produce a complete Phase A director proposal now.`,
         aspectRatio: input.aspectRatio,
         styleName: input.style.name,
       });
-    } else if (generated.finishReason === "content-filter") {
-      throw new Error("這次題材被模型拒絕，請改寫場景描述後再試。");
     } else {
       throw new Error("解說提案產生失敗");
     }
