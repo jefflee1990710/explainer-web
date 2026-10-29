@@ -332,6 +332,8 @@ export function talkingMotionLine(input: {
   noText?: boolean;
   // Next clip's spoken line. Talking-head overlay ends on this subtitle.
   nextLine?: string;
+  // Argon director's custom sentence-by-sentence facial expression choreography.
+  directorFacialChoreography?: string;
 }) {
   const close = speakEnd(input.seconds);
   const pEn = input.performance ?? DEFAULT_PERFORMANCE[input.shot].en;
@@ -389,7 +391,9 @@ export function talkingMotionLine(input: {
     const subtitleTail = hideSubtitle ? "" : ` ${subtitle}`;
     const transition = "";
     const speakStart = first ? "0.4" : "0";
-    const facialArc = planTalkingHeadFacialExpressionArc(input.line, "en");
+    const facialArc =
+      input.directorFacialChoreography?.trim() ||
+      planTalkingHeadFacialExpressionArc(input.line, "en");
     return `${open}; ${speakStart}–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${facialArc ? ` ${facialArc}` : ""}${subtitleTail}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
@@ -437,6 +441,8 @@ export function talkingMotionLine(input: {
   const subtitleTail = hideSubtitle ? "" : subtitle;
   const transition = "";
   const speakStart = first ? "0.4" : "0";
-  const facialArc = planTalkingHeadFacialExpressionArc(input.line, input.language);
+  const facialArc =
+    input.directorFacialChoreography?.trim() ||
+    planTalkingHeadFacialExpressionArc(input.line, input.language);
   return `${open}；${speakStart}–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${facialArc ? `${facialArc}` : ""}${subtitleTail}`;
 }

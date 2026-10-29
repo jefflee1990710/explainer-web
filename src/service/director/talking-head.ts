@@ -268,11 +268,37 @@ export function extractCustomTalkingHeadSet(
   return undefined;
 }
 
+export function extractArgonFacialChoreography(motionCamera?: string): string | undefined {
+  const text = (motionCamera || "").trim();
+  if (!text) return undefined;
+  const labeledMatch = text.match(
+    /(?:導演逐句微表情(?:編排|規劃)|Director (?:sentence-by-sentence facial expression choreography|content-driven micro-expression plan))[：:]\s*([^\n]+(?:\n(?!Realism:|真實感：)[^\n]+)*)/i,
+  );
+  if (labeledMatch?.[0]) {
+    return labeledMatch[0]
+      .replace(/\s*(?:Realism:|真實感：)[\s\S]*$/i, "")
+      .trim();
+  }
+  if (/好奇|疑惑|興奮|凝重|認真|Curiosity|Puzzled|Excitement|Serious|Empathetic/i.test(text)) {
+    const cleaned = text
+      .replace(/\s*(?:Realism:|真實感：)[\s\S]*$/i, "")
+      .trim();
+    if (cleaned.length >= 24) {
+      return /導演逐句|Director/i.test(cleaned)
+        ? cleaned
+        : `導演逐句微表情編排：${cleaned}`;
+    }
+  }
+  return undefined;
+}
+
 export function planTalkingHeadClips(input: {
   source: string;
   // Optional director instruction (e.g. custom background/setting notes) and Phase A visualWorld.
   directorInstruction?: string;
   visualWorld?: string;
+  // Optional Argon-generated clips from Phase A so we preserve Argon's sentence-by-sentence facial choreography.
+  argonClips?: Array<{ clipNumber?: number; motionCamera?: string; englishVo?: string }>;
   pace?: SpeechPace;
   language?: VoLanguage;
   aspectRatio?: string;
@@ -366,6 +392,28 @@ export function planTalkingHeadClips(input: {
             belowCenter,
             true,
           );
+    const argonRow =
+      lines.length === 1 && input.argonClips && input.argonClips.length > 1
+        ? {
+            motionCamera: [
+              "導演逐句微表情編排：",
+              ...input.argonClips
+                .map((c, idx) => {
+                  const extracted = extractArgonFacialChoreography(c.motionCamera);
+                  if (!extracted) return "";
+                  const body = extracted
+                    .replace(
+                      /^(?:導演逐句微表情(?:編排|規劃)|Director (?:sentence-by-sentence facial expression choreography|content-driven micro-expression plan))[：:]\s*/i,
+                      "",
+                    )
+                    .trim();
+                  return body ? `[第${idx + 1}段] ${body}` : "";
+                })
+                .filter(Boolean),
+            ].join("；"),
+          }
+        : input.argonClips?.[index];
+    const argonFacialChoreography = extractArgonFacialChoreography(argonRow?.motionCamera);
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -388,6 +436,7 @@ export function planTalkingHeadClips(input: {
           overlay: false,
           noText: true,
           nextLine,
+          directorFacialChoreography: argonFacialChoreography,
         }),
         input.realistic ? talkingRealismMotion(input.language, realism) : "",
       ),
@@ -427,8 +476,7 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
   return [
     fullBody ? "Full-body talking-head read: ignore the duration preset." : "Talking-head read: ignore the duration preset.",
     "The first user text is a DIRECTOR INSTRUCTION for staging and tone. The second user text is the SPOKEN SCRIPT — copy the words into englishVo verbatim.",
-    "Split the script into short lines. Each clip is about one short clause, not a paragraph, so the subtitle stays large. Group only when a line is already shorter than that. Never cut through a complete English word such as Instagram, Webinar, or Scro.io.",
-    `Clip count is from 1 to ${TALKING_HEAD_MAX_CLIPS}. Each clip's speech is about ${SPEECH_TARGET_SECONDS}s and at most ${SPEECH_MAX_SECONDS}s unless the script cannot fit in ${TALKING_HEAD_MAX_CLIPS} clips. The rendered clip is still ${PROVIDER_MIN_SECONDS}–${TALKING_HEAD_MAX_SECONDS}s so a short line is not sped up.`,
+    `Pack a spoken script of <= ${TALKING_HEAD_MAX_SECONDS}s into a SINGLE clip (clipCount = 1) containing the entire spoken script in order so you can write one complete sentence-by-sentence facial expression choreography across all sentences in Clip 1's motionCamera. Only split into multiple clips (up to ${TALKING_HEAD_MAX_CLIPS}) when total speech exceeds ${TALKING_HEAD_MAX_SECONDS}s. Never cut through a complete English word such as Instagram, Webinar, or Scro.io.`,
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
@@ -465,7 +513,8 @@ export function talkingHeadDirectorBlock(
     fullBody
       ? `On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave.`
       : `On-camera handheld selfie speech: seated, eyes locked on the lens, continuous speech-energy lip-sync with moist lips, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck into a presenter smile. Never a greeting wave. Never stand up.`,
-    `Face pattern (all facial movements MUST stay very small 1–2mm; NEVER just laugh or hold a constant smile — plan subtle expression shifts per sentence based on the text content: inquisitive on questions, serious/empathetic without smiling on pain points, earnest on solutions, and a subtle closed-lip soften only on the closing CTA): resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}. In motionCamera, explicitly write the per-sentence facial micro-expression plan matching each clause's meaning.`,
+    `Face pattern (all facial movements MUST stay very small 1–2mm; NEVER just laugh or hold a constant smile): resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
+    "CRITICAL DIRECTOR FACIAL CHOREOGRAPHY (REQUIRED IN motionCamera): As the Director, you MUST analyze every sentence/clause of the spoken script and write a detailed sentence-by-sentence facial expression choreography inside each clip's `motionCamera` field (prefixed with `導演逐句微表情編排：` for Cantonese/Chinese or `Director sentence-by-sentence facial expression choreography:` for English). For EVERY sentence or clause in the spoken script, specify: (1) the exact quoted clause/words and when it occurs, (2) the specific emotion label matching the content — e.g. 好奇/Curiosity, 疑惑/Puzzled doubt, 認真凝重/Serious concern, 共鳴無奈/Empathetic understanding, 篤定自信/Earnest conviction, 驚喜亮點/Subtle excitement, or 親切邀請/Warm invitation — and (3) the exact small-amplitude (1–2mm) facial micro-movements (inner brow lift, subtle brow knit, focused eye widening, 1° head tilt/nod/shake, or subtle closed-lip corner soften) while strictly forbidding continuous laughing or a frozen smile.",
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
       ? ["Realism (Cinematic realistic): every still is shot on a handheld iPhone 16 Pro 24mm f/1.8 selfie or Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor (clean true-to-life digital color, zero heavy 35mm film grain or retro LUT) at 30–40cm collarbone-up framing with the face filling 60–65% of 9:16, naming soft, even, diffused ambient indoor light or gentle window daylight with a low, gradual tonal transition across the face (soft minimal shadows under the chin and around the eyes, never harsh dramatic side-light contrast, never a half-dark face, never flat beauty-ring glare, keep highlights soft below clipping), unfiltered non-reflective diffuse matte real skin pores and fine facial hair (zero skin reflectivity, zero shiny hot spots), and a lived-in room corner (bedhead/door/window) with natural optical shallow depth of field and no foreground objects blocking the frame."]

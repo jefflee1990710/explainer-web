@@ -534,12 +534,14 @@ Produce a complete Phase A director proposal now.`,
       }),
     };
   }
-  // Talking-head timing is deterministic; spoken lines come from spokenScript.
+  // Talking-head timing is deterministic; spoken lines come from spokenScript,
+  // while Argon's sentence-by-sentence facial expression choreography is preserved from `next.clips`.
   if (talkingHead) {
     const clips = planTalkingHeadClips({
       source: input.spokenScript || "",
       directorInstruction: input.source,
       visualWorld: next.visualWorld,
+      argonClips: next.clips,
       pace: input.speechPace,
       language: input.language,
       aspectRatio: input.aspectRatio,

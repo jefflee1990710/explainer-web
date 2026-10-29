@@ -284,7 +284,7 @@ export function heyGenAvatarIvMotionPrompt(
       ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
       : HEYGEN_AVATAR_IV_MOTION_PROMPT;
   const directorArcMatch = options?.directorMotionNote?.match(
-    /(?:Director content-driven micro-expression plan|導演逐句微表情規劃)[^]*?(?=\s*(?:Realism:|真實感：)|$)/,
+    /(?:Director sentence-by-sentence facial expression choreography|Director content-driven micro-expression plan|導演逐句微表情(?:編排|規劃))[^]*?(?=\s*(?:Realism:|真實感：)|$)/,
   );
   if (directorArcMatch?.[0]) {
     return `${base} ${directorArcMatch[0].trim()}`;
