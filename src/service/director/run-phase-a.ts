@@ -437,8 +437,8 @@ ${sceneDescriptionLanguageLock(input.language)}`,
         content: [
           {
             type: "text",
-            text: `Director instruction (planning notes — not spoken unless this skill has no separate script):
-${input.source}
+            text: `Director instruction (optional planning notes — not spoken unless this skill has no separate script):
+${input.source.trim() || "(none — use the selected director's default concept, cast, products, and reference images to craft an engaging video)"}
 ${
   talkingHead
     ? `\nSpoken script the character must read verbatim. Keep every word in order. Clips share a similar length; do not force one sentence per clip:\n${input.spokenScript}\n`

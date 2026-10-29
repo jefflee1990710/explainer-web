@@ -31,10 +31,10 @@ export function QuickScriptCard({
         ? "讲稿必填。导演指示选填，只写语气和场景，不要和讲稿相同。"
         : "Script to read is required. Director instruction is optional — tone and setting only, and not the same words."
     : locale === "zh-Hant"
-      ? "輸入一句話主題或完整腳本（或點下方「範例腳本」一鍵填入），再揀埋下方視覺風格與角色，即可直接按右下角「開始製作」！"
+      ? "導演指示／腳本為選填（可輸入主題、腳本，或點下方「範例腳本」填入；留空亦會由導演根據所選風格與角色自動規劃），揀好下方視覺風格與角色即可按右下角「開始製作」！"
       : locale === "zh-Hans"
-        ? "输入一句话主题或完整脚本（或点下方“示例脚本”一键填入），再选好下方视觉风格与角色，即可直接按右下角“开始制作”！"
-        : "Enter your topic or full script (or click a sample script below), pick your visual style and character below, and click “Start” right away!";
+        ? "导演指示／脚本为选填（可输入主题、脚本，或点下方“示例脚本”填入；留空也会由导演根据所选风格与角色自动规划），选好下方视觉风格与角色即可按右下角“开始制作”！"
+        : "Director instruction / script is optional (enter a topic, click a sample script below, or leave blank to let the director plan from your chosen style and character), then click “Start”!";
 
   const directorNoteLabel = talkingHead
     ? t("brief.talkingHead.instructionTitle")

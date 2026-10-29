@@ -68,10 +68,9 @@ export function isStep1Valid(state: BriefWizardValidationState): boolean {
   );
 }
 
-// Step 2: Source is required except for talking-head, where only the spoken script is required.
+// Step 2: Instruction (`source`) is optional for all directors; talking-head requires `spokenScript`, and any attached reference images require descriptions.
 export function isStep2Valid(state: BriefWizardValidationState): boolean {
   return (
-    (state.talkingHead || state.source.trim().length > 0) &&
     (!state.talkingHead || state.spokenScript.trim().length > 0) &&
     state.referenceImages.every((item) => item.description.trim().length > 0)
   );

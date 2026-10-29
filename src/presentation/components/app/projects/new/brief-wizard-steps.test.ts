@@ -50,9 +50,9 @@ test("step 1 requires skillSlug and exact required cast count", () => {
   assert.equal(isStep1Valid(baseState({ castNeed: 0, characterIds: [] })), true);
 });
 
-test("step 2 requires non-empty source, talking-head script when applicable, and reference descriptions", () => {
+test("step 2 allows optional source (instruction), requires talking-head script when applicable, and requires reference descriptions", () => {
   assert.equal(isStep2Valid(baseState()), true);
-  assert.equal(isStep2Valid(baseState({ source: "   " })), false);
+  assert.equal(isStep2Valid(baseState({ source: "   " })), true);
   assert.equal(
     isStep2Valid(baseState({ talkingHead: true, spokenScript: "   " })),
     false,
@@ -92,15 +92,19 @@ test("step 3 requires aspectRatio and maxReachableWizardStep unlocks progressive
     maxReachableWizardStep(baseState({ castNeed: 1, characterIds: [] })),
     0,
   );
-  // Step 1 valid, Step 2 incomplete -> unlocks up to step 1
+  // Step 1 valid, Step 2 incomplete (missing reference description) -> unlocks up to step 1
   assert.equal(
-    maxReachableWizardStep(baseState({ source: "" })),
+    maxReachableWizardStep(
+      baseState({
+        referenceImages: [{ url: "https://example.com/a.png", description: "" }],
+      }),
+    ),
     1,
   );
-  // Step 1 & Step 2 valid, Step 3 (aspectRatio) incomplete -> unlocks up to step 2 (specs)
-  assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "" })), 2);
+  // Step 1 & Step 2 valid (even with blank source), Step 3 (aspectRatio) incomplete -> unlocks up to step 2 (specs)
+  assert.equal(maxReachableWizardStep(baseState({ source: "", aspectRatio: "" })), 2);
   // Step 1, Step 2 & Step 3 valid -> unlocks step 3 (storyboard drafts) for non-talking-head
-  assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "9:16" })), 3);
+  assert.equal(maxReachableWizardStep(baseState({ source: "", aspectRatio: "9:16" })), 3);
   // Talking-head director omits Step 04 (Storyboard Drafts) and stops at step 2
   assert.equal(
     maxReachableWizardStep(
@@ -116,7 +120,16 @@ test("step 3 requires aspectRatio and maxReachableWizardStep unlocks progressive
   );
 
   assert.equal(canAdvanceFromWizardStep(0, baseState({ source: "" })), true);
-  assert.equal(canAdvanceFromWizardStep(1, baseState({ source: "" })), false);
+  assert.equal(canAdvanceFromWizardStep(1, baseState({ source: "" })), true);
+  assert.equal(
+    canAdvanceFromWizardStep(
+      1,
+      baseState({
+        referenceImages: [{ url: "https://example.com/a.png", description: "" }],
+      }),
+    ),
+    false,
+  );
   assert.equal(canAdvanceFromWizardStep(1, baseState()), true);
   assert.equal(canAdvanceFromWizardStep(2, baseState({ aspectRatio: "" })), false);
   assert.equal(canAdvanceFromWizardStep(2, baseState({ aspectRatio: "9:16" })), true);

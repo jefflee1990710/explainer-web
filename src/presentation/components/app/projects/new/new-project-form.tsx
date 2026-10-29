@@ -570,10 +570,6 @@ export function NewProjectForm({
       return;
     }
     if (wizardStep === 1) {
-      if (!talkingHead && !source.trim()) {
-        setError(t("brief.error.sourceRequired"));
-        return;
-      }
       if (talkingHead && !spokenScript.trim()) {
         setError(t("brief.error.spokenScriptRequired"));
         return;
@@ -605,15 +601,6 @@ export function NewProjectForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!talkingHead && !source.trim()) {
-      setError(t("brief.error.sourceRequired"));
-      if (setupMode === "quick") {
-        document.getElementById("quick-source")?.focus();
-      } else if (wizardStep !== 1) {
-        goToWizardStep(1);
-      }
-      return;
-    }
     if (talkingHead && !spokenScript.trim()) {
       setError(t("brief.error.spokenScriptRequired"));
       if (setupMode === "details" && wizardStep !== 1) goToWizardStep(1);
@@ -1147,7 +1134,6 @@ export function NewProjectForm({
   };
 
   const canSubmit =
-    (talkingHead || source.trim().length > 0) &&
     (!talkingHead || spokenScript.trim().length > 0) &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
@@ -1500,7 +1486,6 @@ export function NewProjectForm({
                         <textarea
                           id="source"
                           name="source"
-                          required={!talkingHead}
                           rows={talkingHead ? 8 : 14}
                           value={source}
                           onChange={(event) => setSource(event.target.value)}

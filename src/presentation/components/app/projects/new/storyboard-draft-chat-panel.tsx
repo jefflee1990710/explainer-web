@@ -103,7 +103,7 @@ export function StoryboardDraftChatPanel({
           </h3>
           <button
             type="button"
-            disabled={disabled || Boolean(pending) || !source.trim()}
+            disabled={disabled || Boolean(pending)}
             onClick={handleAutoDraft}
             className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-accent-ink px-2.5 py-1 text-[11px] font-bold text-lime transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
