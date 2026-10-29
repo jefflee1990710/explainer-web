@@ -49,20 +49,30 @@ export function ScroExportBridge() {
 		if (!isScroEmbed()) return;
 
 		return listenFromScro((payload, origin) => {
-			const data = payload as { type?: string; filename?: string };
+			const data = payload as {
+				type?: string;
+				filename?: string;
+				targetId?: string;
+				skipDownload?: boolean;
+			};
 			if (data?.type !== "scro-export") return;
 			const filename =
 				typeof data.filename === "string" && data.filename.trim()
 					? data.filename.trim()
 					: "video.mp4";
-			void runExport(origin, filename);
+			void runExport(origin, filename, data.targetId, Boolean(data.skipDownload));
 		}, PARENT_ORIGINS);
 
-		async function runExport(origin: string, filename: string) {
+		async function runExport(
+			origin: string,
+			filename: string,
+			targetId?: string,
+			skipDownload?: boolean,
+		) {
 			if (exporting.current) return;
 			const project = editor.project.getActiveOrNull();
 			if (!project) {
-				sendToScro({ type: "scro-export-error" }, origin);
+				sendToScro({ type: "scro-export-error", targetId }, origin);
 				return;
 			}
 			exporting.current = true;
@@ -75,18 +85,28 @@ export function ScroExportBridge() {
 				});
 				if (result.cancelled) return;
 				if (result.success && result.buffer) {
-					downloadBuffer({
-						buffer: result.buffer,
-						filename,
-						mimeType: getExportMimeType({ format: "mp4" }),
-					});
-					sendToScro({ type: "scro-export-done" }, origin);
+					if (!skipDownload) {
+						downloadBuffer({
+							buffer: result.buffer,
+							filename,
+							mimeType: getExportMimeType({ format: "mp4" }),
+						});
+					}
+					sendToScro(
+						{
+							type: "scro-export-done",
+							buffer: result.buffer,
+							filename,
+							targetId,
+						},
+						origin,
+					);
 				} else {
-					sendToScro({ type: "scro-export-error" }, origin);
+					sendToScro({ type: "scro-export-error", targetId }, origin);
 				}
 				editor.project.clearExportState();
 			} catch {
-				sendToScro({ type: "scro-export-error" }, origin);
+				sendToScro({ type: "scro-export-error", targetId }, origin);
 			} finally {
 				exporting.current = false;
 			}

@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { persistExportedShareVideoAction } from "@/presentation/actions/video-share";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoEditorHeaderExport } from "@/presentation/components/app/projects/new/video-edit-summary-end";
+import {
+  ALL_EXPORT_SHARE_TARGETS,
+  buildExportShareTargetUrl,
+  VideoExportMegaMenu,
+  type ExportShareTargetId,
+} from "@/presentation/components/app/projects/new/video-export-mega-menu";
 import { AllFramesVideoIcon } from "@/presentation/components/project/production-bulk-action-icons";
-import { Spinner } from "@/presentation/components/spinner";
 import { OpenCutSaveIndicator } from "@/presentation/components/app/projects/new/opencut-save-indicator";
 import {
   AddClipIcon,
@@ -23,7 +29,51 @@ function exportFilename(project: PublicVideo, fallback: string) {
   return `${base}.mp4`;
 }
 
-// Sits to the right of 重新開始 and asks the in-page OpenCut editor to render the timeline.
+function fallbackShareUrl(project: PublicVideo): string | undefined {
+  if (project.finalUrl) return project.finalUrl;
+  if (project.reelUrl) return project.reelUrl;
+  const firstClip = project.clips?.find((c) => c.blobUrl || c.outputUrl);
+  return firstClip?.blobUrl || firstClip?.outputUrl;
+}
+
+function writePopupPreparingScreen(popup: Window, platformLabel: string, isZh: boolean) {
+  try {
+    popup.document.open();
+    popup.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${isZh ? `正在匯出影片並前往 ${platformLabel}…` : `Exporting video for ${platformLabel}…`}</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #12141c; color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; box-sizing: border-box; }
+    .card { max-width: 420px; width: 100%; border: 2px solid #c6f24b; border-radius: 20px; padding: 28px 24px; text-align: center; background: #191c26; }
+    .spinner { width: 36px; height: 36px; border: 3px solid rgba(198,242,75,0.25); border-top-color: #c6f24b; border-radius: 50%; margin: 0 auto 16px; animation: spin 0.8s linear infinite; }
+    h1 { font-size: 18px; margin: 0 0 8px; color: #c6f24b; }
+    p { font-size: 13px; line-height: 1.6; color: #b4b9c7; margin: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>${isZh ? `正在匯出 MP4 並開啟 ${platformLabel}…` : `Exporting MP4 & opening ${platformLabel}…`}</h1>
+    <p>${
+      isZh
+        ? "正在將時間軸合成為 1080p MP4 影片並自動下載至裝置，完成後本分頁將立即跳轉至發佈畫面。"
+        : "Rendering your timeline to 1080p MP4 and downloading to your device. This tab will redirect automatically once ready."
+    }</p>
+  </div>
+</body>
+</html>`);
+    popup.document.close();
+  } catch {
+    // Ignore cross-origin document write errors
+  }
+}
+
+// Sits to the right of 重新開始 and asks the in-page OpenCut editor to render the timeline
+// or export & share directly to WhatsApp, Instagram Reel/Story/Post, TikTok, YouTube Shorts, etc.
 export function OpenCutExportButton({
   project,
   host,
@@ -39,34 +89,149 @@ export function OpenCutExportButton({
   saving?: boolean;
   onOpenTutorial?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale.startsWith("zh");
   const [phase, setPhase] = useState<"idle" | "exporting" | "error">("idle");
   const [progress, setProgress] = useState(0);
+  const [activeTarget, setActiveTarget] = useState<ExportShareTargetId | null>(null);
+  const pendingPopupRef = useRef<Window | null>(null);
   const videosEnabled = idle && allFramesReady(project);
+
+  const shareTitle =
+    project.phaseA?.localizedTitle ||
+    project.phaseA?.englishTitle ||
+    project.spokenScript?.slice(0, 80) ||
+    project.source.slice(0, 80) ||
+    "Video";
+
+  async function finalizeExportShare({
+    targetId,
+    buffer,
+    filename,
+  }: {
+    targetId: ExportShareTargetId;
+    buffer?: ArrayBuffer;
+    filename: string;
+  }) {
+    const popup = pendingPopupRef.current;
+    pendingPopupRef.current = null;
+
+    try {
+      if (targetId === "download") return;
+
+      const file =
+        buffer && buffer.byteLength > 0
+          ? new File([buffer], filename, { type: "video/mp4" })
+          : null;
+
+      if (targetId === "native_share") {
+        if (file && typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          const shareData = { files: [file], title: shareTitle, text: shareTitle };
+          if (!navigator.canShare || navigator.canShare(shareData)) {
+            await navigator.share(shareData).catch(() => {});
+            return;
+          }
+        }
+        return;
+      }
+
+      const spec = ALL_EXPORT_SHARE_TARGETS.find((item) => item.id === targetId);
+      let hostedUrl = fallbackShareUrl(project);
+      if (spec?.needsHostedUrl && file) {
+        try {
+          const formData = new FormData();
+          formData.set("file", file);
+          const uploaded = await persistExportedShareVideoAction(project.id, formData);
+          if (uploaded.ok && uploaded.url) {
+            hostedUrl = uploaded.url;
+          }
+        } catch {
+          // Fall back to existing project URL
+        }
+      }
+
+      const targetUrl = buildExportShareTargetUrl({
+        targetId,
+        videoUrl: hostedUrl,
+        title: shareTitle,
+      });
+
+      if (targetUrl) {
+        if (popup && !popup.closed) {
+          popup.location.replace(targetUrl);
+        } else {
+          window.open(targetUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    } finally {
+      setActiveTarget(null);
+      setPhase("idle");
+      setProgress(0);
+    }
+  }
 
   useEffect(() => {
     return host.subscribeScro((payload) => {
-      const data = payload as { type?: string; exporting?: boolean; progress?: number };
+      const data = payload as {
+        type?: string;
+        exporting?: boolean;
+        progress?: number;
+        buffer?: ArrayBuffer;
+        filename?: string;
+        targetId?: ExportShareTargetId;
+      };
       if (data?.type === "scro-export-progress" && data.exporting) {
         setPhase("exporting");
         setProgress(typeof data.progress === "number" ? data.progress : 0);
       } else if (data?.type === "scro-export-done") {
-        setPhase("idle");
-        setProgress(0);
+        const targetId = data.targetId || "download";
+        const filename =
+          data.filename || exportFilename(project, t("video.export.fallbackBasename"));
+        void finalizeExportShare({
+          targetId,
+          buffer: data.buffer,
+          filename,
+        });
       } else if (data?.type === "scro-export-error") {
+        if (pendingPopupRef.current && !pendingPopupRef.current.closed) {
+          pendingPopupRef.current.close();
+        }
+        pendingPopupRef.current = null;
+        setActiveTarget(null);
         setPhase("error");
         setProgress(0);
       }
     });
-  }, [host]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [host, project.id]);
 
-  function startExport() {
+  function startExportForTarget(targetId: ExportShareTargetId = "download") {
     if (disabled || phase === "exporting") return;
+    setActiveTarget(targetId);
     setPhase("exporting");
     setProgress(0);
+
+    // Copy title/caption to clipboard for 1-click paste on the destination platform
+    if (targetId !== "download" && typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(shareTitle).catch(() => {});
+    }
+
+    // Open the destination window synchronously inside the click handler so popup blockers never block it
+    if (targetId !== "download" && targetId !== "native_share" && typeof window !== "undefined") {
+      const spec = ALL_EXPORT_SHARE_TARGETS.find((item) => item.id === targetId);
+      const platformLabel = spec ? (isZh ? spec.titleZh : spec.titleEn) : targetId;
+      const popup = window.open("about:blank", "_blank");
+      if (popup) {
+        pendingPopupRef.current = popup;
+        writePopupPreparingScreen(popup, platformLabel, isZh);
+      }
+    }
+
     host.postToEditor({
       type: "scro-export",
       filename: exportFilename(project, t("video.export.fallbackBasename")),
+      targetId,
+      skipDownload: false,
     });
   }
 
@@ -133,18 +298,15 @@ export function OpenCutExportButton({
             <AddClipIcon className="h-4 w-4" />
           </StudioButton>
         </StudioHint>
-        <StudioHint hint={disabled ? t("video.export.waitForClips") : t("video.export.hint")}>
-          <button
-            type="button"
-            onClick={startExport}
-            disabled={disabled || phase === "exporting"}
-            data-opencut-tour="header-export-video"
-            className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#12141c] px-3.5 text-sm font-semibold text-[#c6f24b] transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {phase === "exporting" ? <Spinner className="h-3.5 w-3.5" /> : <DownloadIcon />}
-            {label}
-          </button>
-        </StudioHint>
+        <VideoExportMegaMenu
+          label={label}
+          busy={phase === "exporting"}
+          activeTarget={activeTarget}
+          disabled={disabled}
+          hint={disabled ? t("video.export.waitForClips") : t("video.export.hint")}
+          locale={locale}
+          onSelectTarget={startExportForTarget}
+        />
         {onOpenTutorial ? (
           <StudioHint hint="查看編輯器操作導覽 · Editor Tour">
             <button
@@ -159,15 +321,5 @@ export function OpenCutExportButton({
         ) : null}
       </div>
     </VideoEditorHeaderExport>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
-      <path d="M8 2.5v7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M5.2 7.2 8 10l2.8-2.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3.5 13h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
   );
 }

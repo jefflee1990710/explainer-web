@@ -7,3 +7,9 @@ export async function draftShareCaptionAction(
 ) {
   return service.draftShareCaptionAction(...args);
 }
+
+export async function persistExportedShareVideoAction(
+  ...args: Parameters<typeof service.persistExportedShareVideoAction>
+) {
+  return service.persistExportedShareVideoAction(...args);
+}
