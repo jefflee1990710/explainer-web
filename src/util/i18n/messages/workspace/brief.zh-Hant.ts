@@ -152,7 +152,10 @@ export const briefZhHant = {
     fixedLength: "選自動時，導演會規劃成 1 段、3–4 秒。",
   },
   talkingHead: {
-    hint: "上方是給導演的指示。角色要唸的講稿請填在下面。",
+    hint: "導演指示係選填。角色要唸的字請填在講稿，兩欄內容不要相同。",
+    instructionTitle: "導演指示（選填）",
+    instructionHint: "選填。只寫語氣、場景或重點。角色要唸的字請填在講稿，兩欄內容不要相同。",
+    instructionPlaceholder: "選填。例如：語氣親切，單側窗光，節奏穩定，唔好硬銷。",
     scriptTitle: "角色講稿",
     scriptHint: "角色會逐字讀這段。每段只放一句短句，字幕先保持大（大約 4 秒講稿，成片至少 5 秒，最多 20 段）。整段超過 240 秒請改短。",
     scriptLabel: "角色講稿",

@@ -58,7 +58,7 @@ test("talking-head refuses a script that cannot fit in 20 clips", () => {
 });
 
 test("talking-head keeps instruction and spoken script as separate fields", () => {
-  assert.equal(talkingHeadSourceError("   "), "請輸入導演指示。");
+  assert.equal(talkingHeadSourceError("   "), undefined);
   assert.equal(talkingHeadSourceError("Keep it punchy and look at the lens"), undefined);
   assert.equal(talkingHeadSpokenError("   "), "請輸入角色要讀的講稿。");
   assert.equal(talkingHeadSpokenError(SCRIPT, "medium"), undefined);
@@ -432,6 +432,7 @@ test("talking-head pose framing zooms from full-body to collarbone-close", () =>
     talkingHeadPoseId: "full-body",
     realistic: true,
   });
+  assert.equal(full.length, 1);
   assert.match(full[0].startScene, /head to feet fully visible/);
   assert.match(full[0].startScene, /locked full-body/);
   assert.doesNotMatch(full[0].startScene, /face fills 60–65%/);

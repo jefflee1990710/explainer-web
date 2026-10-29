@@ -168,9 +168,11 @@ export function talkingHeadScriptFromClips(clips: { englishVo?: string }[]) {
     .join("\n");
 }
 
-// Instruction field must exist; spoken lines come from spokenScript.
+// Director instruction is optional for talking-head, including a blank note.
+// Spoken lines are checked by talkingHeadSpokenError.
 export function talkingHeadSourceError(source: string) {
-  return source.replace(/\s+/g, "").length === 0 ? "請輸入導演指示。" : undefined;
+  void source;
+  return undefined;
 }
 
 // Spoken script the character will read.
@@ -297,14 +299,14 @@ export function planTalkingHeadClips(input: {
   const talkingShot: TalkingShot =
     poseForcesFullBody || input.shot === "full-body" ? "full-body" : "face";
   const resolvedShot = poseForcesFullBody ? "full-body" : input.shot;
-  const maxClipSeconds =
-    talkingShot === "full-body" ? FULL_BODY_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS;
+  // Legacy full-body-talking-head-director sets input.shot === "full-body" and uses 5–12s clips.
+  // talking-head-director with a full-body pose keeps the single long-clip (120s) budget.
+  const legacyShortClips = input.shot === "full-body" && !poseForcesFullBody;
+  const maxClipSeconds = legacyShortClips ? FULL_BODY_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS;
   const lines = balanceTalkingHeadLines(input.source, input.pace, {
     maxClipSeconds,
-    speechMaxSeconds:
-      talkingShot === "full-body" ? SPEECH_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS,
-    speechTargetSeconds:
-      talkingShot === "full-body" ? SPEECH_TARGET_SECONDS : TALKING_HEAD_MAX_SECONDS,
+    speechMaxSeconds: legacyShortClips ? SPEECH_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS,
+    speechTargetSeconds: legacyShortClips ? SPEECH_TARGET_SECONDS : TALKING_HEAD_MAX_SECONDS,
   });
   const total = lines.length;
   const clips: TalkingHeadClipPlan[] = [];

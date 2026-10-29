@@ -570,7 +570,7 @@ export function NewProjectForm({
       return;
     }
     if (wizardStep === 1) {
-      if (!source.trim()) {
+      if (!talkingHead && !source.trim()) {
         setError(t("brief.error.sourceRequired"));
         return;
       }
@@ -605,7 +605,7 @@ export function NewProjectForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!source.trim()) {
+    if (!talkingHead && !source.trim()) {
       setError(t("brief.error.sourceRequired"));
       if (setupMode === "quick") {
         document.getElementById("quick-source")?.focus();
@@ -1147,7 +1147,7 @@ export function NewProjectForm({
   };
 
   const canSubmit =
-    source.trim().length > 0 &&
+    (talkingHead || source.trim().length > 0) &&
     (!talkingHead || spokenScript.trim().length > 0) &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
@@ -1489,14 +1489,18 @@ export function NewProjectForm({
                     className="grid gap-4 lg:grid-cols-12 lg:items-stretch"
                   >
                     <div className="flex flex-col rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6 lg:col-span-7">
-                      <Section step="01" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
+                      <Section
+                        step="01"
+                        title={talkingHead ? t("brief.talkingHead.instructionTitle") : t("brief.section02.title")}
+                        hint={talkingHead ? t("brief.talkingHead.instructionHint") : t("brief.section02.hint")}
+                      >
                         <label htmlFor="source" className="sr-only">
                           {t("brief.source.label")}
                         </label>
                         <textarea
                           id="source"
                           name="source"
-                          required
+                          required={!talkingHead}
                           rows={talkingHead ? 8 : 14}
                           value={source}
                           onChange={(event) => setSource(event.target.value)}
@@ -1504,17 +1508,19 @@ export function NewProjectForm({
                           className={`w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60 ${
                             talkingHead ? "min-h-[12rem]" : "min-h-[22rem] lg:min-h-[26rem]"
                           }`}
-                          placeholder={t("brief.source.placeholder")}
+                          placeholder={
+                            talkingHead
+                              ? t("brief.talkingHead.instructionPlaceholder")
+                              : t("brief.source.placeholder")
+                          }
                         />
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                           <SampleScriptBar
                             disabled={briefBusy}
                             talkingHead={talkingHead}
-                            onApply={(text) => {
-                              setSource(text);
-                              if (talkingHead && !spokenScript.trim()) {
-                                setSpokenScript(text);
-                              }
+                            onApply={({ source: nextSource, spokenScript: nextSpoken }) => {
+                              setSource(nextSource);
+                              if (nextSpoken !== undefined) setSpokenScript(nextSpoken);
                             }}
                           />
                           <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">

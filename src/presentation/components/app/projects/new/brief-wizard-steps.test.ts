@@ -62,6 +62,10 @@ test("step 2 requires non-empty source, talking-head script when applicable, and
     true,
   );
   assert.equal(
+    isStep2Valid(baseState({ talkingHead: true, source: "   ", spokenScript: "Hello world." })),
+    true,
+  );
+  assert.equal(
     isStep2Valid(
       baseState({
         referenceImages: [{ url: "https://example.com/a.png", description: "  " }],

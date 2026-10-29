@@ -7,8 +7,10 @@ import { importBrandAsset, importReferenceImage } from "@/service/project/refere
 export const videoBriefFields = {
   source: z
     .string()
-    .min(1)
-    .describe("Director instruction: how to plan the video; may include the topic or a full script"),
+    .default("")
+    .describe(
+      "Director instruction: how to plan the video. Required unless skillSlug is a talking-head director, where this note is optional and must stay different from spokenScript.",
+    ),
   spokenScript: z
     .string()
     .optional()
@@ -65,7 +67,7 @@ export const videoBriefUpdateFields = {
 };
 
 export type VideoBriefArgs = {
-  source: string;
+  source?: string;
   spokenScript?: string;
   referenceImages?: Array<{ url: string; description: string }>;
   skillSlug?: string;
@@ -84,7 +86,7 @@ export type VideoBriefArgs = {
 
 // Copy a brief onto the FormData the project actions already read.
 export async function fillVideoBrief(form: FormData, args: VideoBriefArgs, clerkUserId: string) {
-  form.set("source", args.source);
+  form.set("source", args.source || "");
   if (args.spokenScript) form.set("spokenScript", args.spokenScript);
   form.set("skillSlug", args.skillSlug || "cartoon-explainer");
   form.set("styleId", args.styleId);

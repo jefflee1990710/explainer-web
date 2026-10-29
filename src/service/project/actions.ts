@@ -211,7 +211,7 @@ async function readVideoBrief(
   if (productIds.length > PRODUCT_MAX) {
     return { ok: false, error: `最多選 ${PRODUCT_MAX} 個產品` };
   }
-  if (!source) return { ok: false, error: "請提供導演指示" };
+  if (!source && !isTalkingHeadSkill(ruleSlug)) return { ok: false, error: "請提供導演指示" };
   if (isTalkingHeadSkill(ruleSlug) && !spokenScript) {
     return { ok: false, error: "請輸入角色要讀的講稿。" };
   }

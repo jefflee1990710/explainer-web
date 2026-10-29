@@ -153,7 +153,11 @@ export const briefEn = {
     fixedLength: "Auto: the director plans one 3–4 second clip.",
   },
   talkingHead: {
-    hint: "Instruction is for the director. Add the script the character will read in the field below.",
+    hint: "Director instruction is optional. The words they say go in Script to read — keep the two different.",
+    instructionTitle: "Director instruction (optional)",
+    instructionHint:
+      "Optional. Tone, setting, or emphasis only. The words the character says go in Script to read — keep the two different.",
+    instructionPlaceholder: "Optional. For example: warm, side window light, steady pace, no hard sell.",
     scriptTitle: "Script to read",
     scriptHint:
       "The character reads this aloud. Each clip is one short line so the subtitle stays large (about 4 seconds of speech, played at least 5 seconds, up to 20 clips). A script over 240 seconds must be shortened.",
