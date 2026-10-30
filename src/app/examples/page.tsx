@@ -1,43 +1,30 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { ExamplesView } from "@/presentation/components/examples-view";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { PublicPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { getAuthSession } from "@/service/auth";
-import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
+import { getMessages } from "@/util/i18n";
+import { getRequestLocale } from "@/util/i18n/request-locale";
+import { publicPageMetadata } from "@/util/seo/public-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const jar = await cookies();
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const ex = getMessages(locale).examples;
-  const title = `Scro — ${ex.heroTitle}`;
-  const description = ex.subtitle;
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: "/examples",
-    },
-    openGraph: {
-      title,
-      description,
-      url: "/examples",
-      siteName: "Scro",
-      type: "website",
-      locale,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+  const title = ex.seoTitle || `Scro — ${ex.heroTitle}`;
+  const description = ex.seoDescription || ex.subtitle;
+  return publicPageMetadata({ title, description, path: "/examples", locale });
 }
 
 export default async function ExamplesPage() {
-  const session = await getAuthSession();
+  const [session, locale] = await Promise.all([getAuthSession(), getRequestLocale()]);
+  const ex = getMessages(locale).examples;
   return (
     <PolicyLayout>
+      <PublicPageJsonLd
+        path="/examples"
+        title={ex.seoTitle || `Scro — ${ex.heroTitle}`}
+        description={ex.seoDescription || ex.subtitle}
+      />
       <ExamplesView signedIn={Boolean(session)} />
     </PolicyLayout>
   );

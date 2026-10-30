@@ -4,17 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/scroadmin/analytics", label: "UX 追蹤分析", exact: true },
-  { href: "/scroadmin/analytics/directors", label: "內建導演", exact: true },
+  { href: "/scroadmin/website", label: "1. 官網進站與註冊漏斗 (/website)", exact: true },
+  { href: "/scroadmin/analytics", label: "2. 登入後創作行為分析 (/analytics)", exact: true },
+  { href: "/scroadmin/analytics/directors", label: "3. 內建導演提示詞 (/directors)", exact: true },
 ];
 
-// Switches the analytics console between funnel diagnostics and the director inspector.
+// Switches the analytics console between website entry funnel, post-login funnel diagnostics, and the director inspector.
 export function AnalyticsSectionNav() {
   const pathname = usePathname();
   return (
     <nav className="flex flex-wrap gap-2" aria-label="分析區">
       {LINKS.map((link) => {
-        const active = link.exact ? pathname === link.href : pathname.startsWith(link.href);
+        const active =
+          link.href === "/scroadmin/website"
+            ? pathname === "/scroadmin/website" || pathname === "/scroadmin/analytics/website"
+            : link.href === "/scroadmin/analytics"
+              ? pathname === "/scroadmin/analytics" || pathname === "/scroadmin/analysis"
+              : link.exact
+                ? pathname === link.href
+                : pathname.startsWith(link.href);
         return (
           <Link
             key={link.href}

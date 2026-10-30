@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LandingHeroArt } from "@/presentation/components/landing-hero-art";
 
@@ -85,6 +86,12 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
         >
           <Link
             href={signedIn ? "/app/characters" : "/sign-up"}
+            onClick={() =>
+              track("auth_cta_click", {
+                placement: "landing_hero",
+                target: signedIn ? "/app/characters" : "/sign-up",
+              })
+            }
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] shadow-[0_12px_36px_rgba(198,242,75,0.28)] transition-transform hover:-translate-y-0.5 hover:bg-[#d4f76a] sm:w-auto sm:px-9"
           >
             {signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart")}

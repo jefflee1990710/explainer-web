@@ -69,6 +69,7 @@ export function AuthForm({
       await finish(idToken, register ? "sign_up" : "login", "email");
     } catch (caught) {
       const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
+      track("auth_failed", { mode, method: "email", code: code || "unknown" });
       setError(t(authErrorKey(code)));
       setPending(false);
     }
@@ -88,6 +89,7 @@ export function AuthForm({
         setPending(false);
         return;
       }
+      track("auth_failed", { mode, method: "google", code: code || "unknown" });
       setError(t(authErrorKey(code)));
       setPending(false);
     }

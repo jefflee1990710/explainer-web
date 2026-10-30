@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
 import { LandingCast } from "@/presentation/components/landing-cast";
@@ -15,40 +14,24 @@ import { LandingUseCases } from "@/presentation/components/landing-use-cases";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { catalogShowcaseStats } from "@/service/character/catalog-stats";
 import { getSiteUrl } from "@/util/app-url";
-import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
+import { getMessages } from "@/util/i18n";
+import { getRequestLocale } from "@/util/i18n/request-locale";
+import { publicPageMetadata } from "@/util/seo/public-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const jar = await cookies();
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const messages = getMessages(locale);
-  return {
+  return publicPageMetadata({
     title: messages.meta.title,
     description: messages.meta.description,
-    alternates: {
-      canonical: "/",
-    },
-    openGraph: {
-      title: messages.meta.title,
-      description: messages.meta.description,
-      url: "/",
-      siteName: "Scro",
-      type: "website",
-      locale,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: messages.meta.title,
-      description: messages.meta.description,
-    },
-  };
+    path: "/",
+    locale,
+  });
 }
 
 // Plans live on /pricing. Landing leads with explainer videos and the AI Influencer who hosts them.
 export default async function HomePage() {
-  const [session, jar] = await Promise.all([getAuthSession(), cookies()]);
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const [session, locale] = await Promise.all([getAuthSession(), getRequestLocale()]);
   const messages = getMessages(locale);
   const siteUrl = getSiteUrl();
   const catalogStats = catalogShowcaseStats();

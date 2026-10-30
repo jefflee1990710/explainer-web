@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Conversion CTA banner / sidebar card encouraging readers to register for Scro and claim free credits.
@@ -50,6 +51,12 @@ export function BlogPostRegisterCta({
         </ul>
         <Link
           href={targetHref}
+          onClick={() =>
+            track("auth_cta_click", {
+              placement: "blog_sidebar_cta",
+              target: targetHref,
+            })
+          }
           className="mt-4 inline-flex min-h-[42px] w-full items-center justify-center rounded-full bg-[#c6f24b] px-4 py-2 text-center text-xs font-bold text-[#12141c] transition hover:-translate-y-0.5 hover:bg-[#d4f76e]"
         >
           {ctaPrimary}
@@ -85,6 +92,12 @@ export function BlogPostRegisterCta({
         <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row lg:flex-col">
           <Link
             href={targetHref}
+            onClick={() =>
+              track("auth_cta_click", {
+                placement: `blog_${variant}_cta`,
+                target: targetHref,
+              })
+            }
             className="inline-flex min-h-[46px] items-center justify-center rounded-full bg-[#c6f24b] px-6 py-2.5 text-center text-sm font-bold text-[#12141c] shadow-[3px_3px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 hover:bg-[#d4f76e]"
           >
             {ctaPrimary}

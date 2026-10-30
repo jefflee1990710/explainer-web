@@ -36,10 +36,16 @@ export default async function ScroAdminHomePage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/scroadmin/analytics"
+              href="/scroadmin/website"
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#c6f24b] px-5 py-2 text-sm font-semibold text-[#12141c]"
             >
-              UX 路徑與流失分析
+              官網進站與註冊漏斗
+            </Link>
+            <Link
+              href="/scroadmin/analytics"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#c6f24b]/60 px-5 py-2 text-sm font-semibold text-[#c6f24b]"
+            >
+              登入後行為與流失分析
             </Link>
             <Link
               href="/scroadmin/analytics/directors"

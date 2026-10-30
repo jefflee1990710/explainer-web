@@ -3,7 +3,8 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const zhHans: Partial<Messages> = {
   meta: {
     title: "Scro — Explainer 解说片与 AI 网红",
-    description: "用同一个 AI 网红拍白板 Explainer。脸、衣柜和声音锁定，概念片和网红短片一起出。",
+    description:
+      "用同一个锁定脸、衣柜和声音的 AI 网红拍白板 Explainer。从分镜到发布，概念片和网红短片都是同一个人出镜。",
   },
   nav: {
     projects: "视频",
@@ -150,6 +151,9 @@ export const zhHans: Partial<Messages> = {
       eyebrow: "方案价格",
       title: "订阅方案，持续出 Explainer 和 AI 网红片",
       subtitle: "按照你的账号更新频率与矩阵规模选择方案。",
+      seoTitle: "Scro 方案价格 — Explainer 与 AI 网红",
+      seoDescription:
+        "比较 Starter、Pro、Studio、Scale。分镜批准前免费，credits 用于角色造型、Life 照片和成片渲染。",
       clipsApprox: "段 clips",
       subscribePlan: "订阅 {plan}",
     },
@@ -222,6 +226,9 @@ export const zhHans: Partial<Messages> = {
     title: "看看成果",
     heroTitle: "看看 Scro 怎么运作",
     subtitle: "每一种都是不同的工作：画面比例、风格，以及视频要放在哪里。",
+    seoTitle: "Scro 示例 — 短视频、简报与产品广告",
+    seoDescription:
+      "看看 Scro 的成片：竖式 Reel、16:9 简报片段、正方形产品广告和横式舞台故事，每一种对应不同的发布位置。",
     cta: "看看成果",
     galleryTitle: "四条成片，四种不同的工作。",
     galleryBody: "短视频、简报片段、正方形帖子、横式舞台。同一个工作室，不同的画面。",
@@ -650,8 +657,9 @@ export const zhHans: Partial<Messages> = {
     igLabel: "Instagram",
   },
   blogPage: {
-    seoTitle: "文章 | Scro",
-    seoDescription: "阅读 Scro 的最新文章、教学指南与产品更新。",
+    seoTitle: "AI 视频教程与 Explainer 指南 | Scro",
+    seoDescription:
+      "AI 网红短片、粤语对嘴、白板解说和分镜流程的教程与清单，Scro 工作室持续更新可照做的指南。",
     notFoundTitle: "找不到文章 | Scro",
     eyebrow: "文章专栏",
     title: "最新文章",

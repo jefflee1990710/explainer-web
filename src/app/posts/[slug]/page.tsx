@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
@@ -12,7 +11,9 @@ import { BlogPostContent } from "@/app/posts/[slug]/blog-post-content";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 import { BlogPostSidebar } from "@/app/posts/[slug]/blog-post-sidebar";
 import { getSiteUrl } from "@/util/app-url";
-import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
+import { getMessages } from "@/util/i18n";
+import { getRequestLocale } from "@/util/i18n/request-locale";
+import { openGraphLocale, postDocumentTitle } from "@/util/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -21,16 +22,14 @@ type PostDetailPageProps = {
 };
 
 async function getBlogLocaleAndCopy() {
-  const jar = await cookies();
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   return { locale, copy: getMessages(locale).blogPage };
 }
 
 // Generate SEO metadata (title, description, OpenGraph, Twitter Card, canonical URL) from the post slug.
 export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const [post, { copy }] = await Promise.all([
+  const [post, { locale, copy }] = await Promise.all([
     getPublishedBlogPostBySlug(slug),
     getBlogLocaleAndCopy(),
   ]);
@@ -41,8 +40,9 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
   }
 
   const canonicalPath = `/posts/${encodeURIComponent(post.slug)}`;
+  const title = postDocumentTitle(post.title);
   return {
-    title: `${post.title} | Scro`,
+    title,
     description: post.excerpt,
     alternates: {
       canonical: canonicalPath,
@@ -52,6 +52,7 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
       description: post.excerpt,
       type: "article",
       url: canonicalPath,
+      locale: openGraphLocale(locale),
       publishedTime: post.createdAt,
       modifiedTime: post.updatedAt,
       tags: post.tags,
@@ -163,12 +164,14 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
               ) : null}
             </header>
 
-            <div className="mb-10 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
+            <div className="mb-10 aspect-16/10 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.featureImage}
                 alt={post.title}
-                className="max-h-[30rem] w-full object-cover"
+                width={1600}
+                height={1000}
+                className="h-full w-full object-cover"
               />
             </div>
 

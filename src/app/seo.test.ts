@@ -19,18 +19,33 @@ test("robots() returns sitemap URL, host, and disallows private workspace paths"
   assert.ok(starRule.disallow.includes("/academy"));
 });
 
-test("buildSitemapEntries includes all static public pages and published blog posts", () => {
-  const entries = buildSitemapEntries("https://scro.io", [
+test("buildSitemapEntries includes all static public pages and published blog posts without 100-item truncation", () => {
+  const manyPosts = Array.from({ length: 900 }, (_, i) => ({
+    slug: `post-${i + 1}`,
+    updatedAt: "2026-10-20T00:00:00.000Z",
+  }));
+  const entries = buildSitemapEntries("https://www.scro.io", [
     { slug: "ai-influencer-guide", updatedAt: "2026-10-20T00:00:00.000Z" },
+    ...manyPosts,
   ]);
-  assert.equal(entries.length, PUBLIC_STATIC_SITEMAP_ROUTES.length + 1);
-  assert.equal(entries[0]?.url, "https://scro.io");
-  assert.ok(entries.some((e) => e.url === "https://scro.io/ai-influencer"));
-  assert.ok(entries.some((e) => e.url === "https://scro.io/pricing"));
-  assert.equal(entries.some((e) => e.url === "https://scro.io/academy"), false);
+  const listingPages = Math.ceil(901 / 12) - 1;
+  assert.equal(entries.length, PUBLIC_STATIC_SITEMAP_ROUTES.length + listingPages + 901);
+  assert.equal(entries[0]?.url, "https://www.scro.io");
+  assert.equal(entries[0]?.lastModified, undefined);
+  assert.equal(entries[0]?.alternates?.languages?.["zh-Hant"], "https://www.scro.io/?hl=zh-Hant");
+  assert.equal(entries[0]?.alternates?.languages?.["x-default"], "https://www.scro.io");
+  assert.ok(entries.some((e) => e.url === "https://www.scro.io/ai-influencer"));
+  assert.ok(entries.some((e) => e.url === "https://www.scro.io/pricing"));
+  assert.ok(entries.some((e) => e.url === "https://www.scro.io/posts?page=76"));
+  assert.equal(entries.some((e) => e.url === "https://www.scro.io/posts?page=77"), false);
+  assert.equal(entries.some((e) => e.url === "https://www.scro.io/academy"), false);
   assert.ok(
-    entries.some((e) => e.url === "https://scro.io/posts/ai-influencer-guide"),
+    entries.some((e) => e.url === "https://www.scro.io/posts/ai-influencer-guide"),
   );
+  const oldest = entries.find((e) => e.url === "https://www.scro.io/posts/post-900");
+  assert.ok(oldest);
+  assert.equal(oldest.alternates, undefined);
+  assert.ok(oldest.lastModified instanceof Date);
 });
 
 test("buildLlmsTxt and buildLlmsFullTxt output valid markdown with core URLs and posts", () => {
@@ -42,16 +57,18 @@ test("buildLlmsTxt and buildLlmsFullTxt output valid markdown with core URLs and
       tags: ["Cantonese", "SME"],
     },
   ];
-  const shortTxt = buildLlmsTxt("https://scro.io", samplePosts);
+  const shortTxt = buildLlmsTxt("https://www.scro.io", samplePosts);
   assert.ok(shortTxt.startsWith("# Scro"));
-  assert.ok(shortTxt.includes("https://scro.io/llms-full.txt"));
-  assert.ok(shortTxt.includes("[AI Influencer Studio](https://scro.io/ai-influencer)"));
-  assert.ok(shortTxt.includes("[Cantonese Reel Tips](https://scro.io/posts/cantonese-reel-tips)"));
+  assert.ok(shortTxt.includes("https://www.scro.io/llms-full.txt"));
+  assert.ok(shortTxt.includes("[AI Influencer Studio](https://www.scro.io/ai-influencer)"));
+  assert.ok(shortTxt.includes("[Cantonese Reel Tips](https://www.scro.io/posts/cantonese-reel-tips)"));
   assert.equal(shortTxt.includes("/academy"), false);
 
-  const fullTxt = buildLlmsFullTxt("https://scro.io", samplePosts);
+  const fullTxt = buildLlmsFullTxt("https://www.scro.io", samplePosts);
   assert.ok(fullTxt.startsWith("# Scro — Full Documentation for LLMs & AI Agents"));
-  assert.ok(fullTxt.includes("POST https://scro.io/api/mcp"));
-  assert.ok(fullTxt.includes("https://scro.io/posts/cantonese-reel-tips"));
+  assert.ok(fullTxt.includes("POST https://www.scro.io/api/mcp"));
+  assert.ok(fullTxt.includes("https://www.scro.io/posts/cantonese-reel-tips"));
+  assert.ok(fullTxt.includes("`https://www.scro.io`"));
+  assert.equal(fullTxt.includes("`https://scro.io`"), false);
   assert.equal(fullTxt.includes("/academy"), false);
 });

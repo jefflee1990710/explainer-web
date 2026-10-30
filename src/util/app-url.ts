@@ -1,15 +1,30 @@
-export const DEFAULT_SITE_URL = "https://scro.io";
+export const DEFAULT_SITE_URL = "https://www.scro.io";
 
 function isVercelAppHost(hostname: string) {
   const host = hostname.toLowerCase();
   return host === "vercel.app" || host.endsWith(".vercel.app");
 }
 
+// Normalize bare scro.io to https://www.scro.io so sitemaps and canonical tags match the 200 OK host (avoiding 308 redirects).
+function normalizeCanonicalSiteUrl(raw: string): string {
+  const cleaned = raw.replace(/\/$/, "");
+  try {
+    const url = new URL(cleaned);
+    if (url.hostname.toLowerCase() === "scro.io") {
+      url.hostname = "www.scro.io";
+      return url.toString().replace(/\/$/, "");
+    }
+  } catch {
+    // Fall through
+  }
+  return cleaned;
+}
+
 function isCustomPublicSiteUrl(raw: string | undefined): raw is string {
   if (!raw || !isPublicHttpUrl(raw)) return false;
   try {
     const url = new URL(raw);
-    return !isVercelAppHost(url.hostname) && url.hostname.toLowerCase() !== "www.scro.io";
+    return !isVercelAppHost(url.hostname);
   } catch {
     return false;
   }
@@ -18,15 +33,15 @@ function isCustomPublicSiteUrl(raw: string | undefined): raw is string {
 export function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     const cleaned = process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-    // Ignore legacy explainer-web.vercel.app production env var in favor of scro.io
+    // Ignore legacy explainer-web.vercel.app production env var in favor of www.scro.io
     if (!cleaned.includes("explainer-web.vercel.app")) {
-      return cleaned;
+      return normalizeCanonicalSiteUrl(cleaned);
     }
     return DEFAULT_SITE_URL;
   }
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     if (!isVercelAppHost(process.env.VERCEL_PROJECT_PRODUCTION_URL)) {
-      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      return normalizeCanonicalSiteUrl(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`);
     }
     return DEFAULT_SITE_URL;
   }
@@ -39,10 +54,10 @@ export function getAppUrl() {
 // Public canonical base URL used for sitemaps, robots.txt, llms.txt, and SEO metadata.
 export function getSiteUrl() {
   if (isCustomPublicSiteUrl(process.env.NEXT_PUBLIC_SITE_URL)) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+    return normalizeCanonicalSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
   }
   if (isCustomPublicSiteUrl(process.env.NEXT_PUBLIC_APP_URL)) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    return normalizeCanonicalSiteUrl(process.env.NEXT_PUBLIC_APP_URL);
   }
   return DEFAULT_SITE_URL;
 }

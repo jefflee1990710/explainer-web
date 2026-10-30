@@ -39,6 +39,9 @@ export const DEFAULT_LOCALE: LocaleId = "en";
 
 export const LOCALE_STORAGE_KEY = "explainer.locale";
 
+// Set by proxy when the URL has ?hl=, read by server components via next/headers.
+export const REQUEST_LOCALE_HEADER = "x-scro-locale";
+
 export type LocaleOption = {
   id: LocaleId;
   /** Endonym shown in the language switcher. */

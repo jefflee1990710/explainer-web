@@ -7,9 +7,19 @@ import { track } from "@/presentation/components/analytics/track";
 // Map pathname into a human-readable funnel stage so drop-off reports are immediately clear.
 function resolveUxStageFromPath(pathname: string): string {
   if (pathname === "/") return "landing_home";
+  if (pathname.startsWith("/ai-influencer")) return "marketing_ai_influencer";
+  if (pathname.startsWith("/product-promo")) return "marketing_product_promo";
+  if (pathname.startsWith("/talking-head")) return "marketing_talking_head";
+  if (pathname.startsWith("/cantonese")) return "marketing_cantonese";
+  if (pathname.startsWith("/explainer")) return "marketing_explainer";
+  if (pathname.startsWith("/right-tool")) return "marketing_right_tool";
   if (pathname.startsWith("/pricing")) return "marketing_pricing";
   if (pathname.startsWith("/academy")) return "marketing_academy";
   if (pathname.startsWith("/examples")) return "marketing_examples";
+  if (pathname === "/posts") return "marketing_posts";
+  if (pathname.startsWith("/posts/")) return "marketing_post_detail";
+  if (pathname.startsWith("/contact")) return "marketing_contact";
+  if (pathname.startsWith("/terms") || pathname.startsWith("/privacy")) return "marketing_legal";
   if (pathname.startsWith("/sign-in")) return "auth_sign_in";
   if (pathname.startsWith("/sign-up")) return "auth_sign_up";
   if (pathname.startsWith("/legal/accept")) return "onboarding_legal";
@@ -38,8 +48,8 @@ export function UxRouteTracker() {
 
   useEffect(() => {
     if (!pathname) return;
-    // Skip noisy admin analytics self-tracking loops while still allowing normal pages.
-    if (pathname.startsWith("/scroadmin/analytics")) return;
+    // Skip noisy admin self-tracking loops while still allowing normal pages.
+    if (pathname.startsWith("/scroadmin")) return;
 
     const search = searchParams?.toString() ?? "";
     const fullPath = search ? `${pathname}?${search}` : pathname;

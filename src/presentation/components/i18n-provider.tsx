@@ -17,6 +17,7 @@ import {
   createTranslate,
   DEFAULT_LOCALE,
   getMessages,
+  isLocaleId,
   type LocaleId,
   type TranslateFn,
 } from "@/util/i18n";
@@ -43,11 +44,19 @@ export function I18nProvider({
   const [locale, setLocaleState] = useState<LocaleId>(initialLocale);
 
   useEffect(() => {
+    const hl = new URLSearchParams(window.location.search).get("hl");
+    if (isLocaleId(hl)) {
+      // Server already rendered this language from ?hl=. Only persist it.
+      writeStoredLocale(hl);
+      return;
+    }
     const resolved = resolveLocale(readStoredLocale(), [
       ...(navigator.languages ?? []),
       navigator.language,
     ]);
     if (resolved === initialLocale) return;
+    // Apply a stored or browser language only after hydration, so the first paint matches the server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- locale must not change during the server render
     setLocaleState(resolved);
     writeStoredLocale(resolved);
   }, [initialLocale]);
@@ -64,9 +73,9 @@ export function I18nProvider({
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    // Feature SEO landings keep their own title when the user switches locale.
-    document.title =
-      marketingSeoTitle(value.messages, pathname) ?? value.t("meta.title");
+    // Only feature landings rewrite the title on the client. Other pages keep the server document title.
+    const marketingTitle = marketingSeoTitle(value.messages, pathname);
+    if (marketingTitle) document.title = marketingTitle;
   }, [locale, pathname, value]);
 
   return (

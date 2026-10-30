@@ -21,7 +21,7 @@ export const en: Messages = {
   meta: {
     title: "Scro — Explainer Videos and AI Influencers",
     description:
-      "Make whiteboard explainer videos with one locked AI Influencer — the same face, wardrobe, and voice on every short.",
+      "Make whiteboard explainer videos with one locked AI Influencer — the same face, wardrobe, and voice on every short, from storyboard to publish.",
   },
   nav: {
     projects: "Video",
@@ -230,6 +230,9 @@ export const en: Messages = {
       eyebrow: "Pricing",
       title: "Subscribe to ship explainers and your AI Influencer",
       subtitle: "Choose the plan that matches your publishing volume.",
+      seoTitle: "Scro Pricing for Explainers and AI Influencers",
+      seoDescription:
+        "Compare Starter, Pro, Studio, and Scale. Storyboards stay free until you approve them. Credits cover character looks, Life photos, and rendered shorts.",
       clipsApprox: "clips",
       subscribePlan: "Subscribe {plan}",
     },
@@ -318,6 +321,9 @@ export const en: Messages = {
     title: "See the results",
     heroTitle: "See how Scro works",
     subtitle: "Each type is a different job: the frame, the style, and where the video will play.",
+    seoTitle: "Scro Examples — Reels, Deck Clips, and Product Shorts",
+    seoDescription:
+      "Watch finished Scro videos: vertical Reels, 16:9 deck clips, square product ads, and wide stage stories, each framed for where you publish.",
     cta: "See the results",
     galleryTitle: "Four finished cuts. Four different jobs.",
     galleryBody: "A Reel, a deck clip, a square post, and a wide stage. Same studio, different frame.",
@@ -1665,7 +1671,8 @@ export const en: Messages = {
   contactPage: {
     navLabel: "Contact",
     seoTitle: "Scro — Contact us",
-    seoDescription: "Ask about your account, a render, or an enterprise plan. We reply by email.",
+    seoDescription:
+      "Email Scro about sign-in, credits, or a render, or ask about an enterprise plan with invoicing and a usage contract. We reply by email.",
     eyebrow: "Contact",
     title: "Talk to us.",
     body: "Account questions, a render that needs a look, or a plan for a team. Send a note and we reply by email.",
@@ -1809,8 +1816,9 @@ export const en: Messages = {
     coverUrlLabel: "Cover image URL",
   },
   blogPage: {
-    seoTitle: "Posts | Scro",
-    seoDescription: "Read the latest articles, guides, and updates from Scro.",
+    seoTitle: "AI Video Guides and Explainer Playbooks | Scro",
+    seoDescription:
+      "Practical guides for AI influencer videos, Cantonese talking-heads, whiteboard explainers, and storyboard workflows, updated by the Scro studio.",
     notFoundTitle: "Post Not Found | Scro",
     eyebrow: "Blog",
     title: "Posts",

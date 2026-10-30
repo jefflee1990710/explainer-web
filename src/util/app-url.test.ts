@@ -20,18 +20,27 @@ test("isPublicHttpUrl rejects localhost, private IPs, and URL credentials", () =
   assert.equal(isPublicHttpUrl("not-a-url"), false);
 });
 
-test("getSiteUrl and getAppUrl resolve to https://scro.io instead of explainer-web.vercel.app", () => {
+test("getSiteUrl and getAppUrl resolve to https://www.scro.io instead of explainer-web.vercel.app", () => {
   const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const prevSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const prevProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   try {
-    assert.equal(DEFAULT_SITE_URL, "https://scro.io");
+    assert.equal(DEFAULT_SITE_URL, "https://www.scro.io");
     process.env.NEXT_PUBLIC_APP_URL = "https://explainer-web.vercel.app";
     process.env.VERCEL_PROJECT_PRODUCTION_URL = "explainer-web.vercel.app";
-    assert.equal(getSiteUrl(), "https://scro.io");
-    assert.equal(getAppUrl(), "https://scro.io");
+    assert.equal(getSiteUrl(), "https://www.scro.io");
+    assert.equal(getAppUrl(), "https://www.scro.io");
+    process.env.NEXT_PUBLIC_SITE_URL = "https://scro.io";
+    assert.equal(getSiteUrl(), "https://www.scro.io");
+    process.env.NEXT_PUBLIC_APP_URL = "https://scro.io";
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    assert.equal(getAppUrl(), "https://www.scro.io");
+    assert.equal(getSiteUrl(), "https://www.scro.io");
   } finally {
     if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
     else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
+    if (prevSiteUrl === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
+    else process.env.NEXT_PUBLIC_SITE_URL = prevSiteUrl;
     if (prevProdUrl === undefined) delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
     else process.env.VERCEL_PROJECT_PRODUCTION_URL = prevProdUrl;
   }

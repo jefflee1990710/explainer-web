@@ -1,6 +1,7 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
+import { MarketingPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ExplainerCta } from "./explainer-cta";
 import { ExplainerExamples } from "./explainer-examples";
@@ -18,6 +19,7 @@ export default async function ExplainerMarketingPage() {
   const signedIn = Boolean(session);
   return (
     <PolicyLayout>
+      <MarketingPageJsonLd pageKey="explainerPage" />
       <ExplainerHero signedIn={signedIn} />
       <ExplainerStyle />
       <ExplainerUses signedIn={signedIn} />

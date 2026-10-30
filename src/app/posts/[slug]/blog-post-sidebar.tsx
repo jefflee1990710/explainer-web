@@ -55,6 +55,8 @@ export function BlogPostSidebar({
                   <img
                     src={item.featureImage}
                     alt={item.title}
+                    width={96}
+                    height={64}
                     loading="lazy"
                     className="h-16 w-24 shrink-0 rounded-lg border border-zinc-200 bg-zinc-100 object-cover transition group-hover:scale-[1.03]"
                   />

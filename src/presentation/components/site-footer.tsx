@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { SITE_FEATURE_LINKS } from "@/presentation/components/site-features-menu";
 
 /** Partner directory listings (dofollow backlinks for free-listing verification). */
 const DIRECTORY_LINKS = [
@@ -31,6 +32,11 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-600">
+            {SITE_FEATURE_LINKS.map((item) => (
+              <Link key={item.href} href={item.href} className="hover:text-[#12141c]">
+                {t(item.labelKey)}
+              </Link>
+            ))}
             <Link href="/posts" className="hover:text-[#12141c]">
               {t("nav.blog")}
             </Link>

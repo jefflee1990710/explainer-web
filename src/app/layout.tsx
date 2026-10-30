@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { GoogleAnalytics } from "@/presentation/components/analytics/google-analytics";
 import { AdhocBonusProvider } from "@/presentation/components/adhoc-bonus";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
 import { adhocBonusPercent } from "@/service/billing/promo";
 import { getSiteUrl } from "@/util/app-url";
-import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY, type LocaleId } from "@/util/i18n";
+import { getMessages } from "@/util/i18n";
+import { getRequestLocale } from "@/util/i18n/request-locale";
+import { openGraphLocale, socialImage } from "@/util/seo/public-metadata";
 import "./globals.css";
-
-async function localeFromCookie(): Promise<LocaleId> {
-  const jar = await cookies();
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  return isLocaleId(stored) ? stored : DEFAULT_LOCALE;
-}
 
 const notoSansTc = Noto_Sans_TC({
   variable: "--font-body",
@@ -30,12 +25,23 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await localeFromCookie();
+  const locale = await getRequestLocale();
   const messages = getMessages(locale);
   const siteUrl = getSiteUrl();
   return {
     metadataBase: new URL(siteUrl),
     applicationName: "Scro",
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
     title: {
       default: messages.meta.title,
       template: "%s",
@@ -62,18 +68,20 @@ export async function generateMetadata(): Promise<Metadata> {
       url: siteUrl,
       siteName: "Scro",
       type: "website",
-      locale,
+      locale: openGraphLocale(locale),
+      images: socialImage(messages.meta.title),
     },
     twitter: {
       card: "summary_large_image",
       title: messages.meta.title,
       description: messages.meta.description,
+      images: ["/opengraph-image"],
     },
   };
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const initialLocale = await localeFromCookie();
+  const initialLocale = await getRequestLocale();
 
   return (
     <html

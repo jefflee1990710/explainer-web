@@ -30,6 +30,8 @@ export function BlogPostCard({ post }: { post: PublicBlogPost }) {
         <img
           src={post.featureImage}
           alt={post.title}
+          width={1600}
+          height={1000}
           loading="lazy"
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />

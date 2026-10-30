@@ -1,6 +1,7 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
+import { MarketingPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { AiInfluencerCta } from "./ai-influencer-cta";
 import { AiInfluencerExamples } from "./ai-influencer-examples";
@@ -19,6 +20,7 @@ export default async function AiInfluencerMarketingPage() {
   const signedIn = Boolean(session);
   return (
     <PolicyLayout>
+      <MarketingPageJsonLd pageKey="aiInfluencerPage" />
       <AiInfluencerHero signedIn={signedIn} />
       <AiInfluencerSoul signedIn={signedIn} />
       <AiInfluencerIp />

@@ -153,10 +153,87 @@ export async function listBlogPostsPaginated(
   };
 }
 
+// Public /posts page size. Sitemap listing URLs use the same size.
+export const PUBLIC_BLOG_PAGE_SIZE = 12;
+
 // List all published blog posts ordered from newest to oldest.
 export async function listPublishedBlogPosts(limit = 100): Promise<PublicBlogPost[]> {
-  const result = await listBlogPostsPaginated({ page: 1, limit });
-  return result.posts;
+  const safeLimit = Math.min(5000, Math.max(1, Math.floor(Number(limit) || 100)));
+  const collection = await blogPostsCollection();
+  const docs = (await collection
+    .find({ published: true })
+    .sort({ createdAt: -1 })
+    .limit(safeLimit)
+    .toArray()) as BlogPost[];
+  return docs.map(toPublicBlogPost);
+}
+
+export type BlogPostSitemapEntry = {
+  slug: string;
+  updatedAt: string;
+};
+
+export type BlogPostLlmsEntry = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  tags: string[];
+};
+
+// Titles and excerpts only, so llms-full.txt can list every post without loading article bodies.
+export async function listPublishedBlogPostsForLlms(limit = 5000): Promise<BlogPostLlmsEntry[]> {
+  const safeLimit = Math.min(5000, Math.max(1, Math.floor(Number(limit) || 5000)));
+  const collection = await blogPostsCollection();
+  const docs = await collection
+    .find(
+      { published: true },
+      { projection: { slug: 1, title: 1, excerpt: 1, tags: 1, createdAt: 1 } },
+    )
+    .sort({ createdAt: -1 })
+    .limit(safeLimit)
+    .toArray();
+  return docs.flatMap((doc) => {
+    if (typeof doc.slug !== "string" || !doc.slug.trim()) return [];
+    if (typeof doc.title !== "string" || !doc.title.trim()) return [];
+    const tags = Array.isArray(doc.tags)
+      ? doc.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
+      : [];
+    return [{
+      slug: doc.slug.trim(),
+      title: doc.title.trim(),
+      excerpt: typeof doc.excerpt === "string" ? doc.excerpt.trim() : "",
+      tags,
+    }];
+  });
+}
+
+// Lightweight query for sitemap.xml that projects only slug + timestamps (up to 50,000 URLs per Sitemap spec).
+export async function listPublishedBlogPostsForSitemap(
+  limit = 50000,
+): Promise<BlogPostSitemapEntry[]> {
+  const safeLimit = Math.min(50000, Math.max(1, Math.floor(Number(limit) || 50000)));
+  const collection = await blogPostsCollection();
+  const docs = await collection
+    .find(
+      { published: true },
+      { projection: { slug: 1, updatedAt: 1, createdAt: 1 } },
+    )
+    .sort({ createdAt: -1 })
+    .limit(safeLimit)
+    .toArray();
+  return docs
+    .filter((doc) => typeof doc.slug === "string" && doc.slug.trim().length > 0)
+    .map((doc) => {
+      const date = doc.updatedAt instanceof Date
+        ? doc.updatedAt
+        : doc.createdAt instanceof Date
+          ? doc.createdAt
+          : new Date();
+      return {
+        slug: doc.slug.trim(),
+        updatedAt: date.toISOString(),
+      };
+    });
 }
 
 // Resolve a blog post by either its SEO slug or 24-hex ObjectId.

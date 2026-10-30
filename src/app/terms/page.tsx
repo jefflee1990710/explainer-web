@@ -1,42 +1,33 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { TermsDocument } from "@/presentation/components/legal/terms-document";
-import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
+import { PublicPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
+import { getMessages } from "@/util/i18n";
+import { getRequestLocale } from "@/util/i18n/request-locale";
+import { publicPageMetadata } from "@/util/seo/public-metadata";
+
+const TERMS_DESCRIPTION =
+  "Scro Terms of Service covering account usage, AI Influencer and explainer video rendering, credits, billing, and content licensing.";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const jar = await cookies();
-  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
-  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const legal = getMessages(locale).legal;
-  const title = `${legal.terms} | Scro`;
-  const description =
-    "Scro Terms of Service covering account usage, AI Influencer & explainer video rendering, credits, billing, and content licensing.";
-  return {
+  const title = locale === "en" ? "Scro Terms of Service — Credits, Billing, and Content" : `${legal.terms} | Scro`;
+  return publicPageMetadata({
     title,
-    description,
-    alternates: {
-      canonical: "/terms",
-    },
-    openGraph: {
-      title,
-      description,
-      url: "/terms",
-      siteName: "Scro",
-      type: "website",
-      locale,
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-  };
+    description: TERMS_DESCRIPTION,
+    path: "/terms",
+    locale,
+  });
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const locale = await getRequestLocale();
+  const legal = getMessages(locale).legal;
+  const title = locale === "en" ? "Scro Terms of Service — Credits, Billing, and Content" : `${legal.terms} | Scro`;
   return (
     <PolicyLayout>
+      <PublicPageJsonLd path="/terms" title={title} description={TERMS_DESCRIPTION} />
       <TermsDocument />
     </PolicyLayout>
   );

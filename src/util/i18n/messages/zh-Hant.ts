@@ -21,7 +21,7 @@ export const zhHant: Messages = {
   meta: {
     title: "Scro — Explainer 解說片同 AI 網紅",
     description:
-      "用同一個 AI 網紅拍白板 Explainer。臉、衣櫃同把聲鎖定，概念片同網紅短片一齊出。",
+      "用同一個鎖定臉、衣櫃同把聲的 AI 網紅拍白板 Explainer。由分鏡到發佈，概念片同網紅短片都係同一個人出鏡。",
   },
   nav: {
     projects: "影片",
@@ -226,6 +226,9 @@ export const zhHant: Messages = {
       eyebrow: "方案價格",
       title: "訂閱方案，持續出 Explainer 同 AI 網紅片",
       subtitle: "依照你的帳號更新頻率與矩陣規模選擇方案。",
+      seoTitle: "Scro 方案價格 — Explainer 與 AI 網紅",
+      seoDescription:
+        "比較 Starter、Pro、Studio、Scale。分鏡核准前免費，credits 用於角色造型、Life 相片同成片渲染。",
       clipsApprox: "段 clips",
       subscribePlan: "訂閱 {plan}",
     },
@@ -314,6 +317,9 @@ export const zhHant: Messages = {
     title: "看看成果",
     heroTitle: "看看 Scro 怎麼運作",
     subtitle: "每一種都是不同的工作：畫面比例、風格，以及影片要放在哪裡。",
+    seoTitle: "Scro 範例 — 短影音、簡報與產品廣告",
+    seoDescription:
+      "看看 Scro 的成片：直式 Reel、16:9 簡報片段、正方形產品廣告同橫式舞台故事，每一種對應不同的發佈位置。",
     cta: "看看成果",
     galleryTitle: "四條成片，四種不同的工作。",
     galleryBody: "短影音、簡報片段、正方形貼文、橫式舞台。同一個工作室，不同的畫面。",
@@ -1653,7 +1659,8 @@ export const zhHant: Messages = {
   contactPage: {
     navLabel: "聯絡我們",
     seoTitle: "Scro — 聯絡我們",
-    seoDescription: "帳戶、產片或者企業方案，寫低電郵，我哋會回覆。",
+    seoDescription:
+      "帳戶、登入、credits、產片問題，或者企業方案（發票同用量合約），用電郵問我哋，我哋會回覆。",
     eyebrow: "聯絡",
     title: "同我哋講。",
     body: "帳戶問題、一條片要睇、或者團隊方案。留低訊息，我哋用電郵回。",
@@ -1794,8 +1801,9 @@ export const zhHant: Messages = {
     coverUrlLabel: "封面圖 URL",
   },
   blogPage: {
-    seoTitle: "文章 | Scro",
-    seoDescription: "閱讀 Scro 的最新文章、教學指南與產品更新。",
+    seoTitle: "AI 影片教學與 Explainer 指南 | Scro",
+    seoDescription:
+      "AI 網紅短片、廣東話對嘴、白板解說同分鏡流程的教學與清單，Scro 工作室持續更新可照做的指南。",
     notFoundTitle: "找不到文章 | Scro",
     eyebrow: "文章專欄",
     title: "最新文章",

@@ -1,6 +1,7 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
+import { MarketingPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ProductPromoCost } from "./product-promo-cost";
 import { ProductPromoCta } from "./product-promo-cta";
@@ -18,6 +19,7 @@ export default async function ProductPromoMarketingPage() {
   const signedIn = Boolean(session);
   return (
     <PolicyLayout>
+      <MarketingPageJsonLd pageKey="productPromoPage" />
       <ProductPromoHero signedIn={signedIn} />
       <ProductPromoCost />
       <ProductPromoFlow signedIn={signedIn} />

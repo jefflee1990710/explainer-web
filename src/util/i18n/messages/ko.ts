@@ -5,7 +5,7 @@ export const ko: Partial<Messages> = {
   meta: {
     title: "Scro — Explainer 영상과 AI 인플루언서",
     description:
-      "한 명의 AI 인플루언서로 화이트보드 Explainer를 만듭니다. 얼굴, 옷장, 목소리를 고정하고 해설과 숏폼을 냅니다.",
+      "얼굴, 옷장, 목소리를 고정한 AI 인플루언서 한 명으로 화이트보드 해설 영상을 만듭니다. 스토리보드부터 게시까지 같은 얼굴로 숏폼을 냅니다.",
   },
   nav: {
     projects: "동영상",
@@ -500,6 +500,9 @@ export const ko: Partial<Messages> = {
     title: "결과 보기",
     heroTitle: "Scro가 어떻게 작동하는지 보기",
     subtitle: "유형마다 일이 다릅니다. 화면 비율, 스타일, 영상을 어디에 둘지.",
+    seoTitle: "Scro 예시 — 릴, 슬라이드, 제품 광고",
+    seoDescription:
+      "세로 릴, 16:9 슬라이드, 정사각 제품 광고, 가로 스테이지 영상. 올리는 곳에 맞춰 프레임이 달라집니다.",
     cta: "결과 보기",
     galleryTitle: "완성본 네 편. 서로 다른 네 가지 일.",
     galleryBody: "릴스, 슬라이드, 정사각 게시물, 가로 무대. 같은 스튜디오, 다른 화면.",
@@ -585,8 +588,9 @@ export const ko: Partial<Messages> = {
     igLabel: "Instagram",
   },
   blogPage: {
-    seoTitle: "게시물 | Scro",
-    seoDescription: "Scro의 최신 아티클, 가이드 및 업데이트를 확인하세요.",
+    seoTitle: "AI 영상 가이드와 해설 플레이북 | Scro",
+    seoDescription:
+      "AI 인플루언서 영상, 광둥어 토킹헤드, 화이트보드 해설, 스토리보드 작업의 실전 가이드. Scro 스튜디오가 업데이트합니다.",
     notFoundTitle: "게시물을 찾을 수 없습니다 | Scro",
     eyebrow: "블로그",
     title: "게시물",

@@ -18,12 +18,17 @@ export function ScroAdminShell({
   const pathname = usePathname();
   const links = [
     { href: "/scroadmin", label: t("scroAdmin.dashboard"), exact: true },
-    { href: "/scroadmin/analytics", label: "UX 追蹤分析", exact: true },
+    { href: "/scroadmin/website", label: "官網進站漏斗", exact: true },
+    { href: "/scroadmin/analytics", label: "登入後行為分析", exact: true },
     { href: "/scroadmin/analytics/directors", label: "內建導演", exact: true },
     { href: "/scroadmin/courses", label: t("scroAdmin.courses"), exact: false },
   ];
 
   const isFullWidth =
+    pathname === "/scroadmin/website" ||
+    pathname.startsWith("/scroadmin/website/") ||
+    pathname === "/scroadmin/analysis" ||
+    pathname.startsWith("/scroadmin/analysis/") ||
     pathname === "/scroadmin/analytics" ||
     pathname.startsWith("/scroadmin/analytics/");
 
@@ -42,9 +47,14 @@ export function ScroAdminShell({
             </p>
             <nav className="flex items-center gap-1 text-sm">
               {links.map((link) => {
-                const active = link.exact
-                  ? pathname === link.href
-                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const active =
+                  link.href === "/scroadmin/analytics"
+                    ? pathname === "/scroadmin/analytics" || pathname === "/scroadmin/analysis"
+                    : link.href === "/scroadmin/website"
+                      ? pathname === "/scroadmin/website" || pathname === "/scroadmin/analytics/website"
+                      : link.exact
+                        ? pathname === link.href
+                        : pathname === link.href || pathname.startsWith(`${link.href}/`);
                 const isDirector = link.href === "/scroadmin/analytics/directors";
                 return (
                   <Link

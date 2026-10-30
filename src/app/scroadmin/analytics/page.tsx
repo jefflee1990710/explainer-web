@@ -13,13 +13,13 @@ export default async function ScroAdminAnalyticsPage() {
       <AnalyticsSectionNav />
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          UX Analytics & Funnel Diagnostics
+          Post-Login Studio Funnel & Drop-off Diagnostics
         </p>
         <h1 className="mt-1 font-display text-3xl font-bold text-[#12141c]">
-          用戶路徑追蹤與流失診斷
+          登入後工作台路徑與流失診斷
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
-          結合 Google Analytics (GA4)、MongoDB 即時事件流 (`ux_events`) 與資料庫全量用戶狀態，自動定位每位用戶在哪一個步驟停下來。
+          承接 `/scroadmin/website` 的註冊/登入轉換，結合 MongoDB 即時事件流 (`ux_events`) 與全量用戶創作狀態，追蹤登入後的同意條款、建立角色、分鏡與成片產出率。
         </p>
       </div>
       <UxAnalyticsDashboard report={report} />

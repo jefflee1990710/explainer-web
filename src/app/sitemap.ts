@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
-import { listPublishedBlogPosts } from "@/service/blog-post/blog-posts";
+import {
+  listPublishedBlogPostsForSitemap,
+  PUBLIC_BLOG_PAGE_SIZE,
+} from "@/service/blog-post/blog-posts";
 import { getSiteUrl } from "@/util/app-url";
+import { absolutePublicUrl, sitemapLanguageAlternates } from "@/util/seo/public-metadata";
 
 // Refresh sitemap entries so newly published blog posts appear promptly.
 export const dynamic = "force-dynamic";
@@ -27,27 +31,47 @@ export const PUBLIC_STATIC_SITEMAP_ROUTES: StaticRouteConfig[] = [
   { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
 ];
 
-// Build sitemap entries from static public routes and published blog posts.
+function listingPath(page: number): string {
+  return page <= 1 ? "/posts" : `/posts?page=${page}`;
+}
+
+// Build sitemap entries from static public routes, post listing pages, and every published post.
+// Static lastmod is omitted: stamping "now" on every crawl makes unchanged pages look edited.
 export function buildSitemapEntries(
   siteUrl: string,
   posts: Array<{ slug: string; updatedAt: string }> = [],
-  now = new Date(),
+  pageSize = PUBLIC_BLOG_PAGE_SIZE,
 ): MetadataRoute.Sitemap {
   const staticEntries: MetadataRoute.Sitemap = PUBLIC_STATIC_SITEMAP_ROUTES.map((route) => ({
-    url: route.path === "/" ? siteUrl : `${siteUrl}${route.path}`,
-    lastModified: now,
+    url: absolutePublicUrl(siteUrl, route.path),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
+    alternates: { languages: sitemapLanguageAlternates(siteUrl, route.path) },
   }));
 
-  const postEntries: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `${siteUrl}/posts/${encodeURIComponent(post.slug)}`,
-    lastModified: new Date(post.updatedAt || now),
-    changeFrequency: "weekly",
-    priority: 0.75,
-  }));
+  const totalPages = Math.max(1, Math.ceil(posts.length / Math.max(1, pageSize)));
+  const listingEntries: MetadataRoute.Sitemap = [];
+  for (let page = 2; page <= totalPages; page += 1) {
+    const path = listingPath(page);
+    listingEntries.push({
+      url: absolutePublicUrl(siteUrl, path),
+      changeFrequency: "daily",
+      priority: 0.4,
+      alternates: { languages: sitemapLanguageAlternates(siteUrl, path) },
+    });
+  }
 
-  return [...staticEntries, ...postEntries];
+  const postEntries: MetadataRoute.Sitemap = posts.map((post) => {
+    const modified = new Date(post.updatedAt);
+    return {
+      url: absolutePublicUrl(siteUrl, `/posts/${encodeURIComponent(post.slug)}`),
+      ...(Number.isNaN(modified.getTime()) ? {} : { lastModified: modified }),
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    };
+  });
+
+  return [...staticEntries, ...listingEntries, ...postEntries];
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -55,7 +79,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let posts: Array<{ slug: string; updatedAt: string }> = [];
 
   try {
-    posts = await listPublishedBlogPosts(500);
+    posts = await listPublishedBlogPostsForSitemap();
   } catch (error) {
     // Fallback to static routes if MongoDB is temporarily unreachable at build or crawl time.
     console.warn("sitemap: failed to load blog posts", error);

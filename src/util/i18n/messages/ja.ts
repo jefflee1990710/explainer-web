@@ -5,7 +5,7 @@ export const ja: Partial<Messages> = {
   meta: {
     title: "Scro — Explainer 動画と AI インフルエンサー",
     description:
-      "一人の AI インフルエンサーでホワイトボード Explainer を作る。顔・衣装・声を固定し、解説とショートを出す。",
+      "一人の AI インフルエンサーでホワイトボード解説動画を作ります。顔・衣装・声を固定し、絵コンテから公開まで同じ人物でショートを出します。",
   },
   nav: {
     projects: "動画",
@@ -500,6 +500,9 @@ export const ja: Partial<Messages> = {
     title: "結果を見る",
     heroTitle: "Scro の仕組みを見る",
     subtitle: "種類ごとに仕事が違います。画面比率、スタイル、動画を置く場所。",
+    seoTitle: "Scro の作例 — リール、スライド、商品動画",
+    seoDescription:
+      "縦型リール、16:9 のスライド、正方形の商品広告、横長のステージ動画。公開する場所ごとにフレームが違います。",
     cta: "結果を見る",
     galleryTitle: "完成した4本。仕事は4種類。",
     galleryBody: "リール、スライド、正方形の投稿、横長の舞台。同じスタジオで、画面だけが違います。",
@@ -585,8 +588,9 @@ export const ja: Partial<Messages> = {
     igLabel: "Instagram",
   },
   blogPage: {
-    seoTitle: "記事 | Scro",
-    seoDescription: "Scro の最新記事、チュートリアル、製品アップデートをお届けします。",
+    seoTitle: "AI動画ガイドと解説プレイブック | Scro",
+    seoDescription:
+      "AIインフルエンサー動画、広東語トーキングヘッド、ホワイトボード解説、絵コンテ手順の実践ガイド。Scroスタジオが更新します。",
     notFoundTitle: "記事が見つかりません | Scro",
     eyebrow: "ブログ",
     title: "記事一覧",

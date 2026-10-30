@@ -3,12 +3,14 @@
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 
 import { useEffect, useId, useState } from "react";
-import { LOCALE_OPTIONS, type LocaleId } from "@/util/i18n";
+import { useRouter } from "next/navigation";
+import { DEFAULT_LOCALE, LOCALE_OPTIONS, type LocaleId } from "@/util/i18n";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Globe button. The language list opens in a dialog so the header stays one icon wide.
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { locale, setLocale, t } = useI18n();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const titleId = useId();
 
@@ -24,6 +26,20 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
   function choose(id: LocaleId) {
     setLocale(id);
     setOpen(false);
+    const path = window.location.pathname;
+    const privatePath =
+      path.startsWith("/app") ||
+      path.startsWith("/scroadmin") ||
+      path.startsWith("/sign-in") ||
+      path.startsWith("/sign-up") ||
+      path.startsWith("/academy") ||
+      path.startsWith("/checkout");
+    if (privatePath) return;
+    const params = new URLSearchParams(window.location.search);
+    if (id === DEFAULT_LOCALE) params.delete("hl");
+    else params.set("hl", id);
+    const qs = params.toString();
+    router.push(qs ? `${path}?${qs}` : path, { scroll: false });
   }
 
   return (

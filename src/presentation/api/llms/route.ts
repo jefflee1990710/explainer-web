@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listPublishedBlogPosts } from "@/service/blog-post/blog-posts";
+import { listPublishedBlogPostsForLlms } from "@/service/blog-post/blog-posts";
 import { PLANS } from "@/service/billing/plans";
 import { getSiteUrl } from "@/util/app-url";
 
@@ -83,7 +83,7 @@ export function buildLlmsFullTxt(
   return [
     "# Scro — Full Documentation for LLMs & AI Agents",
     "",
-    "> Scro (`https://scro.io`) is an all-in-one AI Influencer, Virtual KOL, and Explainer Video Production Studio. It combines character identity locking, custom wardrobe management, 21-language voice cloning (with first-class Hong Kong Cantonese support), AI storyboard directing, keyframe-first video generation, and a built-in multi-track timeline editor.",
+    `> Scro (\`${siteUrl}\`) is an all-in-one AI Influencer, Virtual KOL, and Explainer Video Production Studio. It combines character identity locking, custom wardrobe management, 21-language voice cloning (with first-class Hong Kong Cantonese support), AI storyboard directing, keyframe-first video generation, and a built-in multi-track timeline editor.`,
     "",
     "---",
     "",
@@ -188,10 +188,10 @@ export function buildLlmsFullTxt(
 // Serve a plain-text Markdown response with caching headers for LLM crawlers.
 export async function serveLlmsMarkdown(full: boolean): Promise<NextResponse> {
   const siteUrl = getSiteUrl();
-  let posts: Awaited<ReturnType<typeof listPublishedBlogPosts>> = [];
+  let posts: Awaited<ReturnType<typeof listPublishedBlogPostsForLlms>> = [];
 
   try {
-    posts = await listPublishedBlogPosts(100);
+    posts = await listPublishedBlogPostsForLlms();
   } catch (error) {
     console.warn("llms.txt: failed to load blog posts", error);
   }

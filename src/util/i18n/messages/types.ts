@@ -222,6 +222,8 @@ export type Messages = {
       subtitle: string;
       clipsApprox: string;
       subscribePlan: string;
+      seoTitle?: string;
+      seoDescription?: string;
     };
     enterprise: {
       title: string;
@@ -310,6 +312,8 @@ export type Messages = {
     title: string;
     heroTitle: string;
     subtitle: string;
+    seoTitle?: string;
+    seoDescription?: string;
     cta: string;
     galleryTitle: string;
     galleryBody: string;

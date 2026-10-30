@@ -137,25 +137,26 @@ export function SiteFeaturesMenu() {
           <Chevron open={open} />
         </button>
       </span>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute left-1/2 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-[0_12px_40px_rgba(18,20,28,0.12)] md:left-0 md:translate-x-0"
-        >
-          {SITE_FEATURE_LINKS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 transition-colors hover:bg-[#f4fcd4]"
-            >
-              <span className="block text-sm font-semibold text-[#12141c]">{t(item.labelKey)}</span>
-              <span className="mt-0.5 block text-xs leading-5 text-zinc-500">{t(item.blurbKey)}</span>
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      <div
+        role="menu"
+        aria-hidden={!open}
+        className={`${
+          open ? "block" : "hidden"
+        } absolute left-1/2 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-[0_12px_40px_rgba(18,20,28,0.12)] md:left-0 md:translate-x-0`}
+      >
+        {SITE_FEATURE_LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 transition-colors hover:bg-[#f4fcd4]"
+          >
+            <span className="block text-sm font-semibold text-[#12141c]">{t(item.labelKey)}</span>
+            <span className="mt-0.5 block text-xs leading-5 text-zinc-500">{t(item.blurbKey)}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
