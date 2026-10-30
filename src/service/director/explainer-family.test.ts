@@ -32,6 +32,8 @@ test("paper-cutout director block and frame/video locks use collage language", (
     canvas: "paper-cutout",
   });
   assert.match(block, /Paper-cutout collage lock|white scissor border/i);
+  assert.match(block, /wooden craft board/i);
+  assert.match(block, /never a gridded cutting mat, never floor tiles/i);
   assert.match(block, /paper-cutout explanation collage/i);
   assert.match(block, /at least four distinct cutout pieces/i);
   assert.match(block, /Scene prompt/);

@@ -659,12 +659,20 @@ export const DIAGRAM_LAYOUT_HIERARCHY_RULE =
 export const COMPLETE_START_DIAGRAM_RULE =
   "Complete Diagram Scaffold in `startScene`: because single-frame image-to-video generates motion directly from the `startScene` still, `startScene` MUST already draw the COMPLETE structured diagram scaffold (all 4+ labeled nodes, containers, axes, and connecting paths visible on canvas at t=0s), not an empty canvas waiting to be drawn later.";
 
+export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
+  "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): unless on-canvas text is turned off, the first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (2–6 words / 4–10 CJK characters summarizing the Reel hook) spanning the upper-center of the diagram scaffold — NEVER split the top of Clip 1 into two small left/right header stickers that compete with the hook title — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title clearly visible on screen for the first 3 seconds while the opening hook camera and diagram animation play out.";
+
+export const EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE =
+  "Arrow & Sticker Hygiene (STRICT): (1) MAX ONE ARROW PER CLIP — use at most 1 directional arrow in the entire clip (across both `startScene` and `motionCamera`), never stack 2–4 arrows in one frame or inside a phone/card, and if `startScene` already has an arrow, never spawn another arrow in `motionCamera`; (2) NO BLANK SLASH STRIPS OR TAPE STICKERS — never use a grey paper slash strip, blank masking tape, or unlabelled cross-out bar sliding over a header or card to cross out an old concept (to replace an old state, flip the card in place or slide the old card cleanly off-frame).";
+
 // Concept explainers teach with several on-screen pieces, named in the still and in the camera move.
 function teachingElementsRule(pieceNoun: string, graphNoun: string) {
   return [
     DIAGRAM_ARCHETYPES_RULE,
     DIAGRAM_LAYOUT_HIERARCHY_RULE,
     COMPLETE_START_DIAGRAM_RULE,
+    EXPLAINER_FIRST_3S_HOOK_TITLE_RULE,
+    EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE,
     `Teaching elements: every clip explains its spoken line with at least four distinct ${pieceNoun}s on the ${graphNoun}, besides the character.`,
     "Each element teaches one part of that line (an icon, a diagram node, an arrow, a chart piece, a labeled part, a comparison card, a before/after strip, or a cause-and-effect object) and carries a concrete domain-specific label in 「」 (1–3 words from the user's actual topic, e.g. 「CAC」, 「LTV 3x」, 「DEEP WORK」 — never generic placeholders like 「IDEA」 or 「BOX」).",
     "Do not add decoration the line does not need, and do not repeat the same four elements unchanged on the next clip — add, replace, or change their state as the idea moves forward.",
@@ -731,9 +739,9 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "",
     hasCharacter
       ? smooth
-        ? `motionCamera plays the one action with a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down, and pack the clip with rapid on-screen visual effects every 1–1.5 seconds (connecting lines drawing across between nodes, directional arrows snapping in, chart bars/lines rising or falling, geometric shapes and conceptual objects sliding in from the frame edges) so there is zero dead hold. Show every in-between pose. ${physicsNoun}. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform. A card flip rotates through its edge as a rigid card. Never a cut or a skipped frame. Do not describe the move as one slow constant glide.`
-        : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a brisk sequence of on-screen whiteboard visual effects every 1–1.5 seconds while the graph responds (connecting lines and arrows drawing themselves across, chart bars or trend lines shooting up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges—never a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
-      : `${physicsNoun}, with connecting lines, arrows, charts, and shapes animating every 1–1.5 seconds. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.`,
+        ? `motionCamera plays the one action with a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down, and pace the clip with clean on-screen visual beats every 1.5–2 seconds (a card flip, a chart bar rising or falling, a labeled node lighting up or sliding into place, or at most one single directional arrow in the entire clip — never spam multiple arrows and never slide blank grey slash strips or tape over labels) so there is zero dead hold. Show every in-between pose. ${physicsNoun}. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform. A card flip rotates through its edge as a rigid card. Never a cut or a skipped frame. Do not describe the move as one slow constant glide.`
+        : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a clean sequence of on-screen whiteboard visual beats every 1.5–2 seconds while the graph responds (a card flip, chart bars or trend lines stepping up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges, and at most one single directional arrow per clip — never spam multiple arrows, never use blank grey slash/tape strips, and never leave a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
+      : `${physicsNoun}, with cards, charts, and shapes animating cleanly every 1.5–2 seconds (at most one directional arrow per clip; no blank slash strips or tape stickers). Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.`,
     teachingElementsRule(pieceNoun, graphNoun),
     cartoonHookCameraRule(hasCharacter, smooth, realistic),
     "On-canvas beat text: never write Subtitle: or caption the spoken voiceover on the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object.",
@@ -782,11 +790,15 @@ export function cartoonNarratorFrameLock(
   const realistic = Boolean(options?.realistic);
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
   const hookFace = realistic ? "a normal, alive, engaged closed-lip expression" : "a surprised face";
+  const hookTitleStill =
+    options?.clipNumber === 1 && (options?.position ?? "start") === "start"
+      ? " Render Clip 1's opening hook title in 「...」 from the Scene as ONE single BIG, BOLD, high-contrast headline banner centered at the top of the diagram scaffold for the first 3-second Reel hook (never split the top into two separate corner stickers)."
+      : "";
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? `HOOK CAMERA: Clip 1 moves the camera by one push-in or pull-out at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows ${hookFace}.`
-        : `HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows ${hookFace}.`
+        ? `HOOK CAMERA: Clip 1 moves the camera by one push-in or pull-out at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows ${hookFace}.${hookTitleStill}`
+        : `HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows ${hookFace}.${hookTitleStill}`
       : "";
   const cameraMatch = steady
     ? "Camera angle, shot size, and side match the other still of this clip."
@@ -804,7 +816,7 @@ export function cartoonNarratorFrameLock(
       ? `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (keep a normal, alive, engaged facial expression with mouth firmly closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${expStill}`
       : `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes and lips closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${expStill}`;
     const labels =
-      "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
+      "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable (use at most 1 directional arrow in the frame, and never draw blank grey tape or unlabelled paper strips). Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {
       return [
@@ -854,10 +866,10 @@ export function dropRepeatedSubtitleLabels(scene: string) {
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
 const SNAP_MOTION =
-  "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and continuous brisk whiteboard explainer visual effects (lines and arrows drawing across, chart bars or trend lines animating, shapes and objects popping in) while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
+  "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and clean whiteboard explainer visual beats (card flips, chart bars or trend lines animating, labeled shapes and objects popping in, and at most one directional arrow in the clip — no extra flying arrows and no blank grey slash/tape strips) while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. The move has a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between frame. The body, the hands, and any prop keep moving through that curve, accompanied by continuous on-screen whiteboard explainer visual effects every 1–1.5 seconds: connecting lines and directional arrows draw sharply between nodes, chart bars and trend lines animate briskly up or down, and rigid geometric shapes, icons, and conceptual objects slide or pop in to explain the concept—never leave the scene static for seconds. Whiteboard cardboard cutout physics: every prop, card, diagram piece, chart bar, shape, object, and label stays in one rigid flat cardboard piece—sliding cleanly and briskly in and out of the screen (from or to the frame edges) or snapping into place without morphing, warping, melting, or dissolving. Background and set planes stay rigid and never warp or transform; any camera push-in or zoom-out moves with a clean multi-plane parallax effect. A card flip rotates through its edge as a rigid card and does not pop from one face to the other. Do not stretch the action as one slow constant glide. Never skip a frame and never cut. The camera follows the motion already written, on the same accelerate-then-decelerate curve. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
+  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. The move has a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between frame. The body, the hands, and any prop keep moving through that curve, accompanied by clean on-screen whiteboard explainer visual beats every 1.5–2 seconds: card flips, chart bars and trend lines animating briskly up or down, and rigid geometric shapes, icons, and conceptual objects sliding or popping into place to explain the concept (use at most one directional arrow in the entire clip; never spawn extra flying arrows and never slide blank grey slash strips or tape stickers over headers)—never leave the scene static for seconds. Whiteboard cardboard cutout physics: every prop, card, diagram piece, chart bar, shape, object, and label stays in one rigid flat cardboard piece—sliding cleanly and briskly in and out of the screen (from or to the frame edges) or snapping into place without morphing, warping, melting, or dissolving. Background and set planes stay rigid and never warp or transform; any camera push-in or zoom-out moves with a clean multi-plane parallax effect. A card flip rotates through its edge as a rigid card and does not pop from one face to the other. Do not stretch the action as one slow constant glide. Never skip a frame and never cut. The camera follows the motion already written, on the same accelerate-then-decelerate curve. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
@@ -875,7 +887,7 @@ export function cartoonNarratorVideoLock(
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
   const canvasVoice =
     canvas === "paper-cutout"
-      ? "Keep the whole canvas edge-to-edge as a paper-cutout craft collage: thick irregular white scissor borders on every piece, colour hero on mono/kraft background cutouts, rigid paste motion (no morphing)."
+      ? "Keep the whole canvas edge-to-edge as a paper-cutout craft collage on a dark warm-brown vertically-grained wooden craft board: thick irregular white scissor borders on every piece, colour hero on mono/kraft background cutouts, rigid paste motion (no morphing)."
       : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
     `Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. Sound effects never replace the narrator. The clip is never silent. ${canvasVoice}`;

@@ -1614,25 +1614,37 @@ test("9:16 whiteboard stills rewrite middle-60%-canvas phrasing into full-bleed 
   }
 });
 
-test("whiteboard-canvas background plates are never attached as 3x3 set locks", () => {
-  const video = project("realistic");
-  video.skillSlug = "cartoon-explainer-video-director";
-  video.cast = [
-    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
-  ];
-  video.backgroundPlates = [
-    {
-      setId: "whiteboard-canvas",
-      name: "2D 全幅白板畫布",
-      notes: "純白或極淺米白（#FAF8F4）全幅無邊框 2D 白板表面",
-      clipNumbers: [1, 2],
-      url: "https://blob/whiteboard-plate.png",
-    },
-  ];
-  video.phaseA!.clips[0].backgroundSetId = "whiteboard-canvas";
-  const plan = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(plan.refs, ["https://blob/c.png"]);
-  assert.doesNotMatch(plan.prompt, /BACKGROUND LOCK/);
+test("explainer family directors never attach prop sheets or background plates even if present on the project", () => {
+  for (const slug of [
+    "cartoon-explainer-video-director",
+    "paper-cutout-explainer-video-director",
+    "listicle-director",
+    "comparison-card-director",
+    "tutorial-director",
+    "workflow-promo-director",
+  ]) {
+    const video = project("realistic");
+    video.skillSlug = slug;
+    video.cast = [
+      { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
+    ];
+    video.objectSheetItems = [{ name: "Marker", notes: "black pen" }];
+    video.objectSheetUrl = "https://blob/sheet.png";
+    video.backgroundPlates = [
+      {
+        setId: "studio",
+        name: "Studio",
+        notes: "bright light",
+        clipNumbers: [1, 2],
+        url: "https://blob/studio-plate.png",
+      },
+    ];
+    video.phaseA!.clips[0].backgroundSetId = "studio";
+    const plan = frameSubmitPlan(video, 1, "start");
+    assert.deepEqual(plan.refs, ["https://blob/c.png"], `expected ${slug} to skip lock refs`);
+    assert.doesNotMatch(plan.prompt, /OBJECT LOCK/);
+    assert.doesNotMatch(plan.prompt, /BACKGROUND LOCK/);
+  }
 });
 
 test("stripLetterboxBars crops top and bottom solid letterbox bands back to full-bleed 9:16", async () => {

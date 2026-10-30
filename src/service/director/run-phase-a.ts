@@ -326,12 +326,12 @@ ${sceneDetailDirectorBlock({
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${
   sceneText.enabled && skillForcesSceneText(input.skill.slug)
-    ? "On-canvas text is required: a numbered item list must appear in every still. Never write spoken subtitles."
+    ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), and a numbered item list must appear in item stills. Never write spoken subtitles.`
     : sceneText.enabled
-      ? "On-canvas text is allowed for short in-scene labels, signs, or diagram elements only — never write Subtitle: or caption the spoken line on screen."
+      ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): Clip 1's startScene (and explainerScene) MUST always open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s in motionCamera) of the Reel hook; short in-scene labels, signs, or diagram elements are also allowed — never write Subtitle: or caption the spoken line on screen.`
       : sceneText.inWorldLabels
-        ? "Motion is pose, props, and short in-world labels / tags popping or snapping in — never a voiceover caption."
-        : "Motion is pose and props only — no written labels."
+        ? `Motion is pose, props, and short in-world labels / tags popping or snapping in (including a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} in Clip 1's startScene for the first 3 seconds 0–3s) — never a voiceover caption.`
+        : "On-canvas text is OFF: motion is pose and props only — no written labels and no Clip 1 hook title."
 }
 visualWorld and palette describe rendering only: canvas, line, fill, and colour roles. Never write a text, label, caption, or subtitle policy into visualWorld — on-canvas text rules are given separately and injected into every still prompt.
 The next clip's start inherits the previous clip's end environment.

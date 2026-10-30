@@ -85,6 +85,7 @@ export function videoLocksCost(plan: Pick<VideoLocksPlan, "objects" | "sets">) {
 }
 
 export function videoLocksCostForProject(project: Project) {
+  if (!shouldPlanVideoLocks(project.skillSlug)) return 0;
   return videoLocksCost({
     objects: project.objectSheetItems || [],
     sets: (project.backgroundPlates || []).map((plate) => ({
@@ -135,7 +136,9 @@ export async function storeVideoLocksPlan(projectId: ObjectId, plan: VideoLocksP
 export async function planAndStoreVideoLocks(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project?.phaseA) return { objects: [], sets: [] } satisfies VideoLocksPlan;
+  if (!project?.phaseA || !shouldPlanVideoLocks(project.skillSlug)) {
+    return { objects: [], sets: [] } satisfies VideoLocksPlan;
+  }
   const plan = await planVideoLocks({
     clips: project.phaseA.clips,
     language: project.language,

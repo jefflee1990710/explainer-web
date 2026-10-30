@@ -202,6 +202,19 @@ export function spokenSubtitleLock(aspectRatio?: string) {
   return "Subtitle: keep this clip's spoken line in a band across the bottom of the frame for the whole clip. Same words, same place, from the first frame to the last.";
 }
 
+// Shared rule for the first 3-second big bold hook title in Clip 1's opening scene across all directors.
+export function firstClipHookTitleDirectorRule(
+  enabled: boolean,
+  language: SceneTextLanguage,
+  options?: { inWorldLabels?: boolean },
+) {
+  if (!enabled && !options?.inWorldLabels) {
+    return "First 3-Second Hook Title: OFF (on-canvas text is turned off, so Clip 1's startScene, explainerScene, and 0–3s motionCamera must contain NO hook title, written words, or 「」 labels).";
+  }
+  const langLabel = SCENE_TEXT_PRESETS[language].label;
+  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (2–6 words / 4–10 CJK characters summarizing the core Reel hook, staged in the upper-middle focal safe zone clear of the character's face), and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
+}
+
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
@@ -218,10 +231,14 @@ export function sceneTextSkillHint(
   },
 ) {
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
+  const hookTitleRule = firstClipHookTitleDirectorRule(enabled, language, {
+    inWorldLabels: options?.inWorldLabels,
+  });
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED. The hook shows a large count. Each later clip introduces one item with its own camera angle and composition: its number, a short title, and one object.",
       "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Never generate spoken subtitles or voiceover captions on screen.",
+      hookTitleRule,
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
@@ -229,6 +246,7 @@ export function sceneTextSkillHint(
     return [
       "On-canvas text is the two panel titles only. narrativeJob must be `contrast: <panel A title> | <panel B title>`.",
       "16:9 is left | right. 9:16 and 1:1 are top | bottom. Do not also caption the full voiceover.",
+      hookTitleRule,
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
@@ -236,6 +254,7 @@ export function sceneTextSkillHint(
     return [
       "Voiceover captions are OFF: never quote, transcribe, or subtitle the spoken line on canvas.",
       IN_WORLD_LABELS_RULE,
+      hookTitleRule,
       "Write each beat title and diagram label's exact wording inside 「」 in startScene / endScene so the still prompt can spell it; count the graph, labels, tags, and arrows toward the 3–4 visual devices per still.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",
@@ -243,17 +262,19 @@ export function sceneTextSkillHint(
     ].join(" ");
   }
   if (!enabled) {
-    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
+    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」 (and no Clip 1 hook title). Communicate only with images, props, and composition.";
   }
   if (options?.dualBeat) {
     return [
       "On-canvas text is ON for whiteboard in-scene labels only: a short beat title and diagram labels (node names, arrow names, tags, box or bin names) written inside 「」 on the graph they belong to.",
+      hookTitleRule,
       "Never generate spoken subtitles or voiceover captions on screen (do not write Subtitle: or transcribe startVo / endVo onto the stills).",
       markerLanguageHint(language),
     ].join(" ");
   }
   return [
     "On-canvas text is ON. Short in-scene text, labels, signs, or titles that belong to the scene are allowed in the selected language.",
+    hookTitleRule,
     "Never generate spoken subtitles or voiceover captions on screen (do not write Subtitle: or transcribe the spoken line onto the stills or video).",
     SCENE_TEXT_PRESETS[language].skillHint,
   ].join(" ");
@@ -265,9 +286,9 @@ export function sceneTextDirectorRevisionNote(
   language: SceneTextLanguage,
 ) {
   if (!enabled) {
-    return "On-canvas text is now OFF. Rewrite every clip's explainerScene and motionCamera so they contain zero quoted words, labels, signs, or lettering (no 「」 quotes and no Subtitle:). Keep the same story, characters, and titles. Visuals and motion only.";
+    return "On-canvas text is now OFF. Rewrite every clip's explainerScene, startScene, endScene, and motionCamera so they contain zero quoted words, labels, signs, hook titles, or lettering (no 「」 quotes and no Subtitle:). Keep the same story, characters, and titles. Visuals and motion only.";
   }
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). Short in-scene text, labels, or titles in ${SCENE_TEXT_PRESETS[language].label} are allowed when appropriate for the scene. Never write Subtitle: or caption the spoken voiceover/dialogue line on screen. Keep the same story, characters, and proposal titles.`;
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). Ensure Clip 1's opening scene (startScene and explainerScene) and first 3 seconds (0–3s in motionCamera) feature a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[language].label}. Short in-scene text, labels, or titles in ${SCENE_TEXT_PRESETS[language].label} are also allowed when appropriate for the scene. Never write Subtitle: or caption the spoken voiceover/dialogue line on screen. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.

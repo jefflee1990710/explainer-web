@@ -40,10 +40,23 @@ test("videoLocksCost charges one sheet plus each unique set", () => {
   );
 });
 
-test("videoLocksReady waits for planned props and plates", () => {
-  const base = {
+test("videoLocksReady waits for planned props and plates only on directors that use video locks", () => {
+  const explainer = {
     _id: new ObjectId(),
     skillSlug: "cartoon-explainer-video-director",
+  } as Project;
+  assert.equal(videoLocksReady(explainer), true);
+  assert.equal(
+    videoLocksReady({
+      ...explainer,
+      skillSlug: "paper-cutout-explainer-video-director",
+    }),
+    true,
+  );
+
+  const base = {
+    _id: new ObjectId(),
+    skillSlug: "story-short-director",
   } as Project;
 
   assert.equal(videoLocksReady(base), false);

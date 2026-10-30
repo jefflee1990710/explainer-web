@@ -25,10 +25,37 @@ function clip(partial: Partial<StoryboardRow> & Pick<StoryboardRow, "clipNumber"
   };
 }
 
-test("talking-head and other directors plan video locks", () => {
-  assert.equal(shouldPlanVideoLocks("talking-head-director"), true);
-  assert.equal(shouldPlanVideoLocks("full-body-talking-head-director"), true);
-  assert.equal(shouldPlanVideoLocks("cartoon-explainer-video-director"), true);
+test("only the 6 designated directors plan video locks (prop sheet and background plate)", () => {
+  for (const slug of [
+    "story-short-director",
+    "product-demo-director",
+    "talking-head-director",
+    "outfit-reel-director",
+    "style-switch-director",
+    "street-lookbook-director",
+  ]) {
+    assert.equal(shouldPlanVideoLocks(slug), true, `expected ${slug} to plan video locks`);
+  }
+  for (const slug of [
+    "cartoon-explainer-video-director",
+    "paper-cutout-explainer-video-director",
+    "listicle-director",
+    "comparison-card-director",
+    "tutorial-director",
+    "workflow-promo-director",
+    "dialogue-qa-director",
+    "talking-broll-director",
+    "editorial-interview-director",
+    "outfit-change-director",
+    "follow-shot-director",
+    "opening-director",
+    "ending-director",
+    "full-body-talking-head-director",
+    "surprise-interview-director",
+    undefined,
+  ]) {
+    assert.equal(shouldPlanVideoLocks(slug), false, `expected ${slug} to skip video locks`);
+  }
 });
 
 test("the locks prompt includes each clip's stills and motion", () => {
@@ -191,4 +218,18 @@ test("planVideoLocks calls the model once and failures return empty locks", asyn
   assert.equal(talkingCalls, 1);
   assert.equal(talking.objects[0]?.name, "mug");
   assert.equal(talking.sets[0]?.setId, "sofa");
+
+  let explainerCalls = 0;
+  const explainer = await planVideoLocks(
+    { clips: [clip({ clipNumber: 1 })], skillSlug: "cartoon-explainer-video-director" },
+    async () => {
+      explainerCalls += 1;
+      return {
+        objects: [{ name: "marker", notes: "felt" }],
+        sets: [{ setId: "board", name: "board", notes: "flat", clipNumbers: [1] }],
+      };
+    },
+  );
+  assert.equal(explainerCalls, 0);
+  assert.deepEqual(explainer, { objects: [], sets: [] });
 });

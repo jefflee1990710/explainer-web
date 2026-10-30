@@ -46,11 +46,11 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 
 ## Locked visual world
 
-- Whole-canvas paper-cutout collage lock (applies to EVERY visual style): the entire video canvas edge-to-edge is a flat craft collage on a dark cutting board / black craft paper. Never stage a 3D room, studio building, floor, sky, or a physical easel.
-- Every element is a separate paper cutout: people, products, icons, buildings, clouds, arrows, chart pieces, price tags. Each piece has a thick irregular white scissor / hand-cut border (magazine-photo edge). Soft drop shadows and slight layer offsets create depth.
+- Whole-canvas paper-cutout collage lock (applies to EVERY visual style): the entire video canvas edge-to-edge is a flat craft collage mounted on a single consistent dark warm-brown vertically-grained wooden craft board (identical dark wood-grain surface across every clip — never switch to a gridded cutting mat, floor tiles, felt, or plain black paper, and never stage a 3D room, studio building, floor, sky, or physical easel).
+- Every element is a separate paper cutout: people, products, icons, buildings, clouds, arrows, chart pieces, price tags. Each piece has a thick irregular white scissor / hand-cut border (magazine-photo edge). Soft drop shadows and slight layer offsets create depth against the dark wooden board.
 - Colour contrast recipe: background / environment cutouts stay high-contrast black-and-white or kraft; the hero character, product, and key concept pieces stay in full colour so they pop.
-- Craft texture: optional crumpled paper scraps, torn kraft strips, and faint cutting-mat grid lines at the edges. Visible paper grain. Stop-motion paste feel — pieces slide in, flip, stack, and settle with a tiny jitter; they never morph or melt.
-- Single background plate lock: ONE shared craft-board set for the whole video (exactly one background plate; never switch locations).
+- Craft texture: warm dark vertical wood grain across the board with visible paper grain on the cutouts. Stop-motion paste feel — pieces slide in, flip, stack, and settle with a tiny jitter; they never morph or melt.
+- Single background plate lock: ONE shared dark warm-brown vertically-grained wooden craft-board surface for the whole video (every clip's Set MUST specify the exact same dark warm-brown vertically-grained wooden craft board; never switch surface textures between clips).
 - Character Visual Guideline Lock: if a character reference is attached, follow it exactly across all clips (as a colour paper-cutout figure with the white border). If none, invent ONE simple cutout everyman / host and lock it — flat paper silhouette, white border, consistent wardrobe colours.
 - Storytelling language: for every topic, a structured explanation collage is the main subject occupying 70–80% of the canvas — choose one explicit Diagram Archetype per clip from: (1) Split Matrix / Before-vs-After, (2) Causal Chain / Pipeline, (3) Funnel / Filter, (4) Balance Scale / Trade-off Seesaw, (5) Iceberg / Layered Stack, or (6) Quantitative Chart / Annotated Curve — built by pasting cutout objects, arrows, and tag strips onto the board. When a character is on screen, stage them in the remaining 20–30% lower-left or lower-right presenter zone interacting with the diagram (never blocking the center). Because single-frame image-to-video generates from the start still, \`startScene\` MUST already draw the complete structured diagram scaffold (all 4+ labeled cutout nodes, containers, axes, and connecting paths visible at t=0s). Prefer labeled paper pieces with concrete domain-specific terms in 「」 over empty metaphor props. Spoken line is the subtitle (selected text style). Diagram labels inside 「」 are ordinary cut-lettering on that paper piece.
 
@@ -65,6 +65,8 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 
 - Each clip is 5–12 seconds from its spoken line (about 2.4 English words per second). A short line stays 5 seconds at medium pace (~2.5 words/s).
 - 2-Second Visual Rule: a noticeable paste / slide / flip / punch-in every 1.5–2.5 seconds.
+- First 3-Second Big Bold Hook Title (\`0–3s\` of Clip 1): unless on-screen text is turned off, Clip 1's \`startScene\` (and \`0–3s\` in \`motionCamera\`) MUST always feature ONE single BIG, BOLD HOOK TITLE cutout banner inside 「...」 in the user's configured on-screen text language centered at the top of the explanation collage (never split the top of Clip 1 into two competing left/right small header stickers) so the first 3 seconds of the Reel immediately hook the viewer.
+- Arrow & Sticker Hygiene: use at most ONE directional arrow cutout per clip (never clutter a frame or smartphone cutout with multiple red/green arrows, and never spawn an extra arrow in \`motionCamera\` if \`startScene\` already has one). Never use blank grey paper slash strips, masking-tape strips, or unlabelled cross-out stickers sliding over headers to cancel old items — flip the cutout card in place or slide the old card cleanly off-frame instead.
 - Clip 1 stacks at least 2 hook types and uses at most one clean multi-plane parallax push-in or pull-out (zoom-out / push-in) on the flat craft board — accelerating through the change then decelerating into the landing, with the exact same 2D planar angle and side in both stills (no 360 orbit, no overhead drop, no 3D camera rotation). Later clips do not repeat that hook camera.
 - Delayed payoff: do not reveal the core punchline in the opening clip.
 - Always narrated: an unseen off-screen narrator speaks every line in the third person. On screen the character never speaks and never lip-syncs. No first-person character intros.
@@ -134,7 +136,7 @@ Use only after Phase A approval. One self-contained prompt per clip.
 ## Prompt order
 
 1. Output: 5–12s from the spoken line, aspect ratio, 720p, 24 FPS, synced audio
-2. Collage lock: dark craft board / black paper, thick white scissor borders on every piece, colour hero on mono/kraft background layers, soft shadows, stop-motion paste feel
+2. Collage lock: dark warm-brown vertically-grained wooden craft board (identical wood-grain surface in every clip; no grid mat or tiles), thick white scissor borders on every piece, colour hero on mono/kraft background layers, soft shadows, stop-motion paste feel
 3. Character lock: colour paper cutout following the guideline (or locked host); silent, closed mouth
 4. Palette in ordinary colour names
 5. Composition for the ratio
@@ -157,12 +159,12 @@ Start and end stills are one continuous paste-motion shot. Animate the one actio
       "Turning a concept, product, or set of notes into a paper-cutout collage explainer — ideas taught by pasting cut-out objects, products, and diagram pieces onto a craft board.",
     structure:
       "Each clip is 5–12 seconds, set by the spoken line and pace; count follows content (about 1–2 micro, 2–4 for 15–20s, 4–6 for 30–45s, 7–10 for 50–60s).",
-    hook: "Clip 1 opens with a punchy spoken line plus one exaggerated camera move (snap zoom, orbit, overhead drop, crash push, or dutch snap), while a bold cutout piece pastes into frame.",
+    hook: "Clip 1's first 3 seconds (0–3s and startScene) always open with a BIG, BOLD HOOK TITLE cutout banner inside 「...」 in the user's configured on-screen text language (unless on-screen text is turned off), paired with a punchy spoken line and one clean multi-plane parallax push-in or pull-out camera move on the explanation collage.",
     arc: "Surprise → setup → how it works (pasted diagram) → consequence → takeaway, or pain → product reveal as a colour cutout → proof → CTA. Hold the main answer until near the end.",
     narrator:
       "An unseen off-screen narrator speaks every line. On screen the paper-cutout character stays silent and never lip-syncs; they demonstrate by stacking, flipping, and pointing at cutout pieces.",
     visual:
-      "Flat craft collage on a dark board: thick irregular white scissor borders on every piece, mono/kraft background cutouts, full-colour hero character and concept pieces, soft shadows, stop-motion paste motion. Each clip names at least four teaching cutouts in the scene and moves the camera across them.",
+      "Flat craft collage on a single consistent dark warm-brown vertically-grained wooden craft board: thick irregular white scissor borders on every piece, mono/kraft background cutouts, full-colour hero character and concept pieces, soft shadows, stop-motion paste motion. Each clip names at least four teaching cutouts in the scene and moves the camera across them.",
     audio: "Voice-forward mix with paper-slide / slap / pop SFX timed to paste events. BGM follows the emotional turn.",
     rules:
       "Pick an aspect ratio. Keep the source's meaning. Every topic gets a pasted explanation collage. White borders on every cutout. Colour hero on mono background. Approve the storyboard before any video.",

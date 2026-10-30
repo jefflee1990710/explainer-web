@@ -143,6 +143,10 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /I'm Scro/);
   assert.match(block, /explanation graph/);
   assert.match(block, /at least four distinct/);
+  assert.match(block, /First 3-Second Big Bold Hook Title/);
+  assert.match(block, /BIG, BOLD HOOK TITLE/);
+  assert.match(block, /MAX ONE ARROW PER CLIP/);
+  assert.match(block, /NO BLANK SLASH STRIPS OR TAPE STICKERS/);
   assert.match(block, /Scene prompt/);
   assert.match(block, /Camera motion prompt/);
   assert.match(block, /every topic/);

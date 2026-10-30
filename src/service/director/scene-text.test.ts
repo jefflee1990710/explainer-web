@@ -188,16 +188,23 @@ test("stripSceneVoiceoverRecap drops the lettering recap and keeps the pose", ()
 test("enabled scene text allows in-scene text in the chosen language and forbids spoken subtitles", () => {
   const hint = sceneTextSkillHint(true, "en");
   assert.match(hint, /On-canvas text is ON/i);
+  assert.match(hint, /BIG, BOLD HOOK TITLE/i);
+  assert.match(hint, /first 3 seconds/i);
+  assert.match(hint, /English/);
   assert.match(hint, /Never generate spoken subtitles or voiceover captions/i);
   assert.doesNotMatch(hint, /Subtitle \(spell exactly\)/);
-  const dualHint = sceneTextSkillHint(true, "en", { dualBeat: true });
+  const dualHint = sceneTextSkillHint(true, "zh-Hant", { dualBeat: true });
   assert.match(dualHint, /diagram/i);
+  assert.match(dualHint, /BIG, BOLD HOOK TITLE/i);
+  assert.match(dualHint, /Traditional Chinese \(繁體中文\)/);
   assert.match(dualHint, /Never generate spoken subtitles/i);
   assert.doesNotMatch(dualHint, /Subtitle \(spell exactly\)/);
 });
 
 test("director revision note toggles on-screen text allowance without adding subtitles", () => {
   assert.match(sceneTextDirectorRevisionNote(true, "en"), /On-canvas text is now ON/);
+  assert.match(sceneTextDirectorRevisionNote(true, "en"), /BIG, BOLD HOOK TITLE/);
   assert.match(sceneTextDirectorRevisionNote(true, "en"), /Never write Subtitle:/);
   assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);
+  assert.match(sceneTextDirectorRevisionNote(false, "en"), /hook titles/);
 });

@@ -51,9 +51,21 @@ export type VideoLocksPlan = {
   sets: Array<Omit<BackgroundPlate, "url">>;
 };
 
+export const VIDEO_LOCKS_SKILL_SLUGS = [
+  "story-short-director",
+  "product-demo-director",
+  "talking-head-director",
+  "outfit-reel-director",
+  "style-switch-director",
+  "street-lookbook-director",
+] as const;
+
+const VIDEO_LOCKS_SKILL_SET = new Set<string>(VIDEO_LOCKS_SKILL_SLUGS);
+
+// Only short film, product demo, talking-head, outfit reel, multi-style showcase,
+// and street fashion lookbook plan and attach prop sheets and background plates.
 export function shouldPlanVideoLocks(skillSlug?: string) {
-  void skillSlug;
-  return true;
+  return Boolean(skillSlug && VIDEO_LOCKS_SKILL_SET.has(skillSlug));
 }
 
 export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
@@ -85,14 +97,14 @@ export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
       ? isWhiteboardExplainer
         ? "sets: Whiteboard explainer always stays in ONE single shared location across the entire video — the flat 2D full-bleed whiteboard surface itself (never a 3D room, studio building, easel, or outdoor location with sky). Output exactly 1 set containing all clipNumbers."
         : isPaperCutoutExplainer
-          ? "sets: Paper-cutout explainer always stays in ONE single shared location — the flat dark craft board / cutting-mat collage surface itself (never a 3D room, studio, or outdoor sky). Output exactly 1 set containing all clipNumbers."
+          ? "sets: Paper-cutout explainer always stays in ONE single shared location — the flat dark warm-brown vertically-grained wooden craft board collage surface itself (never a gridded mat, floor tiles, 3D room, studio, or outdoor sky). Output exactly 1 set containing all clipNumbers."
           : `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
       : "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
     `At most ${maxSets} ${maxSets === 1 ? "set" : "sets"}. Merge near-duplicates. Every clipNumber appears in ${maxSets === 1 ? "that single set" : "exactly one set"}.`,
     isWhiteboardExplainer
       ? `setId is ${WHITEBOARD_CANVAS_SET_ID}. notes describe a flat 2D full-bleed whiteboard surface with even flat illumination — no room, no architecture, no sky, no physical easel, no people, no handheld props.`
       : isPaperCutoutExplainer
-        ? `setId is ${PAPER_CUTOUT_CANVAS_SET_ID}. notes describe a flat dark craft board / black paper collage surface with even craft-table illumination — no room, no sky, no easel, no people, no handheld props (cutouts are listed as objects).`
+        ? `setId is ${PAPER_CUTOUT_CANVAS_SET_ID}. notes describe a flat dark warm-brown vertically-grained wooden craft board collage surface with even craft-table illumination — no grid mat, no tiles, no room, no sky, no easel, no people, no handheld props (cutouts are listed as objects).`
         : "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
     "name and notes stay short. " + sceneDescriptionLanguageLock(language),
   ].join(" ");

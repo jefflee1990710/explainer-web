@@ -62,10 +62,10 @@ export function buildBackgroundPlatePrompt(input: {
     /paper[- ]?cutout|craft board|cutting mat|剪紙畫布/i.test(`${input.plate.name} ${notes}`);
   if (isPaperCutoutCanvas) {
     return fitReferencePrompt([
-      "Empty paper-cutout craft board reference plate, full-bleed edge-to-edge.",
+      "Empty paper-cutout wooden craft board reference plate, full-bleed edge-to-edge.",
       `Aspect ratio ${input.aspectRatio || "9:16"}.`,
-      "A flat dark craft board or black paper collage surface filling 100% of the frame edge-to-edge, with faint cutting-mat grid lines and subtle paper grain.",
-      "No 3D room, no studio, no sky, no people, no cutout props, no text, no pasted pieces.",
+      "A flat dark warm-brown vertically-grained wooden craft board surface filling 100% of the frame edge-to-edge, with natural vertical wood grain texture and soft even overhead illumination.",
+      "No grid lines, no floor tiles, no 3D room, no studio, no sky, no people, no cutout props, no text, no pasted pieces.",
     ]);
   }
   return fitReferencePrompt([

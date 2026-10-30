@@ -34,6 +34,7 @@ import {
   joinVoBeats,
 } from "@/service/director/dual-beat";
 import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import { shouldPlanVideoLocks } from "@/service/director/video-locks";
 import { clipDrawsNoEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import {
   cameraChangesAngle,
@@ -535,17 +536,18 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
 }
 
 // Prop sheet then empty-set plate for this clip. Sit after the character so faces win.
-// Talking-head stills use their own preset room/set description (e.g. olive velvet armchair + indie studio)
-// so they never attach a stale 3x3 empty-set background plate that would override the armchair or mic.
-// Whiteboard concept explainers (2D full-bleed whiteboard canvas) also skip the 3x3 architectural
-// background plate so the model never draws a 3D building/landscape or copies a 16:9 cell aspect ratio.
+// Only skills in VIDEO_LOCKS_SKILL_SLUGS attach prop sheets and background plates.
+// Talking-head stills anchored to Clip 1's start already lock the room and props to attached image 1;
+// attaching the 3x3 empty-set plate alongside it causes the model to pick a different cell per clip.
 export function videoLockReferenceUrls(
   project: Project,
   clipNumber: number,
   options?: { anchor?: { kind: FrameAnchorKind } },
 ): string[] {
-  void options;
-  if (isTalkingHeadSkill(project.skillSlug)) {
+  if (!shouldPlanVideoLocks(project.skillSlug)) {
+    return [];
+  }
+  if (isTalkingHeadSkill(project.skillSlug) && options?.anchor?.kind === "clip-start") {
     return [];
   }
   const urls: string[] = [];
@@ -672,7 +674,9 @@ export function buildFramePrompt(
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
-  const skipVideoLocks = solo && options.anchor?.kind === "clip-start";
+  const skipVideoLocks =
+    !shouldPlanVideoLocks(project.skillSlug) ||
+    (solo && options.anchor?.kind === "clip-start");
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber, { anchor: options.anchor });
   const sheetUrl = skipVideoLocks ? undefined : objectSheetUrl(project);
   const plate = skipVideoLocks ? undefined : backgroundPlateForClip(project, clipNumber);
