@@ -1,15 +1,17 @@
 import type { PublicStyle } from "@/presentation/serialize";
 
-// One cell in the style dropdown grid: preview still, then name and blurb.
+// One style card in the selection dialog: preview still, then name and blurb.
 export function StylePickerOption({
   style,
   name,
   active,
+  badge,
   onPick,
 }: {
   style: PublicStyle;
   name: string;
   active: boolean;
+  badge?: string;
   onPick: (id: PublicStyle["id"]) => void;
 }) {
   return (
@@ -37,7 +39,13 @@ export function StylePickerOption({
             decoding="async"
             className="h-full w-full object-cover"
           />
-        ) : (
+        ) : null}
+        {badge ? (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-accent-ink/90 px-2 py-0.5 text-[10px] font-bold text-paper">
+            ✓ {badge}
+          </span>
+        ) : null}
+        {style.previewUrl ? null : (
           <span className="absolute inset-0 grid place-items-center px-1 text-center font-display text-[9px] font-bold leading-tight text-accent-ink/60">
             {name}
           </span>

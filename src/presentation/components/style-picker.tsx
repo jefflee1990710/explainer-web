@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useState } from "react";
+import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { StylePickerOption } from "@/presentation/components/style-picker-option";
 import type { PublicStyle } from "@/presentation/serialize";
 import type { StyleId } from "@/model/style-id";
 import { localizedStyleName } from "@/util/style-i18n";
@@ -12,26 +12,7 @@ function styleLabel(style: PublicStyle): string {
   return style.isCustom ? style.name : localizedStyleName(style.id as StyleId);
 }
 
-// Thumbnail shown on the closed trigger.
-function StylePreviewThumb({ style, label }: { style: PublicStyle; label: string }) {
-  return (
-    <span
-      className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-accent-ink/10"
-      style={{ backgroundColor: style.canvasColor }}
-    >
-      {style.previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={style.previewUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-      ) : (
-        <span className="absolute inset-0 grid place-items-center px-0.5 text-center font-display text-[9px] font-bold leading-tight text-accent-ink/60">
-          {label}
-        </span>
-      )}
-    </span>
-  );
-}
-
-// Dropdown of visual styles. Open state is a 3-column preview grid.
+// Selected visual style sits between previous/next. The center opens the picker dialog.
 export function StylePicker({
   styles,
   value,
@@ -53,13 +34,12 @@ export function StylePicker({
 }) {
   const { t } = useI18n();
   const groupLabel = label ?? t("styles.label");
-  const listboxId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
   const isMulti = maxSelect > 1 && Boolean(onMultiChange);
   const selectedIds = isMulti && values && values.length > 0 ? values : [value];
-  const selected = styles.find((item) => item.id === selectedIds[0]) ?? styles[0];
+  const foundIndex = styles.findIndex((item) => item.id === value);
+  const selected = foundIndex >= 0 ? styles[foundIndex] : undefined;
   const selectedNames = selectedIds
     .map((id) => styles.find((item) => item.id === id))
     .filter((item): item is PublicStyle => Boolean(item))
@@ -69,30 +49,16 @@ export function StylePicker({
       ? `${selectedNames.join(" → ")} (${selectedNames.length}/${maxSelect})`
       : selected
         ? styleLabel(selected)
-        : groupLabel;
-  const selectedDescription = selected?.description || "";
-  const grouped = styles.some((style) => style.isCustom);
-  const systemStyles = styles.filter((style) => !style.isCustom);
-  const mineStyles = styles.filter((style) => style.isCustom);
+        : value
+          ? value
+          : groupLabel;
 
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  if (styles.length === 0) {
-    return <p className="text-sm text-muted">目前沒有可用的視覺風格。</p>;
+  function step(delta: number) {
+    if (styles.length === 0 || isMulti) return;
+    const base = foundIndex >= 0 ? foundIndex : delta > 0 ? -1 : 0;
+    const next = (base + delta + styles.length) % styles.length;
+    const style = styles[next];
+    if (style) onChange(style.id);
   }
 
   function pick(id: PublicStyle["id"]) {
@@ -112,88 +78,104 @@ export function StylePicker({
     setOpen(false);
   }
 
-  function renderGroup(label: string | null, rows: PublicStyle[]) {
-    if (rows.length === 0) return null;
-    return (
-      <li role="presentation">
-        {label ? (
-          <p className="px-1 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
-        ) : null}
-        <ul role="group" aria-label={label ?? undefined} className="grid grid-cols-3 gap-1.5">
-          {rows.map((style) => {
-            const orderIndex = selectedIds.indexOf(style.id);
-            const active = orderIndex !== -1;
-            const displayName =
-              isMulti && active ? `#${orderIndex + 1} ${styleLabel(style)}` : styleLabel(style);
-            return (
-              <li key={style.id} role="presentation">
-                <StylePickerOption
-                  style={style}
-                  name={displayName}
-                  active={active}
-                  onPick={pick}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </li>
-    );
+  if (styles.length === 0) {
+    return <p className="text-sm text-muted">{t("styles.empty")}</p>;
   }
 
+  const arrowClass =
+    "inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 bg-white text-foreground transition hover:border-accent-ink hover:bg-lime/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        id={`${listboxId}-trigger`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
-        className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {selected ? <StylePreviewThumb style={selected} label={selectedName} /> : null}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-foreground">{selectedName}</span>
-          {selectedDescription ? (
-            <span className="mt-0.5 block truncate text-xs text-muted">{selectedDescription}</span>
-          ) : null}
-        </span>
-        <ChevronIcon open={open} />
-      </button>
+    <div>
+      <div className="flex min-h-[4.5rem] items-center gap-2 rounded-xl border border-accent-ink/15 bg-paper/70 px-2 py-2">
+        <button
+          type="button"
+          className={arrowClass}
+          aria-label={t("styles.previous")}
+          disabled={disabled || isMulti || styles.length < 2}
+          onClick={() => step(-1)}
+        >
+          <ArrowIcon direction="left" />
+        </button>
+        <button
+          type="button"
+          aria-label={groupLabel}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          disabled={disabled}
+          onClick={() => setOpen(true)}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-1 py-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {selected ? <StyleIcon style={selected} label={styleLabel(selected)} /> : <StyleIconFallback label={selectedName} />}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-foreground">
+              {selectedName}
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={arrowClass}
+          aria-label={t("styles.next")}
+          disabled={disabled || isMulti || styles.length < 2}
+          onClick={() => step(1)}
+        >
+          <ArrowIcon direction="right" />
+        </button>
+      </div>
 
       {open ? (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label={groupLabel}
-          aria-labelledby={`${listboxId}-trigger`}
-          className="absolute z-30 mt-2 max-h-[28rem] w-full overflow-y-auto rounded-xl border border-accent-ink/15 bg-paper p-2 shadow-[4px_4px_0_0_rgba(18,20,28,0.08)]"
-        >
-          {grouped ? (
-            <>
-              {renderGroup(t("styles.systemSection"), systemStyles)}
-              {renderGroup(t("styles.mineSection"), mineStyles)}
-            </>
-          ) : (
-            renderGroup(null, styles)
-          )}
-        </ul>
+        <StyleSelectDialog
+          styles={styles}
+          selectedIds={selectedIds}
+          maxSelect={maxSelect}
+          isMulti={isMulti}
+          onPick={pick}
+          onClose={() => setOpen(false)}
+        />
       ) : null}
     </div>
   );
 }
 
-function ChevronIcon({ open }: { open: boolean }) {
+function StyleIcon({ style, label }: { style: PublicStyle; label: string }) {
   return (
-    <svg
-      className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden
+    <span
+      className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-accent-ink/10"
+      style={{ backgroundColor: style.canvasColor }}
     >
-      <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      {style.previewUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={style.previewUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="px-1 text-center font-display text-[9px] font-bold leading-tight text-accent-ink/60">
+          {label.slice(0, 2)}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function StyleIconFallback({ label }: { label: string }) {
+  return (
+    <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-accent-ink/10 bg-white">
+      <span className="px-1 text-center font-display text-[9px] font-bold leading-tight text-accent-ink/60">
+        {label.slice(0, 2)}
+      </span>
+    </span>
+  );
+}
+
+function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+      <path
+        d={direction === "left" ? "M12.5 5L7.5 10L12.5 15" : "M7.5 5L12.5 10L7.5 15"}
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

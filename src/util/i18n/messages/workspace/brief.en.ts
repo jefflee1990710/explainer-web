@@ -238,6 +238,8 @@ export const briefEn = {
     useCaseLabel: "Suggested use",
     doneButton: "Done",
     noSearchMatch: "No video types match “{query}”.",
+    previous: "Previous video type",
+    next: "Next video type",
   },
   narrationToggle: {
     title: "Voiceover",

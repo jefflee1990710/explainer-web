@@ -234,6 +234,8 @@ export const briefZhHant = {
     useCaseLabel: "建議用途",
     doneButton: "完成",
     noSearchMatch: "找不到符合「{query}」的影片類型。",
+    previous: "上一個影片類型",
+    next: "下一個影片類型",
   },
   narrationToggle: {
     title: "旁白",
