@@ -241,7 +241,7 @@ test("whiteboard explainer stills keep the character silent and draw the mechani
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
 });
 
-test("whiteboard explainer with a cast zooms, walks, and draws extra objects", () => {
+test("whiteboard explainer with a cast locks the camera and keeps the 70/30 diagram hierarchy", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.cast = [
@@ -259,11 +259,11 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   assert.match(end, /feet off the ground/);
   assert.match(end, /point toward the camera/);
   assert.match(end, /not a neutral stand/);
-  assert.match(end, /Camera angle and pose MAY change/);
+  assert.match(end, /70\/30 Diagram-First Spatial Hierarchy/);
+  assert.match(end, /Keep the same camera, shot size, angle, crop, set, lighting, character size, and screen position/);
   assert.match(end, /other side/);
-  assert.doesNotMatch(end, /Same camera, character size/);
   assert.equal(end.match(/same side/g)?.length, 1);
-  assert.equal(end.match(/Camera angle/gi)?.length, 2);
+  assert.equal(end.match(/Camera angle/gi)?.length, 1);
 });
 
 test("stills strip the director's subtitle sentence and keep the 9:16 safe area", () => {
@@ -396,7 +396,7 @@ test("frameSubmitPlan attaches this clip's start still when generating the end",
 
 test("an orbit end still does not attach the start frame, and names the landed angle", () => {
   const arc = project();
-  arc.skillSlug = "cartoon-explainer-video-director";
+  arc.skillSlug = "story-short-director";
   arc.cast = [
     { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
   ];
@@ -449,7 +449,7 @@ test("an orbit end still does not attach the start frame, and names the landed a
   assert.doesNotMatch(freed.prompt, /COMPOSITION LOCK/);
 });
 
-test("whiteboard end stills land the camera in every visual style", () => {
+test("diagram explainer end stills always keep the steady composition lock in every visual style", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.sceneTextEnabled = true;
@@ -463,21 +463,21 @@ test("whiteboard end stills land the camera in every visual style", () => {
     startVo: "First beat.",
     endVo: "Second beat.",
     englishVo: "First beat. Second beat.",
-    motionCamera: "0-5s Scro flips the card; gimbal arc sweeps 180 degrees from left profile to right 3/4 view.",
+    motionCamera: "0-5s Scro flips the card; camera pushes in smoothly on the diagram.",
   };
   steady.frames = [
     { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
     { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
   ];
   const end = frameSubmitPlan(steady, 1, "end");
-  assert.deepEqual(end.refs, ["https://blob/c.png"]);
-  assert.match(end.prompt, /LANDED CAMERA/);
-  assert.doesNotMatch(end.prompt, /COMPOSITION LOCK/);
+  assert.deepEqual(end.refs, ["https://blob/start.png", "https://blob/c.png"]);
+  assert.match(end.prompt, /COMPOSITION LOCK/);
+  assert.doesNotMatch(end.prompt, /LANDED CAMERA/);
 });
 
 test("an end still without a start lock attaches the prop sheet and empty-set plate", () => {
   const arc = project();
-  arc.skillSlug = "cartoon-explainer-video-director";
+  arc.skillSlug = "story-short-director";
   arc.cast = [
     { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
   ];
@@ -975,6 +975,35 @@ test("trimming drops generic rules and Light before the Scene, and Set keeps its
   assert.match(prompt, /4\) Camera: medium shot from the left\./);
   assert.match(prompt, /「BASE」/);
   assert.match(prompt, /「SUMMIT」/);
+});
+
+test("diagram explainers preserve multi-sentence structured Set diagrams under moderate trimming while non-diagram directors trim Set to the first sentence", () => {
+  const multiSentenceSet =
+    "1) Character: Lily stands in the lower-right 25% presenter zone pointing up-left. " +
+    "2) Set: Structured Diagram Archetype — Causal Chain / Pipeline occupying 75% of the whiteboard canvas. " +
+    "First node 「RAW DATA」 sits in a blue container box with an intake funnel. " +
+    "Second node 「CLEANSE」 sits at a center-left filter gate with a red rejection chute. " +
+    "Third node 「FEATURE MAP」 connects via thick directional arrows to the right. " +
+    "Fourth node 「MODEL SIGNAL」 glows with a green checkmark badge on the far right. " +
+    "3) Light: " + "bright flat studio light, ".repeat(110) +
+    "4) Camera: locked medium-wide 2D planar shot.";
+
+  const whiteboard = project();
+  whiteboard.skillSlug = "cartoon-explainer-video-director";
+  whiteboard.phaseA!.visualWorld = "Flat 2D whiteboard surface. ".repeat(120);
+  whiteboard.phaseA!.clips[0].startScene = multiSentenceSet;
+  whiteboard.phaseA!.clips[0].motionCamera = "0–3s: " + "arrows glide smoothly across the canvas, ".repeat(65) + "; 3–5s: holds.";
+  const wbPrompt = buildFramePrompt(whiteboard, 1, "start");
+  assert.match(wbPrompt, /First node 「RAW DATA」/);
+  assert.match(wbPrompt, /Fourth node 「MODEL SIGNAL」 glows with a green checkmark badge/);
+
+  const story = project();
+  story.skillSlug = "story-short-director";
+  story.phaseA!.visualWorld = "Flat 2D whiteboard surface. ".repeat(120);
+  story.phaseA!.clips[0].explainerScene = multiSentenceSet;
+  story.phaseA!.clips[0].motionCamera = "0–3s: " + "camera tracks across the room, ".repeat(140) + "; 3–5s: holds.";
+  const storyPrompt = buildFramePrompt(story, 1, "start");
+  assert.doesNotMatch(storyPrompt, /glowing with a green checkmark badge|glows with a green checkmark badge/);
 });
 
 test("realistic stills keep the light & camera rule and the Scene's Light under trimming; flat styles never get it", () => {

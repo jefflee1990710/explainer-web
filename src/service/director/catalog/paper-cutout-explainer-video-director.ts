@@ -52,7 +52,7 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 - Craft texture: optional crumpled paper scraps, torn kraft strips, and faint cutting-mat grid lines at the edges. Visible paper grain. Stop-motion paste feel — pieces slide in, flip, stack, and settle with a tiny jitter; they never morph or melt.
 - Single background plate lock: ONE shared craft-board set for the whole video (exactly one background plate; never switch locations).
 - Character Visual Guideline Lock: if a character reference is attached, follow it exactly across all clips (as a colour paper-cutout figure with the white border). If none, invent ONE simple cutout everyman / host and lock it — flat paper silhouette, white border, consistent wardrobe colours.
-- Storytelling language: for every topic, an explanation collage is the main subject — comparison panels, before/after strips, cause→effect chains, numbered steps, labeled parts, flow, or a chart — built by pasting cutout objects, arrows, and tag strips onto the board. Prefer labeled paper pieces over empty metaphor props. Spoken line is the subtitle (selected text style). Diagram labels inside 「」 are ordinary cut-lettering on that paper piece.
+- Storytelling language: for every topic, a structured explanation collage is the main subject occupying 70–80% of the canvas — choose one explicit Diagram Archetype per clip from: (1) Split Matrix / Before-vs-After, (2) Causal Chain / Pipeline, (3) Funnel / Filter, (4) Balance Scale / Trade-off Seesaw, (5) Iceberg / Layered Stack, or (6) Quantitative Chart / Annotated Curve — built by pasting cutout objects, arrows, and tag strips onto the board. When a character is on screen, stage them in the remaining 20–30% lower-left or lower-right presenter zone interacting with the diagram (never blocking the center). Because single-frame image-to-video generates from the start still, \`startScene\` MUST already draw the complete structured diagram scaffold (all 4+ labeled cutout nodes, containers, axes, and connecting paths visible at t=0s). Prefer labeled paper pieces with concrete domain-specific terms in 「」 over empty metaphor props. Spoken line is the subtitle (selected text style). Diagram labels inside 「」 are ordinary cut-lettering on that paper piece.
 
 ## Workflow
 
@@ -65,11 +65,11 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 
 - Each clip is 5–12 seconds from its spoken line (about 2.4 English words per second). A short line stays 5 seconds at medium pace (~2.5 words/s).
 - 2-Second Visual Rule: a noticeable paste / slide / flip / punch-in every 1.5–2.5 seconds.
-- Clip 1 stacks at least 2 hook types and uses one exaggerated camera move (snap zoom, orbit, overhead drop, crash push, or dutch snap) — sharp and fast. Later clips do not repeat that hook camera.
+- Clip 1 stacks at least 2 hook types and uses at most one clean multi-plane parallax push-in or pull-out (zoom-out / push-in) on the flat craft board — accelerating through the change then decelerating into the landing, with the exact same 2D planar angle and side in both stills (no 360 orbit, no overhead drop, no 3D camera rotation). Later clips do not repeat that hook camera.
 - Delayed payoff: do not reveal the core punchline in the opening clip.
 - Always narrated: an unseen off-screen narrator speaks every line in the third person. On screen the character never speaks and never lip-syncs. No first-person character intros.
 - When a character is attached, each clip has exactly one primary body action from: push, pull, stack, lift, place, toss, plug, sketch an arrow, flip a card, turn the dial, stretch, squeeze, magnify, jump, point toward the camera. Do not reuse an action from either of the previous two clips. Jump at most once. The last clip never points toward the camera. Alternate starting sides; ~80% stay on that side; ~20% rare lateral crosses. startScene / endScene are before and after of that one action.
-- Visual density: a rich paper explanation collage plus the cutout element this clip's action works on. Never a near-empty board with one floating label.
+- Visual density: at least four distinct cutout teaching elements on the explanation collage, besides the character. Name each one in the scene (what it is, which part of the concept it explains, where it sits) and give each one a timed beat in the camera motion (when it pastes, slides, flips, or stacks, and how the camera reveals it). Never a near-empty board with one floating label.
 - On-canvas beat text: never write Subtitle: on the stills for planning. A short beat title or diagram label may sit inside 「」 on the paper piece it belongs to.
 - Match each clip ending to the next opening. Final clip ends on a clean resting payoff — never loop back to Clip 1.
 - Do not invent unsupported facts, statistics, quotations, or product claims.
@@ -114,11 +114,11 @@ Narrator is always unseen third-person off-screen. Character is a silent paper d
 
 | Clip # & Time | Narrative job | Explainer scene | Motion, camera & transition | VO | Reference | BGM / SFX |
 
-Every row: timed beats; 2-second visual rule; explanation collage as spine; cutout pieces paste / slide / flip / stack. When a character is on, one primary action from the director list; start/end are before/after of that action.
+Every row: timed beats; 2-second visual rule; explanation collage as spine; at least four cutout teaching elements paste / slide / flip / stack. When a character is on, one primary action from the director list; start/end are before/after of that action.
 
 ## Scene detail
 
-Write startScene / endScene as: Character → Set (collage graph + cutouts) → Light → Camera. Never restate wardrobe appearance (follows character lock).
+Write startScene / endScene as: Character → Set (collage graph + cutouts) → Light → Camera. In Set, number at least four teaching cutouts: what each piece is, which part of the concept it explains, and where it sits. Never restate wardrobe appearance (follows character lock). In motionCamera, give each of those cutouts its own timed beat and the camera move that reveals it.
 
 ## Confirmation
 
@@ -139,7 +139,7 @@ Use only after Phase A approval. One self-contained prompt per clip.
 4. Palette in ordinary colour names
 5. Composition for the ratio
 6. First-frame state inherited from previous clip
-7. Timed beats with paste / slide / flip events every ~2s
+7. Timed beats: each of the at least four teaching cutouts pastes, slides, flips, or stacks on its own beat, and the camera pushes, pans, or pulls to reveal that piece
 8. Exact audio-only dialogue once
 9. Identical narrator description
 10. No BGM in the prompt — short SFX only (paper slide, slap, pop)
@@ -162,7 +162,7 @@ Start and end stills are one continuous paste-motion shot. Animate the one actio
     narrator:
       "An unseen off-screen narrator speaks every line. On screen the paper-cutout character stays silent and never lip-syncs; they demonstrate by stacking, flipping, and pointing at cutout pieces.",
     visual:
-      "Flat craft collage on a dark board: thick irregular white scissor borders on every piece, mono/kraft background cutouts, full-colour hero character and concept pieces, soft shadows, stop-motion paste motion. Explanation graphs are built from pasted paper parts.",
+      "Flat craft collage on a dark board: thick irregular white scissor borders on every piece, mono/kraft background cutouts, full-colour hero character and concept pieces, soft shadows, stop-motion paste motion. Each clip names at least four teaching cutouts in the scene and moves the camera across them.",
     audio: "Voice-forward mix with paper-slide / slap / pop SFX timed to paste events. BGM follows the emotional turn.",
     rules:
       "Pick an aspect ratio. Keep the source's meaning. Every topic gets a pasted explanation collage. White borders on every cutout. Colour hero on mono background. Approve the storyboard before any video.",

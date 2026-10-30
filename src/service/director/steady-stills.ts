@@ -1,12 +1,16 @@
 import { getDirectorBySlug } from "@/service/director/catalog";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 
-// Style does not change the storyboard.
+// Concept explainers (whiteboard & paper-cutout) always use steady 2D planar stills
+// (locked angle & crop inside a clip; gentle parallax push-in/pull-out only) so single-frame
+// I2V never warps or morphs a flat 2D diagram canvas.
 export function usesSteadyStills(
-  _skillSlug?: string,
-  _style?: { id?: string; name?: string },
+  skillSlug?: string,
+  style?: { id?: string; name?: string },
 ) {
-  return false;
+  void style;
+  return isDiagramExplainerSkill(skillSlug);
 }
 
 // Driven by `IDirector.behavior.keyframeMode`: start-only directors skip the end still.

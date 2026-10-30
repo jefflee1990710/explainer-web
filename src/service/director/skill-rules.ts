@@ -649,14 +649,27 @@ export function cartoonHookCameraRule(
   return `Clip 1 is the hook and always uses exactly one exaggerated camera move, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in from a wider shot to the ${hookFace}; a snap zoom out from the ${hookFace} to the full body and the graph; a fast 360 orbit around the character that ends on the opposite side; an overhead drop from looking down onto an eye-level ${hookFace}; a crash push from far across the canvas into a close-up as the graph rushes past; a dutch snap from a tilted close-up into an upright wider view. Write that before and after in each still's Camera line, so shot size or angle differs. ${faceNote} Later clips do not repeat this hook camera.`;
 }
 
+// Six explicit visual diagram archetypes so the LLM never defaults to generic floating boxes.
+export const DIAGRAM_ARCHETYPES_RULE =
+  "Structured Diagram Archetype (REQUIRED): every clip MUST organize its explanation around ONE explicit visual diagram archetype from this 6-archetype catalog and name that archetype at the start of `2) Set`: (1) `Split Matrix / Before-vs-After` (two-column or top/bottom contrast grid with contrasting status badges), (2) `Causal Chain / Pipeline` (3–4 connected nodes A → B → C with directional arrows and transformation badges), (3) `Funnel / Filter` (wide multi-point intake narrowing through a filter gate into one high-value result), (4) `Balance Scale / Trade-off Seesaw` (fulcrum beam weighing cost/risk on one pan against leverage/reward on the other), (5) `Iceberg / Layered Stack` (surface visible tip above a dividing line vs deep foundational layers below), or (6) `Quantitative Chart / Annotated Curve` (labeled axes with rising/falling bars, threshold line, or inflection spike).";
+
+export const DIAGRAM_LAYOUT_HIERARCHY_RULE =
+  "70/30 Diagram-First Spatial Hierarchy: the structured explanation diagram MUST occupy 70–80% of the canvas as the hero visual subject; when a character is present, stage them in the remaining 20–30% lower-left or lower-right presenter zone interacting directly with the diagram nodes — never let the character stand huge in the dead center blocking the diagram.";
+
+export const COMPLETE_START_DIAGRAM_RULE =
+  "Complete Diagram Scaffold in `startScene`: because single-frame image-to-video generates motion directly from the `startScene` still, `startScene` MUST already draw the COMPLETE structured diagram scaffold (all 4+ labeled nodes, containers, axes, and connecting paths visible on canvas at t=0s), not an empty canvas waiting to be drawn later.";
+
 // Concept explainers teach with several on-screen pieces, named in the still and in the camera move.
 function teachingElementsRule(pieceNoun: string, graphNoun: string) {
   return [
+    DIAGRAM_ARCHETYPES_RULE,
+    DIAGRAM_LAYOUT_HIERARCHY_RULE,
+    COMPLETE_START_DIAGRAM_RULE,
     `Teaching elements: every clip explains its spoken line with at least four distinct ${pieceNoun}s on the ${graphNoun}, besides the character.`,
-    "Each element teaches one part of that line (an icon, a diagram node, an arrow, a chart piece, a labeled part, a comparison card, a before/after strip, or a cause-and-effect object).",
+    "Each element teaches one part of that line (an icon, a diagram node, an arrow, a chart piece, a labeled part, a comparison card, a before/after strip, or a cause-and-effect object) and carries a concrete domain-specific label in 「」 (1–3 words from the user's actual topic, e.g. 「CAC」, 「LTV 3x」, 「DEEP WORK」 — never generic placeholders like 「IDEA」 or 「BOX」).",
     "Do not add decoration the line does not need, and do not repeat the same four elements unchanged on the next clip — add, replace, or change their state as the idea moves forward.",
     "The character does not have to hold them.",
-    "Scene prompt: in the Set part of explainerScene, startScene, and endScene, name every teaching element in a numbered list — what it is, which part of the concept it explains, and where it sits (left / centre / right, foreground / midground / background).",
+    "Scene prompt: in the Set part of explainerScene, startScene, and endScene, first name the chosen Diagram Archetype, then name every teaching element in a numbered list — what it is, which exact concept term in 「」 it displays, which part of the concept it explains, and where it sits (left / centre / right, foreground / midground / background).",
     "A scene that only names the character and one label is incomplete.",
     "Camera motion prompt: in motionCamera, give each teaching element its own timed beat — time window, which element moves or appears, from where to where, how it moves (drawn on, pasted, slid in from a frame edge, flipped, or stacked), and how the camera reveals it (push in on that piece, pan across the row, or pull out so the new piece sits next to the old ones).",
     "Every element in the end still is already in the start still or enters in one of those beats.",
@@ -796,13 +809,14 @@ export function cartoonNarratorFrameLock(
     if (spec && options.position) {
       return [
         silent,
+        DIAGRAM_LAYOUT_HIERARCHY_RULE,
         spec[options.position],
         `Keep the character on the side of the frame the Scene names. ${cameraMatch} Draw every teaching element named in the Scene — the explanation graph's lines, charts, shapes, icons, and the element of this action. Do not drop a named piece.`,
         labels,
         hook,
       ].filter(Boolean).join(" ");
     }
-    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. Do not drop a named piece. ${labels}${hook ? ` ${hook}` : ""}`;
+    return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. Do not drop a named piece. ${labels}${hook ? ` ${hook}` : ""}`;
   }
   const expArcNoCast = cartoonClipExpressionArc(options?.clipNumber, { realistic });
   const expNoCastLine = expArcNoCast

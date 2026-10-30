@@ -33,6 +33,9 @@ test("paper-cutout director block and frame/video locks use collage language", (
   });
   assert.match(block, /Paper-cutout collage lock|white scissor border/i);
   assert.match(block, /paper-cutout explanation collage/i);
+  assert.match(block, /at least four distinct cutout pieces/i);
+  assert.match(block, /Scene prompt/);
+  assert.match(block, /Camera motion prompt/);
   assert.doesNotMatch(block, /Whole-canvas 2D whiteboard lock/);
 
   const frame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
@@ -47,6 +50,8 @@ test("paper-cutout director block and frame/video locks use collage language", (
     clipNumber: 2,
   });
   assert.match(video, /off-screen narrator/);
+  assert.match(frame, /every teaching element named in the Scene/i);
+  assert.match(video, /every teaching element named in the Scene/i);
   assert.match(video, /white scissor border|paper-cutout craft collage/i);
 });
 
@@ -55,4 +60,19 @@ test("video locks force paper-cutout-canvas for the paper-cutout director", () =
   assert.match(system, /paper-cutout-canvas/);
   assert.match(system, /craft board/i);
   assert.doesNotMatch(system, /setId is whiteboard-canvas/);
+});
+
+test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, complete start scaffold, and steady stills", () => {
+  for (const canvas of ["whiteboard", "paper-cutout"] as const) {
+    const block = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas });
+    assert.match(block, /Structured Diagram Archetype \(REQUIRED\)/);
+    assert.match(block, /Split Matrix \/ Before-vs-After/);
+    assert.match(block, /Causal Chain \/ Pipeline/);
+    assert.match(block, /Funnel \/ Filter/);
+    assert.match(block, /Balance Scale \/ Trade-off Seesaw/);
+    assert.match(block, /Iceberg \/ Layered Stack/);
+    assert.match(block, /Quantitative Chart \/ Annotated Curve/);
+    assert.match(block, /70\/30 Diagram-First Spatial Hierarchy/);
+    assert.match(block, /Complete Diagram Scaffold in `startScene`/);
+  }
 });

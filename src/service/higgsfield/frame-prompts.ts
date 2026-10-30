@@ -33,6 +33,7 @@ import {
   isDualBeatSkill,
   joinVoBeats,
 } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { clipDrawsNoEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import {
   cameraChangesAngle,
@@ -269,7 +270,11 @@ function stripSceneSubtitleSentence(scene: string) {
     .trim();
 }
 
-function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set-short") {
+function trimSceneParts(
+  scene: string,
+  mode: "light-short" | "light-drop" | "set-short",
+  setBudget = 200,
+) {
   const parts = scene.split(/(?=[1-9]\)\s)/);
   if (parts.length < 2) return scene;
   return parts
@@ -280,7 +285,8 @@ function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set
         return part;
       }
       if (mode !== "set-short" || !/^2\)\s/.test(part)) return part;
-      const short = clipAt(firstSentence(part), 200);
+      const baseText = setBudget > 200 ? part.trim() : firstSentence(part);
+      const short = clipAt(baseText, setBudget);
       const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter((label) => !short.includes(label));
       return `${short}${lost.length ? ` Also labeled ${lost.join(" ")}.` : ""} `;
     })
@@ -343,10 +349,12 @@ function fitFramePrompt(
   parts: FrameTrimmable,
   compose: (parts: FrameTrimmable) => string,
   budget = FRAME_PROMPT_BUDGET,
-  options: { keepLight?: boolean } = {},
+  options: { keepLight?: boolean; preserveSetDetail?: boolean } = {},
 ) {
   // Realistic stills keep the render rule and the Scene's Light part; light is what removes the plastic look.
   const keepLight = options.keepLight === true;
+  // Concept explainers store their entire 4-element structured diagram inside `2) Set`, so preserve up to 900 chars.
+  const setBudget = options.preserveSetDetail ? 900 : 200;
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
     (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
@@ -360,10 +368,14 @@ function fitFramePrompt(
     (p) => ({ ...p, visualWorld: "" }),
     (p) => ({ ...p, palette: clipAt(p.palette, 80), remark: clipAt(p.remark, 200) }),
     ...(keepLight ? [] : [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "light-drop") })]),
-    (p) => ({ ...p, scene: trimSceneParts(p.scene, "set-short") }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "set-short", setBudget) }),
     // Camera motion stays whole until the prompt is still over the cap.
     (p) => ({ ...p, motion: clipAt(p.motion, 160) }),
     (p) => ({ ...p, motion: "" }),
+    // If preserving a 900-char diagram Set still pushes the prompt past budget, fall back to a 200-char Set with preserved 「」 labels before compacting realistic render rules.
+    ...(setBudget > 200
+      ? [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "set-short", 200) })]
+      : []),
     // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching locks.
     (p) => ({ ...p, styleBody: clipAt(p.styleBody, 360) }),
     // Compact verbose scene camera boilerplate and lock paragraphs BEFORE dropping realistic styleBody or renderDetail.
@@ -1022,7 +1034,10 @@ export function buildFramePrompt(
     },
     compose,
     budget,
-    { keepLight: realistic },
+    {
+      keepLight: realistic,
+      preserveSetDetail: isDiagramExplainerSkill(project.skillSlug),
+    },
   );
   // Grok spells the quoted line when that line leads a short prompt. A long
   // storyboard prompt, or the previous still, makes it copy a similar character.

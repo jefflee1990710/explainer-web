@@ -171,7 +171,7 @@ function runtimeBlocks(director: IDirector): DirectorTextBlock[] {
         hasCharacter: true,
         canvas,
         realistic: false,
-        smoothMotion: false,
+        smoothMotion: true,
       }),
       SAMPLE_NOTE,
     );
@@ -182,32 +182,32 @@ function runtimeBlocks(director: IDirector): DirectorTextBlock[] {
         hasCharacter: false,
         canvas,
         realistic: false,
-        smoothMotion: false,
+        smoothMotion: true,
       }),
       SAMPLE_NOTE,
     );
     pushBlock(
       blocks,
       "靜幀鎖定（有角色，Clip 1 開頭）",
-      cartoonNarratorFrameLock(slug, { hasCharacter: true, clipNumber: 1, position: "start" }),
+      cartoonNarratorFrameLock(slug, { hasCharacter: true, clipNumber: 1, position: "start", steadyStills: true }),
       SAMPLE_NOTE,
     );
     pushBlock(
       blocks,
       "靜幀鎖定（無角色，Clip 1）",
-      cartoonNarratorFrameLock(slug, { hasCharacter: false, clipNumber: 1 }),
+      cartoonNarratorFrameLock(slug, { hasCharacter: false, clipNumber: 1, steadyStills: true }),
       SAMPLE_NOTE,
     );
     pushBlock(
       blocks,
       "影片鎖定（有角色，Clip 1）",
-      cartoonNarratorVideoLock(slug, { hasCharacter: true, clipNumber: 1 }),
+      cartoonNarratorVideoLock(slug, { hasCharacter: true, clipNumber: 1, smoothMotion: true }),
       SAMPLE_NOTE,
     );
     pushBlock(
       blocks,
       "影片鎖定（無角色，Clip 1）",
-      cartoonNarratorVideoLock(slug, { hasCharacter: false, clipNumber: 1 }),
+      cartoonNarratorVideoLock(slug, { hasCharacter: false, clipNumber: 1, smoothMotion: true }),
       SAMPLE_NOTE,
     );
   }
