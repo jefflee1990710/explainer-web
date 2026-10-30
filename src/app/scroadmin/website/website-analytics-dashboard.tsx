@@ -231,6 +231,115 @@ export function WebsiteAnalyticsDashboard({
             </div>
           </section>
 
+          {/* Step 2 & Step 3 Drop-Off Root Cause Diagnosis */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="rounded-2xl border border-amber-200 bg-white p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                    Step 2 → Step 3 流失診斷
+                  </span>
+                  <h3 className="mt-1.5 font-display text-lg font-bold text-[#12141c]">
+                    為何停在「2. 點擊進入註冊 / 登入頁」未完成驗證？
+                  </h3>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    拆解進入 `/sign-up` 或 `/sign-in` 但未完成註冊/登入的訪客原因（區分 Academy 鎖頁、未登入直連跳轉、爬蟲、Google 彈窗取消與被動跳出）。
+                  </p>
+                </div>
+              </div>
+
+              {report.step2DropOffReasons.length === 0 ? (
+                <p className="mt-4 text-sm text-zinc-500">目前無 Step 2 流失訪客。</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {report.step2DropOffReasons.map((item) => (
+                    <div
+                      key={item.reasonId}
+                      className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-[#12141c]">
+                          {item.label}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 font-mono text-xs font-bold text-amber-900">
+                          {item.visitorCount} 人 ({item.sharePercent}%)
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+                        {item.description}
+                      </p>
+                      {item.samplePaths.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.samplePaths.map((sample, idx) => (
+                            <span
+                              key={idx}
+                              className="max-w-full truncate rounded bg-white px-2 py-0.5 font-mono text-[10px] text-zinc-600 border border-zinc-200"
+                            >
+                              {sample}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-emerald-200 bg-white p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
+                    Step 3 → Step 4 轉換與停頓診斷
+                  </span>
+                  <h3 className="mt-1.5 font-display text-lg font-bold text-[#12141c]">
+                    「3. 完成註冊或登入帳號」後的流向與停頓原因
+                  </h3>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    追蹤完成驗證的用戶是否進入 `/app`、是否停在首次必填「服務條款彈窗 (`AcceptPoliciesDialog`)」、或在 `/app/videos/new` 立即按返回離開。
+                  </p>
+                </div>
+              </div>
+
+              {report.step3DropOffReasons.length === 0 ? (
+                <p className="mt-4 text-sm text-zinc-500">目前尚無完成驗證紀錄。</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {report.step3DropOffReasons.map((item) => (
+                    <div
+                      key={item.reasonId}
+                      className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-[#12141c]">
+                          {item.label}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 font-mono text-xs font-bold text-emerald-900">
+                          {item.visitorCount} 人 ({item.sharePercent}%)
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+                        {item.description}
+                      </p>
+                      {item.samplePaths.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.samplePaths.map((sample, idx) => (
+                            <span
+                              key={idx}
+                              className="max-w-full truncate rounded bg-white px-2 py-0.5 font-mono text-[10px] text-zinc-600 border border-zinc-200"
+                            >
+                              {sample}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
           {/* Auth Breakdown & Failures */}
           <div className="grid gap-6 lg:grid-cols-2">
             <section className="rounded-2xl border border-zinc-200 bg-white p-6">
@@ -275,6 +384,18 @@ export function WebsiteAnalyticsDashboard({
                   <p className="text-xs text-zinc-500">Email 密碼驗證次數</p>
                   <p className="mt-1 font-display text-2xl font-bold text-[#12141c]">
                     {report.authBreakdown.emailAuthCount}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3.5">
+                  <p className="text-xs text-amber-800">Google 彈窗關閉/取消</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-amber-700">
+                    {report.authBreakdown.googleCancelledCount}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-3.5">
+                  <p className="text-xs text-zinc-500">曾互動輸入表單人數</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-[#12141c]">
+                    {report.authBreakdown.formEngagedCount}
                   </p>
                 </div>
               </div>
@@ -558,6 +679,11 @@ export function WebsiteAnalyticsDashboard({
                         >
                           {badge.label}
                         </span>
+                        {v.dropOffReason ? (
+                          <div className="mt-1 max-w-xs truncate text-[11px] text-zinc-500" title={v.dropOffReason}>
+                            {v.dropOffReason}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-3 py-3 font-mono font-semibold text-[#12141c]">
                         {v.entryPath}
@@ -566,6 +692,10 @@ export function WebsiteAnalyticsDashboard({
                         <span className="font-mono">{v.referrerHost}</span> ·{" "}
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px]">
                           {v.locale}
+                        </span>{" "}
+                        ·{" "}
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px]">
+                          {v.deviceLabel}
                         </span>
                       </td>
                       <td className="px-3 py-3 font-mono text-[11px] text-zinc-700">

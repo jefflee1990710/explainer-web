@@ -33,6 +33,15 @@ export type ReferrerChannelItem = {
   conversionRatePercent: number;
 };
 
+export type StepDropOffReasonItem = {
+  reasonId: string;
+  label: string;
+  description: string;
+  visitorCount: number;
+  sharePercent: number;
+  samplePaths: string[];
+};
+
 export type AuthConversionBreakdown = {
   signInPageVisitors: number;
   signUpPageVisitors: number;
@@ -40,6 +49,8 @@ export type AuthConversionBreakdown = {
   signUpSuccessUsers: number;
   googleAuthCount: number;
   emailAuthCount: number;
+  googleCancelledCount: number;
+  formEngagedCount: number;
   authFailureCount: number;
   recentFailures: Array<{
     code: string;
@@ -58,9 +69,11 @@ export type VisitorJourneyRow = {
   lastPath: string;
   referrerHost: string;
   locale: string;
+  deviceLabel: string;
   pageViewCount: number;
   reachedAuthPage: boolean;
   authOutcome: "signed_up" | "logged_in" | "authenticated_session" | "auth_abandoned" | "browsing";
+  dropOffReason: string | null;
   reachedStudio: boolean;
   pathTrail: string[];
   firstSeenIso: string;
@@ -77,6 +90,7 @@ export type WebsiteAnalyticsEventInput = {
   path?: string | null;
   referrer?: string | null;
   locale?: string | null;
+  userAgent?: string | null;
   params?: Record<string, unknown>;
   createdAt: Date;
 };
@@ -97,6 +111,8 @@ export type WebsiteAnalyticsReport = {
     newSignUps30d: number;
   };
   funnel: WebsiteFunnelStep[];
+  step2DropOffReasons: StepDropOffReasonItem[];
+  step3DropOffReasons: StepDropOffReasonItem[];
   landingPages: LandingPagePerformanceItem[];
   referrers: ReferrerChannelItem[];
   locales: Array<{ locale: string; visitors: number; sharePercent: number }>;
@@ -161,6 +177,40 @@ export function isAuthPath(cleanPath: string): boolean {
 
 export function isStudioPath(cleanPath: string): boolean {
   return cleanPath === "/app" || cleanPath.startsWith("/app/") || cleanPath.startsWith("/legal/accept");
+}
+
+export function isBotUserAgent(userAgent?: string | null): boolean {
+  if (!userAgent) return false;
+  return /adsbot|googlebot|bingbot|ahrefsbot|semrushbot|headlesschrome|bytespider|petalbot|meta-externalagent|facebookexternalhit|crawler|spider/i.test(
+    userAgent,
+  );
+}
+
+export function classifyVisitorDevice(userAgent?: string | null): string {
+  if (!userAgent) return "Unknown";
+  if (isBotUserAgent(userAgent)) return "Bot / Crawler";
+  if (/instagram|fban|fbav|threads|micromessenger|line\/|bytedancewebview|tiktok/i.test(userAgent)) {
+    return "In-App WebView";
+  }
+  if (/iphone|ipad|ipod/i.test(userAgent)) return "iOS";
+  if (/android/i.test(userAgent)) return "Android";
+  if (/macintosh|mac os x/i.test(userAgent)) return "Mac";
+  if (/windows/i.test(userAgent)) return "Windows";
+  if (/linux/i.test(userAgent)) return "Linux";
+  return "Desktop";
+}
+
+// Extract `?next=` target from a raw `/sign-in?next=...` or `/sign-up?next=...` path.
+export function extractAuthNextParam(rawPath?: string | null): string | null {
+  if (!rawPath || !rawPath.includes("?")) return null;
+  const query = rawPath.slice(rawPath.indexOf("?") + 1);
+  try {
+    const params = new URLSearchParams(query);
+    const next = params.get("next");
+    return next ? decodeURIComponent(next) : null;
+  } catch {
+    return null;
+  }
 }
 
 // Classify an external referrer URL into a readable acquisition channel and hostname.
@@ -248,6 +298,7 @@ export function buildWebsiteAnalyticsFromEvents(
     anonId: string | null;
     clerkUserId: string | null;
     userEmail: string | null;
+    userAgent: string | null;
     entryPath: string | null;
     lastPath: string | null;
     referrerHost: string;
@@ -259,9 +310,17 @@ export function buildWebsiteAnalyticsFromEvents(
     reachedAuthPage: boolean;
     sawSignInPage: boolean;
     sawSignUpPage: boolean;
+    authNextTargets: string[];
+    engagedAuthForm: boolean;
+    cancelledGooglePopup: boolean;
+    hadAuthError: boolean;
+    lastAuthErrorCode: string | null;
     didSignUpEvent: boolean;
     didLoginEvent: boolean;
     hasAuthenticatedEvent: boolean;
+    sawLegalDialog: boolean;
+    acceptedLegalDialog: boolean;
+    didStudioAction: boolean;
     reachedStudio: boolean;
     pathTrail: string[];
     firstSeen: Date;
@@ -297,6 +356,8 @@ export function buildWebsiteAnalyticsFromEvents(
   let totalPublicPageViews = 0;
   let googleAuthCount = 0;
   let emailAuthCount = 0;
+  let googleCancelledCount = 0;
+  let formEngagedCount = 0;
   let authFailureCount = 0;
   const recentFailures: AuthConversionBreakdown["recentFailures"] = [];
 
@@ -326,6 +387,7 @@ export function buildWebsiteAnalyticsFromEvents(
         userEmail:
           ev.userEmail ||
           (resolvedUserId ? userEmails.get(resolvedUserId) ?? null : null),
+        userAgent: ev.userAgent ?? null,
         entryPath: cleanPath,
         lastPath: cleanPath,
         referrerHost: refInfo.host,
@@ -337,9 +399,17 @@ export function buildWebsiteAnalyticsFromEvents(
         reachedAuthPage: false,
         sawSignInPage: false,
         sawSignUpPage: false,
+        authNextTargets: [],
+        engagedAuthForm: false,
+        cancelledGooglePopup: false,
+        hadAuthError: false,
+        lastAuthErrorCode: null,
         didSignUpEvent: false,
         didLoginEvent: false,
         hasAuthenticatedEvent: Boolean(resolvedUserId),
+        sawLegalDialog: false,
+        acceptedLegalDialog: false,
+        didStudioAction: false,
         reachedStudio: false,
         pathTrail: [],
         firstSeen: ev.createdAt,
@@ -350,6 +420,7 @@ export function buildWebsiteAnalyticsFromEvents(
 
     if (ev.createdAt > visitor.lastSeen) visitor.lastSeen = ev.createdAt;
     if (!visitor.anonId && ev.anonId) visitor.anonId = ev.anonId;
+    if (!visitor.userAgent && ev.userAgent) visitor.userAgent = ev.userAgent;
     if (!visitor.clerkUserId && resolvedUserId) {
       visitor.clerkUserId = resolvedUserId;
     }
@@ -403,21 +474,75 @@ export function buildWebsiteAnalyticsFromEvents(
       const target = typeof ev.params?.target === "string" ? ev.params.target : "";
       if (target.startsWith("/sign-in")) visitor.sawSignInPage = true;
       if (target.startsWith("/sign-up")) visitor.sawSignUpPage = true;
-    } else if (ev.event === "auth_failed") {
+    } else if (
+      ev.event === "auth_form_engaged" ||
+      ev.event === "auth_submit_attempt" ||
+      ev.event === "auth_mode_switch"
+    ) {
+      if (!visitor.engagedAuthForm) {
+        visitor.engagedAuthForm = true;
+        formEngagedCount += 1;
+      }
+      visitor.reachedAuthPage = true;
+    } else if (ev.event === "auth_google_cancelled") {
+      visitor.cancelledGooglePopup = true;
+      visitor.engagedAuthForm = true;
+      visitor.reachedAuthPage = true;
+      googleCancelledCount += 1;
+    } else if (ev.event === "auth_failed" || ev.event === "auth_session_failed") {
       authFailureCount += 1;
       visitor.reachedAuthPage = true;
+      visitor.hadAuthError = true;
+      const code =
+        typeof ev.params?.code === "string"
+          ? ev.params.code
+          : typeof ev.params?.message === "string"
+            ? ev.params.message
+            : "unknown";
+      visitor.lastAuthErrorCode = code;
       recentFailures.push({
-        code: typeof ev.params?.code === "string" ? ev.params.code : "unknown",
+        code,
         mode: typeof ev.params?.mode === "string" ? ev.params.mode : "sign-in",
         method: typeof ev.params?.method === "string" ? ev.params.method : "email",
         createdAtIso: ev.createdAt.toISOString(),
       });
+    } else if (
+      ev.event === "legal_dialog_shown" ||
+      ev.event === "ux_blocker_legal_incomplete" ||
+      ev.event === "legal_accept_error"
+    ) {
+      visitor.sawLegalDialog = true;
+      visitor.reachedStudio = true;
+    } else if (ev.event === "legal_accepted" || ev.event === "legal_dialog_accepted") {
+      visitor.acceptedLegalDialog = true;
+      visitor.didStudioAction = true;
+      visitor.reachedStudio = true;
+      visitor.hasAuthenticatedEvent = true;
+    }
+
+    if (
+      ev.event !== "page_view" &&
+      ev.event !== "legal_dialog_shown" &&
+      (ev.category === "onboarding" ||
+        ev.category === "character" ||
+        ev.category === "wardrobe" ||
+        ev.category === "life" ||
+        ev.category === "video" ||
+        ev.category === "editor")
+    ) {
+      visitor.didStudioAction = true;
     }
 
     if (isAuth) {
       visitor.reachedAuthPage = true;
       if (cleanPath?.startsWith("/sign-in")) visitor.sawSignInPage = true;
       if (cleanPath?.startsWith("/sign-up")) visitor.sawSignUpPage = true;
+      const nextTarget =
+        extractAuthNextParam(ev.path) ??
+        (typeof ev.params?.nextPath === "string" ? ev.params.nextPath : null);
+      if (nextTarget && !visitor.authNextTargets.includes(nextTarget)) {
+        visitor.authNextTargets.push(nextTarget);
+      }
     }
 
     if (isStudio || ev.event === "legal_accepted" || ev.category === "onboarding") {
@@ -496,6 +621,171 @@ export function buildWebsiteAnalyticsFromEvents(
     (v) => v.didSignUpEvent || v.didLoginEvent || v.hasAuthenticatedEvent,
   );
   const enteredStudioList = websiteVisitors.filter((v) => v.reachedStudio);
+
+  // Classify Step 2 drop-offs (visitors who reached /sign-up or /sign-in but did not convert).
+  const step2DroppedVisitors = reachedAuthList.filter(
+    (v) => !v.didSignUpEvent && !v.didLoginEvent && !v.hasAuthenticatedEvent,
+  );
+
+  function classifyStep2DropOff(v: VisitorAccumulator): {
+    id: string;
+    label: string;
+    description: string;
+  } {
+    if (v.hadAuthError) {
+      return {
+        id: "auth_error_blocked",
+        label: "驗證錯誤阻斷 (Auth Error / Invalid Credential)",
+        description: "輸入密碼錯誤、信箱已註冊或網域未授權 (`auth_failed` / `auth_session_failed`)。",
+      };
+    }
+    if (v.cancelledGooglePopup) {
+      return {
+        id: "google_popup_cancelled",
+        label: "點擊 Google 後關閉彈窗或被內置瀏覽器攔截 (Google Popup Cancelled)",
+        description: "點擊「以 Google 繼續」後關閉 OAuth 視窗，或在 IG/FB/WeChat 內置 WebView 彈窗受阻。",
+      };
+    }
+    if (v.engagedAuthForm) {
+      return {
+        id: "form_engaged_abandoned",
+        label: "已點擊輸入框或切換登入/註冊但未完成送出 (Form Engaged, Not Submitted)",
+        description: "曾點擊 Email/密碼輸入框或切換登入/註冊模式，但在完成驗證前離開。",
+      };
+    }
+    if (isBotUserAgent(v.userAgent)) {
+      return {
+        id: "bot_or_crawler",
+        label: "搜尋引擎與廣告審核爬蟲 (AdsBot / Googlebot / Crawler)",
+        description: "Google AdsBot 或搜尋爬蟲自動抓取 `/sign-up` 或 `/sign-in` 頁面，非真人流失。",
+      };
+    }
+    if (v.authNextTargets.some((t) => t.startsWith("/academy"))) {
+      return {
+        id: "academy_lock_redirect",
+        label: "由 Academy 課程鎖進入 `/sign-in?next=/academy/*` 後未登入離開",
+        description: "從公開 Academy 課程頁點擊解鎖登入或預覽連結進入 `/sign-in?next=/academy/*`，僅單頁瀏覽即離開。",
+      };
+    }
+    if (
+      v.authNextTargets.some(
+        (t) => t.startsWith("/scroadmin") || (t.startsWith("/app/") && t !== "/app"),
+      )
+    ) {
+      return {
+        id: "protected_route_redirect",
+        label: "未登入直接開受保護網址被系統強制導向 `/sign-in?next=...`",
+        description: "未登入或 Session 過期時直接開啟 `/app/projects/...` 或 `/scroadmin/...` 被 `proxy.ts` 重導向至 `/sign-in`。",
+      };
+    }
+    return {
+      id: "passive_cta_bounce",
+      label: "從著陸頁點擊進入 `/sign-up` 或 `/sign-in` 後未互動即跳出 (Passive Auth Bounce)",
+      description: "由廣告著陸頁（如 `/right-tool`、`/cantonese`、`/talking-head`）點擊 CTA 進入註冊頁，但未點擊 Google 或輸入 Email 即返回/關閉。",
+    };
+  }
+
+  // Classify Step 3 visitors (completed auth / authenticated session) to explain why any stopped before or right at /app.
+  function classifyStep3Outcome(v: VisitorAccumulator): {
+    id: string;
+    label: string;
+    description: string;
+  } {
+    if (!v.reachedStudio) {
+      return {
+        id: "non_studio_destination",
+        label: "登入狀態僅瀏覽公開頁或 `/academy`（未進入 `/app` 工作台）",
+        description: "帶有已登入 Session 瀏覽首頁、`/academy` 教學或 `/pricing`，該次訪問並未開啟 `/app` 工作台。",
+      };
+    }
+    if (v.sawLegalDialog && !v.acceptedLegalDialog && !v.didStudioAction) {
+      return {
+        id: "blocked_at_legal_dialog",
+        label: "進入 `/app` 後停在「服務條款與私隱政策」強制彈窗 (`AcceptPoliciesDialog`)",
+        description: "首次註冊進入 `/app` 時彈出必填服務條款與私隱政策同意框，未勾選同意即返回或離開。",
+      };
+    }
+    const lastClean = v.lastPath || "";
+    const backedOutToPublic =
+      isAuthPath(lastClean) || (isPublicMarketingPath(lastClean) && !v.didStudioAction);
+    if (!v.didStudioAction && backedOutToPublic) {
+      return {
+        id: "entered_app_then_backed_out",
+        label: "完成註冊自動導向 `/app/videos/new` 後未操作即按返回離開 (Immediate Back-Out)",
+        description: "完成註冊後進入 `/app/videos/new`（或看到條款彈窗/新片精靈），未建立角色或分鏡即按上一頁返回。",
+      };
+    }
+    return {
+      id: "proceeded_into_studio",
+      label: "順利進入 `/app` 工作台並開始操作 (Active in Studio)",
+      description: "完成註冊或登入後進入 `/app` 並進行建立角色、套用腳本或產生影片。",
+    };
+  }
+
+  const step2Groups = new Map<
+    string,
+    { label: string; description: string; count: number; samples: Set<string> }
+  >();
+  for (const v of step2DroppedVisitors) {
+    const info = classifyStep2DropOff(v);
+    const group = step2Groups.get(info.id) ?? {
+      label: info.label,
+      description: info.description,
+      count: 0,
+      samples: new Set<string>(),
+    };
+    group.count += 1;
+    const sample =
+      v.authNextTargets[0]
+        ? `${v.lastPath || "/sign-in"}?next=${v.authNextTargets[0]}`
+        : v.pathTrail.join(" → ") || v.entryPath || "/sign-up";
+    if (group.samples.size < 3) group.samples.add(sample);
+    step2Groups.set(info.id, group);
+  }
+
+  const step2DropOffReasons: StepDropOffReasonItem[] = Array.from(
+    step2Groups.entries(),
+  )
+    .map(([reasonId, g]) => ({
+      reasonId,
+      label: g.label,
+      description: g.description,
+      visitorCount: g.count,
+      sharePercent: roundPercent(g.count, Math.max(1, step2DroppedVisitors.length)),
+      samplePaths: Array.from(g.samples),
+    }))
+    .sort((a, b) => b.visitorCount - a.visitorCount);
+
+  const step3Groups = new Map<
+    string,
+    { label: string; description: string; count: number; samples: Set<string> }
+  >();
+  for (const v of convertedAuthList) {
+    const info = classifyStep3Outcome(v);
+    const group = step3Groups.get(info.id) ?? {
+      label: info.label,
+      description: info.description,
+      count: 0,
+      samples: new Set<string>(),
+    };
+    group.count += 1;
+    const sample = v.pathTrail.join(" → ") || v.entryPath || "/app";
+    if (group.samples.size < 3) group.samples.add(sample);
+    step3Groups.set(info.id, group);
+  }
+
+  const step3DropOffReasons: StepDropOffReasonItem[] = Array.from(
+    step3Groups.entries(),
+  )
+    .map(([reasonId, g]) => ({
+      reasonId,
+      label: g.label,
+      description: g.description,
+      visitorCount: g.count,
+      sharePercent: roundPercent(g.count, Math.max(1, convertedAuthList.length)),
+      samplePaths: Array.from(g.samples),
+    }))
+    .sort((a, b) => b.visitorCount - a.visitorCount);
 
   // Build 4-step Website Entry -> Auth Page -> Signed Up / Logged In -> Entered Studio funnel.
   const rawSteps: Array<{
@@ -654,6 +944,8 @@ export function buildWebsiteAnalyticsFromEvents(
     signUpSuccessUsers: allVisitors.filter((v) => v.didSignUpEvent).length,
     googleAuthCount,
     emailAuthCount,
+    googleCancelledCount,
+    formEngagedCount,
     authFailureCount,
     recentFailures: recentFailures.slice(-10).reverse(),
   };
@@ -664,10 +956,20 @@ export function buildWebsiteAnalyticsFromEvents(
     .slice(0, 80)
     .map((v) => {
       let authOutcome: VisitorJourneyRow["authOutcome"] = "browsing";
-      if (v.didSignUpEvent) authOutcome = "signed_up";
-      else if (v.didLoginEvent) authOutcome = "logged_in";
-      else if (v.hasAuthenticatedEvent) authOutcome = "authenticated_session";
-      else if (v.reachedAuthPage) authOutcome = "auth_abandoned";
+      let dropOffReason: string | null = null;
+      if (v.didSignUpEvent) {
+        authOutcome = "signed_up";
+        dropOffReason = classifyStep3Outcome(v).label;
+      } else if (v.didLoginEvent) {
+        authOutcome = "logged_in";
+        dropOffReason = classifyStep3Outcome(v).label;
+      } else if (v.hasAuthenticatedEvent) {
+        authOutcome = "authenticated_session";
+        dropOffReason = classifyStep3Outcome(v).label;
+      } else if (v.reachedAuthPage) {
+        authOutcome = "auth_abandoned";
+        dropOffReason = classifyStep2DropOff(v).label;
+      }
 
       return {
         visitorKey: v.visitorKey,
@@ -678,9 +980,11 @@ export function buildWebsiteAnalyticsFromEvents(
         lastPath: v.lastPath || "/",
         referrerHost: v.referrerHost,
         locale: v.locale,
+        deviceLabel: classifyVisitorDevice(v.userAgent),
         pageViewCount: v.pageViewCount,
         reachedAuthPage: v.reachedAuthPage,
         authOutcome,
+        dropOffReason,
         reachedStudio: v.reachedStudio,
         pathTrail: v.pathTrail,
         firstSeenIso: v.firstSeen.toISOString(),
@@ -704,6 +1008,8 @@ export function buildWebsiteAnalyticsFromEvents(
       newSignUps30d: options?.newSignUps30d ?? 0,
     },
     funnel,
+    step2DropOffReasons,
+    step3DropOffReasons,
     landingPages,
     referrers,
     locales,
@@ -738,6 +1044,7 @@ export async function getWebsiteAnalyticsReport(): Promise<WebsiteAnalyticsRepor
             path: 1,
             referrer: 1,
             locale: 1,
+            userAgent: 1,
             params: 1,
             createdAt: 1,
           },

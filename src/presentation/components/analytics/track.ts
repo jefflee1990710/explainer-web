@@ -42,9 +42,27 @@ export function getOrCreateSessionId(): string | null {
   }
 }
 
-// Queue a GA4 event and mirror it to MongoDB `ux_events` via Server Action.
-export function track(event: string, params?: Record<string, unknown>) {
-  if (typeof window === "undefined") return;
+// Detect social in-app WebViews (Instagram, Facebook, Threads, WeChat, Line, TikTok) where OAuth popups often fail.
+export function detectInAppBrowser(userAgent?: string | null): string | null {
+  const ua = (
+    userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : "")
+  ).toLowerCase();
+  if (!ua) return null;
+  if (ua.includes("instagram")) return "instagram";
+  if (ua.includes("Barcelona".toLowerCase()) || ua.includes("threads")) return "threads";
+  if (ua.includes("fban") || ua.includes("fbav") || ua.includes("fb_iab")) return "facebook";
+  if (ua.includes("micromessenger")) return "wechat";
+  if (ua.includes("line/")) return "line";
+  if (ua.includes("musical_ly") || ua.includes("tiktok") || ua.includes("bytedancewebview")) {
+    return "tiktok";
+  }
+  if (ua.includes("whatsapp")) return "whatsapp";
+  if (ua.includes("linkedinapp")) return "linkedin";
+  return null;
+}
+
+function sendClientEvent(event: string, params?: Record<string, unknown>): Promise<unknown> {
+  if (typeof window === "undefined") return Promise.resolve();
   const w = window as Window & { gtag?: Gtag; dataLayer?: unknown[] };
   w.dataLayer = w.dataLayer || [];
   if (typeof w.gtag !== "function") {
@@ -60,7 +78,7 @@ export function track(event: string, params?: Record<string, unknown>) {
   const anonId = getOrCreateAnonId();
   const sessionId = getOrCreateSessionId();
 
-  void recordClientUxEventAction({
+  return recordClientUxEventAction({
     event,
     anonId,
     sessionId,
@@ -69,4 +87,21 @@ export function track(event: string, params?: Record<string, unknown>) {
     locale,
     params,
   }).catch(() => {});
+}
+
+// Queue a GA4 event and mirror it to MongoDB `ux_events` via Server Action.
+export function track(event: string, params?: Record<string, unknown>) {
+  void sendClientEvent(event, params);
+}
+
+// Awaitable tracker for actions right before a hard `window.location.assign` navigation, capped at 1200ms.
+export async function trackAsync(
+  event: string,
+  params?: Record<string, unknown>,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+  await Promise.race([
+    sendClientEvent(event, params),
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1200)),
+  ]);
 }

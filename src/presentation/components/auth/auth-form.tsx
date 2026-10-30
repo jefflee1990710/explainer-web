@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   GoogleAuthProvider,
@@ -12,12 +12,26 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { firebaseAuth } from "@/presentation/components/auth/firebase-client";
 import { establishSessionAction } from "@/presentation/actions/auth";
-import { track } from "@/presentation/components/analytics/track";
+import {
+  detectInAppBrowser,
+  getOrCreateAnonId,
+  getOrCreateSessionId,
+  track,
+  trackAsync,
+} from "@/presentation/components/analytics/track";
 
 // Only same-site paths. A full URL in ?next= must not leave the app.
 function safeNext(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/app";
   return value;
+}
+
+function classifyAuthEntryReason(nextPath: string | undefined): string {
+  if (!nextPath) return "direct_or_cta";
+  if (nextPath.startsWith("/academy")) return "academy_lock";
+  if (nextPath.startsWith("/scroadmin")) return "admin_redirect";
+  if (nextPath !== "/app" && nextPath.startsWith("/app/")) return "protected_deep_link";
+  return "direct_or_cta";
 }
 
 function authErrorKey(code: string) {
@@ -49,18 +63,74 @@ export function AuthForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const engagedRef = useRef(false);
   const register = mode === "sign-up";
+  const resolvedNext = safeNext(nextPath);
+
+  useEffect(() => {
+    const inAppBrowser = detectInAppBrowser();
+    track("auth_page_loaded", {
+      mode,
+      nextPath: resolvedNext,
+      entryReason: classifyAuthEntryReason(nextPath),
+      inAppBrowser,
+    });
+  }, [mode, nextPath, resolvedNext]);
+
+  function markFormEngaged(field: "email" | "password") {
+    if (engagedRef.current) return;
+    engagedRef.current = true;
+    track("auth_form_engaged", {
+      mode,
+      field,
+      nextPath: resolvedNext,
+    });
+  }
 
   async function finish(idToken: string, event: "login" | "sign_up", method: "email" | "google") {
-    await establishSessionAction(idToken);
-    track(event, { method });
-    window.location.assign(safeNext(nextPath));
+    const path =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search || ""}`
+        : `/${mode}`;
+    const referrer = typeof document !== "undefined" ? document.referrer || null : null;
+    const locale = typeof document !== "undefined" ? document.documentElement.lang || null : null;
+
+    try {
+      await establishSessionAction(idToken, {
+        event,
+        method,
+        mode,
+        nextPath: resolvedNext,
+        anonId: getOrCreateAnonId(),
+        sessionId: getOrCreateSessionId(),
+        path,
+        referrer,
+        locale,
+      });
+    } catch (sessionErr) {
+      const msg = sessionErr instanceof Error ? sessionErr.message : "session_failed";
+      await trackAsync("auth_session_failed", {
+        mode,
+        method,
+        nextPath: resolvedNext,
+        message: msg.slice(0, 120),
+      });
+      throw sessionErr;
+    }
+
+    await trackAsync(event, { method, nextPath: resolvedNext });
+    window.location.assign(resolvedNext);
   }
 
   async function onEmail(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
     setError("");
+    track("auth_submit_attempt", {
+      mode,
+      method: "email",
+      nextPath: resolvedNext,
+    });
     try {
       const cred = register
         ? await createUserWithEmailAndPassword(firebaseAuth(), email.trim(), password)
@@ -69,7 +139,12 @@ export function AuthForm({
       await finish(idToken, register ? "sign_up" : "login", "email");
     } catch (caught) {
       const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
-      track("auth_failed", { mode, method: "email", code: code || "unknown" });
+      track("auth_failed", {
+        mode,
+        method: "email",
+        code: code || "unknown",
+        nextPath: resolvedNext,
+      });
       setError(t(authErrorKey(code)));
       setPending(false);
     }
@@ -78,6 +153,13 @@ export function AuthForm({
   async function onGoogle() {
     setPending(true);
     setError("");
+    const inAppBrowser = detectInAppBrowser();
+    track("auth_submit_attempt", {
+      mode,
+      method: "google",
+      nextPath: resolvedNext,
+      inAppBrowser,
+    });
     try {
       const cred = await signInWithPopup(firebaseAuth(), new GoogleAuthProvider());
       const created = getAdditionalUserInfo(cred)?.isNewUser === true;
@@ -86,10 +168,23 @@ export function AuthForm({
     } catch (caught) {
       const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        track("auth_google_cancelled", {
+          mode,
+          method: "google",
+          code,
+          nextPath: resolvedNext,
+          inAppBrowser,
+        });
         setPending(false);
         return;
       }
-      track("auth_failed", { mode, method: "google", code: code || "unknown" });
+      track("auth_failed", {
+        mode,
+        method: "google",
+        code: code || "unknown",
+        nextPath: resolvedNext,
+        inAppBrowser,
+      });
       setError(t(authErrorKey(code)));
       setPending(false);
     }
@@ -119,7 +214,11 @@ export function AuthForm({
             required
             placeholder={t("auth.emailPlaceholder")}
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onFocus={() => markFormEngaged("email")}
+            onChange={(event) => {
+              markFormEngaged("email");
+              setEmail(event.target.value);
+            }}
             className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
@@ -132,7 +231,11 @@ export function AuthForm({
             minLength={6}
             placeholder={t("auth.passwordPlaceholder")}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onFocus={() => markFormEngaged("password")}
+            onChange={(event) => {
+              markFormEngaged("password");
+              setPassword(event.target.value);
+            }}
             className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
@@ -149,6 +252,13 @@ export function AuthForm({
         {register ? (
           <Link
             href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : "/sign-in"}
+            onClick={() =>
+              track("auth_mode_switch", {
+                from: "sign-up",
+                to: "sign-in",
+                nextPath: resolvedNext,
+              })
+            }
             className="font-semibold text-[#12141c] underline"
           >
             {t("auth.haveAccount")}
@@ -156,6 +266,13 @@ export function AuthForm({
         ) : (
           <Link
             href={nextPath ? `/sign-up?next=${encodeURIComponent(nextPath)}` : "/sign-up"}
+            onClick={() =>
+              track("auth_mode_switch", {
+                from: "sign-in",
+                to: "sign-up",
+                nextPath: resolvedNext,
+              })
+            }
             className="font-semibold text-[#12141c] underline"
           >
             {t("auth.needAccount")}

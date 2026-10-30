@@ -4,6 +4,8 @@ import {
   bucketLandingPath,
   buildWebsiteAnalyticsFromEvents,
   classifyReferrer,
+  classifyVisitorDevice,
+  extractAuthNextParam,
   normalizeWebsitePath,
   type WebsiteAnalyticsEventInput,
 } from "@/service/analytics/website-analytics";
@@ -13,6 +15,9 @@ test("normalizeWebsitePath and bucketLandingPath group blog post URLs and strip 
   assert.equal(normalizeWebsitePath("/posts/"), "/posts");
   assert.equal(bucketLandingPath("/posts/ai-influencer-guide"), "/posts/[slug]");
   assert.equal(bucketLandingPath("/posts"), "/posts");
+  assert.equal(extractAuthNextParam("/sign-in?next=%2Facademy%2Fkeep-what-works"), "/academy/keep-what-works");
+  assert.equal(classifyVisitorDevice("AdsBot-Google (+http://www.google.com/adsbot.html)"), "Bot / Crawler");
+  assert.equal(classifyVisitorDevice("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Instagram 350.0"), "In-App WebView");
 });
 
 test("classifyReferrer categorizes search, AI referrals, social, and direct traffic", () => {
@@ -137,6 +142,9 @@ test("buildWebsiteAnalyticsFromEvents links anonId to sign-up and studio flow ac
   assert.equal(report.authBreakdown.googleAuthCount, 1);
   assert.equal(report.authBreakdown.authFailureCount, 1);
 
+  assert.equal(report.step2DropOffReasons.length, 1);
+  assert.equal(report.step2DropOffReasons[0]?.reasonId, "auth_error_blocked");
+
   const blogLanding = report.landingPages.find((p) => p.path === "/posts/[slug]");
   assert.ok(blogLanding);
   assert.equal(blogLanding.entrySessions, 1);
@@ -148,4 +156,58 @@ test("buildWebsiteAnalyticsFromEvents links anonId to sign-up and studio flow ac
   assert.equal(visitor1.authOutcome, "signed_up");
   assert.equal(visitor1.reachedStudio, true);
   assert.equal(visitor1.userEmail, "founder@hk.co");
+});
+
+test("buildWebsiteAnalyticsFromEvents diagnoses Step 2 and Step 3 drop-off reasons accurately", () => {
+  const base = new Date("2026-10-30T02:00:00.000Z").getTime();
+  const events: WebsiteAnalyticsEventInput[] = [
+    // Step 2 drop-off A: cancelled Google popup
+    {
+      event: "page_view",
+      anonId: "anon_google_cancel",
+      path: "/sign-up",
+      createdAt: new Date(base + 1000),
+    },
+    {
+      event: "auth_google_cancelled",
+      anonId: "anon_google_cancel",
+      path: "/sign-up",
+      params: { mode: "sign-up", method: "google", code: "auth/popup-closed-by-user" },
+      createdAt: new Date(base + 2000),
+    },
+    // Step 2 drop-off B: Academy lock redirect
+    {
+      event: "page_view",
+      anonId: "anon_academy_lock",
+      path: "/sign-in?next=%2Facademy%2Fhot-take-reels",
+      createdAt: new Date(base + 3000),
+    },
+    // Step 3 drop-off C: signed up, saw legal dialog on /app, did not accept
+    {
+      event: "sign_up",
+      anonId: "anon_legal_stop",
+      clerkUserId: "user_legal",
+      path: "/sign-up",
+      params: { method: "google" },
+      createdAt: new Date(base + 4000),
+    },
+    {
+      event: "legal_dialog_shown",
+      anonId: "anon_legal_stop",
+      clerkUserId: "user_legal",
+      path: "/app/videos/new",
+      params: { firstTime: true },
+      createdAt: new Date(base + 5000),
+    },
+  ];
+
+  const report = buildWebsiteAnalyticsFromEvents(events);
+  assert.equal(report.authBreakdown.googleCancelledCount, 1);
+
+  const step2Ids = report.step2DropOffReasons.map((r) => r.reasonId);
+  assert.ok(step2Ids.includes("google_popup_cancelled"));
+  assert.ok(step2Ids.includes("academy_lock_redirect"));
+
+  const step3Ids = report.step3DropOffReasons.map((r) => r.reasonId);
+  assert.ok(step3Ids.includes("blocked_at_legal_dialog"));
 });

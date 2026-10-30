@@ -2,9 +2,10 @@
 
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { acceptCurrentPolicies } from "@/presentation/actions/legal";
+import { track, trackAsync } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Shown over the app on first login, and again when the published versions change.
@@ -17,16 +18,23 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
+  useEffect(() => {
+    track("legal_dialog_shown", { firstTime });
+  }, [firstTime]);
+
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
     setError("");
     const result = await acceptCurrentPolicies({ terms, privacy });
     if (!result.ok) {
+      track("legal_accept_error", { terms, privacy });
       setError(t("legal.mustAccept"));
       setPending(false);
       return;
     }
+    await trackAsync("legal_dialog_accepted", { firstTime });
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full navigation re-runs AppLayout server check to unmount the policy dialog
     window.location.assign("/app");
   }
 
@@ -54,7 +62,12 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
           />
           <span>
             {t("legal.acceptTerms")}{" "}
-            <Link href="/terms" className="font-semibold text-[#12141c] underline" target="_blank">
+            <Link
+              href="/terms"
+              onClick={() => track("legal_link_click", { target: "terms" })}
+              className="font-semibold text-[#12141c] underline"
+              target="_blank"
+            >
               {t("legal.terms")}
             </Link>
           </span>
@@ -68,7 +81,12 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
           />
           <span>
             {t("legal.acceptPrivacy")}{" "}
-            <Link href="/privacy" className="font-semibold text-[#12141c] underline" target="_blank">
+            <Link
+              href="/privacy"
+              onClick={() => track("legal_link_click", { target: "privacy" })}
+              className="font-semibold text-[#12141c] underline"
+              target="_blank"
+            >
               {t("legal.privacy")}
             </Link>
           </span>

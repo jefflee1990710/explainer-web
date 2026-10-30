@@ -82,6 +82,7 @@ export function inferUxEventCategory(event: string): UxEventCategory {
   }
   if (
     normalized === "legal_accepted" ||
+    normalized.startsWith("legal_") ||
     normalized === "folder_created" ||
     normalized.startsWith("onboarding_") ||
     normalized.startsWith("studio_home")
