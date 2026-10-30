@@ -22,7 +22,7 @@ import {
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
 import { behaviorSlug } from "@/service/director/behavior-slug";
-import { findSelectableSkill, isHiddenPickerSkill } from "@/service/director/selectable-skills";
+import { findBriefSkill, findSelectableSkill } from "@/service/director/selectable-skills";
 import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
@@ -581,7 +581,7 @@ export async function createVideoAction(
       user.clerkUserId,
       String(formData.get("skillSlug") || ""),
     );
-    if (!skill || isHiddenPickerSkill(skill)) return { ok: false, error: "找不到風格" };
+    if (!skill) return { ok: false, error: "找不到風格" };
     const ruleSlug = behaviorSlug(skill);
     const parsed = await readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;
@@ -745,15 +745,7 @@ async function rewriteVideoBrief(
   try {
     const user = await requireAppUser();
     const videoId = String(formData.get("videoId") || "");
-    const skill = await findSelectableSkill(
-      user.clerkUserId,
-      String(formData.get("skillSlug") || ""),
-    );
-    if (!skill) return { ok: false, error: "找不到風格" };
-    const ruleSlug = behaviorSlug(skill);
-    const parsed = await readVideoBrief(formData, user.clerkUserId, ruleSlug);
-    if (!parsed.ok) return parsed;
-    const { brief } = parsed;
+    const requestedSlug = String(formData.get("skillSlug") || "");
     if (!ObjectId.isValid(videoId)) {
       return { ok: false, error: "專案不存在" };
     }
@@ -764,6 +756,12 @@ async function rewriteVideoBrief(
       clerkUserId: user.clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
+    const skill = await findBriefSkill(user.clerkUserId, requestedSlug, video.skillSlug);
+    if (!skill) return { ok: false, error: "找不到風格" };
+    const ruleSlug = behaviorSlug(skill);
+    const parsed = await readVideoBrief(formData, user.clerkUserId, ruleSlug);
+    if (!parsed.ok) return parsed;
+    const { brief } = parsed;
     if (options.restart) {
       const blocked = restartBlockReason(video);
       if (blocked) return { ok: false, error: blocked };

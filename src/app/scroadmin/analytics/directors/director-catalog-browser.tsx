@@ -5,9 +5,33 @@ import { DirectorDetailPanel } from "@/app/scroadmin/analytics/directors/directo
 import type { HardcodedDirectorCatalog } from "@/service/director/admin-catalog";
 
 // Searchable inspector for every hardcoded director on /scroadmin/analytics/directors.
-export function DirectorCatalogBrowser({ catalog }: { catalog: HardcodedDirectorCatalog }) {
+export function DirectorCatalogBrowser({
+  catalog,
+  privateSlugs,
+  operatorEmail,
+}: {
+  catalog: HardcodedDirectorCatalog;
+  privateSlugs: string[];
+  operatorEmail: string;
+}) {
   const [query, setQuery] = useState("");
   const [slug, setSlug] = useState(catalog.directors[0]?.slug ?? "");
+  const privateKey = privateSlugs.slice().sort().join("\n");
+  const [overrideKey, setOverrideKey] = useState(privateKey);
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  // Drop optimistic switches once the server list changes.
+  if (overrideKey !== privateKey) {
+    setOverrideKey(privateKey);
+    setOverrides({});
+  }
+  const privateSet = useMemo(() => {
+    const next = new Set(privateSlugs);
+    for (const [item, enabled] of Object.entries(overrides)) {
+      if (enabled) next.delete(item);
+      else next.add(item);
+    }
+    return next;
+  }, [overrides, privateSlugs]);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return catalog.directors;
@@ -19,6 +43,10 @@ export function DirectorCatalogBrowser({ catalog }: { catalog: HardcodedDirector
     );
   }, [catalog.directors, query]);
   const selected = catalog.directors.find((director) => director.slug === slug) ?? filtered[0];
+
+  function onVisibility(nextSlug: string, enabled: boolean) {
+    setOverrides((current) => ({ ...current, [nextSlug]: enabled }));
+  }
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[18rem_1fr]">
@@ -49,13 +77,29 @@ export function DirectorCatalogBrowser({ catalog }: { catalog: HardcodedDirector
                   <span className={`mt-0.5 block truncate font-mono text-[11px] ${active ? "text-white/60" : "text-zinc-400"}`}>
                     {director.slug}
                   </span>
+                  {privateSet.has(director.slug) ? (
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${active ? "bg-white/15 text-white" : "bg-amber-50 text-amber-800"}`}>
+                      僅管理員
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );
           })}
         </ul>
       </aside>
-      <div>{selected ? <DirectorDetailPanel director={selected} /> : <p className="text-sm text-zinc-500">沒有符合的導演。</p>}</div>
+      <div>
+        {selected ? (
+          <DirectorDetailPanel
+            director={selected}
+            pickerEnabled={!privateSet.has(selected.slug)}
+            operatorEmail={operatorEmail}
+            onVisibility={onVisibility}
+          />
+        ) : (
+          <p className="text-sm text-zinc-500">沒有符合的導演。</p>
+        )}
+      </div>
     </div>
   );
 }

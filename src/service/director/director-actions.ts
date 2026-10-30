@@ -34,6 +34,7 @@ import {
 import { directorModel } from "@/service/director/model";
 import { emptyPerformance } from "@/service/director/performance";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
+import { directorVisibleToEmail, loadDirectorVisibility } from "@/service/director/director-visibility";
 import {
   customSelectableFilter,
   isHiddenPickerSkill,
@@ -105,8 +106,15 @@ async function ownedDirector(id: string, clerkUserId: string): Promise<Skill | n
 export async function loadDirectorForUser(clerkUserId: string, id: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
   const fromCatalog = getDirectorById(id);
-  if (fromCatalog && !isHiddenPickerSkill(fromCatalog)) {
-    return directorAsSkill(fromCatalog);
+  if (fromCatalog) {
+    const visibility = await loadDirectorVisibility(clerkUserId);
+    const visible = directorVisibleToEmail({
+      slug: fromCatalog.slug,
+      hiddenInPicker: fromCatalog.behavior.hiddenInPicker,
+      privateSlugs: visibility.privateSlugs,
+      email: visibility.email,
+    });
+    if (visible) return directorAsSkill(fromCatalog);
   }
   const oid = new ObjectId(id);
   const directors = await directorsCollection();
@@ -154,7 +162,18 @@ export async function createDirectorAction(input: {
     let sourceSkill: Skill | null = null;
     if (!isBlank) {
       const catalogTemplate = getDirectorBySlug(rawSlug);
-      if (catalogTemplate && !isHiddenPickerSkill(catalogTemplate)) {
+      const visibility = await loadDirectorVisibility(user.clerkUserId, user.email);
+      const catalogVisible =
+        catalogTemplate != null &&
+        directorVisibleToEmail({
+          slug: catalogTemplate.slug,
+          hiddenInPicker: catalogTemplate.behavior.hiddenInPicker,
+          isActive: catalogTemplate.isActive,
+          requireActive: true,
+          privateSlugs: visibility.privateSlugs,
+          email: visibility.email,
+        });
+      if (catalogTemplate && catalogVisible) {
         sourceSkill = directorAsSkill(catalogTemplate);
       } else {
         const skills = await skillsCollection();

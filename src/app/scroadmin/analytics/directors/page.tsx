@@ -1,12 +1,15 @@
 import { AnalyticsSectionNav } from "@/app/scroadmin/analytics/analytics-section-nav";
 import { DirectorCatalogBrowser } from "@/app/scroadmin/analytics/directors/director-catalog-browser";
+import { SCRO_ADMIN_EMAIL } from "@/service/academy/admin";
 import { listHardcodedDirectorCatalog } from "@/service/director/admin-catalog";
+import { loadPrivateDirectorSlugs } from "@/service/director/director-visibility";
 
 export const dynamic = "force-dynamic";
 
 // Admin inspector for hardcoded directors (`/scroadmin/analytics/directors`).
-export default function ScroAdminDirectorsPage() {
+export default async function ScroAdminDirectorsPage() {
   const catalog = listHardcodedDirectorCatalog();
+  const privateSlugs = [...(await loadPrivateDirectorSlugs())];
 
   return (
     <main className="space-y-6">
@@ -21,7 +24,11 @@ export default function ScroAdminDirectorsPage() {
           </p>
         </div>
       </div>
-      <DirectorCatalogBrowser catalog={catalog} />
+      <DirectorCatalogBrowser
+        catalog={catalog}
+        privateSlugs={privateSlugs}
+        operatorEmail={SCRO_ADMIN_EMAIL}
+      />
     </main>
   );
 }

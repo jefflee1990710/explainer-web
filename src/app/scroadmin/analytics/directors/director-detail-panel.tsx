@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { DirectorPromptBlock } from "@/app/scroadmin/analytics/directors/director-prompt-block";
+import { DirectorVisibilityToggle } from "@/app/scroadmin/analytics/directors/director-visibility-toggle";
 import type { DirectorFieldRow, HardcodedDirectorDetail } from "@/service/director/admin-catalog";
 
 function FieldTable({ rows }: { rows: DirectorFieldRow[] }) {
@@ -30,7 +31,17 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 // Full hardcoded director record: settings, profile, prompts, and runtime rules.
-export function DirectorDetailPanel({ director }: { director: HardcodedDirectorDetail }) {
+export function DirectorDetailPanel({
+  director,
+  pickerEnabled,
+  operatorEmail,
+  onVisibility,
+}: {
+  director: HardcodedDirectorDetail;
+  pickerEnabled: boolean;
+  operatorEmail: string;
+  onVisibility: (slug: string, enabled: boolean) => void;
+}) {
   const updated = new Date(director.updatedAt).toLocaleString("zh-HK");
   return (
     <div className="space-y-8">
@@ -53,7 +64,9 @@ export function DirectorDetailPanel({ director }: { director: HardcodedDirectorD
             <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700">
               {director.isActive ? "啟用" : "停用"}
             </span>
-            {director.hiddenInPicker ? (
+            {!pickerEnabled ? (
+              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">僅管理員可見</span>
+            ) : director.hiddenInPicker ? (
               <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">不在選擇器</span>
             ) : (
               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">選擇器可見</span>
@@ -61,6 +74,12 @@ export function DirectorDetailPanel({ director }: { director: HardcodedDirectorD
             <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-500">更新 {updated}</span>
           </div>
           <p className="mt-2 font-mono text-[11px] text-zinc-400">{director.id}</p>
+          <DirectorVisibilityToggle
+            slug={director.slug}
+            enabled={pickerEnabled}
+            operatorEmail={operatorEmail}
+            onChange={onVisibility}
+          />
         </div>
       </header>
 

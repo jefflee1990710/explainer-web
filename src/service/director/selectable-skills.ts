@@ -3,6 +3,7 @@ import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
 import { DIRECTORS, getDirectorBySlug } from "@/service/director/catalog";
 import { directorAsSkill } from "@/service/director/catalog-skill";
+import { directorVisibleToEmail, loadDirectorVisibility } from "@/service/director/director-visibility";
 import {
   OUTFIT_REEL_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
@@ -52,10 +53,26 @@ export function sortSelectableSkills(skills: Skill[]): Skill[] {
   return [...system, ...custom];
 }
 
+function builtinOpenTo(
+  director: { slug: string; isActive: boolean; behavior: { hiddenInPicker: boolean } },
+  email: string | null,
+  privateSlugs: ReadonlySet<string>,
+) {
+  return directorVisibleToEmail({
+    slug: director.slug,
+    hiddenInPicker: director.behavior.hiddenInPicker,
+    isActive: director.isActive,
+    requireActive: true,
+    privateSlugs,
+    email,
+  });
+}
+
 // Picker list from hardcoded directors plus the user's standalone custom directors in MongoDB (`directors` collection).
 export async function listSelectableSkills(clerkUserId?: string): Promise<Skill[]> {
-  const systemSkills = DIRECTORS.filter(
-    (director) => director.isActive && !isHiddenPickerSkill(director),
+  const visibility = await loadDirectorVisibility(clerkUserId);
+  const systemSkills = DIRECTORS.filter((director) =>
+    builtinOpenTo(director, visibility.email, visibility.privateSlugs),
   ).map(directorAsSkill);
   if (!clerkUserId) return systemSkills;
   try {
@@ -76,8 +93,12 @@ export async function listSelectableSkills(clerkUserId?: string): Promise<Skill[
 export async function findSelectableSkill(clerkUserId: string, slug: string): Promise<Skill | null> {
   if (!slug) return null;
   const director = getDirectorBySlug(slug);
-  if (director && director.isActive && !isHiddenPickerSkill(director)) {
-    return directorAsSkill(director);
+  if (director) {
+    const visibility = await loadDirectorVisibility(clerkUserId);
+    if (builtinOpenTo(director, visibility.email, visibility.privateSlugs)) {
+      return directorAsSkill(director);
+    }
+    return null;
   }
   if (!clerkUserId) return null;
   try {
@@ -91,4 +112,18 @@ export async function findSelectableSkill(clerkUserId: string, slug: string): Pr
   } catch {
     return null;
   }
+}
+
+// Brief edits on a video that already uses a switched-off director can keep that director.
+export async function findBriefSkill(
+  clerkUserId: string,
+  slug: string,
+  currentSlug?: string,
+): Promise<Skill | null> {
+  const selectable = await findSelectableSkill(clerkUserId, slug);
+  if (selectable) return selectable;
+  if (!currentSlug || currentSlug !== slug) return null;
+  const director = getDirectorBySlug(slug);
+  if (!director?.isActive) return null;
+  return directorAsSkill(director);
 }
