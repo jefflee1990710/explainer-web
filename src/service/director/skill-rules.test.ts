@@ -99,7 +99,7 @@ test("only talking-head and surprise-interview use on-screen lip-sync; story sho
   assert.equal(skillUsesOnScreenLipSync("full-body-talking-head-director"), true);
   assert.equal(skillUsesOnScreenLipSync("surprise-interview-director"), true);
   assert.equal(skillUsesOnScreenLipSync("story-short-director"), false);
-  assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), true);
   assert.equal(skillUsesOnScreenLipSync("cartoon-explainer-video-director"), false);
   assert.equal(skillUsesOnScreenLipSync("listicle-director"), false);
   assert.equal(skillUsesOnScreenLipSync("talking-broll-director"), true);
@@ -107,7 +107,7 @@ test("only talking-head and surprise-interview use on-screen lip-sync; story sho
 
   assert.equal(skillBansNarration("surprise-interview-director"), true);
   assert.equal(skillBansNarration("story-short-director"), false);
-  assert.equal(skillBansNarration("dialogue-qa-director"), false);
+  assert.equal(skillBansNarration("dialogue-qa-director"), true);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
   assert.match(storyShortDirectorBlock(), /Do not force want/);
   assert.match(storyShortDirectorBlock(), /mouths stay closed/i);
@@ -142,6 +142,9 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /never speaks/);
   assert.match(block, /I'm Scro/);
   assert.match(block, /explanation graph/);
+  assert.match(block, /at least four distinct/);
+  assert.match(block, /Scene prompt/);
+  assert.match(block, /Camera motion prompt/);
   assert.match(block, /every topic/);
   assert.match(block, /beat title/);
   assert.match(block, /never write Subtitle:/);
@@ -151,10 +154,12 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   const still = cartoonNarratorFrameLock("cartoon-explainer-video-director");
   assert.match(still, /does not talk/);
   assert.match(still, /explanation graph/);
+  assert.match(still, /every teaching element named in the Scene/);
   assert.match(still, /beat title/);
   assert.doesNotMatch(still, /STEP N|STEP 1/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /off-screen narrator/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /never speaks or lip-syncs/);
+  assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /every teaching element named in the Scene/);
   assert.equal(cartoonNarratorFrameLock("story-short-director"), "");
   assert.equal(cartoonNarratorVideoLock("story-short-director"), "");
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
@@ -436,15 +441,16 @@ test("a detected push draws only that action, aimed away from the character", ()
   assert.doesNotMatch(video, /for the whole clip/);
 });
 
-test("Q&A and non-talking-head directors use off-screen narration and keep character mouths closed", () => {
-  assert.equal(skillBansNarration("dialogue-qa-director"), false);
+test("Q&A uses on-screen character lip-sync with no narrator", () => {
+  assert.equal(skillBansNarration("dialogue-qa-director"), true);
+  assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), true);
   assert.match(dialogueOnlyDirectorBlock(), /NO narrator/);
   assert.match(dialogueOnlyDirectorBlock(), /NAME: "line"/);
   assert.match(dialogueOnlyDirectorBlock(), /voice lock verbatim/);
   assert.match(dialogueOnlyDirectorBlock(), /keeps their mouth closed/);
-  assert.match(dialogueQaDirectorBlock(), /off-screen narrator/i);
-  assert.match(dialogueQaDirectorBlock(), /mouths stay closed/i);
-  assert.match(dialogueQaDirectorBlock(), /never lip-sync/i);
+  assert.match(dialogueQaDirectorBlock(), /ASKER/);
+  assert.match(dialogueQaDirectorBlock(), /lip-syncs/i);
+  assert.match(dialogueQaDirectorBlock(), /listener's mouth stays closed/i);
   assert.doesNotMatch(dialogueQaDirectorBlock(), /SHORT FILM/);
 });
 

@@ -152,9 +152,8 @@ export function bookendLogoFrameLines(imageIndex: number) {
   ];
 }
 
-// Only talking-head and surprise-interview use on-screen character lip-sync.
-// Every other speaking director uses an unseen off-screen narrator while character mouths stay closed.
-const DIALOGUE_ONLY_SKILLS = new Set([SURPRISE_INTERVIEW_SKILL_SLUG]);
+// Talking-head, surprise-interview, and two-character Q&A use on-screen character lip-sync.
+const DIALOGUE_ONLY_SKILLS = new Set([SURPRISE_INTERVIEW_SKILL_SLUG, DIALOGUE_QA_SKILL_SLUG]);
 
 export function skillBansNarration(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
@@ -165,7 +164,15 @@ export function skillBansNarration(skillSlug?: string) {
 export function skillUsesOnScreenLipSync(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
   if (director) return director.behavior.speechMode === "lip-sync";
-  return isTalkingHeadSkill(skillSlug) || isSurpriseInterviewSkill(skillSlug);
+  return (
+    isTalkingHeadSkill(skillSlug) ||
+    isSurpriseInterviewSkill(skillSlug) ||
+    skillSlug === DIALOGUE_QA_SKILL_SLUG
+  );
+}
+
+export function isDialogueQaSkill(skillSlug?: string) {
+  return skillSlug === DIALOGUE_QA_SKILL_SLUG;
 }
 
 // Dialogue Q&A is the only director that uses two people. Every other director
@@ -642,6 +649,20 @@ export function cartoonHookCameraRule(
   return `Clip 1 is the hook and always uses exactly one exaggerated camera move, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in from a wider shot to the ${hookFace}; a snap zoom out from the ${hookFace} to the full body and the graph; a fast 360 orbit around the character that ends on the opposite side; an overhead drop from looking down onto an eye-level ${hookFace}; a crash push from far across the canvas into a close-up as the graph rushes past; a dutch snap from a tilted close-up into an upright wider view. Write that before and after in each still's Camera line, so shot size or angle differs. ${faceNote} Later clips do not repeat this hook camera.`;
 }
 
+// Concept explainers teach with several on-screen pieces, named in the still and in the camera move.
+function teachingElementsRule(pieceNoun: string, graphNoun: string) {
+  return [
+    `Teaching elements: every clip explains its spoken line with at least four distinct ${pieceNoun}s on the ${graphNoun}, besides the character.`,
+    "Each element teaches one part of that line (an icon, a diagram node, an arrow, a chart piece, a labeled part, a comparison card, a before/after strip, or a cause-and-effect object).",
+    "Do not add decoration the line does not need, and do not repeat the same four elements unchanged on the next clip — add, replace, or change their state as the idea moves forward.",
+    "The character does not have to hold them.",
+    "Scene prompt: in the Set part of explainerScene, startScene, and endScene, name every teaching element in a numbered list — what it is, which part of the concept it explains, and where it sits (left / centre / right, foreground / midground / background).",
+    "A scene that only names the character and one label is incomplete.",
+    "Camera motion prompt: in motionCamera, give each teaching element its own timed beat — time window, which element moves or appears, from where to where, how it moves (drawn on, pasted, slid in from a frame edge, flipped, or stacked), and how the camera reveals it (push in on that piece, pan across the row, or pull out so the new piece sits next to the old ones).",
+    "Every element in the end still is already in the start still or enters in one of those beats.",
+  ].join(" ");
+}
+
 function directorActionMenu() {
   return MENU_ORDER.map((action) => ACTION_BY_NAME.get(action)!)
     .map((spec) => `${spec.action} (${spec.meaning}; write "${spec.cue}"): ${spec.director}`)
@@ -688,7 +709,7 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "",
     hasCharacter
       ? `For every topic, keep a rich on-screen ${graphNoun} (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the ${pieceNoun} this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics.`
-      : `For every topic, make a rich on-screen ${graphNoun} the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart with visible lines, arrows, geometric shapes, and conceptual objects. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.`,
+      : `For every topic, make a rich on-screen ${graphNoun} the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart with visible lines, arrows, geometric shapes, and conceptual objects. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) support the graph; they do not replace it. Never a near-empty canvas with one floating label.`,
     hasCharacter
       ? "startScene and endScene are the before and after of that one action as listed, not two standing poses. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera."
       : "",
@@ -700,6 +721,7 @@ export function cartoonExplainerDirectorBlock(options?: {
         ? `motionCamera plays the one action with a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down, and pack the clip with rapid on-screen visual effects every 1–1.5 seconds (connecting lines drawing across between nodes, directional arrows snapping in, chart bars/lines rising or falling, geometric shapes and conceptual objects sliding in from the frame edges) so there is zero dead hold. Show every in-between pose. ${physicsNoun}. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform. A card flip rotates through its edge as a rigid card. Never a cut or a skipped frame. Do not describe the move as one slow constant glide.`
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a brisk sequence of on-screen whiteboard visual effects every 1–1.5 seconds while the graph responds (connecting lines and arrows drawing themselves across, chart bars or trend lines shooting up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges—never a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : `${physicsNoun}, with connecting lines, arrows, charts, and shapes animating every 1–1.5 seconds. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.`,
+    teachingElementsRule(pieceNoun, graphNoun),
     cartoonHookCameraRule(hasCharacter, smooth, realistic),
     "On-canvas beat text: never write Subtitle: or caption the spoken voiceover on the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object.",
   ]
@@ -775,12 +797,12 @@ export function cartoonNarratorFrameLock(
       return [
         silent,
         spec[options.position],
-        `Keep the character on the side of the frame the Scene names. ${cameraMatch} Draw the explanation graph (lines, charts, shapes, and objects) plus the element of this action.`,
+        `Keep the character on the side of the frame the Scene names. ${cameraMatch} Draw every teaching element named in the Scene — the explanation graph's lines, charts, shapes, icons, and the element of this action. Do not drop a named piece.`,
         labels,
         hook,
       ].filter(Boolean).join(" ");
     }
-    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
+    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. Do not drop a named piece. ${labels}${hook ? ` ${hook}` : ""}`;
   }
   const expArcNoCast = cartoonClipExpressionArc(options?.clipNumber, { realistic });
   const expNoCastLine = expArcNoCast
@@ -789,8 +811,8 @@ export function cartoonNarratorFrameLock(
       ? " FACIAL EXPRESSION LOCK: keep a normal, alive, engaged real-person expression with lips firmly closed (never a blank, deadpan, or expressionless face; no exaggerated cartoon expressions or open mouth)."
       : "";
   const base = realistic
-    ? `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth firmly closed with a normal, alive, engaged facial expression, no greeting wave).${expNoCastLine} Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`
-    : `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave).${expNoCastLine} Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
+    ? `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth firmly closed with a normal, alive, engaged facial expression, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`
+    : `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
   return hook ? `${base} ${hook}` : base;
 }
 
@@ -843,6 +865,8 @@ export function cartoonNarratorVideoLock(
       : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
     `Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. Sound effects never replace the narrator. The clip is never silent. ${canvasVoice}`;
+  const teachingMotion =
+    "Animate every teaching element named in the Scene on its own beat, and move the camera to reveal that piece. Do not leave the extra concept pieces as a frozen background.";
   if (!options?.hasCharacter) {
     const graphHook =
       options?.clipNumber === 1
@@ -854,7 +878,7 @@ export function cartoonNarratorVideoLock(
     const noCastFace = realistic
       ? "Mouth stays firmly closed with a normal, alive, engaged facial expression (never a blank or deadpan stare; no exaggerated facial expressions and no lip-sync), and reacts naturally to the diagram or props."
       : "Mouth stays closed or shows vivid facial expressions (active eyebrows, expressive eyes, and clear emotional reactions), and reacts to the diagram or props.";
-    return `${voice} ${noCastFace}${glide}${graphHook}`;
+    return `${voice} ${noCastFace} ${teachingMotion}${glide}${graphHook}`;
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
@@ -875,13 +899,14 @@ export function cartoonNarratorVideoLock(
   const faceBeats = realistic
     ? "Keep a normal, alive, engaged facial expression (natural blinks, living eye focus, and a calm, relaxed, unforced neutral expression with softly closed lips at rest — never a forced or stiff closed-lip smile; never a blank or deadpan stare; never exaggerated eyebrows or grimaces) while the mouth stays softly closed with zero lip-sync."
     : "Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) across the beats while the mouth stays closed.";
-  return `${voice}${named} ${beats} ${faceBeats}${expVideo} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
+  return `${voice}${named} ${beats} ${teachingMotion} ${faceBeats}${expVideo} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 
 export function dialogueQaDirectorBlock() {
   return [
     "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",
-    "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak and NEVER lip-sync — both characters' mouths stay closed while their faces and body language actively react (animated eyebrows, expressive eyes, nods, and gestures).",
+    "Use each character's attached name as NAME in every dialogue line (`NAME: \"line\"`). The ASKER speaks the questions; the ANSWERER speaks the answers. No unseen host or narrator explains anything.",
+    "Each clip has ONE speaker (`NAME: \"line\"`). On a question clip only the asker's mouth lip-syncs with calm, restrained lip articulation and expressive facial acting (active eyebrows, expressive eyes, natural emotional shifts). On an answer clip only the answerer's mouth lip-syncs with calm, restrained lip articulation and expressive facial acting. The listener's mouth stays closed while their face actively reacts (brow raises, eye shifts, nods).",
   ].join(" ");
 }
 

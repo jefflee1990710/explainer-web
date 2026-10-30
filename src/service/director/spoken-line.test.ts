@@ -38,14 +38,14 @@ test("lockDialogueSpeech makes surprise-interview require on-screen lip-sync, wh
   assert.equal(lockDialogueSpeech(storyLocked, "story-short-director", "He found the secret."), storyLocked);
 });
 
-test("story-short video prompts keep third-person camera lock, while Q&A uses off-screen narration", () => {
+test("story-short video prompts keep third-person camera lock, while Q&A uses on-screen lip-sync", () => {
   const locked = lockDialogueSpeech("Two friends chat.", "story-short-director", "They meet at dusk.");
   assert.match(locked, /third-person observer camera/);
   assert.equal(lockDialogueSpeech(locked, "story-short-director", "They meet at dusk."), locked);
   const qaLocked = lockDialogueSpeech("Asker reacts.", "dialogue-qa-director", "What is the best tool?");
   assert.doesNotMatch(qaLocked, /third-person observer camera/);
-  assert.match(qaLocked, /unseen off-screen narrator/);
-  assert.match(qaLocked, /mouth stays closed/);
+  assert.match(qaLocked, /On-screen characters MUST speak the dialogue aloud with visible mouth movement/);
+  assert.match(qaLocked, /lip-syncs every syllable/);
 });
 
 test("subtitleText drops speaker names and quotes from dialogue lines", () => {
@@ -178,7 +178,7 @@ test("DIALOGUE_SPEAK_LOCK tells MiniMax the on-screen character speaks", () => {
   assert.match(DIALOGUE_SPEAK_LOCK, /visible mouth/);
 });
 
-test("surprise-interview video prompts name the speaking mouth, while Q&A keeps all mouths closed under narration", () => {
+test("surprise-interview and Q&A video prompts name the speaking mouth while the listener's mouth stays closed", () => {
   const line = 'Joyce: "What\'s the best marketing tool right now?"';
   const surpriseLocked = lockDialogueSpeech("She looks up.", "surprise-interview-director", line, [
     "Joyce",
@@ -189,8 +189,8 @@ test("surprise-interview video prompts name the speaking mouth, while Q&A keeps 
     "Joyce",
     "Scro Official",
   ]);
-  assert.match(qaLocked, /unseen off-screen narrator/);
-  assert.match(qaLocked, /mouth stays closed/);
+  assert.match(qaLocked, /Joyce's mouth lip-syncs every syllable/);
+  assert.match(qaLocked, /Scro Official's mouth stays closed/);
   assert.equal(
     lockDialogueSpeech(qaLocked, "dialogue-qa-director", line, ["Joyce", "Scro Official"]),
     qaLocked,

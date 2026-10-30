@@ -88,6 +88,7 @@ import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import {
+   isDialogueQaSkill,
   isEditorialInterviewSkill,
   isSilentOutfitSkill,
   isTalkingBrollSkill,
@@ -669,6 +670,7 @@ export async function sendClipVideo(
     /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
   const audioFirstTalkingHead =
     skill.slug === TALKING_HEAD_SKILL_SLUG ||
+    isDialogueQaSkill(skill.slug) ||
     Boolean(skill.behavior?.audioFirstLipSync && !editorialInterviewBroll) ||
     ((isEditorialInterviewSkill(skill.slug) || isTalkingBrollSkill(skill.slug)) &&
       !editorialInterviewBroll);
@@ -726,7 +728,7 @@ export async function sendClipVideo(
   const hasSpokenLine = Boolean(spokenLine?.trim() && !isSilentSpokenLine(spokenLine));
   const voiceId =
     project.narrationEnabled !== false && hasSpokenLine && !isSilentOutfitSkill(project.skillSlug)
-      ? resolveVoiceSwapId({ ...project, cast: currentCast }) ||
+      ? resolveVoiceSwapId({ ...project, cast: currentCast, spokenLine }) ||
         voiceSwapVoiceId(currentCast, project.language) ||
         CANTONESE_VOICE_ID
       : null;
@@ -1096,6 +1098,7 @@ export async function applyJobStatus(input: {
       !isSilentOutfitSkill(project.skillSlug)
         ? resolveVoiceSwapId({
             ...project,
+            spokenLine,
             cast: await withCurrentCharacterVoices(project.cast),
           }) || CANTONESE_VOICE_ID
         : null;

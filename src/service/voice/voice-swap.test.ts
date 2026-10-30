@@ -113,6 +113,18 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
     }),
     CANTONESE_VOICE_ID,
   );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "dialogue-qa-director",
+      language: "yue",
+      spokenLine: 'Scro: "呢個係答案。"',
+      cast: [
+        { name: "Joyce", voiceSample: { elevenVoiceId: "v_joyce" } },
+        { name: "Scro", voiceSample: { elevenVoiceId: "v_scro" } },
+      ],
+    }),
+    "v_scro",
+  );
   assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 50);
 });
 
