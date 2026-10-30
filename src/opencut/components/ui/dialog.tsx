@@ -54,7 +54,7 @@ const DialogContent = React.forwardRef<
 		<DialogPrimitive.Content
 			ref={ref}
 			className={cn(
-				"opencut-direct-host bg-white text-[#12141c] fixed top-[50%] left-[50%] z-250 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border border-[#e4e4e7] shadow-2xl duration-200",
+				"opencut-direct-host bg-white text-[#12141c] fixed top-[50%] left-[50%] z-250 grid w-[calc(100%-2rem)] max-w-lg grid-cols-[minmax(0,1fr)] overflow-hidden translate-x-[-50%] translate-y-[-50%] rounded-xl border border-[#e4e4e7] shadow-2xl duration-200",
 				className,
 			)}
 			onCloseAutoFocus={(e) => {

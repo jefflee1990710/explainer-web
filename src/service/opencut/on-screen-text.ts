@@ -13,23 +13,28 @@ import { FRAME_COST } from "@/service/credit-costs";
 import {
   isSubtitleLook,
   subtitleLookLine,
+  textStyleSampleLookLine,
 } from "@/service/director/subtitle-look";
 import {
   PLATE_EMPTY_ERROR,
   plateIsEmpty,
-  subtitlePlatePrompt,
 } from "@/service/director/subtitle-plate";
 import {
   imageModelForSubmit,
   resolveImageRoute,
 } from "@/service/generation/image-backend";
+import { toSent } from "@/service/generation/sent";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
-import { keyGreenPng } from "@/service/higgsfield/subtitle-plate-job";
-import { toSent } from "@/service/generation/sent";
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 
 const MAX_ON_SCREEN_TEXT_CHARS = 240;
+
+export type ChromaKeyColor = {
+  hex: "#FF00FF" | "#0055FF";
+  name: string;
+  rgb: { r: number; g: number; b: number };
+};
 
 export type GenerateOpencutOnScreenTextResult =
   | {
@@ -51,17 +56,223 @@ export function inferOnScreenTextSceneLanguage(text: string): SceneTextLanguage 
   return "en";
 }
 
-// Build the chroma-green AI subtitle graphic prompt preserving the user's exact typed text.
+// Pick a non-green chroma-key background color that contrasts with the selected style's palette.
+// Torn Paper ("clean") and Chalk use green in the graphic itself, so green (#00FF00) is never used.
+export function chooseOnScreenTextKeyColor(input?: {
+  textStyleId?: string;
+  lookLine?: string;
+}): ChromaKeyColor {
+  const id = (input?.textStyleId ?? "").toLowerCase();
+  const look = (input?.lookLine ?? "").toLowerCase();
+  if (
+    id === "neon" ||
+    id === "graffiti" ||
+    id === "sticker" ||
+    id === "glitch" ||
+    /magenta|hot pink|pink|bright red/.test(look)
+  ) {
+    return {
+      hex: "#0055FF",
+      name: "solid cobalt blue",
+      rgb: { r: 0, g: 85, b: 255 },
+    };
+  }
+  return {
+    hex: "#FF00FF",
+    name: "solid bright magenta",
+    rgb: { r: 255, g: 0, b: 255 },
+  };
+}
+
+// Strip any "on a flat ... field/board" clause from a look line so the key background stays uniform.
+function stripFieldBackgroundClause(lookLine: string): string {
+  return lookLine
+    .replace(/,?\s*(?:bright\s+)?(?:on|over)\s+a\s+flat\s+[^.]+(?=\.)/gi, "")
+    .trim();
+}
+
+// Build the AI subtitle graphic prompt on a contrasting non-green key color background.
 export function onScreenTextPrompt(input: {
   text: string;
   lookLine?: string;
   sampleImageIndex?: number;
+  keyColor?: ChromaKeyColor;
 }): string {
-  return subtitlePlatePrompt({
-    line: input.text.trim(),
-    lookLine: input.lookLine,
-    sampleImageIndex: input.sampleImageIndex,
-  });
+  const words = input.text.trim();
+  const keyColor = input.keyColor ?? chooseOnScreenTextKeyColor({ lookLine: input.lookLine });
+  const rawLook = input.sampleImageIndex
+    ? textStyleSampleLookLine(input.sampleImageIndex)
+    : input.lookLine?.trim() || subtitleLookLine();
+  const look = stripFieldBackgroundClause(rawLook);
+  return [
+    "Subtitle graphic only. Large phone-readable lettering. No person, no room, no logo, no extra words.",
+    look,
+    `The only words are: ${words}`,
+    "Include any paper strip, sticker, or stroke that belongs to the Look (keep every black, white, yellow, or bright green paper strip completely opaque and intact). Do not paint a full-bleed background scene.",
+    `The outer background area around the graphic is flat ${keyColor.hex} (${keyColor.name}). Do not use green as the outer background. No pixel of the letters, paper strips, or sticker may be ${keyColor.hex}.`,
+  ].join("\n");
+}
+
+function clampByte(value: number): number {
+  if (value <= 0) return 0;
+  if (value >= 255) return 255;
+  return Math.round(value);
+}
+
+// Sample the actual background RGB from the outer 2px border of the generated image.
+function sampleBorderKeyColor(
+  data: Buffer,
+  width: number,
+  height: number,
+  target: { r: number; g: number; b: number },
+): { r: number; g: number; b: number } {
+  const rVals: number[] = [];
+  const gVals: number[] = [];
+  const bVals: number[] = [];
+
+  const pushIfMatch = (x: number, y: number) => {
+    const idx = (y * width + x) * 3;
+    const r = data[idx] ?? 0;
+    const g = data[idx + 1] ?? 0;
+    const b = data[idx + 2] ?? 0;
+    const dist = Math.hypot(r - target.r, g - target.g, b - target.b);
+    if (dist < 150) {
+      rVals.push(r);
+      gVals.push(g);
+      bVals.push(b);
+    }
+  };
+
+  for (let x = 0; x < width; x += 1) {
+    pushIfMatch(x, 0);
+    if (height > 1) pushIfMatch(x, height - 1);
+  }
+  for (let y = 1; y < height - 1; y += 1) {
+    pushIfMatch(0, y);
+    if (width > 1) pushIfMatch(width - 1, y);
+  }
+
+  if (rVals.length < 8) {
+    return target;
+  }
+
+  rVals.sort((a, b) => a - b);
+  gVals.sort((a, b) => a - b);
+  bVals.sort((a, b) => a - b);
+  const mid = Math.floor(rVals.length / 2);
+  return {
+    r: rVals[mid] ?? target.r,
+    g: gVals[mid] ?? target.g,
+    b: bVals[mid] ?? target.b,
+  };
+}
+
+// Convert the contrasting key background into smooth alpha transparency using color-difference matting + despill.
+// Preserves bright green paper strips (e.g. Torn Paper style) and removes colored edge fringes.
+export async function keyColorDifferencePng(
+  png: Buffer,
+  keyColor: ChromaKeyColor = chooseOnScreenTextKeyColor(),
+): Promise<{ png: Buffer; ratio: number }> {
+  const { data, info } = await sharp(png)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height } = info;
+  const pixels = width * height;
+  if (pixels === 0) {
+    return { png, ratio: 0 };
+  }
+
+  const bg = sampleBorderKeyColor(data, width, height, keyColor.rgb);
+  const isMagentaKey = keyColor.hex === "#FF00FF";
+  const innerDist = 68;
+  const outerDist = 148;
+
+  const rgba = Buffer.alloc(pixels * 4);
+  let kept = 0;
+
+  for (let index = 0; index < pixels; index += 1) {
+    const r = data[index * 3] ?? 0;
+    const g = data[index * 3 + 1] ?? 0;
+    const b = data[index * 3 + 2] ?? 0;
+    const out = index * 4;
+
+    const dist = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
+    // Channel-difference key dominance: positive only when pixel leans toward the key hue.
+    const keyDom = isMagentaKey
+      ? Math.min(r, b) - g
+      : b - Math.max(r, Math.round(g * 0.8));
+
+    if (dist <= innerDist || keyDom >= 105) {
+      rgba[out] = 0;
+      rgba[out + 1] = 0;
+      rgba[out + 2] = 0;
+      rgba[out + 3] = 0;
+      continue;
+    }
+
+    let alpha01 = 1;
+    if (dist < outerDist) {
+      alpha01 = Math.min(alpha01, (dist - innerDist) / (outerDist - innerDist));
+    }
+    if (keyDom > 24) {
+      alpha01 = Math.min(alpha01, 1 - (keyDom - 24) / (105 - 24));
+    }
+    alpha01 = Math.max(0, Math.min(1, alpha01));
+
+    if (alpha01 < 0.08) {
+      rgba[out] = 0;
+      rgba[out + 1] = 0;
+      rgba[out + 2] = 0;
+      rgba[out + 3] = 0;
+      continue;
+    }
+
+    let fgR = r;
+    let fgG = g;
+    let fgB = b;
+
+    // Unmix background color spill from semi-transparent and near-edge pixels.
+    if (alpha01 < 0.99) {
+      const denom = Math.max(alpha01, 0.2);
+      fgR = clampByte((r - (1 - alpha01) * bg.r) / denom);
+      fgG = clampByte((g - (1 - alpha01) * bg.g) / denom);
+      fgB = clampByte((b - (1 - alpha01) * bg.b) / denom);
+    }
+
+    // Neutralize any residual chroma fringe on anti-aliased edges.
+    if (isMagentaKey) {
+      const spill = Math.min(fgR, fgB) - fgG;
+      if (spill > 0) {
+        fgR = clampByte(fgR - spill);
+        fgB = clampByte(fgB - spill);
+      }
+    } else {
+      const maxRG = Math.max(fgR, fgG);
+      const spill = fgB - maxRG;
+      if (spill > 0 && keyDom > 12) {
+        fgB = clampByte(fgB - spill);
+      }
+    }
+
+    const alphaByte = clampByte(alpha01 * 255);
+    rgba[out] = fgR;
+    rgba[out + 1] = fgG;
+    rgba[out + 2] = fgB;
+    rgba[out + 3] = alphaByte;
+    if (alphaByte >= 64) {
+      kept += 1;
+    }
+  }
+
+  const keyed = await sharp(rgba, {
+    raw: { width, height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+
+  return { png: keyed, ratio: kept / pixels };
 }
 
 // Decode either a synchronous `data:image/...;base64,...` URL or a remote HTTP(S) image URL.
@@ -178,6 +389,10 @@ export async function generateOpencutOnScreenText(input: {
       sampleUrl = customDoc.imageUrl || undefined;
     }
 
+    const keyColor = chooseOnScreenTextKeyColor({
+      textStyleId: textStyleId || project.subtitleLook,
+      lookLine,
+    });
     const sceneTextLanguage = inferOnScreenTextSceneLanguage(trimmedText);
     const route = resolveImageRoute(sceneTextLanguage);
     const model = imageModelForSubmit(route, Boolean(sampleUrl));
@@ -185,6 +400,7 @@ export async function generateOpencutOnScreenText(input: {
       text: trimmedText,
       lookLine,
       sampleImageIndex: sampleUrl ? 1 : undefined,
+      keyColor,
     });
 
     await assertCanSpendCredits(user, FRAME_COST);
@@ -212,7 +428,7 @@ export async function generateOpencutOnScreenText(input: {
     }
 
     const rawBuffer = await decodeImageBufferFromOutputUrl(outputUrl);
-    const keyed = await keyGreenPng(rawBuffer);
+    const keyed = await keyColorDifferencePng(rawBuffer, keyColor);
     if (plateIsEmpty(keyed.ratio)) {
       throw new Error(PLATE_EMPTY_ERROR);
     }

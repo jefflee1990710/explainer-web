@@ -48,37 +48,37 @@ export function ScroOnScreenTextDialog({
 	return (
 		<Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
 			<DialogContent className="max-w-lg">
-				<DialogHeader className="p-4 pb-2">
+				<DialogHeader className="p-4 pr-12 pb-2.5">
 					<DialogTitle className="text-base">
 						{oc.onScreenText.dialogTitle}
 					</DialogTitle>
-					<DialogDescription className="text-xs">
+					<DialogDescription className="text-xs leading-relaxed">
 						{oc.onScreenText.dialogDescription}
 					</DialogDescription>
 				</DialogHeader>
 
-				<DialogBody className="space-y-3 p-4 pt-2">
+				<DialogBody className="min-w-0 space-y-3 p-4 pt-2">
 					{selectedStyle ? (
-						<div className="space-y-1.5">
-							<div className="flex items-center justify-between text-xs">
+						<div className="min-w-0 space-y-2">
+							<div className="flex items-center justify-between gap-2 text-xs">
 								<span className="font-medium text-[#5c6170]">
 									{oc.onScreenText.selectedStyleLabel}
 								</span>
-								<span className="font-semibold text-[#12141c]">
+								<span className="truncate font-semibold text-[#12141c]">
 									{selectedStyle.name}
 								</span>
 							</div>
-							<div className="overflow-hidden rounded-lg border border-[#e4e4e7] bg-[#12141c]">
+							<div className="flex items-center justify-center overflow-hidden rounded-lg border border-[#e4e4e7] bg-[#f4f4f5]">
 								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img
 									src={selectedStyle.previewUrl}
 									alt={selectedStyle.name}
-									className="aspect-video max-h-36 w-full object-cover"
+									className="aspect-video max-h-44 w-full object-contain"
 								/>
 							</div>
 
 							{styles.length > 1 ? (
-								<div className="flex gap-1.5 overflow-x-auto pt-1 pb-0.5">
+								<div className="flex flex-wrap gap-1.5 pt-0.5">
 									{styles.map((style) => {
 										const active = style.id === selectedStyle.id;
 										return (
@@ -88,7 +88,7 @@ export function ScroOnScreenTextDialog({
 												disabled={busy}
 												onClick={() => onSelectStyle(style.id)}
 												className={cn(
-													"shrink-0 cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium transition",
+													"cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium transition",
 													active
 														? "border-[#12141c] bg-[#12141c] text-white"
 														: "border-[#e4e4e7] bg-[#f4f4f5] text-[#5c6170] hover:text-[#12141c]",
