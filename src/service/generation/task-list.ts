@@ -5,7 +5,7 @@ import { postHeadline } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
-import type { ReelStatus } from "@/model/project";
+import type { ClipAppend, ReelStatus } from "@/model/project";
 
 export type TaskStage = "queued" | "sending" | "generating" | "done" | "failed";
 
@@ -23,7 +23,7 @@ export function isCurrentTask(stage: TaskStage, updatedAt: Date | string, now = 
 // One generation job shaped for the task list UI.
 export type PublicTask = {
   id: string;
-  kind: GenerationKind | "reel";
+  kind: GenerationKind | "reel" | "clipAppend";
   stage: TaskStage;
   // Video title, character name, or custom style name.
   title: string;
@@ -117,6 +117,7 @@ const REEL_PROJECTION = {
   reelError: 1,
   reelStep: 1,
   updatedAt: 1,
+  clipAppends: 1,
 } as const;
 
 // 成片合成 lives on the video, not in generationJobs. Surface it as a task.
@@ -160,6 +161,41 @@ export function reelTask(
     createdAt: input.updatedAt,
     updatedAt: input.updatedAt,
   };
+}
+
+// A queued or failed "add clip" write. A finished write is the new storyboard row, not a task.
+export function clipAppendTasks(
+  input: {
+    videoId: string;
+    projectId: string;
+    title: string;
+    jobs?: ClipAppend[];
+  },
+  now = Date.now(),
+): PublicTask[] {
+  const tasks: PublicTask[] = [];
+  for (const job of input.jobs ?? []) {
+    const stage: TaskStage =
+      job.status === "failed" ? "failed" : job.status === "writing" ? "generating" : "queued";
+    const updatedAt = (job.startedAt ?? job.createdAt).toISOString();
+    if (!isCurrentTask(stage, updatedAt, now)) continue;
+    tasks.push({
+      id: `clip-append:${input.videoId}:${job.id}`,
+      kind: "clipAppend",
+      stage,
+      videoId: input.videoId,
+      title: input.title,
+      detail: "撰寫新片段",
+      detailKey: "tasksPage.detail.clipAppend",
+      isVideo: false,
+      href: folderVideoPath(input.projectId, input.videoId),
+      error: stage === "failed" ? job.error : undefined,
+      attempts: 0,
+      createdAt: job.createdAt.toISOString(),
+      updatedAt,
+    });
+  }
+  return tasks;
 }
 
 // Jobs have no owner field: scope by the user's videos, characters, and styles.
@@ -295,8 +331,16 @@ export async function listTasks(
     });
     return task ? [task] : [];
   });
+  const appendTasks = videoDocs.flatMap((video) =>
+    clipAppendTasks({
+      videoId: video._id.toHexString(),
+      projectId: video.projectId?.toHexString() ?? "",
+      title: video.phaseA?.localizedTitle ?? "未命名影片",
+      jobs: video.clipAppends,
+    }),
+  );
 
-  const tasks = [...reelTasks, ...docs.map((job) => {
+  const tasks = [...reelTasks, ...appendTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;

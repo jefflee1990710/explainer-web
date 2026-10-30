@@ -1,5 +1,6 @@
 import { apiError, apiJson, readJson } from "@/service/api/respond";
 import { isAuthorizedPostAdmin, parsePostTags } from "@/service/blog-post/api-auth";
+import type { BlogLocale } from "@/model/blog-post";
 import {
   deleteBlogPostBySlugOrId,
   getPublishedBlogPostBySlug,
@@ -7,6 +8,7 @@ import {
   uploadBlogPostFeatureImage,
   type UpdateBlogPostParams,
 } from "@/service/blog-post/blog-posts";
+import { isBlogLocale } from "@/service/blog-post/translations";
 
 // GET /api/v1/posts/[slug] — fetch a single blog post by its SEO slug or ID.
 export async function GET(
@@ -50,6 +52,19 @@ async function parseUpdatePayload(request: Request): Promise<UpdateBlogPostParam
       const rawPublished = String(form.get("published") ?? "").trim();
       updates.published = rawPublished !== "false" && rawPublished !== "0";
     }
+    if (form.has("locale")) {
+      const rawLocale = String(form.get("locale") ?? "").trim();
+      if (isBlogLocale(rawLocale)) updates.locale = rawLocale;
+    }
+    if (form.has("landingPath")) updates.landingPath = String(form.get("landingPath") ?? "").trim();
+    if (form.has("translations")) {
+      try {
+        const parsed = JSON.parse(String(form.get("translations") ?? "")) as Partial<Record<BlogLocale, string>>;
+        if (parsed && typeof parsed === "object") updates.translations = parsed;
+      } catch {
+        updates.translations = undefined;
+      }
+    }
     const imageEntry = form.get("featureImage") ?? form.get("file");
     if (imageEntry instanceof File && imageEntry.size > 0) {
       updates.featureImage = await uploadBlogPostFeatureImage(imageEntry);
@@ -74,6 +89,11 @@ async function parseUpdatePayload(request: Request): Promise<UpdateBlogPostParam
   }
   if (typeof body.published === "boolean") {
     updates.published = body.published;
+  }
+  if (typeof body.locale === "string" && isBlogLocale(body.locale)) updates.locale = body.locale;
+  if (typeof body.landingPath === "string") updates.landingPath = body.landingPath.trim();
+  if (body.translations && typeof body.translations === "object") {
+    updates.translations = body.translations as Partial<Record<BlogLocale, string>>;
   }
   return updates;
 }

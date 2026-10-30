@@ -21,6 +21,7 @@ import {
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
+import { clipAppendNeedsKick } from "@/service/clip/clip-append";
 import { behaviorSlug } from "@/service/director/behavior-slug";
 import { findBriefSkill, findSelectableSkill } from "@/service/director/selectable-skills";
 import { isVoLanguage } from "@/service/director/languages";
@@ -1125,6 +1126,15 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
+    // Editor poll: a clip write left queued after the worker died gets retried here.
+    if (clipAppendNeedsKick(video)) {
+      const appendVideoId = video._id;
+      after(() =>
+        import("@/service/clip/clip-timeline-actions").then((mod) =>
+          mod.runClipAppendQueue(appendVideoId),
+        ),
+      );
+    }
     // Editor poll: a reel left in_progress after the worker died gets retried here.
     if (isReelBusy(video.reelStatus)) {
       const recovered = await recoverStaleReel(video);

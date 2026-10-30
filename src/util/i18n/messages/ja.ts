@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 // Japanese UI — marketing + core chrome. Workspace falls back to English via merge.
 export const ja: Partial<Messages> = {
   meta: {
-    title: "Scro — Explainer 動画と AI インフルエンサー",
+    title: "Explainer 動画と AI インフルエンサー | Scro",
     description:
       "一人の AI インフルエンサーでホワイトボード解説動画を作ります。顔・衣装・声を固定し、絵コンテから公開まで同じ人物でショートを出します。",
   },
@@ -151,7 +151,7 @@ export const ja: Partial<Messages> = {
   },
   rightTool: {
     seo: {
-      title: "Scro — 正しい AI 動画ツール｜一度で仕上げる",
+      title: "正しい AI 動画ツールの選び方｜Scro",
       description:
         "高い講座と盲目の再試行はやめて。Scro は AI ディレクター、仮想インフルエンサーツール、編集デスクを備え、生成から仕上げ、公開まで一気通貫。",
     },
@@ -229,7 +229,7 @@ export const ja: Partial<Messages> = {
   },
   talkingHeadPage: {
     seo: {
-      title: "Scro — 字幕付きトーキングヘッド動画",
+      title: "字幕付きトーキングヘッド動画｜Scro",
       description:
         "AI Influencer の衣装を選び、台詞を打ち、字幕付きトーキングヘッドを生成。同じエディタでトリム、効果音、BGM。",
     },
@@ -277,7 +277,7 @@ export const ja: Partial<Messages> = {
   },
   productPromoPage: {
     seo: {
-      title: "Scro — AI Influencer の商品プロモ動画",
+      title: "AI Influencer の商品プロモ動画｜Scro",
       description:
         "商品をアップロードし、仮想ホストにどこでも売らせる——氷山、炎、火星まで。撮影班なしの大胆な UGC ショート。",
     },
@@ -328,7 +328,7 @@ export const ja: Partial<Messages> = {
   },
   aiInfluencerPage: {
     seo: {
-      title: "Scro — 魂のある AI Influencer を作る",
+      title: "魂のある AI Influencer を作る｜Scro",
       description:
         "知識と経験が性格になる。仮想 KOL を作り、SNS で発信し、注目を集め、収益化——カメラに出続けなくても。",
     },
@@ -399,7 +399,7 @@ export const ja: Partial<Messages> = {
   },
   explainerPage: {
     seo: {
-      title: "Scro — 商品コンセプト向けホワイトボード Explainer",
+      title: "ホワイトボード Explainer 動画｜Scro",
       description:
         "Scro の Explainer ディレクターとホワイトボードスタイルで、商品コンセプトをプロモ、デッキ、メール、SNS 向けの明快なショートに。",
     },
@@ -451,7 +451,7 @@ export const ja: Partial<Messages> = {
   },
   cantonesePage: {
     seo: {
-      title: "Scro — 中小企業向け香港広東語トーキングヘッド",
+      title: "香港広東語のトーキングヘッド｜Scro",
       description:
         "香港の中小企業と個人事業主向けの本物の広東語トーキングヘッド。ピッチを打ち、字幕付きクリップを生成し、音楽と効果音で仕上げ。",
     },
@@ -500,27 +500,37 @@ export const ja: Partial<Messages> = {
     title: "結果を見る",
     heroTitle: "Scro の仕組みを見る",
     subtitle: "種類ごとに仕事が違います。画面比率、スタイル、動画を置く場所。",
-    seoTitle: "Scro の作例 — リール、スライド、商品動画",
+    seoTitle: "AI 動画の作例 | Scro",
     seoDescription:
-      "縦型リール、16:9 のスライド、正方形の商品広告、横長のステージ動画。公開する場所ごとにフレームが違います。",
+      "完成した Scro 動画：ホワイトボード解説、商品プロモ、トーキングヘッド、香港広東語のホスト、AI Influencer。",
     cta: "結果を見る",
-    galleryTitle: "完成した4本。仕事は4種類。",
-    galleryBody: "リール、スライド、正方形の投稿、横長の舞台。同じスタジオで、画面だけが違います。",
-    scroReel: {
-      title: "Scro の使い方をリールで",
-      body: "縦型 9:16 のホワイトボード落書き。スタイルを選び、絵コンテを貼り、フレームが短い動画になる。",
+    galleryTitle: "完成した5本。仕事は5種類。",
+    galleryBody: "解説、商品プロモ、広東語ホスト、トーキングヘッド、AI Influencer。各動画は対応する製品ページへリンクします。",
+    makeOne: "これと同じものを作る",
+    explainer: {
+      title: "ホワイトボード解説のリール",
+      body: "縦型の落書きで、一つの考えを短く伝える。スマホで概念を届けるときに使う。",
+      cta: "ホワイトボード解説",
     },
-    scroDeck: {
-      title: "Scro の使い方をプレゼン用クリップで",
-      body: "同じ話を 16:9 のフラットベクターに。スライドに載せる用。",
+    productPromo: {
+      title: "商品が画面の主役になるプロモ",
+      body: "正方形のクレイ。ボトルが主役で、ホストは持つだけ。フィード広告向け。",
+      cta: "商品プロモ動画",
     },
-    productMarketing: {
-      title: "正方形投稿の製品デモ",
-      body: "1:1 のクレイアニメ。製品が箱から出て光る一瞬。",
+    cantonese: {
+      title: "香港広東語で、地元のオファーを話す",
+      body: "バーチャルホストが広東語でカメラに向かい、無料講座へ誘う。撮影したくない香港の中小企業向け。",
+      cta: "広東語動画",
     },
-    productReel: {
-      title: "ワイド画面のピクセル短編",
-      body: "16:9 のピクセルアート。小さなロボットが光る手紙を届けます。",
+    talkingHead: {
+      title: "字幕付きトーキングヘッド",
+      body: "ホスト一人が台本を読む。この完成版は香港広東語。同じ工程で英語や他のスタジオ言語も話せる。",
+      cta: "トーキングヘッド",
+    },
+    aiInfluencer: {
+      title: "カメラの前の AI Influencer",
+      body: "ロックした同じ顔がリールを進行できる。この一本が、そのバーチャルホスト。",
+      cta: "AI Influencer スタジオ",
     },
   },
   dashboard: {
@@ -617,6 +627,7 @@ export const ja: Partial<Messages> = {
     ctaBullet1: "無料スターター Credits",
     ctaBullet2: "21 言語の音声クローン",
     ctaBullet3: "AI ディレクター＆字幕エディター内蔵",
+    productLink: "この製品を見る",
   },
   post: {
     list: {

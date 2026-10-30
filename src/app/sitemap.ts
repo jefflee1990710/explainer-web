@@ -43,7 +43,7 @@ function listingPath(page: number): string {
 // Static lastmod is omitted: stamping "now" on every crawl makes unchanged pages look edited.
 export function buildSitemapEntries(
   siteUrl: string,
-  posts: Array<{ slug: string; updatedAt: string }> = [],
+  posts: Array<{ slug: string; updatedAt: string; languages?: Record<string, string> }> = [],
   pageSize = PUBLIC_BLOG_PAGE_SIZE,
 ): MetadataRoute.Sitemap {
   const staticEntries: MetadataRoute.Sitemap = PUBLIC_STATIC_SITEMAP_ROUTES.map((route) => ({
@@ -67,11 +67,20 @@ export function buildSitemapEntries(
 
   const postEntries: MetadataRoute.Sitemap = posts.map((post) => {
     const modified = new Date(post.updatedAt);
+    const languages = post.languages
+      ? Object.fromEntries(
+          Object.entries(post.languages).map(([code, href]) => [
+            code,
+            escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, href)),
+          ]),
+        )
+      : undefined;
     return {
       url: escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, `/posts/${encodeURIComponent(post.slug)}`)),
       ...(Number.isNaN(modified.getTime()) ? {} : { lastModified: modified }),
       changeFrequency: "weekly" as const,
       priority: 0.75,
+      ...(languages ? { alternates: { languages } } : {}),
     };
   });
 
@@ -80,7 +89,7 @@ export function buildSitemapEntries(
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
-  let posts: Array<{ slug: string; updatedAt: string }> = [];
+  let posts: Array<{ slug: string; updatedAt: string; languages?: Record<string, string> }> = [];
 
   try {
     posts = await listPublishedBlogPostsForSitemap();

@@ -10,6 +10,9 @@ import {
 import { BlogPostContent } from "@/app/posts/[slug]/blog-post-content";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 import { BlogPostSidebar } from "@/app/posts/[slug]/blog-post-sidebar";
+import { BlogPostLinks } from "@/app/posts/[slug]/blog-post-links";
+import { isPartnerIntroPost } from "@/service/blog-post/indexable";
+import { blogPostLanguageAlternates } from "@/service/blog-post/translations";
 import { getSiteUrl } from "@/util/app-url";
 import { getMessages } from "@/util/i18n";
 import { getRequestLocale } from "@/util/i18n/request-locale";
@@ -41,12 +44,24 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
 
   const canonicalPath = `/posts/${encodeURIComponent(post.slug)}`;
   const title = postDocumentTitle(post.title);
+  const languages = blogPostLanguageAlternates(post);
+  const indexable = !isPartnerIntroPost(post);
   return {
     title,
     description: post.excerpt,
     alternates: {
       canonical: canonicalPath,
+      ...(languages ? { languages } : {}),
     },
+    ...(indexable
+      ? {}
+      : {
+          robots: {
+            index: false,
+            follow: true,
+            googleBot: { index: false, follow: true },
+          },
+        }),
     openGraph: {
       title: post.title,
       description: post.excerpt,
@@ -123,6 +138,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
       },
     },
     keywords: post.tags.join(", "),
+    inLanguage: post.locale,
   };
 
   return (
@@ -162,6 +178,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
               {post.excerpt ? (
                 <p className="mt-4 text-lg leading-relaxed text-zinc-600">{post.excerpt}</p>
               ) : null}
+              <BlogPostLinks post={post} productLabel={copy.productLink} />
             </header>
 
             <div className="mb-10 aspect-16/10 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">

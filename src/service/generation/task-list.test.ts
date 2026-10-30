@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
+import { clipAppendTasks, isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -67,6 +67,32 @@ test("a reel in progress is a 成片合成 background task", () => {
     ),
     null,
   );
+});
+
+test("a queued clip write is a background task", () => {
+  const now = Date.parse("2026-10-30T12:00:00.000Z");
+  const tasks = clipAppendTasks(
+    {
+      videoId: "v1",
+      projectId: "p1",
+      title: "萬聖節",
+      jobs: [
+        {
+          id: "job",
+          content: "hidden",
+          insertAt: 6,
+          status: "writing",
+          createdAt: new Date(now),
+        },
+      ],
+    },
+    now,
+  );
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0]?.kind, "clipAppend");
+  assert.equal(tasks[0]?.stage, "generating");
+  assert.equal(tasks[0]?.detailKey, "tasksPage.detail.clipAppend");
+  assert.equal(JSON.stringify(tasks[0]).includes("hidden"), false);
 });
 
 test("jobListQuery uses a single projectId for one video", () => {

@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 // Korean UI — marketing + core chrome. Workspace falls back to English via merge.
 export const ko: Partial<Messages> = {
   meta: {
-    title: "Scro — Explainer 영상과 AI 인플루언서",
+    title: "Explainer 영상과 AI 인플루언서 | Scro",
     description:
       "얼굴, 옷장, 목소리를 고정한 AI 인플루언서 한 명으로 화이트보드 해설 영상을 만듭니다. 스토리보드부터 게시까지 같은 얼굴로 숏폼을 냅니다.",
   },
@@ -151,7 +151,7 @@ export const ko: Partial<Messages> = {
   },
   rightTool: {
     seo: {
-      title: "Scro — 올바른 AI 영상 도구｜한 번에 완성",
+      title: "올바른 AI 영상 도구 고르기｜Scro",
       description:
         "비싼 강의와 맹목 재시도는 그만. Scro는 AI 디렉터, 가상 인플루언서 도구, 편집 데스크로 생성·마무리·발행을 한 번에.",
     },
@@ -229,7 +229,7 @@ export const ko: Partial<Messages> = {
   },
   talkingHeadPage: {
     seo: {
-      title: "Scro — 자막 포함 토킹헤드 영상",
+      title: "자막 포함 토킹헤드 영상｜Scro",
       description:
         "AI Influencer 의상을 고르고 대본을 입력해 자막 토킹헤드를 생성. 같은 편집기에서 트림, 효과음, BGM.",
     },
@@ -277,7 +277,7 @@ export const ko: Partial<Messages> = {
   },
   productPromoPage: {
     seo: {
-      title: "Scro — AI Influencer 상품 프로모 영상",
+      title: "AI Influencer 상품 프로모 영상｜Scro",
       description:
         "상품을 올리고 가상 호스트가 어디서든 판매——빙산, 불, 화성까지. 촬영팀 없는 대담한 UGC 숏폼.",
     },
@@ -328,7 +328,7 @@ export const ko: Partial<Messages> = {
   },
   aiInfluencerPage: {
     seo: {
-      title: "Scro — 영혼 있는 AI Influencer 만들기",
+      title: "영혼 있는 AI Influencer 만들기｜Scro",
       description:
         "지식과 경험이 성격이 됩니다. 가상 KOL을 만들고 SNS에서 알리며 시선을 모아 수익화——카메라 앞에 살지 않아도.",
     },
@@ -399,7 +399,7 @@ export const ko: Partial<Messages> = {
   },
   explainerPage: {
     seo: {
-      title: "Scro — 상품 개념용 화이트보드 Explainer",
+      title: "화이트보드 Explainer 영상｜Scro",
       description:
         "Scro Explainer 디렉터와 화이트보드 스타일로 상품 개념을 프로모, 덱, 이메일, SNS용 선명한 숏폼으로.",
     },
@@ -451,7 +451,7 @@ export const ko: Partial<Messages> = {
   },
   cantonesePage: {
     seo: {
-      title: "Scro — 중소기업용 홍콩 광둥어 토킹헤드",
+      title: "홍콩 광둥어 토킹헤드｜Scro",
       description:
         "홍콩 중소기업·1인 사업자를 위한 진짜 광둥어 토킹헤드. 피치를 입력하고 자막 클립을 생성한 뒤 음악·효과음으로 마무리.",
     },
@@ -500,27 +500,37 @@ export const ko: Partial<Messages> = {
     title: "결과 보기",
     heroTitle: "Scro가 어떻게 작동하는지 보기",
     subtitle: "유형마다 일이 다릅니다. 화면 비율, 스타일, 영상을 어디에 둘지.",
-    seoTitle: "Scro 예시 — 릴, 슬라이드, 제품 광고",
+    seoTitle: "AI 영상 예시 | Scro",
     seoDescription:
-      "세로 릴, 16:9 슬라이드, 정사각 제품 광고, 가로 스테이지 영상. 올리는 곳에 맞춰 프레임이 달라집니다.",
+      "완성된 Scro 영상: 화이트보드 해설, 제품 프로모, 토킹헤드, 홍콩 광둥어 호스트, AI Influencer.",
     cta: "결과 보기",
-    galleryTitle: "완성본 네 편. 서로 다른 네 가지 일.",
-    galleryBody: "릴스, 슬라이드, 정사각 게시물, 가로 무대. 같은 스튜디오, 다른 화면.",
-    scroReel: {
-      title: "릴스로 보는 Scro 사용법",
-      body: "세로 9:16 화이트보드 낙서. 스타일을 고르고 스토리보드를 붙이면 짧은 영상이 됩니다.",
+    galleryTitle: "완성본 다섯 편. 서로 다른 다섯 가지 일.",
+    galleryBody: "해설, 제품 프로모, 광둥어 호스트, 토킹헤드, AI Influencer. 각 영상은 해당 제품 페이지로 연결됩니다.",
+    makeOne: "이렇게 만들기",
+    explainer: {
+      title: "화이트보드 해설 릴",
+      body: "세로 낙서로 아이디어 하나를 짧게 전합니다. 휴대폰에서 개념을 전할 때 씁니다.",
+      cta: "화이트보드 해설",
     },
-    scroDeck: {
-      title: "프레젠테이션용 Scro 사용법",
-      body: "같은 이야기를 16:9 플랫 벡터로. 슬라이드에 넣기 위한 클립.",
+    productPromo: {
+      title: "제품이 화면의 주인공인 프로모",
+      body: "정사각 클레이. 병이 주인공이고 호스트는 들기만 합니다. 피드 광고용.",
+      cta: "제품 프로모 영상",
     },
-    productMarketing: {
-      title: "정사각 게시용 제품 데모",
-      body: "1:1 클레이 애니메이션. 제품이 상자에서 나와 켜지는 한 순간.",
+    cantonese: {
+      title: "홍콩 광둥어로 지역 제안을 말하기",
+      body: "가상 호스트가 광둥어로 카메라를 보며 무료 수업으로 초대합니다. 촬영하고 싶지 않은 홍콩 중소기업용.",
+      cta: "광둥어 영상",
     },
-    productReel: {
-      title: "와이드 화면 픽셀 단편",
-      body: "16:9 픽셀 아트. 작은 로봇이 빛나는 쪽지를 전달합니다.",
+    talkingHead: {
+      title: "자막이 있는 토킹헤드",
+      body: "호스트 한 명이 대본을 읽습니다. 이 완성본은 홍콩 광둥어입니다. 같은 파이프라인으로 영어와 다른 스튜디오 언어도 말합니다.",
+      cta: "토킹헤드 영상",
+    },
+    aiInfluencer: {
+      title: "카메라 앞의 AI Influencer",
+      body: "잠긴 같은 얼굴이 릴을 진행할 수 있습니다. 이 컷이 그 가상 호스트입니다.",
+      cta: "AI Influencer 스튜디오",
     },
   },
   dashboard: {
@@ -617,6 +627,7 @@ export const ko: Partial<Messages> = {
     ctaBullet1: "무료 스타터 Credits",
     ctaBullet2: "21개 언어 음성 복제",
     ctaBullet3: "내장 AI 디렉터 & 편집기",
+    productLink: "이 제품 보기",
   },
   post: {
     list: {

@@ -17,6 +17,7 @@ import type { ScroClipMenuAction } from "@/opencut/embed/scro-video-actions";
 import { inFlightCounts } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
 import { appendDirectorClipAction } from "@/presentation/actions/clip-timeline";
+import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -52,6 +53,10 @@ export function OpenCutScroToolbar({
 }) {
   const { t } = useI18n();
   const queue = inFlightCounts(project);
+  const appends = project.clipAppends ?? [];
+  const clipsQueued = appends.filter((job) => job.status === "queued").length;
+  const clipsWriting = appends.filter((job) => job.status === "writing").length;
+  const clipsFailed = appends.filter((job) => job.status === "failed").length;
   const idle = pending === "";
   const [tasksOpen, setTasksOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<BulkMode | null>(null);
@@ -81,6 +86,7 @@ export function OpenCutScroToolbar({
       return;
     }
     onProject(result.project);
+    notifyTasksChanged();
     setAddOpen(false);
   }
 
@@ -121,7 +127,13 @@ export function OpenCutScroToolbar({
       <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-1.5 text-xs">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <VideoStageStepper project={project} onOpenTasks={() => setTasksOpen(true)} />
-          <ScroVideoQueue {...queue} onOpen={() => setTasksOpen(true)} />
+          <ScroVideoQueue
+            {...queue}
+            clipsQueued={clipsQueued}
+            clipsWriting={clipsWriting}
+            clipsFailed={clipsFailed}
+            onOpen={() => setTasksOpen(true)}
+          />
         </div>
         <OpenCutAiToolbarActions project={project} />
         {tasksOpen ? (

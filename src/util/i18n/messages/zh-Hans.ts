@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const zhHans: Partial<Messages> = {
   meta: {
-    title: "Scro — Explainer 解说片与 AI 网红",
+    title: "Explainer 解说片与 AI 网红 | Scro",
     description:
       "用同一个锁定脸、衣柜和声音的 AI 网红拍白板 Explainer。从分镜到发布，概念片和网红短片都是同一个人出镜。",
   },
@@ -226,27 +226,37 @@ export const zhHans: Partial<Messages> = {
     title: "看看成果",
     heroTitle: "看看 Scro 怎么运作",
     subtitle: "每一种都是不同的工作：画面比例、风格，以及视频要放在哪里。",
-    seoTitle: "Scro 示例 — 短视频、简报与产品广告",
+    seoTitle: "AI 视频成片示例 | Scro",
     seoDescription:
-      "看看 Scro 的成片：竖式 Reel、16:9 简报片段、正方形产品广告和横式舞台故事，每一种对应不同的发布位置。",
+      "看 Scro 成片：白板 explainer、产品宣传、口播、香港粤语主持，以及 AI Influencer。",
     cta: "看看成果",
-    galleryTitle: "四条成片，四种不同的工作。",
-    galleryBody: "短视频、简报片段、正方形帖子、横式舞台。同一个工作室，不同的画面。",
-    scroReel: {
-      title: "用短视频说明 Scro 怎么用",
-      body: "竖式 9:16 的白板涂鸦，给社交短视频。一个画面：选风格、贴上分镜、画格变成视频。想法要在手机上几秒内讲完时，用这一种。",
+    galleryTitle: "五条成片，五种不同的工作。",
+    galleryBody: "解说片、产品宣传、粤语主持、口播，以及 AI Influencer。每条片都连到对应产品页。",
+    makeOne: "照着这条做",
+    explainer: {
+      title: "白板 explainer，竖式短片",
+      body: "一条竖式涂鸦，把一个概念讲完。概念要在手机上落地时用这一种。",
+      cta: "白板解说片",
     },
-    scroDeck: {
-      title: "用演示片段说明 Scro 怎么用",
-      body: "同一件事做成 16:9 扁平矢量，放进幻灯片。一个镜头三步：选风格、确认分镜、导出。视频要嵌在演示里时，用这一种。",
+    productPromo: {
+      title: "产品在画面里的宣传片",
+      body: "正方形黏土片。水瓶才是主角，主持只是拿着它。信息流广告用这一种。",
+      cta: "产品宣传片",
     },
-    productMarketing: {
-      title: "给方形帖子的产品演示",
-      body: "1:1 黏土动画。一个产品、一个瞬间：瓶子从盒子里拿出来并亮起。信息流广告、产品当主角时，用这一种。",
+    cantonese: {
+      title: "香港粤语，讲一个本地优惠",
+      body: "虚拟主持用粤语对着镜头，邀请人去一堂免费课。给不想出镜的香港中小企。",
+      cta: "粤语短片",
     },
-    productReel: {
-      title: "宽屏的像素短片",
-      body: "16:9 像素风。小机器人送来一封发亮的短笺。较宽的画面让故事有舞台。放在网站主视觉或横式短片时，用这一种。",
+    talkingHead: {
+      title: "带字幕的口播",
+      body: "一个主持对着镜头读稿。这条成片是香港粤语。同一条流程可以讲英文和其他工作室语言。",
+      cta: "口播短片",
+    },
+    aiInfluencer: {
+      title: "AI Influencer 出镜",
+      body: "同一张锁定的脸可以主持整条片。这条就是那个虚拟主持，一套造型，开口讲。",
+      cta: "AI Influencer 工作室",
     },
   },
   dashboard: {
@@ -307,7 +317,7 @@ export const zhHans: Partial<Messages> = {
   },
   rightTool: {
     seo: {
-      title: "Scro — 选对 AI 出片工具｜一次出片",
+      title: "选对 AI 出片工具｜Scro",
       description:
         "不必再上课和盲抽重试。Scro 内置 AI 导演、虚拟 influencer 工具和编辑台，生成、改成片、发布一条龙。",
     },
@@ -385,7 +395,7 @@ export const zhHans: Partial<Messages> = {
   },
   talkingHeadPage: {
     seo: {
-      title: "Scro — 连字幕口播短片｜AI Talking-head",
+      title: "连字幕口播短片｜Scro",
       description:
         "选 AI Influencer 造型，打好对白，生成连字幕口播。之后可在编辑器修剪、加音效和 BGM。",
     },
@@ -433,7 +443,7 @@ export const zhHans: Partial<Messages> = {
   },
   productPromoPage: {
     seo: {
-      title: "Scro — 产品宣传短片｜虚拟人物带货",
+      title: "AI 虚拟人物产品宣传短片｜Scro",
       description:
         "上传产品，让虚拟人物帮你推销——上冰山、下火海、站火星都行。夸张场景吸眼球，不必烧制作费组剧组。",
     },
@@ -484,7 +494,7 @@ export const zhHans: Partial<Messages> = {
   },
   aiInfluencerPage: {
     seo: {
-      title: "Scro — 建立有灵魂的 AI Influencer／虚拟 KOL",
+      title: "建立有灵魂的 AI Influencer｜Scro",
       description:
         "上传多段你的声音，再用你的声生成视频。你的知识和经验就是灵魂——不必天天真人出镜。",
     },
@@ -555,7 +565,7 @@ export const zhHans: Partial<Messages> = {
   },
   explainerPage: {
     seo: {
-      title: "Scro — 白板 Explainer 短片｜讲清产品概念",
+      title: "白板 Explainer 短片｜Scro",
       description:
         "用 Explainer 导演加白板风格，快速做出精美概念短片，适合宣传、简报、email 寄客和社交媒体。",
     },
@@ -607,7 +617,7 @@ export const zhHans: Partial<Messages> = {
   },
   cantonesePage: {
     seo: {
-      title: "Scro — 香港粤语口播｜中小企产品宣传",
+      title: "香港粤语口播短片｜Scro",
       description:
         "上传多段你的粤语声，再用你的声生成连字幕口播。专为香港中小企和一人公司。",
     },
@@ -686,6 +696,7 @@ export const zhHans: Partial<Messages> = {
     ctaBullet1: "免信用卡立即试用",
     ctaBullet2: "21 种语言声线复制",
     ctaBullet3: "内置 AI 导演与字幕剪辑",
+    productLink: "看这个产品",
   },
   post: {
     list: {

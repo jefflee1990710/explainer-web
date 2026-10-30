@@ -6,57 +6,81 @@ export type ExampleItem = {
   poster: string;
   styleId: StyleId;
   aspect: "9:16" | "16:9" | "1:1";
-  useKey: "landing.showcase.reel" | "landing.showcase.deck" | "landing.showcase.marketing";
-  topicKey: "landing.showcase.scro" | "landing.showcase.product" | "landing.showcase.story";
+  landingPath: string;
   titleKey: string;
   bodyKey: string;
+  ctaKey: string;
+  durationSeconds: number;
+  uploadDate: string;
 };
 
-// One finished example per explainer type. The mp4 is optional; the poster stays if it is missing.
+// The only durable public talking-head on file. Signed provider URLs expire, so the
+// talking-head, Cantonese, and AI Influencer cards share this finished host reel.
+const CANTONESE_HOST = {
+  src: "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/projects/6ac8efc9969a0d0a6433ec18/clips/clip-1-waist-up-dim2-fixed-1793290524170.mp4",
+  poster:
+    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/projects/6ac8efc9969a0d0a6433ec18/frames/clip-1-start-waist-up-seated-mic-1793289924954.png",
+  durationSeconds: 23,
+  uploadDate: "2026-10-29",
+} as const;
+
+// One finished, crawlable video per product direction.
 export const EXAMPLE_ITEMS: ExampleItem[] = [
   {
-    id: "scro-reel",
+    id: "explainer",
     src: "/showcase/scro-reel.mp4",
     poster: "/showcase/scro-reel.png",
     styleId: "doodle",
     aspect: "9:16",
-    useKey: "landing.showcase.reel",
-    topicKey: "landing.showcase.scro",
-    titleKey: "examples.scroReel.title",
-    bodyKey: "examples.scroReel.body",
+    landingPath: "/explainer",
+    titleKey: "examples.explainer.title",
+    bodyKey: "examples.explainer.body",
+    ctaKey: "examples.explainer.cta",
+    durationSeconds: 5,
+    uploadDate: "2026-09-29",
   },
   {
-    id: "scro-deck",
-    src: "/showcase/scro-deck.mp4",
-    poster: "/showcase/scro-deck.png",
-    styleId: "flat-vector",
-    aspect: "16:9",
-    useKey: "landing.showcase.deck",
-    topicKey: "landing.showcase.scro",
-    titleKey: "examples.scroDeck.title",
-    bodyKey: "examples.scroDeck.body",
-  },
-  {
-    id: "product-marketing",
+    id: "product-promo",
     src: "/showcase/product-marketing.mp4",
     poster: "/showcase/product-marketing.png",
     styleId: "clay",
     aspect: "1:1",
-    useKey: "landing.showcase.marketing",
-    topicKey: "landing.showcase.product",
-    titleKey: "examples.productMarketing.title",
-    bodyKey: "examples.productMarketing.body",
+    landingPath: "/product-promo",
+    titleKey: "examples.productPromo.title",
+    bodyKey: "examples.productPromo.body",
+    ctaKey: "examples.productPromo.cta",
+    durationSeconds: 7,
+    uploadDate: "2026-09-29",
   },
   {
-    id: "product-reel",
-    src: "/showcase/product-reel.mp4",
-    poster: "/showcase/product-reel.png",
-    styleId: "pixel",
-    aspect: "16:9",
-    useKey: "landing.showcase.reel",
-    topicKey: "landing.showcase.story",
-    titleKey: "examples.productReel.title",
-    bodyKey: "examples.productReel.body",
+    id: "cantonese",
+    ...CANTONESE_HOST,
+    styleId: "realistic",
+    aspect: "9:16",
+    landingPath: "/cantonese",
+    titleKey: "examples.cantonese.title",
+    bodyKey: "examples.cantonese.body",
+    ctaKey: "examples.cantonese.cta",
+  },
+  {
+    id: "talking-head",
+    ...CANTONESE_HOST,
+    styleId: "realistic",
+    aspect: "9:16",
+    landingPath: "/talking-head",
+    titleKey: "examples.talkingHead.title",
+    bodyKey: "examples.talkingHead.body",
+    ctaKey: "examples.talkingHead.cta",
+  },
+  {
+    id: "ai-influencer",
+    ...CANTONESE_HOST,
+    styleId: "realistic",
+    aspect: "9:16",
+    landingPath: "/ai-influencer",
+    titleKey: "examples.aiInfluencer.title",
+    bodyKey: "examples.aiInfluencer.body",
+    ctaKey: "examples.aiInfluencer.cta",
   },
 ];
 
@@ -65,3 +89,40 @@ export const EXAMPLE_FRAME: Record<ExampleItem["aspect"], { width: string; aspec
   "16:9": { width: "w-full", aspect: "aspect-video" },
   "1:1": { width: "w-[min(32rem,92%)]", aspect: "aspect-square" },
 };
+
+function absoluteMediaUrl(siteUrl: string, src: string): string {
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  const base = siteUrl.replace(/\/$/, "");
+  return `${base}${src.startsWith("/") ? src : `/${src}`}`;
+}
+
+function isoDuration(seconds: number): string {
+  return `PT${Math.max(1, Math.round(seconds))}S`;
+}
+
+// One VideoObject per file. The shared host reel is named once, from the Cantonese card.
+export function exampleVideoJsonLd(
+  siteUrl: string,
+  items: Array<ExampleItem & { name: string; description: string }>,
+): Record<string, unknown> {
+  const seen = new Set<string>();
+  const graph = items.flatMap((item) => {
+    if (seen.has(item.src)) return [];
+    seen.add(item.src);
+    const pageUrl = `${siteUrl.replace(/\/$/, "")}/examples#${item.id}`;
+    return [{
+      "@type": "VideoObject",
+      name: item.name,
+      description: item.description,
+      thumbnailUrl: [absoluteMediaUrl(siteUrl, item.poster)],
+      contentUrl: absoluteMediaUrl(siteUrl, item.src),
+      uploadDate: item.uploadDate,
+      duration: isoDuration(item.durationSeconds),
+      embedUrl: pageUrl,
+    }];
+  });
+  return {
+    "@context": "https://schema.org",
+    "@graph": graph,
+  };
+}

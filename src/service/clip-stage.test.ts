@@ -327,6 +327,8 @@ test("isProjectBusy: phase_a, or any frame/clip in flight", () => {
   assert.equal(isProjectBusy(project({ frames: [frame(1, "start", "queued")] })), true);
   assert.equal(isProjectBusy(project({ clips: [clip(2, "in_progress")] })), true);
   assert.equal(isProjectBusy(project({ status: "ready", clips: [clip(1, "completed")] })), false);
+  assert.equal(isProjectBusy(project({ clipAppends: [{ status: "queued" }] })), true);
+  assert.equal(isProjectBusy(project({ clipAppends: [{ status: "failed" }] })), false);
 });
 
 test("isProjectReady only when every storyboard clip has a completed video", () => {

@@ -14,6 +14,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Filmstrip } from "@/presentation/studio/filmstrip";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { removeClip, selectedClipAfterRemoval } from "@/service/clip/clip-order";
+import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { clipStatesFor, defaultSelectedClip, type ClipState } from "@/service/clip-stage";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -126,7 +127,7 @@ export function VideoDesk({
     }
     onDeleted?.();
     onProject(result.project);
-    selectClip(insertAt);
+    notifyTasksChanged();
     setAddSlot(null);
   }
 

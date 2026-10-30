@@ -61,6 +61,26 @@ test("buildSitemapEntries includes all static public pages and published blog po
   assert.ok(oldest.lastModified instanceof Date);
 });
 
+test("sitemap post hreflang is present only when a translation sibling is passed in", () => {
+  const entries = buildSitemapEntries("https://www.scro.io", [
+    {
+      slug: "cantonese-sme-reels",
+      updatedAt: "2026-10-20T00:00:00.000Z",
+      languages: {
+        "zh-Hant": "/posts/cantonese-sme-reels",
+        en: "/posts/cantonese-sme-reels-en",
+        "x-default": "/posts/cantonese-sme-reels-en",
+      },
+    },
+    { slug: "english-only", updatedAt: "2026-10-20T00:00:00.000Z" },
+  ]);
+  const translated = entries.find((entry) => entry.url === "https://www.scro.io/posts/cantonese-sme-reels");
+  const english = entries.find((entry) => entry.url === "https://www.scro.io/posts/english-only");
+  assert.equal(translated?.alternates?.languages?.en, "https://www.scro.io/posts/cantonese-sme-reels-en");
+  assert.equal(translated?.alternates?.languages?.["x-default"], "https://www.scro.io/posts/cantonese-sme-reels-en");
+  assert.equal(english?.alternates, undefined);
+});
+
 test("buildLlmsTxt and buildLlmsFullTxt output valid markdown with core URLs and posts", () => {
   const samplePosts = [
     {

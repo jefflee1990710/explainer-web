@@ -80,15 +80,39 @@ export function appendClipUserPrompt(phaseA: PhaseAProposal, content: string, in
   return [
     `Visual world: ${phaseA.visualWorld}`,
     `Core message: ${phaseA.coreMessage}`,
-    others ? `Other clips:\n${others}` : "",
+    others ? `Other clips (continuity only):\n${others}` : "",
     before ? `Clip it follows:\n${clipBrief(before)}` : "",
     after ? `Clip that follows it:\n${clipBrief(after)}` : "",
     slot,
-    "Do not repeat an earlier clip. Continue the same cast, place, and voice.",
-    `Content for the new clip:\n${content}`,
+    "Keep the same cast, place, palette, and narrator as the clips around this one.",
+    "The note below is the only brief for this clip. It is what the clip shows and what it says.",
+    "englishVo speaks that note in the video's spoken language. If the note is already a sentence, speak that sentence. A light grammar fix is fine. Do not swap it for a new lesson, a recap, or the next beat of the original series.",
+    "The pictures illustrate that note. When this director puts writing on screen, that writing quotes the note. Do not letter a different claim, and do not rebuild the previous clip's last still unless the note asks for it.",
+    `Note for this clip:\n${content}`,
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+// The original series brief stays in the prompt for cast and place. It must not outrank the note.
+export function appendClipModelPrompt(
+  source: string,
+  phaseA: PhaseAProposal,
+  content: string,
+  insertAt?: number,
+) {
+  const note = appendClipUserPrompt(phaseA, content, insertAt);
+  const series = source.trim();
+  if (!series) return note;
+  return `Series this clip belongs to (continuity only — do not write another beat of it):\n${series}\n\n${note}`;
+}
+
+// Chaining skills open on the previous end. Every other director draws this note instead.
+export function appendClipContinuityLine(skillSlug: string) {
+  if (chainsClipStarts(skillSlug)) {
+    return "The next clip's start inherits the previous clip's end environment.";
+  }
+  return "Stay in the same visual world. This clip's picture illustrates the user's note, not the previous clip's last still.";
 }
 
 function inheritOpening(row: StoryboardRow, previous: StoryboardRow | undefined, skillSlug: string) {
@@ -170,8 +194,9 @@ durationSeconds is 5 to 12, set from this clip's spoken line at the chosen pace.
 The englishVo field is the spoken line in ${language.label}. Leave referenceTranslation empty.
 ${dualBeat ? "Write startScene, endScene, startVo, and endVo. motionCamera is the move between the two stills." : "motionCamera is the camera move through this clip."}
 ${steadyStills ? "Both stills share the same Camera line and the same whole subtitle (startVo then endVo). Only the one action differs between them. motionCamera starts, accelerates through the one action, then decelerates into the landing. No wipe or rewrite of the lettering." : ""}
-The next clip's start inherits the previous clip's end environment.`,
-    prompt: `Director instruction:\n${input.source}\n\n${appendClipUserPrompt(input.phaseA, input.content, insertAt)}`,
+${appendClipContinuityLine(skillSlug)}
+The user's note is what this clip shows and says. Do not replace that note with another lesson.`,
+    prompt: appendClipModelPrompt(input.source, input.phaseA, input.content, insertAt),
   });
   if (!generated.output) {
     if (generated.finishReason === "content-filter") {

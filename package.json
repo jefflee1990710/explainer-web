@@ -18,6 +18,10 @@
     "seed:text-styles": "tsx scripts/seed-text-style-previews.ts",
     "seed:editor-previews": "tsx scripts/seed-editor-previews.ts",
     "seed:sound-effects": "tsx scripts/seed-kenney-sound-effects.ts",
+    "seed:search-guides": "tsx scripts/seed-search-guides.ts",
+    "seed:keyword-guides": "tsx scripts/seed-keyword-guides.ts",
+    "seed:image-tips": "tsx scripts/seed-image-tips.ts",
+    "seed:halloween-guides": "tsx scripts/seed-halloween-guides.ts",
     "migrate:folders": "tsx scripts/migrate-project-folders.ts"
   },
   "dependencies": {

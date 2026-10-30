@@ -318,6 +318,20 @@ export type SubtitleLettering = {
   url: string;
 };
 
+// One queued "add clip" write. The dialog returns before the director finishes.
+export type ClipAppendStatus = "queued" | "writing" | "failed";
+
+export type ClipAppend = {
+  id: string;
+  content: string;
+  // 1-based slot on the storyboard at enqueue time. Later inserts shift this.
+  insertAt: number;
+  status: ClipAppendStatus;
+  error?: string;
+  createdAt: Date;
+  startedAt?: Date;
+};
+
 // Concatenated reel of every storyboard clip, produced on the export step.
 export type ReelStatus = "queued" | "in_progress" | "completed" | "failed";
 // Social / reel thumbnail generated from the storyboard.
@@ -419,6 +433,11 @@ export type Project = {
   reelStep?: { current: number; total: number; phase: "download" | "join" };
   // Compose tries for the current fingerprint. A dead worker retries until the cap.
   reelAttempts?: number;
+  // Director writes waiting to become storyboard clips.
+  clipAppends?: ClipAppend[];
+  // Single-flight lease so two polls cannot draft the same clip.
+  clipAppendLockToken?: string;
+  clipAppendLockUntil?: Date;
   // Branding edit for the Video tab (copy, never linked to the template).
   edit?: VideoEdit;
   // Generated reel cover still (not part of the exported video).
@@ -676,6 +695,21 @@ export const projectSchema: z.ZodType<Project> = z.object({
     })
     .optional(),
   reelAttempts: z.number().optional(),
+  clipAppends: z
+    .array(
+      z.object({
+        id: z.string(),
+        content: z.string(),
+        insertAt: z.number(),
+        status: z.enum(["queued", "writing", "failed"]),
+        error: z.string().optional(),
+        createdAt: z.date(),
+        startedAt: z.date().optional(),
+      }),
+    )
+    .optional(),
+  clipAppendLockToken: z.string().optional(),
+  clipAppendLockUntil: z.date().optional(),
   edit: videoEditSchema.optional(),
   coverUrl: z.string().optional(),
   coverStatus: z.enum(["idle", "generating", "failed"]).optional(),

@@ -2,6 +2,9 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 
+export const BLOG_LOCALES = ["en", "zh-Hant", "zh-Hans"] as const;
+export type BlogLocale = (typeof BLOG_LOCALES)[number];
+
 // MongoDB document for a public SEO blog post stored in `blog_posts`.
 export type BlogPost = {
   _id: ObjectId;
@@ -12,6 +15,11 @@ export type BlogPost = {
   featureImage: string;
   tags?: string[];
   published: boolean;
+  // Missing documents are English. Translations are sibling slugs, not ?hl= copies.
+  locale?: BlogLocale;
+  translations?: Partial<Record<BlogLocale, string>>;
+  // Internal product page this article should send readers to.
+  landingPath?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -26,6 +34,9 @@ export type PublicBlogPost = {
   featureImage: string;
   tags: string[];
   published: boolean;
+  locale: BlogLocale;
+  translations?: Partial<Record<BlogLocale, string>>;
+  landingPath?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -41,6 +52,24 @@ export type PaginatedBlogPostsResult = {
   hasPrevPage: boolean;
 };
 
+const blogLocaleSchema = z.enum(BLOG_LOCALES);
+
+const blogTranslationsSchema = z.object({
+  en: z.string().trim().min(1).optional(),
+  "zh-Hant": z.string().trim().min(1).optional(),
+  "zh-Hans": z.string().trim().min(1).optional(),
+});
+
+// A product link stays on this site. Open redirects are rejected.
+const landingPathSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => value.startsWith("/") && !value.startsWith("//") && !value.includes("://") && !value.includes("\\"),
+    "Landing path must be a site path",
+  );
+
 export const blogPostSchema: z.ZodType<BlogPost> = z.object({
   _id: objectIdSchema,
   slug: z.string().min(1),
@@ -50,6 +79,9 @@ export const blogPostSchema: z.ZodType<BlogPost> = z.object({
   featureImage: z.string().min(1),
   tags: z.array(z.string()).optional(),
   published: z.boolean(),
+  locale: blogLocaleSchema.optional(),
+  translations: blogTranslationsSchema.optional(),
+  landingPath: landingPathSchema.optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -63,6 +95,9 @@ export const createBlogPostInputSchema = z.object({
   featureImage: z.string().trim().min(1, "Feature image is required"),
   tags: z.array(z.string().trim().min(1)).optional(),
   published: z.boolean().optional().default(true),
+  locale: blogLocaleSchema.optional(),
+  translations: blogTranslationsSchema.optional(),
+  landingPath: landingPathSchema.optional(),
 });
 
 // Input schema for updating an existing blog post via API.
@@ -74,4 +109,7 @@ export const updateBlogPostInputSchema = z.object({
   featureImage: z.string().trim().min(1, "Feature image cannot be empty").optional(),
   tags: z.array(z.string().trim().min(1)).optional(),
   published: z.boolean().optional(),
+  locale: blogLocaleSchema.optional(),
+  translations: blogTranslationsSchema.optional(),
+  landingPath: landingPathSchema.optional(),
 });

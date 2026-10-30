@@ -5,16 +5,16 @@ import { useEffect } from "react";
 import { refreshGenerationAction } from "@/presentation/actions/generation";
 import { getProjectAction } from "@/presentation/actions/projects";
 import { subscribeProjectRefresh } from "@/presentation/components/app/tasks/task-signal";
-import { isProjectBusy } from "@/service/clip-stage";
+import { hasActiveClipAppend, isMediaBusy, isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { isFinalRunning } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const INTERVAL_MS = 2500;
 
-// Poll while the director writes, a frame/video/cover job is in flight, the
-// reel is concatenating, or the branded export is rendering. Provider
-// refresh is skipped for reel-only waits.
+// Poll while the director writes a clip, a frame/video/cover job is in flight,
+// the reel is concatenating, or the branded export is rendering. Provider
+// refresh is skipped for reel-only and clip-write waits.
 // Each tick pushes the freshest project into React state so tiles / timeline
 // flip off "生成中" as soon as webhook or status refresh settles a job.
 export function useProjectPoll(
@@ -25,14 +25,17 @@ export function useProjectPoll(
   const router = useRouter();
   const id = project?.id;
   const status = project?.status;
-  const clipBusy = project ? isProjectBusy(project) : false;
+  const mediaBusy = project ? isMediaBusy(project) : false;
+  const appendBusy = project ? hasActiveClipAppend(project) : false;
+  const clipBusy = mediaBusy || appendBusy;
   const reelBusy = project ? isReelBusy(project.reelStatus) || isFinalRunning(project) : false;
   const coverBusy = project?.coverStatus === "generating";
   const busy = clipBusy || reelBusy || coverBusy;
 
   useEffect(() => {
     if (!id || !busy) return;
-    const needsJobRefresh = (clipBusy && status !== "phase_a") || coverBusy;
+    // A clip write only needs a fresh document. Provider status stays on the media path.
+    const needsJobRefresh = (mediaBusy && status !== "phase_a") || coverBusy;
     let cancelled = false;
     // A slow refresh skips the next tick instead of stacking requests.
     let inFlight = false;
@@ -84,7 +87,7 @@ export function useProjectPoll(
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [id, status, busy, clipBusy, coverBusy, onUpdate, onError, router]);
+  }, [id, status, busy, clipBusy, mediaBusy, coverBusy, onUpdate, onError, router]);
 
   // The task list is what lands a finished file. The editor may already
   // look idle (old still still on screen), so reload that video when its

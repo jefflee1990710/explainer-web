@@ -30,6 +30,7 @@ export const tasksPageEn = {
     clipSubtitlePlate: "3/5 · Clip {n} subtitle plate",
     clipFrameStart: "3/5 · Clip {n} start frame",
     clipFrameEnd: "3/5 · Clip {n} end frame",
+    clipAppend: "Writing a new clip",
     reel: "5/5 · Final reel",
     reelDownload: "5/5 · Final reel · downloading clip {current} of {total}",
     reelJoin: "5/5 · Final reel · joining clip {current} of {total}",

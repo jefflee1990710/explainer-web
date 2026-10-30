@@ -62,6 +62,7 @@ export type ClipStageSource = {
   objectSheetError?: string;
   backgroundPlates?: Array<{ setId: string; clipNumbers: number[]; url?: string }>;
   backgroundPlateError?: string;
+  clipAppends?: Array<{ status: string }>;
 };
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
@@ -184,9 +185,13 @@ export function clipStatesFor(project: ClipStageSource): ClipState[] {
   return (project.phaseA?.clips || []).map((row) => clipStateFor(project, row.clipNumber));
 }
 
-// Poll while the director writes, while prop/background locks are generating,
-// or while any frame/video job is in flight.
-export function isProjectBusy(project: ClipStageSource) {
+// A queued or in-flight "add clip" write. Failed rows stay on the document for the task list.
+export function hasActiveClipAppend(project: { clipAppends?: Array<{ status: string }> }) {
+  return (project.clipAppends ?? []).some((job) => job.status === "queued" || job.status === "writing");
+}
+
+// Frames, videos, locks, or the storyboard itself. Ignores a queued clip write.
+export function isMediaBusy(project: ClipStageSource) {
   if (normalizeProjectStatus(project.status) === "phase_a") return true;
   const objectSheetBusy =
     (project.objectSheetItems?.length ?? 0) > 0 &&
@@ -202,6 +207,12 @@ export function isProjectBusy(project: ClipStageSource) {
     (project.frames || []).some((frame) => isInFlight(frame) || needsPersist(frame)) ||
     project.clips.some((clip) => isInFlight(clip) || needsPersist(clip))
   );
+}
+
+// Poll while the director writes a new clip, while locks are generating,
+// or while any frame/video job is in flight.
+export function isProjectBusy(project: ClipStageSource) {
+  return isMediaBusy(project) || hasActiveClipAppend(project);
 }
 
 // Ready when every storyboard clip is video_ready (not mid frame redraw).

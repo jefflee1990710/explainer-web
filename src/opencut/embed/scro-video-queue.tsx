@@ -1,6 +1,7 @@
 "use client";
 
 import type { InFlightCounts } from "@/service/clip-stage";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 /** Compact in-flight queue summary for the Scro Video toolbar. */
 export function ScroVideoQueue({
@@ -8,11 +9,21 @@ export function ScroVideoQueue({
 	framesGenerating,
 	videosQueued,
 	videosGenerating,
+	clipsQueued = 0,
+	clipsWriting = 0,
+	clipsFailed = 0,
 	onOpen,
-}: InFlightCounts & { onOpen: () => void }) {
+}: InFlightCounts & {
+	clipsQueued?: number;
+	clipsWriting?: number;
+	clipsFailed?: number;
+	onOpen: () => void;
+}) {
+	const { t } = useI18n();
 	const frames = framesQueued + framesGenerating;
 	const videos = videosQueued + videosGenerating;
-	if (frames === 0 && videos === 0) return null;
+	const clips = clipsQueued + clipsWriting;
+	if (frames === 0 && videos === 0 && clips === 0 && clipsFailed === 0) return null;
 
 	return (
 		<button
@@ -39,6 +50,19 @@ export function ScroVideoQueue({
 						{videosGenerating > 0 ? `${videosGenerating} running` : ""}
 					</span>
 				</span>
+			) : null}
+			{clips > 0 ? (
+				<span>
+					{t("production.filmstrip.addQueue")}{" "}
+					<span className="tabular-nums">
+						{clipsQueued > 0 ? t("production.filmstrip.addQueueQueued", { n: clipsQueued }) : ""}
+						{clipsQueued > 0 && clipsWriting > 0 ? " · " : ""}
+						{clipsWriting > 0 ? t("production.filmstrip.addQueueWriting", { n: clipsWriting }) : ""}
+					</span>
+				</span>
+			) : null}
+			{clipsFailed > 0 ? (
+				<span>{t("production.filmstrip.addQueueFailed", { n: clipsFailed })}</span>
 			) : null}
 		</button>
 	);

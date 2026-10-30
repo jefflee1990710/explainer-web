@@ -30,6 +30,7 @@ export const tasksPageZhHant = {
     clipSubtitlePlate: "3/5 · Clip {n} 字幕圖",
     clipFrameStart: "3/5 · Clip {n} 起始畫格",
     clipFrameEnd: "3/5 · Clip {n} 結尾畫格",
+    clipAppend: "撰寫新片段",
     reel: "5/5 · 成片合成",
     reelDownload: "5/5 · 成片合成 · 下載第 {current} / {total} 段",
     reelJoin: "5/5 · 成片合成 · 接上第 {current} / {total} 段",

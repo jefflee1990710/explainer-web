@@ -4,11 +4,14 @@ import { blogPostsCollection } from "@/dao";
 import {
   createBlogPostInputSchema,
   updateBlogPostInputSchema,
+  type BlogLocale,
   type BlogPost,
   type PaginatedBlogPostsResult,
   type PublicBlogPost,
 } from "@/model/blog-post";
+import { indexablePublishedFilter } from "@/service/blog-post/indexable";
 import { derivePostExcerpt, slugifyBlogPost } from "@/service/blog-post/slug";
+import { blogPostLanguageAlternates, isBlogLocale } from "@/service/blog-post/translations";
 
 export function sanitizeBlogPostTags(tags?: string[]): string[] {
   return (tags ?? []).filter((tag) => !/^novax$/i.test(tag.trim()));
@@ -25,6 +28,9 @@ export function toPublicBlogPost(doc: BlogPost): PublicBlogPost {
     featureImage: doc.featureImage,
     tags: sanitizeBlogPostTags(doc.tags),
     published: doc.published,
+    locale: isBlogLocale(doc.locale) ? doc.locale : "en",
+    ...(doc.translations ? { translations: doc.translations } : {}),
+    ...(doc.landingPath ? { landingPath: doc.landingPath } : {}),
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   };
@@ -67,6 +73,9 @@ export type CreateBlogPostParams = {
   featureImage: string;
   tags?: string[];
   published?: boolean;
+  locale?: BlogLocale;
+  translations?: Partial<Record<BlogLocale, string>>;
+  landingPath?: string;
 };
 
 // Validate and insert a new blog post into MongoDB.
@@ -92,6 +101,9 @@ export async function createBlogPost(
     featureImage: data.featureImage,
     tags: sanitizeBlogPostTags(data.tags).length > 0 ? sanitizeBlogPostTags(data.tags) : undefined,
     published: data.published ?? true,
+    locale: data.locale ?? "en",
+    ...(data.translations ? { translations: data.translations } : {}),
+    ...(data.landingPath ? { landingPath: data.landingPath } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -119,7 +131,7 @@ export async function listBlogPostsPaginated(
 
   const filter: Filter<BlogPost> = {};
   if (!options.includeUnpublished) {
-    filter.published = true;
+    Object.assign(filter, indexablePublishedFilter());
   }
   if (options.tag && options.tag.trim()) {
     filter.tags = options.tag.trim();
@@ -161,7 +173,7 @@ export async function listPublishedBlogPosts(limit = 100): Promise<PublicBlogPos
   const safeLimit = Math.min(5000, Math.max(1, Math.floor(Number(limit) || 100)));
   const collection = await blogPostsCollection();
   const docs = (await collection
-    .find({ published: true })
+    .find(indexablePublishedFilter())
     .sort({ createdAt: -1 })
     .limit(safeLimit)
     .toArray()) as BlogPost[];
@@ -171,6 +183,7 @@ export async function listPublishedBlogPosts(limit = 100): Promise<PublicBlogPos
 export type BlogPostSitemapEntry = {
   slug: string;
   updatedAt: string;
+  languages?: Record<string, string>;
 };
 
 export type BlogPostLlmsEntry = {
@@ -186,7 +199,7 @@ export async function listPublishedBlogPostsForLlms(limit = 5000): Promise<BlogP
   const collection = await blogPostsCollection();
   const docs = await collection
     .find(
-      { published: true },
+      indexablePublishedFilter(),
       { projection: { slug: 1, title: 1, excerpt: 1, tags: 1, createdAt: 1 } },
     )
     .sort({ createdAt: -1 })
@@ -215,8 +228,8 @@ export async function listPublishedBlogPostsForSitemap(
   const collection = await blogPostsCollection();
   const docs = await collection
     .find(
-      { published: true },
-      { projection: { slug: 1, updatedAt: 1, createdAt: 1 } },
+      indexablePublishedFilter(),
+      { projection: { slug: 1, updatedAt: 1, createdAt: 1, locale: 1, translations: 1 } },
     )
     .sort({ createdAt: -1 })
     .limit(safeLimit)
@@ -229,9 +242,16 @@ export async function listPublishedBlogPostsForSitemap(
         : doc.createdAt instanceof Date
           ? doc.createdAt
           : new Date();
+      const slug = doc.slug.trim();
+      const languages = blogPostLanguageAlternates({
+        slug,
+        locale: typeof doc.locale === "string" ? doc.locale : undefined,
+        translations: doc.translations as BlogPost["translations"],
+      });
       return {
-        slug: doc.slug.trim(),
+        slug,
         updatedAt: date.toISOString(),
+        ...(languages ? { languages } : {}),
       };
     });
 }
@@ -283,7 +303,7 @@ export async function listRecommendedBlogPosts(
   if (cleanTags.length > 0) {
     const byTags = (await collection
       .find({
-        published: true,
+        ...indexablePublishedFilter(),
         slug: { $ne: currentPost.slug },
         tags: { $in: cleanTags },
       })
@@ -315,7 +335,7 @@ export async function listRecommendedBlogPosts(
   if (picked.length < limit) {
     const recent = (await collection
       .find({
-        published: true,
+        ...indexablePublishedFilter(),
         slug: { $nin: [...seenSlugs] },
       })
       .sort({ createdAt: -1 })
@@ -335,6 +355,9 @@ export type UpdateBlogPostParams = {
   featureImage?: string;
   tags?: string[];
   published?: boolean;
+  locale?: BlogLocale;
+  translations?: Partial<Record<BlogLocale, string>>;
+  landingPath?: string;
 };
 
 // Update an existing blog post by slug or ID.
@@ -377,6 +400,9 @@ export async function updateBlogPostBySlugOrId(
     featureImage: data.featureImage ?? existing.featureImage,
     tags: data.tags !== undefined ? data.tags : existing.tags,
     published: data.published ?? existing.published,
+    locale: data.locale ?? existing.locale,
+    translations: data.translations !== undefined ? data.translations : existing.translations,
+    landingPath: data.landingPath !== undefined ? data.landingPath : existing.landingPath,
     updatedAt: new Date(),
   };
 
@@ -392,6 +418,9 @@ export async function updateBlogPostBySlugOrId(
         featureImage: updatedDoc.featureImage,
         tags: updatedDoc.tags,
         published: updatedDoc.published,
+        locale: updatedDoc.locale,
+        translations: updatedDoc.translations,
+        landingPath: updatedDoc.landingPath,
         updatedAt: updatedDoc.updatedAt,
       },
     },

@@ -1,10 +1,12 @@
 import { apiError, apiJson, readJson } from "@/service/api/respond";
 import { isAuthorizedPostAdmin, parsePostTags } from "@/service/blog-post/api-auth";
+import type { BlogLocale } from "@/model/blog-post";
 import {
   createBlogPost,
   listBlogPostsPaginated,
   uploadBlogPostFeatureImage,
 } from "@/service/blog-post/blog-posts";
+import { isBlogLocale } from "@/service/blog-post/translations";
 
 // GET /api/v1/posts — paginated list of blog posts (`?page=1&limit=12&tag=...&q=...&includeUnpublished=true`).
 export async function GET(request: Request) {
@@ -47,6 +49,9 @@ export async function POST(request: Request) {
     let featureImage = "";
     let tags: string[] | undefined;
     let published = true;
+    let locale: BlogLocale | undefined;
+    let translations: Partial<Record<BlogLocale, string>> | undefined;
+    let landingPath: string | undefined;
 
     if (
       contentType.includes("multipart/form-data") ||
@@ -66,6 +71,21 @@ export async function POST(request: Request) {
       const rawPublished = form.get("published");
       if (typeof rawPublished === "string" && rawPublished.trim() !== "") {
         published = rawPublished !== "false" && rawPublished !== "0";
+      }
+      const rawLocale = form.get("locale");
+      if (typeof rawLocale === "string" && isBlogLocale(rawLocale.trim())) {
+        locale = rawLocale.trim() as BlogLocale;
+      }
+      const rawLanding = form.get("landingPath");
+      if (typeof rawLanding === "string" && rawLanding.trim()) landingPath = rawLanding.trim();
+      const rawTranslations = form.get("translations");
+      if (typeof rawTranslations === "string" && rawTranslations.trim()) {
+        try {
+          const parsed = JSON.parse(rawTranslations) as Partial<Record<BlogLocale, string>>;
+          if (parsed && typeof parsed === "object") translations = parsed;
+        } catch {
+          translations = undefined;
+        }
       }
 
       const imageEntry = form.get("featureImage") ?? form.get("file");
@@ -91,6 +111,11 @@ export async function POST(request: Request) {
       if (typeof body.published === "boolean") {
         published = body.published;
       }
+      if (typeof body.locale === "string" && isBlogLocale(body.locale)) locale = body.locale;
+      if (typeof body.landingPath === "string") landingPath = body.landingPath.trim();
+      if (body.translations && typeof body.translations === "object") {
+        translations = body.translations as Partial<Record<BlogLocale, string>>;
+      }
     }
 
     const result = await createBlogPost({
@@ -101,6 +126,9 @@ export async function POST(request: Request) {
       featureImage,
       tags,
       published,
+      locale,
+      translations,
+      landingPath,
     });
 
     if (!result.ok) {

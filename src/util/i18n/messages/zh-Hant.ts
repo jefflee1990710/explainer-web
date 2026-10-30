@@ -19,7 +19,7 @@ import { wardrobeZhHant } from "@/util/i18n/messages/workspace/wardrobe.zh-Hant"
 
 export const zhHant: Messages = {
   meta: {
-    title: "Scro — Explainer 解說片同 AI 網紅",
+    title: "Explainer 解說片同 AI 網紅 | Scro",
     description:
       "用同一個鎖定臉、衣櫃同把聲的 AI 網紅拍白板 Explainer。由分鏡到發佈，概念片同網紅短片都係同一個人出鏡。",
   },
@@ -317,27 +317,37 @@ export const zhHant: Messages = {
     title: "看看成果",
     heroTitle: "看看 Scro 怎麼運作",
     subtitle: "每一種都是不同的工作：畫面比例、風格，以及影片要放在哪裡。",
-    seoTitle: "Scro 範例 — 短影音、簡報與產品廣告",
+    seoTitle: "AI 影片成片範例 | Scro",
     seoDescription:
-      "看看 Scro 的成片：直式 Reel、16:9 簡報片段、正方形產品廣告同橫式舞台故事，每一種對應不同的發佈位置。",
+      "睇 Scro 成片：白板 explainer、產品宣傳、口播、香港粵語主持，同 AI Influencer。",
     cta: "看看成果",
-    galleryTitle: "四條成片，四種不同的工作。",
-    galleryBody: "短影音、簡報片段、正方形貼文、橫式舞台。同一個工作室，不同的畫面。",
-    scroReel: {
-      title: "用短影音說明 Scro 怎麼用",
-      body: "直式 9:16 的白板塗鴉，給社群短影音。一個畫面：選風格、貼上分鏡、畫格變成影片。想法要在手機上幾秒內講完時，用這一種。",
+    galleryTitle: "五條成片，五種不同的工作。",
+    galleryBody: "解說片、產品宣傳、粵語主持、口播，同 AI Influencer。每條片都連去對應產品頁。",
+    makeOne: "照住呢條片做",
+    explainer: {
+      title: "白板 explainer，直式短片",
+      body: "一條直式塗鴉，把一個概念講完。概念要喺手機上落地時用呢種。",
+      cta: "白板解說片",
     },
-    scroDeck: {
-      title: "用簡報片段說明 Scro 怎麼用",
-      body: "同一件事做成 16:9 扁平向量，放進投影片。一個鏡頭三步：選風格、核准分鏡、輸出。影片要嵌在簡報裡時，用這一種。",
+    productPromo: {
+      title: "產品喺畫面入面嘅宣傳片",
+      body: "正方形黏土片。水瓶先係主角，主持只係攞住佢。動態牆廣告用呢種。",
+      cta: "產品宣傳片",
     },
-    productMarketing: {
-      title: "給方型貼文的產品示範",
-      body: "1:1 黏土動畫。一個產品、一個瞬間：瓶子從盒子裡拿出來並亮起。動態牆廣告、產品當主角時，用這一種。",
+    cantonese: {
+      title: "香港粵語，講一個本地優惠",
+      body: "虛擬主持用粵語對住鏡頭，邀請人去一堂免費課。畀唔想出鏡嘅香港中小企。",
+      cta: "粵語短片",
     },
-    productReel: {
-      title: "寬螢幕的像素短片",
-      body: "16:9 像素風。小機器人送來一封發亮的短箋。較寬的畫面讓故事有舞台。放在網站主視覺或橫式短片時，用這一種。",
+    talkingHead: {
+      title: "連字幕嘅口播",
+      body: "一個主持對住鏡頭讀稿。呢條成片係香港粵語。同一條流程可以講英文同其他工作室語言。",
+      cta: "口播短片",
+    },
+    aiInfluencer: {
+      title: "AI Influencer 出鏡",
+      body: "同一張鎖住嘅臉可以主持成條片。呢條就係嗰個虛擬主持，一套造型，開口講。",
+      cta: "AI Influencer 工作室",
     },
   },
   legal: {
@@ -1190,7 +1200,7 @@ export const zhHant: Messages = {
   },
   rightTool: {
     seo: {
-      title: "Scro — 揀對 AI 出片工具｜一次出片",
+      title: "揀對 AI 出片工具｜Scro",
       description:
         "唔使再上堂同盲抽重試。Scro 內建 AI 導演、虛擬 influencer 工具同編輯台，生成、改成片、發佈一條龍。",
     },
@@ -1268,7 +1278,7 @@ export const zhHant: Messages = {
   },
   talkingHeadPage: {
     seo: {
-      title: "Scro — 連字幕口播短片｜AI Talking-head",
+      title: "連字幕口播短片｜Scro",
       description:
         "揀 AI Influencer 造型，打好對白，生成連字幕口播。之後可喺編輯器修剪、加音效同 BGM。",
     },
@@ -1316,7 +1326,7 @@ export const zhHant: Messages = {
   },
   productPromoPage: {
     seo: {
-      title: "Scro — 產品宣傳短片｜虛擬人物帶貨",
+      title: "AI 虛擬人物產品宣傳短片｜Scro",
       description:
         "上載產品，畀虛擬人物幫你推銷——上冰山、落火海、企火星都得。誇張場景吸眼球，唔使燒製作費組劇組。",
     },
@@ -1367,7 +1377,7 @@ export const zhHant: Messages = {
   },
   aiInfluencerPage: {
     seo: {
-      title: "Scro — 建立有靈魂嘅 AI Influencer／虛擬 KOL",
+      title: "建立有靈魂嘅 AI Influencer｜Scro",
       description:
         "上傳多段你的聲音，再用你把聲生成影片。你嘅知識同經驗就係靈魂——唔使日日真人上鏡。",
     },
@@ -1438,7 +1448,7 @@ export const zhHant: Messages = {
   },
   explainerPage: {
     seo: {
-      title: "Scro — 白板 Explainer 短片｜講清產品概念",
+      title: "白板 Explainer 短片｜Scro",
       description:
         "用 Explainer 導演加白板風格，快速做出精美概念短片，適合宣傳、簡報、email 寄客同社交媒體。",
     },
@@ -1490,7 +1500,7 @@ export const zhHant: Messages = {
   },
   cantonesePage: {
     seo: {
-      title: "Scro — 香港粵語口播｜中小企產品宣傳",
+      title: "香港粵語口播短片｜Scro",
       description:
         "上傳多段你把粵語聲，再用你把聲生成連字幕口播。專為香港中小企同一人公司。",
     },
@@ -1830,6 +1840,7 @@ export const zhHant: Messages = {
     ctaBullet1: "免信用卡立即試用",
     ctaBullet2: "21 種語言聲線複製",
     ctaBullet3: "內建 AI 導演與字幕剪輯",
+    productLink: "睇呢個產品",
   },
   affiliatePage: {
     eyebrow: "自媒體導師",

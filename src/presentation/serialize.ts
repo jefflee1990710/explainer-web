@@ -165,6 +165,14 @@ export type PublicVideo = {
   finalQueuedAt?: string;
   error?: string;
   createdAt: string;
+  // Queued director writes for "add clip". The prompt stays on the server.
+  clipAppends?: Array<{
+    id: string;
+    insertAt: number;
+    status: "queued" | "writing" | "failed";
+    error?: string;
+    createdAt: string;
+  }>;
 };
 
 export type PublicProject = PublicVideo; // remove after call sites updated
@@ -481,6 +489,15 @@ export function toPublicVideo(video: Project): PublicVideo {
     finalQueuedAt: toOptionalIsoDate(video.finalQueuedAt),
     error: video.error,
     createdAt: toIsoDate(video.createdAt),
+    clipAppends: video.clipAppends?.length
+      ? video.clipAppends.map((job) => ({
+          id: job.id,
+          insertAt: job.insertAt,
+          status: job.status,
+          ...(job.error ? { error: job.error } : {}),
+          createdAt: toIsoDate(job.createdAt),
+        }))
+      : undefined,
   };
 }
 

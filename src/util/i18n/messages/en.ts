@@ -19,7 +19,7 @@ import { wardrobeEn } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 export const en: Messages = {
   meta: {
-    title: "Scro — Explainer Videos and AI Influencers",
+    title: "Explainer Videos and AI Influencers | Scro",
     description:
       "Make whiteboard explainer videos with one locked AI Influencer — the same face, wardrobe, and voice on every short, from storyboard to publish.",
   },
@@ -321,27 +321,37 @@ export const en: Messages = {
     title: "See the results",
     heroTitle: "See how Scro works",
     subtitle: "Each type is a different job: the frame, the style, and where the video will play.",
-    seoTitle: "Scro Examples — Reels, Deck Clips, and Product Shorts",
+    seoTitle: "Finished AI Video Examples | Scro",
     seoDescription:
-      "Watch finished Scro videos: vertical Reels, 16:9 deck clips, square product ads, and wide stage stories, each framed for where you publish.",
+      "Watch finished Scro videos: a whiteboard explainer, a product promo, a talking-head, a Hong Kong Cantonese host, and an AI Influencer.",
     cta: "See the results",
-    galleryTitle: "Four finished cuts. Four different jobs.",
-    galleryBody: "A Reel, a deck clip, a square post, and a wide stage. Same studio, different frame.",
-    scroReel: {
-      title: "How Scro works, as a Reel",
-      body: "A vertical 9:16 doodle for social. One scene: pick a style, pin a storyboard, and the frames become a short video. Use this type when the idea has to land in a few seconds on a phone.",
+    galleryTitle: "Five finished cuts. Five different jobs.",
+    galleryBody: "An explainer, a product promo, a Cantonese host, a talking-head, and an AI Influencer. Each clip links to that product.",
+    makeOne: "Make one like this",
+    explainer: {
+      title: "A whiteboard explainer, as a Reel",
+      body: "A vertical doodle that turns one idea into a short. Use this when the concept has to land on a phone.",
+      cta: "Whiteboard explainers",
     },
-    scroDeck: {
-      title: "How Scro works, as a deck clip",
-      body: "The same story in 16:9 flat vector, built to sit on a slide. Three beats in one shot: choose a style, approve the storyboard, export. Use this type inside a presentation.",
+    productPromo: {
+      title: "A product promo with the product in frame",
+      body: "A square clay clip. The bottle is the hero, and the host only holds it up. Use this for a feed ad.",
+      cta: "Product promo videos",
     },
-    productMarketing: {
-      title: "A product demo for a square post",
-      body: "A 1:1 claymation clip. One product, one moment: the bottle leaves the box and lights up. Use this type for feed ads where the product is the hero.",
+    cantonese: {
+      title: "Hong Kong Cantonese for a local offer",
+      body: "A virtual host speaks Cantonese to camera and invites people to a free class. Built for a Hong Kong SME that does not want to film.",
+      cta: "Cantonese videos",
     },
-    productReel: {
-      title: "A pixel short on a wide stage",
-      body: "A 16:9 pixel story. A little robot delivers one glowing note. The wider frame gives the scene a stage. Use this type for a site hero or a landscape short.",
+    talkingHead: {
+      title: "A captioned talking-head",
+      body: "One host, to camera, reading a script. This finished cut is in Hong Kong Cantonese. The same pipeline speaks English and the other studio languages.",
+      cta: "Talking-head videos",
+    },
+    aiInfluencer: {
+      title: "An AI Influencer on camera",
+      body: "The same locked face can host the reel. This cut is that virtual host, in one wardrobe, speaking.",
+      cta: "AI Influencer studio",
     },
   },
   legal: {
@@ -1202,7 +1212,7 @@ export const en: Messages = {
   },
   rightTool: {
     seo: {
-      title: "Scro — Pick the Right AI Video Tool | Ship Once",
+      title: "Pick the Right AI Video Tool | Scro",
       description:
         "Stop costly courses and blind AI retries. Scro packs AI directors, virtual influencer tools, and an edit desk so you generate, finish the cut, and publish.",
     },
@@ -1280,7 +1290,7 @@ export const en: Messages = {
   },
   talkingHeadPage: {
     seo: {
-      title: "Scro — Talking-Head Videos with Captions",
+      title: "Talking-Head Videos with Captions | Scro",
       description:
         "Pick an AI Influencer outfit, type the script, and generate captioned talking-head clips. Then trim, add SFX and music in the same editor.",
     },
@@ -1328,7 +1338,7 @@ export const en: Messages = {
   },
   productPromoPage: {
     seo: {
-      title: "Scro — Product Promo Videos with AI Influencers",
+      title: "AI Influencer Product Promo Videos | Scro",
       description:
         "Upload your product and let a virtual host pitch it anywhere — iceberg, fire, even Mars. Bold UGC shorts without a film crew or production budget.",
     },
@@ -1379,7 +1389,7 @@ export const en: Messages = {
   },
   aiInfluencerPage: {
     seo: {
-      title: "Scro — Build an AI Influencer with a Soul",
+      title: "Build an AI Influencer with a Soul | Scro",
       description:
         "Upload several clips of your voice, then generate videos that speak in it. Your knowledge becomes the personality of a virtual KOL — without living on camera.",
     },
@@ -1450,7 +1460,7 @@ export const en: Messages = {
   },
   explainerPage: {
     seo: {
-      title: "Scro — Whiteboard Explainer Videos for Product Concepts",
+      title: "Whiteboard Explainer Videos | Scro",
       description:
         "Use Scro’s explainer director and whiteboard style to turn product concepts into clear shorts for promo, decks, email, and social.",
     },
@@ -1502,7 +1512,7 @@ export const en: Messages = {
   },
   cantonesePage: {
     seo: {
-      title: "Scro — Hong Kong Cantonese Talking-Head Videos for SMEs",
+      title: "Hong Kong Cantonese Talking-Head Videos | Scro",
       description:
         "Upload your Cantonese voice — several clips — and generate talking-head videos in that voice. Built for Hong Kong SMEs and solo founders.",
     },
@@ -1845,6 +1855,7 @@ export const en: Messages = {
     ctaBullet1: "Free starter credits",
     ctaBullet2: "21-language voice cloning",
     ctaBullet3: "Built-in AI directors & editor",
+    productLink: "See this product",
   },
   affiliatePage: {
     eyebrow: "Creator mentors",

@@ -317,10 +317,12 @@ export type Messages = {
     cta: string;
     galleryTitle: string;
     galleryBody: string;
-    scroReel: { title: string; body: string };
-    scroDeck: { title: string; body: string };
-    productMarketing: { title: string; body: string };
-    productReel: { title: string; body: string };
+    makeOne: string;
+    explainer: { title: string; body: string; cta: string };
+    productPromo: { title: string; body: string; cta: string };
+    talkingHead: { title: string; body: string; cta: string };
+    cantonese: { title: string; body: string; cta: string };
+    aiInfluencer: { title: string; body: string; cta: string };
   };
   legal: {
     terms: string;
@@ -1305,6 +1307,7 @@ export type Messages = {
     ctaBullet1: string;
     ctaBullet2: string;
     ctaBullet3: string;
+    productLink: string;
   };
   affiliate: {
     title: string;

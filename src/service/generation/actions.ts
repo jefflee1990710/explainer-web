@@ -8,6 +8,7 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
+import { clipAppendNeedsKick } from "@/service/clip/clip-append";
 import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
 import { refreshVideoLocksAfterStoryboardEdit } from "@/service/higgsfield/video-locks-pipeline";
@@ -515,6 +516,15 @@ export async function refreshGenerationAction(
     const projects = await videosCollection();
     const project = await projects.findOne({ _id: id, clerkUserId });
     if (!project) return { ok: false, error: "專案不存在" };
+    // A queued clip write whose worker died is started again from this poll.
+    if (clipAppendNeedsKick(project)) {
+      const appendVideoId = project._id;
+      after(() =>
+        import("@/service/clip/clip-timeline-actions").then((mod) =>
+          mod.runClipAppendQueue(appendVideoId),
+        ),
+      );
+    }
 
     // Pending jobs, plus completed ones that never stored a file.
     if (isProductionLike(project.status)) {

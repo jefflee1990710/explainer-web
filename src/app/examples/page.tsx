@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ExamplesJsonLd } from "@/presentation/components/examples-json-ld";
 import { ExamplesView } from "@/presentation/components/examples-view";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { PublicPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
@@ -10,7 +11,7 @@ import { publicPageMetadata } from "@/util/seo/public-metadata";
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const ex = getMessages(locale).examples;
-  const title = ex.seoTitle || `Scro — ${ex.heroTitle}`;
+  const title = ex.seoTitle || `${ex.heroTitle} | Scro`;
   const description = ex.seoDescription || ex.subtitle;
   return publicPageMetadata({ title, description, path: "/examples", locale });
 }
@@ -20,9 +21,10 @@ export default async function ExamplesPage() {
   const ex = getMessages(locale).examples;
   return (
     <PolicyLayout>
+      <ExamplesJsonLd locale={locale} />
       <PublicPageJsonLd
         path="/examples"
-        title={ex.seoTitle || `Scro — ${ex.heroTitle}`}
+        title={ex.seoTitle || `${ex.heroTitle} | Scro`}
         description={ex.seoDescription || ex.subtitle}
       />
       <ExamplesView signedIn={Boolean(session)} />
