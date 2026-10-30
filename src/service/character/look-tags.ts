@@ -7,6 +7,7 @@ import type {
   CharacterWardrobePart,
 } from "@/service/character/character-look";
 import { lookOptionCategory } from "@/service/character/character-look";
+import { lookSilhouette } from "@/service/character/look-silhouettes";
 
 /** Curated tag chips shown in the look picker (subset of the full vocabulary). */
 export const LOOK_FILTER_TAGS = [
@@ -96,6 +97,9 @@ export function lookOptionTags(
 
   tags.push(part);
   tags.push(lookOptionCategory(part, option.id));
+  // Jeans / mini / bob and the other cuts stay searchable without joining the vibe chips.
+  const silhouette = lookSilhouette(part, option);
+  if (silhouette) tags.push(silhouette);
 
   if (option.id.startsWith("sp") || /sport|athletic|pickleball|tennis|yoga/i.test(option.id)) {
     tags.push("athletic");

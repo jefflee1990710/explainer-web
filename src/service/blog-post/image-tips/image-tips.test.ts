@@ -33,7 +33,7 @@ describe("image tips", () => {
       assert.equal(isPartnerIntroPost(spec), false, spec.title);
       assert.equal(spec.tags.includes("AI Image"), true, spec.slug);
       const content = renderImageTipSpec(spec);
-      const minimum = spec.locale === "en" ? 1200 : 700;
+      const minimum = spec.locale === "en" ? 3000 : 1800;
       assert.ok(content.length > minimum, `${spec.slug} content ${content.length}`);
       assert.ok(content.includes(`](${spec.landingPath})`), spec.slug);
       assert.ok(

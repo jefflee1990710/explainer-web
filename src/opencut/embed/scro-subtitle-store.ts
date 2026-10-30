@@ -34,9 +34,20 @@ export type ScroSubtitleCatalog = {
 	ui: ScroSubtitleUi;
 };
 
+export type ScroGeneratedOnScreenTextItem = {
+	id: string;
+	text: string;
+	styleId: string;
+	styleName: string;
+	url: string;
+	createdAt: number;
+};
+
 let open = false;
+let onScreenTextOpen = false;
 let catalog: ScroSubtitleCatalog | null = null;
 let videoId: string | null = null;
+let generatedOnScreenText: ScroGeneratedOnScreenTextItem[] = [];
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -52,6 +63,14 @@ export function useScroSubtitleOpen() {
 	return useSyncExternalStore(
 		subscribe,
 		() => open,
+		() => false,
+	);
+}
+
+export function useScroOnScreenTextOpen() {
+	return useSyncExternalStore(
+		subscribe,
+		() => onScreenTextOpen,
 		() => false,
 	);
 }
@@ -72,9 +91,33 @@ export function useScroSubtitleVideoId() {
 	);
 }
 
+export function useScroGeneratedOnScreenText() {
+	return useSyncExternalStore(
+		subscribe,
+		() => generatedOnScreenText,
+		() => [],
+	);
+}
+
 export function setScroSubtitleOpen(next: boolean) {
-	if (open === next) return;
+	if (open === next && (!next || !onScreenTextOpen)) return;
 	open = next;
+	if (next) onScreenTextOpen = false;
+	emit();
+}
+
+export function setScroOnScreenTextOpen(next: boolean) {
+	if (onScreenTextOpen === next && (!next || !open)) return;
+	onScreenTextOpen = next;
+	if (next) open = false;
+	emit();
+}
+
+export function addScroGeneratedOnScreenText(item: ScroGeneratedOnScreenTextItem) {
+	generatedOnScreenText = [
+		item,
+		...generatedOnScreenText.filter((existing) => existing.id !== item.id),
+	];
 	emit();
 }
 
@@ -90,5 +133,6 @@ export function setScroSubtitleCatalog(next: ScroSubtitleCatalog) {
 export function setScroSubtitleVideoId(next: string) {
 	if (videoId === next) return;
 	videoId = next;
+	generatedOnScreenText = [];
 	emit();
 }

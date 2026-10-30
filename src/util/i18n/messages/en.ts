@@ -2,6 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_EN } from "@/service/character/amenda-wardrobe";
 import { BRANDING_LABELS_EN } from "@/service/character/branding-styling-wardrobe";
 import { CASUAL_LABELS_EN } from "@/service/character/casual-wardrobe";
+import { SILHOUETTE_LABELS_EN } from "@/service/character/silhouette-catalog";
 import { SPORTS_LABELS_EN } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_EN } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_EN } from "@/util/i18n/messages/life-templates";
@@ -475,6 +476,53 @@ export const en: Messages = {
       searchPlaceholder: "Search by name, description, or tag",
       searchLabel: "Search looks",
       tagsLabel: "Filter by tag",
+      silhouettesLabel: "Type",
+      silhouettes: {
+        hair: {
+          bob: "Bob",
+          long: "Long",
+          waves: "Waves",
+          curls: "Curls",
+          bangs: "Bangs",
+          braid: "Braid",
+          updo: "Updo",
+          pony: "Ponytail",
+          bun: "Bun",
+          crop: "Crop",
+        },
+        top: {
+          tee: "T-shirt",
+          shirt: "Shirt",
+          knit: "Knit",
+          hoodie: "Hoodie",
+          blazer: "Blazer",
+          jacket: "Jacket",
+          coat: "Coat",
+          tank: "Tank",
+          dress: "Dress",
+          polo: "Polo",
+        },
+        pants: {
+          jeans: "Jeans",
+          mini: "Mini skirt",
+          midi: "Midi skirt",
+          maxi: "Maxi skirt",
+          shorts: "Shorts",
+          cargo: "Cargo",
+          legging: "Leggings",
+          trouser: "Trousers",
+          wide: "Wide-leg",
+          skort: "Skort",
+        },
+        shoes: {
+          sneaker: "Sneakers",
+          boot: "Boots",
+          heel: "Heels",
+          sandal: "Sandals",
+          loafer: "Loafers",
+          flat: "Flats",
+        },
+      },
       tags: {
         casual: "Casual",
         athletic: "Athletic",
@@ -496,6 +544,7 @@ export const en: Messages = {
       emptyFavourites: "No favourites in this list yet.",
       options: {
         hair: {
+          ...SILHOUETTE_LABELS_EN.hair,
           ...BRANDING_LABELS_EN.hair,
           ...CASUAL_LABELS_EN.hair,
           none: "None",
@@ -567,6 +616,7 @@ export const en: Messages = {
           athletic: "Athletic",
         },
         top: {
+          ...SILHOUETTE_LABELS_EN.top,
           ...AMENDA_LABELS_EN.top,
           ...BRANDING_LABELS_EN.top,
           ...SPORTS_LABELS_EN.top,
@@ -700,6 +750,7 @@ export const en: Messages = {
           safarijacket: "Olive Belted Safari Jacket",
         },
         pants: {
+          ...SILHOUETTE_LABELS_EN.pants,
           ...AMENDA_LABELS_EN.pants,
           ...BRANDING_LABELS_EN.pants,
           ...SPORTS_LABELS_EN.pants,
@@ -774,6 +825,7 @@ export const en: Messages = {
           khakichinos: "Preppy Cuffed Khaki Chinos",
         },
         shoes: {
+          ...SILHOUETTE_LABELS_EN.shoes,
           ...BRANDING_LABELS_EN.shoes,
           ...SPORTS_LABELS_EN.shoes,
           ...CASUAL_LABELS_EN.shoes,

@@ -27,7 +27,7 @@ describe("search guides", () => {
       assert.equal(isPartnerIntroPost(guide), false, guide.title);
       assert.equal(/^Introducing\s/i.test(guide.title), false);
       // Chinese is denser per character, so the floor is lower than the English guides.
-      const minimum = guide.locale === "en" ? 1600 : 1000;
+      const minimum = guide.locale === "en" ? 3000 : 1800;
       assert.ok(
         guide.content.length > minimum,
         `${guide.slug} content ${guide.content.length}`,

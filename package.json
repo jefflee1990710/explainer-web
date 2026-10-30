@@ -22,6 +22,9 @@
     "seed:keyword-guides": "tsx scripts/seed-keyword-guides.ts",
     "seed:image-tips": "tsx scripts/seed-image-tips.ts",
     "seed:halloween-guides": "tsx scripts/seed-halloween-guides.ts",
+    "seed:christmas-guides": "tsx scripts/seed-season-guides.ts christmas",
+    "seed:new-year-guides": "tsx scripts/seed-season-guides.ts new-year",
+    "seed:lunar-new-year-guides": "tsx scripts/seed-season-guides.ts lunar",
     "migrate:folders": "tsx scripts/migrate-project-folders.ts"
   },
   "dependencies": {

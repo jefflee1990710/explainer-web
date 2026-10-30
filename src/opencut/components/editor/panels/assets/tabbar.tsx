@@ -14,16 +14,22 @@ import {
 	useAssetsPanelStore,
 } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { ScroSubtitleRailButton } from "@/opencut/components/editor/panels/assets/scro-subtitle-rail-button";
+import { ScroOnScreenTextRailButton } from "@/opencut/components/editor/panels/assets/scro-on-screen-text-rail-button";
 import {
+	setScroOnScreenTextOpen,
 	setScroSubtitleOpen,
+	useScroOnScreenTextOpen,
 	useScroSubtitleOpen,
 } from "@/opencut/embed/scro-subtitle-store";
 import { isScroEmbed } from "@/opencut/embed/scro-transport";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { useSearchParams } from "next/navigation";
 
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
 	const subtitleOpen = useScroSubtitleOpen();
+	const onScreenTextOpen = useScroOnScreenTextOpen();
+	const { oc } = useOpencutI18n();
 	const embedded = isScroEmbed(useSearchParams().get("embed"));
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
@@ -67,14 +73,15 @@ export function TabBar() {
 						) : null}
 						{section.map((tabKey) => {
 							const tab = tabs[tabKey];
-							const active = !subtitleOpen && activeTab === tabKey;
+							const label = oc.rail[tabKey] ?? tab.label;
+							const active = !subtitleOpen && !onScreenTextOpen && activeTab === tabKey;
 							return (
 								<Tooltip key={tabKey} delayDuration={10}>
 									<TooltipTrigger asChild>
 										<Button
 											variant={active ? "secondary" : "ghost"}
 											size="icon"
-											aria-label={tab.label}
+											aria-label={label}
 											data-opencut-tour={`rail-${tabKey}`}
 											className={cn(
 												"shrink-0",
@@ -83,6 +90,7 @@ export function TabBar() {
 											)}
 											onClick={() => {
 												setScroSubtitleOpen(false);
+												setScroOnScreenTextOpen(false);
 												setActiveTab(tabKey);
 											}}
 										>
@@ -96,13 +104,18 @@ export function TabBar() {
 										sideOffset={8}
 									>
 										<div className="text-[#12141c] text-sm leading-none font-medium">
-											{tab.label}
+											{label}
 										</div>
 									</TooltipContent>
 								</Tooltip>
 							);
 						})}
-						{embedded && sectionIndex === 0 ? <ScroSubtitleRailButton /> : null}
+						{embedded && sectionIndex === 0 ? (
+							<>
+								<ScroSubtitleRailButton />
+								<ScroOnScreenTextRailButton />
+							</>
+						) : null}
 					</Fragment>
 				))}
 			</div>

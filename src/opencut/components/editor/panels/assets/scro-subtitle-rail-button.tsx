@@ -13,13 +13,15 @@ import {
 	useScroSubtitleCatalog,
 	useScroSubtitleOpen,
 } from "@/opencut/embed/scro-subtitle-store";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 
 // Sits under the Text icon. Opens the subtitle style panel.
 export function ScroSubtitleRailButton() {
 	const open = useScroSubtitleOpen();
 	const catalog = useScroSubtitleCatalog();
-	const label = catalog?.ui.subtitles || "Subtitles";
+	const { oc } = useOpencutI18n();
+	const label = oc.rail.subtitles || catalog?.ui.subtitles || "Subtitles";
 
 	return (
 		<Tooltip delayDuration={10}>

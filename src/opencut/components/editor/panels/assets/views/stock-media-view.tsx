@@ -37,6 +37,7 @@ import {
 	type CharacterHorizontalSide,
 	type FreeStockMediaItem,
 } from "@/service/opencut/stock-media";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 
 const QUICK_TOPICS = [
@@ -302,6 +303,7 @@ export function StockMediaView() {
 	const editor = useEditor();
 	const catalog = useScroSubtitleCatalog();
 	const videoId = useScroSubtitleVideoId();
+	const { oc } = useOpencutI18n();
 	const [query, setQuery] = useState("business technology");
 	const [mediaType, setMediaType] = useState<"all" | "image" | "video">("all");
 	const [layoutMode, setLayoutMode] = useState<BrollLayoutMode>("pip");
@@ -396,9 +398,9 @@ export function StockMediaView() {
 			<div className="space-y-2.5 border-b p-3">
 				<div className="flex items-center justify-between gap-2">
 					<div>
-						<h2 className="text-sm font-medium">免費插圖與影片素材 · B-Roll</h2>
+						<h2 className="text-sm font-medium">{oc.stock.title}</h2>
 						<p className="text-muted-foreground text-[11px]">
-							輸入關鍵字搜尋免費圖片／影片，加插到主軌上方
+							{oc.stock.subtitle}
 						</p>
 					</div>
 				</div>
@@ -411,7 +413,7 @@ export function StockMediaView() {
 					className="flex items-center gap-1.5"
 				>
 					<Input
-						placeholder="搜尋素材（如 office, chart, AI, coffee）…"
+						placeholder={oc.stock.searchPlaceholder}
 						value={query}
 						onChange={(e) => setQuery(e.currentTarget.value)}
 						className="h-8 text-xs"
@@ -423,7 +425,7 @@ export function StockMediaView() {
 						disabled={searching || !query.trim()}
 						className="h-8 px-3 text-xs"
 					>
-						{searching ? "…" : "搜尋"}
+						{searching ? "…" : oc.stock.searchBtn}
 					</Button>
 				</form>
 
@@ -431,9 +433,9 @@ export function StockMediaView() {
 					<div className="flex items-center gap-1">
 						{(
 							[
-								{ id: "all", label: "全部" },
-								{ id: "image", label: "圖片" },
-								{ id: "video", label: "影片" },
+								{ id: "all", label: oc.stock.filterAll },
+								{ id: "image", label: oc.stock.filterImage },
+								{ id: "video", label: oc.stock.filterVideo },
 							] as const
 						).map((tab) => (
 							<button
@@ -455,11 +457,11 @@ export function StockMediaView() {
 						))}
 					</div>
 
-					<div className="flex items-center gap-1" title="B-Roll 畫面覆疊排版模式">
+					<div className="flex items-center gap-1" title="B-Roll layout mode">
 						{(
 							[
-								{ id: "pip", label: "避臉插圖卡 PiP" },
-								{ id: "cover", label: "滿版覆蓋 Full" },
+								{ id: "pip", label: oc.stock.layoutPip },
+								{ id: "cover", label: oc.stock.layoutCover },
 							] as const
 						).map((mode) => (
 							<button
@@ -503,11 +505,11 @@ export function StockMediaView() {
 
 				{searching ? (
 					<p className="text-muted-foreground py-6 text-center text-xs">
-						正在搜尋免費素材…
+						{oc.stock.searching}
 					</p>
 				) : items.length === 0 ? (
 					<p className="text-muted-foreground py-6 text-center text-xs">
-						找不到符合的素材，請試試英文關鍵字（例如 chart, startup, phone）
+						{oc.stock.noResults}
 					</p>
 				) : (
 					<div className="grid grid-cols-2 gap-2 pb-4">
@@ -535,7 +537,7 @@ export function StockMediaView() {
 												: "IMG"}
 										</span>
 										<span className="bg-primary text-primary-foreground absolute right-1 bottom-1 rounded px-1.5 py-0.5 text-[10px] font-semibold opacity-0 transition group-hover:opacity-100">
-											{busy ? "加入中…" : "+ 加插 Overlay"}
+											{busy ? oc.stock.addingOverlay : oc.stock.addOverlay}
 										</span>
 									</div>
 									<span className="truncate px-1.5 py-1 text-[11px] font-medium">

@@ -2,6 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_ZH } from "@/service/character/amenda-wardrobe";
 import { BRANDING_LABELS_ZH } from "@/service/character/branding-styling-wardrobe";
 import { CASUAL_LABELS_ZH } from "@/service/character/casual-wardrobe";
+import { SILHOUETTE_LABELS_ZH } from "@/service/character/silhouette-catalog";
 import { SPORTS_LABELS_ZH } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_ZH } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-templates";
@@ -468,6 +469,53 @@ export const zhHant: Messages = {
       searchPlaceholder: "用名稱、描述或標籤搜尋",
       searchLabel: "搜尋造型",
       tagsLabel: "依標籤篩選",
+      silhouettesLabel: "種類",
+      silhouettes: {
+        hair: {
+          bob: "波波頭",
+          long: "長直髮",
+          waves: "波浪髮",
+          curls: "捲髮",
+          bangs: "瀏海",
+          braid: "辮子",
+          updo: "盤髮",
+          pony: "馬尾",
+          bun: "丸子頭",
+          crop: "短髮",
+        },
+        top: {
+          tee: "T恤",
+          shirt: "襯衫",
+          knit: "針織衫",
+          hoodie: "衛衣",
+          blazer: "西裝外套",
+          jacket: "外套",
+          coat: "大衣",
+          tank: "背心",
+          dress: "連身裙",
+          polo: "Polo衫",
+        },
+        pants: {
+          jeans: "牛仔褲",
+          mini: "短裙",
+          midi: "中長裙",
+          maxi: "長裙",
+          shorts: "短褲",
+          cargo: "工裝褲",
+          legging: "緊身褲",
+          trouser: "西褲",
+          wide: "闊腿褲",
+          skort: "褲裙",
+        },
+        shoes: {
+          sneaker: "波鞋",
+          boot: "靴",
+          heel: "高跟鞋",
+          sandal: "涼鞋",
+          loafer: "樂福鞋",
+          flat: "平底鞋",
+        },
+      },
       tags: {
         casual: "休閒",
         athletic: "運動",
@@ -489,6 +537,7 @@ export const zhHant: Messages = {
       emptyFavourites: "這個清單還沒有收藏。",
       options: {
         hair: {
+          ...SILHOUETTE_LABELS_ZH.hair,
           ...BRANDING_LABELS_ZH.hair,
           ...CASUAL_LABELS_ZH.hair,
           none: "無",
@@ -560,6 +609,7 @@ export const zhHant: Messages = {
           athletic: "精實運動線條",
         },
         top: {
+          ...SILHOUETTE_LABELS_ZH.top,
           ...AMENDA_LABELS_ZH.top,
           ...BRANDING_LABELS_ZH.top,
           ...SPORTS_LABELS_ZH.top,
@@ -693,6 +743,7 @@ export const zhHant: Messages = {
           safarijacket: "橄欖綠四口袋腰帶獵裝夾克",
         },
         pants: {
+          ...SILHOUETTE_LABELS_ZH.pants,
           ...AMENDA_LABELS_ZH.pants,
           ...BRANDING_LABELS_ZH.pants,
           ...SPORTS_LABELS_ZH.pants,
@@ -767,6 +818,7 @@ export const zhHant: Messages = {
           khakichinos: "學院風反摺石卡其打褶休閒褲",
         },
         shoes: {
+          ...SILHOUETTE_LABELS_ZH.shoes,
           ...BRANDING_LABELS_ZH.shoes,
           ...SPORTS_LABELS_ZH.shoes,
           ...CASUAL_LABELS_ZH.shoes,

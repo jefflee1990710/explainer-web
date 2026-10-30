@@ -21,6 +21,7 @@ import {
   EXTRA_STYLIZED_TOP_IDS,
   EXTRA_TOPS,
 } from "@/service/character/character-wardrobe-extra";
+import { SILHOUETTE_DRESS_IDS } from "@/service/character/silhouette-catalog";
 
 export const CHARACTER_LOOK_PARTS = ["hair", "face", "body", "pants", "shoes"] as const;
 export const CHARACTER_EXTRA_PARTS = ["top", "accessory", "expression"] as const;
@@ -48,6 +49,8 @@ export type CharacterLookOption = {
   description?: string;
   /** Free-form + controlled tags for UI filters and MCP search. */
   tags?: readonly string[];
+  /** Garment or haircut family, e.g. jeans, mini, bob. Used by the outfit picker. */
+  silhouette?: string;
 };
 
 export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly CharacterLookOption[]> = {
@@ -287,6 +290,8 @@ const FULL_BODY_TOP = new Set([
   "chuba",
   "gho",
   "changshan",
+  // Catalogue dresses are one piece, so they do not also ask for pants.
+  ...SILHOUETTE_DRESS_IDS,
 ]);
 
 export function isFullBodyTop(topId?: string) {

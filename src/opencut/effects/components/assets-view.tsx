@@ -1,15 +1,19 @@
 "use client";
 
 import { EffectCatalog } from "@/opencut/effects/components/catalog-grid";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 
 export function EffectsView() {
-	return <EffectCatalog category="effect" title="Effects" />;
+	const { oc } = useOpencutI18n();
+	return <EffectCatalog category="effect" title={oc.rail.effects} />;
 }
 
 export function AdjustmentsView() {
-	return <EffectCatalog category="adjustment" title="Adjustment" />;
+	const { oc } = useOpencutI18n();
+	return <EffectCatalog category="adjustment" title={oc.rail.adjustment} />;
 }
 
 export function TransitionsView() {
-	return <EffectCatalog category="transition" title="Transitions" />;
+	const { oc } = useOpencutI18n();
+	return <EffectCatalog category="transition" title={oc.rail.transitions} />;
 }

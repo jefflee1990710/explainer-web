@@ -14,10 +14,22 @@ import {
   classifyOpencutSubtitlePlates,
   opencutSubtitleStyleChanged,
 } from "@/service/opencut/subtitle-plates";
+import {
+  generateOpencutOnScreenText,
+  type GenerateOpencutOnScreenTextResult,
+} from "@/service/opencut/on-screen-text";
 import { updateVideoTextStyleAction } from "@/service/project/actions";
 import { isProductionLike } from "@/service/project-status";
 
 export type OpencutSubtitlePlateRow = { clipNumber: number; url: string };
+
+export async function generateOpencutOnScreenTextAction(input: {
+  videoId: string;
+  textStyleId: string;
+  text: string;
+}): Promise<GenerateOpencutOnScreenTextResult> {
+  return generateOpencutOnScreenText(input);
+}
 
 export async function syncOpencutSubtitlePlatesAction(input: {
   videoId: string;

@@ -30,6 +30,7 @@ import { cn } from "@/opencut/utils/ui";
 import { dimensionToAspectRatio } from "@/opencut/utils/geometry";
 import { formatNumberForDisplay } from "@/opencut/utils/math";
 import { OcSquarePlusIcon } from "@/opencut/components/icons";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import type { TCanvasSize } from "@/opencut/project/types";
 
 type SettingsView = "project-info" | "background";
@@ -98,6 +99,7 @@ function useCanvasDimensionDraft({
 
 export function SettingsView() {
 	const [view, setView] = useState<SettingsView>("project-info");
+	const { oc } = useOpencutI18n();
 	const editor = useEditor();
 	const activeProject = useEditor((e) => e.project.getActive());
 	const { canvasPresets } = useEditorStore();
@@ -222,8 +224,8 @@ export function SettingsView() {
 					}}
 				>
 					<TabsList>
-						<TabsTrigger value="project-info">Project info</TabsTrigger>
-						<TabsTrigger value="background">Background</TabsTrigger>
+						<TabsTrigger value="project-info">{oc.settings.projectInfo}</TabsTrigger>
+						<TabsTrigger value="background">{oc.settings.background}</TabsTrigger>
 					</TabsList>
 				</Tabs>
 			}
@@ -232,7 +234,7 @@ export function SettingsView() {
 				<div className="flex flex-col">
 					<Section showTopBorder={false}>
 						<SectionHeader>
-							<SectionTitle className="flex-1">Name</SectionTitle>
+							<SectionTitle className="flex-1">{oc.settings.name}</SectionTitle>
 							<span className="text-sm truncate">
 								{activeProject.metadata.name}
 							</span>
@@ -240,7 +242,7 @@ export function SettingsView() {
 					</Section>
 					<Section showTopBorder={false}>
 						<SectionHeader className="justify-between">
-							<SectionTitle className="flex-1">Frame rate</SectionTitle>
+							<SectionTitle className="flex-1">{oc.settings.frameRate}</SectionTitle>
 					<Select
 							value={String(Math.round(frameRateToFloat(activeProject.settings.fps)))}
 							onValueChange={(value) => {
@@ -267,7 +269,7 @@ export function SettingsView() {
 						sectionKey="settings:aspect-ratio"
 					>
 						<SectionHeader>
-							<SectionTitle className="flex-1">Aspect ratio</SectionTitle>
+							<SectionTitle className="flex-1">{oc.settings.aspectRatio}</SectionTitle>
 						</SectionHeader>
 						<SectionContent className="px-2 flex flex-col gap-1 pb-2">
 							{presetItems.map((preset) => (
@@ -286,7 +288,7 @@ export function SettingsView() {
 							<div className="pb-2">
 								<AspectRatioItem
 									key="custom"
-									label="Custom"
+									label={oc.settings.custom}
 									previewIcon={<OcSquarePlusIcon />}
 									isSelected={isCustomSelected}
 									onClick={selectCustomCanvasSize}

@@ -16,6 +16,7 @@ import {
 	ScroSubtitleStyleGrid,
 	type SubtitleStyleCard,
 } from "@/opencut/components/editor/panels/assets/scro-subtitle-style-grid";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { resolveArtisticSubtitlePreset } from "@/opencut/subtitles/artistic-presets";
 
 type FilterTab = "all" | "single" | "duo";
@@ -49,6 +50,7 @@ export function ScroSubtitleDesignDialog({
 	onSelectStyle: (id: string) => void;
 	onConfirmGenerate: () => void;
 }) {
+	const { oc } = useOpencutI18n();
 	const [tab, setTab] = useState<FilterTab>("all");
 	const [query, setQuery] = useState("");
 
@@ -77,11 +79,12 @@ export function ScroSubtitleDesignDialog({
 			<DialogContent className="max-w-3xl">
 				<DialogHeader className="p-4 pb-3">
 					<DialogTitle className="text-base">
-						選擇字幕視覺設計 · Choose Subtitle Style ({styles.length})
+						{oc.subtitleDialog.title(styles.length)}
 					</DialogTitle>
 					<DialogDescription className="text-xs">
-						已選字體：<span className="font-semibold text-[#12141c]">{fontLabel}</span>
-						。可切換「單行設計」或「雙行撞色設計」，確認後自動生成到專屬「字幕圖層」。
+						{oc.subtitleDialog.selectedFontPrefix}
+						<span className="font-semibold text-[#12141c]">{fontLabel}</span>
+						{oc.subtitleDialog.descriptionSuffix}
 					</DialogDescription>
 
 					{/* Filter Tabs + Search */}
@@ -89,9 +92,9 @@ export function ScroSubtitleDesignDialog({
 						<div className="inline-flex rounded-lg border border-[#e4e4e7] bg-[#f4f4f5] p-0.5">
 							{(
 								[
-									{ id: "all", label: "全部設計 · All" },
-									{ id: "single", label: "單行字幕 · Single-Line" },
-									{ id: "duo", label: "雙行撞色 · Dual-Line" },
+									{ id: "all", label: oc.subtitleDialog.tabAll },
+									{ id: "single", label: oc.subtitleDialog.tabSingle },
+									{ id: "duo", label: oc.subtitleDialog.tabDuo },
 								] as const
 							).map((item) => {
 								const active = tab === item.id;
@@ -117,7 +120,7 @@ export function ScroSubtitleDesignDialog({
 								size="xs"
 								value={query}
 								onChange={(e) => setQuery(e.currentTarget.value)}
-								placeholder="搜尋設計 (e.g. 撕紙, 單行, Neon)..."
+								placeholder={oc.subtitleDialog.searchPlaceholder}
 								showClearIcon
 								onClear={() => setQuery("")}
 							/>
@@ -128,7 +131,7 @@ export function ScroSubtitleDesignDialog({
 				<DialogBody className="max-h-[58vh] overflow-y-auto p-4 pt-2">
 					{filteredStyles.length === 0 ? (
 						<p className="py-8 text-center text-xs text-[#5c6170]">
-							找不到符合「{query}」嘅字幕設計
+							{oc.subtitleDialog.noMatch(query)}
 						</p>
 					) : (
 						<ScroSubtitleStyleGrid
@@ -148,14 +151,14 @@ export function ScroSubtitleDesignDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={busy}
 					>
-						取消 · Cancel
+						{oc.subtitleDialog.cancel}
 					</Button>
 					<Button
 						type="button"
 						disabled={busy}
 						onClick={onConfirmGenerate}
 					>
-						{busy ? generatingLabel : confirmLabel || generateLabel || "套用設計並生成"}
+						{busy ? generatingLabel : confirmLabel || generateLabel || oc.subtitleDialog.applyAndGenerate}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

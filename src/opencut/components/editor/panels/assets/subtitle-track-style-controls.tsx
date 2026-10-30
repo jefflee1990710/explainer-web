@@ -29,6 +29,10 @@ import { quoteFontFamily } from "@/opencut/text/primitives";
 import { mediaTimeToSeconds } from "@/opencut/wasm";
 import type { TextElement, TextTrack } from "@/opencut/timeline";
 import type { TextBackgroundStyle } from "@/opencut/text/background";
+import {
+	localizeBilingualLabel,
+	useOpencutI18n,
+} from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 
 type StripOptionId = TextBackgroundStyle | "none";
@@ -447,7 +451,8 @@ export function SubtitleTrackStyleControls({
 
 	const inFontPresets = TEXT_FONT_PRESETS.some((item) => item.family === fontFamily);
 	const currentFontPreset = TEXT_FONT_PRESETS.find((item) => item.family === fontFamily);
-	const fontLabel = currentFontPreset?.label ?? fontFamily;
+	const { locale, oc } = useOpencutI18n();
+	const fontLabel = localizeBilingualLabel(currentFontPreset?.label ?? fontFamily, locale);
 
 	return (
 		<div className="divide-border flex flex-col divide-y">
@@ -456,10 +461,10 @@ export function SubtitleTrackStyleControls({
 				<div className="flex items-center justify-between gap-2">
 					<div>
 						<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-							Subtitle Track · 字幕圖層全軌 ({targetElements.length})
+							{oc.subtitleTrack.headerTitle(targetElements.length)}
 						</p>
 						<p className="text-muted-foreground mt-0.5 text-[11px]">
-							同步套用至成條字幕軌嘅所有片段
+							{oc.subtitleTrack.headerSubtitle}
 						</p>
 					</div>
 					{compact ? (
@@ -470,12 +475,12 @@ export function SubtitleTrackStyleControls({
 							className="h-6 px-2.5 text-[11px]"
 							onClick={selectAllOnTrack}
 						>
-							全選圖層
+							{oc.subtitleTrack.selectAll}
 						</Button>
 					) : null}
 				</div>
 
-				<SectionField label="Visual Design · 選擇字幕視覺設計">
+				<SectionField label={oc.subtitleTrack.visualDesign}>
 					<Button
 						type="button"
 						variant="outline"
@@ -485,16 +490,16 @@ export function SubtitleTrackStyleControls({
 					>
 						<span className="truncate">
 							{currentStyleCard
-								? `${currentStyleCard.name} · 選擇字幕視覺設計`
-								: "選擇字幕視覺設計 · Choose Subtitle Style"}
+								? localizeBilingualLabel(currentStyleCard.name, locale)
+								: oc.subtitleTrack.chooseStyle}
 						</span>
 						<span className="text-muted-foreground ml-2 shrink-0 text-[11px]">
-							{allStyles.length} 款 ▸
+							{oc.subtitleTrack.stylesCount(allStyles.length)}
 						</span>
 					</Button>
 				</SectionField>
 
-				<SectionField label="Font Family · 字體類型">
+				<SectionField label={oc.subtitleTrack.fontFamily}>
 					<Select
 						value={fontFamily}
 						onValueChange={(selected) => {
@@ -520,7 +525,7 @@ export function SubtitleTrackStyleControls({
 								<SelectItem key={preset.id} value={preset.family}>
 									<span className="flex items-center gap-2">
 										<span className="text-muted-foreground text-[11px]">
-											{preset.label ?? preset.family}
+											{localizeBilingualLabel(preset.label ?? preset.family, locale)}
 										</span>
 										<span
 											className="text-xs font-bold"
@@ -538,7 +543,7 @@ export function SubtitleTrackStyleControls({
 				</SectionField>
 
 				<SectionField
-					label="Font Size · 字體大小"
+					label={oc.subtitleTrack.fontSize}
 					beforeLabel={
 						<span className="bg-muted text-foreground ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums">
 							{fontSize.toFixed(1)}
@@ -565,11 +570,11 @@ export function SubtitleTrackStyleControls({
 			{/* Section 2: Vertical Position Y */}
 			<div className="space-y-3 px-3.5 py-3">
 				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-					Position · 上下位置
+					{oc.subtitleTrack.position}
 				</p>
 
 				<SectionField
-					label="Vertical Y · 垂直座標"
+					label={oc.subtitleTrack.verticalY}
 					beforeLabel={
 						<span className="bg-muted text-foreground ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums">
 							{Math.round(posY)}px
@@ -602,7 +607,7 @@ export function SubtitleTrackStyleControls({
 							})
 						}
 					>
-						置頂 Top
+						{oc.subtitleTrack.posTop}
 					</Button>
 					<Button
 						type="button"
@@ -615,7 +620,7 @@ export function SubtitleTrackStyleControls({
 							})
 						}
 					>
-						中下 Center
+						{oc.subtitleTrack.posCenter}
 					</Button>
 					<Button
 						type="button"
@@ -628,7 +633,7 @@ export function SubtitleTrackStyleControls({
 							})
 						}
 					>
-						置底 Bottom
+						{oc.subtitleTrack.posBottom}
 					</Button>
 				</div>
 			</div>
@@ -636,10 +641,10 @@ export function SubtitleTrackStyleControls({
 			{/* Section 3: Strip Shape Visual Preview Grid */}
 			<div className="space-y-2.5 px-3.5 py-3">
 				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-					Strip Shape · 字卡底條形狀
+					{oc.subtitleTrack.stripShape}
 				</p>
 
-				<div className="grid grid-cols-2 gap-2" role="listbox" aria-label="Strip Shape">
+				<div className="grid grid-cols-2 gap-2" role="listbox" aria-label={oc.subtitleTrack.stripShape}>
 					{STRIP_STYLE_OPTIONS.map((opt) => {
 						const active = activeStripOption === opt.value;
 						const topPreviewStyle = buildStripBadgePreviewStyle({
@@ -692,7 +697,7 @@ export function SubtitleTrackStyleControls({
 									</span>
 								</div>
 								<span className="truncate px-0.5 text-[11px] font-medium">
-									{opt.label}
+									{localizeBilingualLabel(opt.label, locale)}
 								</span>
 							</button>
 						);
@@ -703,7 +708,7 @@ export function SubtitleTrackStyleControls({
 			{/* Section 4: Duo Colors & Color Pickers */}
 			<div className="space-y-3 px-3.5 py-3">
 				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-					Duo Colors · 雙色主題與配色
+					{oc.subtitleTrack.duoColors}
 				</p>
 
 				<div className="grid grid-cols-3 gap-1.5">
@@ -738,7 +743,7 @@ export function SubtitleTrackStyleControls({
 
 				{bgEnabled ? (
 					<div className="grid grid-cols-2 gap-2.5">
-						<SectionField label="上行底色 · Strip 1">
+						<SectionField label={oc.subtitleTrack.strip1Bg}>
 							<ColorPicker
 								value={line1Bg.replace(/^#/, "").toUpperCase()}
 								onChange={(c) =>
@@ -749,7 +754,7 @@ export function SubtitleTrackStyleControls({
 								}
 							/>
 						</SectionField>
-						<SectionField label="下行底色 · Strip 2">
+						<SectionField label={oc.subtitleTrack.strip2Bg}>
 							<ColorPicker
 								value={line2Bg.replace(/^#/, "").toUpperCase()}
 								onChange={(c) =>
@@ -768,14 +773,14 @@ export function SubtitleTrackStyleControls({
 				) : null}
 
 				<div className="grid grid-cols-2 gap-2.5">
-					<SectionField label="上行字色 · Text 1">
+					<SectionField label={oc.subtitleTrack.text1Color}>
 						<ColorPicker
 							value={line1Text.replace(/^#/, "").toUpperCase()}
 							onChange={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
 							onChangeEnd={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
 						/>
 					</SectionField>
-					<SectionField label="下行字色 · Text 2">
+					<SectionField label={oc.subtitleTrack.text2Color}>
 						<ColorPicker
 							value={line2Text.replace(/^#/, "").toUpperCase()}
 							onChange={(c) =>
@@ -801,9 +806,9 @@ export function SubtitleTrackStyleControls({
 				fontFamilyOverride={fontFamily}
 				fontLabel={fontLabel}
 				busy={applyingDesign}
-				generateLabel="套用至全軌字幕"
-				generatingLabel="套用中…"
-				confirmLabel="套用至全軌字幕"
+				generateLabel={oc.subtitleTrack.applyToTrack}
+				generatingLabel={oc.subtitleTrack.applyingToTrack}
+				confirmLabel={oc.subtitleTrack.applyToTrack}
 				onSelectStyle={(id) => {
 					setPickedStyleId(id);
 					void applyDesignPresetToTrack(id);

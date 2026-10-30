@@ -30,6 +30,7 @@ import {
 	type SoundEffect,
 	type SoundEffectSourceFilter,
 } from "@/opencut/sounds/types";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 import { generateElevenLabsSoundEffectAction } from "@/presentation/actions/sound-effects";
 import { toast } from "sonner";
@@ -43,13 +44,14 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 
 export function SoundsView() {
+	const { oc } = useOpencutI18n();
 	return (
 		<div className="flex h-full flex-col">
 			<Tabs defaultValue="sound-effects" className="flex h-full flex-col">
 				<div className="px-3 pt-4 pb-0">
 					<TabsList>
-						<TabsTrigger value="sound-effects">SFX 聲效</TabsTrigger>
-						<TabsTrigger value="saved">Saved 收藏</TabsTrigger>
+						<TabsTrigger value="sound-effects">{oc.sfx.tabSfx}</TabsTrigger>
+						<TabsTrigger value="saved">{oc.sfx.tabSaved}</TabsTrigger>
 					</TabsList>
 				</div>
 				<Separator className="my-4" />

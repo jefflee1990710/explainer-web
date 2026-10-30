@@ -10,6 +10,7 @@ import {
   nextLookDialogCount,
   pageLookDialogOptions,
 } from "@/presentation/components/app/characters/character-look-dialog-list";
+import { LookSilhouetteChips } from "@/presentation/components/app/characters/look-silhouette-chips";
 import { LookTagFilterChips } from "@/presentation/components/app/characters/look-tag-filter-chips";
 import { useCharacterLookFavourites } from "@/presentation/components/app/characters/use-character-look-favourites";
 import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
@@ -28,6 +29,11 @@ import {
   lookOptionTags,
   type LookFilterTag,
 } from "@/service/character/look-tags";
+import {
+  filterOptionsBySilhouette,
+  lookSilhouette,
+  silhouettesForPart,
+} from "@/service/character/look-silhouettes";
 
 const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
 
@@ -51,7 +57,12 @@ export function CharacterLookDialog({
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<LookFilterTag[]>([]);
   const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const filterKey = `${part}|${tab}|${query}|${favouritesOnly}|${selectedTags.join(",")}`;
+  const [kindState, setKindState] = useState({ part, kind: "all" });
+  if (kindState.part !== part) {
+    setKindState({ part, kind: "all" });
+  }
+  const kind = kindState.part === part ? kindState.kind : "all";
+  const filterKey = `${part}|${tab}|${kind}|${query}|${favouritesOnly}|${selectedTags.join(",")}`;
   const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   if (page.filterKey !== filterKey) {
     setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
@@ -72,6 +83,8 @@ export function CharacterLookDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const silhouetteKinds = isWardrobePart ? silhouettesForPart(part) : [];
+
   const namedOptions = useMemo(() => {
     const customMapped = customItems
       .filter((item) => tab === "all" || item.category === tab)
@@ -80,6 +93,7 @@ export function CharacterLookDialog({
         name: locale === "en" ? item.name : item.nameZh || item.name,
         description: item.prompt,
         tags: [item.part, item.category],
+        silhouette: lookSilhouette(part, { id: item.optionId, prompt: item.prompt }),
       }));
     const builtInMapped = optionsForLookPart(part)
       .filter((option) => tab === "all" || lookOptionCategory(part, option.id) === tab)
@@ -88,9 +102,10 @@ export function CharacterLookDialog({
         name: t(`characters.look.options.${part}.${option.id}`),
         description: lookOptionDescription(option),
         tags: lookOptionTags(part, option),
+        silhouette: lookSilhouette(part, option),
       }));
-    return [...customMapped, ...builtInMapped];
-  }, [customItems, locale, part, tab, t]);
+    return filterOptionsBySilhouette([...customMapped, ...builtInMapped], kind);
+  }, [customItems, kind, locale, part, tab, t]);
 
   const tagChips = useMemo(() => {
     if (!isWardrobePart) return [];
@@ -157,6 +172,14 @@ export function CharacterLookDialog({
               </Link>
             ) : null}
           </div>
+          {silhouetteKinds.length ? (
+            <LookSilhouetteChips
+              part={part}
+              kinds={silhouetteKinds}
+              value={kind}
+              onChange={(next) => setKindState({ part, kind: next })}
+            />
+          ) : null}
           <div className="flex flex-wrap items-center gap-1.5" role="tablist">
               {CATEGORIES.map((category) => {
                 const activeTab = tab === category;

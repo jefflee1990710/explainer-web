@@ -21,6 +21,12 @@ import {
   SPORTS_SHOES,
   SPORTS_TOPS,
 } from "@/service/character/sports-wardrobe";
+import {
+  SILHOUETTE_HAIR,
+  SILHOUETTE_PANTS,
+  SILHOUETTE_SHOES,
+  SILHOUETTE_TOPS,
+} from "@/service/character/silhouette-catalog";
 
 const HERITAGE_HAIR: readonly CharacterLookOption[] = [
   { id: "dreadlocks", prompt: "shoulder-length natural dreadlocks parted in the center and falling cleanly around the shoulders" },
@@ -334,21 +340,25 @@ export const EXTRA_HAIR: readonly CharacterLookOption[] = [
   ...HERITAGE_HAIR,
   ...STYLIZED_HAIR,
   ...CLASSIC_HAIR,
+  ...SILHOUETTE_HAIR,
 ];
 export const EXTRA_TOPS: readonly CharacterLookOption[] = [
   ...HERITAGE_TOPS,
   ...STYLIZED_TOPS,
   ...CLASSIC_TOPS,
+  ...SILHOUETTE_TOPS,
 ];
 export const EXTRA_PANTS: readonly CharacterLookOption[] = [
   ...HERITAGE_PANTS,
   ...STYLIZED_PANTS,
   ...CLASSIC_PANTS,
+  ...SILHOUETTE_PANTS,
 ];
 export const EXTRA_SHOES: readonly CharacterLookOption[] = [
   ...HERITAGE_SHOES,
   ...STYLIZED_SHOES,
   ...CLASSIC_SHOES,
+  ...SILHOUETTE_SHOES,
 ];
 export const EXTRA_ACCESSORIES: readonly CharacterLookOption[] = [
   ...HERITAGE_ACCESSORIES,

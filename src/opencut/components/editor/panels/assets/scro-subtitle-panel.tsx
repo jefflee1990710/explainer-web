@@ -22,6 +22,10 @@ import { buildSubtitleTextElement } from "@/opencut/subtitles/build-subtitle-tex
 import { insertCaptionChunksAsTextTrack } from "@/opencut/subtitles/insert";
 import type { SubtitleCue } from "@/opencut/subtitles/types";
 import { mediaTimeToSeconds } from "@/opencut/wasm";
+import {
+	localizeBilingualLabel,
+	useOpencutI18n,
+} from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 
 const STYLE_DEFAULT_FONT_VALUE = "__style_default__";
@@ -42,6 +46,7 @@ export function ScroSubtitlePanel() {
 	const editor = useEditor();
 	const catalog = useScroSubtitleCatalog();
 	const videoId = useScroSubtitleVideoId();
+	const { locale, oc } = useOpencutI18n();
 	const [pickedStyleId, setPickedStyleId] = useState<string | null>(null);
 	const [fontOverride, setFontOverride] = useState<string>(STYLE_DEFAULT_FONT_VALUE);
 	const [fontSearch, setFontSearch] = useState<string>("");
@@ -84,11 +89,11 @@ export function ScroSubtitlePanel() {
 
 	const selectedFontLabel = useMemo(() => {
 		if (!activeFontOverride) {
-			return "跟隨設計預設字體 (Style Default)";
+			return oc.subtitlesPanel.styleDefaultTitle;
 		}
 		const found = TEXT_FONT_PRESETS.find((item) => item.family === activeFontOverride);
-		return found?.label ?? activeFontOverride;
-	}, [activeFontOverride]);
+		return localizeBilingualLabel(found?.label ?? activeFontOverride, locale);
+	}, [activeFontOverride, locale, oc.subtitlesPanel.styleDefaultTitle]);
 
 	const filteredFonts = useMemo(() => {
 		const q = fontSearch.trim().toLowerCase();
@@ -282,9 +287,9 @@ export function ScroSubtitlePanel() {
 		<div className="flex h-full flex-col">
 			<div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
 				<div>
-					<h2 className="text-sm font-medium">{ui.subtitles}</h2>
+					<h2 className="text-sm font-medium">{oc.rail.subtitles}</h2>
 					<p className="text-muted-foreground mt-1 text-xs leading-snug">
-						先揀選或搜尋喜歡嘅中英字體，再撳下方按鈕選擇字幕設計（如撕紙雙色字卡）並生成。
+						{oc.subtitlesPanel.hint}
 					</p>
 				</div>
 
@@ -294,7 +299,7 @@ export function ScroSubtitlePanel() {
 						size="xs"
 						value={fontSearch}
 						onChange={(e) => setFontSearch(e.currentTarget.value)}
-						placeholder="搜尋字體 · Search font (e.g. Oswald, 思源, 手寫)..."
+						placeholder={oc.subtitlesPanel.searchFontPlaceholder}
 						showClearIcon
 						onClear={() => setFontSearch("")}
 					/>
@@ -322,14 +327,14 @@ export function ScroSubtitlePanel() {
 							>
 								<div className="min-w-0">
 									<div className="truncate text-xs font-semibold">
-										跟隨設計預設字體 · Style Default
+										{oc.subtitlesPanel.styleDefaultTitle}
 									</div>
 									<div className="text-muted-foreground truncate text-[11px]">
-										自動匹配所選字幕設計嘅最佳中英字體
+										{oc.subtitlesPanel.styleDefaultDesc}
 									</div>
 								</div>
 								<span className="bg-primary/15 text-primary ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold">
-									推薦
+									{oc.subtitlesPanel.recommended}
 								</span>
 							</button>
 						) : null}
@@ -364,7 +369,7 @@ export function ScroSubtitlePanel() {
 									>
 										<div className="min-w-0 flex-1">
 											<div className="text-muted-foreground truncate text-[11px] font-medium">
-												{preset.label ?? preset.family}
+												{localizeBilingualLabel(preset.label ?? preset.family, locale)}
 											</div>
 											<div
 												className="mt-0.5 truncate text-sm leading-snug select-none"
@@ -378,7 +383,7 @@ export function ScroSubtitlePanel() {
 										</div>
 										{isSelected ? (
 											<span className="bg-foreground text-background shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-												已選
+												{oc.subtitlesPanel.selected}
 											</span>
 										) : null}
 									</button>
@@ -386,7 +391,7 @@ export function ScroSubtitlePanel() {
 							})}
 							{filteredFonts.length === 0 ? (
 								<p className="text-muted-foreground py-4 text-center text-xs">
-									找不到符合「{fontSearch}」嘅字體
+									{oc.subtitlesPanel.noFontMatch(fontSearch)}
 								</p>
 							) : null}
 						</div>
@@ -397,13 +402,13 @@ export function ScroSubtitlePanel() {
 			<div className="border-t p-3">
 				{currentStyleCard ? (
 					<div className="mb-2 flex items-center justify-between text-[11px]">
-						<span className="text-muted-foreground">目前設計：</span>
+						<span className="text-muted-foreground">{oc.subtitlesPanel.currentStyleLabel}</span>
 						<button
 							type="button"
 							onClick={() => setDesignDialogOpen(true)}
 							className="text-primary cursor-pointer font-medium hover:underline"
 						>
-							{currentStyleCard.name} (點擊更換)
+							{localizeBilingualLabel(currentStyleCard.name, locale)} ({oc.subtitlesPanel.clickToChange})
 						</button>
 					</div>
 				) : null}
@@ -412,7 +417,7 @@ export function ScroSubtitlePanel() {
 					disabled={busy || catalog.lines.length === 0 || !videoId}
 					onClick={() => setDesignDialogOpen(true)}
 				>
-					{busy ? ui.generating : "Next 下一步"}
+					{busy ? ui.generating : oc.subtitlesPanel.nextButton}
 				</Button>
 				{message ? <p className="text-muted-foreground mt-2 text-xs">{message}</p> : null}
 				{catalog.lines.length === 0 ? (

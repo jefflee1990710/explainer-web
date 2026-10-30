@@ -18,6 +18,10 @@ import { armScroSync } from "@/opencut/embed/scro-media-sources";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
 import type { SoundEffect } from "@/opencut/sounds/types";
 import { buildLibraryAudioElement } from "@/opencut/timeline/element-utils";
+import {
+	localizeBilingualLabel,
+	useOpencutI18n,
+} from "@/opencut/i18n/use-opencut-i18n";
 import { cn } from "@/opencut/utils/ui";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
 import { listBgmTracksAction } from "@/presentation/actions/sound-effects";
@@ -275,6 +279,7 @@ export function BgmView() {
 	}));
 
 	const displayedTracks = viewTab === "saved" ? savedAsLibrary : tracks;
+	const { locale, oc } = useOpencutI18n();
 
 	return (
 		<div className="flex h-full flex-col">
@@ -287,10 +292,10 @@ export function BgmView() {
 						</div>
 						<div>
 							<h2 className="text-xs font-semibold tracking-tight">
-								背景音樂 · BGM Library
+								{oc.bgm.title}
 							</h2>
 							<p className="text-muted-foreground text-[10px]">
-								免版權商用純音樂 · 點擊試聽或一鍵鋪底
+								{oc.bgm.subtitle}
 							</p>
 						</div>
 					</div>
@@ -312,7 +317,7 @@ export function BgmView() {
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							探索 ({totalCount > 0 ? totalCount : "…"})
+							{oc.bgm.explore(totalCount > 0 ? totalCount : "…")}
 						</button>
 						<button
 							type="button"
@@ -329,7 +334,7 @@ export function BgmView() {
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							收藏 ({savedSounds.length})
+							{oc.bgm.saved(savedSounds.length)}
 						</button>
 					</div>
 				</div>
@@ -349,7 +354,7 @@ export function BgmView() {
 							className="flex items-center gap-1.5"
 						>
 							<Input
-								placeholder="搜尋曲風或樂器（如 synth, chill, piano, guitar）…"
+								placeholder={oc.bgm.searchPlaceholder}
 								value={query}
 								disabled={loading || loadingMore}
 								onChange={(e) => setQuery(e.currentTarget.value)}
@@ -372,7 +377,7 @@ export function BgmView() {
 								disabled={loading || loadingMore}
 								className="h-7 px-2.5 text-xs"
 							>
-								{loading || loadingMore ? "…" : "搜尋"}
+								{loading || loadingMore ? "…" : oc.bgm.searchBtn}
 							</Button>
 						</form>
 
@@ -403,7 +408,7 @@ export function BgmView() {
 											(loading || loadingMore) && !active && "opacity-40",
 										)}
 									>
-										{mood.label}
+										{localizeBilingualLabel(mood.label, locale)}
 									</button>
 								);
 							})}
@@ -422,7 +427,7 @@ export function BgmView() {
 
 				{loading ? (
 					<div className="space-y-2 py-2" aria-busy="true" aria-live="polite">
-						<p className="text-muted-foreground px-1 text-xs">載入曲目中…</p>
+						<p className="text-muted-foreground px-1 text-xs">{oc.bgm.loading}</p>
 						{Array.from({ length: 6 }).map((_, idx) => (
 							<div
 								key={idx}
@@ -438,14 +443,10 @@ export function BgmView() {
 							className="opacity-40"
 						/>
 						<p className="font-medium">
-							{viewTab === "saved"
-								? "尚未收藏任何背景音樂"
-								: "找不到符合的背景音樂"}
+							{viewTab === "saved" ? oc.bgm.noSaved : oc.bgm.noResults}
 						</p>
 						<p className="text-[11px] opacity-75">
-							{viewTab === "saved"
-								? "喺「探索」列表撳愛心即可儲存常用配樂"
-								: "請試試其他英文關鍵字（如 ambient, synth, piano）"}
+							{viewTab === "saved" ? oc.bgm.noSavedHint : oc.bgm.noResultsHint}
 						</p>
 					</div>
 				) : (
@@ -470,7 +471,7 @@ export function BgmView() {
 									<button
 										type="button"
 										onClick={() => togglePlay(track)}
-										aria-label={isPlaying ? "暫停試聽" : "試聽背景音樂"}
+										aria-label={isPlaying ? "Pause" : "Preview"}
 										className={cn(
 											"relative flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors",
 											isPlaying
@@ -531,7 +532,7 @@ export function BgmView() {
 													soundEffect: toSoundEffect(track),
 												})
 											}
-											title={saved ? "從收藏移除" : "收藏背景音樂"}
+											title={saved ? "Unsave" : "Save"}
 										>
 											<HugeiconsIcon
 												icon={FavouriteIcon}
@@ -546,11 +547,11 @@ export function BgmView() {
 											size="sm"
 											disabled={Boolean(addingId)}
 											onClick={() => void handleAddBgmToTimeline(track)}
-											title="鋪設背景音樂到時間軸音訊軌"
+											title={oc.bgm.applyBgm}
 											className="h-7 cursor-pointer gap-1 px-2 text-[11px] font-semibold"
 										>
 											<HugeiconsIcon icon={PlusSignIcon} size={13} />
-											<span>{isAdding ? "加入中…" : "鋪底"}</span>
+											<span>{isAdding ? oc.bgm.addingBgm : oc.bgm.applyBgm}</span>
 										</Button>
 									</div>
 								</div>
@@ -573,7 +574,7 @@ export function BgmView() {
 								}
 								className="mt-1 h-8 w-full text-xs font-semibold"
 							>
-								{loadingMore ? "載入更多中…" : "載入更多背景音樂 · Load More"}
+								{loadingMore ? oc.bgm.loadingMore : oc.bgm.loadMore}
 							</Button>
 						) : null}
 					</div>

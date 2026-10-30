@@ -8,10 +8,9 @@ import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
 import {
 	scroClipIsGeneratingVideo,
 	scroPreviewCanStartVideo,
-	scroVideoActionLabel,
-	scroVideoGeneratingLabel,
 } from "@/opencut/embed/scro-preview-generate";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 
 type PreviewSceneBox = {
 	left: number;
@@ -45,6 +44,7 @@ function usePlayheadScroClipNumber() {
  */
 export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox }) {
 	const store = useScroVideos();
+	const { oc } = useOpencutI18n();
 	const clipNumber = usePlayheadScroClipNumber();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
 	const isGeneratingVideo = scroClipIsGeneratingVideo(clip);
@@ -56,7 +56,10 @@ export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox })
 	if (scene.width < 1 || scene.height < 1) return null;
 
 	if (isGeneratingVideo) {
-		const statusLabel = scroVideoGeneratingLabel(clip);
+		const statusLabel =
+			clip.wait === "queued"
+				? oc.inspector.queuedVideo
+				: oc.inspector.renderingVideo;
 		return (
 			<div
 				className="pointer-events-none absolute z-30 flex items-center justify-center"
@@ -77,7 +80,10 @@ export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox })
 		);
 	}
 
-	const label = scroVideoActionLabel(clip);
+	const again = clip.stage === "video_ready" || clip.staleVideo || clip.retryVideo;
+	const label = again
+		? oc.inspector.regenerateVideo(clip.videoCost)
+		: oc.inspector.generateVideo(clip.videoCost);
 
 	return (
 		<div

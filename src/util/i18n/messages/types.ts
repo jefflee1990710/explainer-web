@@ -443,6 +443,13 @@ export type Messages = {
       searchPlaceholder: string;
       searchLabel: string;
       tagsLabel: string;
+      silhouettesLabel: string;
+      silhouettes: {
+        hair: Record<string, string>;
+        top: Record<string, string>;
+        pants: Record<string, string>;
+        shoes: Record<string, string>;
+      };
       tags: {
         casual: string;
         athletic: string;

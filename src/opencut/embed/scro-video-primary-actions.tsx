@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/opencut/components/ui/button";
-import { scroClipPrimaryKind, scroVideoActionLabel } from "@/opencut/embed/scro-preview-generate";
+import { scroClipPrimaryKind } from "@/opencut/embed/scro-preview-generate";
 import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /** Stage-dependent generate / cancel buttons for a Scro clip. */
@@ -13,6 +14,7 @@ export function ScroVideoPrimaryActions({
 	videoId: string;
 	clip: ScroVideoSeedClip;
 }) {
+	const { oc } = useOpencutI18n();
 	const busy =
 		clip.stage === "frames_generating" || clip.stage === "video_generating";
 	const canCancel = Boolean(clip.videoUnsent && clip.stage === "video_generating");
@@ -25,9 +27,12 @@ export function ScroVideoPrimaryActions({
 		clip.stage !== "frames_generating";
 
 	const framesLabel = clip.hasStartFrame
-		? `Redraw frames${clip.frameCost ? ` · ${clip.frameCost}` : ""}`
-		: `Generate frames${clip.frameCost ? ` · ${clip.frameCost}` : ""}`;
-	const videoLabel = scroVideoActionLabel(clip);
+		? oc.inspector.redrawFrames(clip.frameCost)
+		: oc.inspector.generateFrames(clip.frameCost);
+	const againVideo = clip.stage === "video_ready" || clip.staleVideo || clip.retryVideo;
+	const videoLabel = againVideo
+		? oc.inspector.regenerateVideo(clip.videoCost)
+		: oc.inspector.generateVideo(clip.videoCost);
 
 	return (
 		<div className="space-y-2">
@@ -61,7 +66,7 @@ export function ScroVideoPrimaryActions({
 						})
 					}
 				>
-					Cancel queued video
+					{oc.inspector.cancelQueuedVideo}
 				</Button>
 			) : needsFrames ? (
 				<Button
@@ -76,7 +81,7 @@ export function ScroVideoPrimaryActions({
 						})
 					}
 				>
-					{busy && clip.stage === "frames_generating" ? "Drawing…" : framesLabel}
+					{busy && clip.stage === "frames_generating" ? oc.inspector.drawing : framesLabel}
 				</Button>
 			) : canVideo ? (
 				<Button
@@ -91,11 +96,13 @@ export function ScroVideoPrimaryActions({
 						})
 					}
 				>
-					{busy && clip.stage === "video_generating" ? "Rendering…" : videoLabel}
+					{busy && clip.stage === "video_generating" ? oc.inspector.rendering : videoLabel}
 				</Button>
 			) : busy ? (
 				<p className="text-muted-foreground text-xs">
-					{clip.stage === "frames_generating" ? "Drawing frames…" : "Rendering video…"}
+					{clip.stage === "frames_generating"
+						? oc.inspector.drawingFrames
+						: oc.inspector.renderingVideo}
 					{clip.wait ? ` (${clip.wait})` : ""}
 				</p>
 			) : null}

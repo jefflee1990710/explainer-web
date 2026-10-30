@@ -24,7 +24,7 @@ describe("keyword guides", () => {
       assert.equal(isPartnerIntroPost(spec), false, spec.title);
       assert.equal(/^Introducing\s/i.test(spec.title), false);
       const content = renderKeywordSpec(spec);
-      const minimum = spec.locale === "en" ? 1200 : 700;
+      const minimum = spec.locale === "en" ? 3000 : 1800;
       assert.ok(content.length > minimum, `${spec.slug} content ${content.length}`);
       assert.ok(content.includes(`](${spec.landingPath})`), spec.slug);
       assert.ok(

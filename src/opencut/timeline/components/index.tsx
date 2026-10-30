@@ -93,6 +93,7 @@ import {
 	visibleTimelineTracks,
 } from "@/opencut/effects/transition-layout";
 import { resolveTimelineElementIntersections } from "./selection-hit-testing";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { isSubtitleTrack } from "@/opencut/subtitles/insert";
 import { cn } from "@/opencut/utils/ui";
 
@@ -642,6 +643,7 @@ function TrackLabelsPanel({
 	hasHorizontalScrollbar: boolean;
 	getTrackExpansionHeight: (trackIndex: number) => number;
 }) {
+	const { oc } = useOpencutI18n();
 	const editor = useEditor();
 	const scene = useEditor((e) => e.scenes.getActiveSceneOrNull());
 	const tracks = useMemo<TimelineTrack[]>(
@@ -711,7 +713,7 @@ function TrackLabelsPanel({
 											}) ? (
 												<button
 													type="button"
-													title="點擊選擇成條字幕圖層 (一次過上下移動或改顏色)"
+													title={oc.subtitleTrack.trackBadgeTooltip}
 													onClick={() => {
 														if (track.elements.length === 0) return;
 														setElementSelection({
@@ -723,7 +725,7 @@ function TrackLabelsPanel({
 													}}
 													className="bg-primary/15 text-primary hover:bg-primary/25 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
 												>
-													<span className="truncate">字幕圖層</span>
+													<span className="truncate">{oc.subtitleTrack.trackBadge}</span>
 												</button>
 											) : (
 												<span className="text-muted-foreground truncate text-xs font-medium">

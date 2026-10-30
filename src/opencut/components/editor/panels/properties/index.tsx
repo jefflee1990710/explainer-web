@@ -15,6 +15,7 @@ import { EmptyView } from "./empty-view";
 import { InspectorHeader } from "./components/inspector-header";
 import { SubtitleTrackStyleControls } from "@/opencut/components/editor/panels/assets/subtitle-track-style-controls";
 import { isScroSubtitleName } from "@/opencut/embed/scro-subtitle-slots";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import { isSubtitleTrack } from "@/opencut/subtitles/insert";
 
 export function PropertiesPanel() {
@@ -24,6 +25,7 @@ export function PropertiesPanel() {
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 	const scroStore = useScroVideos();
+	const { oc } = useOpencutI18n();
 
 	const mediaAssets = editor.media.getAssets();
 	// "Clip N.mp4" on a restored timeline has no scroClipNumber field.
@@ -98,7 +100,7 @@ export function PropertiesPanel() {
 				<InspectorHeader />
 				<div className="flex flex-1 items-center justify-center p-4">
 					<p className="text-muted-foreground text-sm font-medium">
-						{selectedElements.length} elements selected
+						{oc.inspector.elementsSelected(selectedElements.length)}
 					</p>
 				</div>
 			</div>
@@ -138,7 +140,7 @@ export function PropertiesPanel() {
 	const subtitleTrackTab: PropertiesTabDef | null = isSubtitleElement
 		? {
 				id: "subtitle-track",
-				label: "Subtitle Track · 全軌",
+				label: oc.subtitleTrack.tabLabel,
 				icon: <HugeiconsIcon icon={SubtitleIcon} size={14} />,
 				content: ({ trackId: tId }) => (
 					<SubtitleTrackStyleControls trackId={tId} compact />

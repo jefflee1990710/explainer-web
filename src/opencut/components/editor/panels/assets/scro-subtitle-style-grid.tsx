@@ -1,6 +1,10 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import {
+	localizeBilingualLabel,
+	useOpencutI18n,
+} from "@/opencut/i18n/use-opencut-i18n";
 import { resolveArtisticSubtitlePreset } from "@/opencut/subtitles/artistic-presets";
 import { quoteFontFamily } from "@/opencut/text/primitives";
 import { cn } from "@/opencut/utils/ui";
@@ -131,6 +135,7 @@ export function ScroSubtitleStyleGrid({
 	label: string;
 	onSelect: (id: string) => void;
 }) {
+	const { locale, oc } = useOpencutI18n();
 	return (
 		<div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2" role="listbox" aria-label={label}>
 			{styles.map((style) => {
@@ -174,10 +179,12 @@ export function ScroSubtitleStyleGrid({
 						</div>
 						<div className="flex items-center justify-between gap-1.5 px-0.5">
 							<span className="truncate text-[11px] font-semibold text-[#12141c]">
-								{style.name}
+								{localizeBilingualLabel(style.name, locale)}
 							</span>
 							<span className="shrink-0 rounded bg-[#f4f4f5] px-1.5 py-0.2 text-[9px] font-medium text-[#5c6170]">
-								{preview.isSingleLine ? "單行 1-Line" : "雙行 2-Line"}
+								{preview.isSingleLine
+									? oc.subtitleDialog.singleLineBadge
+									: oc.subtitleDialog.dualLineBadge}
 							</span>
 						</div>
 					</button>

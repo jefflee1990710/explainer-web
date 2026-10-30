@@ -13,11 +13,16 @@ import { AdjustmentsView, EffectsView, TransitionsView } from "@/opencut/effects
 import { useSearchParams } from "next/navigation";
 import { isScroEmbed } from "@/opencut/embed/scro-transport";
 import { ScroSubtitlePanel } from "@/opencut/components/editor/panels/assets/scro-subtitle-panel";
-import { useScroSubtitleOpen } from "@/opencut/embed/scro-subtitle-store";
+import { ScroOnScreenTextPanel } from "@/opencut/components/editor/panels/assets/scro-on-screen-text-panel";
+import {
+	useScroOnScreenTextOpen,
+	useScroSubtitleOpen,
+} from "@/opencut/embed/scro-subtitle-store";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
 	const subtitleOpen = useScroSubtitleOpen();
+	const onScreenTextOpen = useScroOnScreenTextOpen();
 	const embedded = isScroEmbed(useSearchParams().get("embed"));
 
 	const viewMap: Record<Tab, React.ReactNode> = {
@@ -37,7 +42,13 @@ export function AssetsPanel() {
 			<TabBar />
 			<Separator orientation="vertical" />
 			<div className="flex-1 overflow-hidden">
-				{embedded && subtitleOpen ? <ScroSubtitlePanel /> : viewMap[activeTab]}
+				{embedded && subtitleOpen ? (
+					<ScroSubtitlePanel />
+				) : embedded && onScreenTextOpen ? (
+					<ScroOnScreenTextPanel />
+				) : (
+					viewMap[activeTab]
+				)}
 			</div>
 		</div>
 	);

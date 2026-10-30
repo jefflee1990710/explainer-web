@@ -5,16 +5,8 @@ import { ScroSceneEditInput } from "@/opencut/embed/scro-scene-edit-input";
 import { ScroVideoAiEntry } from "@/opencut/embed/scro-video-ai-entry";
 import { ScroVideoPrimaryActions } from "@/opencut/embed/scro-video-primary-actions";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
-import type { ScroVideoSeedClip, ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
-
-const STAGE_LABEL: Record<ScroVideoUiStage, string> = {
-	awaiting_frames: "Waiting for stills",
-	frames_generating: "Drawing stills",
-	frames_ready: "Stills ready",
-	video_generating: "Rendering video",
-	video_ready: "Video ready",
-	failed: "Failed",
-};
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
+import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 function Field({ label, value }: { label: string; value?: string }) {
 	const text = value?.trim();
@@ -48,6 +40,7 @@ export function ScroVideoProperties({
 	showInspectorHeader?: boolean;
 }) {
 	const store = useScroVideos();
+	const { oc } = useOpencutI18n();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
 	if (!store || !clip) {
 		return (
@@ -63,15 +56,15 @@ export function ScroVideoProperties({
 				<div className="shrink-0">
 					<div className="border-border flex h-10 items-center justify-between border-b px-3.5">
 						<span className="text-foreground text-[13px] font-semibold tracking-tight">
-							Inspector
+							{oc.inspector.title}
 						</span>
 						<span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
-							{STAGE_LABEL[clip.stage]}
+							{oc.inspector.stageLabels[clip.stage]}
 						</span>
 					</div>
 					<div className="border-border space-y-1 border-b px-3.5 py-2.5">
 						<p className="text-muted-foreground text-[11px] font-medium">
-							Selected
+							{oc.inspector.selected}
 						</p>
 						<p className="text-foreground truncate text-[13px] font-semibold">
 							{clip.name}
@@ -92,10 +85,10 @@ export function ScroVideoProperties({
 				<div className="divide-border flex flex-col divide-y">
 					<div className="flex items-center justify-between px-3.5 py-2.5">
 						<span className="text-muted-foreground text-[11px] font-medium">
-							Stage
+							{oc.inspector.stage}
 						</span>
 						<span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-[11px] font-medium">
-							{STAGE_LABEL[clip.stage]}
+							{oc.inspector.stageLabels[clip.stage]}
 						</span>
 					</div>
 					<div className="space-y-3 px-3.5 py-3">

@@ -8,6 +8,7 @@ import { VideoLocksReferenceButton } from "@/presentation/components/app/project
 import { VideoShareCaptionsButton } from "@/presentation/components/app/projects/[id]/video-share-captions-button";
 import { VideoEditorHeaderExportSlot } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 import { Spinner } from "@/presentation/components/spinner";
 import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -119,6 +120,7 @@ export function VideoEditorDialog({
               <VideoEditorMoreMenu onDelete={onDelete} />
             </span>
           ) : null}
+          <LanguageSwitcher />
           </div>
         </div>
       </header>

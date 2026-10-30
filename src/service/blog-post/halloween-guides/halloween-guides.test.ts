@@ -37,7 +37,7 @@ describe("halloween guides", () => {
       assert.equal(isPartnerIntroPost(spec), false, spec.title);
       assert.equal(spec.tags.includes("Halloween"), true, spec.slug);
       const content = renderHalloweenSpec(spec);
-      assert.ok(content.length > 700, `${spec.slug} content ${content.length}`);
+      assert.ok(content.length > 1800, `${spec.slug} content ${content.length}`);
       assert.ok(content.includes(`](${spec.landingPath})`), spec.slug);
       assert.ok(
         spec.excerpt.length >= 40 && spec.excerpt.length <= 180,

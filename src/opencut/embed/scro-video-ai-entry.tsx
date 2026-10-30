@@ -4,6 +4,7 @@ import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
 import { scroStartStillPending } from "@/opencut/embed/scro-video-assets";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /** Redraw stills. Clip text edits use the sticky input under the panel. */
@@ -14,6 +15,7 @@ export function ScroVideoAiEntry({
 	videoId: string;
 	clip: ScroVideoSeedClip;
 }) {
+	const { oc } = useOpencutI18n();
 	const canvas = useEditor((state) => state.project.getActiveOrNull()?.settings.canvasSize);
 	const aspectRatio =
 		canvas && canvas.width > 1 && canvas.height > 1
@@ -26,7 +28,7 @@ export function ScroVideoAiEntry({
 	return (
 		<div className="space-y-2">
 			<div className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
-				Edit
+				{oc.inspector.edit}
 			</div>
 			<div className="grid grid-cols-2 gap-2">
 				<button
@@ -53,11 +55,11 @@ export function ScroVideoAiEntry({
 							<img src={clip.posterUrl} alt="" className="size-full object-cover" />
 						) : (
 							<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
-								Start
+								{oc.inspector.start}
 							</div>
 						)}
 					</div>
-					<span className="px-1.5 py-1 text-[0.65rem]">Redraw start</span>
+					<span className="px-1.5 py-1 text-[0.65rem]">{oc.inspector.redrawStart}</span>
 				</button>
 				<button
 					type="button"
@@ -83,14 +85,14 @@ export function ScroVideoAiEntry({
 							<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
 						) : (
 							<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
-								End
+								{oc.inspector.end}
 							</div>
 						)}
 					</div>
 					<span className="px-1.5 py-1 text-[0.65rem]">
 						{clip.endFromClipNumber
-							? `Redraw end · Clip ${clip.endFromClipNumber} start`
-							: "Redraw end"}
+							? oc.inspector.redrawEndClipStart(clip.endFromClipNumber)
+							: oc.inspector.redrawEnd}
 					</span>
 				</button>
 			</div>

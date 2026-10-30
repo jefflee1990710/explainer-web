@@ -22,6 +22,12 @@ import {
   optionsForLookPart,
   randomizeCharacterLook,
 } from "@/service/character/character-look";
+import {
+  SILHOUETTE_HAIR,
+  SILHOUETTE_PANTS,
+  SILHOUETTE_SHOES,
+  SILHOUETTE_TOPS,
+} from "@/service/character/silhouette-catalog";
 import { poseRevisionComment, poseSheetImageBuffer } from "@/service/character/pose-sheet";
 
 test("character look prompt names every selected part", () => {
@@ -164,11 +170,15 @@ test("detectCharacterWardrobePicks follows the most recent change, not catalog o
 });
 
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
-  // Base + heritage/era extras + branding/amenda/sports + casual / pickleball / IG-distilled expansions.
-  assert.equal(optionsForLookPart("hair").length, 1 + 17 + 14 + 20 + 2 + 2);
-  assert.equal(optionsForLookPart("top").length, 28 + 99 + 166 + 30 + 14 + 10 + 5 + 5 + 8);
-  assert.equal(optionsForLookPart("pants").length, 1 + 16 + 51 + 97 + 22 + 12 + 7 + 4 + 4 + 6);
-  assert.equal(optionsForLookPart("shoes").length, 1 + 19 + 46 + 18 + 12 + 5 + 3 + 3 + 5);
+  // Base + heritage/era extras + branding/amenda/sports + casual / pickleball / IG-distilled expansions + silhouette cuts.
+  assert.equal(SILHOUETTE_HAIR.length, 500);
+  assert.equal(SILHOUETTE_TOPS.length, 500);
+  assert.equal(SILHOUETTE_PANTS.length, 500);
+  assert.equal(SILHOUETTE_SHOES.length, 300);
+  assert.equal(optionsForLookPart("hair").length, 1 + 17 + 14 + 20 + 2 + 2 + SILHOUETTE_HAIR.length);
+  assert.equal(optionsForLookPart("top").length, 28 + 99 + 166 + 30 + 14 + 10 + 5 + 5 + 8 + SILHOUETTE_TOPS.length);
+  assert.equal(optionsForLookPart("pants").length, 1 + 16 + 51 + 97 + 22 + 12 + 7 + 4 + 4 + 6 + SILHOUETTE_PANTS.length);
+  assert.equal(optionsForLookPart("shoes").length, 1 + 19 + 46 + 18 + 12 + 5 + 3 + 3 + 5 + SILHOUETTE_SHOES.length);
   assert.equal(optionsForLookPart("accessory").length, 8 + 33 + 18 + 6 + 5 + 4 + 3 + 6);
   assert.equal(optionsForLookPart("hair")[0]!.id, "none");
   assert.equal(optionsForLookPart("pants")[0]!.id, "none");
