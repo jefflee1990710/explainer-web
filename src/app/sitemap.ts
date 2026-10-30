@@ -4,7 +4,11 @@ import {
   PUBLIC_BLOG_PAGE_SIZE,
 } from "@/service/blog-post/blog-posts";
 import { getSiteUrl } from "@/util/app-url";
-import { absolutePublicUrl, sitemapLanguageAlternates } from "@/util/seo/public-metadata";
+import {
+  absolutePublicUrl,
+  escapeSitemapXmlUrl,
+  sitemapLanguageAlternates,
+} from "@/util/seo/public-metadata";
 
 // Refresh sitemap entries so newly published blog posts appear promptly.
 export const dynamic = "force-dynamic";
@@ -43,7 +47,7 @@ export function buildSitemapEntries(
   pageSize = PUBLIC_BLOG_PAGE_SIZE,
 ): MetadataRoute.Sitemap {
   const staticEntries: MetadataRoute.Sitemap = PUBLIC_STATIC_SITEMAP_ROUTES.map((route) => ({
-    url: absolutePublicUrl(siteUrl, route.path),
+    url: escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, route.path)),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
     alternates: { languages: sitemapLanguageAlternates(siteUrl, route.path) },
@@ -54,7 +58,7 @@ export function buildSitemapEntries(
   for (let page = 2; page <= totalPages; page += 1) {
     const path = listingPath(page);
     listingEntries.push({
-      url: absolutePublicUrl(siteUrl, path),
+      url: escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, path)),
       changeFrequency: "daily",
       priority: 0.4,
       alternates: { languages: sitemapLanguageAlternates(siteUrl, path) },
@@ -64,7 +68,7 @@ export function buildSitemapEntries(
   const postEntries: MetadataRoute.Sitemap = posts.map((post) => {
     const modified = new Date(post.updatedAt);
     return {
-      url: absolutePublicUrl(siteUrl, `/posts/${encodeURIComponent(post.slug)}`),
+      url: escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, `/posts/${encodeURIComponent(post.slug)}`)),
       ...(Number.isNaN(modified.getTime()) ? {} : { lastModified: modified }),
       changeFrequency: "weekly" as const,
       priority: 0.75,

@@ -36,6 +36,19 @@ test("buildSitemapEntries includes all static public pages and published blog po
   assert.equal(entries[0]?.alternates?.languages?.["x-default"], "https://www.scro.io");
   assert.ok(entries.some((e) => e.url === "https://www.scro.io/ai-influencer"));
   assert.ok(entries.some((e) => e.url === "https://www.scro.io/pricing"));
+  const page2 = entries.find((e) => e.url === "https://www.scro.io/posts?page=2");
+  assert.ok(page2);
+  assert.equal(
+    page2.alternates?.languages?.["zh-Hant"],
+    "https://www.scro.io/posts?page=2&amp;hl=zh-Hant",
+  );
+  // Every URL and hreflang link in the sitemap must be XML-safe (no raw '&' that breaks XML parsers).
+  for (const entry of entries) {
+    assert.doesNotMatch(entry.url, /&(?!amp;|lt;|gt;|quot;|apos;)/);
+    for (const href of Object.values(entry.alternates?.languages ?? {})) {
+      assert.doesNotMatch(String(href), /&(?!amp;|lt;|gt;|quot;|apos;)/);
+    }
+  }
   assert.ok(entries.some((e) => e.url === "https://www.scro.io/posts?page=76"));
   assert.equal(entries.some((e) => e.url === "https://www.scro.io/posts?page=77"), false);
   assert.equal(entries.some((e) => e.url === "https://www.scro.io/academy"), false);

@@ -53,11 +53,24 @@ export function publicAlternates(path: string, locale: LocaleId): NonNullable<Me
   };
 }
 
+// Next.js's built-in resolveSitemap interpolates URLs raw into <loc> and <xhtml:link href="...">
+// without XML entity escaping, so query strings with '&' must be escaped per Sitemap 0.9 spec.
+export function escapeSitemapXmlUrl(url: string): string {
+  return url
+    .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export function sitemapLanguageAlternates(siteUrl: string, path: string): Record<string, string> {
   const languages = publicAlternates(path, DEFAULT_LOCALE).languages ?? {};
   const entries: Array<[string, string]> = [];
   for (const [code, href] of Object.entries(languages)) {
-    if (typeof href === "string") entries.push([code, absolutePublicUrl(siteUrl, href)]);
+    if (typeof href === "string") {
+      entries.push([code, escapeSitemapXmlUrl(absolutePublicUrl(siteUrl, href))]);
+    }
   }
   return Object.fromEntries(entries);
 }
