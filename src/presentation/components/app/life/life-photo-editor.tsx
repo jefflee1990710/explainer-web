@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { track } from "@/presentation/components/analytics/track";
 import { saveEditedLifeShotAction } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import {
@@ -139,6 +140,7 @@ export function LifePhotoEditor({
         const blob = await exportFiltered("image/png");
         downloadLifeBlob(blob, buildLifePngFilename({ ...nameInput, place: `${shot.place}-${filter.label}` }));
       }
+      track("life_photo_downloaded", { shotId: shot.id });
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : "下載失敗，請再試一次");
     } finally {
@@ -161,6 +163,7 @@ export function LifePhotoEditor({
         filterLabel: filter.label,
       });
       if (!saved.ok) throw new Error(saved.error);
+      track("life_photo_saved", { shotId: shot.id });
       onSaved(saved.shot);
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : "儲存失敗，請再試一次");

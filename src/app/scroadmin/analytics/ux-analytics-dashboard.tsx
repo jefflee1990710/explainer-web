@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PostActivationPanel } from "@/app/scroadmin/analytics/post-activation-panel";
 import { UserCreationsDialog } from "@/app/scroadmin/analytics/user-creations-dialog";
 import type {
   UserDiagnosticRow,
@@ -242,6 +243,8 @@ export function UxAnalyticsDashboard({
             </div>
           </section>
 
+          <PostActivationPanel postActivation={report.postActivation} />
+
           {/* Section C: Drop-off Pages & Blocker Breakdown */}
           <div className="grid gap-6 lg:grid-cols-2">
             <section className="rounded-2xl border border-zinc-200 bg-white p-6">
@@ -349,6 +352,9 @@ export function UxAnalyticsDashboard({
                 <tr className="border-b border-zinc-200 bg-zinc-50 font-semibold uppercase tracking-wider text-zinc-500">
                   <th className="whitespace-nowrap px-3 py-3">用戶 (Email / 名稱)</th>
                   <th className="whitespace-nowrap px-3 py-3">診斷卡關階段</th>
+                  {selectedStage === "activated_producing" ? (
+                    <th className="whitespace-nowrap px-3 py-3">產出後動作</th>
+                  ) : null}
                   <th className="whitespace-nowrap px-3 py-3">剩餘點數</th>
                   <th className="whitespace-nowrap px-3 py-3">角色 (完成/總數)</th>
                   <th className="whitespace-nowrap px-3 py-3">影片進度 (草稿→分鏡→圖→片)</th>
@@ -396,6 +402,13 @@ export function UxAnalyticsDashboard({
                         {u.diagnosis.reason}
                       </span>
                     </td>
+                    {selectedStage === "activated_producing" ? (
+                      <td className="whitespace-nowrap px-3 py-3 text-[11px] text-zinc-700">
+                        {u.postActivationActions.length > 0
+                          ? u.postActivationActions.join(" → ")
+                          : "—"}
+                      </td>
+                    ) : null}
                     <td className="whitespace-nowrap px-3 py-3 font-mono font-semibold text-zinc-800">
                       {u.credits}
                     </td>

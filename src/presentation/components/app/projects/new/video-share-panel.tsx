@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { draftShareCaptionAction } from "@/presentation/actions/video-share";
@@ -42,6 +43,9 @@ export function VideoSharePanel({
   async function copyText(value: string, kind: "link" | "caption") {
     try {
       await navigator.clipboard.writeText(value);
+      track(kind === "link" ? "video_share_link_copied" : "video_share_caption_copied", {
+        videoId: project.id,
+      });
       if (kind === "link") {
         setCopiedLink(true);
         window.setTimeout(() => setCopiedLink(false), 2000);
@@ -65,9 +69,11 @@ export function VideoSharePanel({
       const payload = { files: [file], title: filename, text: caption || filename };
       if (navigator.canShare?.(payload)) {
         await navigator.share(payload);
+        track("video_share_native", { videoId: project.id });
         return;
       }
       await navigator.share({ title: filename, url: src, text: caption || undefined });
+      track("video_share_native", { videoId: project.id });
     } catch (caught) {
       if (caught instanceof Error && caught.name === "AbortError") return;
       setHint(t("video.share.nativeFailed"));
@@ -97,6 +103,7 @@ export function VideoSharePanel({
 
   async function openTarget(id: VideoShareId) {
     if (!src) return;
+    track("video_share_target_clicked", { videoId: project.id, target: id });
     const target = VIDEO_SHARE_TARGETS.find((item) => item.id === id);
     if (!target) return;
     setHint("");

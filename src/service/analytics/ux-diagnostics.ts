@@ -8,6 +8,10 @@ import {
   videosCollection,
 } from "@/dao";
 import {
+  buildPostActivationBehavior,
+  type PostActivationActionSummary,
+} from "@/service/analytics/post-activation";
+import {
   buildRetrospectiveFunnel,
   classifyUserStuckStage,
   type FunnelStepMetric,
@@ -29,6 +33,12 @@ export type StuckStageSummaryItem = {
 
 export type UserDiagnosticRow = UserJourneySnapshot & {
   diagnosis: StuckStageClassification;
+  postActivationActions: string[];
+};
+
+export type PostActivationReport = {
+  activatedUserCount: number;
+  actions: PostActivationActionSummary[];
 };
 
 export type RecentUxEventRow = {
@@ -73,6 +83,7 @@ export type UxDiagnosticsReport = {
   blockers: BlockerEventBreakdown[];
   users: UserDiagnosticRow[];
   recentEvents: RecentUxEventRow[];
+  postActivation: PostActivationReport;
 };
 
 function summarizeParams(params?: Record<string, unknown>): string {
@@ -417,12 +428,30 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
 
   const funnel = buildRetrospectiveFunnel(snapshots);
 
-  const userRows: UserDiagnosticRow[] = snapshots
+  const diagnosed = snapshots
     .map((snap) => ({
       ...snap,
       diagnosis: classifyUserStuckStage(snap),
     }))
     .sort((a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime());
+
+  // Clicks after a user already has a clip, reel, or Life photo.
+  const postActivation = buildPostActivationBehavior(
+    diagnosed
+      .filter((row) => row.diagnosis.stageId === "activated_producing")
+      .map((row) => row.clerkUserId),
+    chronologicalEvents.map((ev) => ({
+      event: ev.event,
+      clerkUserId: ev.clerkUserId,
+      createdAt: ev.createdAt ? new Date(ev.createdAt) : new Date(0),
+      params: ev.params,
+    })),
+  );
+
+  const userRows: UserDiagnosticRow[] = diagnosed.map((row) => ({
+    ...row,
+    postActivationActions: postActivation.recentByUser[row.clerkUserId] ?? [],
+  }));
 
   // Group stuck stages across all users.
   const stageGroupMap = new Map<
@@ -511,5 +540,9 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
     blockers,
     users: userRows,
     recentEvents,
+    postActivation: {
+      activatedUserCount: postActivation.activatedUserCount,
+      actions: postActivation.actions,
+    },
   };
 }
