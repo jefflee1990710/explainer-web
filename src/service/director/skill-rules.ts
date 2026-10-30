@@ -969,8 +969,8 @@ export function talkingBrollDirectorBlock() {
   return [
     "This is TALKING-HEAD WITH B-ROLL. The rhythm is fixed: two on-camera lines, then one B-roll cutaway, then back to the same on-camera setup. Repeat until the source is covered. Never open on B-roll.",
     "narrativeJob is only `on-camera` or `b-roll`.",
-    "Voiceover is spoken by an unseen off-screen narrator across all clips. On-camera: the one attached character, medium close-up, eyes to the lens, rich and expressive facial expressions (animated eyebrows, expressive eyes, natural emotional shifts) while their mouth stays closed (no lip-sync), same background and light as the first on-camera clip.",
-    "B-roll: the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line or \"(no dialogue)\".",
+    "On-camera (`on-camera`): the one attached character, medium close-up, eyes to the lens, speaking `englishVo` on camera with calm, restrained lip articulation and natural facial expressions, same background and light as the first on-camera clip.",
+    "B-roll (`b-roll`): the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line spoken by the character's voiceover or \"(no dialogue)\".",
     "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
   ].join(" ");
 }

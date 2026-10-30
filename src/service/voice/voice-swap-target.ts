@@ -13,14 +13,12 @@ type VoiceSwapProject = {
   }>;
 };
 
-// Only Cantonese leaves the video model's voice. A one-character clone wins;
-// every other Cantonese director still converts on the premade voice.
+// Every voiced project synthesizes speech on ElevenLabs first across all languages.
+// A one-character cloned voice (matching `language` first, then default `voiceSample`) wins;
+// otherwise any project with a configured `language` falls back to the premade multilingual voice.
 export function resolveVoiceSwapId(project: VoiceSwapProject): string | null {
-  if (project.language !== "yue") {
-    const langSample = project.language
-      ? project.cast?.[0]?.voiceSamples?.[project.language]?.elevenVoiceId
-      : undefined;
-    return project.cast?.length === 1 && langSample ? langSample : null;
-  }
-  return voiceSwapVoiceId(project.cast, project.language) || CANTONESE_VOICE_ID;
+  return (
+    voiceSwapVoiceId(project.cast, project.language) ||
+    (project.language ? CANTONESE_VOICE_ID : null)
+  );
 }

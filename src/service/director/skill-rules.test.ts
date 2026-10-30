@@ -102,7 +102,8 @@ test("only talking-head and surprise-interview use on-screen lip-sync; story sho
   assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), false);
   assert.equal(skillUsesOnScreenLipSync("cartoon-explainer-video-director"), false);
   assert.equal(skillUsesOnScreenLipSync("listicle-director"), false);
-  assert.equal(skillUsesOnScreenLipSync("talking-broll-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("talking-broll-director"), true);
+  assert.equal(skillUsesOnScreenLipSync("editorial-interview-director"), true);
 
   assert.equal(skillBansNarration("surprise-interview-director"), true);
   assert.equal(skillBansNarration("story-short-director"), false);

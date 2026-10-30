@@ -74,7 +74,7 @@ test("voice swap runs only for a one-character cast with a demo voice and prefer
   );
 });
 
-test("Cantonese voiceover always converts on ElevenLabs, and a cloned demo voice wins", () => {
+test("All languages convert on ElevenLabs first, and a cloned demo voice wins", () => {
   const yue = { skillSlug: "talking-head-director", language: "yue" };
   assert.equal(resolveVoiceSwapId(yue), CANTONESE_VOICE_ID);
   assert.equal(
@@ -96,7 +96,7 @@ test("Cantonese voiceover always converts on ElevenLabs, and a cloned demo voice
       language: "zh",
       cast: [{ voiceSample: { elevenVoiceId: "clone" } }],
     }),
-    null,
+    "clone",
   );
   assert.equal(
     resolveVoiceSwapId({
@@ -104,7 +104,14 @@ test("Cantonese voiceover always converts on ElevenLabs, and a cloned demo voice
       language: "en",
       cast: [{ voiceSample: { elevenVoiceId: "clone" } }],
     }),
-    null,
+    "clone",
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "cartoon-explainer-video-director",
+      language: "en",
+    }),
+    CANTONESE_VOICE_ID,
   );
   assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 50);
 });

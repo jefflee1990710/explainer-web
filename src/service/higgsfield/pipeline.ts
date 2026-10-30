@@ -88,9 +88,9 @@ import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import {
-  isBookendSkill,
   isEditorialInterviewSkill,
   isSilentOutfitSkill,
+  isTalkingBrollSkill,
   skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
@@ -663,12 +663,15 @@ export async function sendClipVideo(
   const skill = await loadSkill(project);
   const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const editorialInterviewBroll =
-    (isEditorialInterviewSkill(skill.slug) || Boolean(skill.behavior && skill.behavior.speechMode === "lip-sync" && !skill.behavior.audioFirstLipSync)) &&
+    (isEditorialInterviewSkill(skill.slug) ||
+      isTalkingBrollSkill(skill.slug) ||
+      Boolean(skill.behavior && skill.behavior.speechMode === "lip-sync" && !skill.behavior.audioFirstLipSync)) &&
     /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
   const audioFirstTalkingHead =
     skill.slug === TALKING_HEAD_SKILL_SLUG ||
     Boolean(skill.behavior?.audioFirstLipSync && !editorialInterviewBroll) ||
-    (isEditorialInterviewSkill(skill.slug) && !editorialInterviewBroll);
+    ((isEditorialInterviewSkill(skill.slug) || isTalkingBrollSkill(skill.slug)) &&
+      !editorialInterviewBroll);
   const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
@@ -717,20 +720,20 @@ export async function sendClipVideo(
     spokenLine,
   );
 
-  // Seated talking-head sends this mp3 as the lip-sync driver to HeyGen Avatar IV.
-  // Other directors keep it for a later voice swap.
+  // Seated talking-head and A-roll talking clips send this mp3 as the lip-sync driver to HeyGen Avatar IV.
+  // All other voiced directors synthesize ElevenLabs audio across all languages and keep it for voice muxing.
   let referenceAudioUrl: string | undefined;
+  const hasSpokenLine = Boolean(spokenLine?.trim() && !isSilentSpokenLine(spokenLine));
   const voiceId =
-    project.narrationEnabled !== false && (project.language === "yue" || !isBookendSkill(project.skillSlug))
+    project.narrationEnabled !== false && hasSpokenLine && !isSilentOutfitSkill(project.skillSlug)
       ? resolveVoiceSwapId({ ...project, cast: currentCast }) ||
-        (audioFirstTalkingHead || editorialInterviewBroll
-          ? voiceSwapVoiceId(currentCast, project.language) || CANTONESE_VOICE_ID
-          : null)
+        voiceSwapVoiceId(currentCast, project.language) ||
+        CANTONESE_VOICE_ID
       : null;
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo = isDualBeatSkill(project.skillSlug) || editorialInterviewBroll;
   let durationSeconds = prompt.durationSeconds;
-  if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
+  if (voiceId && hasSpokenLine && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
         conversational: audioFirstTalkingHead,
@@ -1079,23 +1082,26 @@ export async function applyJobStatus(input: {
       renderableStyle && (job.kind === "still" || job.kind === "frame")
         ? renderableStyle.canvasColor
         : undefined;
-    const voiceId =
-      project &&
-      job.kind === "video" &&
-      (project.language === "yue" || !isBookendSkill(project.skillSlug))
-        ? resolveVoiceSwapId({
-            ...project,
-            cast: await withCurrentCharacterVoices(project.cast),
-          })
-        : null;
     const clipRowForJob =
       project && job.kind === "video"
         ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
     const spokenLine = clipRowForJob?.englishVo;
+    const hasSpokenLineForJob = Boolean(spokenLine?.trim() && !isSilentSpokenLine(spokenLine));
+    const voiceId =
+      project &&
+      job.kind === "video" &&
+      project.narrationEnabled !== false &&
+      hasSpokenLineForJob &&
+      !isSilentOutfitSkill(project.skillSlug)
+        ? resolveVoiceSwapId({
+            ...project,
+            cast: await withCurrentCharacterVoices(project.cast),
+          }) || CANTONESE_VOICE_ID
+        : null;
     const editorialInterviewBrollJob = Boolean(
       project &&
-        isEditorialInterviewSkill(project.skillSlug) &&
+        (isEditorialInterviewSkill(project.skillSlug) || isTalkingBrollSkill(project.skillSlug)) &&
         /b[-_ ]?roll/i.test(clipRowForJob?.narrativeJob || ""),
     );
     const storedClip =
@@ -1114,7 +1120,7 @@ export async function applyJobStatus(input: {
           !job.talkingHeadStage,
       );
     const swapVoice = (buffer: Buffer) =>
-      voiceId && !audioFirstTalkingHead
+      voiceId && !audioFirstTalkingHead && hasSpokenLineForJob
         ? swapClipVoice(buffer, voiceId, {
             text: spokenLine,
             voUrl: storedClip?.voUrl,
