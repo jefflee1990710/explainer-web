@@ -42,6 +42,12 @@ export default async function ScroAdminHomePage() {
               UX 路徑與流失分析
             </Link>
             <Link
+              href="/scroadmin/analytics/directors"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white"
+            >
+              內建導演
+            </Link>
+            <Link
               href="/scroadmin/courses"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white"
             >

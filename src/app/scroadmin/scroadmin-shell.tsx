@@ -18,7 +18,8 @@ export function ScroAdminShell({
   const pathname = usePathname();
   const links = [
     { href: "/scroadmin", label: t("scroAdmin.dashboard"), exact: true },
-    { href: "/scroadmin/analytics", label: "UX 追蹤分析", exact: false },
+    { href: "/scroadmin/analytics", label: "UX 追蹤分析", exact: true },
+    { href: "/scroadmin/analytics/directors", label: "內建導演", exact: true },
     { href: "/scroadmin/courses", label: t("scroAdmin.courses"), exact: false },
   ];
 
@@ -44,14 +45,17 @@ export function ScroAdminShell({
                 const active = link.exact
                   ? pathname === link.href
                   : pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const isDirector = link.href === "/scroadmin/analytics/directors";
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`rounded-full px-3 py-1.5 font-medium transition-colors ${
+                    className={`inline-flex min-h-8 items-center rounded-full px-3 py-1.5 font-semibold transition-colors ${
                       active
                         ? "bg-[#c6f24b] text-[#12141c]"
-                        : "text-white/75 hover:bg-white/10 hover:text-white"
+                        : isDirector
+                          ? "border border-[#c6f24b]/80 text-[#c6f24b] hover:bg-[#c6f24b] hover:text-[#12141c]"
+                          : "font-medium text-white/75 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {link.label}

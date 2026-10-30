@@ -1,3 +1,4 @@
+import { AnalyticsSectionNav } from "@/app/scroadmin/analytics/analytics-section-nav";
 import { UxAnalyticsDashboard } from "@/app/scroadmin/analytics/ux-analytics-dashboard";
 import { getUxDiagnosticsReport } from "@/service/analytics/ux-diagnostics";
 
@@ -9,6 +10,7 @@ export default async function ScroAdminAnalyticsPage() {
 
   return (
     <main className="space-y-6">
+      <AnalyticsSectionNav />
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           UX Analytics & Funnel Diagnostics
