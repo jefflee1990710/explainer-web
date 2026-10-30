@@ -48,8 +48,9 @@ function isDuplicateKey(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
 }
 
-function revalidateVideo(projectId: ObjectId) {
-  revalidatePath(`/app/projects/${projectId.toHexString()}`);
+function revalidateVideo(projectId?: ObjectId | null) {
+  revalidatePath("/app");
+  if (projectId) revalidatePath(`/app/projects/${projectId.toHexString()}`);
 }
 
 export async function listTemplatesAction(): Promise<{ ok: true; templates: PublicTemplate[] } | Fail> {

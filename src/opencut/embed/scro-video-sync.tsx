@@ -515,7 +515,7 @@ export function ScroVideoSync() {
 					});
 					cursor += place.packAdvanceSeconds;
 				}
-				if (data.replace) {
+				if (data.replace && data.autoSubtitles) {
 					rebuildSubtitleTrackForClips({
 						clips: ordered,
 						onlyIfSubtitlesExist: false,

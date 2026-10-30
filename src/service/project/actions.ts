@@ -48,7 +48,9 @@ import {
 } from "@/service/director/skill-rules";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
 import { applyReusableEdit, hasReusableEdit } from "@/service/video-edit/edit-transition";
+import type { Folder } from "@/model/folder";
 import { sanitizeFolderName } from "@/service/folder";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
@@ -457,14 +459,25 @@ type FolderResult =
   | { ok: true; folder: { id: string; name: string } }
   | { ok: false; error: string };
 
-function revalidateFolder(folderId: string) {
+function revalidateFolder(folderId?: string | null) {
   revalidatePath("/app");
-  revalidatePath(`/app/projects/${folderId}`);
+  if (folderId) revalidatePath(`/app/projects/${folderId}`);
 }
 
-function revalidateVideo(videoId: string, folderId?: string) {
+function revalidateVideo(videoId: string, folderId?: string | null) {
   revalidatePath("/app");
-  revalidatePath(`/app/projects/${folderId || videoId}`);
+  revalidatePath(folderVideoPath(folderId, videoId));
+  if (folderId) revalidatePath(`/app/projects/${folderId}`);
+}
+
+async function touchFolder(folderId?: ObjectId | null) {
+  if (!folderId) return;
+  const folders = await projectsCollection();
+  await folders.updateOne({ _id: folderId }, { $set: { updatedAt: new Date() } });
+}
+
+function folderIdHex(folderId?: ObjectId | null) {
+  return folderId ? folderId.toHexString() : undefined;
 }
 
 // Create a named folder (campaign). Videos are added separately.
@@ -569,14 +582,14 @@ export async function renameFolderAction(
   }
 }
 
-// Create a video inside an existing folder and schedule Phase A.
+// Create a video inside an existing folder, or with no folder when projectId is omitted.
 // The client polls `getVideoAction` until status leaves "phase_a".
 export async function createVideoAction(
   formData: FormData,
 ): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
-    const projectId = String(formData.get("projectId") || "");
+    const projectId = String(formData.get("projectId") || "").trim();
     const skill = await findSelectableSkill(
       user.clerkUserId,
       String(formData.get("skillSlug") || ""),
@@ -587,16 +600,18 @@ export async function createVideoAction(
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
 
-    if (!ObjectId.isValid(projectId)) {
-      return { ok: false, error: "專案不存在" };
+    let folder: Folder | null = null;
+    if (projectId) {
+      if (!ObjectId.isValid(projectId)) {
+        return { ok: false, error: "專案不存在" };
+      }
+      const folders = await projectsCollection();
+      folder = (await folders.findOne({
+        _id: new ObjectId(projectId),
+        clerkUserId: user.clerkUserId,
+      })) as Folder | null;
+      if (!folder) return { ok: false, error: "專案不存在" };
     }
-
-    const folders = await projectsCollection();
-    const folder = await folders.findOne({
-      _id: new ObjectId(projectId),
-      clerkUserId: user.clerkUserId,
-    });
-    if (!folder) return { ok: false, error: "專案不存在" };
 
     const skillError = briefSkillError({
       skillSlug: ruleSlug,
@@ -617,9 +632,9 @@ export async function createVideoAction(
 
     const now = new Date();
     const videos = await videosCollection();
-    const inheritedEdit = applyReusableEdit(folder.editDefaults);
+    const inheritedEdit = folder ? applyReusableEdit(folder.editDefaults) : undefined;
     const insert = await videos.insertOne({
-      projectId: folder._id,
+      ...(folder?._id ? { projectId: folder._id } : {}),
       userId: user._id,
       clerkUserId: user.clerkUserId,
       skillId: skill._id,
@@ -653,20 +668,21 @@ export async function createVideoAction(
       ...(productResult.products.length ? { products: productResult.products } : {}),
       status: "phase_a",
       clips: [],
-      ...(hasReusableEdit(folder.editDefaults) ? { edit: inheritedEdit } : {}),
+      ...(folder && hasReusableEdit(folder.editDefaults) && inheritedEdit
+        ? { edit: inheritedEdit }
+        : {}),
       creditsCharged: false,
       createdAt: now,
       updatedAt: now,
     });
 
     after(() => runPhaseAJob(insert.insertedId));
-    await folders.updateOne(
-      { _id: folder._id },
-      { $set: { updatedAt: new Date() } },
-    );
+    if (folder?._id) {
+      await touchFolder(folder._id);
+    }
 
     const video = await videos.findOne({ _id: insert.insertedId });
-    revalidateFolder(projectId);
+    revalidateVideo(insert.insertedId.toHexString(), folderIdHex(folder?._id));
     return { ok: true, project: toPublicVideo(video!) };
   } catch (error) {
     return {
@@ -720,7 +736,7 @@ export async function updateVideoTextStyleAction(
     );
 
     const updated = await videos.findOne({ _id: video._id });
-    revalidateVideo(videoId, video.projectId.toHexString());
+    revalidateVideo(videoId, folderIdHex(video.projectId));
     return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
@@ -865,14 +881,10 @@ async function rewriteVideoBrief(
 
     after(() => runPhaseAJob(video._id));
 
-    const folders = await projectsCollection();
-    await folders.updateOne(
-      { _id: video.projectId },
-      { $set: { updatedAt: new Date() } },
-    );
+    await touchFolder(video.projectId);
 
     const updated = await videos.findOne({ _id: video._id });
-    revalidateVideo(videoId, video.projectId.toHexString());
+    revalidateVideo(videoId, folderIdHex(video.projectId));
     return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
@@ -924,14 +936,10 @@ export async function updatePhaseAProposalAction(
       );
     }
 
-    const folders = await projectsCollection();
-    await folders.updateOne(
-      { _id: video.projectId },
-      { $set: { updatedAt: new Date() } },
-    );
+    await touchFolder(video.projectId);
 
     const updated = await videos.findOne({ _id: video._id });
-    revalidateVideo(videoId, video.projectId.toHexString());
+    revalidateVideo(videoId, folderIdHex(video.projectId));
     return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
@@ -976,14 +984,10 @@ export async function reviseProjectAction(
       runPhaseAJob(video._id, note || undefined, { clipsOnly }),
     );
 
-    const folders = await projectsCollection();
-    await folders.updateOne(
-      { _id: video.projectId },
-      { $set: { updatedAt: new Date() } },
-    );
+    await touchFolder(video.projectId);
 
     const updated = await videos.findOne({ _id: video._id });
-    revalidateVideo(videoId, video.projectId.toHexString());
+    revalidateVideo(videoId, folderIdHex(video.projectId));
     return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
@@ -1041,14 +1045,10 @@ export async function retryProjectAction(
       );
     }
 
-    const folders = await projectsCollection();
-    await folders.updateOne(
-      { _id: video.projectId },
-      { $set: { updatedAt: new Date() } },
-    );
+    await touchFolder(video.projectId);
 
     const updated = await videos.findOne({ _id: video._id });
-    revalidateVideo(projectId, video.projectId.toHexString());
+    revalidateVideo(projectId, folderIdHex(video.projectId));
     return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
@@ -1099,13 +1099,9 @@ export async function deleteVideoAction(
       return { ok: false, error: "影片不存在" };
     }
 
-    const folders = await projectsCollection();
-    await folders.updateOne(
-      { _id: video.projectId },
-      { $set: { updatedAt: new Date() } },
-    );
+    await touchFolder(video.projectId);
 
-    revalidateFolder(video.projectId.toHexString());
+    revalidateFolder(folderIdHex(video.projectId));
     return { ok: true };
   } catch (error) {
     return {

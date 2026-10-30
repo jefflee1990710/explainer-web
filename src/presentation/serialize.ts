@@ -172,6 +172,7 @@ export type PublicProject = PublicVideo; // remove after call sites updated
 // Card/list row: no storyboard, edit, or unused frame/clip payloads.
 export type PublicVideoCard = {
   id: string;
+  projectId: string;
   title: string;
   englishTitle: string;
   source: string;
@@ -403,7 +404,7 @@ export function toPublicVideo(video: Project): PublicVideo {
   const sceneText = resolveSceneText(video);
   return {
     id: video._id.toHexString(),
-    projectId: video.projectId.toHexString(),
+    projectId: video.projectId?.toHexString() ?? "",
     skillId: video.skillId.toHexString(),
     skillSlug: video.skillSlug,
     source: video.source,
@@ -499,6 +500,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
   });
   return {
     id: video._id.toHexString(),
+    projectId: video.projectId?.toHexString() ?? "",
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,
@@ -528,6 +530,7 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
   const locks = summarizeVideoLocks(video);
   return {
     id: video.id,
+    projectId: video.projectId || "",
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,

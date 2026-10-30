@@ -285,7 +285,7 @@ export async function listTasks(
   const reelTasks = videoDocs.flatMap((video) => {
     const task = reelTask({
       videoId: video._id.toHexString(),
-      projectId: video.projectId.toHexString(),
+      projectId: video.projectId?.toHexString() ?? "",
       title: video.phaseA?.localizedTitle ?? "未命名影片",
       reelStatus: video.reelStatus,
       reelUrl: video.reelUrl,
@@ -332,7 +332,7 @@ export async function listTasks(
         : product
           ? `/app/products/${product._id.toHexString()}`
           : video
-          ? folderVideoPath(video.projectId.toHexString(), video._id.toHexString())
+          ? folderVideoPath(video.projectId?.toHexString(), video._id.toHexString())
           : director
             ? `/app/directors/${director._id.toHexString()}`
             : style

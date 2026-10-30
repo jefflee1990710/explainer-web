@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { track } from "@/presentation/components/analytics/track";
-import { ensureDefaultFolderAction } from "@/presentation/actions/projects";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { folderVideoPath } from "@/service/folder-video-path";
@@ -32,13 +31,6 @@ export function StartFirstVideoButton({
         ? "✨ 立即制作第一支短片"
         : "✨ Create Your First Video";
 
-  const defaultFolderName =
-    locale === "zh-Hant"
-      ? "我的第一個專案"
-      : locale === "zh-Hans"
-        ? "我的第一个项目"
-        : "My First Project";
-
   async function handleStart() {
     if (busy) return;
     setBusy(true);
@@ -49,12 +41,7 @@ export function StartFirstVideoButton({
       router.push(folderVideoPath(existingFolderId));
       return;
     }
-    const result = await ensureDefaultFolderAction(defaultFolderName);
-    if (!result.ok) {
-      setBusy(false);
-      return;
-    }
-    router.push(folderVideoPath(result.folder.id));
+    router.push("/app/videos/new");
   }
 
   return (

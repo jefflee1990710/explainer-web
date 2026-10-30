@@ -22,6 +22,7 @@ import { getOpencutEditAction } from "@/presentation/actions/opencut-edit";
 import { generateSelectedClipsAction } from "@/presentation/actions/clip-production";
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
+import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import {
   beginAutosave,
@@ -193,6 +194,7 @@ export function OpenCutDirectDesk({
         // No saved cut (a recreate deleted it). Replace the local timeline
         // so the previous videos do not stay under the new storyboard.
         replace: true,
+        autoSubtitles: isTalkingHeadSkill(projectRef.current.skillSlug),
       });
       prevSeedRef.current = clips;
       syncedRef.current = true;
@@ -406,6 +408,7 @@ export function OpenCutDirectDesk({
         aspectRatio: project.aspectRatio,
         clips: seedClips,
         replace: true,
+        autoSubtitles: isTalkingHeadSkill(project.skillSlug),
       });
       return;
     }
@@ -425,7 +428,7 @@ export function OpenCutDirectDesk({
         clip,
       });
     }
-  }, [seedClips, project.id, project.aspectRatio, host, editorEpoch]);
+  }, [seedClips, project.id, project.aspectRatio, project.skillSlug, host, editorEpoch]);
 
   // Automatically open the OpenCut Feature Discovery tutorial once the editor finishes booting (unless user checked "Don't show again").
   useEffect(() => {

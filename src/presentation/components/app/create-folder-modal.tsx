@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { createFolderAction } from "@/presentation/actions/projects";
 import { Spinner } from "@/presentation/components/spinner";
-import { folderVideoPath } from "@/service/folder-video-path";
 
 const NAME_MAX = 80;
 
@@ -43,7 +42,13 @@ export function CreateFolderButton({
 }
 
 // Name-only dialog; success navigates into the new folder workspace.
-export function CreateFolderModal({ onClose }: { onClose: () => void }) {
+export function CreateFolderModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated?: (folder: { id: string; name: string }) => void;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
@@ -72,8 +77,11 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
       return;
     }
     onClose();
-    // Navigate directly into the new-video wizard so users don't get stranded on an empty folder table.
-    router.push(folderVideoPath(result.folder.id));
+    if (onCreated) {
+      onCreated(result.folder);
+      return;
+    }
+    router.push(`/app?stay=1&project=${result.folder.id}`);
   }
 
   return (

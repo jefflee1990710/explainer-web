@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { getVideoAction } from "@/service/project/actions";
-import { loadOwnedFolder, loadStudioPickers } from "@/service/project/load-folder-studio";
+import { loadOwnedFolder, loadStudioPickers, loadFolderOptions } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
 
 // Gemini 4 Argon can think for several minutes before a director call returns.
@@ -30,6 +30,7 @@ export default async function FolderVideoPage({
     <VideoEditorWorkspace
       folderId={folder._id.toHexString()}
       folderName={folder.name}
+      folders={await loadFolderOptions(user.clerkUserId)}
       initialVideo={loaded.project}
       credits={user.credits}
       {...pickers}

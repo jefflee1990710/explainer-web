@@ -1,11 +1,11 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { projectsCollection, videosCollection } from "@/dao";
-import { folderVideoPath } from "@/service/folder-video-path";
-import { toPublicFolder, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
-import type { Folder } from "@/model/folder";
+import { videosCollection } from "@/dao";
+import { toPublicVideoCard, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import type { Project } from "@/model/project";
+import { loadFolderOptions } from "@/service/project/load-folder-studio";
 import { DashboardView } from "@/presentation/components/app/dashboard-view";
 
 export default async function DashboardPage({
@@ -15,57 +15,32 @@ export default async function DashboardPage({
 }) {
   const query = searchParams ? await searchParams : undefined;
   const user = await requireAppUser();
-  const folders = await projectsCollection();
   const videos = await videosCollection();
-  const [sub, folderDocs, videoDocs] = await Promise.all([
+  const [sub, folderOptions, videoDocs] = await Promise.all([
     getActiveSubscription(user.clerkUserId),
-    folders
-      .find({ clerkUserId: user.clerkUserId, name: { $exists: true } })
-      .sort({ updatedAt: -1 })
-      .limit(120)
+    loadFolderOptions(user.clerkUserId),
+    videos
+      .find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION })
+      .sort({ updatedAt: -1, createdAt: -1 })
       .toArray(),
-    videos.find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION }).toArray(),
   ]);
 
-  // First-time users with 0 videos jump straight into Quick Setup instead of landing on an empty dashboard.
+  // First video skips the list. Stay on the list when the user came back from the editor.
   if (videoDocs.length === 0 && query?.stay !== "1") {
-    let targetFolderId = folderDocs[0]?._id?.toHexString();
-    if (!targetFolderId) {
-      const now = new Date();
-      const inserted = await folders.insertOne({
-        userId: user._id,
-        clerkUserId: user.clerkUserId,
-        name: "我的第一個專案",
-        createdAt: now,
-        updatedAt: now,
-      });
-      targetFolderId = inserted.insertedId.toHexString();
-    }
-    redirect(folderVideoPath(targetFolderId));
+    redirect("/app/videos/new");
   }
 
   const subscribed = isSubscriptionActive(sub);
-  const videosByFolder = new Map<string, Project[]>();
-  for (const video of videoDocs) {
-    // Skip leftover rows that were never wrapped into a folder.
-    if (!video.projectId) continue;
-    const key = video.projectId.toHexString();
-    const list = videosByFolder.get(key) || [];
-    list.push(video as Project);
-    videosByFolder.set(key, list);
-  }
-  const publicFolders = folderDocs.map((folder) =>
-    toPublicFolder(
-      folder as Folder,
-      videosByFolder.get(folder._id!.toHexString()) || [],
-    ),
-  );
+  const cards = (videoDocs as Project[]).map(toPublicVideoCard);
 
   return (
-    <DashboardView
-      folders={publicFolders}
-      credits={user.credits}
-      subscribed={subscribed}
-    />
+    <Suspense fallback={null}>
+      <DashboardView
+        videos={cards}
+        folders={folderOptions}
+        credits={user.credits}
+        subscribed={subscribed}
+      />
+    </Suspense>
   );
 }

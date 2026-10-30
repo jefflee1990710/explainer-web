@@ -328,8 +328,8 @@ export type Project = {
   _id: ObjectId;
   userId: ObjectId;
   clerkUserId: string;
-  // Parent folder. Required for new videos; set by migration for legacy rows.
-  projectId: ObjectId;
+  // Parent folder. Optional: videos can live without a project or inside a folder.
+  projectId?: ObjectId;
   skillId: ObjectId;
   skillSlug: string;
   source: string;
@@ -533,7 +533,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   _id: objectIdSchema,
   userId: objectIdSchema,
   clerkUserId: z.string(),
-  projectId: objectIdSchema,
+  projectId: objectIdSchema.optional(),
   skillId: objectIdSchema,
   skillSlug: z.string(),
   source: z.string(),

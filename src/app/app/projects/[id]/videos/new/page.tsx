@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
-import { loadOwnedFolder, loadStudioPickers } from "@/service/project/load-folder-studio";
+import { loadOwnedFolder, loadStudioPickers, loadFolderOptions } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
 
 // Gemini 4 Argon can think for several minutes before the storyboard returns.
@@ -21,6 +21,7 @@ export default async function NewFolderVideoPage({
     <VideoEditorWorkspace
       folderId={folder._id.toHexString()}
       folderName={folder.name}
+      folders={await loadFolderOptions(user.clerkUserId)}
       initialVideo={null}
       credits={user.credits}
       {...pickers}

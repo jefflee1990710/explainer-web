@@ -26,6 +26,18 @@ import {
 import type { Product } from "@/model/product";
 import type { TextStyleDoc } from "@/model/text-style";
 
+export async function loadFolderOptions(clerkUserId: string) {
+  const folders = await projectsCollection();
+  const docs = await folders
+    .find({ clerkUserId, name: { $exists: true } })
+    .sort({ updatedAt: -1 })
+    .limit(120)
+    .toArray();
+  return docs
+    .filter((folder) => folder._id && folder.name)
+    .map((folder) => ({ id: folder._id!.toHexString(), name: folder.name }));
+}
+
 export async function loadOwnedFolder(folderId: string, clerkUserId: string) {
   if (!ObjectId.isValid(folderId)) return null;
   const folders = await projectsCollection();

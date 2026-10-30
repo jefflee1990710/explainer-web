@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { folderPath, folderVideoPath } from "@/service/folder-video-path";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import {
@@ -156,6 +156,7 @@ import {
   BriefSetupModeBar,
   type BriefSetupMode,
 } from "@/presentation/components/app/projects/new/brief-setup-mode-bar";
+import { ProjectPicker, type ProjectOption } from "@/presentation/components/app/project-picker";
 import {
   CreateVideoFeatureDiscovery,
   hasSeenCreateVideoTutorial,
@@ -189,6 +190,7 @@ function chosenTextStyleId(
 
 export function NewProjectForm({
   projectId,
+  folders = [],
   skills,
   styles,
   characters,
@@ -201,6 +203,7 @@ export function NewProjectForm({
   onStepNav,
 }: {
   projectId: string;
+  folders?: ProjectOption[];
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
@@ -217,7 +220,7 @@ export function NewProjectForm({
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
-    : readBriefDefaults(projectId, { skills, styles, characters, textStyles });
+    : readBriefDefaults(projectId || "loose", { skills, styles, characters, textStyles });
 
   // Form fields
   const rememberedSkill = lastBrief?.skillSlug;
@@ -343,6 +346,8 @@ export function NewProjectForm({
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
+  const [folderId, setFolderId] = useState(projectId);
+  const [folderOptions, setFolderOptions] = useState(folders);
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
@@ -548,7 +553,7 @@ export function NewProjectForm({
 
   function briefFormData() {
     const formData = new FormData();
-    formData.set("projectId", projectId);
+    if (folderId) formData.set("projectId", folderId);
     if (project) formData.set("videoId", project.id);
     formData.set("skillSlug", skillSlug);
     formData.set("styleId", styleId);
@@ -688,7 +693,14 @@ export function NewProjectForm({
     // Saving an existing brief stays on that video.
     setProject(result.project);
     onVideoCreated?.(result.project);
-    router.replace(project ? folderVideoPath(projectId, result.project.id) : folderPath(projectId));
+    const nextFolder = result.project.projectId;
+    router.replace(
+      project
+        ? folderVideoPath(nextFolder, result.project.id)
+        : nextFolder
+          ? `/app?stay=1&project=${nextFolder}`
+          : "/app?stay=1",
+    );
   }
 
   // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.
@@ -725,7 +737,7 @@ export function NewProjectForm({
       return;
     }
     onVideoCreated?.(result.project);
-    router.replace(folderVideoPath(projectId, result.project.id));
+    router.replace(folderVideoPath(result.project.projectId, result.project.id));
   }
 
   // Put the form back to this video's saved brief.
@@ -1011,7 +1023,7 @@ export function NewProjectForm({
 
   useEffect(() => {
     if (!skillSlug || !aspectRatio) return;
-    writeBriefDefaults(projectId, {
+    writeBriefDefaults(folderId || "loose", {
       skillSlug,
       styleId,
       language,
@@ -1026,7 +1038,7 @@ export function NewProjectForm({
       characterIds,
     });
   }, [
-    projectId,
+    folderId,
     skillSlug,
     styleId,
     language,
@@ -1219,7 +1231,19 @@ export function NewProjectForm({
               className="flex min-h-full w-full flex-1 flex-col justify-between gap-4 p-4 sm:px-6 sm:py-5 lg:px-8"
             >
               <div className="space-y-4">
-              <input type="hidden" name="projectId" value={projectId} />
+              <input type="hidden" name="projectId" value={folderId} />
+
+              {!project ? (
+                <ProjectPicker
+                  folders={folderOptions}
+                  value={folderId || "none"}
+                  disabled={briefBusy}
+                  onChange={(next) => setFolderId(next === "none" || next === "all" ? "" : next)}
+                  onFolderCreated={(folder) =>
+                    setFolderOptions((current) => [folder, ...current.filter((item) => item.id !== folder.id)])
+                  }
+                />
+              ) : null}
 
               <BriefSetupModeBar
                 mode={setupMode}
@@ -1323,9 +1347,6 @@ export function NewProjectForm({
                           onChange={onStyleChange}
                           disabled={briefBusy}
                         />
-                        <p className="mt-2 text-xs text-muted">
-                          {styleName}
-                        </p>
                       </Section>
                     </div>
 
@@ -1425,9 +1446,6 @@ export function NewProjectForm({
                                 onChange={onStyleChange}
                                 disabled={briefBusy}
                               />
-                              <p className="mt-2 text-xs text-muted">
-                                {styleName}
-                              </p>
                             </Section>
                           </div>
 

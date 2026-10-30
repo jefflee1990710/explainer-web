@@ -15,12 +15,14 @@ import type {
   PublicTextStyle,
   PublicVideo,
 } from "@/presentation/serialize";
+import type { ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderPath } from "@/service/folder-video-path";
 
 // Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
   folderId,
   folderName,
+  folders = [],
   skills,
   styles,
   characters,
@@ -32,6 +34,7 @@ export function VideoEditorWorkspace({
 }: {
   folderId: string;
   folderName: string;
+  folders?: ProjectOption[];
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
@@ -118,6 +121,7 @@ export function VideoEditorWorkspace({
         <NewProjectForm
           key={video?.id ?? "new"}
           projectId={folderId}
+          folders={folders}
           skills={skills}
           styles={styles}
           characters={characters}

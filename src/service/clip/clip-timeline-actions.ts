@@ -37,9 +37,9 @@ const CONTENT_MAX = 2000;
 
 type TimelineResult = { ok: true; project: PublicVideo } | { ok: false; error: string };
 
-function revalidateVideo(projectId: string) {
+function revalidateVideo(projectId?: string) {
   revalidatePath("/app");
-  revalidatePath(`/app/projects/${projectId}`);
+  if (projectId) revalidatePath(`/app/projects/${projectId}`);
 }
 
 function fail(error: unknown, fallback: string): TimelineResult {
@@ -183,7 +183,7 @@ export async function appendDirectorClipAction(input: {
     }
     const updated = await videos.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
-    revalidateVideo(String(project.projectId));
+    revalidateVideo(project.projectId?.toHexString());
     return { ok: true, project: toPublicVideo(updated) };
   } catch (error) {
     return fail(error, "新增片段失敗，請再試一次");
@@ -253,7 +253,7 @@ export async function reorderClipsAction(videoId: string, order: number[]): Prom
     if (wrote.matchedCount !== 1) return { ok: false, error: "專案不存在" };
     const updated = await videos.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
-    revalidateVideo(String(project.projectId));
+    revalidateVideo(project.projectId?.toHexString());
     return { ok: true, project: toPublicVideo(updated) };
   } catch (error) {
     return fail(error, "調整順序失敗，請再試一次");
@@ -312,7 +312,7 @@ export async function deleteClipAction(videoId: string, clipNumber: number): Pro
     await shiftDeletedClipJobs(project, clipNumber);
     const updated = await videos.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
-    revalidateVideo(String(project.projectId));
+    revalidateVideo(project.projectId?.toHexString());
     return { ok: true, project: toPublicVideo(updated) };
   } catch (error) {
     return fail(error, "刪除片段失敗，請再試一次");

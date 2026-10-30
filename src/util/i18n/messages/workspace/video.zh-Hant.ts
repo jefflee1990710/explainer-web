@@ -121,7 +121,7 @@ export const videoZhHant = {
     upToDate: "已是最新版本",
     retry: "重新匯出",
     export: "匯出影片",
-    hint: "把時間軸下載成影片檔。",
+    hint: "把時間軸下載成 MP4。",
     videoOnly: "只要影片",
     videoAndCover: "影片加封面",
     stayOpen: "下載完成前請不要關閉這個瀏覽器。",

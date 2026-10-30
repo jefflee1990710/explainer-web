@@ -34,7 +34,7 @@ export function VideoTable({
   folderId,
   videos,
 }: {
-  folderId: string;
+  folderId?: string;
   videos: PublicVideoCard[];
 }) {
   const { t } = useI18n();
@@ -90,7 +90,7 @@ export function VideoTable({
   }, [serverFilter]);
 
   useEffect(() => {
-    if (!loading || serverFilter === null) return;
+    if (!loading || serverFilter === null || !folderId) return;
     const value = serverFilter;
     const id = ++requestId.current;
     const params = new URLSearchParams(searchRef.current);
@@ -119,7 +119,7 @@ export function VideoTable({
     wantedFilter.current = value;
     setFilters(next);
     setPage(1);
-    setServerFilter(value);
+    if (folderId) setServerFilter(value);
   }
 
   return (
@@ -141,7 +141,7 @@ export function VideoTable({
               {rows.map((video) => (
                 <VideoGridCard
                   key={video.id}
-                  folderId={folderId}
+                  folderId={video.projectId || folderId || ""}
                   video={video}
                   stage={stageOf(video, postedIds[video.id], archivedIds[video.id])}
                   onPosted={(id) => setPostedIds((current) => ({ ...current, [id]: new Date().toISOString() }))}

@@ -11,9 +11,9 @@ type ProjectResult =
   | { ok: true; project: PublicVideo }
   | { ok: false; error: string };
 
-function revalidateProject(projectId: string) {
+function revalidateProject(folderId?: string) {
   revalidatePath("/app");
-  revalidatePath(`/app/projects/${projectId}`);
+  if (folderId) revalidatePath(`/app/projects/${folderId}`);
 }
 
 // Queue reel concat once every clip is video_ready. Idempotent for the
@@ -36,7 +36,7 @@ export async function composeReelAction(videoId: string): Promise<ProjectResult>
     return { ok: true, project: toPublicVideo(project) };
   }
   scheduleReel(project._id, fingerprint);
-  revalidateProject(project.projectId.toHexString());
+  revalidateProject(project.projectId?.toHexString());
 
   const updated = await projects.findOne({ _id: project._id });
   if (!updated) return { ok: false, error: "專案不存在" };

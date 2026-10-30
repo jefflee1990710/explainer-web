@@ -104,7 +104,7 @@ export function VideoGridCard({
   onArchived,
   onUnarchived,
 }: {
-  folderId: string;
+  folderId?: string;
   video: PublicVideoCard;
   stage: VideoListFilter;
   onPosted: (id: string) => void;
@@ -132,7 +132,7 @@ export function VideoGridCard({
     const held = holdOptimisticTasks(
       paidKeyTasks({
         videoId: video.id,
-        projectId: folderId,
+        projectId: video.projectId || folderId || "",
         title: video.title || t("video.card.unnamed"),
         keys,
       }),
@@ -241,7 +241,7 @@ export function VideoGridCard({
       className="studio-card group relative flex flex-col overflow-hidden border border-[var(--studio-line)]"
     >
       <Link
-        href={folderVideoPath(folderId, video.id)}
+        href={folderVideoPath(video.projectId || folderId, video.id)}
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">

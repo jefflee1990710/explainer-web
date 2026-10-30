@@ -11,7 +11,7 @@ export function VideoEditorBreadcrumb({
   title,
   titleId,
 }: {
-  folderId: string;
+  folderId?: string;
   folderName: string;
   title: string;
   titleId: string;
@@ -28,12 +28,16 @@ export function VideoEditorBreadcrumb({
             {t("nav.projects")}
           </Link>
         </li>
-        <CrumbSep />
-        <li className="min-w-0 max-w-[14rem]">
-          <Link href={folderPath(folderId)} className={`block truncate ${linkClass}`}>
-            {folderName}
-          </Link>
-        </li>
+        {folderId ? (
+          <>
+            <CrumbSep />
+            <li className="min-w-0 max-w-[14rem]">
+              <Link href={folderPath(folderId)} className={`block truncate ${linkClass}`}>
+                {folderName}
+              </Link>
+            </li>
+          </>
+        ) : null}
         <CrumbSep />
         <li className="min-w-0">
           <h1 id={titleId} className="truncate font-display text-base font-bold sm:text-xl">

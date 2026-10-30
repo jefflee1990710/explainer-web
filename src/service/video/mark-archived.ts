@@ -19,7 +19,8 @@ export async function markVideoArchivedAction(videoId: string): Promise<MarkArch
 
   const now = new Date();
   await videos.updateOne({ _id: video._id }, { $set: { archivedAt: now, updatedAt: now } });
-  revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
+  revalidatePath("/app");
+  if (video.projectId) revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
   return { ok: true };
 }
 
@@ -40,6 +41,7 @@ export async function unarchiveVideoAction(videoId: string): Promise<MarkArchive
     { _id: video._id },
     { $unset: { archivedAt: "" }, $set: { updatedAt: now } },
   );
-  revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
+  revalidatePath("/app");
+  if (video.projectId) revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
   return { ok: true };
 }

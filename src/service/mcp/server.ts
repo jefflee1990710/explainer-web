@@ -116,7 +116,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         .toArray();
       return docs.map((v) => ({
         id: v._id.toHexString(),
-        folderId: v.projectId.toHexString(),
+        folderId: v.projectId?.toHexString() ?? null,
         status: v.status,
         topic: v.phaseA?.englishTitle || v.source?.slice(0, 80) || null,
         updatedAt: v.updatedAt,

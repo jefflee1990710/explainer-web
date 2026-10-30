@@ -21,6 +21,7 @@ export async function markVideoPostedAction(videoId: string): Promise<MarkPosted
 
   const now = new Date();
   await videos.updateOne({ _id: video._id }, { $set: { postedAt: now, updatedAt: now } });
-  revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
+  revalidatePath("/app");
+  if (video.projectId) revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
   return { ok: true };
 }

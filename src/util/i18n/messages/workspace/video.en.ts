@@ -121,7 +121,7 @@ export const videoEn = {
     upToDate: "Up to date",
     retry: "Export again",
     export: "Export video",
-    hint: "Download the timeline as a video file.",
+    hint: "Download the timeline as an MP4.",
     videoOnly: "Video only",
     videoAndCover: "Video + Cover",
     stayOpen: "Don't close this browser until the download finishes.",

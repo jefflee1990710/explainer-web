@@ -89,7 +89,7 @@ async function emailCopyFor(
   const user = await users.findOne({ clerkUserId: video.clerkUserId });
   if (!user?.email) return null;
   const title = video.phaseA?.localizedTitle || "未命名影片";
-  const href = `${getAppUrl()}${folderVideoPath(video.projectId.toHexString(), video._id.toHexString())}`;
+  const href = `${getAppUrl()}${folderVideoPath(video.projectId?.toHexString(), video._id.toHexString())}`;
   if (job.kind === "still") {
     return { to: user.email, kind: "still", title, href };
   }

@@ -100,7 +100,9 @@ export async function listFolderBookendVideosAction(
     .find(
       {
         clerkUserId: user.clerkUserId,
-        projectId: current.projectId,
+        ...(current.projectId
+          ? { projectId: current.projectId }
+          : { projectId: { $exists: false } }),
         _id: { $ne: current._id },
         skillSlug: { $in: [OPENING_SKILL_SLUG, ENDING_SKILL_SLUG] },
       },
@@ -155,13 +157,15 @@ export async function updateVideoEditAction(videoId: string, edit: unknown): Pro
   const videos = await videosCollection();
   await videos.updateOne({ _id: video._id }, { $set: { edit: parsed.data, updatedAt: new Date() } });
   const reusable = pickReusableEdit(parsed.data);
-  const folders = await projectsCollection();
-  await folders.updateOne(
-    { _id: video.projectId, clerkUserId: user.clerkUserId },
-    hasReusableEdit(reusable)
-      ? { $set: { editDefaults: reusable, updatedAt: new Date() } }
-      : { $unset: { editDefaults: "" }, $set: { updatedAt: new Date() } },
-  );
+  if (video.projectId) {
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId, clerkUserId: user.clerkUserId },
+      hasReusableEdit(reusable)
+        ? { $set: { editDefaults: reusable, updatedAt: new Date() } }
+        : { $unset: { editDefaults: "" }, $set: { updatedAt: new Date() } },
+    );
+  }
   const updated = await videos.findOne({ _id: video._id });
   return updated ? { ok: true, project: toPublicVideo(updated) } : { ok: false, error: "找不到影片" };
 }
@@ -207,7 +211,8 @@ export async function exportFinalVideoAction(videoId: string): Promise<ProjectRe
       },
     );
     after(() => runFinalJob(video._id, fingerprint));
-    revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
+    revalidatePath("/app");
+    if (video.projectId) revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
   }
   const updated = await videos.findOne({ _id: video._id });
   return updated ? { ok: true, project: toPublicVideo(updated) } : { ok: false, error: "找不到影片" };

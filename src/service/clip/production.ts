@@ -51,7 +51,7 @@ function revalidateProject(projectId: string) {
 async function enqueuedVideo(project: Project): Promise<PublicVideo> {
   const projects = await videosCollection();
   const updated = await projects.findOne({ _id: project._id });
-  revalidatePath(folderVideoPath(project.projectId.toHexString(), project._id.toHexString()));
+  revalidatePath(folderVideoPath(project.projectId?.toHexString(), project._id.toHexString()));
   return toPublicVideo(await markUnsentClipVideos(updated ?? project));
 }
 
