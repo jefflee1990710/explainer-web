@@ -61,10 +61,23 @@ export function useSoundSearch({ query }: { query: string }) {
 	const loadMore = async () => {
 		if (loadingMoreRef.current || isLoadingMore || !hasNextPage) return;
 		loadingMoreRef.current = true;
+		const nextPage = currentPage + 1;
+		const categoryAtStart = selectedCategory;
+		const sourceAtStart = selectedSource;
+		const queryAtStart = query.trim();
+		const commercialAtStart = showCommercialOnly;
+		const stillCurrent = () => {
+			const latest = useSoundsStore.getState();
+			return (
+				latest.selectedCategory === categoryAtStart &&
+				latest.selectedSource === sourceAtStart &&
+				latest.searchQuery.trim() === queryAtStart &&
+				latest.showCommercialOnly === commercialAtStart
+			);
+		};
 
 		try {
 			setLoadingMore({ loading: true });
-			const nextPage = currentPage + 1;
 			const page = await listSoundEffectsAction({
 				page: nextPage,
 				query,
@@ -72,6 +85,8 @@ export function useSoundSearch({ query }: { query: string }) {
 				source: selectedSource,
 				commercialOnly: showCommercialOnly,
 			});
+			// A filter change replaced this page; do not append the old one.
+			if (!stillCurrent()) return;
 			if (!page.ok) {
 				setSearchError({ error: page.error });
 				return;
@@ -88,12 +103,13 @@ export function useSoundSearch({ query }: { query: string }) {
 			setHasNextPage({ hasNext: page.hasNext && sounds.length > 0 });
 			setTotalCount({ count: page.count });
 		} catch (err) {
+			if (!stillCurrent()) return;
 			setSearchError({
 				error: err instanceof Error ? err.message : "Load more failed",
 			});
 		} finally {
 			loadingMoreRef.current = false;
-			setLoadingMore({ loading: false });
+			if (stillCurrent()) setLoadingMore({ loading: false });
 		}
 	};
 

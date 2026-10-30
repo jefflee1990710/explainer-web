@@ -92,10 +92,18 @@ export function BgmView() {
 	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
+	// Drops a finished request when a newer mood or search already started.
+	const requestSeq = useRef(0);
 
 	useEffect(() => {
 		void loadSavedSounds();
 	}, [loadSavedSounds]);
+
+	const stopPreview = useCallback(() => {
+		audioRef.current?.pause();
+		audioRef.current = null;
+		setPlayingId(null);
+	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -115,9 +123,16 @@ export function BgmView() {
 			pageNum?: number;
 			append?: boolean;
 		}) => {
-			if (append) setLoadingMore(true);
-			else setLoading(true);
-			setError(null);
+			const seq = ++requestSeq.current;
+			if (append) {
+				setLoadingMore(true);
+			} else {
+				// A new list replaces the old one: stop the preview and show the skeleton.
+				stopPreview();
+				setLoading(true);
+				setError(null);
+				setTracks([]);
+			}
 			try {
 				const moodObj =
 					BGM_MOODS.find((m) => m.id === selectedMood) ?? BGM_MOODS[0];
@@ -127,6 +142,7 @@ export function BgmView() {
 					moodQuery: moodObj.query,
 					commercialOnly: true,
 				});
+				if (seq !== requestSeq.current) return;
 				if (!res.ok) {
 					setError(res.error);
 					return;
@@ -138,18 +154,20 @@ export function BgmView() {
 				setHasNext(res.hasNext);
 				setPage(pageNum);
 			} catch {
+				if (seq !== requestSeq.current) return;
 				setError("載入背景音樂清單失敗");
 			} finally {
+				if (seq !== requestSeq.current) return;
 				setLoading(false);
 				setLoadingMore(false);
 			}
 		},
-		[],
+		[stopPreview],
 	);
 
 	useEffect(() => {
-		void fetchTracks({ searchQuery: "", selectedMood: moodId, pageNum: 1 });
-	}, [fetchTracks, moodId]);
+		void fetchTracks({ searchQuery: "", selectedMood: "ambient", pageNum: 1 });
+	}, [fetchTracks]);
 
 	const togglePlay = (track: LibrarySound) => {
 		if (playingId === track.id) {
@@ -281,9 +299,14 @@ export function BgmView() {
 					<div className="bg-muted/60 inline-flex shrink-0 rounded-full border p-0.5">
 						<button
 							type="button"
-							onClick={() => setViewTab("browse")}
+							disabled={loading}
+							onClick={() => {
+								if (viewTab === "browse") return;
+								stopPreview();
+								setViewTab("browse");
+							}}
 							className={cn(
-								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors",
+								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 								viewTab === "browse"
 									? "bg-foreground text-background shadow-xs"
 									: "text-muted-foreground hover:text-foreground",
@@ -293,9 +316,14 @@ export function BgmView() {
 						</button>
 						<button
 							type="button"
-							onClick={() => setViewTab("saved")}
+							disabled={loading}
+							onClick={() => {
+								if (viewTab === "saved") return;
+								stopPreview();
+								setViewTab("saved");
+							}}
 							className={cn(
-								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors",
+								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 								viewTab === "saved"
 									? "bg-foreground text-background shadow-xs"
 									: "text-muted-foreground hover:text-foreground",
@@ -311,6 +339,7 @@ export function BgmView() {
 						<form
 							onSubmit={(event) => {
 								event.preventDefault();
+								if (loading || loadingMore) return;
 								void fetchTracks({
 									searchQuery: query,
 									selectedMood: moodId,
@@ -322,11 +351,13 @@ export function BgmView() {
 							<Input
 								placeholder="搜尋曲風或樂器（如 synth, chill, piano, guitar）…"
 								value={query}
+								disabled={loading || loadingMore}
 								onChange={(e) => setQuery(e.currentTarget.value)}
 								className="h-7 text-xs"
 								containerClassName="flex-1"
 								showClearIcon
 								onClear={() => {
+									if (loading || loadingMore) return;
 									setQuery("");
 									void fetchTracks({
 										searchQuery: "",
@@ -338,10 +369,10 @@ export function BgmView() {
 							<Button
 								type="submit"
 								size="sm"
-								disabled={loading}
+								disabled={loading || loadingMore}
 								className="h-7 px-2.5 text-xs"
 							>
-								{loading ? "…" : "搜尋"}
+								{loading || loadingMore ? "…" : "搜尋"}
 							</Button>
 						</form>
 
@@ -353,7 +384,10 @@ export function BgmView() {
 									<button
 										key={mood.id}
 										type="button"
+										disabled={loading || loadingMore}
+										aria-busy={loading && active}
 										onClick={() => {
+											if (loading || loadingMore || mood.id === moodId) return;
 											setMoodId(mood.id);
 											void fetchTracks({
 												searchQuery: query,
@@ -362,10 +396,11 @@ export function BgmView() {
 											});
 										}}
 										className={cn(
-											"cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+											"cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:cursor-not-allowed",
 											active
 												? "border-foreground bg-foreground text-background shadow-xs"
 												: "border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+											(loading || loadingMore) && !active && "opacity-40",
 										)}
 									>
 										{mood.label}
@@ -386,7 +421,8 @@ export function BgmView() {
 				) : null}
 
 				{loading ? (
-					<div className="space-y-2 py-2">
+					<div className="space-y-2 py-2" aria-busy="true" aria-live="polite">
+						<p className="text-muted-foreground px-1 text-xs">載入曲目中…</p>
 						{Array.from({ length: 6 }).map((_, idx) => (
 							<div
 								key={idx}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/opencut/components/ui/button";
 import {
 	Dialog,
@@ -101,9 +101,20 @@ function SoundEffectsView() {
 	});
 
 	const [playingId, setPlayingId] = useState<string | null>(null);
-	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
-		null,
-	);
+	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const stopPreview = useCallback(() => {
+		audioRef.current?.pause();
+		audioRef.current = null;
+		setPlayingId(null);
+	}, []);
+	// Category, source, license, and search replace the list, so filters stay locked until it lands.
+	const filtersBusy = isLoading || isSearching || isLoadingMore;
+
+	useEffect(() => {
+		return () => {
+			audioRef.current?.pause();
+		};
+	}, []);
 
 	const { scrollAreaRef, handleScroll } = useInfiniteScroll({
 		onLoadMore: loadMore,
@@ -158,12 +169,11 @@ function SoundEffectsView() {
 
 	const playSound = ({ sound }: { sound: SoundEffect }) => {
 		if (playingId === sound.id) {
-			audioElement?.pause();
-			setPlayingId(null);
+			stopPreview();
 			return;
 		}
 
-		audioElement?.pause();
+		stopPreview();
 
 		if (sound.previewUrl) {
 			const audio = new Audio(sound.previewUrl);
@@ -178,7 +188,7 @@ function SoundEffectsView() {
 				setPlayingId(null);
 			});
 
-			setAudioElement(audio);
+			audioRef.current = audio;
 			setPlayingId(sound.id);
 		}
 	};
@@ -239,17 +249,24 @@ function SoundEffectsView() {
 					className="w-full"
 					containerClassName="w-full"
 					value={searchQuery}
-					onChange={({ currentTarget }) =>
-						setSearchQuery({ query: currentTarget.value })
-					}
+					disabled={filtersBusy}
+					onChange={({ currentTarget }) => {
+						stopPreview();
+						setSearchQuery({ query: currentTarget.value });
+					}}
 					showClearIcon
-					onClear={() => setSearchQuery({ query: "" })}
+					onClear={() => {
+						if (filtersBusy) return;
+						stopPreview();
+						setSearchQuery({ query: "" });
+					}}
 				/>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="text"
 							size="icon"
+							disabled={filtersBusy}
 							className={cn(showCommercialOnly && "text-primary")}
 						>
 							<HugeiconsIcon icon={FilterMailIcon} />
@@ -258,7 +275,10 @@ function SoundEffectsView() {
 					<DropdownMenuContent align="end" className="w-56">
 						<DropdownMenuCheckboxItem
 							checked={showCommercialOnly}
-							onCheckedChange={() => toggleCommercialFilter()}
+							onCheckedChange={() => {
+								stopPreview();
+								toggleCommercialFilter();
+							}}
 						>
 							Show only commercially licensed
 						</DropdownMenuCheckboxItem>
@@ -283,12 +303,18 @@ function SoundEffectsView() {
 						<button
 							key={src.id}
 							type="button"
-							onClick={() => setSelectedSource({ source: src.id })}
+							disabled={filtersBusy}
+							onClick={() => {
+								if (filtersBusy || selectedSource === src.id) return;
+								stopPreview();
+								setSelectedSource({ source: src.id });
+							}}
 							className={cn(
-								"cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+								"cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed",
 								selectedSource === src.id
 									? "bg-primary text-primary-foreground"
 									: "bg-accent/60 text-muted-foreground hover:text-foreground",
+								filtersBusy && selectedSource !== src.id && "opacity-40",
 							)}
 						>
 							{src.label}
@@ -298,7 +324,7 @@ function SoundEffectsView() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={isGeneratingSfx}
+					disabled={isGeneratingSfx || filtersBusy}
 					onClick={() => void handleGenerateElevenLabsSfx()}
 					className="h-7 text-xs"
 				>
@@ -311,12 +337,19 @@ function SoundEffectsView() {
 					<button
 						key={cat.id}
 						type="button"
-						onClick={() => setSelectedCategory({ category: cat.id })}
+						disabled={filtersBusy}
+						aria-busy={filtersBusy && selectedCategory === cat.id}
+						onClick={() => {
+							if (filtersBusy || selectedCategory === cat.id) return;
+							stopPreview();
+							setSelectedCategory({ category: cat.id });
+						}}
 						className={cn(
-							"cursor-pointer rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors",
+							"cursor-pointer rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:cursor-not-allowed",
 							selectedCategory === cat.id
 								? "border-primary bg-primary/15 text-primary"
 								: "border-border/60 text-muted-foreground hover:text-foreground",
+							filtersBusy && selectedCategory !== cat.id && "opacity-40",
 						)}
 					>
 						{cat.label}
@@ -330,35 +363,43 @@ function SoundEffectsView() {
 					ref={scrollAreaRef}
 					onScrollCapture={handleScrollWithPosition}
 				>
-					<div className="flex flex-col gap-4">
+					<div className="flex flex-col gap-4" aria-busy={isLoading || isSearching}>
 						{(error || searchError) && (
 							<div className="text-destructive text-sm">{error || searchError}</div>
 						)}
-						{isLoading && !searchQuery && (
-							<div className="text-muted-foreground text-sm">
-								Loading sounds...
+						{isLoading || isSearching ? (
+							<div className="space-y-2 py-1" aria-live="polite">
+								<p className="text-muted-foreground text-xs">
+									{searchQuery.trim() ? "搜尋聲效中…" : "載入聲效中…"}
+								</p>
+								{Array.from({ length: 6 }).map((_, idx) => (
+									<div
+										key={idx}
+										className="bg-muted/40 h-14 animate-pulse rounded-lg border"
+									/>
+								))}
 							</div>
-						)}
-						{isSearching && searchQuery && (
-							<div className="text-muted-foreground text-sm">Searching...</div>
-						)}
-						{displayedSounds.map((sound) => (
-							<AudioItem
-								key={sound.id}
-								sound={sound}
-								isPlaying={playingId === sound.id}
-								onPlay={playSound}
-							/>
-						))}
-						{!isLoading && !isSearching && displayedSounds.length === 0 && (
-							<div className="text-muted-foreground text-sm">
-								{searchQuery ? "No sounds found" : "No sounds available"}
-							</div>
-						)}
-						{isLoadingMore && (
-							<div className="text-muted-foreground py-4 text-center text-sm">
-								Loading more sounds...
-							</div>
+						) : (
+							<>
+								{displayedSounds.map((sound) => (
+									<AudioItem
+										key={sound.id}
+										sound={sound}
+										isPlaying={playingId === sound.id}
+										onPlay={playSound}
+									/>
+								))}
+								{displayedSounds.length === 0 && (
+									<div className="text-muted-foreground text-sm">
+										{searchQuery ? "No sounds found" : "No sounds available"}
+									</div>
+								)}
+								{isLoadingMore && (
+									<div className="text-muted-foreground py-4 text-center text-sm">
+										Loading more sounds...
+									</div>
+								)}
+							</>
 						)}
 					</div>
 				</ScrollArea>
@@ -377,9 +418,12 @@ function SavedSoundsView() {
 	} = useSoundsStore();
 
 	const [playingId, setPlayingId] = useState<string | null>(null);
-	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
-		null,
-	);
+	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const stopPreview = useCallback(() => {
+		audioRef.current?.pause();
+		audioRef.current = null;
+		setPlayingId(null);
+	}, []);
 
 	const [showClearDialog, setShowClearDialog] = useState(false);
 
@@ -387,14 +431,19 @@ function SavedSoundsView() {
 		loadSavedSounds();
 	}, [loadSavedSounds]);
 
+	useEffect(() => {
+		return () => {
+			audioRef.current?.pause();
+		};
+	}, []);
+
 	const playSound = ({ sound }: { sound: SoundEffect }) => {
 		if (playingId === sound.id) {
-			audioElement?.pause();
-			setPlayingId(null);
+			stopPreview();
 			return;
 		}
 
-		audioElement?.pause();
+		stopPreview();
 
 		if (sound.previewUrl) {
 			const audio = new Audio(sound.previewUrl);
@@ -409,7 +458,7 @@ function SavedSoundsView() {
 				setPlayingId(null);
 			});
 
-			setAudioElement(audio);
+			audioRef.current = audio;
 			setPlayingId(sound.id);
 		}
 	};

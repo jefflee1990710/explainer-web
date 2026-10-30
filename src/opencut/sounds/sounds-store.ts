@@ -74,6 +74,25 @@ interface SoundsStore {
 	clearSavedSounds: () => Promise<void>;
 }
 
+// A new filter replaces the current page: show loading at once and drop the old rows.
+function filterLoadingState<T extends {
+	searchQuery: string;
+	topSoundEffects: SoundEffect[];
+	searchResults: SoundEffect[];
+}>(
+	state: T,
+	patch: Partial<T>,
+) {
+	const searching = Boolean(state.searchQuery.trim());
+	return {
+		...patch,
+		isLoading: !searching,
+		isSearching: searching,
+		isLoadingMore: false,
+		...(searching ? { searchResults: [] } : { topSoundEffects: [] }),
+	};
+}
+
 export const useSoundsStore = create<SoundsStore>((set, get) => ({
 	topSoundEffects: [],
 	isLoading: false,
@@ -84,10 +103,12 @@ export const useSoundsStore = create<SoundsStore>((set, get) => ({
 	selectedSource: "all",
 
 	toggleCommercialFilter: () => {
-		set((state) => ({ showCommercialOnly: !state.showCommercialOnly }));
+		set((state) => filterLoadingState(state, { showCommercialOnly: !state.showCommercialOnly }));
 	},
-	setSelectedCategory: ({ category }) => set({ selectedCategory: category }),
-	setSelectedSource: ({ source }) => set({ selectedSource: source }),
+	setSelectedCategory: ({ category }) =>
+		set((state) => filterLoadingState(state, { selectedCategory: category })),
+	setSelectedSource: ({ source }) =>
+		set((state) => filterLoadingState(state, { selectedSource: source })),
 	prependSoundEffect: ({ sound }) =>
 		set((state) => ({
 			topSoundEffects: [sound, ...state.topSoundEffects],
