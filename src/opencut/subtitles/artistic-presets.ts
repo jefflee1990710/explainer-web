@@ -952,10 +952,36 @@ function splitLongClauseIntoChunks(
 	return splitLatinWordsAtBestPhraseBoundary(words, maxLatinWords, maxLatinChars);
 }
 
+// Dialogue rows are stored as `Name: 「line」`. The on-screen cue is the spoken line only.
+function spokenSubtitleLine(line: string): string {
+	const trimmed = line.trim();
+	const wrapped = trimmed.match(/^[^:：\n]{1,24}[:：]\s*[「『"]([\s\S]*?)[」』"]\s*$/u);
+	const spoken = wrapped?.[1]?.trim();
+	return spoken || trimmed;
+}
+
+function isSubtitlePunctuationOnly(text: string): boolean {
+	return /^[\s「」『』"'“”‘’（）()【】[\]，,。！？!?；;、：:…—–-]+$/u.test(text);
+}
+
+// A leftover closing quote must not become its own one-character subtitle.
+function attachOrphanPunctuation(parts: string[]): string[] {
+	const out: string[] = [];
+	for (const part of parts) {
+		if (out.length > 0 && isSubtitlePunctuationOnly(part)) {
+			out[out.length - 1] = `${out[out.length - 1]}${part.trim()}`;
+			continue;
+		}
+		if (isSubtitlePunctuationOnly(part)) continue;
+		out.push(part);
+	}
+	return out;
+}
+
 /**
  * Splits a clip's spoken VO line into natural timed subtitle segments:
- * - For 9:16 Vertical Reels / 1:1 (`isLandscape = false`): splits into shorter, punchy semantic
- *   phrases (~4–7 English words / ~22–36 chars, or ~8–13 CJK chars) so each subtitle renders BIGGER.
+ * - For 9:16 Vertical Reels / 1:1 (`isLandscape = false`): one spoken clause per cue
+ *   (~4–7 English words / ~22–36 chars, or up to ~20 CJK chars) so a Cantonese clause stays whole.
  * - For 16:9 Landscape (`isLandscape = true`): allows longer subtitle clauses (~8–12 English words
  *   / ~44–62 chars, or ~15–22 CJK chars) to take advantage of the wide horizontal frame.
  */
@@ -976,7 +1002,7 @@ export function splitVoIntoSubtitleSegments({
 	canvasSize?: { width: number; height: number };
 	cues?: string[];
 }): TimedVoSubtitleSegment[] {
-	const cleaned = line.trim().replace(/\s+/g, " ");
+	const cleaned = spokenSubtitleLine(line).replace(/\s+/g, " ");
 	if (!cleaned || duration <= 0) return [];
 
 	const landscape =
@@ -985,8 +1011,8 @@ export function splitVoIntoSubtitleSegments({
 	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(cleaned);
 	const maxLatinWords = landscape ? 12 : 7;
 	const maxLatinChars = maxClauseChars ?? (landscape ? 60 : 36);
-	const maxCjkChars = maxClauseChars ?? (landscape ? 22 : 13);
-	const mergeMaxChars = maxClauseChars ?? (hasCjk ? (landscape ? 20 : 10) : landscape ? 52 : 26);
+	const maxCjkChars = maxClauseChars ?? (landscape ? 22 : 20);
+	const mergeMaxChars = maxClauseChars ?? (hasCjk ? 22 : landscape ? 52 : 26);
 
 	const initialClauses =
 		cues && cues.length > 0
@@ -1004,9 +1030,13 @@ export function splitVoIntoSubtitleSegments({
 	);
 
 	if (rawClauses.length <= 1) {
+		const only = attachOrphanPunctuation([
+			(rawClauses[0] ?? cleaned).replace(/[，,。；;]+$/u, ""),
+		]);
+		if (only.length === 0) return [];
 		return [
 			{
-				text: (rawClauses[0] ?? cleaned).replace(/[，,。；;]+$/u, ""),
+				text: only[0],
 				startTime,
 				duration,
 			},
@@ -1017,7 +1047,7 @@ export function splitVoIntoSubtitleSegments({
 	const merged: string[] = [];
 	for (const clause of rawClauses) {
 		const prev = merged[merged.length - 1];
-		const sep = " ";
+		const sep = hasCjk ? "，" : " ";
 		const combinedWords = prev
 			? `${prev} ${clause}`.trim().split(/\s+/).length
 			: 0;
@@ -1034,16 +1064,17 @@ export function splitVoIntoSubtitleSegments({
 		}
 	}
 
-	if (merged.length === 1) {
-		return [{ text: merged[0], startTime, duration }];
+	const spokenCues = attachOrphanPunctuation(merged);
+	if (spokenCues.length === 1) {
+		return [{ text: spokenCues[0], startTime, duration }];
 	}
 
-	const weights = merged.map((seg) => Math.max(2, seg.length));
+	const weights = spokenCues.map((seg) => Math.max(2, seg.length));
 	const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 	let cursor = startTime;
 
-	return merged.map((text, idx) => {
-		const isLast = idx === merged.length - 1;
+	return spokenCues.map((text, idx) => {
+		const isLast = idx === spokenCues.length - 1;
 		const segDuration = isLast
 			? Math.max(0.2, startTime + duration - cursor)
 			: Math.max(0.2, (duration * weights[idx]) / totalWeight);

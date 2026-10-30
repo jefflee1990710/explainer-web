@@ -213,6 +213,19 @@ test("splitVoIntoSubtitleSegments splits 9:16 Reel VO into shorter cues for bigg
 	assert.equal(SUBTITLE_BOTTOM_MARGIN_RATIO, 0.08);
 });
 
+test("splitVoIntoSubtitleSegments keeps a 9:16 Cantonese dialogue clause together", () => {
+	const segments = splitVoIntoSubtitleSegments({
+		line: "Scro: 「件貨整得夠靚咪自然有人買囉，點解仲要晒錢搞宣傳啫？」",
+		startTime: 0,
+		duration: 5,
+		canvasSize: { width: 1080, height: 1920 },
+	});
+	const texts = segments.map((seg) => seg.text);
+	assert.deepEqual(texts, ["件貨整得夠靚咪自然有人買囉", "點解仲要晒錢搞宣傳啫？"]);
+	assert.ok(texts.every((text) => text.length >= 8));
+	assert.ok(texts.every((text) => !/^[\s」』"']+$/u.test(text)));
+});
+
 test("wrapSubtitleTextWithMeasure balances 2-line subtitles so word counts are even instead of leaving 1 orphan word", () => {
 	// "Watch how this rooftop chart changes everything" (47 chars, 7 words)
 	// With maxWidth = 380 (10px per char), greedy wrapping would put 6 words ("Watch how this rooftop chart changes", 360px)
