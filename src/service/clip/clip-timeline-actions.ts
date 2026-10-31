@@ -32,7 +32,8 @@ import {
 import { APPEND_CLIP_MAX, draftAppendedClips } from "@/service/director/append-clip";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { isTalkingHeadSkill, talkingHeadSpokenError } from "@/service/director/talking-head";
-import { isMediaBusy, isProjectBusy } from "@/service/clip-stage";
+import { clipFrameCost, isMediaBusy, isProjectBusy } from "@/service/clip-stage";
+import { enqueueClipFrameJobs, stillBlocker } from "@/service/higgsfield/pipeline";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { isProductionLike } from "@/service/project-status";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
@@ -351,11 +352,54 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
   );
   if (wrote.matchedCount !== 1) throw new Error("專案不存在");
   if (shiftsLaterClips) await shiftInsertedClipJobs(fresh._id, insertAt, drafted.length);
+  const newNumbers = drafted.map((_, index) => insertAt + index);
   if (plateOverlay) {
-    const newNumbers = drafted.map((_, index) => insertAt + index);
     await queueNewClipPlates(fresh.clerkUserId, fresh._id, newNumbers);
   }
+  if (isProductionLike(fresh.status)) {
+    await queueNewClipFrames(fresh.clerkUserId, fresh._id, newNumbers);
+  }
   revalidateVideo(fresh.projectId?.toHexString());
+}
+
+// Automatically charge and enqueue scene frame jobs for newly appended clips so background generation
+// starts immediately without waiting for the user to refresh the editor page.
+async function queueNewClipFrames(
+  clerkUserId: string,
+  videoId: ObjectId,
+  clipNumbers: number[],
+) {
+  let spendKey: string | undefined;
+  let chargedCost = 0;
+  try {
+    const [videos, users] = await Promise.all([
+      videosCollection(),
+      usersCollection(),
+    ]);
+    const [saved, account] = await Promise.all([
+      videos.findOne({ _id: videoId }),
+      users.findOne({ clerkUserId }),
+    ]);
+    if (!saved?.phaseA || !account) return;
+    if (await stillBlocker(saved)) return;
+
+    const cost = clipNumbers.reduce(
+      (sum, clipNumber) => sum + clipFrameCost(saved, clipNumber),
+      0,
+    );
+    if (cost <= 0) return;
+
+    await assertCanSpendCredits(withUnlimitedCredits(account), cost);
+    spendKey = await consumeCredits(clerkUserId, cost);
+    chargedCost = cost;
+
+    await enqueueClipFrameJobs(saved, clipNumbers);
+  } catch (error) {
+    console.error("[clip-append] new clip frame enqueue failed", { videoId, error });
+    if (spendKey && chargedCost > 0) {
+      await refundCredits(clerkUserId, chargedCost, spendKey).catch(() => {});
+    }
+  }
 }
 
 // Charge and queue plates for the clips just added. The clips are already saved, so a

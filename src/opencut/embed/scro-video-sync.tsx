@@ -57,6 +57,11 @@ import {
 	setScroClipMenuFlags,
 	setScroVideos,
 } from "@/opencut/embed/scro-video-store";
+import {
+	reconcileScroOnscreenTextsWithEditor,
+	setScroOnscreenTexts,
+	type ScroOnscreenText,
+} from "@/opencut/embed/scro-onscreen-text";
 import type { TimelineElement } from "@/opencut/timeline";
 
 const PARENT_ORIGINS = new Set([
@@ -179,9 +184,21 @@ export function ScroVideoSync() {
 				| ScroSeedMessage
 				| ScroClipUpdatedMessage
 				| ScroVideosStateMessage
+				| { type: "scro-onscreen-texts-state"; videoId: string; items: ScroOnscreenText[] }
 				| { type: "scro-clear-checked"; videoId: string }
 				| { type: "scro-clip-menu-state"; videoId: string; idle?: boolean; videosEnabled?: boolean };
 			if (!data || !("type" in data) || !data.videoId) return;
+			if (data.type === "scro-onscreen-texts-state") {
+				setScroOnscreenTexts({ videoId: data.videoId, items: data.items });
+				enqueueSync(() =>
+					reconcileScroOnscreenTextsWithEditor({
+						editor,
+						videoId: data.videoId,
+						items: data.items,
+					}),
+				);
+				return;
+			}
 			if (data.type === "scro-seed-videos") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
 				enqueueSync(() => seedClips(data));

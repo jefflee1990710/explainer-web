@@ -1,5 +1,6 @@
 import type { OpencutEditMedia } from "@/model/opencut-edit";
-import type { AspectRatio, FramePosition } from "@/model/project";
+import type { AspectRatio, FramePosition, OnscreenTextItem } from "@/model/project";
+import type { PublicVideo } from "@/presentation/serialize";
 import type { ScroVideoUiStage } from "@/service/scro-video/view-model";
 import type { SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 
@@ -63,6 +64,29 @@ export type ScroVideosStateMessage = {
   type: "scro-videos-state";
   videoId: string;
   clips: ScroVideoSeedClip[];
+};
+
+export type ScroOnscreenTextSeedItem = {
+  id: string;
+  text: string;
+  textStyleId: string;
+  styleName?: string;
+  status: OnscreenTextItem["status"];
+  url?: string;
+  error?: string;
+  submittedAt?: string;
+};
+
+export type ScroOnscreenTextsStateMessage = {
+  type: "scro-onscreen-texts-state";
+  videoId: string;
+  items: ScroOnscreenTextSeedItem[];
+};
+
+export type ScroProjectUpdatedMessage = {
+  type: "scro-project-updated";
+  videoId: string;
+  project: PublicVideo;
 };
 
 export type ScroRestoreMessage = {
@@ -201,6 +225,7 @@ export type HostToEditorMessage =
   | ScroSeedMessage
   | ScroClipUpdatedMessage
   | ScroVideosStateMessage
+  | ScroOnscreenTextsStateMessage
   | ScroRestoreMessage
   | ScroSubtitleCatalogMessage
   | ScroSubtitleGenerateResultMessage
@@ -220,7 +245,8 @@ export type EditorToHostMessage =
   | ScroLoadProgressMessage
   | ScroSeedDoneMessage
   | ScroRestoreDoneMessage
-  | ScroProjectSaveMessage;
+  | ScroProjectSaveMessage
+  | ScroProjectUpdatedMessage;
 
 /** Type guard for incoming messages from OpenCut editor. */
 export function isEditorToHostMessage(payload: unknown): payload is EditorToHostMessage {

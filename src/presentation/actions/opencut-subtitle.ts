@@ -15,13 +15,24 @@ import {
   opencutSubtitleStyleChanged,
 } from "@/service/opencut/subtitle-plates";
 import {
+  enqueueOpencutOnScreenText,
   generateOpencutOnScreenText,
+  type EnqueueOpencutOnScreenTextResult,
   type GenerateOpencutOnScreenTextResult,
 } from "@/service/opencut/on-screen-text";
 import { updateVideoTextStyleAction } from "@/service/project/actions";
 import { isProductionLike } from "@/service/project-status";
 
 export type OpencutSubtitlePlateRow = { clipNumber: number; url: string };
+
+export async function enqueueOpencutOnScreenTextAction(input: {
+  videoId: string;
+  textStyleId: string;
+  styleName?: string;
+  text: string;
+}): Promise<EnqueueOpencutOnScreenTextResult> {
+  return enqueueOpencutOnScreenText(input);
+}
 
 export async function generateOpencutOnScreenTextAction(input: {
   videoId: string;

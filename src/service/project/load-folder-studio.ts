@@ -53,7 +53,8 @@ export async function loadStudioPickers(user: AppUser) {
   const charactersCol = await charactersCollection();
   const productsCol = await productsCollection();
   const textStylesCol = await textStylesCollection();
-  const [skillDocs, selectableStyles, initialCharacters, productDocs, textStyleDocs, sub] = await Promise.all([
+  const videosCol = await videosCollection();
+  const [skillDocs, selectableStyles, initialCharacters, productDocs, textStyleDocs, sub, videoCount] = await Promise.all([
     listSelectableSkills(user.clerkUserId),
     listSelectableStyles(user.clerkUserId),
     charactersCol
@@ -69,6 +70,7 @@ export async function loadStudioPickers(user: AppUser) {
       .sort({ updatedAt: -1 })
       .toArray() as Promise<TextStyleDoc[]>,
     getActiveSubscription(user.clerkUserId),
+    videosCol.countDocuments({ clerkUserId: user.clerkUserId }, { limit: 1 }),
   ]);
   let characterDocs = initialCharacters;
   if (characterDocs.length === 0) {
@@ -85,6 +87,7 @@ export async function loadStudioPickers(user: AppUser) {
     products: productDocs.map(toPublicProduct),
     textStyles: textStyleDocs.map(toPublicTextStyle),
     subscribed: isSubscriptionActive(sub),
+    hasAnyVideo: videoCount > 0,
   };
 }
 

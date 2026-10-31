@@ -36,6 +36,10 @@ test("detail names the clip and slot", () => {
   assert.deepEqual(taskDetailI18n({ kind: "poseEdit", clipIndex: -1 }), {
     detailKey: "tasksPage.detail.poseEdit",
   });
+  assert.equal(taskDetail({ kind: "onscreenText", clipIndex: 0 }), "畫面文字圖片");
+  assert.deepEqual(taskDetailI18n({ kind: "onscreenText", clipIndex: 0 }), {
+    detailKey: "tasksPage.detail.onscreenText",
+  });
 });
 
 test("a reel in progress is a 成片合成 background task", () => {

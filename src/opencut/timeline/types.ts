@@ -134,6 +134,8 @@ export interface ImageElement extends BaseTimelineElement {
 	masks?: Mask[];
 	/** Scro storyboard clip number when this element is a ScroVideo placeholder/result. */
 	scroClipNumber?: number;
+	/** ScroOnscreenText item id when this element is an AI on-screen text placeholder/result. */
+	scroOnscreenTextId?: string;
 }
 
 export interface TextElement extends BaseTimelineElement {

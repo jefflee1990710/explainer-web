@@ -34,6 +34,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { dropInventedSubtitleLock, resolveSceneText, storyboardAsksForSubtitle } from "@/service/director/scene-text";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { sendSubtitlePlate } from "@/service/higgsfield/subtitle-plate-job";
+import { sendOnscreenText } from "@/service/opencut/on-screen-text";
 import {
   sendBackgroundPlate,
   sendObjectSheet,
@@ -84,6 +85,7 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
   }
   // A plate is an image job. It must never fall through to the video sender.
   if (job.kind === "subtitlePlate") return sendSubtitlePlate(project, clipNumber);
+  if (job.kind === "onscreenText") return sendOnscreenText(project, job);
   if (job.kind !== "video") throw new PermanentJobError(`不支援的任務類型：${job.kind}`);
   return sendVideo(project, clipNumber);
 }

@@ -26,6 +26,7 @@ export const tasksPageEn = {
     backgroundPlate: "2/5 · 3×3 background plate",
     reelCover: "Video cover",
     poseEdit: "Pose edit",
+    onscreenText: "AI on-screen text",
     clipVideo: "4/5 · Clip {n} video & audio",
     clipSubtitlePlate: "3/5 · Clip {n} subtitle plate",
     clipFrameStart: "3/5 · Clip {n} start frame",

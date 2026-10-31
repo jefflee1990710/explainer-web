@@ -66,6 +66,7 @@ import {
 	scroAssetPreviewSrc,
 	scroDisplayName,
 	ScroMediaOverlays,
+	ScroOnscreenTextOverlays,
 	selectScroMediaClip,
 } from "@/opencut/embed/scro-video-assets";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
@@ -627,6 +628,11 @@ function MediaPreview({
 	const scroOverlay =
 		clipNumber != null ? (
 			<ScroMediaOverlays clipNumber={clipNumber} reserveCorner={showDuration} />
+		) : item.scroOnscreenTextId ? (
+			<ScroOnscreenTextOverlays
+				onscreenTextId={item.scroOnscreenTextId}
+				isPlaceholder={item.scroPlaceholder === true}
+			/>
 		) : null;
 	const previewSrc = scroAssetPreviewSrc({ asset: item, clip });
 	const showStartStill =

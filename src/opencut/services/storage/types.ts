@@ -31,6 +31,8 @@ export interface MediaAssetData {
 	sourceUrl?: string;
 	/** Scro storyboard clip this asset belongs to. */
 	scroClipNumber?: number;
+	/** ScroOnscreenText item id when this image asset is a queued/completed AI on-screen text graphic. */
+	scroOnscreenTextId?: string;
 	/** Last known start-still URL for loading thumbs. */
 	scroPosterUrl?: string;
 	/** Drawn stand-in while this clip is still waiting for a frame. */

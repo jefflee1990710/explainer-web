@@ -7,6 +7,7 @@ import {
 	setScroVideoSelection,
 	toggleScroVideoChecked,
 } from "@/opencut/embed/scro-video-store";
+import { useScroOnscreenTexts } from "@/opencut/embed/scro-onscreen-text-store";
 import {
 	resolveElementScroClipNumber,
 	resolveScroClipNumber,
@@ -75,11 +76,19 @@ export function isScroSceneStill({
 }: {
 	asset: Pick<
 		MediaAsset,
-		"name" | "type" | "url" | "thumbnailUrl" | "scroClipNumber" | "scroPosterUrl" | "scroPlaceholder"
+		| "name"
+		| "type"
+		| "url"
+		| "thumbnailUrl"
+		| "scroClipNumber"
+		| "scroOnscreenTextId"
+		| "scroPosterUrl"
+		| "scroPlaceholder"
 	>;
 	clips: ScroVideoSeedClip[] | undefined;
 }): boolean {
 	if (asset.type !== "image") return false;
+	if (asset.scroOnscreenTextId) return false;
 	if (asset.scroPlaceholder || asset.scroClipNumber != null) return true;
 	if (resolveScroClipNumber({ asset, clips }) != null) return true;
 	if ([asset.url, asset.thumbnailUrl, asset.scroPosterUrl].some((url) => Boolean(url && /\/frames\//.test(url)))) {
@@ -324,6 +333,62 @@ export function ScroMediaOverlays({
 					{SCRO_STAGE_LABEL[clip.stage]}
 				</span>
 			) : null}
+		</div>
+	);
+}
+
+/** Stage badge and loading veil for a `ScroOnscreenText` asset card in the Media library. */
+export function ScroOnscreenTextOverlays({
+	onscreenTextId,
+	isPlaceholder = false,
+	className,
+}: {
+	onscreenTextId: string;
+	isPlaceholder?: boolean;
+	className?: string;
+}) {
+	const items = useScroOnscreenTexts();
+	const item = items.find((entry) => entry.id === onscreenTextId);
+	const status = item?.status ?? (isPlaceholder ? "queued" : "completed");
+	const loading = status === "queued" || status === "in_progress";
+	const badgeLabel =
+		status === "failed"
+			? "Failed"
+			: status === "completed"
+				? "Ready"
+				: status === "in_progress"
+					? "Generating"
+					: "Queued";
+	const badgeTone =
+		status === "failed"
+			? "bg-red-500/15 text-red-700"
+			: status === "completed"
+				? "bg-emerald-500/15 text-emerald-800"
+				: "bg-amber-500/15 text-amber-900";
+
+	return (
+		<div className={cn("pointer-events-none absolute inset-0 z-10", className)}>
+			<span className="absolute top-1 right-1 size-5 overflow-hidden rounded-[4px] shadow-sm ring-1 ring-black/20">
+				<Image
+					src="/logo-mark.png"
+					alt=""
+					width={40}
+					height={40}
+					className="size-full object-cover"
+					unoptimized
+				/>
+			</span>
+			{loading ? (
+				<MediaLoadingMark className="bg-black/40 text-white" />
+			) : null}
+			<span
+				className={cn(
+					"absolute right-1 bottom-1 rounded px-1 py-0.5 text-[0.6rem]",
+					badgeTone,
+				)}
+			>
+				{badgeLabel}
+			</span>
 		</div>
 	);
 }

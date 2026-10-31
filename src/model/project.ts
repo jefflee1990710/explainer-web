@@ -311,6 +311,20 @@ export type SubtitlePlate = {
   line?: string;
 };
 
+// One OpenCut AI on-screen text image asset (`ScroOnscreenText`) generated in the background queue.
+export type OnscreenTextItem = {
+  id: string;
+  text: string;
+  textStyleId: string;
+  styleName?: string;
+  status: "queued" | "in_progress" | "completed" | "failed";
+  outputUrl?: string;
+  blobUrl?: string;
+  error?: string;
+  submittedAt?: string;
+  creditsCharged?: number;
+};
+
 // AI-drawn text-only subtitle card in the video's lettering look, reused as a still reference.
 // `key` covers the words and the look, so an edited line or a new text style draws a fresh card.
 export type SubtitleLettering = {
@@ -376,6 +390,8 @@ export type Project = {
   subtitleOverlay?: boolean;
   // Per-clip subtitle plates for that overlay. Absent until a plate job is queued.
   subtitlePlates?: SubtitlePlate[];
+  // OpenCut AI on-screen text image assets (`ScroOnscreenText`) queued from the editor.
+  onscreenTexts?: OnscreenTextItem[];
   // Painted-subtitle stills: one lettering card per subtitle line and look.
   subtitleLetterings?: SubtitleLettering[];
   characterImageUrl?: string;
@@ -487,6 +503,19 @@ const subtitlePlateSchema = z.object({
   line: z.string().optional(),
 });
 
+const onscreenTextItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  textStyleId: z.string(),
+  styleName: z.string().optional(),
+  status: frameStatusSchema,
+  outputUrl: z.string().optional(),
+  blobUrl: z.string().optional(),
+  error: z.string().optional(),
+  submittedAt: z.string().optional(),
+  creditsCharged: z.number().optional(),
+});
+
 const frameRevisionSchema = z.object({
   remark: z.string().optional(),
   annotatedUrl: z.string().optional(),
@@ -572,6 +601,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   textStyleImageUrl: z.string().optional(),
   subtitleOverlay: z.boolean().optional(),
   subtitlePlates: z.array(subtitlePlateSchema).optional(),
+  onscreenTexts: z.array(onscreenTextItemSchema).optional(),
   subtitleLetterings: z.array(z.object({ key: z.string(), url: z.string() })).optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),

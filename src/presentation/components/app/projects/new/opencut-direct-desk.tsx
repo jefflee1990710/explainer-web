@@ -107,7 +107,7 @@ export function OpenCutDirectDesk({
   const seedClips = useMemo(() => buildSeedClips(project), [project]);
   const seedClipsRef = useRef(seedClips);
   const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
-  const didAutoPlanRef = useRef(false);
+  const autoPlannedClipsRef = useRef<Set<number>>(new Set());
   const readyVideos = seedClips.filter((clip) => clip.videoUrl);
   const projectRef = useRef(project);
   const productionRef = useRef(production);
@@ -161,6 +161,24 @@ export function OpenCutDirectDesk({
       const catalog = catalogRef.current;
       if (!catalog) return;
       channel.postToEditor({ type: "scro-subtitle-catalog", videoId: project.id, catalog });
+    };
+
+    const postOnscreenTexts = () => {
+      const items = (projectRef.current.onscreenTexts ?? []).map((item) => ({
+        id: item.id,
+        text: item.text,
+        textStyleId: item.textStyleId,
+        styleName: item.styleName,
+        status: item.status,
+        url: item.blobUrl || item.outputUrl,
+        error: item.error,
+        submittedAt: item.submittedAt,
+      }));
+      channel.postToEditor({
+        type: "scro-onscreen-texts-state",
+        videoId: project.id,
+        items,
+      });
     };
 
     const beginSync = () => {
@@ -233,12 +251,19 @@ export function OpenCutDirectDesk({
           setEditorEpoch((epoch) => epoch + 1);
           beginSync();
           postCatalog();
+          postOnscreenTexts();
           channel.postToEditor({
             type: "scro-clip-menu-state",
             videoId: project.id,
             idle: (productionRef.current?.pending ?? "") === "",
             videosEnabled: allFramesReady(projectRef.current),
           });
+          return;
+        }
+        case "scro-project-updated": {
+          if (payload.videoId === project.id && payload.project) {
+            productionRef.current?.onProject(payload.project);
+          }
           return;
         }
         case "scro-subtitle-request": {
@@ -360,6 +385,7 @@ export function OpenCutDirectDesk({
             videoId: project.id,
             clips: seedClipsRef.current,
           });
+          postOnscreenTexts();
           return;
         }
         case "scro-project-save": {
@@ -450,23 +476,44 @@ export function OpenCutDirectDesk({
     });
   }, [host, production, project]);
 
-  // Once per desk session: queue missing start stills only. Videos wait for a click.
+  // Sync queued/completed ScroOnscreenText items to the editor so placeholders swap to finished images.
+  useEffect(() => {
+    if (!readyRef.current) return;
+    host.postToEditor({
+      type: "scro-onscreen-texts-state",
+      videoId: project.id,
+      items: (project.onscreenTexts ?? []).map((item) => ({
+        id: item.id,
+        text: item.text,
+        textStyleId: item.textStyleId,
+        styleName: item.styleName,
+        status: item.status,
+        url: item.blobUrl || item.outputUrl,
+        error: item.error,
+        submittedAt: item.submittedAt,
+      })),
+    });
+  }, [host, project.id, project.onscreenTexts, editorEpoch]);
+
+  // Queue missing start stills for any newly added or unplanned storyboard clips. Videos wait for a click.
   useEffect(() => {
     if (!project.phaseA?.clips?.length) {
-      didAutoPlanRef.current = false;
+      autoPlannedClipsRef.current.clear();
       return;
     }
-    if (didAutoPlanRef.current) return;
-    const frames = planRemaining(project).frames;
-    if (frames.length === 0) {
-      didAutoPlanRef.current = true;
-      return;
+    const missingFrames = planRemaining(project).frames.filter(
+      (clipNumber) => !autoPlannedClipsRef.current.has(clipNumber),
+    );
+    if (missingFrames.length === 0) return;
+    for (const clipNumber of missingFrames) {
+      autoPlannedClipsRef.current.add(clipNumber);
     }
-    didAutoPlanRef.current = true;
-    void generateSelectedClipsAction(project.id, frames, "frames").then((result) => {
+    void generateSelectedClipsAction(project.id, missingFrames, "frames").then((result) => {
       if (!result.ok) {
         if (/請稍候再試/.test(result.error)) {
-          didAutoPlanRef.current = false;
+          for (const clipNumber of missingFrames) {
+            autoPlannedClipsRef.current.delete(clipNumber);
+          }
         }
         console.warn("[scro-video] auto plan:", result.error);
       } else {

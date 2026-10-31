@@ -63,6 +63,7 @@ export type ClipStageSource = {
   backgroundPlates?: Array<{ setId: string; clipNumbers: number[]; url?: string }>;
   backgroundPlateError?: string;
   clipAppends?: Array<{ status: string }>;
+  onscreenTexts?: Array<{ status: string; blobUrl?: string; outputUrl?: string }>;
 };
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
@@ -205,7 +206,8 @@ export function isMediaBusy(project: ClipStageSource) {
   if (objectSheetBusy || backgroundPlatesBusy) return true;
   return (
     (project.frames || []).some((frame) => isInFlight(frame) || needsPersist(frame)) ||
-    project.clips.some((clip) => isInFlight(clip) || needsPersist(clip))
+    project.clips.some((clip) => isInFlight(clip) || needsPersist(clip)) ||
+    (project.onscreenTexts || []).some((item) => isInFlight(item) || needsPersist(item))
   );
 }
 
@@ -334,6 +336,11 @@ export function inFlightCounts(project: ClipStageSource): InFlightCounts {
   for (const frame of project.frames || []) {
     if (!isInFlight(frame)) continue;
     if (frame.status === "queued") counts.framesQueued += 1;
+    else counts.framesGenerating += 1;
+  }
+  for (const item of project.onscreenTexts || []) {
+    if (!isInFlight(item)) continue;
+    if (item.status === "queued") counts.framesQueued += 1;
     else counts.framesGenerating += 1;
   }
   for (const clip of project.clips) {

@@ -1,8 +1,10 @@
 import { ObjectId } from "mongodb";
 import sharp from "sharp";
-import { textStylesCollection, videosCollection } from "@/dao";
-import type { SceneTextLanguage } from "@/model/project";
+import { generationJobsCollection, textStylesCollection, videosCollection } from "@/dao";
+import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
+import type { OnscreenTextItem, Project, SceneTextLanguage } from "@/model/project";
 import type { TextStyleDoc } from "@/model/text-style";
+import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import {
   assertCanSpendCredits,
@@ -21,9 +23,12 @@ import {
 } from "@/service/director/subtitle-plate";
 import {
   imageModelForSubmit,
+  imageRouteForSceneText,
   resolveImageRoute,
 } from "@/service/generation/image-backend";
-import { toSent } from "@/service/generation/sent";
+import { toSent, type Sent } from "@/service/generation/sent";
+import { PermanentJobError } from "@/service/generation/task-policy";
+import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
@@ -42,6 +47,17 @@ export type GenerateOpencutOnScreenTextResult =
       url: string;
       text: string;
       textStyleId: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type EnqueueOpencutOnScreenTextResult =
+  | {
+      ok: true;
+      item: OnscreenTextItem;
+      project: PublicVideo;
     }
   | {
       ok: false;
@@ -119,7 +135,7 @@ function clampByte(value: number): number {
   return Math.round(value);
 }
 
-// Sample the actual background RGB from the outer 2px border of the generated image.
+// Sample the actual background RGB from the outer border of the generated image.
 function sampleBorderKeyColor(
   data: Buffer,
   width: number,
@@ -199,7 +215,6 @@ export async function keyColorDifferencePng(
     const out = index * 4;
 
     const dist = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
-    // Channel-difference key dominance: positive only when pixel leans toward the key hue.
     const keyDom = isMagentaKey
       ? Math.min(r, b) - g
       : b - Math.max(r, Math.round(g * 0.8));
@@ -233,7 +248,6 @@ export async function keyColorDifferencePng(
     let fgG = g;
     let fgB = b;
 
-    // Unmix background color spill from semi-transparent and near-edge pixels.
     if (alpha01 < 0.99) {
       const denom = Math.max(alpha01, 0.2);
       fgR = clampByte((r - (1 - alpha01) * bg.r) / denom);
@@ -241,7 +255,6 @@ export async function keyColorDifferencePng(
       fgB = clampByte((b - (1 - alpha01) * bg.b) / denom);
     }
 
-    // Neutralize any residual chroma fringe on anti-aliased edges.
     if (isMagentaKey) {
       const spill = Math.min(fgR, fgB) - fgG;
       if (spill > 0) {
@@ -335,7 +348,297 @@ export async function cropVerticalTransparentMargin(
     .toBuffer();
 }
 
-// Generate a chroma-keyed AI subtitle graphic from custom user text and a selected text style.
+async function resolveStyleLookAndSample(
+  project: Project,
+  textStyleId: string,
+): Promise<{ lookLine: string; sampleUrl?: string }> {
+  if (isSubtitleLook(textStyleId)) {
+    return { lookLine: subtitleLookLine(textStyleId) };
+  }
+  if (ObjectId.isValid(textStyleId)) {
+    const styles = await textStylesCollection();
+    const customDoc = (await styles.findOne({
+      _id: new ObjectId(textStyleId),
+      clerkUserId: project.clerkUserId,
+    })) as TextStyleDoc | null;
+    if (customDoc) {
+      return {
+        lookLine: resolveTextStyleLookLine(customDoc),
+        sampleUrl: customDoc.imageUrl || undefined,
+      };
+    }
+  }
+  return { lookLine: subtitleLookLine(project.subtitleLook) };
+}
+
+// Queue a new `ScroOnscreenText` item on the project and kick off background generation in `generationJobs`.
+export async function enqueueOpencutOnScreenText(input: {
+  videoId: string;
+  textStyleId: string;
+  styleName?: string;
+  text: string;
+}): Promise<EnqueueOpencutOnScreenTextResult> {
+  let spendKey: string | undefined;
+  let clerkUserId = "";
+  let queuedJobId: ObjectId | undefined;
+
+  try {
+    const user = await requireAppUser();
+    clerkUserId = user.clerkUserId;
+
+    const videoId = String(input.videoId ?? "").trim();
+    const textStyleId = String(input.textStyleId ?? "").trim();
+    const trimmedText = String(input.text ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, MAX_ON_SCREEN_TEXT_CHARS);
+
+    if (!trimmedText) {
+      return { ok: false, error: "請輸入要產生的畫面文字" };
+    }
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const projects = await videosCollection();
+    const project = await projects.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    if (!isSubtitleLook(textStyleId) && ObjectId.isValid(textStyleId)) {
+      const styles = await textStylesCollection();
+      const customDoc = await styles.findOne({
+        _id: new ObjectId(textStyleId),
+        clerkUserId: user.clerkUserId,
+      });
+      if (!customDoc) {
+        return { ok: false, error: "找不到文字樣式" };
+      }
+    }
+
+    await assertCanSpendCredits(user, FRAME_COST);
+    spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+
+    const resolvedStyleId = textStyleId || project.subtitleLook || "handwritten";
+    const item: OnscreenTextItem = {
+      id: new ObjectId().toHexString(),
+      text: trimmedText,
+      textStyleId: resolvedStyleId,
+      ...(input.styleName?.trim() ? { styleName: input.styleName.trim() } : {}),
+      status: "queued",
+      submittedAt: new Date().toISOString(),
+      creditsCharged: FRAME_COST,
+    };
+
+    const sceneTextLanguage = inferOnScreenTextSceneLanguage(trimmedText);
+    const model = imageRouteForSceneText(sceneTextLanguage).model;
+
+    queuedJobId = await insertPendingJob({
+      projectId: project._id,
+      clipIndex: 0,
+      kind: "onscreenText",
+      onscreenTextId: item.id,
+      model,
+    });
+
+    await projects.updateOne(
+      { _id: project._id },
+      {
+        $push: { onscreenTexts: item },
+        $set: { updatedAt: new Date() },
+      },
+    );
+
+    kickJob(queuedJobId);
+
+    const updated = await projects.findOne({ _id: project._id });
+    return {
+      ok: true,
+      item,
+      project: toPublicVideo(updated ?? { ...project, onscreenTexts: [...(project.onscreenTexts ?? []), item] }),
+    };
+  } catch (error) {
+    if (queuedJobId) {
+      const jobs = await generationJobsCollection();
+      await jobs.deleteOne({ _id: queuedJobId }).catch(() => {});
+    }
+    if (spendKey && clerkUserId) {
+      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "排程畫面文字失敗",
+    };
+  }
+}
+
+// Background sender called by `sendJob` for `kind === "onscreenText"`.
+export async function sendOnscreenText(
+  project: Project,
+  job: GenerationJob,
+): Promise<Sent> {
+  const item = project.onscreenTexts?.find((entry) => entry.id === job.onscreenTextId);
+  if (!item) {
+    throw new PermanentJobError("找不到畫面文字項目");
+  }
+  const line = item.text.trim();
+  if (!line) {
+    throw new PermanentJobError("畫面文字內容為空");
+  }
+
+  const projects = await videosCollection();
+  await projects
+    .updateOne(
+      { _id: project._id, "onscreenTexts.id": item.id },
+      { $set: { "onscreenTexts.$.status": "in_progress", updatedAt: new Date() } },
+    )
+    .catch(() => {});
+
+  const { lookLine, sampleUrl } = await resolveStyleLookAndSample(
+    project,
+    item.textStyleId,
+  );
+  const keyColor = chooseOnScreenTextKeyColor({
+    textStyleId: item.textStyleId,
+    lookLine,
+  });
+  const sceneTextLanguage = inferOnScreenTextSceneLanguage(line);
+  const route = resolveImageRoute(sceneTextLanguage);
+  const model = imageModelForSubmit(route, Boolean(sampleUrl));
+  const prompt = onScreenTextPrompt({
+    text: line,
+    lookLine,
+    sampleImageIndex: sampleUrl ? 1 : undefined,
+    keyColor,
+  });
+
+  const submitted = await submitImage({
+    model,
+    prompt,
+    aspectRatio: "16:9",
+    quality: "medium",
+    resolution: "1k",
+    sceneTextLanguage,
+    referenceImageUrls: sampleUrl ? [sampleUrl] : undefined,
+  });
+  return toSent(model, submitted);
+}
+
+async function failOnscreenText(
+  projectId: ObjectId,
+  onscreenTextId: string,
+  error: string,
+) {
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project) return;
+  const item = project.onscreenTexts?.find((entry) => entry.id === onscreenTextId);
+  const claimed = await projects.updateOne(
+    {
+      _id: projectId,
+      onscreenTexts: {
+        $elemMatch: { id: onscreenTextId, status: { $in: ["queued", "in_progress"] } },
+      },
+    },
+    {
+      $set: {
+        "onscreenTexts.$.status": "failed",
+        "onscreenTexts.$.error": error,
+        updatedAt: new Date(),
+      },
+    },
+  );
+  if (claimed.matchedCount === 0) return;
+  await refundCredits(project.clerkUserId, item?.creditsCharged ?? FRAME_COST);
+}
+
+// Mirror an `onscreenText` background job onto `project.onscreenTexts`.
+export async function syncOnscreenTextJob(
+  job: GenerationJob,
+  status: GenerationStatus,
+  outputUrl?: string,
+  errorMessage?: string,
+): Promise<void> {
+  if (!job.projectId || !job.onscreenTextId) return;
+  const projectId = job.projectId;
+  const onscreenTextId = job.onscreenTextId;
+
+  if (status === "failed" || status === "nsfw") {
+    const fallback = status === "nsfw" ? "畫面文字圖未通過內容檢查" : "畫面文字圖產生失敗";
+    await failOnscreenText(projectId, onscreenTextId, errorMessage?.trim() || fallback);
+    return;
+  }
+
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  const item = project?.onscreenTexts?.find((entry) => entry.id === onscreenTextId);
+  if (!project || !item) return;
+
+  if (status !== "completed" || !outputUrl) {
+    if (status === "in_progress" && item.status === "queued") {
+      await projects.updateOne(
+        {
+          _id: projectId,
+          onscreenTexts: { $elemMatch: { id: onscreenTextId, status: "queued" } },
+        },
+        { $set: { "onscreenTexts.$.status": "in_progress", updatedAt: new Date() } },
+      );
+    }
+    return;
+  }
+
+  if (item.status === "completed" || item.status === "failed") return;
+
+  let croppedPng: Buffer;
+  try {
+    const { lookLine } = await resolveStyleLookAndSample(project, item.textStyleId);
+    const keyColor = chooseOnScreenTextKeyColor({
+      textStyleId: item.textStyleId,
+      lookLine,
+    });
+    const rawBuffer = await decodeImageBufferFromOutputUrl(outputUrl);
+    const keyed = await keyColorDifferencePng(rawBuffer, keyColor);
+    if (plateIsEmpty(keyed.ratio)) {
+      await failOnscreenText(projectId, onscreenTextId, PLATE_EMPTY_ERROR);
+      return;
+    }
+    croppedPng = await cropVerticalTransparentMargin(keyed.png);
+  } catch (error) {
+    console.error("[on-screen-text] key failed", { jobId: job._id, error });
+    await failOnscreenText(projectId, onscreenTextId, "畫面文字圖去背處理失敗");
+    return;
+  }
+
+  const blobUrl = await persistBuffer(
+    croppedPng,
+    `explainer/${projectId.toHexString()}/on-screen-text/${job._id.toHexString()}.png`,
+    "image/png",
+  );
+
+  await projects.updateOne(
+    {
+      _id: projectId,
+      onscreenTexts: {
+        $elemMatch: { id: onscreenTextId, status: { $in: ["queued", "in_progress"] } },
+      },
+    },
+    {
+      $set: {
+        "onscreenTexts.$.status": "completed",
+        "onscreenTexts.$.outputUrl": blobUrl,
+        "onscreenTexts.$.blobUrl": blobUrl,
+        updatedAt: new Date(),
+      },
+      $unset: { "onscreenTexts.$.error": "" },
+    },
+  );
+}
+
+// Synchronous helper retained for direct calls.
 export async function generateOpencutOnScreenText(input: {
   videoId: string;
   textStyleId: string;
@@ -371,24 +674,7 @@ export async function generateOpencutOnScreenText(input: {
       return { ok: false, error: "專案不存在" };
     }
 
-    let lookLine = subtitleLookLine(project.subtitleLook);
-    let sampleUrl: string | undefined;
-
-    if (isSubtitleLook(textStyleId)) {
-      lookLine = subtitleLookLine(textStyleId);
-    } else if (ObjectId.isValid(textStyleId)) {
-      const styles = await textStylesCollection();
-      const customDoc = (await styles.findOne({
-        _id: new ObjectId(textStyleId),
-        clerkUserId: user.clerkUserId,
-      })) as TextStyleDoc | null;
-      if (!customDoc) {
-        return { ok: false, error: "找不到文字樣式" };
-      }
-      lookLine = resolveTextStyleLookLine(customDoc);
-      sampleUrl = customDoc.imageUrl || undefined;
-    }
-
+    const { lookLine, sampleUrl } = await resolveStyleLookAndSample(project, textStyleId);
     const keyColor = chooseOnScreenTextKeyColor({
       textStyleId: textStyleId || project.subtitleLook,
       lookLine,
@@ -449,9 +735,7 @@ export async function generateOpencutOnScreenText(input: {
     };
   } catch (error) {
     if (spendKey && clerkUserId) {
-      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch((refundErr) => {
-        console.error("[on-screen-text] refund failed", { refundErr });
-      });
+      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
     }
     return {
       ok: false,

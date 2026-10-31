@@ -5,6 +5,7 @@ import {
 } from "@/service/character/sync";
 import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
+import { syncOnscreenTextJob } from "@/service/opencut/on-screen-text";
 import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { failProduct, syncProductJob } from "@/service/product/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
@@ -28,6 +29,7 @@ export const SELF_SYNCING_JOB_KINDS = [
   "stylePreview",
   "textStylePreview",
   "subtitlePlate",
+  "onscreenText",
   "character",
   "poseEdit",
 ] as const satisfies readonly GenerationKind[];
@@ -117,6 +119,11 @@ const SELF_SYNC_HANDLERS: Record<SelfSyncingJobKind, SelfSyncHandler> = {
     syncStatus: (job, status, outputUrl, errorMessage) =>
       syncSubtitlePlateJob(job, status, outputUrl, errorMessage),
     failClaimed: (job, error) => syncSubtitlePlateJob(job, "failed", undefined, error),
+  },
+  onscreenText: {
+    syncStatus: (job, status, outputUrl, errorMessage) =>
+      syncOnscreenTextJob(job, status, outputUrl, errorMessage),
+    failClaimed: (job, error) => syncOnscreenTextJob(job, "failed", undefined, error),
   },
   character: {
     syncStatus: (job, status, outputUrl) => syncCharacterJob(job, status, outputUrl),

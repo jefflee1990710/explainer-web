@@ -162,6 +162,12 @@ import {
   hasSeenCreateVideoTutorial,
 } from "@/presentation/components/app/projects/new/create-video-feature-discovery";
 import {
+  FirstVideoOnboardingModal,
+  isFirstVideoModalDismissedInSession,
+  shouldShowFirstVideoModal,
+  type FirstVideoQuickSubmitPayload,
+} from "@/presentation/components/app/projects/new/first-video-onboarding-modal";
+import {
   canAdvanceFromWizardStep,
   maxReachableWizardStep,
   type BriefWizardStepIndex,
@@ -199,6 +205,7 @@ export function NewProjectForm({
   initialVideo = null,
   credits,
   subscribed,
+  hasAnyVideo = true,
   onVideoCreated,
   onStepNav,
 }: {
@@ -212,6 +219,7 @@ export function NewProjectForm({
   initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
+  hasAnyVideo?: boolean;
   onVideoCreated?: (video: PublicVideo) => void;
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
@@ -373,6 +381,13 @@ export function NewProjectForm({
   const [confirmBrief, setConfirmBrief] = useState(false);
   // Setup mode: "quick" (Simple & Fast: Content + Style + Character) vs "details" (Full 4-Step Wizard).
   const [setupMode, setSetupMode] = useState<BriefSetupMode>("quick");
+  const [firstVideoModalOpen, setFirstVideoModalOpen] = useState<boolean>(() =>
+    shouldShowFirstVideoModal({
+      hasAnyVideo: Boolean(hasAnyVideo),
+      hasInitialVideo: Boolean(initialVideo),
+      dismissedInSession: isFirstVideoModalDismissedInSession(),
+    }),
+  );
   const [tutorialOpen, setTutorialOpen] = useState(false);
   // 4-step brief wizard state (0: Style & Cast, 1: Script & Assets, 2: Voice & Specs, 3: Storyboard Drafts).
   const [wizardStep, setWizardStep] = useState<BriefWizardStepIndex>(0);
@@ -396,14 +411,15 @@ export function NewProjectForm({
     setWalletCredits(credits);
   }, [credits]);
 
-  // Automatically open the 4-step Feature Discovery spotlight tour the first time a user opens the Create Video form.
+  // Automatically open the 4-step Feature Discovery spotlight tour the first time a user opens the Create Video form,
+  // unless the 0-video First Video Onboarding popup is currently open.
   useEffect(() => {
-    if (initialVideo) return;
+    if (initialVideo || firstVideoModalOpen) return;
     if (!hasSeenCreateVideoTutorial()) {
       const timer = window.setTimeout(() => setTutorialOpen(true), 350);
       return () => window.clearTimeout(timer);
     }
-  }, [initialVideo]);
+  }, [initialVideo, firstVideoModalOpen]);
 
   // A settled frame or clip should refresh the task list immediately so the
   // browser notification can fire without waiting for the next 5s tick.
@@ -675,6 +691,56 @@ export function NewProjectForm({
       return;
     }
     await submitBrief();
+  }
+
+  async function submitFromFirstVideoModal(payload: FirstVideoQuickSubmitPayload) {
+    setSkillSlug(payload.skillSlug);
+    setStyleId(payload.styleId);
+    setCharacterIds(payload.characterIds);
+    setCharacterSelections(payload.characterSelections);
+    if (payload.talkingHead) {
+      setSpokenScript(payload.content);
+      setSource("");
+    } else {
+      setSource(payload.content);
+    }
+
+    const formData = new FormData();
+    if (folderId) formData.set("projectId", folderId);
+    formData.set("skillSlug", payload.skillSlug);
+    formData.set("styleId", payload.styleId);
+    formData.set("source", payload.talkingHead ? "" : payload.content);
+    if (payload.talkingHead) formData.set("spokenScript", payload.content);
+    formData.set("language", language);
+    formData.set("voiceGender", voiceGender);
+    formData.set("speechPace", speechPace);
+    formData.set("sceneTextLanguage", sceneTextLanguage);
+    formData.set("textStyleId", textStyleId);
+    formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
+    formData.set("aspectRatio", aspectRatio || "9:16");
+    formData.set("durationPreset", durationPreset || "auto");
+    for (const id of payload.characterIds) formData.append("characterIds", id);
+    if (Object.keys(payload.characterSelections).length > 0) {
+      formData.set("characterSelections", JSON.stringify(payload.characterSelections));
+    }
+
+    setSubmitting(true);
+    setError("");
+    const result = await createVideoAction(formData);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(translateAppError(result.error, t));
+      return;
+    }
+    setFirstVideoModalOpen(false);
+    setProject(result.project);
+    onVideoCreated?.(result.project);
+    const nextFolder = result.project.projectId;
+    router.replace(
+      nextFolder
+        ? folderVideoPath(nextFolder, result.project.id)
+        : `/app?stay=1`,
+    );
   }
 
   async function submitBrief() {
@@ -1993,8 +2059,20 @@ export function NewProjectForm({
           />
         ) : null}
         <CreateVideoFeatureDiscovery
-          open={tutorialOpen && viewing === 0}
+          open={tutorialOpen && !firstVideoModalOpen && viewing === 0}
           onClose={() => setTutorialOpen(false)}
+        />
+        <FirstVideoOnboardingModal
+          open={firstVideoModalOpen && !project}
+          skills={skills}
+          styles={styles}
+          characters={characters}
+          credits={walletCredits}
+          subscribed={walletSubscribed}
+          submitting={submitting}
+          externalError={error}
+          onSkip={() => setFirstVideoModalOpen(false)}
+          onSubmitFirstVideo={submitFromFirstVideoModal}
         />
       </div>
     </MotionConfig>

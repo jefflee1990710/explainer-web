@@ -14,6 +14,7 @@ import {
 	useMediaImageReady,
 } from "@/opencut/components/loading-media-image";
 import { Spinner } from "@/opencut/components/ui/spinner";
+import { useScroOnscreenTexts } from "@/opencut/embed/scro-onscreen-text";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { AudioWaveform, WAVEFORM_GAIN_SAMPLE_COUNT } from "./audio-waveform";
@@ -1144,8 +1145,22 @@ function TiledMediaContent({
 }) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
 	const scroVideos = useScroVideos();
+	const onscreenTexts = useScroOnscreenTexts();
 
 	const mediaAsset = mediaAssets.find((asset) => asset.id === element.mediaId);
+	const onscreenTextId =
+		element.type === "image"
+			? (element.scroOnscreenTextId ?? mediaAsset?.scroOnscreenTextId)
+			: undefined;
+	const onscreenItem = onscreenTextId
+		? onscreenTexts.find((item) => item.id === onscreenTextId)
+		: undefined;
+	const isOnscreenTextGenerating = Boolean(
+		onscreenTextId &&
+			(onscreenItem?.status === "queued" ||
+				onscreenItem?.status === "in_progress" ||
+				(mediaAsset?.scroPlaceholder === true && onscreenItem?.status !== "completed")),
+	);
 	const clipNumber = resolveElementScroClipNumber({
 		element,
 		assets: mediaAssets,
@@ -1171,11 +1186,20 @@ function TiledMediaContent({
 			(mediaAsset?.scroPlaceholder === true || tinyStandIn));
 	const imageUrl = waitingForStill
 		? undefined
-		: freshStill ??
-			(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
+		: onscreenItem?.status === "completed" && onscreenItem.url
+			? onscreenItem.url
+			: freshStill ??
+				(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
 	const imageReady = useMediaImageReady(imageUrl);
 	const isVideoGenerating = clip?.stage === "video_generating";
-	const generatingBadgeText = clip?.wait === "queued" ? "Queued…" : "Generating…";
+	const isGenerating = isVideoGenerating || isOnscreenTextGenerating;
+	const generatingBadgeText = isOnscreenTextGenerating
+		? onscreenItem?.status === "queued"
+			? "Queued…"
+			: "Generating…"
+		: clip?.wait === "queued"
+			? "Queued…"
+			: "Generating…";
 
 	if (waitingForStill) {
 		return (
@@ -1186,13 +1210,13 @@ function TiledMediaContent({
 	if (!imageUrl) {
 		return (
 			<div className="flex size-full items-center gap-2 bg-[#2b303c] px-2.5">
-				{isVideoGenerating ? (
+				{isGenerating ? (
 					<Spinner className="size-3.5 shrink-0 text-amber-400" />
 				) : null}
 				<span className="truncate text-xs font-semibold text-white">
 					{element.name || mediaAsset?.name || "Clip"}
 				</span>
-				{isVideoGenerating ? (
+				{isGenerating ? (
 					<span className="ml-auto shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
 						{generatingBadgeText}
 					</span>
@@ -1217,7 +1241,7 @@ function TiledMediaContent({
 				) : (
 					<MediaLoadingMark className="text-white" />
 				)}
-				{isVideoGenerating ? (
+				{isGenerating ? (
 					<div className="absolute inset-0 flex items-center justify-center bg-black/45">
 						<Spinner className="size-3.5 text-amber-400" />
 					</div>
@@ -1226,7 +1250,7 @@ function TiledMediaContent({
 			<span className="min-w-0 flex-1 truncate text-xs font-semibold text-white">
 				{displayLabel}
 			</span>
-			{isVideoGenerating ? (
+			{isGenerating ? (
 				<span
 					className="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300"
 					role="status"

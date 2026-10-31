@@ -53,8 +53,9 @@ export default async function AppLayout({
       >
         {children}
       </AppShell>
-      {needsPolicyAcceptance(user) ? (
-        <AcceptPoliciesDialog firstTime={!user.legalAcceptance} />
+      {/* First-time 0-video users accept terms directly inside FirstVideoOnboardingModal */}
+      {Boolean(user.legalAcceptance) && needsPolicyAcceptance(user) ? (
+        <AcceptPoliciesDialog firstTime={false} />
       ) : null}
     </>
   );

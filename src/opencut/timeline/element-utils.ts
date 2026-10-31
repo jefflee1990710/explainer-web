@@ -267,12 +267,14 @@ function buildImageElement({
 	duration,
 	startTime,
 	scroClipNumber,
+	scroOnscreenTextId,
 }: {
 	mediaId: string;
 	name: string;
 	duration: MediaTime;
 	startTime: MediaTime;
 	scroClipNumber?: number;
+	scroOnscreenTextId?: string;
 }): CreateImageElement {
 	return {
 		type: "image",
@@ -285,6 +287,7 @@ function buildImageElement({
 		hidden: false,
 		params: buildDefaultElementParams({ type: "image" }),
 		...(scroClipNumber != null ? { scroClipNumber } : {}),
+		...(scroOnscreenTextId ? { scroOnscreenTextId } : {}),
 	};
 }
 
@@ -327,6 +330,7 @@ export function buildElementFromMedia({
 	startTime,
 	buffer,
 	scroClipNumber,
+	scroOnscreenTextId,
 	sourceDuration,
 	trimEnd,
 }: {
@@ -337,6 +341,7 @@ export function buildElementFromMedia({
 	startTime: MediaTime;
 	buffer?: AudioBuffer;
 	scroClipNumber?: number;
+	scroOnscreenTextId?: string;
 	sourceDuration?: MediaTime;
 	trimEnd?: MediaTime;
 }): CreateTimelineElement {
@@ -366,6 +371,7 @@ export function buildElementFromMedia({
 				duration,
 				startTime,
 				scroClipNumber,
+				scroOnscreenTextId,
 			});
 	}
 }

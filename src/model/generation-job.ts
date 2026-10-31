@@ -17,6 +17,7 @@ export type GenerationKind =
   | "backgroundPlate"
   | "textStylePreview"
   | "subtitlePlate"
+  | "onscreenText"
   | "poseEdit";
 export type GenerationStatus =
   // Waiting in our queue; not sent to the provider yet.
@@ -59,6 +60,8 @@ export type GenerationJob = {
   textStyleId?: ObjectId;
   // Only for kind === "poseEdit".
   poseEditId?: ObjectId;
+  // Only for kind === "onscreenText".
+  onscreenTextId?: string;
   model: string;
   // Unset until the provider accepts the request.
   requestId?: string;
@@ -106,6 +109,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
     "backgroundPlate",
     "textStylePreview",
     "subtitlePlate",
+    "onscreenText",
     "poseEdit",
   ]),
   framePosition: z.enum(["start", "end"]).optional(),
@@ -119,6 +123,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   backgroundSetId: z.string().optional(),
   textStyleId: objectIdSchema.optional(),
   poseEditId: objectIdSchema.optional(),
+  onscreenTextId: z.string().optional(),
   model: z.string(),
   requestId: z.string().optional(),
   statusUrl: z.string().optional(),

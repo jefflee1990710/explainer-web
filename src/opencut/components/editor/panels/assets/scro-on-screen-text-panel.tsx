@@ -2,43 +2,39 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-	AddTrackCommand,
-	BatchCommand,
-	InsertElementCommand,
-} from "@/opencut/commands";
 import { useEditor } from "@/opencut/editor/use-editor";
-import { fetchMediaBlobWithTimeout } from "@/opencut/embed/scro-media-load";
-import { armScroSync, rememberClipSource } from "@/opencut/embed/scro-media-sources";
+import { scroEmbedParentOrigin } from "@/opencut/embed/scro-embed-parent";
+import { sendToScro } from "@/opencut/embed/scro-transport";
 import {
-	addScroGeneratedOnScreenText,
-	useScroGeneratedOnScreenText,
+	insertScroOnscreenTextOnTimeline,
+	rebindOptimisticScroOnscreenTextId,
+	removeScroOnscreenText,
+	upsertScroOnscreenText,
+	useScroOnscreenTexts,
+	type ScroOnscreenText,
+} from "@/opencut/embed/scro-onscreen-text";
+import {
 	useScroSubtitleCatalog,
 	useScroSubtitleVideoId,
 } from "@/opencut/embed/scro-subtitle-store";
 import { ScroOnScreenTextDialog } from "@/opencut/components/editor/panels/assets/scro-on-screen-text-dialog";
+import { Spinner } from "@/opencut/components/ui/spinner";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
-import { processMediaAssets } from "@/opencut/media/processing";
-import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
-import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
-import { generateOpencutOnScreenTextAction } from "@/presentation/actions/opencut-subtitle";
+import { enqueueOpencutOnScreenTextAction } from "@/presentation/actions/opencut-subtitle";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { cn } from "@/opencut/utils/ui";
 
-const DEFAULT_ON_SCREEN_TEXT_DURATION_SEC = 3;
-
-// Panel listing AI-generated subtitle style images; clicking any card pops a dialog with a textarea
-// to generate an AI subtitle text graphic onto the timeline.
+// Panel listing AI-generated subtitle style images and `ScroOnscreenText` items;
+// clicking Generate inserts a placeholder on the timeline immediately and runs generation in the background queue.
 export function ScroOnScreenTextPanel() {
 	const editor = useEditor();
 	const catalog = useScroSubtitleCatalog();
 	const videoId = useScroSubtitleVideoId();
-	const generatedItems = useScroGeneratedOnScreenText();
+	const onscreenItems = useScroOnscreenTexts();
 	const { oc } = useOpencutI18n();
 
 	const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const styles = catalog?.styles ?? [];
@@ -49,125 +45,82 @@ export function ScroOnScreenTextPanel() {
 	const selectedStyle =
 		styles.find((style) => style.id === activeStyleId) ?? styles[0] ?? null;
 
-	// Insert a generated transparent PNG subtitle graphic onto an overlay track at the playhead.
-	const insertGeneratedImageOnTimeline = async ({
-		url,
-		text,
-	}: {
-		url: string;
-		text: string;
-	}): Promise<boolean> => {
-		const project = editor.project.getActiveOrNull();
-		if (!project) return false;
-
-		const blob = await fetchMediaBlobWithTimeout({ url });
-		if (!blob) return false;
-		const safeLabel = text.replace(/\s+/g, " ").trim().slice(0, 32) || "On-Screen Text";
-		const file = new File([blob], `${safeLabel}.png`, { type: "image/png" });
-		const processed = await processMediaAssets({ files: [file] });
-		const first = processed[0];
-		if (!first) return false;
-
-		const createdAsset = await editor.media.addMediaAsset({
-			projectId: project.metadata.id,
-			asset: {
-				...first,
-				sourceUrl: url,
-			},
-		});
-		if (!createdAsset) return false;
-		if (videoId) {
-			rememberClipSource(videoId, createdAsset.id, url);
-		}
-
-		const scene = editor.scenes.getActiveScene();
-		const existingTrack = scene.tracks.overlay.find((track) => track.type === "video");
-		let trackId = existingTrack?.id;
-		let addTrackCmd: AddTrackCommand | null = null;
-		if (!trackId) {
-			addTrackCmd = new AddTrackCommand({
-				type: "video",
-				index: 0,
-				name: oc.onScreenText.title,
-			});
-			trackId = addTrackCmd.getTrackId();
-		}
-
-		const playheadSeconds = mediaTimeToSeconds({
-			time: editor.playback.getCurrentTime(),
-		});
-		const baseElement = buildElementFromMedia({
-			mediaId: createdAsset.id,
-			mediaType: "image",
-			name: `Text · ${safeLabel}`,
-			startTime: mediaTimeFromSeconds({ seconds: Math.max(0, playheadSeconds) }),
-			duration: mediaTimeFromSeconds({ seconds: DEFAULT_ON_SCREEN_TEXT_DURATION_SEC }),
-		});
-		const element = {
-			...baseElement,
-			params: {
-				...baseElement.params,
-				"transform.scaleX": 0.88,
-				"transform.scaleY": 0.88,
-				"transform.positionX": 0,
-				"transform.positionY": 0,
-			},
-		};
-
-		const insertCmd = new InsertElementCommand({
-			placement: { mode: "explicit", trackId },
-			element,
-		});
-		editor.command.execute({
-			command: addTrackCmd ? new BatchCommand([addTrackCmd, insertCmd]) : insertCmd,
-		});
-		armScroSync();
-		return true;
-	};
-
 	const handleGenerate = async (rawText: string) => {
 		const trimmed = rawText.trim();
 		if (!trimmed) {
 			setError(oc.onScreenText.emptyTextError);
 			return;
 		}
-		if (!videoId || !selectedStyle || busy) return;
+		if (!videoId || !selectedStyle) return;
 
-		setBusy(true);
 		setError(null);
+		// Immediately close dialog to return to editor and show the placeholder on timeline & assets.
+		setDialogOpen(false);
+
+		const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+		const optimisticItem: ScroOnscreenText = {
+			id: tempId,
+			text: trimmed,
+			textStyleId: selectedStyle.id,
+			styleName: selectedStyle.name,
+			status: "queued",
+			submittedAt: new Date().toISOString(),
+		};
+
+		upsertScroOnscreenText(optimisticItem);
+		await insertScroOnscreenTextOnTimeline({
+			editor,
+			videoId,
+			item: optimisticItem,
+			trackTitle: oc.onScreenText.title,
+		});
+
 		try {
-			const res = await generateOpencutOnScreenTextAction({
+			const res = await enqueueOpencutOnScreenTextAction({
 				videoId,
 				textStyleId: selectedStyle.id,
+				styleName: selectedStyle.name,
 				text: trimmed,
 			});
 			notifyTasksChanged();
+
 			if (!res.ok) {
-				setError(res.error || oc.onScreenText.failedError);
+				removeScroOnscreenText(tempId);
+				toast.error(res.error || oc.onScreenText.failedError);
 				return;
 			}
 
-			addScroGeneratedOnScreenText({
-				id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-				text: res.text,
-				styleId: selectedStyle.id,
-				styleName: selectedStyle.name,
-				url: res.url,
-				createdAt: Date.now(),
+			const realItem: ScroOnscreenText = {
+				id: res.item.id,
+				text: res.item.text,
+				textStyleId: res.item.textStyleId,
+				styleName: res.item.styleName ?? selectedStyle.name,
+				status: res.item.status,
+				url: res.item.blobUrl || res.item.outputUrl,
+				error: res.item.error,
+				submittedAt: res.item.submittedAt,
+			};
+
+			rebindOptimisticScroOnscreenTextId({
+				editor,
+				tempId,
+				realItem,
 			});
 
-			const inserted = await insertGeneratedImageOnTimeline({
-				url: res.url,
-				text: res.text,
-			});
-			if (inserted) {
-				toast.success(oc.onScreenText.addedToast);
+			const origin = scroEmbedParentOrigin();
+			if (origin) {
+				sendToScro(
+					{
+						type: "scro-project-updated",
+						videoId,
+						project: res.project,
+					},
+					origin,
+				);
 			}
-			setDialogOpen(false);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : oc.onScreenText.failedError);
-		} finally {
-			setBusy(false);
+			removeScroOnscreenText(tempId);
+			toast.error(err instanceof Error ? err.message : oc.onScreenText.failedError);
 		}
 	};
 
@@ -185,40 +138,76 @@ export function ScroOnScreenTextPanel() {
 					</p>
 				</div>
 
-				{generatedItems.length > 0 ? (
+				{onscreenItems.length > 0 ? (
 					<div className="space-y-2">
 						<div className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
 							{oc.onScreenText.generatedHeading}
 						</div>
 						<div className="grid grid-cols-2 gap-2">
-							{generatedItems.map((item) => (
-								<button
-									key={item.id}
-									type="button"
-									onClick={() => {
-										void insertGeneratedImageOnTimeline({
-											url: item.url,
-											text: item.text,
-										}).then((ok) => {
-											if (ok) toast.success(oc.onScreenText.addedToast);
-										});
-									}}
-									className="group border-border/70 hover:border-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-1.5 text-left transition"
-								>
-									<div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-[#12141c] p-1">
-										{/* eslint-disable-next-line @next/next/no-img-element */}
-										<img
-											src={item.url}
-											alt={item.text}
-											className="max-h-full max-w-full object-contain"
-										/>
-									</div>
-									<span className="truncate text-xs font-medium">{item.text}</span>
-									<span className="text-muted-foreground truncate text-[10px]">
-										{item.styleName} · {oc.onScreenText.insertAgain}
-									</span>
-								</button>
-							))}
+							{onscreenItems.map((item) => {
+								const isPending =
+									item.status === "queued" || item.status === "in_progress";
+								const isFailed = item.status === "failed";
+								const styleCard = styles.find((s) => s.id === item.textStyleId);
+								const styleTitle = item.styleName || styleCard?.name || item.textStyleId;
+
+								return (
+									<button
+										key={item.id}
+										type="button"
+										disabled={isPending || isFailed}
+										onClick={() => {
+											if (item.status !== "completed" || !item.url) return;
+											void insertScroOnscreenTextOnTimeline({
+												editor,
+												videoId,
+												item,
+												trackTitle: oc.onScreenText.title,
+											}).then((ok) => {
+												if (ok) toast.success(oc.onScreenText.addedToast);
+											});
+										}}
+										className={cn(
+											"group flex flex-col gap-1 rounded-md border p-1.5 text-left transition",
+											isPending
+												? "border-amber-500/40 bg-amber-500/5 cursor-wait"
+												: isFailed
+													? "border-destructive/40 bg-destructive/5 cursor-not-allowed"
+													: "border-border/70 hover:border-foreground cursor-pointer",
+										)}
+									>
+										<div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-[#12141c] p-1">
+											{item.status === "completed" && item.url ? (
+												// eslint-disable-next-line @next/next/no-img-element
+												<img
+													src={item.url}
+													alt={item.text}
+													className="max-h-full max-w-full object-contain"
+												/>
+											) : isPending ? (
+												<div className="flex flex-col items-center justify-center gap-1.5 px-2 text-center">
+													<Spinner className="size-4 text-[#c6f24b]" />
+													<span className="line-clamp-1 text-[10px] font-bold text-[#c6f24b]">
+														{oc.onScreenText.generating}
+													</span>
+												</div>
+											) : (
+												<span className="px-2 text-center text-[10px] font-medium text-red-400">
+													{item.error || oc.onScreenText.failedError}
+												</span>
+											)}
+										</div>
+										<span className="truncate text-xs font-medium">{item.text}</span>
+										<span className="text-muted-foreground truncate text-[10px]">
+											{isPending
+												? `${styleTitle} · ${oc.onScreenText.generating}`
+												: isFailed
+													? `${styleTitle} · Failed`
+													: `${styleTitle} · ${oc.onScreenText.insertAgain}`}
+										</span>
+									</button>
+								);
+							})}
 						</div>
 					</div>
 				) : null}
@@ -278,7 +267,7 @@ export function ScroOnScreenTextPanel() {
 				onOpenChange={setDialogOpen}
 				styles={styles}
 				selectedStyle={selectedStyle}
-				busy={busy}
+				busy={false}
 				error={error}
 				onSelectStyle={(id) => {
 					setSelectedStyleId(id);

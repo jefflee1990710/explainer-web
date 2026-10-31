@@ -41,8 +41,10 @@ export function ScroOnScreenTextDialog({
 	const [text, setText] = useState("");
 
 	const handleSubmit = () => {
-		if (busy) return;
-		onGenerate(text);
+		if (busy || !text.trim()) return;
+		const submittedText = text;
+		setText("");
+		onGenerate(submittedText);
 	};
 
 	return (

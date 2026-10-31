@@ -30,6 +30,7 @@ export function VideoEditorWorkspace({
   textStyles,
   credits,
   subscribed,
+  hasAnyVideo = true,
   initialVideo,
 }: {
   folderId: string;
@@ -42,6 +43,7 @@ export function VideoEditorWorkspace({
   textStyles: PublicTextStyle[];
   credits: number;
   subscribed: boolean;
+  hasAnyVideo?: boolean;
   initialVideo: PublicVideo | null;
 }) {
   const { t } = useI18n();
@@ -130,6 +132,7 @@ export function VideoEditorWorkspace({
           initialVideo={video}
           credits={credits}
           subscribed={subscribed}
+          hasAnyVideo={hasAnyVideo || Boolean(video)}
           onVideoCreated={setVideo}
           onStepNav={onStepNav}
         />
