@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  firstClipHookPerformanceDirectorRule,
+  firstClipHookPerformanceFrameLine,
+  firstClipHookPerformanceVideoLine,
   hookTitleFrameLine,
   isSceneTextLanguage,
   listicleCanvasTitle,
@@ -222,6 +225,16 @@ test("Clip 1 hook title sits slightly above center on a bordered high-contrast p
   assert.match(line, /slightly above the vertical center/);
   assert.match(line, /thick solid border/);
   assert.match(line, /「/);
+
+  const fallback = hookTitleFrameLine("3 AI Hacks That Doubled My Sales");
+  assert.match(fallback, /「3 AI Hacks That Doubled My Sales」/);
+  assert.match(fallback, /slightly above the vertical center/);
+  assert.match(fallback, /thick solid border/);
+
+  assert.match(firstClipHookPerformanceDirectorRule(false), /Clip 1 Hook Retention/i);
+  assert.match(firstClipHookPerformanceDirectorRule(true), /natural real-person intensity/i);
+  assert.match(firstClipHookPerformanceFrameLine(false), /HOOK EXPRESSION & MOTION/i);
+  assert.match(firstClipHookPerformanceVideoLine(true), /0–2s/i);
 });
 
 test("director revision note toggles on-screen text allowance without adding subtitles", () => {

@@ -54,7 +54,10 @@ import {
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
-import { hookTitleFrameLine } from "@/service/director/hook-title";
+import {
+  firstClipHookPerformanceFrameLine,
+  hookTitleFrameLine,
+} from "@/service/director/hook-title";
 import {
   bookendLogoFrameLines,
   cartoonClipAction,
@@ -277,7 +280,7 @@ function trimSceneParts(
   mode: "light-short" | "light-drop" | "set-short",
   setBudget = 200,
 ) {
-  const parts = scene.split(/(?=[1-9]\)\s)/);
+  const parts = scene.split(/(?=(?<!\(\s*)[1-9]\)\s)/);
   if (parts.length < 2) return scene;
   return parts
     .map((part) => {
@@ -488,6 +491,32 @@ function fitFramePrompt(
       : []),
     (p) => (/(?:\bRealism:|真實感：)/.test(p.scene) ? { ...p, renderDetail: "" } : p),
     (p) => ({ ...p, styleBody: "" }),
+    (p) => ({
+      ...p,
+      renderDetail: p.renderDetail.startsWith("Realistic light & camera:")
+        ? "Realistic light & camera: brightly well-exposed daytime/indoor midtones; soft diffused ambient/window light with gradual facial tonal transition (no harsh side-light contrast, no half-dark face) and soft neutral daylight with gently cooler shadows (no amber cast; keep shadow blacks clean and neutral, glowing objects below pure-white clipping). Match the Scene's lens (24/35/50/85mm) with clean digital colour, no film grain, and non-reflective diffuse matte-natural skin pores (zero oily sheen)."
+        : p.renderDetail,
+    }),
+    (p) => ({
+      ...p,
+      scene: trimSceneParts(p.scene, "light-short"),
+      sightline: "",
+      safeArea: p.safeArea
+        ? "9:16 safe area: keep faces, hands, key props, and all on-screen text inside the middle 60% vertical safe zone (top and bottom 20% background only)."
+        : "",
+      castLines: p.castLines
+        .filter(
+          (line) =>
+            !line.startsWith("Character board") &&
+            !line.startsWith("Ignore any clothing, hair, or style wording") &&
+            !line.startsWith("Identity notes"),
+        )
+        .map((line) =>
+          line.startsWith("BLUEPRINT / reference sheet only")
+            ? "BLUEPRINT only: draw ONE instance of each named cast member; never copy the sheet layout."
+            : line,
+        ),
+    }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -927,7 +956,8 @@ export function buildFramePrompt(
     realistic,
   });
 
-  // Clip 1 opening still: place the Scene's 「」 hook title (explainers carry it inside narratorLock).
+  // Clip 1 opening still: place the Scene's 「」 hook title (or proposal title fallback); explainers carry it inside narratorLock.
+  const hookTitleFallback = phaseA.localizedTitle || phaseA.englishTitle;
   const hookTitleStill =
     clipNumber === 1 &&
     position === "start" &&
@@ -935,6 +965,8 @@ export function buildFramePrompt(
     !overlay &&
     !talkingHeadSkipsLettering &&
     (directorWritesLettering || keepSceneLabels);
+  const hookPerformanceStill =
+    clipNumber === 1 && position === "start" && !narratorLock;
 
   const [styleHeader, styleBody = ""] = styleLinesForFrame(style);
   const compose = (parts: FrameTrimmable) => [
@@ -967,7 +999,14 @@ export function buildFramePrompt(
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
-    ...(hookTitleStill && /「[^」]+」/.test(parts.scene) ? [hookTitleFrameLine()] : []),
+    ...(hookTitleStill && (/「[^」]+」/.test(parts.scene) || Boolean(hookTitleFallback?.trim()))
+      ? [
+          hookTitleFrameLine(
+            /「[^」]+」/.test(parts.scene) ? undefined : hookTitleFallback,
+          ),
+        ]
+      : []),
+    ...(hookPerformanceStill ? [firstClipHookPerformanceFrameLine(realistic)] : []),
     ...(lockUrls.length
       ? [
           wardrobeBuild

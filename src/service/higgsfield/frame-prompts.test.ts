@@ -140,9 +140,14 @@ test("any director's Clip 1 start still places the 「」 hook title slightly ab
   assert.match(start, /thick solid border/);
   assert.doesNotMatch(buildFramePrompt(other, 1, "end"), /Clip 1 hook title/);
 
-  // No 「」 hook in the Scene: do not invent one.
+  // Even when the Scene forgot 「」 quotes, Clip 1 start falls back to the proposal title as the hook headline.
+  other.phaseA!.localizedTitle = "Stop Paying For Ads";
   other.phaseA!.clips[0].explainerScene = "A desk with a laptop.";
-  assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /Clip 1 hook title/);
+  const withFallback = buildFramePrompt(other, 1, "start");
+  assert.match(withFallback, /Clip 1 hook title/);
+  assert.match(withFallback, /「Stop Paying For Ads」/);
+  assert.match(withFallback, /HOOK EXPRESSION & MOTION/);
+  assert.doesNotMatch(buildFramePrompt(other, 1, "end"), /HOOK EXPRESSION & MOTION/);
 
   // Explainers already carry it inside the narrator lock; no duplicate line.
   const cartoon = project();
@@ -151,6 +156,52 @@ test("any director's Clip 1 start still places the 「」 hook title slightly ab
   cartoon.phaseA!.clips[0].explainerScene = "Diagram with hook banner 「STOP PAYING FOR ADS」.";
   const explainer = buildFramePrompt(cartoon, 1, "start");
   assert.equal(explainer.match(/thick solid border/g)?.length, 1);
+});
+
+test("realistic paper-cutout Clip 1 start still with numbered Set cutouts fits FRAME_PROMPT_BUDGET without losing labels or locks", () => {
+  const cutout = project("realistic");
+  cutout.skillSlug = "paper-cutout-explainer-video-director";
+  cutout.aspectRatio = "9:16";
+  cutout.sceneTextEnabled = true;
+  cutout.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro-board.png",
+      blueprintKind: "board",
+      prompt:
+        "East Asian woman, early 20s; outfit: Soft pale pink athletic crop top featuring delicate spaghetti straps, scoop neckline, and a snug seamless stretch fit, Oversized wide-leg vintage medium-blue denim jeans with structured side seams pooling loosely over the shoes, artisanal crisscrossed tan leather strappy flat gladiator sandals, A vintage washed slate-navy cotton twill six-panel baseball cap featuring an arched red collegiate-style embroidered logo across the front crown",
+    },
+  ];
+  cutout.phaseA!.clips[0] = {
+    ...cutout.phaseA!.clips[0],
+    durationSeconds: 7,
+    startScene:
+      "1) Character: Scro as a full-colour paper cutout with a thick irregular white scissor border in the lower-left presenter zone, calm focused eyes, matte-natural non-reflective skin with visible pores, softly closed lips at natural rest, both hands holding a rigid paper card showing side A 「PAID ADS = $0」 against the left column of the board. 2) Set: Split Matrix / Before-vs-After diagram archetype occupying 75% of the dark warm-brown vertically-grained wooden craft board within the middle 60% vertical safe zone: (1) Big bold hook title banner at top-center on torn black and bright-green paper strips reading 「PAID ADS DON'T WORK!」 summarizing the Reel hook; (2) Upper-left black-and-white cutout laptop labeled 「AI SOFTWARE」 representing built AI products; (3) Center-left two-sided cutout card in Scro's hands showing side A 「PAID ADS = $0」 representing wasted ad spend; (4) Upper-right kraft cutout storefront with padlock labeled 「NO SALES」 representing zero conversions; (5) Lower-center cutout tag labeled 「WHAT TO DO?」 alongside one single white-bordered arrow cutout pointing from the laptop to the storefront. 3) Light: Soft diffused neutral daylight from upper left casting soft drop shadows under each paper layer onto the dark brown wood grain, zero specular skin sheen. 4) Camera: Medium-full shot, Sony A7 IV, 35mm lens, f/4, straight-on 2D planar framing, Scro lower-left, clean digital capture with no vignette or film grain.",
+    motionCamera:
+      "0–2s: Fast multi-plane parallax push-in starts toward the center of the dark wooden craft board. 2–4s: Scro's hands briskly flip the cutout card from side A 「PAID ADS = $0」 to side B 「CANT SELL!」. 4–6s: The push-in decelerates to a locked landing.",
+  };
+  const prompt = frameSubmitPlan(cutout, 1, "start").prompt;
+  assert.ok(
+    prompt.length <= FRAME_PROMPT_BUDGET,
+    `expected prompt length ${prompt.length} <= ${FRAME_PROMPT_BUDGET}`,
+  );
+  for (const label of [
+    "「PAID ADS DON'T WORK!」",
+    "「AI SOFTWARE」",
+    "「PAID ADS = $0」",
+    "「NO SALES」",
+    "「WHAT TO DO?」",
+  ]) {
+    assert.ok(prompt.includes(label), `missing label ${label}`);
+  }
+  assert.match(prompt, /Paper-cutout collage lock/);
+  assert.match(prompt, /The wooden board IS the background/);
+  assert.match(prompt, /FACIAL EXPRESSION & BODY LOCK/);
+  assert.match(prompt, /Clip 1 hook title/);
+  assert.match(prompt, /overrides any top/i);
+  assert.match(prompt, /Realistic light & camera/);
 });
 
 test("whiteboard stills keep diagram labels after the scene is trimmed and omit spoken subtitles", () => {

@@ -14,6 +14,7 @@ import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/di
 import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
 import {
   HOOK_TITLE_PLACEMENT,
+  firstClipHookPerformanceDirectorRule,
   resolveSceneText,
   SCENE_TEXT_PRESETS,
   sceneTextSkillHint,
@@ -317,6 +318,12 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${verticalSafeAreaDirectorLine(input.aspectRatio)}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter, steadyStills })}
+${firstClipHookPerformanceDirectorRule(
+  isRealisticStyle({
+    id: input.style.id,
+    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+  }),
+)}
 ${sceneDetailDirectorBlock({
   realistic: isRealisticStyle({
     id: input.style.id,

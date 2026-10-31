@@ -564,7 +564,7 @@ export const DIAGRAM_ARCHETYPES_RULE =
   "Structured Diagram Archetype (REQUIRED): every clip MUST organize its explanation around ONE explicit visual diagram archetype from this 6-archetype catalog and name that archetype at the start of `2) Set`: (1) `Split Matrix / Before-vs-After` (two-column or top/bottom contrast grid with contrasting status badges), (2) `Causal Chain / Pipeline` (3–4 connected nodes A → B → C with directional arrows and transformation badges), (3) `Funnel / Filter` (wide multi-point intake narrowing through a filter gate into one high-value result), (4) `Balance Scale / Trade-off Seesaw` (fulcrum beam weighing cost/risk on one pan against leverage/reward on the other), (5) `Iceberg / Layered Stack` (surface visible tip above a dividing line vs deep foundational layers below), or (6) `Quantitative Chart / Annotated Curve` (labeled axes with rising/falling bars, threshold line, or inflection spike).";
 
 export const DIAGRAM_LAYOUT_HIERARCHY_RULE =
-  "70/30 Diagram-First Spatial Hierarchy: the structured explanation diagram MUST occupy 70–80% of the canvas as the hero visual subject; when a character is present, stage them in the remaining 20–30% lower-left or lower-right presenter zone interacting directly with the diagram nodes — never let the character stand huge in the dead center blocking the diagram.";
+  "70/30 Diagram-First Spatial Hierarchy: the explanation diagram occupies 70–80% of the canvas; stage any character in the 20–30% lower-left or lower-right presenter zone interacting with the nodes, never blocking the center.";
 
 export const COMPLETE_START_DIAGRAM_RULE =
   "Complete Diagram Scaffold in `startScene`: because single-frame image-to-video generates motion directly from the `startScene` still, `startScene` MUST already draw the COMPLETE structured diagram scaffold (all 4+ labeled nodes, containers, axes, and connecting paths visible on canvas at t=0s), not an empty canvas waiting to be drawn later.";
@@ -716,49 +716,43 @@ export function cartoonNarratorFrameLock(
   const steady = Boolean(options?.steadyStills);
   const realistic = Boolean(options?.realistic);
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
-  const hookFace = "the face acting the hook line's emotion, lips closed";
   const hookTitleStill =
     options?.clipNumber === 1 && (options?.position ?? "start") === "start"
       ? ` ${hookTitleFrameLine()}`
       : "";
   // Face and body follow the emotion the Scene wrote from this clip's spoken line.
   const actingStill = realistic
-    ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, lips closed, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face)."
-    : " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line, vivid and expressive, lips closed, gaze and hands on the named teaching element; never the blueprint's default face.";
+    ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face)."
+    : " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line with a vivid, expressive facial expression, gaze and hands on the named teaching element; never the blueprint's default face.";
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? `HOOK CAMERA: Clip 1 moves the camera by one push-in or pull-out at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows ${hookFace}.${hookTitleStill}`
-        : `HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows ${hookFace}.${hookTitleStill}`
+        ? `HOOK CAMERA: Clip 1 moves the camera by one push-in or pull-out at most.${hookTitleStill}`
+        : `HOOK CAMERA: exaggerated framing named in the Scene (shot size or angle differs from the other still of Clip 1).${hookTitleStill}`
       : "";
   const cameraMatch = steady
     ? "Camera angle, shot size, and side match the other still of this clip."
     : "Camera angle may differ from the other still.";
   const whiteboard2dRule =
     canvas === "paper-cutout" ? PAPER_CUTOUT_CANVAS_LOCK : WHITEBOARD_CANVAS_LOCK;
+  const silent = `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (lips closed when facing camera; unseen from behind; no greeting wave).${actingStill}`;
+  const labels =
+    "Draw every beat title or diagram label in 「」 as readable writing on that object (use at most 1 directional arrow, never blank grey tape or unlabelled strips; not the subtitle).";
   if (options?.hasCharacter) {
-    const silent = realistic
-      ? `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (mouth firmly closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${actingStill}`
-      : `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes and lips closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${actingStill}`;
-    const labels =
-      "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable (use at most 1 directional arrow in the frame, and never draw blank grey tape or unlabelled paper strips). Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {
       return [
         silent,
         DIAGRAM_LAYOUT_HIERARCHY_RULE,
         spec[options.position],
-        `Keep the character on the side of the frame the Scene names. ${cameraMatch} Draw every teaching element named in the Scene — the explanation graph's lines, charts, shapes, icons, and the element of this action. Do not drop a named piece.`,
+        `Keep the character on the Scene's side. ${cameraMatch} Draw every teaching element named in the Scene (explanation graph, shapes, icons, and action element; drop nothing).`,
         labels,
         hook,
       ].filter(Boolean).join(" ");
     }
-    return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. Do not drop a named piece. ${labels}${hook ? ` ${hook}` : ""}`;
+    return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const expNoCastLine = actingStill;
-  const base = realistic
-    ? `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth firmly closed, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`
-    : `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
+  const base = `${silent} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. ${labels}`;
   return hook ? `${base} ${hook}` : base;
 }
 

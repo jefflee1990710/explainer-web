@@ -55,6 +55,11 @@ test("middle clip quotes both neighbours and asks for that clip only", () => {
   assert.match(prompt, /hands off to clip 3, which opens with: house appears/);
   assert.match(prompt, /first and last frames/);
   assert.doesNotMatch(prompt, /Character reference image:/);
+  assert.doesNotMatch(prompt, /HOOK RETENTION \(Clip 1/);
+
+  const clip1 = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 1 });
+  assert.match(clip1, /HOOK RETENTION \(Clip 1/);
+  assert.match(clip1, /facial expression/i);
 });
 
 test("Phase B motion rules never call start/end stills a reference image", () => {

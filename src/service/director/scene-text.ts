@@ -1,6 +1,12 @@
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
-import { HOOK_TITLE_PLACEMENT, hookTitleFrameLine } from "@/service/director/hook-title";
+import {
+  HOOK_TITLE_PLACEMENT,
+  firstClipHookPerformanceDirectorRule,
+  firstClipHookPerformanceFrameLine,
+  firstClipHookPerformanceVideoLine,
+  hookTitleFrameLine,
+} from "@/service/director/hook-title";
 import {
   comparisonPanels,
   comparisonSplitAxis,
@@ -203,7 +209,13 @@ export function spokenSubtitleLock(aspectRatio?: string) {
   return "Subtitle: keep this clip's spoken line in a band across the bottom of the frame for the whole clip. Same words, same place, from the first frame to the last.";
 }
 
-export { HOOK_TITLE_PLACEMENT, hookTitleFrameLine };
+export {
+  HOOK_TITLE_PLACEMENT,
+  firstClipHookPerformanceDirectorRule,
+  firstClipHookPerformanceFrameLine,
+  firstClipHookPerformanceVideoLine,
+  hookTitleFrameLine,
+};
 
 // Shared rule for the first 3-second big bold hook title in Clip 1's opening scene across all directors.
 export function firstClipHookTitleDirectorRule(

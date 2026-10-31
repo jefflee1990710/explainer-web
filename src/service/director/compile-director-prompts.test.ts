@@ -31,9 +31,13 @@ test("compileDirectorPrompts builds standalone systemPrompt and Phase A/B refere
   assert.match(compiled.systemPrompt, /Founder stories and artisan product launches/);
   assert.match(compiled.systemPrompt, /Always end on a warm sip of coffee/);
   assert.match(compiled.systemPrompt, /lip-sync/i);
+  assert.match(compiled.systemPrompt, /BIG, BOLD HOOK TITLE/);
+  assert.match(compiled.systemPrompt, /extra facial expression, body/i);
   assert.equal(compiled.references.length, 2);
   assert.equal(compiled.references[0].path, "references/proposal-contract.md");
   assert.equal(compiled.references[1].path, "references/prompt-contract.md");
+  assert.match(compiled.references[0].content, /BIG, BOLD HOOK TITLE/);
+  assert.match(compiled.references[1].content, /Clip 1 hook/i);
 });
 
 test("normalizeDirectorBehavior keeps bansNarration and audioFirstLipSync consistent with speechMode", () => {

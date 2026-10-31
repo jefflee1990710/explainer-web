@@ -114,6 +114,7 @@ export function compileDirectorPrompts(input: CompileDirectorInput): {
     `- ${speechRule}`,
     `- ${keyframeRule}`,
     `- First 3-second Reel hook title: when on-canvas text is enabled, Clip 1's opening scene (\`startScene\` / \`explainerScene\`) and first 3 seconds (\`0–3s\` in \`motionCamera\`) MUST always feature a BIG, BOLD HOOK TITLE inside 「...」 in the user's configured on-screen text language, ${HOOK_TITLE_PLACEMENT} (when on-canvas text is off, omit all written text).`,
+    "- Clip 1 hook retention: Clip 1 MUST always open with extra facial expression, body/prop animation, and immediate camera or scene motion in the first 0–2 seconds to capture viewer attention and hold retention.",
     `- Required cast count: ${b.requiredCastCount} character(s).`,
     `- Max background sets: ${b.maxBackgroundSets}.`,
     ...(b.chainsClipStarts
@@ -143,11 +144,12 @@ export function compileDirectorPrompts(input: CompileDirectorInput): {
     "",
     `1. Follow the core behavior: ${speechRule}`,
     `2. Keyframe structure: ${keyframeRule}`,
-    ...(input.profile.structure?.trim() ? [`3. Structure & pacing: ${input.profile.structure.trim()}`] : []),
-    ...(input.profile.hook?.trim() ? [`4. Opening hook: ${input.profile.hook.trim()}`] : []),
-    ...(input.profile.arc?.trim() ? [`5. Narrative arc: ${input.profile.arc.trim()}`] : []),
-    ...(input.profile.visual?.trim() ? [`6. Visual world: ${input.profile.visual.trim()}`] : []),
-    ...(input.profile.rules?.trim() ? [`7. Key rules: ${input.profile.rules.trim()}`] : []),
+    `3. Clip 1 hook title & retention: when on-canvas text is enabled, Clip 1's opening scene (\`startScene\` / \`explainerScene\`) and first 3 seconds (\`0–3s\` in \`motionCamera\`) MUST feature a BIG, BOLD HOOK TITLE inside 「...」, ${HOOK_TITLE_PLACEMENT}, paired with extra facial expression, body animation, and immediate opening motion to hook the viewer.`,
+    ...(input.profile.structure?.trim() ? [`4. Structure & pacing: ${input.profile.structure.trim()}`] : []),
+    ...(input.profile.hook?.trim() ? [`5. Opening hook: ${input.profile.hook.trim()}`] : []),
+    ...(input.profile.arc?.trim() ? [`6. Narrative arc: ${input.profile.arc.trim()}`] : []),
+    ...(input.profile.visual?.trim() ? [`7. Visual world: ${input.profile.visual.trim()}`] : []),
+    ...(input.profile.rules?.trim() ? [`8. Key rules: ${input.profile.rules.trim()}`] : []),
     ...(input.extraInstructions?.trim() ? ["", "## Extra Instructions", input.extraInstructions.trim()] : []),
   ].join("\n");
 
@@ -157,8 +159,9 @@ export function compileDirectorPrompts(input: CompileDirectorInput): {
     "Write one video prompt per approved clip.",
     `1. ${speechRule}`,
     `2. ${keyframeRule}`,
-    ...(input.profile.visual?.trim() ? [`3. Visual & camera rules: ${input.profile.visual.trim()}`] : []),
-    ...(input.profile.audio?.trim() ? [`4. Audio & SFX rules: ${input.profile.audio.trim()}`] : []),
+    "3. Clip 1 hook retention: on Clip 1, animate extra facial expression changes, energetic body/prop animation, and immediate 0–2s camera or scene motion while keeping the Clip 1 hook title readable in the middle of the frame.",
+    ...(input.profile.visual?.trim() ? [`4. Visual & camera rules: ${input.profile.visual.trim()}`] : []),
+    ...(input.profile.audio?.trim() ? [`5. Audio & SFX rules: ${input.profile.audio.trim()}`] : []),
     ...(input.extraInstructions?.trim() ? ["", "## Extra Instructions", input.extraInstructions.trim()] : []),
   ].join("\n");
 
