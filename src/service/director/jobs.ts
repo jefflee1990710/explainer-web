@@ -109,6 +109,7 @@ export async function runPhaseAJob(
       referenceImages: project.referenceImages,
       clipDrafts: project.clipDrafts,
       backgroundImageUrls: project.backgroundImageUrls,
+      directorBackgroundId: project.directorBackgroundId,
       talkingHeadBackgroundId: project.talkingHeadBackgroundId,
       talkingHeadPoseId: project.talkingHeadPoseId,
       startImageUrl: project.startImageUrl,

@@ -209,6 +209,8 @@ async function sendVideo(project: Project, clipNumber: number) {
       usesTalkingHeadSubtitleOverlay({ skillSlug: project.skillSlug, styleId: project.styleId }) &&
       project.skillSlug === TALKING_HEAD_SKILL_SLUG,
     sceneTextOff: !resolveSceneText(project).enabled,
+    directorBackgroundId: project.directorBackgroundId,
+    backgroundImageUrls: project.backgroundImageUrls,
   });
   await saveClipPhaseBPrompt(project._id, clipNumber, prompt);
   return sendClipVideo(project, clipNumber, prompt);

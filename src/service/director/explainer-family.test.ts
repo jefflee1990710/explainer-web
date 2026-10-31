@@ -129,3 +129,58 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.match(block, /Complete Diagram Scaffold in `startScene`/);
   }
 });
+
+test("paper-cutout director defines preset backgrounds on IDirector and resolves surface locks", () => {
+  const director = DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"];
+  assert.equal(director.behavior.allowsRoomBackgroundUpload, true);
+  assert.equal(director.defaultBackgroundId, "wood-cardboard");
+  assert.ok(Array.isArray(director.presetBackgrounds));
+  const ids = director.presetBackgrounds.map((bg) => bg.id);
+  assert.deepEqual(ids, [
+    "wood-cardboard",
+    "paper",
+    "blueprint-paper",
+    "concrete",
+    "office-table",
+    "sky",
+  ]);
+  for (const bg of director.presetBackgrounds) {
+    assert.match(bg.previewUrl, /^\/director-backgrounds\/paper-cutout\/.+\.webp$/);
+    assert.ok(bg.nameEn.length > 0);
+    assert.ok(bg.nameZhHant.length > 0);
+    assert.ok(bg.surfacePrompt.length > 0);
+  }
+
+  // Blueprint paper preset replaces wood craft board in director block, frame lock, and video lock
+  const blueprintBlock = cartoonExplainerDirectorBlock({
+    hasCharacter: true,
+    canvas: "paper-cutout",
+    backgroundId: "blueprint-paper",
+  });
+  assert.match(blueprintBlock, /blueprint/i);
+  assert.doesNotMatch(blueprintBlock, /dark warm-brown vertically-grained wooden craft board/);
+
+  const concreteFrame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 1,
+    backgroundId: "concrete",
+  });
+  assert.match(concreteFrame, /concrete/i);
+  assert.doesNotMatch(concreteFrame, /wooden board IS the background/);
+
+  const skyVideo = cartoonNarratorVideoLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 2,
+    backgroundId: "sky",
+  });
+  assert.match(skyVideo, /sky/i);
+
+  // Uploaded custom background image overrides preset surface
+  const customFrame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 1,
+    customBackground: true,
+  });
+  assert.match(customFrame, /attached background reference image/i);
+});
+

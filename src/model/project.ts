@@ -401,8 +401,10 @@ export type Project = {
   referenceImages?: ReferenceImage[];
   // Optional user-sketched or AI-drafted clip breakdowns created in the brief wizard.
   clipDrafts?: StoryboardClipDraft[];
-  // Talking-head only: up to 2 room photos. They replace the bookshelf set.
+  // Talking-head / preset-background directors: up to 2 background reference photos.
   backgroundImageUrls?: string[];
+  // Director preset background id (from `IDirector.presetBackgrounds`).
+  directorBackgroundId?: string;
   // Talking-head only: preset background id from TALKING_HEAD_BACKGROUNDS.
   talkingHeadBackgroundId?: string;
   // Talking-head only: preset pose id from TALKING_HEAD_POSES.
@@ -634,6 +636,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
     )
     .optional(),
   backgroundImageUrls: z.array(z.string()).max(2).optional(),
+  directorBackgroundId: z.string().optional(),
   talkingHeadBackgroundId: z.string().optional(),
   talkingHeadPoseId: z.string().optional(),
   startImageUrl: z.string().optional(),

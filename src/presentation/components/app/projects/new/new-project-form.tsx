@@ -72,11 +72,16 @@ import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import { DEFAULT_SUBTITLE_LOOK, isSubtitleLook } from "@/service/director/subtitle-look";
 import {
+  defaultDirectorBackgroundId,
+  directorPresetBackgrounds,
   isBookendSkill,
+  isValidDirectorBackgroundId,
   requiredCastCount,
+  skillAllowsBackgroundUpload,
   skillBansNarration,
   skillForcesSceneText,
 } from "@/service/director/skill-rules";
+import { DirectorBackgroundPicker } from "@/presentation/components/app/projects/new/director-background-picker";
 import {
   isTalkingHeadSkill,
   TALKING_HEAD_SKILL_SLUG,
@@ -344,6 +349,21 @@ export function NewProjectForm({
   const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
     initialVideo?.backgroundImageUrls || [],
   );
+  const [directorBackgroundId, setDirectorBackgroundId] = useState<string>(() => {
+    const initSlug =
+      (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
+      (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
+      pickerDefaultSkillSlug(skills);
+    const initRule = ruleSlugFor(initSlug, skills);
+    return (
+      (isValidDirectorBackgroundId(initRule, initialVideo?.directorBackgroundId)
+        ? initialVideo?.directorBackgroundId
+        : undefined) ||
+      defaultDirectorBackgroundId(initRule) ||
+      ""
+    );
+  });
+  const [directorBackgroundDialogOpen, setDirectorBackgroundDialogOpen] = useState(false);
   const [talkingHeadPoseId, setTalkingHeadPoseId] = useState<TalkingHeadPoseId>(() =>
     isTalkingHeadPoseId(initialVideo?.talkingHeadPoseId)
       ? initialVideo.talkingHeadPoseId
@@ -352,6 +372,8 @@ export function NewProjectForm({
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
+  const presetBackgrounds = directorPresetBackgrounds(ruleSlug);
+  const allowsBgUpload = skillAllowsBackgroundUpload(ruleSlug);
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [folderId, setFolderId] = useState(projectId);
@@ -549,7 +571,13 @@ export function NewProjectForm({
       JSON.stringify(project.clipDrafts || []) ===
         JSON.stringify(talkingHead ? [] : clipDrafts) &&
       JSON.stringify(project.backgroundImageUrls || []) ===
-        JSON.stringify(talkingHeadBackground ? backgroundImageUrls : []) &&
+        JSON.stringify(
+          talkingHeadBackground || allowsBgUpload ? backgroundImageUrls : [],
+        ) &&
+      (presetBackgrounds.length > 0
+        ? (project.directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || "") ===
+          (directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || "")
+        : true) &&
       (talkingHeadBackground
         ? (project.talkingHeadPoseId || DEFAULT_TALKING_HEAD_POSE_ID) === talkingHeadPoseId
         : true) &&
@@ -591,6 +619,11 @@ export function NewProjectForm({
     if (talkingHeadBackground) {
       formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
       formData.set("talkingHeadPoseId", talkingHeadPoseId);
+    } else if (allowsBgUpload) {
+      formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
+    }
+    if (presetBackgrounds.length > 0 && directorBackgroundId) {
+      formData.set("directorBackgroundId", directorBackgroundId);
     }
     for (const id of characterIds) formData.append("characterIds", id);
     if (Object.keys(characterSelections).length > 0) {
@@ -808,7 +841,8 @@ export function NewProjectForm({
 
   // Put the form back to this video's saved brief.
   function resetBriefFromProject(video: PublicVideo, options: PublicSkill[]) {
-    setSkillSlug(selectedSkillSlugFor(video, options));
+    const nextSkillSlug = selectedSkillSlugFor(video, options);
+    setSkillSlug(nextSkillSlug);
     setStyleId(video.styleId || DEFAULT_STYLE_ID);
     setSource(video.source);
     setSpokenScript(
@@ -830,6 +864,14 @@ export function NewProjectForm({
     setReferenceImages(toReferenceDrafts(video.referenceImages));
     setClipDrafts(video.clipDrafts || []);
     setBackgroundImageUrls(video.backgroundImageUrls || []);
+    const nextRule = ruleSlugFor(nextSkillSlug, options);
+    setDirectorBackgroundId(
+      (isValidDirectorBackgroundId(nextRule, video.directorBackgroundId)
+        ? video.directorBackgroundId
+        : undefined) ||
+        defaultDirectorBackgroundId(nextRule) ||
+        "",
+    );
     setTalkingHeadPoseId(
       isTalkingHeadPoseId(video.talkingHeadPoseId)
         ? video.talkingHeadPoseId
@@ -1057,6 +1099,15 @@ export function NewProjectForm({
   function onSkillChange(nextSlug: string) {
     setSkillSlug(nextSlug);
     const nextRuleSlug = ruleSlugFor(nextSlug, skills);
+    const nextPresets = directorPresetBackgrounds(nextRuleSlug);
+    if (nextPresets.length > 0) {
+      if (!isValidDirectorBackgroundId(nextRuleSlug, directorBackgroundId)) {
+        setDirectorBackgroundId(defaultDirectorBackgroundId(nextRuleSlug) || nextPresets[0]!.id);
+      }
+      setDirectorBackgroundDialogOpen(true);
+    } else {
+      setDirectorBackgroundDialogOpen(false);
+    }
     if (isTalkingHeadSkill(nextRuleSlug) && wizardStep === 3) {
       setWizardStep(2);
     }
@@ -1374,6 +1425,22 @@ export function NewProjectForm({
                         />
                       </div>
                     ) : null}
+                    {presetBackgrounds.length > 0 ? (
+                      <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                        <DirectorBackgroundPicker
+                          presets={presetBackgrounds}
+                          selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
+                          customUrls={backgroundImageUrls}
+                          allowsUpload={allowsBgUpload}
+                          open={directorBackgroundDialogOpen}
+                          disabled={briefBusy}
+                          onOpenChange={setDirectorBackgroundDialogOpen}
+                          onSelectPreset={setDirectorBackgroundId}
+                          onChangeCustomUrls={setBackgroundImageUrls}
+                          onError={setError}
+                        />
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* 02 Content / Script */}
@@ -1486,6 +1553,22 @@ export function NewProjectForm({
                               <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
                             ) : null}
                           </Section>
+                          {presetBackgrounds.length > 0 ? (
+                            <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                              <DirectorBackgroundPicker
+                                presets={presetBackgrounds}
+                                selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
+                                customUrls={backgroundImageUrls}
+                                allowsUpload={allowsBgUpload}
+                                open={directorBackgroundDialogOpen}
+                                disabled={briefBusy}
+                                onOpenChange={setDirectorBackgroundDialogOpen}
+                                onSelectPreset={setDirectorBackgroundId}
+                                onChangeCustomUrls={setBackgroundImageUrls}
+                                onError={setError}
+                              />
+                            </div>
+                          ) : null}
                         </div>
 
                         {/* Row 2: Equal-height 3-column Studio Cards (02 Visual Style · 03 Characters · 04 Products) */}

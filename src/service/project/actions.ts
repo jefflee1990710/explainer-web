@@ -43,8 +43,11 @@ import {
 import {
   applySkillSceneText,
   briefSkillError,
+  defaultDirectorBackgroundId,
   isBookendSkill,
+  isValidDirectorBackgroundId,
   maxStyleCountForSkill,
+  skillAllowsBackgroundUpload,
   skillBansNarration,
 } from "@/service/director/skill-rules";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
@@ -127,8 +130,10 @@ type BriefFields = {
   referenceImages: ReferenceImage[];
   // Optional user-sketched or AI-drafted clip breakdowns created in Step 03.
   clipDrafts: StoryboardClipDraft[];
-  // Talking-head read only. Up to 2 room photos that replace the bookshelf.
+  // Talking-head / preset-background directors. Up to 2 background reference photos.
   backgroundImageUrls: string[];
+  // Director preset background id (from `IDirector.presetBackgrounds`).
+  directorBackgroundId?: string;
   // Talking-head read only. Preset background & pose ids.
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
@@ -259,11 +264,17 @@ async function readVideoBrief(
     isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!references.ok) return references;
+  const allowsBgUpload =
+    ruleSlug === TALKING_HEAD_SKILL_SLUG || skillAllowsBackgroundUpload(ruleSlug);
   const backgrounds = parseBackgroundImageUrls(
-    ruleSlug === TALKING_HEAD_SKILL_SLUG ? String(formData.get("backgroundImageUrls") || "") : "",
+    allowsBgUpload ? String(formData.get("backgroundImageUrls") || "") : "",
     (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!backgrounds.ok) return backgrounds;
+  const rawDirectorBg = String(formData.get("directorBackgroundId") || "").trim();
+  const directorBackgroundId = isValidDirectorBackgroundId(ruleSlug, rawDirectorBg)
+    ? rawDirectorBg
+    : defaultDirectorBackgroundId(ruleSlug);
   const rawThBg = String(formData.get("talkingHeadBackgroundId") || "").trim();
   const talkingHeadBackgroundId =
     ruleSlug === TALKING_HEAD_SKILL_SLUG && isTalkingHeadBackgroundId(rawThBg)
@@ -307,6 +318,7 @@ async function readVideoBrief(
       referenceImages: references.images,
       clipDrafts,
       backgroundImageUrls: backgrounds.urls,
+      ...(directorBackgroundId ? { directorBackgroundId } : {}),
       ...(talkingHeadBackgroundId ? { talkingHeadBackgroundId } : {}),
       ...(talkingHeadPoseId ? { talkingHeadPoseId } : {}),
       startImageUrl: startImage.url,
@@ -662,6 +674,7 @@ export async function createVideoAction(
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       ...(brief.clipDrafts.length ? { clipDrafts: brief.clipDrafts } : {}),
       ...(brief.backgroundImageUrls.length ? { backgroundImageUrls: brief.backgroundImageUrls } : {}),
+      ...(brief.directorBackgroundId ? { directorBackgroundId: brief.directorBackgroundId } : {}),
       ...(brief.talkingHeadBackgroundId ? { talkingHeadBackgroundId: brief.talkingHeadBackgroundId } : {}),
       ...(brief.talkingHeadPoseId ? { talkingHeadPoseId: brief.talkingHeadPoseId } : {}),
       ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
@@ -853,6 +866,9 @@ async function rewriteVideoBrief(
           ...(brief.backgroundImageUrls.length
             ? { backgroundImageUrls: brief.backgroundImageUrls }
             : {}),
+          ...(brief.directorBackgroundId
+            ? { directorBackgroundId: brief.directorBackgroundId }
+            : {}),
           ...(brief.talkingHeadBackgroundId
             ? { talkingHeadBackgroundId: brief.talkingHeadBackgroundId }
             : {}),
@@ -867,6 +883,7 @@ async function rewriteVideoBrief(
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
           ...(brief.clipDrafts.length ? {} : { clipDrafts: "" }),
           ...(brief.backgroundImageUrls.length ? {} : { backgroundImageUrls: "" }),
+          ...(brief.directorBackgroundId ? {} : { directorBackgroundId: "" }),
           ...(brief.talkingHeadBackgroundId ? {} : { talkingHeadBackgroundId: "" }),
           ...(brief.talkingHeadPoseId ? {} : { talkingHeadPoseId: "" }),
           ...(brief.startImageUrl ? {} : { startImageUrl: "" }),

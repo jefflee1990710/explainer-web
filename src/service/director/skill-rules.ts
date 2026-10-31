@@ -5,8 +5,9 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   explainerCanvasKind,
   isDiagramExplainerSkill,
-  PAPER_CUTOUT_CAMERA_RULE,
-  PAPER_CUTOUT_CANVAS_LOCK,
+  paperCutoutCameraRule,
+  paperCutoutCanvasLock,
+  paperCutoutVideoCanvasLock,
   WHITEBOARD_CANVAS_LOCK,
   type ExplainerCanvasKind,
 } from "@/service/director/explainer-family";
@@ -61,6 +62,27 @@ export function isBookendSkill(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
   if (director) return Boolean(director.behavior.bookendRole);
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
+}
+
+export function skillAllowsBackgroundUpload(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  return Boolean(director?.behavior.allowsRoomBackgroundUpload);
+}
+
+export function directorPresetBackgrounds(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  return director?.presetBackgrounds ?? [];
+}
+
+export function defaultDirectorBackgroundId(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  return director?.defaultBackgroundId ?? director?.presetBackgrounds?.[0]?.id;
+}
+
+export function isValidDirectorBackgroundId(skillSlug: string | undefined, backgroundId: string | undefined | null): backgroundId is string {
+  if (!backgroundId) return false;
+  const presets = directorPresetBackgrounds(skillSlug);
+  return presets.some((bg) => bg.id === backgroundId);
 }
 
 // IG Reel stills (9:16). Top 20% and bottom 20% stay free of text/UI overlays for every director,
@@ -607,14 +629,20 @@ export function cartoonExplainerDirectorBlock(options?: {
   smoothMotion?: boolean;
   realistic?: boolean;
   canvas?: ExplainerCanvasKind;
+  backgroundId?: string;
+  customBackground?: boolean;
 }) {
   const hasCharacter = Boolean(options?.hasCharacter);
   const smooth = Boolean(options?.smoothMotion);
   const realistic = Boolean(options?.realistic);
   const canvas: ExplainerCanvasKind = options?.canvas ?? "whiteboard";
+  const surfaceOpts = {
+    backgroundId: options?.backgroundId,
+    customBackground: options?.customBackground,
+  };
   const canvasLock =
     canvas === "paper-cutout"
-      ? PAPER_CUTOUT_CANVAS_LOCK
+      ? paperCutoutCanvasLock(surfaceOpts)
       : "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).";
   const graphNoun = canvas === "paper-cutout" ? "paper-cutout explanation collage" : "whiteboard explanation graph";
   const pieceNoun = canvas === "paper-cutout" ? "cutout piece" : "drawn element";
@@ -670,7 +698,7 @@ export function cartoonExplainerDirectorBlock(options?: {
     teachingElementsRule(pieceNoun, graphNoun),
     // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
     cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
-    flatBoard ? PAPER_CUTOUT_CAMERA_RULE : "",
+    flatBoard ? paperCutoutCameraRule(surfaceOpts) : "",
     "On-canvas beat text: never write Subtitle: or caption the spoken voiceover on the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object.",
   ]
     .filter(Boolean)
@@ -710,6 +738,8 @@ export function cartoonNarratorFrameLock(
     // Cinematic realistic: both stills share the camera; only the action differs.
     steadyStills?: boolean;
     realistic?: boolean;
+    backgroundId?: string;
+    customBackground?: boolean;
   },
 ) {
   if (!isDiagramExplainerSkill(skillSlug)) return "";
@@ -734,7 +764,12 @@ export function cartoonNarratorFrameLock(
     ? "Camera angle, shot size, and side match the other still of this clip."
     : "Camera angle may differ from the other still.";
   const whiteboard2dRule =
-    canvas === "paper-cutout" ? PAPER_CUTOUT_CANVAS_LOCK : WHITEBOARD_CANVAS_LOCK;
+    canvas === "paper-cutout"
+      ? paperCutoutCanvasLock({
+          backgroundId: options?.backgroundId,
+          customBackground: options?.customBackground,
+        })
+      : WHITEBOARD_CANVAS_LOCK;
   const silent = `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (lips closed when facing camera; unseen from behind; no greeting wave).${actingStill}`;
   const labels =
     "Draw every beat title or diagram label in 「」 as readable writing on that object (use at most 1 directional arrow, never blank grey tape or unlabelled strips; not the subtitle).";
@@ -793,6 +828,8 @@ export function cartoonNarratorVideoLock(
     clipNumber?: number;
     smoothMotion?: boolean;
     realistic?: boolean;
+    backgroundId?: string;
+    customBackground?: boolean;
   },
 ) {
   if (!isDiagramExplainerSkill(skillSlug)) return "";
@@ -801,7 +838,10 @@ export function cartoonNarratorVideoLock(
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
   const canvasVoice =
     canvas === "paper-cutout"
-      ? "Keep the whole canvas edge-to-edge as a paper-cutout craft collage on a dark warm-brown vertically-grained wooden craft board: thick irregular white scissor borders on every piece, colour hero on mono/kraft background cutouts, rigid paste motion (no morphing)."
+      ? paperCutoutVideoCanvasLock({
+          backgroundId: options?.backgroundId,
+          customBackground: options?.customBackground,
+        })
       : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
     `Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. Sound effects never replace the narrator. The clip is never silent. ${canvasVoice}`;

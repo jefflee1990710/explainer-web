@@ -67,6 +67,8 @@ type PhaseBInput = {
   subtitleHandoff?: boolean;
   // Brief chose None. Video prompts must not ask for writing.
   sceneTextOff?: boolean;
+  directorBackgroundId?: string;
+  backgroundImageUrls?: string[];
 };
 
 // Shared director contract for video prompts (batch and per-clip).
@@ -121,6 +123,8 @@ ${
     hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
     smoothMotion: steady,
     realistic,
+    backgroundId: input.directorBackgroundId,
+    customBackground: Boolean(input.backgroundImageUrls?.length),
   })} ${
     silent ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
@@ -223,6 +227,8 @@ export async function runPhaseBForClip(
       clipNumber: input.clipNumber,
       smoothMotion: steady,
       realistic: isRealisticStyle(input.style),
+      backgroundId: input.directorBackgroundId,
+      customBackground: Boolean(input.backgroundImageUrls?.length),
     }),
     phaseBWardrobeLock({
       cast: input.cast,

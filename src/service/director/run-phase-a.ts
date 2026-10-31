@@ -196,8 +196,10 @@ export async function runPhaseA(input: {
   referenceImages?: ReferenceImage[];
   // Optional user-sketched or AI-drafted clip breakdowns created in the brief wizard.
   clipDrafts?: StoryboardClipDraft[];
-  // Talking-head room photos. When present, the bookshelf set is not used.
+  // Talking-head / preset-background directors: uploaded background photos.
   backgroundImageUrls?: string[];
+  // Director preset background id (from `IDirector.presetBackgrounds`).
+  directorBackgroundId?: string;
   // Talking-head preset background & pose ids.
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
@@ -372,6 +374,8 @@ ${
           hasCharacter,
           smoothMotion: steadyStills,
           canvas: explainerCanvasKind(input.skill.slug) ?? "whiteboard",
+          backgroundId: input.directorBackgroundId,
+          customBackground: Boolean(input.backgroundImageUrls?.length),
           realistic: isRealisticStyle({
             id: input.style.id,
             baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,

@@ -113,6 +113,7 @@ export type PublicVideo = {
   referenceImages: NonNullable<Project["referenceImages"]>;
   clipDrafts?: NonNullable<Project["clipDrafts"]>;
   backgroundImageUrls: string[];
+  directorBackgroundId?: string;
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
   startImageUrl?: string;
@@ -448,6 +449,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     referenceImages: video.referenceImages || [],
     clipDrafts: video.clipDrafts || [],
     backgroundImageUrls: video.backgroundImageUrls || [],
+    directorBackgroundId: video.directorBackgroundId,
     talkingHeadBackgroundId: video.talkingHeadBackgroundId,
     talkingHeadPoseId: video.talkingHeadPoseId,
     startImageUrl: video.startImageUrl,

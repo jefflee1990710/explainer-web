@@ -1322,6 +1322,30 @@ test("talking-head background photos replace the bookshelf and attach as the roo
   assert.doesNotMatch(plan.prompt, /https:\/\/blob\/other.png/);
 });
 
+test("paper-cutout preset background and uploaded background reference update frameSubmitPlan", () => {
+  const video = project();
+  video.skillSlug = "paper-cutout-explainer-video-director";
+  video.directorBackgroundId = "blueprint-paper";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  const blueprintPlan = frameSubmitPlan(video, 1, "start");
+  assert.match(blueprintPlan.prompt, /blueprint paper/i);
+  assert.doesNotMatch(blueprintPlan.prompt, /wooden board IS the background/);
+
+  video.backgroundImageUrls = ["https://blob/custom-bg.png"];
+  const customPlan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(customPlan.refs, ["https://blob/c.png", "https://blob/custom-bg.png"]);
+  assert.match(customPlan.prompt, /BACKGROUND REFERENCE: attached image 2 shows/);
+  assert.match(customPlan.prompt, /attached background reference image IS the background/i);
+});
+
 test("assigned scene references sit after the character so the photo's face does not win", () => {
   const video = project();
   video.cast = [

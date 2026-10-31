@@ -1,4 +1,8 @@
 import type { IDirector } from "@/model/director";
+import {
+  DEFAULT_PAPER_CUTOUT_BACKGROUND_ID,
+  PAPER_CUTOUT_PRESET_BACKGROUNDS,
+} from "@/model/paper-cutout-backgrounds";
 
 const raw = {
   slug: "paper-cutout-explainer-video-director",
@@ -185,12 +189,14 @@ Start and end stills are one continuous paste-motion shot. Animate the one actio
     allowsInWorldLabels: true,
     attachesTextStyleReference: true,
     requiresSpokenScript: false,
-    allowsRoomBackgroundUpload: false,
+    allowsRoomBackgroundUpload: true,
     allowsOpeningPhotoUpload: false,
     allowsBrandLogoUpload: false,
     maxStyleCount: 1,
     hiddenInPicker: false,
   },
+  presetBackgrounds: PAPER_CUTOUT_PRESET_BACKGROUNDS,
+  defaultBackgroundId: DEFAULT_PAPER_CUTOUT_BACKGROUND_ID,
 } as const;
 
 // Hardcoded director: paper-cutout collage concept explainer (sibling of whiteboard explainer).

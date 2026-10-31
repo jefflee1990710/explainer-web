@@ -125,6 +125,26 @@ export function isDirectorSlug(value: string | undefined | null): value is Direc
 export type DirectorKeyframeMode = "start-only" | "end-is-next-start";
 export type DirectorSpeechMode = "narrator" | "lip-sync" | "silent";
 
+/** Preset background option configured on a director (e.g., paper-cutout collage surfaces). */
+export interface DirectorPresetBackground {
+  id: string;
+  nameEn: string;
+  nameZhHant: string;
+  nameZhHans: string;
+  descriptionEn: string;
+  descriptionZhHant: string;
+  /** Short surface noun for camera/set lock lines (e.g., "wooden craft board", "blueprint paper"). */
+  surfaceNoun: string;
+  /** Full surface description injected into canvas / frame / video locks. */
+  surfacePrompt: string;
+  /** Negative surface list so the model never mixes in other textures. */
+  forbidSurfaces: string;
+  /** Prompt used to generate the preview card image. */
+  previewPrompt: string;
+  /** Public preview URL under `public/director-backgrounds/...`. */
+  previewUrl: string;
+}
+
 export interface IDirectorBehavior {
   /**
    * Keyframe generation strategy:
@@ -190,6 +210,10 @@ export interface IDirector {
   profile?: SystemProfile;
   performance?: SystemPerformance;
   behavior: IDirectorBehavior;
+  /** Optional catalog of preset backgrounds selectable when creating a video with this director. */
+  presetBackgrounds?: readonly DirectorPresetBackground[];
+  /** Default preset background id when `presetBackgrounds` is defined. */
+  defaultBackgroundId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -71,6 +71,7 @@ import {
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   skillBansNarration,
+  skillAllowsBackgroundUpload,
   skillForcesSceneText,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
@@ -596,9 +597,10 @@ export function frameSceneReferenceUrls(
   clipNumber: number,
   otherRefCount: number,
 ) {
-  // Talking-head room photos replace the bookshelf and any clip-assigned refs.
-  const backgrounds =
-    project.skillSlug === TALKING_HEAD_SKILL_SLUG ? project.backgroundImageUrls || [] : [];
+  // Talking-head room photos or director background uploads replace the default set and any clip-assigned refs.
+  const allowsBackground =
+    project.skillSlug === TALKING_HEAD_SKILL_SLUG || skillAllowsBackgroundUpload(project.skillSlug);
+  const backgrounds = allowsBackground ? project.backgroundImageUrls || [] : [];
   const urls = backgrounds.length ? backgrounds : clipReferenceImageUrls(project, clipNumber);
   const route = imageRouteForSceneText(resolveSceneText(project).language);
   const room = referenceLimitForModel(route.editModel) - otherRefCount;
@@ -758,7 +760,9 @@ export function buildFramePrompt(
     : "";
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const backgroundRefs =
-    project.skillSlug === TALKING_HEAD_SKILL_SLUG && (project.backgroundImageUrls?.length || 0) > 0;
+    (project.skillSlug === TALKING_HEAD_SKILL_SLUG ||
+      skillAllowsBackgroundUpload(project.skillSlug)) &&
+    (project.backgroundImageUrls?.length || 0) > 0;
   const sceneRefLines = sceneRefUrls.length
     ? [
         sceneReferenceFrameLine(
@@ -954,6 +958,8 @@ export function buildFramePrompt(
     clipNumber,
     steadyStills: steady,
     realistic,
+    backgroundId: project.directorBackgroundId,
+    customBackground: Boolean(project.backgroundImageUrls?.length),
   });
 
   // Clip 1 opening still: place the Scene's 「」 hook title (or proposal title fallback); explainers carry it inside narratorLock.
