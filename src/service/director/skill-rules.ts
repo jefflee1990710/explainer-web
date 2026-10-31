@@ -5,10 +5,12 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   explainerCanvasKind,
   isDiagramExplainerSkill,
+  PAPER_CUTOUT_CAMERA_RULE,
   PAPER_CUTOUT_CANVAS_LOCK,
   WHITEBOARD_CANVAS_LOCK,
   type ExplainerCanvasKind,
 } from "@/service/director/explainer-family";
+import { HOOK_TITLE_PLACEMENT, hookTitleFrameLine } from "@/service/director/hook-title";
 import {
   FOLLOW_SHOT_SKILL_SLUG,
   isFollowShotSkill,
@@ -535,98 +537,6 @@ const MENU_ORDER: CartoonAction[] = [
   "flip", "dial", "stretch", "squeeze", "magnify", "jump", "point",
 ];
 
-type CartoonExpressionArc = {
-  label: string;
-  start: string;
-  end: string;
-  video: string;
-};
-
-// Distinct per-clip facial expression arcs so the whiteboard character never repeats the same face across clips.
-export const CARTOON_EXPRESSION_ARCS: readonly CartoonExpressionArc[] = [
-  {
-    label: "shocked disbelief → intrigued smirk",
-    start:
-      "wide saucer eyes, high arched eyebrows, and a stunned closed-lip reaction with lips pressed firmly shut (override the blueprint's neutral smile; mouth strictly closed)",
-    end:
-      "one eyebrow raised high in curiosity, focused eyes, and an intrigued asymmetrical smirk with closed lips",
-    video:
-      "the face shifts from wide-eyed shocked disbelief (high arched brows, lips firmly closed) into a curious single-brow closed-lip smirk",
-  },
-  {
-    label: "puzzled furrow → sharp analytical squint",
-    start:
-      "deeply furrowed V-shaped eyebrows, squinted questioning eyes, and a tight side-pursed thinking mouth with lips closed (override the blueprint's neutral smile)",
-    end:
-      "focused analytical eyes, angled determined eyebrows, and a firm closed-mouth nod expression",
-    video:
-      "the face shifts from a puzzled V-brow frown and side-pursed closed mouth into a sharp analytical squint",
-  },
-  {
-    label: "lightbulb eureka → proud confident grin",
-    start:
-      "eyebrows shooting high up in a sudden 'aha!' eureka realization, bright wide-open eyes, and an excited closed-lip smile",
-    end:
-      "relaxed confident eyebrows, sparkling eyes, and a broad proud closed-mouth grin",
-    video:
-      "the face lights up from a sudden wide-eyed 'aha!' eureka reaction into a proud confident closed-mouth grin",
-  },
-  {
-    label: "skeptical side-eye → relieved warm smile",
-    start:
-      "asymmetric skeptical eyebrows (one brow cocked high, one lowered), side-glancing eyes, and a crooked wry closed mouth (override the blueprint's default expression)",
-    end:
-      "softly lifted eyebrows, warm bright eyes, and a relieved closed-mouth smile",
-    video:
-      "the face transitions from a skeptical single-raised-brow side-eye and wry closed mouth into a relieved warm closed-lip smile",
-  },
-  {
-    label: "intense effort grit → triumphant beam",
-    start:
-      "steeply angled determined eyebrows, narrowed focused eyes, and slightly puffed cheeks with tight grit closed lips (override the blueprint's neutral face)",
-    end:
-      "high celebratory eyebrows, wide cheerful eyes, and a triumphant closed-lip beam",
-    video:
-      "the face strains with furrowed determined brows and puffed cheeks (lips firmly closed), then pops into a triumphant closed-lip beam",
-  },
-  {
-    label: "alarmed overwhelm → calm mastery",
-    start:
-      "upward-slanted worried inner eyebrows, startled wide eyes, and a tense closed-lip grimace (override the blueprint's neutral smile)",
-    end:
-      "composed confident eyebrows, steady bright eyes, and a calm knowing closed-mouth smile",
-    video:
-      "the face shifts from an alarmed, worried closed-lip grimace with slanted brows into a calm, assured knowing closed-mouth smile",
-  },
-  {
-    label: "playful wink → enthusiastic grin",
-    start:
-      "one eye playfully crinkled/winking with a high arched brow and a cheeky lopsided closed-lip smile",
-    end:
-      "both eyes wide and bright with raised eyebrows and an enthusiastic broad closed-mouth grin",
-    video:
-      "the face moves from a playful cheeky wink into an enthusiastic wide-eyed closed-mouth grin",
-  },
-  {
-    label: "curious lean-in wonder → satisfied nod",
-    start:
-      "high curious eyebrows, wide fascinated eyes leaning toward the diagram, and an intrigued closed-lip expression",
-    end:
-      "warm arched eyebrows, crinkling smiling eyes, and a satisfied closed-lip smile",
-    video:
-      "the face shifts from wide-eyed curious wonder with closed lips into a warm, satisfied closed-mouth smiling nod",
-  },
-];
-
-export function cartoonClipExpressionArc(
-  clipNumber?: number,
-  options?: { realistic?: boolean },
-): CartoonExpressionArc | undefined {
-  if (options?.realistic) return undefined;
-  if (!clipNumber || clipNumber < 1) return undefined;
-  return CARTOON_EXPRESSION_ARCS[(clipNumber - 1) % CARTOON_EXPRESSION_ARCS.length];
-}
-
 // Clip 1 only. The two stills must show the before and after, or the video will not move the lens.
 export function cartoonHookCameraRule(
   hasCharacter: boolean,
@@ -634,8 +544,8 @@ export function cartoonHookCameraRule(
   realistic?: boolean,
 ) {
   const faceNote = realistic
-    ? "The face stays normal, alive, and naturally engaged with lips firmly closed — never a blank or deadpan stare; the character stays silent and never lip-syncs."
-    : "Surprise is a facial expression only. The character stays silent.";
+    ? "The face and body act the hook line's emotion at natural real-person intensity with lips firmly closed — never a blank or deadpan stare; the character stays silent and never lip-syncs."
+    : "The face and body act the hook line's emotion with a vivid expression only. The character stays silent.";
   if (smoothMotion) {
     if (!hasCharacter) {
       return "Clip 1 is the hook and uses at most one push-in or pull-out (parallax zoom-out / push-in) on the graph. It starts, accelerates through the change, then decelerates into the landing. The middle of that move is sharp and quick. Foreground, midground, and background stay rigid cardboard cutout layers that shift with clean parallax depth—never morph, warp, or melt the background. Same angle and same crop centre in both stills; only the distance may differ a little. Show every in-between frame. No skipped frame and no new angle. Later clips do not repeat this hook camera.";
@@ -645,7 +555,7 @@ export function cartoonHookCameraRule(
   if (!hasCharacter) {
     return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
   }
-  const hookFace = realistic ? "normal, alive, engaged face" : "surprised face";
+  const hookFace = "face acting the hook line's emotion";
   return `Clip 1 is the hook and always uses exactly one exaggerated camera move, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in from a wider shot to the ${hookFace}; a snap zoom out from the ${hookFace} to the full body and the graph; a fast 360 orbit around the character that ends on the opposite side; an overhead drop from looking down onto an eye-level ${hookFace}; a crash push from far across the canvas into a close-up as the graph rushes past; a dutch snap from a tilted close-up into an upright wider view. Write that before and after in each still's Camera line, so shot size or angle differs. ${faceNote} Later clips do not repeat this hook camera.`;
 }
 
@@ -660,7 +570,9 @@ export const COMPLETE_START_DIAGRAM_RULE =
   "Complete Diagram Scaffold in `startScene`: because single-frame image-to-video generates motion directly from the `startScene` still, `startScene` MUST already draw the COMPLETE structured diagram scaffold (all 4+ labeled nodes, containers, axes, and connecting paths visible on canvas at t=0s), not an empty canvas waiting to be drawn later.";
 
 export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
-  "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): unless on-canvas text is turned off, the first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (2–6 words / 4–10 CJK characters summarizing the Reel hook) spanning the upper-center of the diagram scaffold — NEVER split the top of Clip 1 into two small left/right header stickers that compete with the hook title — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title clearly visible on screen for the first 3 seconds while the opening hook camera and diagram animation play out.";
+  "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): unless on-canvas text is turned off, the first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (2–6 words / 4–10 CJK characters summarizing the Reel hook), " +
+  HOOK_TITLE_PLACEMENT +
+  " — NEVER split the hook into two small left/right header stickers that compete with each other — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title clearly visible on screen for the first 3 seconds while the opening hook camera and diagram animation play out.";
 
 export const EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE =
   "Arrow & Sticker Hygiene (STRICT): (1) MAX ONE ARROW PER CLIP — use at most 1 directional arrow in the entire clip (across both `startScene` and `motionCamera`), never stack 2–4 arrows in one frame or inside a phone/card, and if `startScene` already has an arrow, never spawn another arrow in `motionCamera`; (2) NO BLANK SLASH STRIPS OR TAPE STICKERS — never use a grey paper slash strip, blank masking tape, or unlabelled cross-out bar sliding over a header or card to cross out an old concept (to replace an old state, flip the card in place or slide the old card cleanly off-frame).";
@@ -706,13 +618,25 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).";
   const graphNoun = canvas === "paper-cutout" ? "paper-cutout explanation collage" : "whiteboard explanation graph";
   const pieceNoun = canvas === "paper-cutout" ? "cutout piece" : "drawn element";
+  // Paper-cutout board must stay square-on; only framing changes between clips.
+  const flatBoard = canvas === "paper-cutout";
+  const smoothAngleRule = flatBoard
+    ? "A new framing (wider, closer, or panned to another part of the board, always square-on to the board) is chosen only between clips, at the cut, and does not repeat the previous clip."
+    : "A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip.";
+  const angleRule = flatBoard
+    ? "Framing changes every clip and does not repeat (wider, closer, or panned to another part of the board), always square-on to the board, and it may zoom in or out."
+    : "Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out.";
   const physicsNoun =
     canvas === "paper-cutout"
       ? "Paper-cutout collage physics: every diagram card, prop, chart bar, shape, object, label, and graphic element is a rigid paper cutout with a thick irregular white scissor border, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving"
       : "Whiteboard cardboard style: every diagram card, prop, chart bar, shape, object, label, and graphic element stays in one rigid piece like a flat cardboard cutout, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving";
   const expressionGuidance = realistic
-    ? "keeps a normal, alive, engaged real-person facial expression with a calm, relaxed, unforced neutral mouth and softly closed lips at natural rest (attentive focused eyes; never a forced or stiff closed-lip smile, never a tight-lipped smirk, never a blank, deadpan, or expressionless stare; never exaggerated cartoon grimaces, wide saucer eyes, puffed cheeks, or open-mouth gasps, and keep the mouth softly closed at all times)"
-    : "gives a vivid, expressive facial expression that is DISTINCT from the previous clip (never repeat the same face twice in a row, and never keep the blueprint's default neutral smile — rotate across contrasted emotions such as Clip 1 shocked wide saucer eyes & arched brows → intrigued smirk; Clip 2 puzzled V-furrowed brows & side-pursed mouth → analytical squint; Clip 3 'aha!' eureka raised brows → proud grin; Clip 4 skeptical single-cocked eyebrow & wry mouth → relieved smile; Clip 5 intense grit with puffed cheeks → triumphant beam; Clip 6 worried slanted brows & tense grimace → calm knowing smile, with a clear emotional shift from startScene to endScene)";
+    ? "acts out the emotion of this clip's spoken line at natural real-person intensity with softly closed lips (never a blank, deadpan, or expressionless stare; never exaggerated cartoon grimaces, wide saucer eyes, puffed cheeks, or open-mouth gasps)"
+    : "acts out the emotion of this clip's spoken line with a vivid, expressive facial expression and big, readable body language (never keep the blueprint's default neutral smile; lips stay closed)";
+  // Face and body are driven by what the narrator is saying, not by a fixed per-clip rotation.
+  const actingRule = realistic
+    ? "Content-driven acting: read each clip's englishVo and let its feeling and meaning drive the character's facial expression and body language at natural real-person intensity — if the line is exciting, the eyes brighten, the brows lift, a closed-lip smile appears, and the arms open with energy; if it names a problem or pain, the brows knit, the mouth tightens, and the shoulders tense or slump; if it reveals an answer, the brows rise and the body leans in; if it lands a payoff, the gaze steadies with a relaxed proud closed-lip smile and an upright posture. The body language explains the content: the gaze, hands, and torso direct attention to the teaching element the narrator is naming at that moment (reach toward, point at, lean into, or look at it). In startScene and endScene `1) Character`, name the emotion and the matching face and posture; every timed beat in motionCamera names the emotion on the face and which element the body directs attention to, synced to the words spoken in that window. Adjacent clips never repeat the same expression on two clips in a row. This overrides any calm or neutral expression wording elsewhere; lips stay closed with no lip-sync."
+    : "Content-driven acting: read each clip's englishVo and let its feeling and meaning drive the character's facial expression and body language with vivid, expressive intensity — if the line is exciting, the eyes go wide and sparkling, the brows shoot up, a big closed-lip grin appears, and the arms fling open or pump; if it names a problem or pain, the brows knit into a V, the mouth twists, and the shoulders slump; if it reveals an answer, an 'aha!' brow-raise with the body leaning in; if it lands a payoff, a proud beaming closed-lip grin with a confident stance. The body language explains the content: the gaze, hands, and torso direct attention to the teaching element the narrator is naming at that moment (reach toward, point at, lean into, or look at it). In startScene and endScene `1) Character`, name the emotion and the matching face and posture; every timed beat in motionCamera names the emotion on the face and which element the body directs attention to, synced to the words spoken in that window. Adjacent clips never repeat the same expression on two clips in a row. Lips stay closed with no lip-sync.";
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person, using the attached character's locked voice timbre and gender verbatim when a character is attached (or the project's chosen male/female voice when no character is attached; never switch gender).",
     canvasLock,
@@ -723,13 +647,14 @@ export function cartoonExplainerDirectorBlock(options?: {
       : realistic
         ? "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth firmly closed with a normal, alive, engaged facial expression (never a blank or deadpan stare; never exaggerated cartoon faces). It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props."
         : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting with vivid facial expressions. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
+    hasCharacter ? actingRule : "",
     hasCharacter
       ? smooth
-        ? `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
-        : `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
+        ? `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. ${smoothAngleRule} No orbit and no move to another side inside a clip. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
+        : `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. ${angleRule} One continuous move, no cut and no teleport. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
       : "",
     hasCharacter
-      ? `For every topic, keep a rich on-screen ${graphNoun} (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the ${pieceNoun} this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics.`
+      ? `For every topic, keep a rich on-screen ${graphNoun} (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the ${pieceNoun} this clip's action works on. Do not reuse the same camera ${flatBoard ? "framing" : "angle"} on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics.`
       : `For every topic, make a rich on-screen ${graphNoun} the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart with visible lines, arrows, geometric shapes, and conceptual objects. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) support the graph; they do not replace it. Never a near-empty canvas with one floating label.`,
     hasCharacter
       ? "startScene and endScene are the before and after of that one action as listed, not two standing poses. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera."
@@ -743,7 +668,9 @@ export function cartoonExplainerDirectorBlock(options?: {
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a clean sequence of on-screen whiteboard visual beats every 1.5–2 seconds while the graph responds (a card flip, chart bars or trend lines stepping up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges, and at most one single directional arrow per clip — never spam multiple arrows, never use blank grey slash/tape strips, and never leave a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : `${physicsNoun}, with cards, charts, and shapes animating cleanly every 1.5–2 seconds (at most one directional arrow per clip; no blank slash strips or tape stickers). Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.`,
     teachingElementsRule(pieceNoun, graphNoun),
-    cartoonHookCameraRule(hasCharacter, smooth, realistic),
+    // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
+    cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
+    flatBoard ? PAPER_CUTOUT_CAMERA_RULE : "",
     "On-canvas beat text: never write Subtitle: or caption the spoken voiceover on the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object.",
   ]
     .filter(Boolean)
@@ -789,11 +716,15 @@ export function cartoonNarratorFrameLock(
   const steady = Boolean(options?.steadyStills);
   const realistic = Boolean(options?.realistic);
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
-  const hookFace = realistic ? "a normal, alive, engaged closed-lip expression" : "a surprised face";
+  const hookFace = "the face acting the hook line's emotion, lips closed";
   const hookTitleStill =
     options?.clipNumber === 1 && (options?.position ?? "start") === "start"
-      ? " Render Clip 1's opening hook title in 「...」 from the Scene as ONE single BIG, BOLD, high-contrast headline banner centered at the top of the diagram scaffold for the first 3-second Reel hook (never split the top into two separate corner stickers)."
+      ? ` ${hookTitleFrameLine()}`
       : "";
+  // Face and body follow the emotion the Scene wrote from this clip's spoken line.
+  const actingStill = realistic
+    ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, lips closed, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face)."
+    : " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line, vivid and expressive, lips closed, gaze and hands on the named teaching element; never the blueprint's default face.";
   const hook =
     options?.clipNumber === 1
       ? steady
@@ -806,15 +737,9 @@ export function cartoonNarratorFrameLock(
   const whiteboard2dRule =
     canvas === "paper-cutout" ? PAPER_CUTOUT_CANVAS_LOCK : WHITEBOARD_CANVAS_LOCK;
   if (options?.hasCharacter) {
-    const expArc = cartoonClipExpressionArc(options.clipNumber, { realistic });
-    const expStill = expArc
-      ? ` FACIAL EXPRESSION LOCK (Clip ${options.clipNumber} — ${expArc.label}): draw the face with ${options.position === "end" ? expArc.end : expArc.start}; never copy the character blueprint's neutral/default expression.`
-      : realistic
-        ? " FACIAL EXPRESSION LOCK: keep a normal, alive, engaged real-person expression with lips firmly closed (never a blank, deadpan, or expressionless face; no exaggerated cartoon expressions, no open mouth, and no lip-sync)."
-        : "";
     const silent = realistic
-      ? `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (keep a normal, alive, engaged facial expression with mouth firmly closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${expStill}`
-      : `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes and lips closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${expStill}`;
+      ? `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (mouth firmly closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${actingStill}`
+      : `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes and lips closed when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${actingStill}`;
     const labels =
       "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable (use at most 1 directional arrow in the frame, and never draw blank grey tape or unlabelled paper strips). Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
@@ -830,14 +755,9 @@ export function cartoonNarratorFrameLock(
     }
     return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. Do not drop a named piece. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const expArcNoCast = cartoonClipExpressionArc(options?.clipNumber, { realistic });
-  const expNoCastLine = expArcNoCast
-    ? ` FACIAL EXPRESSION LOCK (Clip ${options?.clipNumber} — ${expArcNoCast.label}): draw the character's face with ${options?.position === "end" ? expArcNoCast.end : expArcNoCast.start}.`
-    : realistic
-      ? " FACIAL EXPRESSION LOCK: keep a normal, alive, engaged real-person expression with lips firmly closed (never a blank, deadpan, or expressionless face; no exaggerated cartoon expressions or open mouth)."
-      : "";
+  const expNoCastLine = actingStill;
   const base = realistic
-    ? `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth firmly closed with a normal, alive, engaged facial expression, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`
+    ? `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth firmly closed, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`
     : `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave).${expNoCastLine} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. Do not drop a named piece. Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
   return hook ? `${base} ${hook}` : base;
 }
@@ -902,19 +822,18 @@ export function cartoonNarratorVideoLock(
         : "";
     const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
     const noCastFace = realistic
-      ? "Mouth stays firmly closed with a normal, alive, engaged facial expression (never a blank or deadpan stare; no exaggerated facial expressions and no lip-sync), and reacts naturally to the diagram or props."
+      ? "Mouth stays firmly closed while the face acts the line's emotion at natural real-person intensity (never a blank or deadpan stare; no exaggerated facial expressions and no lip-sync), and reacts naturally to the diagram or props."
       : "Mouth stays closed or shows vivid facial expressions (active eyebrows, expressive eyes, and clear emotional reactions), and reacts to the diagram or props.";
     return `${voice} ${noCastFace} ${teachingMotion}${glide}${graphHook}`;
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
-  const expArc = cartoonClipExpressionArc(options.clipNumber, { realistic });
-  const expVideo = expArc
-    ? ` Facial expression arc for Clip ${options.clipNumber}: ${expArc.video}.`
-    : realistic
-      ? " Keep the character's facial expression normal, alive, and engaged with lips firmly closed and zero jaw or mouth articulation (never a blank or deadpan stare; no exaggerated faces, no lip-sync)."
-      : "";
-  const hookFace = realistic ? "a normal, alive, engaged face with lips closed" : "a surprised face";
+  // The narrator's words drive the face and the body, beat by beat.
+  const expVideo =
+    " Act the emotion of the spoken line: play the facial expression and body language written in motionCamera beat by beat in sync with the narrator's words — the face reaches each named emotion as the line says it, and the gaze, hands, and torso direct attention to the element being explained as each teaching element is mentioned.";
+  const hookFace = realistic
+    ? "the face acting the hook line's emotion at natural real-person intensity with lips closed"
+    : "the face acting the hook line's emotion with a vivid closed-lip expression";
   const hook =
     options?.clipNumber === 1
       ? smooth
@@ -923,8 +842,8 @@ export function cartoonNarratorVideoLock(
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
   const faceBeats = realistic
-    ? "Keep a normal, alive, engaged facial expression (natural blinks, living eye focus, and a calm, relaxed, unforced neutral expression with softly closed lips at rest — never a forced or stiff closed-lip smile; never a blank or deadpan stare; never exaggerated eyebrows or grimaces) while the mouth stays softly closed with zero lip-sync."
-    : "Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) across the beats while the mouth stays closed.";
+    ? "Facial expression and body language follow the line's emotion at natural real-person intensity (natural blinks, living eye focus, real muscle movement in the brows, eyes, and cheeks; never a blank or deadpan stare; never exaggerated cartoon grimaces) while the mouth stays softly closed with zero jaw or mouth articulation and zero lip-sync."
+    : "Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) that follow the line's emotion across the beats while the mouth stays closed.";
   return `${voice}${named} ${beats} ${teachingMotion} ${faceBeats}${expVideo} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 

@@ -54,6 +54,7 @@ import {
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
+import { hookTitleFrameLine } from "@/service/director/hook-title";
 import {
   bookendLogoFrameLines,
   cartoonClipAction,
@@ -926,6 +927,15 @@ export function buildFramePrompt(
     realistic,
   });
 
+  // Clip 1 opening still: place the Scene's 「」 hook title (explainers carry it inside narratorLock).
+  const hookTitleStill =
+    clipNumber === 1 &&
+    position === "start" &&
+    !narratorLock &&
+    !overlay &&
+    !talkingHeadSkipsLettering &&
+    (directorWritesLettering || keepSceneLabels);
+
   const [styleHeader, styleBody = ""] = styleLinesForFrame(style);
   const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
@@ -957,6 +967,7 @@ export function buildFramePrompt(
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
+    ...(hookTitleStill && /「[^」]+」/.test(parts.scene) ? [hookTitleFrameLine()] : []),
     ...(lockUrls.length
       ? [
           wardrobeBuild

@@ -1,5 +1,6 @@
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
+import { HOOK_TITLE_PLACEMENT, hookTitleFrameLine } from "@/service/director/hook-title";
 import {
   comparisonPanels,
   comparisonSplitAxis,
@@ -202,6 +203,8 @@ export function spokenSubtitleLock(aspectRatio?: string) {
   return "Subtitle: keep this clip's spoken line in a band across the bottom of the frame for the whole clip. Same words, same place, from the first frame to the last.";
 }
 
+export { HOOK_TITLE_PLACEMENT, hookTitleFrameLine };
+
 // Shared rule for the first 3-second big bold hook title in Clip 1's opening scene across all directors.
 export function firstClipHookTitleDirectorRule(
   enabled: boolean,
@@ -212,7 +215,7 @@ export function firstClipHookTitleDirectorRule(
     return "First 3-Second Hook Title: OFF (on-canvas text is turned off, so Clip 1's startScene, explainerScene, and 0–3s motionCamera must contain NO hook title, written words, or 「」 labels).";
   }
   const langLabel = SCENE_TEXT_PRESETS[language].label;
-  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (2–6 words / 4–10 CJK characters summarizing the core Reel hook, staged in the upper-middle focal safe zone clear of the character's face), and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
+  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (2–6 words / 4–10 CJK characters summarizing the core Reel hook), ${HOOK_TITLE_PLACEMENT}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
 }
 
 export function sceneTextSkillHint(
@@ -288,7 +291,7 @@ export function sceneTextDirectorRevisionNote(
   if (!enabled) {
     return "On-canvas text is now OFF. Rewrite every clip's explainerScene, startScene, endScene, and motionCamera so they contain zero quoted words, labels, signs, hook titles, or lettering (no 「」 quotes and no Subtitle:). Keep the same story, characters, and titles. Visuals and motion only.";
   }
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). Ensure Clip 1's opening scene (startScene and explainerScene) and first 3 seconds (0–3s in motionCamera) feature a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[language].label}. Short in-scene text, labels, or titles in ${SCENE_TEXT_PRESETS[language].label} are also allowed when appropriate for the scene. Never write Subtitle: or caption the spoken voiceover/dialogue line on screen. Keep the same story, characters, and proposal titles.`;
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). Ensure Clip 1's opening scene (startScene and explainerScene) and first 3 seconds (0–3s in motionCamera) feature a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[language].label}, ${HOOK_TITLE_PLACEMENT}. Short in-scene text, labels, or titles in ${SCENE_TEXT_PRESETS[language].label} are also allowed when appropriate for the scene. Never write Subtitle: or caption the spoken voiceover/dialogue line on screen. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.

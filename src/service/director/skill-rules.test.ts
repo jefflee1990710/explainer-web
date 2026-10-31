@@ -8,8 +8,6 @@ import {
   phaseADurationHint,
   briefSkillError,
   cartoonClipAction,
-  cartoonClipExpressionArc,
-  CARTOON_EXPRESSION_ARCS,
   cartoonExplainerDirectorBlock,
   dropRepeatedSubtitleLabels,
   cartoonNarratorFrameLock,
@@ -298,49 +296,40 @@ test("every action has a short still line for both stills and a video line", () 
   );
 });
 
-test("whiteboard explainer assigns distinct facial expression arcs across consecutive clips", () => {
-  assert.ok(CARTOON_EXPRESSION_ARCS.length >= 6);
-  const clip1Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
-    hasCharacter: true,
-    clipNumber: 1,
-    position: "start",
-    action: "push",
-  });
-  const clip1End = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
-    hasCharacter: true,
-    clipNumber: 1,
-    position: "end",
-    action: "push",
-  });
-  const clip2Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
-    hasCharacter: true,
-    clipNumber: 2,
-    position: "start",
-    action: "pull",
-  });
-  const clip3Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
-    hasCharacter: true,
-    clipNumber: 3,
-    position: "start",
-    action: "stack",
-  });
-  assert.match(clip1Start, /FACIAL EXPRESSION LOCK \(Clip 1/);
-  assert.match(clip1Start, /wide saucer eyes/);
-  assert.match(clip1End, /intrigued asymmetrical smirk/);
-  assert.match(clip2Start, /FACIAL EXPRESSION LOCK \(Clip 2/);
-  assert.match(clip2Start, /deeply furrowed V-shaped eyebrows/);
-  assert.match(clip3Start, /FACIAL EXPRESSION LOCK \(Clip 3/);
-  assert.match(clip3Start, /eureka realization/);
-  assert.notEqual(cartoonClipExpressionArc(1)?.label, cartoonClipExpressionArc(2)?.label);
-  assert.notEqual(cartoonClipExpressionArc(2)?.label, cartoonClipExpressionArc(3)?.label);
+test("explainer acting follows the spoken line, not a fixed per-clip expression rotation", () => {
+  for (const realistic of [true, false]) {
+    const block = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic });
+    assert.match(block, /Content-driven acting/);
+    assert.match(block, /if the line is exciting/i);
+    assert.match(block, /direct attention to the teaching element the narrator is naming/);
+    assert.match(block, /every timed beat in motionCamera names the emotion/);
+    assert.match(block, /never repeat the same expression on two clips in a row/);
+    assert.doesNotMatch(block, /shocked wide saucer eyes/);
 
-  const video2 = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
-    hasCharacter: true,
-    clipNumber: 2,
-    action: "pull",
-  });
-  assert.match(video2, /Facial expression arc for Clip 2:/);
-  assert.match(video2, /puzzled V-brow frown/);
+    for (const clipNumber of [1, 2, 3]) {
+      const still = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+        hasCharacter: true,
+        clipNumber,
+        position: "start",
+        action: "push",
+        realistic,
+      });
+      assert.match(still, /FACIAL EXPRESSION & BODY LOCK/);
+      assert.match(still, /emotion of this clip's spoken line/);
+      assert.doesNotMatch(still, /FACIAL EXPRESSION LOCK \(Clip/);
+      assert.doesNotMatch(still, /wide saucer eyes|eureka realization/);
+    }
+
+    const video = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+      hasCharacter: true,
+      clipNumber: 2,
+      action: "pull",
+      realistic,
+    });
+    assert.match(video, /Act the emotion of the spoken line/);
+    assert.match(video, /as each teaching element is mentioned/);
+    assert.doesNotMatch(video, /Facial expression arc for Clip/);
+  }
 });
 
 test("Cinematic realistic accelerates then decelerates; other styles keep the snap", () => {
@@ -612,29 +601,16 @@ test("whiteboard concept explainer enforces full-canvas 2D whiteboard, 2D charac
   assert.match(videoLock, /concept explained with 2D whiteboard drawings/);
 });
 
-test("realistic whiteboard explainer uses normal, alive facial expressions with mouth closed while non-realistic styles keep exaggerated arcs", () => {
-  assert.equal(cartoonClipExpressionArc(1, { realistic: true }), undefined);
-  assert.equal(cartoonClipExpressionArc(5, { realistic: true }), undefined);
-  assert.ok(cartoonClipExpressionArc(1, { realistic: false }));
-  assert.ok(cartoonClipExpressionArc(5));
-
-  // Non-realistic arcs never instruct open-mouth shapes ('O-shaped' or 'ooh' mouth)
-  for (const arc of CARTOON_EXPRESSION_ARCS) {
-    assert.doesNotMatch(arc.start, /O-shaped|'ooh' mouth/i);
-    assert.doesNotMatch(arc.end, /O-shaped|'ooh' mouth/i);
-  }
-
+test("realistic explainer acts the line's emotion at natural intensity while non-realistic styles go vivid", () => {
   const realisticDirector = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic: true });
-  assert.match(realisticDirector, /normal, alive, engaged real-person facial expression/);
+  assert.match(realisticDirector, /natural real-person intensity/);
   assert.match(realisticDirector, /never a blank, deadpan, or expressionless stare/);
   assert.match(realisticDirector, /never exaggerated cartoon grimaces/);
-  assert.doesNotMatch(realisticDirector, /understated/);
-  assert.doesNotMatch(realisticDirector, /shocked wide saucer eyes/);
-  assert.doesNotMatch(realisticDirector, /intense grit with puffed cheeks/);
+  assert.doesNotMatch(realisticDirector, /calm, relaxed, unforced neutral mouth/);
 
   const cartoonDirector = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic: false });
   assert.match(cartoonDirector, /vivid, expressive facial expression/);
-  assert.match(cartoonDirector, /shocked wide saucer eyes/);
+  assert.match(cartoonDirector, /big, readable body language/);
 
   const realisticStill1 = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
     hasCharacter: true,
@@ -643,9 +619,8 @@ test("realistic whiteboard explainer uses normal, alive facial expressions with 
     action: "push",
     realistic: true,
   });
-  assert.match(realisticStill1, /normal, alive, engaged real-person expression with lips firmly closed/);
+  assert.match(realisticStill1, /natural real-person intensity/);
   assert.match(realisticStill1, /never a blank, deadpan, or expressionless face/);
-  assert.doesNotMatch(realisticStill1, /wide saucer eyes/);
   assert.doesNotMatch(realisticStill1, /surprised face/);
 
   const realisticVideo5 = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
@@ -655,8 +630,7 @@ test("realistic whiteboard explainer uses normal, alive facial expressions with 
     realistic: true,
   });
   assert.match(realisticVideo5, /lips stay firmly closed with zero mouth or jaw speech movement/);
-  assert.match(realisticVideo5, /normal, alive, and engaged with lips firmly closed/);
+  assert.match(realisticVideo5, /natural real-person intensity/);
   assert.match(realisticVideo5, /never a blank or deadpan stare/);
-  assert.doesNotMatch(realisticVideo5, /puffed cheeks/);
-  assert.doesNotMatch(realisticVideo5, /lively, expressive facial expression changes/);
+  assert.doesNotMatch(realisticVideo5, /calm, relaxed, unforced neutral expression/);
 });

@@ -57,6 +57,57 @@ test("paper-cutout director block and frame/video locks use collage language", (
   assert.match(video, /white scissor border|paper-cutout craft collage/i);
 });
 
+test("paper-cutout board stays a full-bleed square-on background (no tilted board on a wall)", () => {
+  for (const smoothMotion of [true, false]) {
+    const block = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas: "paper-cutout", smoothMotion });
+    assert.match(block, /Paper-cutout camera & light lock/);
+    assert.match(block, /square-on/);
+    assert.match(block, /never a three-quarter, side, oblique/);
+    assert.match(block, /never side-light/);
+    assert.doesNotMatch(block, /from the character's left side, from above/);
+    assert.doesNotMatch(block, /360 orbit|dutch snap|overhead drop/);
+  }
+
+  const frame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 3,
+    steadyStills: true,
+    realistic: true,
+  });
+  assert.match(frame, /The wooden board IS the background/);
+  assert.match(frame, /never show the board's edges/);
+  assert.match(frame, /never a shadow cast by the board itself/);
+
+  const director = DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"];
+  assert.match(director.systemPrompt, /Flat camera & light lock \(every clip/);
+
+  // Whiteboard keeps its per-clip angle rotation.
+  const whiteboard = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas: "whiteboard" });
+  assert.match(whiteboard, /Camera angle changes every clip/);
+  assert.doesNotMatch(whiteboard, /Paper-cutout camera & light lock/);
+});
+
+test("explainer hook title sits slightly above center on a bordered plate, not pinned to the top", () => {
+  for (const slug of ["paper-cutout-explainer-video-director", "cartoon-explainer-video-director"] as const) {
+    const canvas = explainerCanvasKind(slug) ?? "whiteboard";
+    const block = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas });
+    assert.match(block, /slightly above the vertical center/);
+    assert.match(block, /thick solid border/);
+    assert.doesNotMatch(block, /spanning the upper-center/);
+
+    const still = cartoonNarratorFrameLock(slug, { hasCharacter: true, clipNumber: 1, position: "start" });
+    assert.match(still, /slightly above the vertical center/);
+    assert.match(still, /thick solid border/);
+    assert.doesNotMatch(still, /centered at the top/);
+
+    const later = cartoonNarratorFrameLock(slug, { hasCharacter: true, clipNumber: 2, position: "start" });
+    assert.doesNotMatch(later, /thick solid border/);
+
+    const director = DIRECTORS_BY_SLUG[slug];
+    assert.doesNotMatch(director.systemPrompt, /centered at the top of the explanation/);
+  }
+});
+
 test("video locks force paper-cutout-canvas for the paper-cutout director", () => {
   const system = videoLocksSystem("en", PAPER_CUTOUT_EXPLAINER_SKILL_SLUG);
   assert.match(system, /paper-cutout-canvas/);

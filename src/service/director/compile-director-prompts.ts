@@ -3,6 +3,7 @@ import type { PerformanceSlots } from "@/model/director-performance";
 import { PROFILE_KEYS, type DirectorProfile } from "@/model/director-profile";
 import type { SkillReference } from "@/model/skill";
 import { PROFILE_LABELS_EN } from "@/service/director/profile";
+import { HOOK_TITLE_PLACEMENT } from "@/service/director/hook-title";
 
 export const DEFAULT_CUSTOM_DIRECTOR_BEHAVIOR: IDirectorBehavior = {
   keyframeMode: "start-only",
@@ -112,7 +113,7 @@ export function compileDirectorPrompts(input: CompileDirectorInput): {
     "## Core Pipeline & Behavior Contract",
     `- ${speechRule}`,
     `- ${keyframeRule}`,
-    "- First 3-second Reel hook title: when on-canvas text is enabled, Clip 1's opening scene (`startScene` / `explainerScene`) and first 3 seconds (`0–3s` in `motionCamera`) MUST always feature a BIG, BOLD HOOK TITLE inside 「...」 in the user's configured on-screen text language (when on-canvas text is off, omit all written text).",
+    `- First 3-second Reel hook title: when on-canvas text is enabled, Clip 1's opening scene (\`startScene\` / \`explainerScene\`) and first 3 seconds (\`0–3s\` in \`motionCamera\`) MUST always feature a BIG, BOLD HOOK TITLE inside 「...」 in the user's configured on-screen text language, ${HOOK_TITLE_PLACEMENT} (when on-canvas text is off, omit all written text).`,
     `- Required cast count: ${b.requiredCastCount} character(s).`,
     `- Max background sets: ${b.maxBackgroundSets}.`,
     ...(b.chainsClipStarts

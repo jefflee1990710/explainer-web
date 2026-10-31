@@ -130,6 +130,29 @@ test("a cartoon still keeps in-scene bracket labels and strips Subtitle sentence
   assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /Subtitle:/);
 });
 
+test("any director's Clip 1 start still places the 「」 hook title slightly above center on a bordered plate", () => {
+  const other = project();
+  other.sceneTextEnabled = true;
+  other.phaseA!.clips[0].explainerScene = "A desk with a big hook banner 「STOP PAYING FOR ADS」 and a laptop.";
+  const start = buildFramePrompt(other, 1, "start");
+  assert.match(start, /Clip 1 hook title/);
+  assert.match(start, /slightly above the vertical center/);
+  assert.match(start, /thick solid border/);
+  assert.doesNotMatch(buildFramePrompt(other, 1, "end"), /Clip 1 hook title/);
+
+  // No 「」 hook in the Scene: do not invent one.
+  other.phaseA!.clips[0].explainerScene = "A desk with a laptop.";
+  assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /Clip 1 hook title/);
+
+  // Explainers already carry it inside the narrator lock; no duplicate line.
+  const cartoon = project();
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  cartoon.sceneTextEnabled = true;
+  cartoon.phaseA!.clips[0].explainerScene = "Diagram with hook banner 「STOP PAYING FOR ADS」.";
+  const explainer = buildFramePrompt(cartoon, 1, "start");
+  assert.equal(explainer.match(/thick solid border/g)?.length, 1);
+});
+
 test("whiteboard stills keep diagram labels after the scene is trimmed and omit spoken subtitles", () => {
   const cartoon = project("realistic");
   cartoon.skillSlug = "cartoon-explainer-video-director";

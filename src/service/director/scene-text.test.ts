@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  hookTitleFrameLine,
   isSceneTextLanguage,
   listicleCanvasTitle,
   listicleOnCanvasLines,
@@ -199,6 +200,28 @@ test("enabled scene text allows in-scene text in the chosen language and forbids
   assert.match(dualHint, /Traditional Chinese \(繁體中文\)/);
   assert.match(dualHint, /Never generate spoken subtitles/i);
   assert.doesNotMatch(dualHint, /Subtitle \(spell exactly\)/);
+});
+
+test("Clip 1 hook title sits slightly above center on a bordered high-contrast plate for every director", () => {
+  const hints = [
+    sceneTextSkillHint(true, "en"),
+    sceneTextSkillHint(true, "zh-Hant", { dualBeat: true }),
+    sceneTextSkillHint(true, "en", { listicle: true }),
+    sceneTextSkillHint(true, "en", { comparison: true }),
+    sceneTextSkillHint(false, "en", { inWorldLabels: true }),
+    sceneTextDirectorRevisionNote(true, "en"),
+  ];
+  for (const hint of hints) {
+    assert.match(hint, /slightly above the vertical center/);
+    assert.match(hint, /thick solid border/);
+    assert.doesNotMatch(hint, /upper-middle focal safe zone/);
+  }
+  assert.doesNotMatch(sceneTextSkillHint(false, "en"), /thick solid border/);
+
+  const line = hookTitleFrameLine();
+  assert.match(line, /slightly above the vertical center/);
+  assert.match(line, /thick solid border/);
+  assert.match(line, /「/);
 });
 
 test("director revision note toggles on-screen text allowance without adding subtitles", () => {
