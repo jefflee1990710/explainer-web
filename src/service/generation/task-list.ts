@@ -1,10 +1,11 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection, jutsuJobsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { postHeadline } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
+import type { JutsuJob } from "@/model/jutsu-job";
 import type { ClipAppend, ReelStatus } from "@/model/project";
 
 export type TaskStage = "queued" | "sending" | "generating" | "done" | "failed";
@@ -23,7 +24,7 @@ export function isCurrentTask(stage: TaskStage, updatedAt: Date | string, now = 
 // One generation job shaped for the task list UI.
 export type PublicTask = {
   id: string;
-  kind: GenerationKind | "reel" | "clipAppend";
+  kind: GenerationKind | "reel" | "clipAppend" | "scroSwap";
   stage: TaskStage;
   // Video title, character name, or custom style name.
   title: string;
@@ -200,6 +201,40 @@ export function clipAppendTasks(
   return tasks;
 }
 
+// Scro Swap jobs live in `jutsu_jobs`; surface rendering/completed/failed rows in the global task list.
+export function scroSwapTask(
+  job: JutsuJob & { _id: ObjectId },
+  now = Date.now(),
+): PublicTask | null {
+  if (job.status === "prepared") return null;
+  const stage: TaskStage =
+    job.status === "completed"
+      ? "done"
+      : job.status === "failed"
+        ? "failed"
+        : "generating";
+  const updatedAt = (job.updatedAt ?? job.createdAt).toISOString();
+  if (!isCurrentTask(stage, updatedAt, now)) return null;
+  return {
+    id: `swap:${job._id.toHexString()}`,
+    kind: "scroSwap",
+    stage,
+    title: job.characterName || "Scro Swap",
+    detail: "Scro Swap · 角色動作遷移",
+    detailKey: "tasksPage.detail.scroSwap",
+    previewUrl:
+      stage === "done"
+        ? job.outputVideoUrl || job.preparedStartFrameUrl
+        : job.preparedStartFrameUrl || job.rawStartFrameUrl,
+    isVideo: true,
+    href: "/app/jutsu",
+    error: stage === "failed" ? job.error : undefined,
+    attempts: 0,
+    createdAt: job.createdAt.toISOString(),
+    updatedAt,
+  };
+}
+
 // Jobs have no owner field: scope by the user's videos, characters, and styles.
 async function ownedScope(clerkUserId: string, videoId?: string) {
   const videos = await videosCollection();
@@ -285,6 +320,27 @@ export async function listTasks(
   options: { videoId?: string; limit?: number } = {},
 ): Promise<PublicTask[]> {
   const { videoDocs, characters, styles, directors, posts, products } = await ownedScope(clerkUserId, options.videoId);
+  const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
+  const swapDocs = options.videoId
+    ? []
+    : ((await (
+        await jutsuJobsCollection()
+      )
+        .find({
+          clerkUserId,
+          $or: [
+            { status: "rendering" },
+            { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
+          ],
+        })
+        .sort({ updatedAt: -1 })
+        .limit(40)
+        .toArray()) as Array<JutsuJob & { _id: ObjectId }>);
+  const swapTasks = swapDocs.flatMap((doc) => {
+    const t = scroSwapTask(doc);
+    return t ? [t] : [];
+  });
+
   if (
     videoDocs.length === 0 &&
     characters.length === 0 &&
@@ -293,7 +349,7 @@ export async function listTasks(
     posts.length === 0 &&
     products.length === 0
   ) {
-    return [];
+    return swapTasks;
   }
   const videoById = new Map(videoDocs.map((doc) => [doc._id.toHexString(), doc]));
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
@@ -303,7 +359,6 @@ export async function listTasks(
   const productById = new Map(products.map((doc) => [doc._id.toHexString(), doc]));
 
   const jobs = await generationJobsCollection();
-  const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
   const query = jobListQuery({
     videoIds: videoDocs.map((doc) => doc._id),
     characterIds: characters.map((doc) => doc._id),
@@ -313,12 +368,13 @@ export async function listTasks(
     productIds: products.map((doc) => doc._id),
     cutoff,
   });
-  if (!query) return [];
-  const docs = await jobs
-    .find(query)
-    .sort({ updatedAt: -1 })
-    .limit(options.limit ?? 100)
-    .toArray();
+  const docs = query
+    ? await jobs
+        .find(query)
+        .sort({ updatedAt: -1 })
+        .limit(options.limit ?? 100)
+        .toArray()
+    : [];
 
   const reelTasks = videoDocs.flatMap((video) => {
     const task = reelTask({
@@ -342,7 +398,7 @@ export async function listTasks(
     }),
   );
 
-  const tasks = [...reelTasks, ...appendTasks, ...docs.map((job) => {
+  const tasks = [...swapTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;

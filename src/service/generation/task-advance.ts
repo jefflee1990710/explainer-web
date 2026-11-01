@@ -4,6 +4,7 @@ import { mediaUrlFromResponse, fetchHiggsfieldStatus } from "@/service/higgsfiel
 import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipeline";
 import { failJob, runJobById } from "@/service/generation/task-runner";
 import { MAX_SUBMIT_ATTEMPTS, PROVIDER_TIMEOUT_MS, providerTimedOut } from "@/service/generation/task-policy";
+import { advanceJutsuJobs } from "@/service/jutsu/pipeline";
 import { recoverStaleReel } from "@/service/reel/enqueue";
 import type { GenerationJob } from "@/model/generation-job";
 
@@ -29,6 +30,10 @@ export function jobNeedsResend(
 // The task list used to re-read Mongo only. Pull provider results, resend
 // jobs whose runner died, and time out ones the provider never finished.
 export async function advanceOwnedJobs(clerkUserId: string) {
+  await advanceJutsuJobs(clerkUserId).catch((error) => {
+    console.error("[scro-swap] advance failed", { clerkUserId, error });
+  });
+
   const videos = await videosCollection();
   // Reel concat is local ffmpeg, not a generation job. Retry ones whose worker died.
   const busyReels = await videos

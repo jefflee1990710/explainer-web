@@ -41,7 +41,7 @@ export function AppShell({
     { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
     {
       href: "/app/jutsu",
-      label: locale === "en" ? "Jutsu Swap" : "Jutsu 換角",
+      label: locale === "en" ? "Scro Swap" : "Scro Swap 換角",
       icon: "styles",
       section: "create",
     },

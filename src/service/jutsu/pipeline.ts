@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import sharp from "sharp";
 import { charactersCollection, jutsuJobsCollection } from "@/dao";
 import {
@@ -729,7 +730,7 @@ async function finalizeJutsuRenderedVideo(
   const res = await fetch(rawVideoUrl);
   let videoBuf: Buffer = Buffer.from(await res.arrayBuffer());
 
-  if (options?.applyColorFix !== false && job.colorSettings) {
+  if (options?.applyColorFix !== false && job.applyColorFix !== false && job.colorSettings) {
     videoBuf = Buffer.from(
       await applyJutsuColorGradeBuffer(videoBuf, job.colorSettings).catch(
         () => videoBuf,
@@ -737,7 +738,7 @@ async function finalizeJutsuRenderedVideo(
     );
   }
 
-  if (options?.keepSourceAudio !== false && job.sourceVideoUrl) {
+  if (options?.keepSourceAudio !== false && job.keepSourceAudio !== false && job.sourceVideoUrl) {
     const srcRes = await fetch(job.sourceVideoUrl).catch(() => null);
     if (srcRes?.ok) {
       const srcBuf = Buffer.from(await srcRes.arrayBuffer());
@@ -773,7 +774,11 @@ async function finalizeJutsuRenderedVideo(
     },
   );
 
-  revalidatePath("/app/jutsu");
+  try {
+    revalidatePath("/app/jutsu");
+  } catch {
+    // Non-request background / cron context
+  }
   return {
     ok: true,
     job: toPublicJutsuJob({
@@ -783,6 +788,448 @@ async function finalizeJutsuRenderedVideo(
       updatedAt: now,
     }),
   };
+}
+
+export type StartScroSwapInput = {
+  sourceVideoUrl: string;
+  sectionStart?: number;
+  sectionLength?: number;
+  characterId?: string;
+  referenceImageUrl?: string;
+  relightId?: string;
+  customLightPrompt?: string;
+  maskMargin?: JutsuMaskMargin;
+  hatFix?: boolean;
+  noLipSync?: boolean;
+  motionSize?: JutsuMotionSize;
+  keepSourceAudio?: boolean;
+  applyColorFix?: boolean;
+  colorSettings?: JutsuColorSettings;
+};
+
+/**
+ * One-step Scro Swap: creates a `rendering` job immediately and runs keyframe prepare +
+ * SAM grey-mannequin + MiniMax H3 submit + polling in the background (`after()` + cron fallback).
+ */
+export async function startScroSwapJob(
+  input: StartScroSwapInput,
+): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
+  try {
+    const user = await requireAppUser();
+    const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
+    const sourceUrl = input.sourceVideoUrl.trim();
+    if (!sourceUrl.startsWith("https://")) {
+      return { ok: false, error: "請先上傳來源影片" };
+    }
+    if (
+      storeHost &&
+      !isBrandAssetUrl(sourceUrl, user.clerkUserId, storeHost) &&
+      !sourceUrl.includes(".public.blob.vercel-storage.com/")
+    ) {
+      return { ok: false, error: "來源影片網址無效" };
+    }
+
+    let characterName: string | undefined;
+    let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
+    if (input.characterId && ObjectId.isValid(input.characterId)) {
+      const charCol = await charactersCollection();
+      const charDoc = await charCol.findOne({
+        _id: new ObjectId(input.characterId),
+        clerkUserId: user.clerkUserId,
+      });
+      if (charDoc) {
+        characterName = charDoc.name;
+        const completedVer = [...(charDoc.versions || [])]
+          .reverse()
+          .find((v) => v.status === "completed" && (v.portraitUrl || v.blueprintUrl));
+        donorImageUrl =
+          completedVer?.portraitUrl ||
+          completedVer?.blueprintUrl ||
+          donorImageUrl;
+      }
+    }
+
+    if (!donorImageUrl) {
+      return { ok: false, error: "請選擇一個 Scro 角色或上傳角色參考圖片" };
+    }
+
+    const sectionStart = Math.max(0, Number(input.sectionStart) || 0);
+    const sectionLength = Math.min(
+      JUTSU_MAX_SECTION_SECONDS,
+      Math.max(
+        JUTSU_MIN_SECTION_SECONDS,
+        Number(input.sectionLength) || JUTSU_DEFAULT_SECTION_SECONDS,
+      ),
+    );
+    const maskMargin: JutsuMaskMargin = input.maskMargin ?? "normal";
+    const hatFix = Boolean(input.hatFix);
+    const noLipSync = Boolean(input.noLipSync);
+    const motionSize: JutsuMotionSize = input.motionSize ?? 512;
+    const keepSourceAudio = input.keepSourceAudio !== false;
+    const applyColorFix = input.applyColorFix !== false;
+    const colorSettings = input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS;
+
+    const now = new Date();
+    const jobId = new ObjectId();
+    const doc: JutsuJob & { _id: ObjectId } = {
+      _id: jobId,
+      userId: user._id,
+      clerkUserId: user.clerkUserId,
+      mode: "character_swap",
+      status: "rendering",
+      sourceVideoUrl: sourceUrl,
+      aspectRatio: "9:16",
+      sectionStart,
+      sectionLength,
+      characterId: input.characterId,
+      characterName,
+      referenceImageUrl: donorImageUrl,
+      relightId: input.relightId,
+      customLightPrompt: input.customLightPrompt,
+      maskMargin,
+      hatFix,
+      noLipSync,
+      motionSize,
+      keepSourceAudio,
+      applyColorFix,
+      colorSettings,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const col = await jutsuJobsCollection();
+    await col.insertOne(doc);
+
+    after(() =>
+      runScroSwapJobInBackground(jobId).catch((error) => {
+        console.error("[scro-swap] background job failed", { jobId: jobId.toHexString(), error });
+      }),
+    );
+
+    try {
+      revalidatePath("/app/jutsu");
+    } catch {
+      // Non-request context
+    }
+    return { ok: true, job: toPublicJutsuJob(doc) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "啟動 Scro Swap 失敗",
+    };
+  }
+}
+
+/** Background worker that prepares keyframes + mannequin and submits/polls the video render. */
+export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void> {
+  const col = await jutsuJobsCollection();
+  const job = (await col.findOne({ _id: jobId })) as (JutsuJob & { _id: ObjectId }) | null;
+  if (!job || job.status !== "rendering") return;
+
+  try {
+    let current = job;
+    if (!current.preparedStartFrameUrl) {
+      const videoRes = await fetch(current.sourceVideoUrl);
+      if (!videoRes.ok) {
+        throw new Error("無法讀取來源影片檔案");
+      }
+      const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+      const extracted = await extractVideoSectionKeyframes(
+        videoBuffer,
+        current.sectionStart,
+        current.sectionLength,
+      );
+
+      const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
+      const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
+        persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
+        persistBuffer(extracted.endFrameWebp, `${prefix}/raw-end.webp`, "image/webp"),
+      ]);
+
+      const donorImageUrl = current.referenceImageUrl;
+      if (!donorImageUrl) {
+        throw new Error("缺少角色參考圖片");
+      }
+
+      const baseEditRequest = buildDefaultJutsuEditPrompt({
+        mode: "character_swap",
+        relightId: current.relightId,
+        customLightPrompt: current.customLightPrompt,
+        hasReferenceImage: true,
+      });
+
+      const upsamplerBuffers: Buffer[] = [];
+      const donorBuf = await fetch(donorImageUrl)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((ab) => (ab ? Buffer.from(ab) : null))
+        .catch(() => null);
+      if (donorBuf) upsamplerBuffers.push(donorBuf);
+      upsamplerBuffers.push(extracted.startFrameWebp);
+
+      const upsampledStartPrompt = await upsampleJutsuFramePrompt({
+        baseRequest: baseEditRequest,
+        imageBuffers: upsamplerBuffers,
+      });
+
+      const startRefs = [donorImageUrl, rawStartFrameUrl];
+      const endRefs = [donorImageUrl, rawEndFrameUrl];
+
+      const [preparedStartBuf, preparedEndBuf] = await Promise.all([
+        generatePreparedKeyframeBuffer({
+          prompt: upsampledStartPrompt,
+          aspectRatio: extracted.aspectRatio,
+          referenceImageUrls: startRefs,
+        }),
+        generatePreparedKeyframeBuffer({
+          prompt: upsampledStartPrompt,
+          aspectRatio: extracted.aspectRatio,
+          referenceImageUrls: endRefs,
+        }),
+      ]);
+
+      const [
+        preparedStartFrameUrl,
+        preparedEndFrameUrl,
+        motionDescription,
+        samMannequinResult,
+      ] = await Promise.all([
+        persistBuffer(
+          preparedStartBuf,
+          `${prefix}/prepared-start-${Date.now()}.webp`,
+          "image/webp",
+        ),
+        persistBuffer(
+          preparedEndBuf,
+          `${prefix}/prepared-end-${Date.now()}.webp`,
+          "image/webp",
+        ),
+        describeJutsuVideoMotion({
+          sampledFrameBuffers: extracted.sampledFramesJpeg,
+          preparedFrameBuffer: preparedStartBuf,
+          characterName: current.characterName,
+          relightText: resolveJutsuLightText(
+            current.relightId,
+            current.customLightPrompt,
+          ),
+        }),
+        buildSam3MannequinAndMaskVideos({
+          sourceVideoBuffer: videoBuffer,
+          sectionStart: current.sectionStart,
+          sectionLength: extracted.actualDuration,
+          target: "person",
+          margin: current.maskMargin ?? "normal",
+          hatFix: Boolean(current.hatFix),
+          motionSize: current.motionSize ?? 512,
+        }).catch(() => null),
+      ]);
+
+      let mannequinVideoUrl: string | undefined;
+      let checkMaskVideoUrl: string | undefined;
+      if (samMannequinResult) {
+        [mannequinVideoUrl, checkMaskVideoUrl] = await Promise.all([
+          persistBuffer(
+            samMannequinResult.mannequinVideoBuffer,
+            `${prefix}/sam-mannequin-${Date.now()}.mp4`,
+            "video/mp4",
+          ),
+          persistBuffer(
+            samMannequinResult.checkMaskVideoBuffer,
+            `${prefix}/check-mask-${Date.now()}.mp4`,
+            "video/mp4",
+          ),
+        ]);
+      }
+
+      const prepNow = new Date();
+      await col.updateOne(
+        { _id: current._id },
+        {
+          $set: {
+            aspectRatio: extracted.aspectRatio,
+            sectionLength: extracted.actualDuration,
+            rawStartFrameUrl,
+            rawEndFrameUrl,
+            preparedStartFrameUrl,
+            preparedEndFrameUrl,
+            mannequinVideoUrl,
+            checkMaskVideoUrl,
+            editPrompt: upsampledStartPrompt,
+            motionDescription,
+            updatedAt: prepNow,
+          },
+        },
+      );
+
+      current = {
+        ...current,
+        aspectRatio: extracted.aspectRatio,
+        sectionLength: extracted.actualDuration,
+        rawStartFrameUrl,
+        rawEndFrameUrl,
+        preparedStartFrameUrl,
+        preparedEndFrameUrl,
+        mannequinVideoUrl,
+        checkMaskVideoUrl,
+        editPrompt: upsampledStartPrompt,
+        motionDescription,
+        updatedAt: prepNow,
+      };
+    }
+
+    if (!current.openRouterStatusUrl && current.preparedStartFrameUrl) {
+      const motionText =
+        (current.motionDescription ?? "").trim() ||
+        "Continuous natural movement from the opening frame to the closing frame.";
+      const lightText = resolveJutsuLightText(
+        current.relightId,
+        current.customLightPrompt,
+      );
+      const useH3Ref2Va = Boolean(current.mannequinVideoUrl && hasMinimaxApiKey());
+      const identityImageUrl = current.referenceImageUrl;
+      const fullVideoPrompt = useH3Ref2Va
+        ? buildJutsuRef2VaPrompt({
+            motionText,
+            lightText,
+            hasIdentityImage: Boolean(
+              identityImageUrl && identityImageUrl !== current.preparedStartFrameUrl,
+            ),
+          })
+        : [
+            "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
+            motionText,
+            lightText ? `Lighting remains consistent: ${lightText}` : "",
+            "No on-screen text, no subtitles, no watermarks.",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+      const submitted = useH3Ref2Va
+        ? await submitMinimaxH3Ref2VaVideo({
+            prompt: fullVideoPrompt,
+            preparedImageUrl: current.preparedStartFrameUrl,
+            identityImageUrl,
+            mannequinVideoUrl: current.mannequinVideoUrl!,
+            noLipSync: current.noLipSync,
+            durationSeconds: Math.min(
+              15,
+              Math.max(5, Math.round(current.sectionLength)),
+            ),
+            aspectRatio: current.aspectRatio,
+          })
+        : await submitOpenRouterClipVideo({
+            model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
+            prompt: fullVideoPrompt,
+            aspectRatio: current.aspectRatio,
+            durationSeconds: Math.min(
+              15,
+              Math.max(5, Math.round(current.sectionLength)),
+            ),
+            startImageUrl: current.preparedStartFrameUrl,
+            endImageUrl: current.preparedEndFrameUrl || current.preparedStartFrameUrl,
+          });
+
+      await col.updateOne(
+        { _id: current._id },
+        {
+          $set: {
+            openRouterRequestId: submitted.request_id,
+            openRouterStatusUrl: submitted.status_url,
+            updatedAt: new Date(),
+          },
+        },
+      );
+
+      let rawVideoUrl = submitted.video?.url;
+      if (!rawVideoUrl && submitted.status_url) {
+        const isMinimax = isMinimaxVideoStatusUrl(submitted.status_url);
+        for (let attempt = 0; attempt < 24; attempt++) {
+          await new Promise((r) => setTimeout(r, 3500));
+          const polled = isMinimax
+            ? await fetchMinimaxVideoStatus(submitted.status_url)
+            : await fetchOpenRouterStatus(submitted.status_url);
+          if (polled.status === "completed" && polled.video?.url) {
+            rawVideoUrl = polled.video.url;
+            break;
+          }
+          if (polled.status === "failed" || polled.status === "nsfw") {
+            throw new Error(polled.error || "H3 影片渲染失敗");
+          }
+        }
+      }
+
+      if (rawVideoUrl) {
+        await finalizeJutsuRenderedVideo(current, rawVideoUrl, {
+          applyColorFix: current.applyColorFix !== false,
+          keepSourceAudio: current.keepSourceAudio !== false,
+        });
+      }
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Scro Swap 渲染失敗";
+    await col.updateOne(
+      { _id: jobId },
+      { $set: { status: "failed", error: msg, updatedAt: new Date() } },
+    );
+  }
+}
+
+/** Advance any in-flight `jutsu_jobs` (called by task polling and the refresh cron). */
+export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
+  const col = await jutsuJobsCollection();
+  const filter: Record<string, unknown> = { status: "rendering" };
+  if (clerkUserId) filter.clerkUserId = clerkUserId;
+  const active = (await col
+    .find(filter)
+    .sort({ updatedAt: 1 })
+    .limit(12)
+    .toArray()) as Array<JutsuJob & { _id: ObjectId }>;
+
+  let advanced = 0;
+  const staleCutoff = Date.now() - 25 * 60 * 1000;
+
+  for (const job of active) {
+    try {
+      if (!job.openRouterStatusUrl) {
+        if (job.createdAt.getTime() < staleCutoff) {
+          await col.updateOne(
+            { _id: job._id },
+            { $set: { status: "failed", error: "Scro Swap 處理逾時，請重試", updatedAt: new Date() } },
+          );
+          advanced++;
+        }
+        continue;
+      }
+
+      const polled = isMinimaxVideoStatusUrl(job.openRouterStatusUrl)
+        ? await fetchMinimaxVideoStatus(job.openRouterStatusUrl)
+        : await fetchOpenRouterStatus(job.openRouterStatusUrl);
+
+      if (polled.status === "completed" && polled.video?.url) {
+        await finalizeJutsuRenderedVideo(job, polled.video.url, {
+          applyColorFix: job.applyColorFix !== false,
+          keepSourceAudio: job.keepSourceAudio !== false,
+        });
+        advanced++;
+      } else if (polled.status === "failed" || polled.status === "nsfw") {
+        const err = polled.error || "影片渲染失敗";
+        await col.updateOne(
+          { _id: job._id },
+          { $set: { status: "failed", error: err, updatedAt: new Date() } },
+        );
+        advanced++;
+      } else if (job.createdAt.getTime() < staleCutoff) {
+        await col.updateOne(
+          { _id: job._id },
+          { $set: { status: "failed", error: "Scro Swap 渲染逾時，請重試", updatedAt: new Date() } },
+        );
+        advanced++;
+      }
+    } catch (error) {
+      console.error("[scro-swap] advance failed", { jobId: job._id.toHexString(), error });
+    }
+  }
+
+  return advanced;
 }
 
 /** Poll an in-progress Jutsu video job against OpenRouter status URL. */

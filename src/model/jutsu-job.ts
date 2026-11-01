@@ -59,7 +59,7 @@ export type JutsuJobStatus =
   | "completed"
   | "failed";
 
-// MongoDB document in `jutsu_jobs` representing a Scro Jutsu motion/object/relight/color job.
+// MongoDB document in `jutsu_jobs` representing a Scro Swap motion/object/relight/color job.
 export type JutsuJob = {
   _id?: ObjectId;
   userId: ObjectId;
@@ -92,6 +92,9 @@ export type JutsuJob = {
   hatFix?: boolean;
   noLipSync?: boolean;
   motionSize?: 512 | 768 | 1376;
+  // Whether finalize should mux the source section soundtrack and apply H3 Soft color grade.
+  keepSourceAudio?: boolean;
+  applyColorFix?: boolean;
   // SAM 3.1 Grey Mannequin motion reference MP4 & Check Mask preview MP4 (`workflows/mask.api.json`)
   mannequinVideoUrl?: string;
   checkMaskVideoUrl?: string;

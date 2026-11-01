@@ -26,6 +26,8 @@ import {
   interpolateTrackedBoxes,
   renderGreyMannequinAndMaskFrame,
 } from "@/service/jutsu/sam-mannequin";
+import { ObjectId } from "mongodb";
+import { scroSwapTask } from "@/service/generation/task-list";
 import sharp from "sharp";
 
 test("JUTSU_LIGHT_LOOKS exposes all 17 Openjutsu relight presets with preview WebP paths", () => {
@@ -233,4 +235,51 @@ test("character swap prompts keep the donor face shape and only borrow expressio
     buildJutsuRef2VaPrompt({ motionText: "She waves.", hasIdentityImage: false }),
     /Reference image 2/,
   );
+});
+
+test("scroSwapTask surfaces rendering and completed Scro Swap jobs in the background task list", () => {
+  const now = Date.now();
+  const id = new ObjectId();
+  const rendering = scroSwapTask(
+    {
+      _id: id,
+      userId: new ObjectId(),
+      clerkUserId: "u1",
+      mode: "character_swap",
+      status: "rendering",
+      sourceVideoUrl: "https://blob.test/src.mp4",
+      aspectRatio: "9:16",
+      sectionStart: 0,
+      sectionLength: 6,
+      characterName: "Scro",
+      createdAt: new Date(now - 5000),
+      updatedAt: new Date(now - 1000),
+    },
+    now,
+  );
+  assert.equal(rendering?.kind, "scroSwap");
+  assert.equal(rendering?.stage, "generating");
+  assert.equal(rendering?.title, "Scro");
+  assert.equal(rendering?.href, "/app/jutsu");
+
+  const done = scroSwapTask(
+    {
+      _id: id,
+      userId: new ObjectId(),
+      clerkUserId: "u1",
+      mode: "character_swap",
+      status: "completed",
+      sourceVideoUrl: "https://blob.test/src.mp4",
+      outputVideoUrl: "https://blob.test/out.mp4",
+      aspectRatio: "9:16",
+      sectionStart: 0,
+      sectionLength: 6,
+      characterName: "Scro",
+      createdAt: new Date(now - 5000),
+      updatedAt: new Date(now - 500),
+    },
+    now,
+  );
+  assert.equal(done?.stage, "done");
+  assert.equal(done?.previewUrl, "https://blob.test/out.mp4");
 });

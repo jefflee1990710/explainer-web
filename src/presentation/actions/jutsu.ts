@@ -3,6 +3,19 @@
 import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import * as service from "@/service/jutsu/pipeline";
 
+export async function startScroSwapJobAction(
+  ...args: Parameters<typeof service.startScroSwapJob>
+) {
+  const res = await service.startScroSwapJob(...args);
+  logServerUxEvent(
+    res.ok ? "scro_swap_job_started" : "ux_blocker_scro_swap_start_failed",
+    res.ok
+      ? { jobId: res.job.id, status: res.job.status }
+      : { error: res.error },
+  );
+  return res;
+}
+
 export async function prepareJutsuJobAction(
   ...args: Parameters<typeof service.prepareJutsuJob>
 ) {

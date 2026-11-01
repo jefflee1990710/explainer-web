@@ -6,6 +6,7 @@ const MEDIA_KINDS = new Set<PublicTask["kind"]>([
   "video",
   "character",
   "reelCover",
+  "scroSwap",
 ]);
 const FRESH_MS = 20_000;
 
