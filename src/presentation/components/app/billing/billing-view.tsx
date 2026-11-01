@@ -6,9 +6,10 @@ import { track } from "@/presentation/components/analytics/track";
 import { EnterpriseCta } from "@/presentation/components/pricing/enterprise-cta";
 import type { PlanDefinition } from "@/service/billing/plans";
 import type { PlanId } from "@/model/subscription";
-import { PortalButton } from "@/presentation/components/app/billing/billing-actions";
 import { BillingPlanCard } from "@/presentation/components/app/billing/billing-plan-card";
-import { CreditProgress } from "@/presentation/components/app/billing/credit-progress";
+import { BuyCreditsSection } from "@/presentation/components/app/billing/buy-credits-section";
+import { CreditsTiersOverview } from "@/presentation/components/app/billing/credits-tiers-overview";
+import { PayAsYouGoCard } from "@/presentation/components/app/billing/pay-as-you-go-card";
 
 export function BillingView({
   checkoutSuccess,
@@ -62,56 +63,46 @@ export function BillingView({
       item_name: purchase.itemName,
     });
   }, [purchase]);
+
   const dateLocale =
     locale === "zh-Hant" ? "zh-TW" : locale === "zh-Hans" ? "zh-CN" : locale;
 
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{t("billing.title")}</h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted">{t("billing.subtitle")}</p>
+
       {checkoutSuccess ? (
         <p className="mt-4 rounded-[1rem] border border-accent-ink/10 bg-lime/50 px-4 py-3 text-sm font-medium">
           {t("billing.checkoutSuccess")}
         </p>
       ) : null}
 
-      <CreditProgress
+      <CreditsTiersOverview
         credits={credits}
         creditLimit={creditLimit}
         monthlyCredits={monthlyCredits}
         bonusCredits={bonusCredits}
         periodEnd={periodEnd}
         subscribed={subscribed}
+        activePlanId={activePlanId}
+        subscriptionStatus={subscriptionStatus}
         dateLocale={dateLocale}
       />
 
-      {subscribed && activePlanId && subscriptionStatus ? (
-        <section className="mt-6 rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]">
-          <p className="font-display text-lg font-bold">
-            {t("billing.currentPlan", {
-              plan: t(`plans.${activePlanId}.name`),
-              status: subscriptionStatus,
-            })}
-          </p>
-          {periodEnd ? (
-            <p className="mt-2 text-sm text-muted">
-              {t("billing.periodInfo", {
-                monthly: monthlyCredits,
-                date: periodEnd.toLocaleDateString(dateLocale),
-              })}
-            </p>
-          ) : null}
-          <div className="mt-4">
-            <PortalButton />
-          </div>
-        </section>
-      ) : null}
+      <BuyCreditsSection subscribed={subscribed} />
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {plans.map((plan) => (
-          <BillingPlanCard key={plan.id} plan={plan} />
-        ))}
-        <EnterpriseCta compact />
-      </div>
+      <section id="monthly-plans" className="mt-10 scroll-mt-8">
+        <h2 className="font-display text-2xl font-bold">{t("billing.monthlyPlansTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("billing.monthlyPlansSubtitle")}</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {!subscribed ? <PayAsYouGoCard /> : null}
+          {plans.map((plan) => (
+            <BillingPlanCard key={plan.id} plan={plan} />
+          ))}
+          <EnterpriseCta compact />
+        </div>
+      </section>
     </div>
   );
 }

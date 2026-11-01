@@ -94,10 +94,9 @@ export function buildJutsuRef2VaPrompt(input: {
     input.hasIdentityImage
       ? "Reference image 2 is the true face and identity of this character: keep exactly that face shape, eyes, nose, mouth, and skin in every frame, including when hands move near the face."
       : "",
-    "Follow the mannequin's pose, hands, and timing exactly, while keeping the person and the exact background/room from Reference image 1.",
+    "Follow the mannequin's pose, hands, and timing exactly, while keeping the person, the exact background/room, and any on-screen text or graphic letters from Reference image 1.",
     input.motionText,
     input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",
-    "No on-screen text, no subtitles, no watermarks.",
   ]
     .filter(Boolean)
     .join(" ");

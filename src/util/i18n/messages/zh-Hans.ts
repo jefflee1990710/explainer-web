@@ -293,7 +293,7 @@ export const zhHans: Partial<Messages> = {
     filters: { all: "全部", action: "待处理", active: "进行中", ready: "已完成", failed: "失败" },
   },
   characters: { title: "角色", create: "新建角色", empty: "还没有角色。" },
-  billing: { title: "账单" },
+  billing: { title: "Credits & Tiers" },
   styles: {
     doodle: "白板涂鸦",
     "flat-vector": "扁平矢量",

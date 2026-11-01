@@ -23,8 +23,10 @@ import {
 } from "@/service/jutsu/minimax-h3-ref2va";
 import {
   expandTrackedBoxWithHeadroomAndMargin,
+  falSamPromptForTarget,
   interpolateTrackedBoxes,
   renderGreyMannequinAndMaskFrame,
+  renderGreyMannequinAndMaskFrameFromMask,
 } from "@/service/jutsu/sam-mannequin";
 import { ObjectId } from "mongodb";
 import { scroSwapTask } from "@/service/generation/task-list";
@@ -157,6 +159,22 @@ test("SAM 3.1 headroom + margin expansion, grey mannequin rendering, and MiniMax
   assert.equal(maskMeta.width, 244);
   assert.equal(maskMeta.height, 160);
 
+  // Pixel SAM mask path (fal video-rle) paints the same canvas size
+  const binaryMask = new Uint8Array(120 * 160);
+  for (let y = 20; y < 140; y++) {
+    for (let x = 30; x < 90; x++) binaryMask[y * 120 + x] = 1;
+  }
+  const fromMask = await renderGreyMannequinAndMaskFrameFromMask({
+    frameBuffer: samplePng,
+    mask: binaryMask,
+    margin: "normal",
+  });
+  const fromMaskMeta = await sharp(fromMask.mannequinJpeg).metadata();
+  assert.equal(fromMaskMeta.width, 120);
+  assert.equal(fromMaskMeta.height, 160);
+  assert.equal(falSamPromptForTarget("人"), "person");
+  assert.equal(falSamPromptForTarget("red jacket"), "red jacket");
+
   const ref2vaBody = buildMinimaxH3Ref2VaBody({
     prompt: "The singer performs on stage.",
     preparedImageUrl: "https://blob.test/prepared.webp",
@@ -231,6 +249,8 @@ test("character swap prompts keep the donor face shape and only borrow expressio
   });
   assert.match(videoPrompt, /Reference image 2/);
   assert.match(videoPrompt, /every frame/i);
+  assert.match(videoPrompt, /on-screen text/i);
+  assert.doesNotMatch(videoPrompt, /No on-screen text/i);
   assert.doesNotMatch(
     buildJutsuRef2VaPrompt({ motionText: "She waves.", hasIdentityImage: false }),
     /Reference image 2/,

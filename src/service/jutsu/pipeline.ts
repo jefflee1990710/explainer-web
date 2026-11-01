@@ -630,7 +630,7 @@ export async function renderJutsuVideo(input: {
           "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
           motionText,
           lightText ? `Lighting remains consistent: ${lightText}` : "",
-          "No on-screen text, no subtitles, no watermarks.",
+          "Preserve any on-screen text or graphic letters from the attached frames.",
         ]
           .filter(Boolean)
           .join(" ");
@@ -1098,7 +1098,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
             motionText,
             lightText ? `Lighting remains consistent: ${lightText}` : "",
-            "No on-screen text, no subtitles, no watermarks.",
+            "Preserve any on-screen text or graphic letters from the attached frames.",
           ]
             .filter(Boolean)
             .join(" ");

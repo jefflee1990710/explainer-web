@@ -58,7 +58,13 @@ export function CheckoutButton({
   );
 }
 
-export function PortalButton() {
+export function PortalButton({
+  label,
+  variant = "default",
+}: {
+  label?: string;
+  variant?: "default" | "ghost";
+} = {}) {
   const { t } = useI18n();
   const [error, setError] = useState("");
 
@@ -76,9 +82,13 @@ export function PortalButton() {
       <button
         type="button"
         onClick={() => void onClick()}
-        className="rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.7)]"
+        className={
+          variant === "ghost"
+            ? "rounded-full border border-accent-ink/15 bg-transparent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:bg-accent-ink/5"
+            : "rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.7)]"
+        }
       >
-        {t("billing.manageSubscription")}
+        {label || t("billing.manageSubscription")}
       </button>
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>
