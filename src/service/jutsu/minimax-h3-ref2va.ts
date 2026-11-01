@@ -15,8 +15,9 @@ type FetchOptions = { fetch?: typeof fetch };
 /**
  * Ported from Openjutsu `MiniMaxH3ReferenceToVideo` (`workflows/simple.api.json` node 30):
  * Builds the MiniMax H3 `ref2va` payload conditioning on:
- * - `ref_images.ref_image_0` (`first_frame` / `subject_reference`): the prepared character / outfit image
+ * - `ref_images.ref_image_0` (`reference_image`): the prepared character / outfit image
  * - `ref_videos.ref_video_0` (`reference_video`): the SAM 3.1 Grey Mannequin motion-reference MP4 (`H3GreyMannequins`)
+ * Official H3 rejects mixing reference roles with `first_frame` / `middle_frame` / `last_frame` (error 2013).
  * - `ref_video_audios.ref_video_audio_0` (`reference_audio`, omitted when `noLipSync: true`)
  */
 export function buildMinimaxH3Ref2VaBody(input: {
@@ -34,7 +35,7 @@ export function buildMinimaxH3Ref2VaBody(input: {
 
   const content: Array<
     | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string }; role: "first_frame" }
+    | { type: "image_url"; image_url: { url: string }; role: "reference_image" }
     | { type: "video_url"; video_url: { url: string }; role: "reference_video" }
     | { type: "audio_url"; audio_url: { url: string }; role: "reference_audio" }
   > = [
@@ -42,7 +43,7 @@ export function buildMinimaxH3Ref2VaBody(input: {
     {
       type: "image_url",
       image_url: { url: input.preparedImageUrl },
-      role: "first_frame",
+      role: "reference_image",
     },
     {
       type: "video_url",

@@ -161,11 +161,13 @@ test("SAM 3.1 headroom + margin expansion, grey mannequin rendering, and MiniMax
   assert.deepEqual(ref2vaBody.content[1], {
     type: "image_url",
     image_url: { url: "https://blob.test/prepared.webp" },
-    role: "first_frame",
+    role: "reference_image",
   });
   assert.deepEqual(ref2vaBody.content[2], {
     type: "video_url",
     video_url: { url: "https://blob.test/mannequin.mp4" },
     role: "reference_video",
   });
+  assert.equal(JSON.stringify(ref2vaBody).includes("first_frame"), false);
+  assert.equal(JSON.stringify(ref2vaBody).includes("last_frame"), false);
 });

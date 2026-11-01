@@ -611,12 +611,24 @@ export async function renderJutsuVideo(input: {
       (input.motionDescription ?? job.motionDescription ?? "").trim() ||
       "Continuous natural movement from the opening frame to the closing frame.";
     const lightText = resolveJutsuLightText(job.relightId, job.customLightPrompt);
-    const fullVideoPrompt = [
-      "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
-      motionText,
-      lightText ? `Lighting remains consistent: ${lightText}` : "",
-      "No on-screen text, no subtitles, no watermarks.",
-    ]
+    // MiniMax H3 reference-to-video cannot also take first/last frames (error 2013).
+    const useH3Ref2Va = Boolean(job.mannequinVideoUrl && hasMinimaxApiKey());
+    const fullVideoPrompt = (
+      useH3Ref2Va
+        ? [
+            "Reference image 1 is the person, outfit, and scene. Reference video 1 is a grey mannequin performing the motion.",
+            "Follow the mannequin's pose, hands, and timing exactly, while keeping the person from the reference image.",
+            motionText,
+            lightText ? `Lighting remains consistent: ${lightText}` : "",
+            "No on-screen text, no subtitles, no watermarks.",
+          ]
+        : [
+            "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
+            motionText,
+            lightText ? `Lighting remains consistent: ${lightText}` : "",
+            "No on-screen text, no subtitles, no watermarks.",
+          ]
+    )
       .filter(Boolean)
       .join(" ");
 
@@ -632,10 +644,8 @@ export async function renderJutsuVideo(input: {
       },
     );
 
-    // Primary Motion Engine: MiniMax H3 `ref2va` (`MiniMaxH3ReferenceToVideo`) conditioned on
-    // the SAM 3.1 Grey Mannequin video (`mannequinVideoUrl` as `reference_video`) + prepared character image.
+    // Primary Motion Engine: MiniMax H3 `ref2va` (`reference_image` + `reference_video`).
     // Falls back to OpenRouter Hailuo-3 dual-keyframe if `MINIMAX_API_KEY` is not set.
-    const useH3Ref2Va = Boolean(job.mannequinVideoUrl && hasMinimaxApiKey());
     const submitted = useH3Ref2Va
       ? await submitMinimaxH3Ref2VaVideo({
           prompt: fullVideoPrompt,
