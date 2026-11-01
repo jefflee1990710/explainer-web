@@ -227,7 +227,7 @@ export function scroSwapTask(
         ? job.outputVideoUrl || job.preparedStartFrameUrl
         : job.preparedStartFrameUrl || job.rawStartFrameUrl,
     isVideo: true,
-    href: "/app/jutsu",
+    href: "/app/scroswap",
     error: stage === "failed" ? job.error : undefined,
     attempts: 0,
     createdAt: job.createdAt.toISOString(),

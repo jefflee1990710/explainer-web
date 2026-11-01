@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { loadFolderOptions, loadOwnedFolder, loadStudioPickers } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
+import { parseUseCaseParam } from "@/service/video/use-case";
 
 // Gemini 4 Argon can think for several minutes before the storyboard returns.
 export const maxDuration = 800;
@@ -9,11 +10,12 @@ export const maxDuration = 800;
 export default async function NewLooseVideoPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ projectId?: string }>;
+  searchParams?: Promise<{ projectId?: string; useCase?: string }>;
 }) {
   const query = searchParams ? await searchParams : undefined;
   const user = await requireAppUser();
   const requestedId = query?.projectId?.trim() || "";
+  const useCase = parseUseCaseParam(query?.useCase);
   const folder = requestedId && ObjectId.isValid(requestedId)
     ? await loadOwnedFolder(requestedId, user.clerkUserId)
     : null;
@@ -29,6 +31,7 @@ export default async function NewLooseVideoPage({
       folders={folders}
       initialVideo={null}
       credits={user.credits}
+      useCase={useCase}
       {...pickers}
     />
   );

@@ -135,6 +135,11 @@ import {
   resolveInitialVoLanguage,
   writeBriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
+import {
+  defaultSkillSlugForUseCase,
+  filterSkillsForUseCase,
+  type VideoUseCase,
+} from "@/service/video/use-case";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { QuickScriptCard } from "@/presentation/components/app/projects/new/quick-script-card";
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
@@ -202,7 +207,7 @@ function chosenTextStyleId(
 export function NewProjectForm({
   projectId,
   folders = [],
-  skills,
+  skills: allSkills,
   styles,
   characters,
   products,
@@ -211,6 +216,7 @@ export function NewProjectForm({
   credits,
   subscribed,
   hasAnyVideo = true,
+  useCase,
   onVideoCreated,
   onStepNav,
 }: {
@@ -225,11 +231,16 @@ export function NewProjectForm({
   credits: number;
   subscribed: boolean;
   hasAnyVideo?: boolean;
+  /** When set from Create use-case nav, only offer matching system directors. */
+  useCase?: VideoUseCase;
   onVideoCreated?: (video: PublicVideo) => void;
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
   const router = useRouter();
   const { t, locale } = useI18n();
+  const skills = useCase
+    ? filterSkillsForUseCase(allSkills, useCase)
+    : allSkills;
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
@@ -240,7 +251,9 @@ export function NewProjectForm({
   const [skillSlug, setSkillSlug] = useState(
     (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
       (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
-      pickerDefaultSkillSlug(skills),
+      (useCase
+        ? defaultSkillSlugForUseCase(useCase, skills)
+        : pickerDefaultSkillSlug(skills)),
   );
   // Picked director; form rules follow its behaviour (template) slug.
   const selectedSkill = skills.find((item) => item.slug === skillSlug);
@@ -353,7 +366,9 @@ export function NewProjectForm({
     const initSlug =
       (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
       (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
-      pickerDefaultSkillSlug(skills);
+      (useCase
+        ? defaultSkillSlugForUseCase(useCase, skills)
+        : pickerDefaultSkillSlug(skills));
     const initRule = ruleSlugFor(initSlug, skills);
     return (
       (isValidDirectorBackgroundId(initRule, initialVideo?.directorBackgroundId)

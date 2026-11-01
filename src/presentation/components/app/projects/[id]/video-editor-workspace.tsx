@@ -17,6 +17,7 @@ import type {
 } from "@/presentation/serialize";
 import type { ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderPath } from "@/service/folder-video-path";
+import { USE_CASE_LIST_PATH, type VideoUseCase } from "@/service/video/use-case";
 
 // Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
@@ -32,6 +33,7 @@ export function VideoEditorWorkspace({
   subscribed,
   hasAnyVideo = true,
   initialVideo,
+  useCase,
 }: {
   folderId: string;
   folderName: string;
@@ -45,6 +47,8 @@ export function VideoEditorWorkspace({
   subscribed: boolean;
   hasAnyVideo?: boolean;
   initialVideo: PublicVideo | null;
+  /** Create use-case: limit SkillPicker to matching system directors. */
+  useCase?: VideoUseCase;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -98,7 +102,15 @@ export function VideoEditorWorkspace({
   }, []);
 
   function goToFolder() {
-    router.push(folderPath(folderId));
+    if (folderId) {
+      router.push(folderPath(folderId));
+      return;
+    }
+    if (useCase) {
+      router.push(`${USE_CASE_LIST_PATH[useCase]}?stay=1`);
+      return;
+    }
+    router.push(folderPath());
   }
 
   const editorTitle =
@@ -121,7 +133,7 @@ export function VideoEditorWorkspace({
         onDelete={() => setDeleteOpen(true)}
       >
         <NewProjectForm
-          key={video?.id ?? "new"}
+          key={video?.id ?? `new-${useCase || "any"}`}
           projectId={folderId}
           folders={folders}
           skills={skills}
@@ -133,6 +145,7 @@ export function VideoEditorWorkspace({
           credits={credits}
           subscribed={subscribed}
           hasAnyVideo={hasAnyVideo || Boolean(video)}
+          useCase={useCase}
           onVideoCreated={setVideo}
           onStepNav={onStepNav}
         />

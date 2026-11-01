@@ -188,6 +188,8 @@ export type PublicVideoCard = {
   title: string;
   englishTitle: string;
   source: string;
+  /** System/custom director slug — used to filter Create use-case lists. */
+  skillSlug: string;
   status: ProjectStatus;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
@@ -529,6 +531,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,
+    skillSlug: video.skillSlug || "",
     status: normalizeProjectStatus(video.status),
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
@@ -559,6 +562,7 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,
+    skillSlug: video.skillSlug || "",
     status: video.status,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,

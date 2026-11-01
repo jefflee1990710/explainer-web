@@ -82,8 +82,10 @@ export type Messages = {
     wardrobe: string;
     rightTool: string;
     talkingHead: string;
+    talkingHeadVideo: string;
     cantonese: string;
     explainer: string;
+    explainerVideo: string;
     aiInfluencer: string;
     productPromo: string;
     features: string;
@@ -344,6 +346,8 @@ export type Messages = {
     notSubscribed: string;
     noSubscriptionBanner: string;
     goBilling: string;
+    newExplainerVideo: string;
+    newTalkingHeadVideo: string;
   };
   folder: {
     create: string;

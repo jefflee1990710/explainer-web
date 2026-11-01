@@ -37,10 +37,17 @@ export function AppShell({
 }) {
   const { t, locale } = useI18n();
   const items: StudioNavItem[] = [
-    { href: "/app", label: t("nav.projects"), icon: "projects", section: "create" },
+    // Hide generic Video; Create is use-case first (Explainer / Talking Head).
+    { href: "/app/explainers", label: t("nav.explainerVideo"), icon: "projects", section: "create" },
+    {
+      href: "/app/talking-heads",
+      label: t("nav.talkingHeadVideo"),
+      icon: "directors",
+      section: "create",
+    },
     { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
     {
-      href: "/app/jutsu",
+      href: "/app/scroswap",
       label: locale === "en" ? "Scro Swap" : "Scro Swap 換角",
       icon: "styles",
       section: "create",

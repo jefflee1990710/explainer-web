@@ -377,7 +377,7 @@ export async function prepareJutsuJob(
       };
       const col = await jutsuJobsCollection();
       await col.insertOne(doc);
-      revalidatePath("/app/jutsu");
+      revalidatePath("/app/scroswap");
       return { ok: true, job: toPublicJutsuJob(doc) };
     }
 
@@ -569,7 +569,7 @@ export async function prepareJutsuJob(
 
     const col = await jutsuJobsCollection();
     await col.insertOne(doc);
-    revalidatePath("/app/jutsu");
+    revalidatePath("/app/scroswap");
 
     return { ok: true, job: toPublicJutsuJob(doc) };
   } catch (error) {
@@ -775,7 +775,7 @@ async function finalizeJutsuRenderedVideo(
   );
 
   try {
-    revalidatePath("/app/jutsu");
+    revalidatePath("/app/scroswap");
   } catch {
     // Non-request background / cron context
   }
@@ -907,7 +907,7 @@ export async function startScroSwapJob(
     );
 
     try {
-      revalidatePath("/app/jutsu");
+      revalidatePath("/app/scroswap");
     } catch {
       // Non-request context
     }
@@ -1304,7 +1304,7 @@ export async function deleteJutsuJob(
       _id: new ObjectId(jobId),
       clerkUserId: user.clerkUserId,
     });
-    revalidatePath("/app/jutsu");
+    revalidatePath("/app/scroswap");
     return { ok: true };
   } catch (error) {
     return {

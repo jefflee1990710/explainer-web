@@ -9,6 +9,12 @@ import { OnboardingHeroCards } from "@/presentation/components/app/onboarding-he
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { ProjectPicker, type ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderVideoPath } from "@/service/folder-video-path";
+import {
+  newVideoPathForUseCase,
+  USE_CASE_LIST_PATH,
+  videoMatchesUseCase,
+  type VideoUseCase,
+} from "@/service/video/use-case";
 
 // /app lists videos directly. The project menu only filters; it is not a required step.
 export function DashboardView({
@@ -16,11 +22,14 @@ export function DashboardView({
   folders,
   credits,
   subscribed,
+  useCase,
 }: {
   videos: PublicVideoCard[];
   folders: ProjectOption[];
   credits: number;
   subscribed: boolean;
+  /** When set, only show that Create use-case and deep-link New video with the same preset. */
+  useCase?: VideoUseCase;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -28,17 +37,30 @@ export function DashboardView({
   const initial = searchParams.get("project") || "all";
   const [folderOptions, setFolderOptions] = useState(folders);
   const [filter, setFilter] = useState(
-    initial === "none" || initial === "all" || folders.some((folder) => folder.id === initial) ? initial : "all",
+    initial === "none" || initial === "all" || folders.some((folder) => folder.id === initial)
+      ? initial
+      : "all",
   );
 
-  const shown = useMemo(() => {
-    if (filter === "none") return videos.filter((video) => !video.projectId);
-    if (filter !== "all") return videos.filter((video) => video.projectId === filter);
-    return videos;
-  }, [filter, videos]);
+  const useCaseVideos = useMemo(() => {
+    if (!useCase) return videos;
+    return videos.filter((video) => videoMatchesUseCase(video.skillSlug, useCase));
+  }, [useCase, videos]);
 
-  const newVideoHref =
-    filter !== "all" && filter !== "none" ? folderVideoPath(filter) : "/app/videos/new";
+  const shown = useMemo(() => {
+    if (filter === "none") return useCaseVideos.filter((video) => !video.projectId);
+    if (filter !== "all") return useCaseVideos.filter((video) => video.projectId === filter);
+    return useCaseVideos;
+  }, [filter, useCaseVideos]);
+
+  const listBasePath = useCase ? USE_CASE_LIST_PATH[useCase] : "/app";
+  const newVideoHref = useCase
+    ? newVideoPathForUseCase(useCase, {
+        projectId: filter !== "all" && filter !== "none" ? filter : undefined,
+      })
+    : filter !== "all" && filter !== "none"
+      ? folderVideoPath(filter)
+      : folderVideoPath();
 
   function selectFilter(next: string) {
     setFilter(next);
@@ -46,18 +68,32 @@ export function DashboardView({
     params.set("stay", "1");
     if (next === "all") params.delete("project");
     else params.set("project", next);
-    router.replace(`/app?${params.toString()}`);
+    router.replace(`${listBasePath}?${params.toString()}`);
   }
 
+  const title = useCase === "explainer"
+    ? t("nav.explainerVideo")
+    : useCase === "talking-head"
+      ? t("nav.talkingHeadVideo")
+      : t("dashboard.title");
+
   const newVideoLabel =
-    locale === "zh-Hant" ? "新增影片" : locale === "zh-Hans" ? "新建视频" : "New video";
+    useCase === "explainer"
+      ? t("dashboard.newExplainerVideo")
+      : useCase === "talking-head"
+        ? t("dashboard.newTalkingHeadVideo")
+        : locale === "zh-Hant"
+          ? "新增影片"
+          : locale === "zh-Hans"
+            ? "新建视频"
+            : "New video";
 
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-3xl font-bold">{t("dashboard.title")}</h1>
+            <h1 className="font-display text-3xl font-bold">{title}</h1>
             <ProjectPicker
               includeAll
               folders={folderOptions}
@@ -95,7 +131,7 @@ export function DashboardView({
         </div>
       ) : null}
 
-      {videos.length === 0 ? <OnboardingHeroCards /> : null}
+      {useCaseVideos.length === 0 ? <OnboardingHeroCards /> : null}
 
       <div className="mt-8">
         <VideoTable videos={shown} />

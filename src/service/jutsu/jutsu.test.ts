@@ -280,7 +280,7 @@ test("scroSwapTask surfaces rendering and completed Scro Swap jobs in the backgr
   assert.equal(rendering?.kind, "scroSwap");
   assert.equal(rendering?.stage, "generating");
   assert.equal(rendering?.title, "Scro");
-  assert.equal(rendering?.href, "/app/jutsu");
+  assert.equal(rendering?.href, "/app/scroswap");
 
   const done = scroSwapTask(
     {
