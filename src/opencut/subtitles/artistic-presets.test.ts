@@ -221,9 +221,52 @@ test("splitVoIntoSubtitleSegments keeps a 9:16 Cantonese dialogue clause togethe
 		canvasSize: { width: 1080, height: 1920 },
 	});
 	const texts = segments.map((seg) => seg.text);
-	assert.deepEqual(texts, ["件貨整得夠靚咪自然有人買囉", "點解仲要晒錢搞宣傳啫？"]);
+	assert.deepEqual(texts, ["件貨整得夠靚咪自然有人買囉", "點解仲要晒錢搞宣傳啫"]);
 	assert.ok(texts.every((text) => text.length >= 8));
 	assert.ok(texts.every((text) => !/^[\s」』"']+$/u.test(text)));
+});
+
+test("splitVoIntoSubtitleSegments separates by punctuation and removes punctuation from every subtitle segment (including director cues)", () => {
+	const vo =
+		"落手做先知道咁花時間咁困難！有嘢想講啫，又要分鏡又要研究prompt，最慘整完一大堆，冇人睇。其實整有流量嘅片段係有規則！用Scro你只需需要輸入你想講嘅嘢，佢就會幫你處理好晒！搵錢先啦仲慢慢試！";
+	const cues = [
+		"落手做先知道",
+		"咁花時間咁困難！",
+		"有嘢想講啫，",
+		"又要分鏡又要研究prompt，",
+		"最慘整完一大堆，冇人睇。",
+		"其實整有流量嘅片段",
+		"係有規則！",
+		"用Scro你只需需要",
+		"輸入你想講嘅嘢，",
+		"佢就會幫你處理好晒！",
+		"搵錢先啦仲慢慢試！",
+	];
+	const segments = splitVoIntoSubtitleSegments({
+		line: vo,
+		startTime: 0,
+		duration: 20,
+		canvasSize: { width: 1080, height: 1920 },
+		cues,
+	});
+	const texts = segments.map((seg) => seg.text);
+	assert.deepEqual(texts, [
+		"落手做先知道",
+		"咁花時間咁困難",
+		"有嘢想講啫",
+		"又要分鏡又要研究prompt",
+		"最慘整完一大堆",
+		"冇人睇",
+		"其實整有流量嘅片段",
+		"係有規則",
+		"用Scro你只需需要",
+		"輸入你想講嘅嘢",
+		"佢就會幫你處理好晒",
+		"搵錢先啦仲慢慢試",
+	]);
+	for (const text of texts) {
+		assert.doesNotMatch(text, /[，,。！？!?；;、：:「」『』]/u);
+	}
 });
 
 test("wrapSubtitleTextWithMeasure balances 2-line subtitles so word counts are even instead of leaving 1 orphan word", () => {

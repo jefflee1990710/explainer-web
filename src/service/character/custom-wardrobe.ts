@@ -1,4 +1,5 @@
-import { generateText, Output } from "ai";
+import { generateImage, generateText, Output } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
@@ -22,9 +23,13 @@ import {
 import { directorModel } from "@/service/director/model";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import {
+  hasOpenRouterKey,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
+
+const GEMINI_STUDIO_PREVIEW_MODEL =
+  process.env.CHARACTER_LOOK_PREVIEW_MODEL || "gemini-2.5-flash-image";
 
 const analyzeSchema = z.object({
   part: z.enum(["hair", "top", "pants", "shoes", "accessory"]),
@@ -83,6 +88,149 @@ export function buildCustomLookStudioPrompt(
     case "accessory":
       return `${baseFrame} Subject: one head-and-shoulders or torso mannequin wearing or holding the fashion accessory, front view. The fashion accessory is: ${clean}. Make the accessory clean, stylish, and unmistakable.`;
   }
+}
+
+// Tint plain studio grey backgrounds into the Scro brand gradient (Electric Lime #c6f24b ->
+// Warm Cream #fff6eb -> Coral #ff4d2e) so custom wardrobe cards match built-in look cards.
+export async function tintStudioPreviewBrandGradient(inputBuffer: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(inputBuffer)
+    .resize(1024, 1024, { fit: "cover" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const cornerIdx = [
+    0,
+    (width - 1) * channels,
+    (height - 1) * width * channels,
+    ((height - 1) * width + (width - 1)) * channels,
+  ];
+  let bgR = 0;
+  let bgG = 0;
+  let bgB = 0;
+  for (const idx of cornerIdx) {
+    bgR += data[idx]!;
+    bgG += data[idx + 1]!;
+    bgB += data[idx + 2]!;
+  }
+  bgR /= 4;
+  bgG /= 4;
+  bgB /= 4;
+
+  const out = Buffer.from(data);
+  for (let y = 0; y < height; y++) {
+    const ny = y / (height - 1);
+    for (let x = 0; x < width; x++) {
+      const nx = x / (width - 1);
+      const offset = (y * width + x) * channels;
+      const r = data[offset]!;
+      const g = data[offset + 1]!;
+      const b = data[offset + 2]!;
+
+      const maxC = Math.max(r, g, b);
+      const minC = Math.min(r, g, b);
+      const sat = maxC - minC;
+      const distBg = Math.hypot(r - bgR, g - bgG, b - bgB);
+      const edgeDist = Math.min(nx, 1 - nx, ny, 1 - ny);
+      const isNeutralSeamless = sat < 26 && r > 135 && g > 135 && b > 135;
+      const bgWeight = isNeutralSeamless
+        ? Math.max(
+            0,
+            Math.min(1, (1 - sat / 26) * (distBg < 85 ? 1 : Math.max(0, 1 - (distBg - 85) / 60))),
+          )
+        : edgeDist < 0.06 && distBg < 45
+          ? 0.7
+          : 0;
+
+      if (bgWeight > 0.01) {
+        const t = nx * 0.55 + ny * 0.45;
+        let gradR: number;
+        let gradG: number;
+        let gradB: number;
+        if (t < 0.5) {
+          const u = t * 2;
+          gradR = 198 * (1 - u) + 255 * u;
+          gradG = 242 * (1 - u) + 246 * u;
+          gradB = 75 * (1 - u) + 235 * u;
+        } else {
+          const u = (t - 0.5) * 2;
+          gradR = 255 * (1 - u) + 255 * u;
+          gradG = 246 * (1 - u) + 77 * u;
+          gradB = 235 * (1 - u) + 46 * u;
+        }
+        const shade = Math.min(1.08, Math.max(0.78, (r + g + b) / (bgR + bgG + bgB || 660)));
+        const targetR = Math.min(255, Math.round(gradR * shade));
+        const targetG = Math.min(255, Math.round(gradG * shade));
+        const targetB = Math.min(255, Math.round(gradB * shade));
+        const mix = bgWeight * 0.88;
+        out[offset] = Math.round(r * (1 - mix) + targetR * mix);
+        out[offset + 1] = Math.round(g * (1 - mix) + targetG * mix);
+        out[offset + 2] = Math.round(b * (1 - mix) + targetB * mix);
+      } else {
+        const avg = (r + g + b) / 3;
+        out[offset] = Math.min(255, Math.max(0, Math.round(avg + (r - avg) * 1.16)));
+        out[offset + 1] = Math.min(255, Math.max(0, Math.round(avg + (g - avg) * 1.16)));
+        out[offset + 2] = Math.min(255, Math.max(0, Math.round(avg + (b - avg) * 1.16)));
+      }
+    }
+  }
+
+  return sharp(out, { raw: { width, height, channels } })
+    .webp({ quality: 84 })
+    .toBuffer();
+}
+
+export async function generateCustomLookStudioBuffer(input: {
+  part: CharacterWardrobePart;
+  cleanPrompt: string;
+  referenceImageUrl?: string;
+}): Promise<Buffer> {
+  const studioPrompt = buildCustomLookStudioPrompt(input.part, input.cleanPrompt);
+  let rawBuf: Buffer | null = null;
+
+  // 1. Primary: OpenRouter Seedream 5.0 Pro with reference image so fabric/pattern stays faithful
+  // while isolated onto a 1:1 studio mannequin/stand.
+  if (hasOpenRouterKey()) {
+    try {
+      const result = await submitOpenRouterImage({
+        model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+        prompt: studioPrompt,
+        aspectRatio: "1:1",
+        resolution: "1k",
+        ...(input.referenceImageUrl ? { referenceImageUrls: [input.referenceImageUrl] } : {}),
+      });
+      const imageUrl = result.images?.[0]?.url;
+      if (imageUrl) {
+        rawBuf = imageUrl.startsWith("data:")
+          ? Buffer.from(imageUrl.split(",")[1] || "", "base64")
+          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+      }
+    } catch (openRouterErr) {
+      console.warn("[custom-wardrobe] OpenRouter studio preview failed, trying Gemini:", openRouterErr);
+    }
+  }
+
+  // 2. Fallback: Google Gemini 2.5 Flash Image (same model used for built-in character-looks)
+  if (!rawBuf) {
+    const googleApiKey =
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (googleApiKey) {
+      const { image } = await generateImage({
+        model: createGoogleGenerativeAI({ apiKey: googleApiKey }).image(
+          GEMINI_STUDIO_PREVIEW_MODEL,
+        ),
+        prompt: studioPrompt,
+        aspectRatio: "1:1",
+      });
+      rawBuf = Buffer.from(image.uint8Array);
+    }
+  }
+
+  if (!rawBuf) {
+    throw new Error("無法產生 AI 棚拍單品預覽圖（請確認 OPENROUTER_API_KEY 或 GOOGLE_GENERATIVE_AI_API_KEY）");
+  }
+
+  return tintStudioPreviewBrandGradient(rawBuf);
 }
 
 /** Upload an image and use Gemini 3.8 Flash Vision to extract cloth, hairstyle, or accessory metadata. */
@@ -188,21 +336,11 @@ export async function createCustomWardrobeItemAction(input: {
     let previewImageUrl = refUrl;
     if (input.generateStudioPreview !== false) {
       try {
-        const result = await submitOpenRouterImage({
-          model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
-          prompt: buildCustomLookStudioPrompt(input.part, cleanPrompt),
-          aspectRatio: "1:1",
-          resolution: "1k",
+        const webpBuffer = await generateCustomLookStudioBuffer({
+          part: input.part,
+          cleanPrompt,
+          referenceImageUrl: refUrl,
         });
-        const imageUrl = result.images?.[0]?.url;
-        if (!imageUrl) throw new Error("Seedream 未回傳預覽圖");
-        const rawBuf = imageUrl.startsWith("data:")
-          ? Buffer.from(imageUrl.split(",")[1] || "", "base64")
-          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
-        const webpBuffer = await sharp(rawBuf)
-          .resize(1024, 1024, { fit: "cover" })
-          .webp({ quality: 82 })
-          .toBuffer();
         previewImageUrl = await persistBuffer(
           webpBuffer,
           `explainer/custom-wardrobe/${user._id.toHexString()}/${optionId}.webp`,
@@ -297,6 +435,61 @@ export async function deleteCustomWardrobeItemAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "刪除失敗",
+    };
+  }
+}
+
+/** Regenerate an AI 1:1 studio preview for an existing custom wardrobe item. */
+export async function regenerateCustomWardrobePreviewAction(
+  idOrOptionId: string,
+): Promise<CreateCustomWardrobeResult> {
+  try {
+    const user = await requireAppUser();
+    const hexId = parseCustomWardrobeHexId(idOrOptionId) ?? idOrOptionId;
+    if (!ObjectId.isValid(hexId)) {
+      return { ok: false, error: "找不到自訂造型單品" };
+    }
+    const col = await customWardrobeItemsCollection();
+    const item = await col.findOne({
+      _id: new ObjectId(hexId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!item) {
+      return { ok: false, error: "找不到自訂造型單品" };
+    }
+    const optionId = customWardrobeOptionId(item._id.toHexString());
+    const cleanPrompt = item.prompt.replace(/\s*Isolated wardrobe piece [\w-]+\.?/g, "").trim();
+    const webpBuffer = await generateCustomLookStudioBuffer({
+      part: item.part,
+      cleanPrompt,
+      referenceImageUrl: item.referenceImageUrl,
+    });
+    const previewImageUrl = await persistBuffer(
+      webpBuffer,
+      `explainer/custom-wardrobe/${user._id.toHexString()}/${optionId}-${Date.now()}.webp`,
+      "image/webp",
+    );
+    const now = new Date();
+    await col.updateOne(
+      { _id: item._id },
+      { $set: { previewImageUrl, updatedAt: now } },
+    );
+    revalidatePath("/app/wardrobe");
+    revalidatePath("/app/room");
+    revalidatePath("/app/life");
+    revalidatePath("/app/characters/generate");
+    return {
+      ok: true,
+      item: toPublicCustomWardrobeItem({
+        ...item,
+        previewImageUrl,
+        updatedAt: now,
+      }),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "重新生成預覽圖失敗",
     };
   }
 }

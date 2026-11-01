@@ -11,7 +11,11 @@ import {
   sanitizeWardrobePicks,
   wardrobePickPrompts,
 } from "@/service/character/character-look";
-import { buildCustomLookStudioPrompt } from "@/service/character/custom-wardrobe";
+import {
+  buildCustomLookStudioPrompt,
+  tintStudioPreviewBrandGradient,
+} from "@/service/character/custom-wardrobe";
+import sharp from "sharp";
 
 test("customWardrobeOptionId and parseCustomWardrobeHexId round-trip 24-hex ObjectIds", () => {
   const oid = new ObjectId("6adafbde2925385c6a62ad7b");
@@ -78,4 +82,23 @@ test("buildCustomLookStudioPrompt formats isolated 1:1 studio prompts for all 5 
     assert.match(studioPrompt, /Plain light grey seamless background/);
     assert.match(studioPrompt, /Vintage olive linen piece/);
   }
+});
+
+test("tintStudioPreviewBrandGradient converts a neutral studio background into a 1024x1024 brand-gradient WebP", async () => {
+  const neutralGreyPng = await sharp({
+    create: {
+      width: 64,
+      height: 64,
+      channels: 3,
+      background: { r: 220, g: 220, b: 220 },
+    },
+  })
+    .png()
+    .toBuffer();
+
+  const tinted = await tintStudioPreviewBrandGradient(neutralGreyPng);
+  const meta = await sharp(tinted).metadata();
+  assert.equal(meta.format, "webp");
+  assert.equal(meta.width, 1024);
+  assert.equal(meta.height, 1024);
 });

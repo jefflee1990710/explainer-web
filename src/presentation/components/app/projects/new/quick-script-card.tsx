@@ -25,6 +25,10 @@ export function QuickScriptCard({
   talkingHead,
   spokenScript,
   onSpokenScriptChange,
+  uploadedVoUrl,
+  uploadedVoDurationSeconds,
+  onUploadedVoChange,
+  onError,
   language,
   onLanguageChange,
   disabled,
@@ -35,6 +39,14 @@ export function QuickScriptCard({
   talkingHead: boolean;
   spokenScript: string;
   onSpokenScriptChange: (value: string) => void;
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
+  onUploadedVoChange?: (next: {
+    url?: string;
+    durationSeconds?: number;
+    transcript?: string;
+  }) => void;
+  onError?: (message: string) => void;
   language?: VoLanguage;
   onLanguageChange?: (value: VoLanguage) => void;
   disabled?: boolean;
@@ -140,6 +152,11 @@ export function QuickScriptCard({
           <TalkingHeadScriptField
             value={spokenScript}
             onChange={onSpokenScriptChange}
+            language={language}
+            uploadedVoUrl={uploadedVoUrl}
+            uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+            onUploadedVoChange={onUploadedVoChange}
+            onError={onError}
             disabled={disabled}
             compact
           />

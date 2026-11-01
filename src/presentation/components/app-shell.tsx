@@ -35,10 +35,16 @@ export function AppShell({
   promoBonusPercent?: number;
   children: React.ReactNode;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const items: StudioNavItem[] = [
     { href: "/app", label: t("nav.projects"), icon: "projects", section: "create" },
     { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
+    {
+      href: "/app/jutsu",
+      label: locale === "en" ? "Jutsu Swap" : "Jutsu 換角",
+      icon: "styles",
+      section: "create",
+    },
     ...(POSTS_FEATURE_ENABLED
       ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "create" as const }]
       : []),

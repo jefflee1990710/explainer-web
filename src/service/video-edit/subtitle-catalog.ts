@@ -70,7 +70,22 @@ export function buildSubtitleCatalog({
     .flatMap((clip) => {
       const line = (clip.englishVo || clip.startVo || "").trim();
       if (!line) return [];
-      const cues = clip.subtitleCues?.map((c) => c.trim()).filter(Boolean);
+      const cues = clip.subtitleCues
+        ?.flatMap((c) =>
+          c
+            .split(
+              /(?:[。！？!?；;，,、：:「」『』“”【】（）()…—–]+|(?<=\b[A-Za-z0-9'")\]]{2,})\.(?=\s|$))\s*/u,
+            )
+            .map((part) =>
+              part
+                .replace(/[。！？!?；;，,、：:「」『』“”【】（）()…—–]+/gu, " ")
+                .replace(/(^|\s)['"‘’]+|['"‘’]+(?=\s|$)/gu, " ")
+                .replace(/\.(?=\s|$)|^\.+/gu, " ")
+                .replace(/\s+/g, " ")
+                .trim(),
+            ),
+        )
+        .filter(Boolean);
       return [{ clipNumber: clip.clipNumber, line, ...(cues && cues.length > 0 ? { cues } : {}) }];
     });
   const selectedId = textStyleId && styles.some((style) => style.id === textStyleId) ? textStyleId : subtitleLook;

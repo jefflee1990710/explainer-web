@@ -1,20 +1,37 @@
 "use client";
 
+import type { VoLanguage } from "@/model/project";
+import { VoAudioRecorderControls } from "@/presentation/components/app/projects/new/vo-audio-recorder-controls";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// Talking-head only: the exact lines the character reads on camera.
+// Talking-head only: the exact lines the character reads on camera, plus optional direct VO upload / mic recording.
 export function TalkingHeadScriptField({
   value,
   onChange,
   disabled,
   compact = false,
+  language,
+  uploadedVoUrl,
+  uploadedVoDurationSeconds,
+  onUploadedVoChange,
+  onError,
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   compact?: boolean;
+  language?: VoLanguage;
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
+  onUploadedVoChange?: (next: {
+    url?: string;
+    durationSeconds?: number;
+    transcript?: string;
+  }) => void;
+  onError?: (message: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
   return (
     <div className={compact ? "" : "mt-5"}>
       <div className="flex items-baseline justify-between gap-2">
@@ -24,15 +41,39 @@ export function TalkingHeadScriptField({
         </span>
       </div>
       <p className="mt-0.5 line-clamp-1 text-xs text-muted">
-        {t("brief.talkingHead.scriptHint")}
+        {uploadedVoUrl
+          ? isEn
+            ? "Using your uploaded/recorded VO audio. Edit the transcript below to refine subtitles."
+            : "已套用你上傳／錄製嘅 VO 語音。下方文字為自動識別嘅字幕稿，可自由微調字眼。"
+          : t("brief.talkingHead.scriptHint")}
       </p>
+
+      {onUploadedVoChange ? (
+        <div className="mt-2">
+          <VoAudioRecorderControls
+            voUrl={uploadedVoUrl}
+            voDurationSeconds={uploadedVoDurationSeconds}
+            language={language}
+            disabled={disabled}
+            onUploaded={({ url, durationSeconds, transcript }) => {
+              onUploadedVoChange({ url, durationSeconds, transcript });
+              if (transcript.trim()) {
+                onChange(transcript);
+              }
+            }}
+            onClear={() => onUploadedVoChange({ url: undefined, durationSeconds: undefined })}
+            onError={onError}
+          />
+        </div>
+      ) : null}
+
       <label htmlFor="spokenScript" className="sr-only">
         {t("brief.talkingHead.scriptLabel")}
       </label>
       <textarea
         id="spokenScript"
         name="spokenScript"
-        required
+        required={!uploadedVoUrl}
         rows={compact ? 3 : 6}
         value={value}
         onChange={(event) => onChange(event.target.value)}

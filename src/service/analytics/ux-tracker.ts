@@ -5,6 +5,7 @@ import {
   type UxEventCategory,
   type UxEventSource,
 } from "@/model/ux-event";
+import { isBotUserAgent } from "@/service/analytics/website-analytics";
 import { getAuthSession } from "@/service/auth";
 
 export type LogUxEventInput = {
@@ -25,6 +26,7 @@ export type LogUxEventInput = {
 // Persist a UX event into MongoDB `ux_events`. Never throws so user flows stay unaffected.
 export async function persistUxEvent(input: LogUxEventInput): Promise<void> {
   try {
+    if (isBotUserAgent(input.userAgent)) return;
     const eventName = input.event?.trim().slice(0, 120);
     if (!eventName) return;
 

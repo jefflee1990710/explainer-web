@@ -33,16 +33,20 @@ import {
   defaultCharacterLook,
   isCharacterLookId,
   isExaggeratedLookOption,
-  lookOptionCategory,
   optionsForLookPart,
   randomizeCharacterLook,
   type AnyCharacterLookPart,
   type CharacterExaggerationLevel,
   type CharacterGender,
-  type CharacterLookCategory,
   type CharacterLookSelection,
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
+import {
+  filterOptionsBySilhouette,
+  lookSilhouette,
+  silhouettesForPart,
+} from "@/service/character/look-silhouettes";
+import { LookSilhouetteChips } from "@/presentation/components/app/characters/look-silhouette-chips";
 import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 import { emptyPersonaDraft, personaFromFields, type PersonaDraft } from "@/service/character/persona";
 import { BLUEPRINT_COST } from "@/service/production-plan";
@@ -53,7 +57,6 @@ const NAME_MAX = 40;
 const AUTO_RANDOM_NAMES = ["Nova", "Aria", "Mila", "Zoe", "Luna", "Kai", "Leo", "Max"] as const;
 const EXAGGERATION_LEVELS: readonly CharacterExaggerationLevel[] = ["1x", "3x", "10x"];
 const GENDERS: readonly CharacterGender[] = ["female", "male"];
-const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
 const ORDERED_PARTS: readonly AnyCharacterLookPart[] = [
   "face",
   "expression",
@@ -85,7 +88,7 @@ export function CharacterGeneratorForm({
   const [persona, setPersona] = useState<PersonaDraft>(emptyPersonaDraft);
   const [look, setLook] = useState<CharacterLookSelection>(defaultCharacterLook);
   const [activePart, setActivePart] = useState<AnyCharacterLookPart>("face");
-  const [categoryTab, setCategoryTab] = useState<CharacterLookCategory>("all");
+  const [kindState, setKindState] = useState({ part: "face" as AnyCharacterLookPart, kind: "all" });
   const [query, setQuery] = useState("");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [lockedParts, setLockedParts] = useState<Partial<Record<AnyCharacterLookPart, boolean>>>({});
@@ -236,26 +239,31 @@ export function CharacterGeneratorForm({
   const activePartLabel = t(`characters.look.${activePart}`);
   const { ids: favouriteIds, toggle: toggleFavourite } = useCharacterLookFavourites(activePart);
   const { partItems: customPartItems, byOptionId } = useCustomWardrobeItems(activePart);
-  const filterKey = `${activePart}|${categoryTab}|${query}|${favouritesOnly}`;
+  if (kindState.part !== activePart) {
+    setKindState({ part: activePart, kind: "all" });
+  }
+  const kind = kindState.part === activePart ? kindState.kind : "all";
+  const silhouetteKinds = CHARACTER_WARDROBE_PARTS.includes(activePart as CharacterWardrobePart)
+    ? silhouettesForPart(activePart)
+    : [];
+  const filterKey = `${activePart}|${kind}|${query}|${favouritesOnly}`;
   const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   if (page.filterKey !== filterKey) {
     setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   }
   const namedOptions = useMemo(() => {
-    const customMapped = customPartItems
-      .filter((item) => categoryTab === "all" || item.category === categoryTab)
-      .map((item) => ({
-        id: item.optionId,
-        name: locale === "en" ? item.name : item.nameZh || item.name,
-      }));
-    const builtInMapped = optionsForLookPart(activePart)
-      .filter((option) => categoryTab === "all" || lookOptionCategory(activePart, option.id) === categoryTab)
-      .map((option) => ({
-        id: option.id,
-        name: t(`characters.look.options.${activePart}.${option.id}`),
-      }));
-    return [...customMapped, ...builtInMapped];
-  }, [activePart, categoryTab, customPartItems, locale, t]);
+    const customMapped = customPartItems.map((item) => ({
+      id: item.optionId,
+      name: locale === "en" ? item.name : item.nameZh || item.name,
+      silhouette: lookSilhouette(activePart, { id: item.optionId, prompt: item.prompt }),
+    }));
+    const builtInMapped = optionsForLookPart(activePart).map((option) => ({
+      id: option.id,
+      name: t(`characters.look.options.${activePart}.${option.id}`),
+      silhouette: lookSilhouette(activePart, option),
+    }));
+    return filterOptionsBySilhouette([...customMapped, ...builtInMapped], kind);
+  }, [activePart, customPartItems, kind, locale, t]);
   const filteredOptions = useMemo(
     () =>
       filterLookDialogOptions({
@@ -519,27 +527,14 @@ export function CharacterGeneratorForm({
                 onChange={(wardrobeColors) => setLook((current) => ({ ...current, wardrobeColors }))}
               />
             ) : null}
-            <div className="flex flex-wrap items-center gap-1" role="tablist">
-                {CATEGORIES.map((category) => {
-                  const active = categoryTab === category;
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setCategoryTab(category)}
-                      className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold transition ${
-                        active
-                          ? "bg-accent-ink text-paper"
-                          : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
-                      }`}
-                    >
-                      {t(`characters.look.tabs.${category}`)}
-                    </button>
-                  );
-                })}
-            </div>
+            {silhouetteKinds.length > 0 ? (
+              <LookSilhouetteChips
+                part={activePart}
+                kinds={silhouetteKinds}
+                value={kind}
+                onChange={(next) => setKindState({ part: activePart, kind: next })}
+              />
+            ) : null}
             <div className="flex items-center gap-2">
               <input
                 type="search"

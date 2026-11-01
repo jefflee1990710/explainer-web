@@ -7,6 +7,7 @@ import {
   analyzeCustomWardrobeImageAction,
   createCustomWardrobeItemAction,
   deleteCustomWardrobeItemAction,
+  regenerateCustomWardrobePreviewAction,
 } from "@/presentation/actions/custom-wardrobe";
 import { notifyCustomWardrobeChanged } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -16,15 +17,6 @@ import {
   type CharacterLookCategory,
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
-
-const CATEGORY_KEYS: Record<
-  Exclude<CharacterLookCategory, "all">,
-  "wardrobe.categoryClassic" | "wardrobe.categoryStylized" | "wardrobe.categoryExtreme"
-> = {
-  classic: "wardrobe.categoryClassic",
-  stylized: "wardrobe.categoryStylized",
-  extreme: "wardrobe.categoryExtreme",
-};
 
 export function CustomWardrobeStudio({
   initialItems,
@@ -43,10 +35,10 @@ export function CustomWardrobeStudio({
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [localPreview, setLocalPreview] = useState("");
-  const [generateStudioPreview, setGenerateStudioPreview] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [regeneratingId, setRegeneratingId] = useState("");
   const [filterPart, setFilterPart] = useState<CharacterWardrobePart | "all">("all");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -105,7 +97,7 @@ export function CustomWardrobeStudio({
         nameZh: (nameZh || nameEn).trim(),
         prompt,
         referenceImageUrl,
-        generateStudioPreview,
+        generateStudioPreview: true,
       });
       if (!res.ok) {
         setError(res.error);
@@ -142,6 +134,22 @@ export function CustomWardrobeStudio({
       updateItemsList(items.filter((item) => item.id !== id));
     } finally {
       setDeletingId("");
+    }
+  }
+
+  async function onRegeneratePreview(id: string) {
+    setRegeneratingId(id);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const res = await regenerateCustomWardrobePreviewAction(id);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      updateItemsList(items.map((item) => (item.id === id ? res.item : item)));
+    } finally {
+      setRegeneratingId("");
     }
   }
 
@@ -305,25 +313,6 @@ export function CustomWardrobeStudio({
 
             <label className="block">
               <span className="text-[11px] font-semibold text-muted">
-                {t("wardrobe.categoryLabel")}
-              </span>
-              <select
-                value={category}
-                onChange={(e) =>
-                  setCategory(e.target.value as Exclude<CharacterLookCategory, "all">)
-                }
-                className="mt-1 h-9 w-full rounded-xl border border-accent-ink/15 bg-white px-3 text-xs font-semibold"
-              >
-                {(["classic", "stylized", "extreme"] as const).map((catId) => (
-                  <option key={catId} value={catId}>
-                    {t(CATEGORY_KEYS[catId])}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-[11px] font-semibold text-muted">
                 {t("wardrobe.promptLabel")}
               </span>
               <textarea
@@ -334,16 +323,6 @@ export function CustomWardrobeStudio({
                 placeholder={t("wardrobe.promptPlaceholder")}
                 className="mt-1 w-full rounded-xl border border-accent-ink/15 bg-white p-2.5 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-accent"
               />
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
-              <input
-                type="checkbox"
-                checked={generateStudioPreview}
-                onChange={(e) => setGenerateStudioPreview(e.target.checked)}
-                className="h-4 w-4 rounded accent-accent-ink"
-              />
-              <span>{t("wardrobe.studioPreviewCheck")}</span>
             </label>
           </div>
 
@@ -445,12 +424,31 @@ export function CustomWardrobeStudio({
                       </span>
                       <button
                         type="button"
-                        disabled={deletingId === item.id}
+                        disabled={deletingId === item.id || regeneratingId === item.id}
                         onClick={() => void onDelete(item.id)}
                         aria-label={t("wardrobe.deleteAria", { name: primaryName })}
                         className="absolute top-1.5 right-1.5 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-black/65 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600 disabled:opacity-50"
                       >
                         ×
+                      </button>
+                      <button
+                        type="button"
+                        disabled={regeneratingId === item.id || deletingId === item.id}
+                        onClick={() => void onRegeneratePreview(item.id)}
+                        className={`absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-accent-ink/85 px-2.5 py-1 text-[10px] font-bold text-paper transition hover:bg-accent-ink disabled:opacity-60 ${
+                          item.previewImageUrl === item.referenceImageUrl || regeneratingId === item.id
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
+                        }`}
+                      >
+                        {regeneratingId === item.id ? (
+                          <Spinner className="h-3 w-3" />
+                        ) : (
+                          "↻"
+                        )}
+                        <span>
+                          {locale === "en" ? "AI Studio Preview" : "重製 AI 預覽"}
+                        </span>
                       </button>
                     </div>
                     <div className="mt-2 min-w-0 flex-1 px-0.5">

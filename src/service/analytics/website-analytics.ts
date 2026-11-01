@@ -179,11 +179,12 @@ export function isStudioPath(cleanPath: string): boolean {
   return cleanPath === "/app" || cleanPath.startsWith("/app/") || cleanPath.startsWith("/legal/accept");
 }
 
+export const BOT_USER_AGENT_REGEX =
+  /adsbot|googlebot|googleother|google-extended|google-adwords|google-inspectiontool|apis-google|mediapartners-google|feedfetcher-google|bingbot|bingpreview|msnbot|adidxbot|duckduckbot|slurp|baiduspider|yandexbot|sogou|exabot|ahrefsbot|semrushbot|mj12bot|dotbot|rogerbot|screaming frog|seokicks|sistrix|blexbot|dataforseo|bytespider|petalbot|gptbot|oai-searchbot|chatgpt-user|claudebot|claude-web|anthropic-ai|perplexitybot|perplexity-user|ccbot|cohere-ai|youbot|amazonbot|applebot|meta-externalagent|meta-webindexer|facebookexternalhit|facebot|twitterbot|linkedinbot|pinterestbot|slackbot|discordbot|telegrambot|whatsapp|stripebot|peerpushbot|uptimerobot|pingdom|statuscake|datadog|newrelic|gtmetrix|pagespeed|lighthouse|chrome-lighthouse|headlesschrome|phantomjs|puppeteer|playwright|selenium|webdriver|cypress|curl\/|wget\/|python-requests|python-urllib|aiohttp|httpx|go-http-client|java\/|Apache-HttpClient|axios\/|node-fetch|undici|postmanruntime|insomnia|crawler|spider|scraper|\bbot\b|\bbot\//i;
+
 export function isBotUserAgent(userAgent?: string | null): boolean {
   if (!userAgent) return false;
-  return /adsbot|googlebot|bingbot|ahrefsbot|semrushbot|headlesschrome|bytespider|petalbot|meta-externalagent|facebookexternalhit|crawler|spider/i.test(
-    userAgent,
-  );
+  return BOT_USER_AGENT_REGEX.test(userAgent);
 }
 
 export function classifyVisitorDevice(userAgent?: string | null): string {
@@ -280,10 +281,21 @@ export function buildWebsiteAnalyticsFromEvents(
 ): WebsiteAnalyticsReport {
   const userEmails = options?.userEmailsById ?? new Map<string, string>();
 
-  // Sort oldest-to-newest so visitor journeys, entry pages, and conversion paths are chronological.
-  const chronological = [...events].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-  );
+  // Sort oldest-to-newest and strip all bot/crawler events upfront so bots never pollute KPIs,
+  // landing page bounce rates, funnel counts, drop-off reasons, or visitor trails.
+  const chronological = events
+    .filter((ev) => !isBotUserAgent(ev.userAgent))
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  // Also track any anonId / sessionId that ever presented a bot user-agent in the raw batch.
+  const botAnonIds = new Set<string>();
+  const botSessionIds = new Set<string>();
+  for (const ev of events) {
+    if (isBotUserAgent(ev.userAgent)) {
+      if (ev.anonId) botAnonIds.add(ev.anonId);
+      if (ev.sessionId) botSessionIds.add(ev.sessionId);
+    }
+  }
 
   // Link `anonId` to `clerkUserId` whenever an anonymous visitor signs up or logs in during the same browser storage lifecycle.
   const anonToUser = new Map<string, string>();
@@ -363,6 +375,8 @@ export function buildWebsiteAnalyticsFromEvents(
 
   for (const ev of chronological) {
     if (ev.path && ev.path.startsWith("/scroadmin")) continue;
+    if (ev.anonId && botAnonIds.has(ev.anonId)) continue;
+    if (ev.sessionId && botSessionIds.has(ev.sessionId)) continue;
 
     const resolvedUserId =
       ev.clerkUserId || (ev.anonId ? anonToUser.get(ev.anonId) ?? null : null);
@@ -1032,7 +1046,9 @@ export async function getWebsiteAnalyticsReport(): Promise<WebsiteAnalyticsRepor
   const [eventsRaw, users, newSignUps7d, newSignUps30d] = await Promise.all([
     eventsCol
       .find(
-        {},
+        {
+          userAgent: { $not: BOT_USER_AGENT_REGEX },
+        },
         {
           projection: {
             event: 1,

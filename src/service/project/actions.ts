@@ -40,6 +40,7 @@ import {
   parseStartImageUrl,
   talkingHeadOpeningPhotoAllowed,
 } from "@/service/project/start-image";
+import { parseUploadedVoInput } from "@/service/project/vo-upload";
 import {
   applySkillSceneText,
   briefSkillError,
@@ -139,6 +140,9 @@ type BriefFields = {
   talkingHeadPoseId?: string;
   // Talking-head read. One optional opening photo, on any visual style.
   startImageUrl?: string;
+  // Talking-head read. Optional direct uploaded/recorded VO audio URL & duration.
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
 };
 
 // System ids keep the extracted look. A user id loads that lettering sample.
@@ -219,8 +223,17 @@ async function readVideoBrief(
   if (productIds.length > PRODUCT_MAX) {
     return { ok: false, error: `最多選 ${PRODUCT_MAX} 個產品` };
   }
-  if (isTalkingHeadSkill(ruleSlug) && !spokenScript) {
-    return { ok: false, error: "請輸入角色要讀的講稿。" };
+  const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
+  const uploadedVo = isTalkingHeadSkill(ruleSlug)
+    ? parseUploadedVoInput(
+        String(formData.get("uploadedVoUrl") || ""),
+        String(formData.get("uploadedVoDurationSeconds") || ""),
+        (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
+      )
+    : { ok: true as const, url: undefined, durationSeconds: undefined };
+  if (!uploadedVo.ok) return uploadedVo;
+  if (isTalkingHeadSkill(ruleSlug) && !spokenScript && !uploadedVo.url) {
+    return { ok: false, error: "請輸入角色要讀的講稿，或上傳／錄製 VO 語音。" };
   }
   if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
     return { ok: false, error: "請選擇畫面比例" };
@@ -253,7 +266,6 @@ async function readVideoBrief(
   }
   const styleIds = rawStyleIds.length > 0 ? rawStyleIds : [styleId];
   // Logo is downloaded by image gen, so only this user's brand uploads are allowed.
-  const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
   const rawLogo = String(formData.get("logoUrl") || "").trim();
   const logoUrl = isBookendSkill(ruleSlug) && rawLogo ? rawLogo : undefined;
   if (logoUrl && !isBrandAssetUrl(logoUrl, clerkUserId, storeHost)) {
@@ -322,6 +334,10 @@ async function readVideoBrief(
       ...(talkingHeadBackgroundId ? { talkingHeadBackgroundId } : {}),
       ...(talkingHeadPoseId ? { talkingHeadPoseId } : {}),
       startImageUrl: startImage.url,
+      ...(uploadedVo.url ? { uploadedVoUrl: uploadedVo.url } : {}),
+      ...(uploadedVo.durationSeconds
+        ? { uploadedVoDurationSeconds: uploadedVo.durationSeconds }
+        : {}),
       language,
       narrationEnabled,
       voiceGender: resolveVoiceGender(voiceGender),
@@ -678,6 +694,10 @@ export async function createVideoAction(
       ...(brief.talkingHeadBackgroundId ? { talkingHeadBackgroundId: brief.talkingHeadBackgroundId } : {}),
       ...(brief.talkingHeadPoseId ? { talkingHeadPoseId: brief.talkingHeadPoseId } : {}),
       ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
+      ...(brief.uploadedVoUrl ? { uploadedVoUrl: brief.uploadedVoUrl } : {}),
+      ...(brief.uploadedVoDurationSeconds
+        ? { uploadedVoDurationSeconds: brief.uploadedVoDurationSeconds }
+        : {}),
       cast,
       ...(productResult.products.length ? { products: productResult.products } : {}),
       status: "phase_a",
@@ -874,6 +894,10 @@ async function rewriteVideoBrief(
             : {}),
           ...(brief.talkingHeadPoseId ? { talkingHeadPoseId: brief.talkingHeadPoseId } : {}),
           ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
+          ...(brief.uploadedVoUrl ? { uploadedVoUrl: brief.uploadedVoUrl } : {}),
+          ...(brief.uploadedVoDurationSeconds
+            ? { uploadedVoDurationSeconds: brief.uploadedVoDurationSeconds }
+            : {}),
           status: "phase_a",
           updatedAt: new Date(),
         },
@@ -887,6 +911,7 @@ async function rewriteVideoBrief(
           ...(brief.talkingHeadBackgroundId ? {} : { talkingHeadBackgroundId: "" }),
           ...(brief.talkingHeadPoseId ? {} : { talkingHeadPoseId: "" }),
           ...(brief.startImageUrl ? {} : { startImageUrl: "" }),
+          ...(brief.uploadedVoUrl ? {} : { uploadedVoUrl: "", uploadedVoDurationSeconds: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
           ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),
           ...(brief.styleIds.length > 1 ? {} : { styleIds: "" }),

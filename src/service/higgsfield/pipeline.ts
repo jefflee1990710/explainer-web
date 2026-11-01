@@ -724,10 +724,19 @@ export async function sendClipVideo(
 
   // Seated talking-head and A-roll talking clips send this mp3 as the lip-sync driver to HeyGen Avatar IV.
   // All other voiced directors synthesize ElevenLabs audio across all languages and keep it for voice muxing.
-  let referenceAudioUrl: string | undefined;
+  const directUploadedVoUrl =
+    clipRow?.uploadedVoUrl || (clipNumber === 1 ? project.uploadedVoUrl : undefined);
+  const directUploadedVoDuration =
+    clipRow?.uploadedVoDurationSeconds ??
+    (clipNumber === 1 ? project.uploadedVoDurationSeconds : undefined);
+
+  let referenceAudioUrl: string | undefined = directUploadedVoUrl;
   const hasSpokenLine = Boolean(spokenLine?.trim() && !isSilentSpokenLine(spokenLine));
   const voiceId =
-    project.narrationEnabled !== false && hasSpokenLine && !isSilentOutfitSkill(project.skillSlug)
+    !directUploadedVoUrl &&
+    project.narrationEnabled !== false &&
+    hasSpokenLine &&
+    !isSilentOutfitSkill(project.skillSlug)
       ? resolveVoiceSwapId({ ...project, cast: currentCast, spokenLine }) ||
         voiceSwapVoiceId(currentCast, project.language) ||
         CANTONESE_VOICE_ID
@@ -735,7 +744,37 @@ export async function sendClipVideo(
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo = isDualBeatSkill(project.skillSlug) || editorialInterviewBroll;
   let durationSeconds = prompt.durationSeconds;
-  if (voiceId && hasSpokenLine && spokenLine?.trim() && isElevenLabsConfigured()) {
+
+  if (directUploadedVoUrl && audioFirstTalkingHead) {
+    if (typeof directUploadedVoDuration === "number" && directUploadedVoDuration > 0) {
+      durationSeconds = Math.min(
+        TALKING_HEAD_MAX_SECONDS,
+        Math.max(MIN_VIDEO_SECONDS, Math.ceil(directUploadedVoDuration)),
+      );
+    }
+    const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
+      spokenScript: spokenLine,
+      directorMotionNote: clipRow?.motionCamera,
+      motionPrompt: clipRow?.motionPrompt,
+      language: project.language,
+    });
+    const projects = await videosCollection();
+    await projects.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          "clips.$[clip].prompt": avatarIvPrompt,
+          "clips.$[clip].voUrl": directUploadedVoUrl,
+          "clips.$[clip].voOnsetSeconds": 0,
+          ...(durationSeconds !== prompt.durationSeconds
+            ? { "clips.$[clip].durationSeconds": durationSeconds }
+            : {}),
+          updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+    );
+  } else if (voiceId && hasSpokenLine && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
         conversational: audioFirstTalkingHead,
@@ -798,7 +837,7 @@ export async function sendClipVideo(
   }
 
   if (audioFirstTalkingHead) {
-    if (!referenceAudioUrl || !spokenLine?.trim()) {
+    if (!referenceAudioUrl || (!spokenLine?.trim() && !directUploadedVoUrl)) {
       throw new Error("坐定對嘴需要角色語音同呢句對白");
     }
     const avatarIvPrompt = heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {

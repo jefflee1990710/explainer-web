@@ -40,3 +40,9 @@ export async function deleteCustomWardrobeItemAction(
 ) {
   return service.deleteCustomWardrobeItemAction(...args);
 }
+
+export async function regenerateCustomWardrobePreviewAction(
+  ...args: Parameters<typeof service.regenerateCustomWardrobePreviewAction>
+) {
+  return service.regenerateCustomWardrobePreviewAction(...args);
+}

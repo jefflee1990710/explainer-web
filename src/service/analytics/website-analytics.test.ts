@@ -211,3 +211,78 @@ test("buildWebsiteAnalyticsFromEvents diagnoses Step 2 and Step 3 drop-off reaso
   const step3Ids = report.step3DropOffReasons.map((r) => r.reasonId);
   assert.ok(step3Ids.includes("blocked_at_legal_dialog"));
 });
+
+test("buildWebsiteAnalyticsFromEvents blocks all bot and crawler traffic from KPIs, funnel, landing pages, and visitor rows", () => {
+  const base = new Date("2026-10-30T03:00:00.000Z").getTime();
+  const events: WebsiteAnalyticsEventInput[] = [
+    // Real visitor
+    {
+      event: "page_view",
+      anonId: "real_1",
+      sessionId: "sess_real_1",
+      path: "/",
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Mobile/15E148 Safari/604.1",
+      createdAt: new Date(base + 1000),
+    },
+    // Googlebot
+    {
+      event: "page_view",
+      anonId: "bot_google",
+      sessionId: "sess_bot_1",
+      path: "/pricing",
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.52 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      createdAt: new Date(base + 2000),
+    },
+    // GoogleOther
+    {
+      event: "page_view",
+      anonId: "bot_google_other",
+      sessionId: "sess_bot_2",
+      path: "/sign-up",
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.52 Mobile Safari/537.36 (compatible; GoogleOther)",
+      createdAt: new Date(base + 3000),
+    },
+    // HeadlessChrome
+    {
+      event: "page_view",
+      anonId: "bot_headless",
+      sessionId: "sess_bot_3",
+      path: "/cantonese",
+      userAgent:
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      createdAt: new Date(base + 4000),
+    },
+    // OAI-SearchBot / Google-AdWords-Express / meta-webindexer
+    {
+      event: "page_view",
+      anonId: "bot_oai",
+      sessionId: "sess_bot_4",
+      path: "/",
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot",
+      createdAt: new Date(base + 5000),
+    },
+    {
+      event: "page_view",
+      anonId: "bot_adwords",
+      sessionId: "sess_bot_5",
+      path: "/sign-in",
+      userAgent:
+        "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; Mozilla/5.0, Google-AdWords-Express) Chrome/153.0.8010.52 Safari/537.36",
+      createdAt: new Date(base + 6000),
+    },
+  ];
+
+  const report = buildWebsiteAnalyticsFromEvents(events);
+  assert.equal(report.kpis.uniqueWebsiteVisitors, 1);
+  assert.equal(report.kpis.totalPublicPageViews, 1);
+  assert.equal(report.kpis.totalSessions, 1);
+  assert.equal(report.kpis.visitorsReachedAuth, 0);
+  assert.equal(report.recentVisitors.length, 1);
+  assert.equal(report.recentVisitors[0]?.anonId, "real_1");
+  assert.equal(report.landingPages.length, 1);
+  assert.equal(report.landingPages[0]?.path, "/");
+});

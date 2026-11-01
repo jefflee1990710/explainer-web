@@ -964,6 +964,34 @@ function isSubtitlePunctuationOnly(text: string): boolean {
 	return /^[\s「」『』"'“”‘’（）()【】[\]，,。！？!?；;、：:…—–-]+$/u.test(text);
 }
 
+/**
+ * Removes display punctuation from a single subtitle segment while preserving
+ * internal word apostrophes (`It's`, `don't`), hyphenated words (`real-time`),
+ * and domain/decimal dots (`Scro.io`, `3.5`).
+ */
+export function stripSubtitlePunctuation(text: string): string {
+	return text
+		.replace(/[。！？!?；;，,、：:「」『』“”【】（）()…—–]+/gu, " ")
+		.replace(/(^|\s)['"‘’]+|['"‘’]+(?=\s|$)/gu, " ")
+		.replace(/\.(?=\s|$)|^\.+/gu, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+/**
+ * Splits a text string on sentence/clause punctuation (preserving compound tokens like `Scro.io`,
+ * decimals like `3.5`, and contractions like `It's` or `don't`), then strips display punctuation
+ * from each resulting clause.
+ */
+export function splitAndStripSubtitlePunctuation(text: string): string[] {
+	return text
+		.split(
+			/(?:[。！？!?；;，,、：:「」『』“”【】（）()…—–]+|(?<=\b[A-Za-z0-9'")\]]{2,})\.(?=\s|$))\s*/u,
+		)
+		.map((part) => stripSubtitlePunctuation(part))
+		.filter((part) => part.length > 0 && !isSubtitlePunctuationOnly(part));
+}
+
 // A leftover closing quote must not become its own one-character subtitle.
 function attachOrphanPunctuation(parts: string[]): string[] {
 	const out: string[] = [];
@@ -1008,65 +1036,34 @@ export function splitVoIntoSubtitleSegments({
 	const landscape =
 		isLandscape ??
 		(canvasSize ? canvasSize.width > canvasSize.height : false);
-	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(cleaned);
 	const maxLatinWords = landscape ? 12 : 7;
 	const maxLatinChars = maxClauseChars ?? (landscape ? 60 : 36);
 	const maxCjkChars = maxClauseChars ?? (landscape ? 22 : 20);
-	const mergeMaxChars = maxClauseChars ?? (hasCjk ? 22 : landscape ? 52 : 26);
 
+	// 1. Always split by punctuation first (both for director `cues` and raw `line`),
+	//    and strip all display punctuation from each segment.
 	const initialClauses =
 		cues && cues.length > 0
-			? cues
-					.map((c) => c.trim())
-					.filter(Boolean)
-			: cleaned
-					// Split at major CJK/Latin punctuation and English sentence-ending periods (without splitting "Scro.io")
-					.split(/(?:(?<=[。！？!?；;，,])\s*|(?<=\b[A-Za-z0-9'")\]]{2,}\.)\s+)/u)
-					.map((part) => part.replace(/[，,。；;]+$/u, "").replace(/\.$/u, "").trim())
-					.filter(Boolean);
+			? cues.flatMap((c) => splitAndStripSubtitlePunctuation(c))
+			: splitAndStripSubtitlePunctuation(cleaned);
 
-	const rawClauses = initialClauses.flatMap((clause) =>
-		splitLongClauseIntoChunks(clause, maxLatinWords, maxLatinChars, maxCjkChars),
-	);
+	// 2. Further split any overly long punctuation-free clause into readable chunks.
+	const spokenCues = initialClauses
+		.flatMap((clause) =>
+			splitLongClauseIntoChunks(clause, maxLatinWords, maxLatinChars, maxCjkChars),
+		)
+		.map((chunk) => stripSubtitlePunctuation(chunk))
+		.filter((chunk) => chunk.length > 0 && !isSubtitlePunctuationOnly(chunk));
 
-	if (rawClauses.length <= 1) {
-		const only = attachOrphanPunctuation([
-			(rawClauses[0] ?? cleaned).replace(/[，,。；;]+$/u, ""),
-		]);
-		if (only.length === 0) return [];
+	if (spokenCues.length === 0) return [];
+	if (spokenCues.length === 1) {
 		return [
 			{
-				text: only[0],
+				text: spokenCues[0],
 				startTime,
 				duration,
 			},
 		];
-	}
-
-	// Merge only tiny adjacent clauses so subtitles don't flash too fast, while keeping 9:16 cues short and large
-	const merged: string[] = [];
-	for (const clause of rawClauses) {
-		const prev = merged[merged.length - 1];
-		const sep = hasCjk ? "，" : " ";
-		const combinedWords = prev
-			? `${prev} ${clause}`.trim().split(/\s+/).length
-			: 0;
-		const canMergeWords = hasCjk || combinedWords <= (landscape ? 11 : 6);
-		if (
-			prev &&
-			canMergeWords &&
-			prev.length + sep.length + clause.length <= mergeMaxChars &&
-			!/[！？!?]$/.test(prev)
-		) {
-			merged[merged.length - 1] = `${prev}${sep}${clause}`;
-		} else {
-			merged.push(clause);
-		}
-	}
-
-	const spokenCues = attachOrphanPunctuation(merged);
-	if (spokenCues.length === 1) {
-		return [{ text: spokenCues[0], startTime, duration }];
 	}
 
 	const weights = spokenCues.map((seg) => Math.max(2, seg.length));

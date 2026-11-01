@@ -180,6 +180,9 @@ export type StoryboardRow = {
   expressiveness?: "low" | "medium" | "high";
   // Director-planned semantic subtitle cues (shorter for 9:16 Reels so text renders bigger; longer for 16:9 landscape).
   subtitleCues?: string[];
+  // Optional user-uploaded or re-recorded VO audio URL for this clip (bypasses ElevenLabs TTS).
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
 };
 
 // Prop tiles for the video-wide white-background object sheet.
@@ -411,6 +414,9 @@ export type Project = {
   talkingHeadPoseId?: string;
   // Talking-head read + Cinematic realistic: one optional photo for the opening still.
   startImageUrl?: string;
+  // Talking-head direct VO audio upload / recording (bypasses TTS and drives HeyGen Avatar IV directly).
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   // Real products. They are never restyled into the video's look.
@@ -545,6 +551,8 @@ const storyboardRowSchema = z.object({
   motionPrompt: z.string().optional(),
   expressiveness: z.enum(["low", "medium", "high"]).optional(),
   subtitleCues: z.array(z.string()).optional(),
+  uploadedVoUrl: z.string().optional(),
+  uploadedVoDurationSeconds: z.number().optional(),
 });
 
 const objectSheetItemSchema = z.object({
@@ -640,6 +648,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
   talkingHeadBackgroundId: z.string().optional(),
   talkingHeadPoseId: z.string().optional(),
   startImageUrl: z.string().optional(),
+  uploadedVoUrl: z.string().optional(),
+  uploadedVoDurationSeconds: z.number().optional(),
   cast: z.array(castMemberSchema).optional(),
   products: z.array(productShotSchema).optional(),
   status: z.enum([

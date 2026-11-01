@@ -369,6 +369,12 @@ export function NewProjectForm({
       ? initialVideo.talkingHeadPoseId
       : DEFAULT_TALKING_HEAD_POSE_ID,
   );
+  const [uploadedVoUrl, setUploadedVoUrl] = useState<string | undefined>(
+    initialVideo?.uploadedVoUrl,
+  );
+  const [uploadedVoDurationSeconds, setUploadedVoDurationSeconds] = useState<
+    number | undefined
+  >(initialVideo?.uploadedVoDurationSeconds);
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
@@ -581,6 +587,9 @@ export function NewProjectForm({
       (talkingHeadBackground
         ? (project.talkingHeadPoseId || DEFAULT_TALKING_HEAD_POSE_ID) === talkingHeadPoseId
         : true) &&
+      (talkingHead
+        ? (project.uploadedVoUrl || "") === (uploadedVoUrl || "")
+        : true) &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index]) &&
       project.cast.every((member) => {
@@ -602,7 +611,15 @@ export function NewProjectForm({
     formData.set("skillSlug", skillSlug);
     formData.set("styleId", styleId);
     formData.set("source", source);
-    if (talkingHead) formData.set("spokenScript", spokenScript);
+    if (talkingHead) {
+      formData.set("spokenScript", spokenScript);
+      if (uploadedVoUrl) {
+        formData.set("uploadedVoUrl", uploadedVoUrl);
+        if (uploadedVoDurationSeconds) {
+          formData.set("uploadedVoDurationSeconds", String(uploadedVoDurationSeconds));
+        }
+      }
+    }
     formData.set("language", language);
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
@@ -654,7 +671,7 @@ export function NewProjectForm({
       return;
     }
     if (wizardStep === 1) {
-      if (talkingHead && !spokenScript.trim()) {
+      if (talkingHead && !spokenScript.trim() && !uploadedVoUrl) {
         setError(t("brief.error.spokenScriptRequired"));
         return;
       }
@@ -685,7 +702,7 @@ export function NewProjectForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (talkingHead && !spokenScript.trim()) {
+    if (talkingHead && !spokenScript.trim() && !uploadedVoUrl) {
       setError(t("brief.error.spokenScriptRequired"));
       if (setupMode === "details" && wizardStep !== 1) goToWizardStep(1);
       return;
@@ -877,6 +894,8 @@ export function NewProjectForm({
         ? video.talkingHeadPoseId
         : DEFAULT_TALKING_HEAD_POSE_ID,
     );
+    setUploadedVoUrl(video.uploadedVoUrl);
+    setUploadedVoDurationSeconds(video.uploadedVoDurationSeconds);
   }
 
   const onRestart = useCallback(() => {
@@ -1291,6 +1310,7 @@ export function NewProjectForm({
     source,
     talkingHead,
     spokenScript,
+    uploadedVoUrl,
     referenceImages,
     aspectRatio,
   };
@@ -1310,7 +1330,7 @@ export function NewProjectForm({
   };
 
   const canSubmit =
-    (!talkingHead || spokenScript.trim().length > 0) &&
+    (!talkingHead || spokenScript.trim().length > 0 || Boolean(uploadedVoUrl)) &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
     (castNeed === 0 || characterIds.length === castNeed) &&
@@ -1457,6 +1477,14 @@ export function NewProjectForm({
                       setSpokenScript(val);
                       if (error) setError("");
                     }}
+                    uploadedVoUrl={uploadedVoUrl}
+                    uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+                    onUploadedVoChange={({ url, durationSeconds }) => {
+                      setUploadedVoUrl(url);
+                      setUploadedVoDurationSeconds(durationSeconds);
+                      if (error) setError("");
+                    }}
+                    onError={setError}
                     language={language}
                     onLanguageChange={onVoLanguageChange}
                     disabled={briefBusy}
@@ -1732,6 +1760,15 @@ export function NewProjectForm({
                           <TalkingHeadScriptField
                             value={spokenScript}
                             onChange={setSpokenScript}
+                            language={language}
+                            uploadedVoUrl={uploadedVoUrl}
+                            uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+                            onUploadedVoChange={({ url, durationSeconds }) => {
+                              setUploadedVoUrl(url);
+                              setUploadedVoDurationSeconds(durationSeconds);
+                              if (error) setError("");
+                            }}
+                            onError={setError}
                             disabled={briefBusy}
                           />
                         ) : null}

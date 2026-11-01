@@ -17,10 +17,8 @@ import { useCustomWardrobeItems } from "@/presentation/components/app/characters
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   CHARACTER_WARDROBE_PARTS,
-  lookOptionCategory,
   optionsForLookPart,
   type AnyCharacterLookPart,
-  type CharacterLookCategory,
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
 import {
@@ -34,8 +32,6 @@ import {
   lookSilhouette,
   silhouettesForPart,
 } from "@/service/character/look-silhouettes";
-
-const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
 
 // Picture grid for one part. The header stays put while the tiles scroll in.
 export function CharacterLookDialog({
@@ -53,7 +49,6 @@ export function CharacterLookDialog({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const label = t(`characters.look.${part}`);
-  const [tab, setTab] = useState<CharacterLookCategory>("all");
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<LookFilterTag[]>([]);
   const [favouritesOnly, setFavouritesOnly] = useState(false);
@@ -62,7 +57,7 @@ export function CharacterLookDialog({
     setKindState({ part, kind: "all" });
   }
   const kind = kindState.part === part ? kindState.kind : "all";
-  const filterKey = `${part}|${tab}|${kind}|${query}|${favouritesOnly}|${selectedTags.join(",")}`;
+  const filterKey = `${part}|${kind}|${query}|${favouritesOnly}|${selectedTags.join(",")}`;
   const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   if (page.filterKey !== filterKey) {
     setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
@@ -86,26 +81,22 @@ export function CharacterLookDialog({
   const silhouetteKinds = isWardrobePart ? silhouettesForPart(part) : [];
 
   const namedOptions = useMemo(() => {
-    const customMapped = customItems
-      .filter((item) => tab === "all" || item.category === tab)
-      .map((item) => ({
-        id: item.optionId,
-        name: locale === "en" ? item.name : item.nameZh || item.name,
-        description: item.prompt,
-        tags: [item.part, item.category],
-        silhouette: lookSilhouette(part, { id: item.optionId, prompt: item.prompt }),
-      }));
-    const builtInMapped = optionsForLookPart(part)
-      .filter((option) => tab === "all" || lookOptionCategory(part, option.id) === tab)
-      .map((option) => ({
-        id: option.id,
-        name: t(`characters.look.options.${part}.${option.id}`),
-        description: lookOptionDescription(option),
-        tags: lookOptionTags(part, option),
-        silhouette: lookSilhouette(part, option),
-      }));
+    const customMapped = customItems.map((item) => ({
+      id: item.optionId,
+      name: locale === "en" ? item.name : item.nameZh || item.name,
+      description: item.prompt,
+      tags: [item.part, item.category],
+      silhouette: lookSilhouette(part, { id: item.optionId, prompt: item.prompt }),
+    }));
+    const builtInMapped = optionsForLookPart(part).map((option) => ({
+      id: option.id,
+      name: t(`characters.look.options.${part}.${option.id}`),
+      description: lookOptionDescription(option),
+      tags: lookOptionTags(part, option),
+      silhouette: lookSilhouette(part, option),
+    }));
     return filterOptionsBySilhouette([...customMapped, ...builtInMapped], kind);
-  }, [customItems, kind, locale, part, tab, t]);
+  }, [customItems, kind, locale, part, t]);
 
   const tagChips = useMemo(() => {
     if (!isWardrobePart) return [];
@@ -180,27 +171,6 @@ export function CharacterLookDialog({
               onChange={(next) => setKindState({ part, kind: next })}
             />
           ) : null}
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist">
-              {CATEGORIES.map((category) => {
-                const activeTab = tab === category;
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab}
-                    onClick={() => setTab(category)}
-                    className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                      activeTab
-                        ? "bg-accent-ink text-paper"
-                        : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
-                    }`}
-                  >
-                    {t(`characters.look.tabs.${category}`)}
-                  </button>
-                );
-              })}
-          </div>
           <div className="flex items-center gap-2">
             <input
               type="search"

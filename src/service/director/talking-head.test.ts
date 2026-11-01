@@ -458,3 +458,21 @@ test("talking-head pose framing zooms from full-body to collarbone-close", () =>
   assert.match(close[0].startScene, /collarbone-up selfie close-up/);
   assert.match(close[0].startScene, /face fills 60–65%/);
 });
+
+test("talking-head uploaded VO audio locks clip 1 durationSeconds and attaches uploadedVoUrl", () => {
+  assert.equal(talkingHeadSpokenError("", "medium"), "請輸入角色要讀的講稿。");
+  assert.equal(talkingHeadSpokenError("", "medium", { hasUploadedVo: true }), undefined);
+
+  const clips = planTalkingHeadClips({
+    source: "落手做先知道咁花時間！用 Scro.io 幫你搞掂晒！",
+    language: "yue",
+    aspectRatio: "9:16",
+    uploadedVoUrl: "https://blob/user-vo.mp3",
+    uploadedVoDurationSeconds: 23.4,
+  });
+  assert.equal(clips.length, 1);
+  assert.equal(clips[0]?.durationSeconds, 24);
+  assert.equal(clips[0]?.timeRange, "0–24s");
+  assert.equal(clips[0]?.uploadedVoUrl, "https://blob/user-vo.mp3");
+  assert.equal(clips[0]?.uploadedVoDurationSeconds, 23.4);
+});

@@ -19,6 +19,7 @@ import {
   type StuckStageId,
   type UserJourneySnapshot,
 } from "@/service/analytics/ux-classifier";
+import { BOT_USER_AGENT_REGEX, isBotUserAgent } from "@/service/analytics/website-analytics";
 
 export type StuckStageSummaryItem = {
   stageId: StuckStageId;
@@ -184,8 +185,12 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
       .sort({ createdAt: -1 })
       .limit(500)
       .toArray(),
-    eventsCol.find({}).sort({ createdAt: -1 }).limit(500).toArray(),
-    eventsCol.countDocuments({}),
+    eventsCol
+      .find({ userAgent: { $not: BOT_USER_AGENT_REGEX } })
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .toArray(),
+    eventsCol.countDocuments({ userAgent: { $not: BOT_USER_AGENT_REGEX } }),
   ]);
 
   // Index owner maps for failed jobs.
@@ -312,7 +317,9 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
   >();
 
   // Iterate oldest-to-newest so lastPathBySession reflects the final page before exit.
-  const chronologicalEvents = [...recentEventsRaw].reverse();
+  const chronologicalEvents = [...recentEventsRaw]
+    .filter((ev) => !isBotUserAgent(ev.userAgent))
+    .reverse();
   for (const ev of chronologicalEvents) {
     const cleanPath = ev.path ? ev.path.split("?")[0] || "/" : null;
     if (ev.event === "page_view" && cleanPath) {

@@ -61,8 +61,18 @@ export function detectInAppBrowser(userAgent?: string | null): string | null {
   return null;
 }
 
+function isClientBotNavigator(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (navigator.webdriver) return true;
+  const ua = navigator.userAgent || "";
+  return /adsbot|googlebot|googleother|google-extended|google-adwords|bingbot|duckduckbot|slurp|baiduspider|yandexbot|ahrefsbot|semrushbot|mj12bot|dotbot|bytespider|petalbot|gptbot|oai-searchbot|claudebot|perplexitybot|ccbot|meta-externalagent|meta-webindexer|facebookexternalhit|twitterbot|linkedinbot|stripebot|peerpushbot|headlesschrome|phantomjs|puppeteer|playwright|selenium|webdriver|crawler|spider|scraper|\bbot\b|\bbot\//i.test(
+    ua,
+  );
+}
+
 function sendClientEvent(event: string, params?: Record<string, unknown>): Promise<unknown> {
   if (typeof window === "undefined") return Promise.resolve();
+  if (isClientBotNavigator()) return Promise.resolve();
   const w = window as Window & { gtag?: Gtag; dataLayer?: unknown[] };
   w.dataLayer = w.dataLayer || [];
   if (typeof w.gtag !== "function") {

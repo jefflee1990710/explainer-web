@@ -8,6 +8,7 @@ import {
 } from "@/presentation/components/project/bulk-generate-dialog";
 import { AddClipDialog } from "@/presentation/components/project/add-clip-dialog";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
+import { EditorReRecordVoDialog } from "@/presentation/components/app/projects/new/editor-rerecord-vo-dialog";
 import { OpenCutAiToolbarActions } from "@/presentation/components/app/projects/new/opencut-ai-toolbar-actions";
 import { VideoStageStepper } from "@/presentation/components/app/projects/new/video-stage-stepper";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -135,7 +136,16 @@ export function OpenCutScroToolbar({
             onOpen={() => setTasksOpen(true)}
           />
         </div>
-        <OpenCutAiToolbarActions project={project} />
+        <div className="flex items-center gap-2">
+          <EditorReRecordVoDialog
+            project={project}
+            selectedClipNumber={selectedClipNumber}
+            credits={credits}
+            busy={!idle}
+            onProject={onProject}
+          />
+          <OpenCutAiToolbarActions project={project} />
+        </div>
         {tasksOpen ? (
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}

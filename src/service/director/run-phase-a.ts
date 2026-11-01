@@ -205,6 +205,9 @@ export async function runPhaseA(input: {
   talkingHeadPoseId?: string;
   // Talking-head read + Cinematic realistic. Clip 1's start matches this photo.
   startImageUrl?: string;
+  // Talking-head direct VO audio upload / recording.
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
@@ -216,7 +219,9 @@ export async function runPhaseA(input: {
   if (talkingHead) {
     const sourceError = talkingHeadSourceError(input.source);
     if (sourceError) throw new Error(sourceError);
-    const spokenError = talkingHeadSpokenError(input.spokenScript || "", input.speechPace);
+    const spokenError = talkingHeadSpokenError(input.spokenScript || "", input.speechPace, {
+      hasUploadedVo: Boolean(input.uploadedVoUrl),
+    });
     if (spokenError) throw new Error(spokenError);
   }
   const durationHint = phaseADurationHint({
@@ -574,6 +579,8 @@ Produce a complete Phase A director proposal now.`,
         id: input.style.id,
         baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
       }),
+      uploadedVoUrl: input.uploadedVoUrl,
+      uploadedVoDurationSeconds: input.uploadedVoDurationSeconds,
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);

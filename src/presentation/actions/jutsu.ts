@@ -1,0 +1,42 @@
+"use server";
+
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
+import * as service from "@/service/jutsu/pipeline";
+
+export async function prepareJutsuJobAction(
+  ...args: Parameters<typeof service.prepareJutsuJob>
+) {
+  const res = await service.prepareJutsuJob(...args);
+  logServerUxEvent(
+    res.ok ? "jutsu_job_prepared" : "ux_blocker_jutsu_prepare_failed",
+    res.ok
+      ? { mode: args[0]?.mode, jobId: res.job.id }
+      : { mode: args[0]?.mode, error: res.error },
+  );
+  return res;
+}
+
+export async function renderJutsuVideoAction(
+  ...args: Parameters<typeof service.renderJutsuVideo>
+) {
+  const res = await service.renderJutsuVideo(...args);
+  logServerUxEvent(
+    res.ok ? "jutsu_video_render_started" : "ux_blocker_jutsu_render_failed",
+    res.ok
+      ? { jobId: res.job.id, status: res.job.status }
+      : { error: res.error },
+  );
+  return res;
+}
+
+export async function pollJutsuJobStatusAction(
+  ...args: Parameters<typeof service.pollJutsuJobStatus>
+) {
+  return service.pollJutsuJobStatus(...args);
+}
+
+export async function deleteJutsuJobAction(
+  ...args: Parameters<typeof service.deleteJutsuJob>
+) {
+  return service.deleteJutsuJob(...args);
+}

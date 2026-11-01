@@ -182,10 +182,16 @@ export function talkingHeadSourceError(source: string) {
   return undefined;
 }
 
-// Spoken script the character will read.
-export function talkingHeadSpokenError(script: string, pace?: SpeechPace) {
+// Spoken script the character will read (or optional when `hasUploadedVo` is true).
+export function talkingHeadSpokenError(
+  script: string,
+  pace?: SpeechPace,
+  options?: { hasUploadedVo?: boolean },
+) {
   const sentences = splitTalkingHeadSentences(script);
-  if (sentences.length === 0) return "請輸入角色要讀的講稿。";
+  if (sentences.length === 0) {
+    return options?.hasUploadedVo ? undefined : "請輸入角色要讀的講稿。";
+  }
   return talkingHeadPlanError(script, pace);
 }
 
@@ -212,6 +218,9 @@ export type TalkingHeadClipPlan = {
   motionCamera: string;
   motionPrompt?: string;
   expressiveness?: "low" | "medium" | "high";
+  subtitleCues?: string[];
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
   englishVo: string;
   bgmSfx: string;
 };
@@ -336,6 +345,9 @@ export function planTalkingHeadClips(input: {
   noText?: boolean;
   // Cinematic realistic style: add light source, skin detail, and foreground depth.
   realistic?: boolean;
+  // User-uploaded or browser-recorded VO audio URL & duration.
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
 }): TalkingHeadClipPlan[] {
   const poseForcesFullBody = talkingHeadPoseShot(input.talkingHeadPoseId) === "full-body";
   const talkingShot: TalkingShot =
@@ -345,11 +357,17 @@ export function planTalkingHeadClips(input: {
   // talking-head-director with a full-body pose keeps the single long-clip (120s) budget.
   const legacyShortClips = input.shot === "full-body" && !poseForcesFullBody;
   const maxClipSeconds = legacyShortClips ? FULL_BODY_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS;
-  const lines = balanceTalkingHeadLines(input.source, input.pace, {
+  const balancedLines = balanceTalkingHeadLines(input.source, input.pace, {
     maxClipSeconds,
     speechMaxSeconds: legacyShortClips ? SPEECH_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS,
     speechTargetSeconds: legacyShortClips ? SPEECH_TARGET_SECONDS : TALKING_HEAD_MAX_SECONDS,
   });
+  const lines =
+    balancedLines.length > 0
+      ? balancedLines
+      : input.uploadedVoUrl
+        ? [input.source.trim() || "Speaking directly to camera."]
+        : [];
   const total = lines.length;
   const clips: TalkingHeadClipPlan[] = [];
   const basePerf =
@@ -374,7 +392,17 @@ export function planTalkingHeadClips(input: {
   const customSet = extractCustomTalkingHeadSet(input.directorInstruction, input.visualWorld);
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    const seconds = plannedClipSeconds(line, input.pace, maxClipSeconds);
+    const hasUploadedDuration =
+      index === 0 &&
+      Boolean(input.uploadedVoUrl) &&
+      typeof input.uploadedVoDurationSeconds === "number" &&
+      input.uploadedVoDurationSeconds > 0;
+    const seconds = hasUploadedDuration
+      ? Math.min(
+          maxClipSeconds,
+          Math.max(PROVIDER_MIN_SECONDS, Math.ceil(input.uploadedVoDurationSeconds!)),
+        )
+      : plannedClipSeconds(line, input.pace, maxClipSeconds);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
     const scene = {
       shot: resolvedShot,
@@ -446,7 +474,22 @@ export function planTalkingHeadClips(input: {
       planTalkingHeadFacialExpressionArc(line, input.language);
     const resolvedSubtitleCues =
       argonRow?.subtitleCues && argonRow.subtitleCues.length > 0
-        ? argonRow.subtitleCues.map((c) => c.trim()).filter(Boolean)
+        ? argonRow.subtitleCues
+            .flatMap((c) =>
+              c
+                .split(
+                  /(?:[。！？!?；;，,、：:「」『』“”【】（）()…—–]+|(?<=\b[A-Za-z0-9'")\]]{2,})\.(?=\s|$))\s*/u,
+                )
+                .map((part) =>
+                  part
+                    .replace(/[。！？!?；;，,、：:「」『』“”【】（）()…—–]+/gu, " ")
+                    .replace(/(^|\s)['"‘’]+|['"‘’]+(?=\s|$)/gu, " ")
+                    .replace(/\.(?=\s|$)|^\.+/gu, " ")
+                    .replace(/\s+/g, " ")
+                    .trim(),
+                ),
+            )
+            .filter(Boolean)
         : undefined;
     clips.push({
       clipNumber: index + 1,
@@ -477,6 +520,14 @@ export function planTalkingHeadClips(input: {
       motionPrompt: resolvedMotionPrompt,
       expressiveness: resolvedExpressiveness,
       ...(resolvedSubtitleCues ? { subtitleCues: resolvedSubtitleCues } : {}),
+      ...(index === 0 && input.uploadedVoUrl
+        ? {
+            uploadedVoUrl: input.uploadedVoUrl,
+            ...(input.uploadedVoDurationSeconds
+              ? { uploadedVoDurationSeconds: input.uploadedVoDurationSeconds }
+              : {}),
+          }
+        : {}),
       englishVo: line,
       bgmSfx: input.language === "yue" || input.language === "zh" ? "無" : "none",
     });
@@ -553,8 +604,8 @@ export function talkingHeadDirectorBlock(
     `Face pattern (facial micro-expressions should be clearly readable and expressive ~3–4mm with 2–3° head language — neither a frozen poker face nor exaggerated theatrical laughing; NEVER just laugh or hold a constant smile): resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     "CRITICAL DIRECTOR FACIAL CHOREOGRAPHY (`motionPrompt`, `expressiveness`, and `motionCamera`): As the Director, you MUST analyze every sentence/clause of the spoken script and populate each clip's `motionPrompt` and `expressiveness` fields (as well as `motionCamera`): (1) Set `expressiveness` to `\"low\"` by default so mouth biomechanics (especially Cantonese `-m` bilabial closures like `諗 nam2` and rounded `gw/o` vowels like `過 gwo3`) stay phoneme-accurate without exaggerated circular O-mouth or eye squinting; (2) In `motionPrompt` (and `motionCamera`, prefixed with `導演逐句微表情編排：` for Cantonese/Chinese or `Director sentence-by-sentence facial expression choreography:` for English), write a detailed sentence-by-sentence facial expression choreography covering EVERY sentence in the script: specify the time window, the quoted clause, the emotion label (e.g. 好奇提問/Curiosity, 疑惑反問/Puzzled doubt, 認真凝重/Serious concern, 共鳴無奈/Empathetic understanding, 篤定自信/Earnest conviction, 驚喜亮點/Bright excitement, or 親切邀請/Warm invitation), and the clear ~3–4mm brow/eye micro-acting and 2–3° head language while keeping phoneme-accurate lip-sync (~20–25% jaw opening, crisp bilabial `-m/m/b/p` lip closure on syllables like `冇/諗/點`, restrained natural rounding on `過/都/做` without cartoon O-mouth or eye squinting, lower teeth covered by the lower lip).",
     _aspectRatio === "16:9"
-      ? "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into natural semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order). Because this is a 16:9 landscape video (subtitle sits at the bottom), each `subtitleCues` item can be a full clause of ~8–12 English words (~44–60 characters) or ~14–22 Chinese/Cantonese characters. Never break inside a compound token like `Scro.io`."
-      : "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into short, punchy semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order) so each subtitle cue can be rendered LARGE on a 9:16 vertical Reel (subtitle sits just below the vertical middle). Keep each `subtitleCues` item to ~4–7 English words (~20–34 characters) or ~7–12 Chinese/Cantonese characters, breaking cleanly at natural grammatical boundaries, conjunctions (`and`, `or`, `but`, `so`, `to`, `that`, `when`, `if`), or em-dashes (`—`). Never break inside a compound token like `Scro.io`.",
+      ? "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into natural semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order), always separating at punctuation marks and removing all punctuation marks (`，`, `。`, `！`, `？`, `,`, `.`, `!`, `?`, `;`, `:`) from each `subtitleCues` item. Because this is a 16:9 landscape video (subtitle sits at the bottom), each `subtitleCues` item can be a full clause of ~8–12 English words (~44–60 characters) or ~14–22 Chinese/Cantonese characters. Never break inside a compound token like `Scro.io`."
+      : "SUBTITLE SEGMENTATION (`subtitleCues` array per clip): Split `englishVo` into short, punchy semantic subtitle phrases in `subtitleCues` (preserving every word verbatim in order), always separating at every punctuation mark and removing all punctuation marks (`，`, `。`, `！`, `？`, `,`, `.`, `!`, `?`, `;`, `:`) from each `subtitleCues` item so each subtitle cue can be rendered LARGE on a 9:16 vertical Reel (subtitle sits just below the vertical middle). Keep each `subtitleCues` item to ~4–7 English words (~20–34 characters) or ~7–12 Chinese/Cantonese characters, breaking cleanly at punctuation, natural grammatical boundaries, conjunctions (`and`, `or`, `but`, `so`, `to`, `that`, `when`, `if`), or em-dashes (`—`). Never break inside a compound token like `Scro.io`.",
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
       ? ["Realism (Cinematic realistic): every still and video is shot on a handheld iPhone 16 Pro 24mm f/1.8 selfie or Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor in a warm, cozy 3400K–4200K golden-amber indoor colour temperature (warm creamy highlights, warm natural wood and cream wall tones, warm healthy golden-peach skin undertones — NEVER cold blue/grey/clinical white balance, zero heavy 35mm film grain or retro LUT) at 30–40cm collarbone-up framing with the face filling 60–65% of 9:16, naming warm-toned, soft, even, diffused ambient indoor light and warm golden window daylight with a low, gradual tonal transition across the face (soft minimal shadows under the chin and around the eyes, never harsh dramatic side-light contrast, never a half-dark face, never flat beauty-ring glare, keep warm highlights soft below clipping), unfiltered non-reflective diffuse matte real skin pores and fine facial hair (zero skin reflectivity, zero shiny hot spots), and a cozy warm-toned lived-in room corner (bedhead/door/window) with natural optical shallow depth of field and no foreground objects blocking the frame. In `visualWorld`, `palette`, `startScene`, `endScene`, `motionCamera`, and `motionPrompt`, explicitly specify this warm 3400K–4200K golden-amber colour tone."]
