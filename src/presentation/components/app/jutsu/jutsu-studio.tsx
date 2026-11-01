@@ -191,6 +191,12 @@ export function JutsuStudio({
                   src={sourceVideoUrl}
                   controls
                   playsInline
+                  onLoadedMetadata={(e) => {
+                    const dur = e.currentTarget.duration;
+                    if (!Number.isFinite(dur) || dur <= 0) return;
+                    setSectionStart(0);
+                    setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
+                  }}
                   className="max-h-56 w-full rounded-lg bg-black object-contain"
                 />
                 <div className="grid grid-cols-2 gap-3 pt-1">

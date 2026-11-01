@@ -58,6 +58,10 @@ test("preview prompt isolates that one option with stylish editorial framing and
   assert.match(prompt, /Not an illustration/);
   assert.match(prompt, /Plain light grey seamless background/);
   assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=6");
+  // Silhouette catalogue cuts reuse a family still instead of a missing glyph.
+  assert.equal(characterLookPreviewSrc("pants", "sgjeans01"), "/character-looks/pants-jeans.webp?v=6");
+  assert.equal(characterLookPreviewSrc("top", "sgtee12"), "/character-looks/top-tee.webp?v=6");
+  assert.equal(characterLookPreviewSrc("shoes", "sgsneaker03"), "/character-looks/shoes-sneakers.webp?v=6");
   assert.match(characterLookPreviewPrompt("hair", "beehive"), /1960s beehive/);
   assert.match(characterLookPreviewPrompt("hair", "hime"), /Japanese hime cut/);
   assert.doesNotMatch(characterLookPreviewPrompt("hair", "braids"), /Do not braid it/);

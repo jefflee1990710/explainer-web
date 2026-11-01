@@ -262,11 +262,60 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
   return optionsForLookPart(part).find((option) => option.id === id);
 }
 
+// Silhouette catalogue cuts (`sgjeans01`…) share a family still until a dedicated WebP exists.
+const SILHOUETTE_FAMILY_PREVIEW: Record<string, string> = {
+  "hair:bob": "hair-bob",
+  "hair:long": "hair-long",
+  "hair:waves": "hair-waves",
+  "hair:curls": "hair-curly",
+  "hair:bangs": "hair-cscasualmicrofringe",
+  "hair:braid": "hair-braids",
+  "hair:updo": "hair-cscasualsoftupdo",
+  "hair:pony": "hair-ponytail",
+  "hair:bun": "hair-bun",
+  "hair:crop": "hair-crop",
+  "top:tee": "top-tee",
+  "top:shirt": "top-linenshirt",
+  "top:knit": "top-cscasualnordicknit",
+  "top:hoodie": "top-hoodie",
+  "top:blazer": "top-blazer",
+  "top:jacket": "top-denimjacket",
+  "top:coat": "top-chorecoat",
+  "top:tank": "top-tank",
+  "top:dress": "top-sptennisdress",
+  "top:polo": "top-polo",
+  "pants:jeans": "pants-jeans",
+  "pants:mini": "pants-alblackminiskirt",
+  "pants:midi": "pants-pleatedmidi",
+  "pants:maxi": "pants-maxiskirt",
+  "pants:shorts": "pants-shorts",
+  "pants:cargo": "pants-cscasualcargo",
+  "pants:legging": "pants-leggings",
+  "pants:trouser": "pants-greytrousers",
+  "pants:wide": "pants-albeigewidepants",
+  "pants:skort": "pants-sppeekabooskort",
+  "shoes:sneaker": "shoes-sneakers",
+  "shoes:boot": "shoes-boots",
+  "shoes:heel": "shoes-heels",
+  "shoes:sandal": "shoes-sandals",
+  "shoes:loafer": "shoes-loafers",
+  "shoes:flat": "shoes-balletflats",
+};
+
+/** Family still for a generated silhouette id, or "" when this id has its own file name. */
+export function silhouetteFamilyPreviewFile(part: AnyCharacterLookPart, id: string): string {
+  const match = /^sg([a-z]+)\d{2}$/.exec(id);
+  if (!match) return "";
+  return SILHOUETTE_FAMILY_PREVIEW[`${part}:${match[1]}`] || "";
+}
+
 // Public file for the studio preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
   // "None" has no photo; the picker shows the plain part glyph instead.
   if (id === NO_PANTS_ID) return "";
+  const family = silhouetteFamilyPreviewFile(part, id);
+  if (family) return `/character-looks/${family}.webp?v=6`;
   return `/character-looks/${part}-${id}.webp?v=6`;
 }
 
