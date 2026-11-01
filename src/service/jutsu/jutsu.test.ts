@@ -17,7 +17,10 @@ import {
   computeJutsuH3Frames,
   computeJutsuPlaceStart,
 } from "@/service/jutsu/pipeline";
-import { buildMinimaxH3Ref2VaBody } from "@/service/jutsu/minimax-h3-ref2va";
+import {
+  buildJutsuRef2VaPrompt,
+  buildMinimaxH3Ref2VaBody,
+} from "@/service/jutsu/minimax-h3-ref2va";
 import {
   expandTrackedBoxWithHeadroomAndMargin,
   interpolateTrackedBoxes,
@@ -46,6 +49,14 @@ test("buildDefaultJutsuEditPrompt and buildJutsuObjectSwapPrompt cover character
   assert.match(charSwap, /attached image 1/);
   assert.match(charSwap, /attached image 2/);
   assert.match(charSwap, /warm golden glow/i);
+  assert.match(charSwap, /background of attached image 2/i);
+  assert.match(charSwap, /never replace them with the backdrop from attached image 1/i);
+
+  const charSwapPlain = buildDefaultJutsuEditPrompt({
+    mode: "character_swap",
+  });
+  assert.match(charSwapPlain, /background of attached image 2/i);
+  assert.doesNotMatch(charSwapPlain, /background of attached image 1/i);
 
   const objChange = buildJutsuObjectSwapPrompt({
     editMode: "change",
@@ -170,4 +181,56 @@ test("SAM 3.1 headroom + margin expansion, grey mannequin rendering, and MiniMax
   });
   assert.equal(JSON.stringify(ref2vaBody).includes("first_frame"), false);
   assert.equal(JSON.stringify(ref2vaBody).includes("last_frame"), false);
+
+  // Character swap also sends the original character photo as Reference image 2.
+  const identityBody = buildMinimaxH3Ref2VaBody({
+    prompt: "Swap the person.",
+    preparedImageUrl: "https://blob.test/prepared.webp",
+    identityImageUrl: "https://blob.test/portrait.jpg",
+    mannequinVideoUrl: "https://blob.test/mannequin.mp4",
+    durationSeconds: 8,
+    aspectRatio: "16:9",
+  });
+  assert.deepEqual(
+    identityBody.content.map((item) => ("role" in item ? item.role : item.type)),
+    ["text", "reference_image", "reference_image", "reference_video"],
+  );
+  assert.deepEqual(identityBody.content[2], {
+    type: "image_url",
+    image_url: { url: "https://blob.test/portrait.jpg" },
+    role: "reference_image",
+  });
+
+  // Same URL twice adds nothing.
+  const dedupedBody = buildMinimaxH3Ref2VaBody({
+    prompt: "Swap the person.",
+    preparedImageUrl: "https://blob.test/prepared.webp",
+    identityImageUrl: "https://blob.test/prepared.webp",
+    mannequinVideoUrl: "https://blob.test/mannequin.mp4",
+    durationSeconds: 8,
+    aspectRatio: "16:9",
+  });
+  assert.equal(dedupedBody.content.length, 3);
+});
+
+test("character swap prompts keep the donor face shape and only borrow expression from the source", () => {
+  const plain = buildDefaultJutsuEditPrompt({ mode: "character_swap" });
+  assert.match(plain, /face shape/i);
+  assert.match(plain, /facial features of attached image 1/i);
+  assert.doesNotMatch(plain, /facial expression, and body cut of the person in attached image 2/i);
+
+  const relit = buildDefaultJutsuEditPrompt({ mode: "character_swap", relightId: "golden_halo" });
+  assert.match(relit, /face shape/i);
+  assert.match(relit, /facial features of attached image 1/i);
+
+  const videoPrompt = buildJutsuRef2VaPrompt({
+    motionText: "She waves.",
+    hasIdentityImage: true,
+  });
+  assert.match(videoPrompt, /Reference image 2/);
+  assert.match(videoPrompt, /every frame/i);
+  assert.doesNotMatch(
+    buildJutsuRef2VaPrompt({ motionText: "She waves.", hasIdentityImage: false }),
+    /Reference image 2/,
+  );
 });

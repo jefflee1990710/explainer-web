@@ -149,11 +149,16 @@ export const JUTSU_LIGHT_LOOKS: readonly JutsuLightLook[] = [
 export const JUTSU_FRAME_RELIGHT_PROMPT =
   "Relight this photograph. Keep the person, face, identity, expression, pose, hair, clothing, framing and setting exactly as they are; change only the lighting and the colour of the light. {look}";
 
-export const JUTSU_CHARACTER_RELIGHT_PROMPT =
-  "Create a photograph of the person from attached image 1 in exactly the pose, head angle, hand and arm positions, camera angle, framing and body cut of the person in attached image 2; describe that pose fully. The person from attached image 1 also makes exactly the facial expression of the person in attached image 2, with the same mouth shape, eyebrows and gaze. Take only the pose, expression and framing from attached image 2, never its person, face shape, hair or clothing. Keep the face, identity, eye colour, hair and clothing of attached image 1. {look}";
+// Image 1 = character donor, image 2 = source frame: identity from 1, pose + scene from 2.
+const JUTSU_CHARACTER_IDENTITY_LOCK =
+  "The face must be the same person as attached image 1: keep the face shape, jawline, eye shape, nose, lips, skin tone, and all facial features of attached image 1 exactly, plus its hair and clothing. From attached image 2 take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in attached image 2.";
 
-export const JUTSU_CHARACTER_PREPARE_PROMPT =
-  "Create a photograph of the person from attached image 1 following the exact pose, head angle, hand and arm positions, facial expression, and body cut of the person in attached image 2. Keep the exact face, hair, clothing, and background of attached image 1, and do not copy the person identity from attached image 2.";
+const JUTSU_CHARACTER_SCENE_LOCK =
+  "Keep the exact room, furniture, props, on-screen text, and background of attached image 2 — never replace them with the backdrop from attached image 1.";
+
+export const JUTSU_CHARACTER_RELIGHT_PROMPT = `Create a photograph of the person from attached image 1 in exactly the pose, head angle, hand and arm positions, camera angle, framing and body cut of the person in attached image 2; describe that pose fully. ${JUTSU_CHARACTER_IDENTITY_LOCK} ${JUTSU_CHARACTER_SCENE_LOCK} {look}`;
+
+export const JUTSU_CHARACTER_PREPARE_PROMPT = `Create a photograph of the person from attached image 1 in the exact pose, head angle, hand and arm positions, camera angle, and body cut of the person in attached image 2. ${JUTSU_CHARACTER_IDENTITY_LOCK} ${JUTSU_CHARACTER_SCENE_LOCK}`;
 
 export function findJutsuLightLook(id?: string | null): JutsuLightLook | undefined {
   if (!id) return undefined;

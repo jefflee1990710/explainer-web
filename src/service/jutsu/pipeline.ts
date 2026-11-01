@@ -28,6 +28,7 @@ import {
 } from "@/service/jutsu/describer";
 import { resolveJutsuLightText } from "@/service/jutsu/light-looks";
 import {
+  buildJutsuRef2VaPrompt,
   hasMinimaxApiKey,
   submitMinimaxH3Ref2VaVideo,
 } from "@/service/jutsu/minimax-h3-ref2va";
@@ -613,24 +614,25 @@ export async function renderJutsuVideo(input: {
     const lightText = resolveJutsuLightText(job.relightId, job.customLightPrompt);
     // MiniMax H3 reference-to-video cannot also take first/last frames (error 2013).
     const useH3Ref2Va = Boolean(job.mannequinVideoUrl && hasMinimaxApiKey());
-    const fullVideoPrompt = (
-      useH3Ref2Va
-        ? [
-            "Reference image 1 is the person, outfit, and scene. Reference video 1 is a grey mannequin performing the motion.",
-            "Follow the mannequin's pose, hands, and timing exactly, while keeping the person from the reference image.",
-            motionText,
-            lightText ? `Lighting remains consistent: ${lightText}` : "",
-            "No on-screen text, no subtitles, no watermarks.",
-          ]
-        : [
-            "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
-            motionText,
-            lightText ? `Lighting remains consistent: ${lightText}` : "",
-            "No on-screen text, no subtitles, no watermarks.",
-          ]
-    )
-      .filter(Boolean)
-      .join(" ");
+    // Character swap: pass the original character photo so H3 does not drift from the redrawn still.
+    const identityImageUrl =
+      job.mode === "character_swap" ? job.referenceImageUrl : undefined;
+    const fullVideoPrompt = useH3Ref2Va
+      ? buildJutsuRef2VaPrompt({
+          motionText,
+          lightText,
+          hasIdentityImage: Boolean(
+            identityImageUrl && identityImageUrl !== job.preparedStartFrameUrl,
+          ),
+        })
+      : [
+          "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
+          motionText,
+          lightText ? `Lighting remains consistent: ${lightText}` : "",
+          "No on-screen text, no subtitles, no watermarks.",
+        ]
+          .filter(Boolean)
+          .join(" ");
 
     await col.updateOne(
       { _id: job._id },
@@ -650,6 +652,7 @@ export async function renderJutsuVideo(input: {
       ? await submitMinimaxH3Ref2VaVideo({
           prompt: fullVideoPrompt,
           preparedImageUrl: job.preparedStartFrameUrl,
+          identityImageUrl,
           mannequinVideoUrl: job.mannequinVideoUrl!,
           noLipSync: job.noLipSync,
           durationSeconds: Math.min(15, Math.max(5, Math.round(job.sectionLength))),
