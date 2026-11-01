@@ -6,7 +6,7 @@ import {
   DEFAULT_JUTSU_COLOR_SETTINGS,
   DEFAULT_JUTSU_TONE,
   JUTSU_TONE_PRESETS,
-} from "@/service/jutsu/color-grade";
+} from "@/service/jutsu/color-settings";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 const TONE_SLIDERS: ReadonlyArray<{

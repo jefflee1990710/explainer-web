@@ -23,7 +23,7 @@ import { BrandUploadButton } from "@/presentation/components/app/projects/new/br
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
-import { DEFAULT_JUTSU_COLOR_SETTINGS } from "@/service/jutsu/color-grade";
+import { DEFAULT_JUTSU_COLOR_SETTINGS } from "@/service/jutsu/color-settings";
 
 const MODE_LABELS: Record<
   JutsuMode,
