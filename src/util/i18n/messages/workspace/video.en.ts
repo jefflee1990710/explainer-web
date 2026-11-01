@@ -135,7 +135,7 @@ export const videoEn = {
     downloadPlainReel: "Download reel without layers",
     plainReelSuffix: "-plain.mp4",
   },
-  upload: { uploading: "Uploading…" },
+  upload: { uploading: "Uploading…", progress: "Uploading {percent}%" },
   layers: {
     title: "Layers",
     addImage: "+ Image / logo",

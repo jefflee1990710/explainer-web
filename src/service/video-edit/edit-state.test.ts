@@ -7,6 +7,8 @@ import {
   folderBookendVideos,
   brandAssetPath,
   checkBrandUpload,
+  planBrandUpload,
+  resolveBrandContentType,
   finalFingerprint,
   hasEdit,
   isBrandAssetUrl,
@@ -101,6 +103,22 @@ test("blobStoreHost derives the public host from the read-write token", () => {
   );
   assert.equal(blobStoreHost(undefined), null);
   assert.equal(blobStoreHost("nope"), null);
+});
+
+test("resolveBrandContentType uses the extension when the browser omits a video type", () => {
+  assert.equal(resolveBrandContentType({ type: "", name: "reel.MP4" }), "video/mp4");
+  assert.equal(resolveBrandContentType({ type: "application/octet-stream", name: "clip.mov" }), "video/quicktime");
+  assert.equal(resolveBrandContentType({ type: "video/mp4; codecs=avc1", name: "a.mp4" }), "video/mp4");
+});
+
+test("planBrandUpload keeps the file inside this user's brand folder", () => {
+  const plan = planBrandUpload("user-1", { type: "video/mp4", size: 1000 }, "abc");
+  assert.equal(plan.ok, true);
+  if (!plan.ok) return;
+  assert.equal(plan.pathname, "explainer/brand/user-1/abc.mp4");
+  assert.equal(plan.maximumSizeInBytes, 50 * 1024 * 1024);
+  assert.deepEqual(plan.allowedContentTypes, ["video/mp4"]);
+  assert.equal(planBrandUpload("user-1", { type: "video/mp4", size: 51 * 1024 * 1024 }, "abc").ok, false);
 });
 
 test("checkBrandUpload enforces type and size", () => {

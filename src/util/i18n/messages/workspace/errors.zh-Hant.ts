@@ -44,6 +44,7 @@ export const errorsZhHant = {
   imageTooLarge: "圖片不可超過 5MB",
   pickImage: "請選擇圖片",
   blobNotConfigured: "尚未設定圖片上傳",
+  uploadFailed: "上傳失敗，請再試一次",
   styleChatMessageRequired: "請輸入訊息或附加圖片",
   videoTooLarge: "影片不可超過 50MB",
   unsupportedMedia: "只支援 PNG、JPG、WebP 圖片或 MP4、MOV 影片",

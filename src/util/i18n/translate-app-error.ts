@@ -60,6 +60,7 @@ const EXACT: Record<string, string> = {
   "圖片不可超過 5MB": "errors.imageTooLarge",
   "請選擇圖片": "errors.pickImage",
   "尚未設定 Vercel Blob": "errors.blobNotConfigured",
+  "上傳失敗，請再試一次": "errors.uploadFailed",
   "請輸入訊息": "errors.styleChatMessageRequired",
   "影片不可超過 50MB": "errors.videoTooLarge",
   "只支援 PNG、JPG、WebP 圖片或 MP4、MOV 影片": "errors.unsupportedMedia",

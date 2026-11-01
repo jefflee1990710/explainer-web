@@ -74,11 +74,12 @@ export function JutsuStudio({
   customWardrobeItems: PublicCustomWardrobeItem[];
   initialJobs: PublicJutsuJob[];
 }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const isEn = locale === "en";
 
   const [mode, setMode] = useState<JutsuMode>("character_swap");
   const [sourceVideoUrl, setSourceVideoUrl] = useState("");
+  const [sourceUploadProgress, setSourceUploadProgress] = useState<number | null>(null);
   const [sectionStart, setSectionStart] = useState(0);
   const [sectionLength, setSectionLength] = useState(6);
 
@@ -317,6 +318,7 @@ export function JutsuStudio({
                     setError("");
                   }
                 }}
+                onProgress={setSourceUploadProgress}
                 onError={setError}
               />
             </div>
@@ -370,9 +372,18 @@ export function JutsuStudio({
               </div>
             ) : (
               <div className="grid h-32 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
-                {isEn
-                  ? "Upload a source MP4/MOV video (up to 50MB) to begin."
-                  : "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"}
+                {sourceUploadProgress != null ? (
+                  <span className="inline-flex items-center gap-2 font-semibold text-accent-ink">
+                    <Spinner className="h-4 w-4" />
+                    {sourceUploadProgress > 0
+                      ? t("video.upload.progress", { percent: sourceUploadProgress })
+                      : t("video.upload.uploading")}
+                  </span>
+                ) : isEn ? (
+                  "Upload a source MP4/MOV video (up to 50MB) to begin."
+                ) : (
+                  "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"
+                )}
               </div>
             )}
           </div>

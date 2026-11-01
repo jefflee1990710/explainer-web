@@ -135,7 +135,7 @@ export const videoZhHant = {
     downloadPlainReel: "下載不含圖層的原片",
     plainReelSuffix: "-原片.mp4",
   },
-  upload: { uploading: "上傳中…" },
+  upload: { uploading: "上傳中…", progress: "上傳中 {percent}%" },
   layers: {
     title: "圖層",
     addImage: "＋ 圖片／Logo",

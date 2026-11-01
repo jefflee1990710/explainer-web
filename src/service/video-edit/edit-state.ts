@@ -187,6 +187,22 @@ export function isBrandAssetUrl(url: string, clerkUserId: string, storeHost: str
 
 const IMAGE_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 const VIDEO_TYPES: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov" };
+const EXT_CONTENT_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+};
+
+// Some browsers leave MP4/MOV `file.type` empty. Use the extension so the upload can start.
+export function resolveBrandContentType(file: { type: string; name: string }): string {
+  const raw = file.type.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (raw && raw !== "application/octet-stream") return raw;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return EXT_CONTENT_TYPES[ext] ?? raw;
+}
 
 export type UploadCheck =
   | { ok: true; kind: "image" | "video"; ext: string }
@@ -203,6 +219,35 @@ export function checkBrandUpload(file: { type: string; size: number }): UploadCh
     return { ok: true, kind: "video", ext: VIDEO_TYPES[file.type] };
   }
   return { ok: false, error: "只支援 PNG、JPG、WebP 圖片或 MP4、MOV 影片" };
+}
+
+export type BrandUploadPlan =
+  | {
+      ok: true;
+      kind: "image" | "video";
+      ext: string;
+      pathname: string;
+      contentType: string;
+      maximumSizeInBytes: number;
+      allowedContentTypes: string[];
+    }
+  | { ok: false; error: string };
+
+// Path and limits baked into the client-upload token. The browser then sends bytes straight to Blob.
+export function planBrandUpload(
+  clerkUserId: string,
+  file: { type: string; size: number },
+  id: string,
+): BrandUploadPlan {
+  const checked = checkBrandUpload(file);
+  if (!checked.ok) return checked;
+  return {
+    ...checked,
+    pathname: brandAssetPath(clerkUserId, id, checked.ext),
+    contentType: file.type,
+    maximumSizeInBytes: checked.kind === "image" ? EDIT_LIMITS.imageBytes : EDIT_LIMITS.videoBytes,
+    allowedContentTypes: [file.type],
+  };
 }
 
 export type NameCheck = { ok: true; name: string } | { ok: false; error: string };

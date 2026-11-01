@@ -1,13 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { put } from "@vercel/blob/client";
 import { Spinner } from "@/presentation/components/spinner";
-import { uploadBrandAssetAction } from "@/presentation/actions/video-edit";
+import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { checkBrandUpload } from "@/service/video-edit/edit-state";
+import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
-// Hidden file input behind a studio ghost button; checks type/size before posting.
+const MULTIPART_FROM_BYTES = 8 * 1024 * 1024;
+
+// Hidden file input behind a studio ghost button. Bytes go straight to Blob; the server only signs the path.
 export function BrandUploadButton({
   label,
   accept,
@@ -15,6 +18,7 @@ export function BrandUploadButton({
   icon = false,
   onUploaded,
   onError,
+  onProgress,
 }: {
   label: string;
   accept: string;
@@ -23,44 +27,77 @@ export function BrandUploadButton({
   icon?: boolean;
   onUploaded: (asset: { url: string; kind: "image" | "video" }) => void;
   onError: (message: string) => void;
+  // 0–100 while bytes are moving, null when idle. Parents can show the same percent in a drop zone.
+  onProgress?: (percent: number | null) => void;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+
+  function reportProgress(percent: number | null) {
+    setProgress(percent);
+    onProgress?.(percent);
+  }
 
   async function onChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    const checked = checkBrandUpload(file);
+    const contentType = resolveBrandContentType(file);
+    const checked = checkBrandUpload({ type: contentType, size: file.size });
     if (!checked.ok) {
       onError(translateAppError(checked.error, t));
       return;
     }
     setUploading(true);
-    const form = new FormData();
-    form.append("file", file);
-    const result = await uploadBrandAssetAction(form);
-    setUploading(false);
-    if (!result.ok) onError(translateAppError(result.error, t));
-    else onUploaded({ url: result.url, kind: result.kind });
+    reportProgress(0);
+    try {
+      const prepared = await prepareBrandUploadAction({ contentType, size: file.size });
+      if (!prepared.ok) {
+        onError(translateAppError(prepared.error, t));
+        return;
+      }
+      const blob = await put(prepared.pathname, file, {
+        access: "public",
+        token: prepared.token,
+        contentType: prepared.contentType,
+        // One request for a short reel. Larger files split into parallel 8MB parts.
+        multipart: file.size > MULTIPART_FROM_BYTES,
+        onUploadProgress: ({ percentage }) => reportProgress(Math.min(100, Math.round(percentage))),
+      });
+      onUploaded({ url: blob.url, kind: prepared.kind });
+    } catch (error) {
+      console.error("[brand-upload] direct upload failed", error);
+      onError(t("errors.uploadFailed"));
+    } finally {
+      setUploading(false);
+      reportProgress(null);
+    }
   }
+
+  const status =
+    !uploading
+      ? label
+      : progress != null && progress > 0
+        ? t("video.upload.progress", { percent: progress })
+        : t("video.upload.uploading");
 
   return (
     <>
       <button
         type="button"
-        aria-label={icon ? (uploading ? t("video.upload.uploading") : label) : undefined}
+        aria-label={icon ? status : undefined}
         disabled={disabled || uploading}
         onClick={() => inputRef.current?.click()}
         className={
           icon
             ? "inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
-            : "inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
+            : "inline-flex min-h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
         }
       >
         {uploading ? <Spinner className="h-3.5 w-3.5" /> : icon ? <UploadIcon /> : null}
-        {icon ? null : uploading ? t("video.upload.uploading") : label}
+        {icon ? null : status}
       </button>
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(event) => void onChange(event)} />
     </>

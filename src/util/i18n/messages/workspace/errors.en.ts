@@ -44,6 +44,7 @@ export const errorsEn = {
   imageTooLarge: "Image must be under 5MB",
   pickImage: "Choose an image",
   blobNotConfigured: "Image upload is not configured",
+  uploadFailed: "Upload failed. Try again.",
   styleChatMessageRequired: "Enter a message or attach an image",
   videoTooLarge: "Video must be under 50MB",
   unsupportedMedia: "Use PNG, JPG, WebP, MP4, or MOV",
