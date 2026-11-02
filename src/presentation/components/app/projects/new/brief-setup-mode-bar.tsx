@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 export type BriefSetupMode = "quick" | "details";
@@ -13,6 +14,7 @@ export function BriefSetupModeBar({
   onOpenDetailsStep,
   onOpenTutorial,
   disabled,
+  projectPicker,
 }: {
   mode: BriefSetupMode;
   onChange: (next: BriefSetupMode) => void;
@@ -20,6 +22,7 @@ export function BriefSetupModeBar({
   onOpenDetailsStep?: () => void;
   onOpenTutorial?: () => void;
   disabled?: boolean;
+  projectPicker?: ReactNode;
 }) {
   const { locale } = useI18n();
 
@@ -63,7 +66,11 @@ export function BriefSetupModeBar({
       data-tour-id="setup-mode-bar"
       className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/12 bg-white px-4 py-3 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:px-5"
     >
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+        {projectPicker ? (
+          <div className="flex shrink-0 items-center">{projectPicker}</div>
+        ) : null}
+        <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-foreground sm:text-sm">
           {mode === "quick" ? quickSub : detailsSub}
         </p>
@@ -82,6 +89,7 @@ export function BriefSetupModeBar({
             ) : null}
           </div>
         ) : null}
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

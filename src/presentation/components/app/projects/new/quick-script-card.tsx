@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { VoLanguage } from "@/model/project";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
@@ -32,6 +33,7 @@ export function QuickScriptCard({
   language,
   onLanguageChange,
   disabled,
+  actionSlot,
 }: {
   step?: string;
   source: string;
@@ -50,6 +52,7 @@ export function QuickScriptCard({
   language?: VoLanguage;
   onLanguageChange?: (value: VoLanguage) => void;
   disabled?: boolean;
+  actionSlot?: ReactNode;
 }) {
   const { t, locale } = useI18n();
 
@@ -178,7 +181,7 @@ export function QuickScriptCard({
         </div>
       )}
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <SampleScriptBar
           disabled={disabled}
           talkingHead={talkingHead}
@@ -191,6 +194,9 @@ export function QuickScriptCard({
           <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
             {t("brief.source.charCount", { n: source.length.toLocaleString() })}
           </span>
+        ) : null}
+        {actionSlot ? (
+          <div className="ml-auto flex flex-wrap items-center gap-3">{actionSlot}</div>
         ) : null}
       </div>
     </div>
