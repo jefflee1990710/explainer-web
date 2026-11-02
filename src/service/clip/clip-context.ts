@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import type {
   ClipDirectorOverrides,
@@ -6,6 +6,33 @@ import type {
   Project,
   StoryboardRow,
 } from "@/model/project";
+
+const HEX_OBJECT_ID = /^[0-9a-fA-F]{24}$/;
+
+function isObjectIdInstance(value: unknown): value is ObjectId {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ("_bsontype" in value || typeof (value as { toHexString?: unknown }).toHexString === "function")
+  );
+}
+
+// Reconstruct an ObjectId-like instance via the base ObjectId's constructor so this module
+// remains 100% browser-safe (never pulling the Node `mongodb` driver into client bundles).
+function coerceSkillId(
+  baseSkillId: ObjectId | string | undefined,
+  overrideSkillId: ObjectId | string,
+): ObjectId | string {
+  if (
+    isObjectIdInstance(baseSkillId) &&
+    typeof overrideSkillId === "string" &&
+    HEX_OBJECT_ID.test(overrideSkillId)
+  ) {
+    const Ctor = baseSkillId.constructor as new (id: string) => ObjectId;
+    return new Ctor(overrideSkillId);
+  }
+  return overrideSkillId;
+}
 
 export type ClipContextSource = {
   skillId?: ObjectId | string;
@@ -107,12 +134,7 @@ export function resolveClipProject<T extends ClipContextSource>(
 
   const resolvedSkillId =
     row?.skillId !== undefined
-      ? typeof base.skillId === "object" &&
-        base.skillId instanceof ObjectId &&
-        typeof row.skillId === "string" &&
-        ObjectId.isValid(row.skillId)
-        ? new ObjectId(row.skillId)
-        : row.skillId
+      ? coerceSkillId(base.skillId, row.skillId)
       : base.skillId;
 
   const hasCastOverride = Array.isArray(row?.cast);
