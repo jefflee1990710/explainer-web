@@ -1,6 +1,6 @@
 # Scro Pipeline 與全導演模型對照表
 
-最後更新日期：2026-10-30
+最後更新日期：2026-11-02
 
 > **同步規則（Sync Contract）**：只要系統中任何導演流程、LLM、圖片生成、影片生成、語音合成（TTS / STS / Forced Alignment）、解析度或後處理邏輯有變更，**必須同步更新本檔案**，確保本表與系統設計 100% 一致。
 
@@ -42,4 +42,5 @@
 | **聲音複製 (Instant Voice Clone)** | ElevenLabs | **`/v1/voices/add`** | 從用戶錄音或上傳音檔建立 `elevenVoiceId` | `src/service/voice/elevenlabs.ts` (`createVoiceClone`) |
 | **AI 音效生成 (Editor SFX)** | ElevenLabs | **`/v1/sound-generation`** | 編輯器內自動與手動生成轉場／動作音效 | `src/service/sound-effect/elevenlabs-sfx.ts` |
 | **Scro Swap 影片角色／穿搭遷移與 17 款電影打光 (`/app/scroswap`)** | OpenRouter (`/api/v1/chat/completions`, `/api/v1/images`) + fal.ai SAM 3 + 官方 MiniMax Video V2 + OpenRouter `/api/v1/videos` fallback + 本機 FFmpeg | • 兩階段動作提取與 Prompt Upsampler：**`google/gemini-2.5-flash`** (via OpenRouter)<br>• 灰階假人 motion mask：有 `FAL_KEY` 時走 fal **`fal-ai/sam-3/video-rle`**（text prompt / optional box，逐 frame sparse RLE → grey mannequin）；否則 OpenRouter VLM bbox 橢圓 surrogate<br>• 首尾幀角色姿勢遷移／局部換物／17 款打光：**`bytedance-seed/seedream-5-0-pro`** (`2K`)<br>• 影片動作生成：有灰階假人且設了 `MINIMAX_API_KEY` 時走官方 **`MiniMax-H3`** reference-to-video（`reference_image` 1 = 準備好嘅首幀；Character Motion Swap 另加 `reference_image` 2 = 原角色人像鎖面孔；`reference_video` = 灰階假人，`2K`，不可混 `first_frame`）；否則 OpenRouter **`minimax/hailuo-3`** 首尾幀（`2K`）<br>• H3 Soft 柔化調色：**FFmpeg (`unsharp` + `eq` + `curves`)** | 原生移植 Openjutsu 四大模式（Character Motion Swap、Object/Wardrobe Swap、17-Look Relight Video、H3 Soft Color Fix）並打通 Scro 角色庫與自訂衣櫥 | `src/service/jutsu/pipeline.ts`<br>`src/service/jutsu/sam-mannequin.ts`<br>`src/service/fal/sam3-video.ts`<br>`src/service/jutsu/minimax-h3-ref2va.ts`<br>`src/service/jutsu/describer.ts`<br>`src/service/jutsu/light-looks.ts`<br>`src/service/jutsu/color-grade.ts` |
+| **Teleport 換場 (`/app/teleport`)** | OpenRouter (`/api/v1/chat/completions`, `/api/v1/images`, `/api/v1/videos`) + fal.ai SAM 3 + 官方 MiniMax Video V2 + 本機 FFmpeg | • 場景板（只有文字時）與換場首尾幀：**`bytedance-seed/seedream-5-0-pro`** (`2K`, `9:16`)<br>• Prompt Upsampler 與動作描述：**`google/gemini-2.5-flash`** (via OpenRouter)<br>• 灰階假人與身份遮罩：有 `FAL_KEY` 時走 fal **`fal-ai/sam-3/video-rle`**；否則假人用 OpenRouter VLM bbox，身份幀改回原始起始幀<br>• 出片：有假人且有 `MINIMAX_API_KEY` 時走官方 **`MiniMax-H3`** reference-to-video（`reference_image` 1 = 換場起始幀，`reference_image` 2 = 身份幀，`reference_video` = 假人，`2K`，不可混 `first_frame`）；否則 OpenRouter **`minimax/hailuo-3`** 首尾幀<br>• 原聲混流與 H3 Soft：**FFmpeg** | 鎖住原片的人，把人放進新場景。照片是地點，文字只改氣氛。 | `src/service/teleport/pipeline.ts`<br>`src/service/teleport/prompts.ts`<br>`src/service/teleport/identity-frame.ts`<br>`src/service/jutsu/sam-mannequin.ts` |
 
