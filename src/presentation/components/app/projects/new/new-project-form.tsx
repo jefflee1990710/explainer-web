@@ -188,6 +188,38 @@ import {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+function preferredStyleIdForSkill(
+  slug: string,
+  availableStyles: PublicStyle[],
+): string | undefined {
+  if (
+    slug === "paper-cutout-explainer-video-director" &&
+    availableStyles.some((s) => s.id === "paper-cutout")
+  ) {
+    return "paper-cutout";
+  }
+  if (slug === "cartoon-explainer-video-director") {
+    if (availableStyles.some((s) => s.id === "whiteboard")) return "whiteboard";
+    if (availableStyles.some((s) => s.id === "cartoon")) return "cartoon";
+  }
+  return undefined;
+}
+
+function initialSkillSlugForForm(
+  initialVideo: PublicVideo | null | undefined,
+  rememberedSkill: string | undefined,
+  skills: PublicSkill[],
+  useCase: VideoUseCase | undefined,
+) {
+  return (
+    (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
+    (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill)
+      ? rememberedSkill
+      : "") ||
+    (useCase ? defaultSkillSlugForUseCase(useCase, skills) : pickerDefaultSkillSlug(skills))
+  );
+}
+
 // Whole create → director → produce → export flow lives on this one page.
 function queueKeysForPlan(plan: { frames: number[]; videos: number[] }) {
   return [
@@ -250,20 +282,26 @@ export function NewProjectForm({
 
   // Form fields
   const rememberedSkill = lastBrief?.skillSlug;
-  const [skillSlug, setSkillSlug] = useState(
-    (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
-      (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
-      (useCase
-        ? defaultSkillSlugForUseCase(useCase, skills)
-        : pickerDefaultSkillSlug(skills)),
+  const initialSkillSlug = initialSkillSlugForForm(
+    initialVideo,
+    rememberedSkill,
+    skills,
+    useCase,
   );
+  const [skillSlug, setSkillSlug] = useState(initialSkillSlug);
   // Picked director; form rules follow its behaviour (template) slug.
   const selectedSkill = skills.find((item) => item.slug === skillSlug);
   const ruleSlug = ruleSlugFor(skillSlug, skills);
   // Visual style; the cast must share it, so changing it prunes mismatches.
-  const [styleId, setStyleId] = useState<string>(
-    initialVideo?.styleId || lastBrief?.styleId || pickerDefaultStyleId(styles),
-  );
+  const [styleId, setStyleId] = useState<string>(() => {
+    if (initialVideo?.styleId) return initialVideo.styleId;
+    const initRule = ruleSlugFor(initialSkillSlug, skills);
+    const preferred = preferredStyleIdForSkill(initRule, styles);
+    if (!initialVideo && (useCase === "explainer" || preferred)) {
+      return preferred ?? pickerDefaultStyleId(styles);
+    }
+    return lastBrief?.styleId || pickerDefaultStyleId(styles);
+  });
   const [source, setSource] = useState(() => {
     if (initialVideo?.source) return initialVideo.source;
     if (!initialVideo && isTalkingHeadSkill(ruleSlug)) {
@@ -1150,11 +1188,14 @@ export function NewProjectForm({
       }
     }
     const nextPresets = directorPresetBackgrounds(nextRuleSlug);
+    const matchedStyleId = preferredStyleIdForSkill(nextRuleSlug, styles);
+    if (matchedStyleId && matchedStyleId !== styleId) {
+      onStyleChange(matchedStyleId);
+    }
     if (nextPresets.length > 0) {
       if (!isValidDirectorBackgroundId(nextRuleSlug, directorBackgroundId)) {
         setDirectorBackgroundId(defaultDirectorBackgroundId(nextRuleSlug) || nextPresets[0]!.id);
       }
-      setDirectorBackgroundDialogOpen(true);
     } else {
       setDirectorBackgroundDialogOpen(false);
     }
@@ -1396,22 +1437,12 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className="flex min-h-full w-full flex-1 flex-col justify-between gap-4 p-4 sm:px-6 sm:py-5 lg:px-8"
+              className={`flex min-h-full w-full flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-5 lg:px-8 ${
+                setupMode === "quick" ? "justify-start" : "justify-between"
+              }`}
             >
               <div className="space-y-4">
               <input type="hidden" name="projectId" value={folderId} />
-
-              {!project ? (
-                <ProjectPicker
-                  folders={folderOptions}
-                  value={folderId || "none"}
-                  disabled={briefBusy}
-                  onChange={(next) => setFolderId(next === "none" || next === "all" ? "" : next)}
-                  onFolderCreated={(folder) =>
-                    setFolderOptions((current) => [folder, ...current.filter((item) => item.id !== folder.id)])
-                  }
-                />
-              ) : null}
 
               <BriefSetupModeBar
                 mode={setupMode}
@@ -1436,6 +1467,24 @@ export function NewProjectForm({
                   setTutorialOpen(true);
                 }}
                 disabled={briefBusy}
+                projectPicker={
+                  !project ? (
+                    <ProjectPicker
+                      folders={folderOptions}
+                      value={folderId || "none"}
+                      disabled={briefBusy}
+                      onChange={(next) =>
+                        setFolderId(next === "none" || next === "all" ? "" : next)
+                      }
+                      onFolderCreated={(folder) =>
+                        setFolderOptions((current) => [
+                          folder,
+                          ...current.filter((item) => item.id !== folder.id),
+                        ])
+                      }
+                    />
+                  ) : undefined
+                }
               />
 
               {setupMode === "quick" ? (
@@ -1590,6 +1639,60 @@ export function NewProjectForm({
                     language={language}
                     onLanguageChange={onVoLanguageChange}
                     disabled={briefBusy}
+                    actionSlot={
+                      <>
+                        {error ? (
+                          <p role="alert" className="w-full text-sm font-medium text-accent">
+                            {translateAppError(error, t)}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-muted">
+                          {castNeed > 0 && characterIds.length !== castNeed
+                            ? t("brief.footer.castRequired", { n: castNeed })
+                            : restarting
+                              ? t("brief.footer.restartWarning")
+                              : project
+                                ? t("brief.footer.editBriefWarning")
+                                : null}
+                        </p>
+                        {restarting ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={cancelRestart}
+                              disabled={submitting || creatingNew}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
+                            >
+                              {t("common.cancel")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void submitCreateNew()}
+                              disabled={!canSubmit}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                            >
+                              {creatingNew ? <Spinner /> : null}
+                              {creatingNew ? t("brief.submit.submitting") : t("brief.submit.createNew")}
+                            </button>
+                          </>
+                        ) : null}
+                        <motion.button
+                          type="submit"
+                          disabled={!canSubmit}
+                          whileTap={{ scale: 0.98 }}
+                          className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                        >
+                          {submitting ? <Spinner /> : null}
+                          {submitting
+                            ? t("brief.submit.submitting")
+                            : restarting
+                              ? t("brief.submit.regenerate")
+                              : project
+                                ? t("brief.submit.saveAndRegenerateStoryboard")
+                                : t("brief.submit.start")}
+                        </motion.button>
+                      </>
+                    }
                   />
                 </motion.div>
               ) : (
@@ -2016,16 +2119,17 @@ export function NewProjectForm({
                 </>
               )}
 
-              {error ? (
+              {error && setupMode !== "quick" ? (
                 <p role="alert" className="text-sm font-medium text-accent">
                   {translateAppError(error, t)}
                 </p>
               ) : null}
               </div>
 
+              {setupMode === "details" ? (
               <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 bg-[var(--studio-panel)]/95 px-6 py-4 backdrop-blur-sm sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
                 <div className="flex flex-wrap items-center gap-3">
-                  {setupMode === "details" && wizardStep > 0 ? (
+                  {wizardStep > 0 ? (
                     <button
                       type="button"
                       onClick={() => goToWizardStep((wizardStep - 1) as BriefWizardStepIndex)}
@@ -2052,7 +2156,7 @@ export function NewProjectForm({
                   <p className="text-xs text-muted">
                     {castNeed > 0 && characterIds.length !== castNeed
                       ? t("brief.footer.castRequired", { n: castNeed })
-                      : setupMode === "quick" || wizardStep === (talkingHead ? 2 : 3)
+                      : wizardStep === (talkingHead ? 2 : 3)
                         ? restarting
                           ? t("brief.footer.restartWarning")
                           : project
@@ -2065,7 +2169,7 @@ export function NewProjectForm({
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    {setupMode === "details" && wizardStep < (talkingHead ? 2 : 3) ? (
+                    {wizardStep < (talkingHead ? 2 : 3) ? (
                       <motion.button
                         key="wizard-next-button"
                         type="button"
@@ -2081,7 +2185,7 @@ export function NewProjectForm({
                       </motion.button>
                     ) : null}
 
-                    {restarting && (setupMode === "quick" || wizardStep === (talkingHead ? 2 : 3)) ? (
+                    {restarting && wizardStep === (talkingHead ? 2 : 3) ? (
                       <button
                         type="button"
                         onClick={() => void submitCreateNew()}
@@ -2093,7 +2197,7 @@ export function NewProjectForm({
                       </button>
                     ) : null}
 
-                    {setupMode === "quick" || wizardStep > 0 ? (
+                    {wizardStep > 0 ? (
                       <motion.button
                         key="wizard-submit-button"
                         type="submit"
@@ -2114,6 +2218,7 @@ export function NewProjectForm({
                   </div>
                 </div>
               </div>
+              ) : null}
             </motion.form>
             </StudioPanel>
           ) : (

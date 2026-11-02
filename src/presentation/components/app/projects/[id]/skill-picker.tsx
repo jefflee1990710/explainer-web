@@ -62,6 +62,36 @@ export function SkillPicker({
     return <p className="text-sm text-muted">{t("brief.skill.empty")}</p>;
   }
 
+  if (skills.length === 2 && !sideBySideGuide) {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        {skills.map((skill) => {
+          const name = optionName(skill);
+          const active = skill.slug === value;
+          return (
+            <button
+              key={skill.slug}
+              type="button"
+              disabled={disabled}
+              aria-pressed={active}
+              onClick={() => onChange(skill.slug)}
+              className={`flex min-h-[4.5rem] cursor-pointer items-center gap-2 rounded-xl border px-2 py-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
+                active
+                  ? "border-accent-ink bg-lime/25 text-foreground shadow-[2px_2px_0_0_#12141c]"
+                  : "border-accent-ink/15 bg-paper/70 text-foreground/80 hover:border-accent-ink/40 hover:bg-paper"
+              }`}
+            >
+              <TypeIcon previewUrl={skill.previewUrl} label={name} />
+              <span className="min-w-0 flex-1 text-left text-xs font-semibold leading-snug">
+                {name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   const arrowClass =
     "inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 bg-white text-foreground transition hover:border-accent-ink hover:bg-lime/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40";
 
