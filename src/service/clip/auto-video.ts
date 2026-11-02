@@ -4,6 +4,7 @@ import { consumeCredits, refundCredits } from "@/service/billing/credits";
 import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
@@ -51,10 +52,11 @@ export async function claimAndStartClipVideo(
   const projects = await videosCollection();
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) return { ok: false, error: "找不到這段分鏡" };
+  const clipProj = resolveClipProject(project, clipNumber);
   // Plate may have landed after the still. Burn it on before this clip is sent.
   const overlay = usesTalkingHeadSubtitleOverlay({
-    skillSlug: project.skillSlug,
-    styleId: project.styleId,
+    skillSlug: clipProj.skillSlug,
+    styleId: clipProj.styleId,
   });
   if (overlay) {
     await mergeReadySubtitleFrames(project._id);
@@ -62,10 +64,10 @@ export async function claimAndStartClipVideo(
     if (fresh) project = fresh;
   }
   const merged = overlay;
-  const startOnly = clipSkipsEndStill(project);
+  const startOnly = clipSkipsEndStill(clipProj);
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, {
     merged,
-    endFromNextStart: clipEndIsNextStart(project, clipNumber),
+    endFromNextStart: clipEndIsNextStart(clipProj, clipNumber),
   });
   if (!start || (!startOnly && !end)) {
     if (start && !startOnly && !end) {
@@ -226,12 +228,13 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
 
   const remaining: number[] = [];
   for (const clipNumber of pending) {
+    const clipProj = resolveClipProject(project, clipNumber);
     const decision = autoVideoDecision(project.frames, project.clips, clipNumber, {
-      startOnly: clipSkipsEndStill(project),
-      endFromNextStart: clipEndIsNextStart(project, clipNumber),
+      startOnly: clipSkipsEndStill(clipProj),
+      endFromNextStart: clipEndIsNextStart(clipProj, clipNumber),
       merged: usesTalkingHeadSubtitleOverlay({
-        skillSlug: project.skillSlug,
-        styleId: project.styleId,
+        skillSlug: clipProj.skillSlug,
+        styleId: clipProj.styleId,
       }),
     });
     if (decision === "wait") {

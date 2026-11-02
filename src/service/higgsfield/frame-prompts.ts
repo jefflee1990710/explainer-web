@@ -106,6 +106,7 @@ import { isRealisticStyle, isSelfShotCreatorSkill, styleForSelfShotSkill } from 
 import { styleLinesForFrame, type Style } from "@/service/style";
 import { resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
+import { clipsShareContinuity, resolveClipProject } from "@/service/clip/clip-context";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
 import type {
@@ -1117,6 +1118,15 @@ export function frameSubmitPlan(
   revision?: FrameRevision,
   style?: RenderableStyle,
 ) {
+  project = resolveClipProject(project, clipNumber);
+  const rawAnchor = clipFrameAnchor(project.frames, clipNumber, position, {
+    anchorToFirstClip:
+      isTalkingHeadSkill(project.skillSlug) && clipsShareContinuity(project, 1, clipNumber),
+  });
+  const foundAnchor =
+    rawAnchor?.kind === "prev-end" && !clipsShareContinuity(project, clipNumber - 1, clipNumber)
+      ? undefined
+      : rawAnchor;
   project = talkingHeadFrameProject(project);
   const wardrobeBuild = isWardrobeBuildSkill(project.skillSlug);
   const surpriseHook =
@@ -1124,9 +1134,6 @@ export function frameSubmitPlan(
     surpriseHookSkipsFrameAnchor(clipNumber, position);
   const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const motion = clipRow?.motionCamera;
-  const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position, {
-    anchorToFirstClip: isTalkingHeadSkill(project.skillSlug),
-  });
   // Talking-head, outfit, and surprise keep their own still rules. The director's boolean is ignored.
   const directorChooses =
     !isTalkingHeadSkill(project.skillSlug) && !isSurpriseInterviewSkill(project.skillSlug);
@@ -1187,16 +1194,17 @@ export function framesWithClip(
   clipNumber: number,
   style?: RenderableStyle,
 ): ClipFrame[] {
+  const clipProject = resolveClipProject(project, clipNumber);
   const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
   const submittedAt = new Date().toISOString();
   // Only the last talking-head clip draws an end still; earlier clips land on the next start.
-  const positions: FramePosition[] = clipDrawsNoEndStill(project, clipNumber)
+  const positions: FramePosition[] = clipDrawsNoEndStill(clipProject, clipNumber)
     ? ["start"]
     : ["start", "end"];
   const own = positions.map((position) => ({
     clipNumber,
     position,
-    prompt: buildFramePrompt(project, clipNumber, position, { style }),
+    prompt: buildFramePrompt(clipProject, clipNumber, position, { style }),
     status: "queued" as const,
     submittedAt,
   }));

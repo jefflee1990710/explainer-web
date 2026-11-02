@@ -9,7 +9,9 @@ import {
 import { clipStateFor, clipFrameCost } from "@/service/clip-stage";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { clipEndIsNextStart, clipDrawsNoEndStill } from "@/service/director/steady-stills";
+import { frameSubmitPlan, framesWithClip } from "@/service/higgsfield/frame-prompts";
 import { clipVideoCost } from "@/service/production-plan";
+import { installTestStyles, uninstallTestStyles } from "@/service/style/test-styles";
 import { toPublicVideo } from "@/presentation/serialize";
 import type { Project, StoryboardRow } from "@/model/project";
 
@@ -147,6 +149,17 @@ describe("clipsShareContinuity", () => {
     assert.equal(clipsShareContinuity(project, 1, 2), false);
   });
 
+  it("preserves the original base project across nested resolveClipProject calls when clip 1 has no overrides", () => {
+    const row2 = attachClipOverrides(makeRow(2), {
+      skillSlug: "cartoon-explainer-video-director",
+      styleId: "doodle",
+    });
+    const project = makeProject([makeRow(1), row2]);
+    const clip2Proj = resolveClipProject(project, 2);
+    assert.equal(resolveClipProject(clip2Proj, 1), project);
+    assert.equal(clipsShareContinuity(clip2Proj, 1, 2), false);
+  });
+
   it("serializes ObjectId instances inside phaseA.clips overrides via toPublicVideo", () => {
     const row2 = attachClipOverrides(makeRow(2), {
       skillId: new ObjectId("65f000000000000000000099"),
@@ -202,6 +215,67 @@ describe("per-clip stage and steady-stills resolution", () => {
     assert.equal(clipVideoCost(project, 1), 20);
     assert.equal(clipVideoCost(project, 2), 50);
     assert.equal(state2.videoCost, 50);
+  });
+
+  it("isolates frameSubmitPlan anchors across director changes and builds per-clip frames in framesWithClip", () => {
+    installTestStyles();
+    try {
+      const row1 = makeRow(1, { motionCamera: "Static locked shot" });
+      const row2 = attachClipOverrides(makeRow(2, { motionCamera: "Static locked shot" }), {
+        skillSlug: "cartoon-explainer-video-director",
+        styleId: "doodle",
+      });
+      const row3 = attachClipOverrides(makeRow(3, { motionCamera: "Static locked shot" }), {
+        skillSlug: "talking-head-director",
+        styleId: "pixel",
+      });
+      const project: Project = {
+        ...makeProject([row1, row2, row3]),
+        frames: [
+          {
+            clipNumber: 1,
+            position: "start",
+            status: "completed",
+            prompt: "c1 start",
+            outputUrl: "https://example.com/c1-start.png",
+          },
+          {
+            clipNumber: 1,
+            position: "end",
+            status: "completed",
+            prompt: "c1 end",
+            outputUrl: "https://example.com/c1-end.png",
+          },
+          {
+            clipNumber: 2,
+            position: "start",
+            status: "completed",
+            prompt: "c2 start",
+            outputUrl: "https://example.com/c2-start.png",
+          },
+        ],
+      };
+
+      // Clip 2 switches from talking-head/realistic to cartoon-explainer/doodle:
+      // must NOT anchor to Clip 1's end frame.
+      const plan2 = frameSubmitPlan(project, 2, "start");
+      assert.equal(plan2.anchor, undefined);
+
+      // Clip 3 uses talking-head/pixel while Clip 1 is talking-head/realistic:
+      // must NOT anchor to Clip 1's start frame because styleId differs.
+      const plan3 = frameSubmitPlan(project, 3, "start");
+      assert.equal(plan3.anchor, undefined);
+
+      // framesWithClip for Clip 2 (cartoon-explainer) only queues a start frame.
+      const rebuiltFrames = framesWithClip(project, 2);
+      const clip2Frames = rebuiltFrames.filter((f) => f.clipNumber === 2);
+      assert.deepEqual(
+        clip2Frames.map((f) => f.position),
+        ["start"],
+      );
+    } finally {
+      uninstallTestStyles();
+    }
   });
 });
 

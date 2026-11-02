@@ -93,35 +93,38 @@ function hasAnyClipOverride(row: Partial<StoryboardRow> | undefined): boolean {
   );
 }
 
+const BASE_PROJECT = Symbol.for("scro.baseClipProject");
+
 // Return a shallow Project view whose top-level director/style/cast/voice fields
 // reflect the clip's own overrides when present, falling back to the project defaults.
 export function resolveClipProject<T extends ClipContextSource>(
   project: T,
   clipNumber: number,
 ): T {
-  const row = project.phaseA?.clips.find((c) => c.clipNumber === clipNumber);
-  if (!hasAnyClipOverride(row)) return project;
+  const base = (project as Record<symbol, T>)[BASE_PROJECT] ?? project;
+  const row = base.phaseA?.clips.find((c) => c.clipNumber === clipNumber);
+  if (!hasAnyClipOverride(row)) return base;
 
   const resolvedSkillId =
     row?.skillId !== undefined
-      ? typeof project.skillId === "object" &&
-        project.skillId instanceof ObjectId &&
+      ? typeof base.skillId === "object" &&
+        base.skillId instanceof ObjectId &&
         typeof row.skillId === "string" &&
         ObjectId.isValid(row.skillId)
         ? new ObjectId(row.skillId)
         : row.skillId
-      : project.skillId;
+      : base.skillId;
 
   const hasCastOverride = Array.isArray(row?.cast);
   const nextCharacterLock =
-    hasCastOverride && project.phaseA
+    hasCastOverride && base.phaseA
       ? row!.cast!.length > 0
         ? characterLockFromCast(row!.cast as NonNullable<Project["cast"]>)
         : ""
-      : project.phaseA?.characterLock;
+      : base.phaseA?.characterLock;
 
-  return {
-    ...project,
+  const resolved: T = {
+    ...base,
     ...(resolvedSkillId !== undefined ? { skillId: resolvedSkillId } : {}),
     ...(row?.skillSlug !== undefined ? { skillSlug: row.skillSlug } : {}),
     ...(row?.styleId !== undefined ? { styleId: row.styleId } : {}),
@@ -144,15 +147,21 @@ export function resolveClipProject<T extends ClipContextSource>(
       : {}),
     ...(row?.talkingHeadPoseId !== undefined ? { talkingHeadPoseId: row.talkingHeadPoseId } : {}),
     ...(row?.logoUrl !== undefined ? { logoUrl: row.logoUrl } : {}),
-    ...(project.phaseA && nextCharacterLock !== project.phaseA.characterLock
+    ...(base.phaseA && nextCharacterLock !== base.phaseA.characterLock
       ? {
           phaseA: {
-            ...(project.phaseA as PhaseAProposal),
+            ...(base.phaseA as PhaseAProposal),
             characterLock: nextCharacterLock ?? "",
           },
         }
       : {}),
   };
+  Object.defineProperty(resolved, BASE_PROJECT, {
+    value: base,
+    enumerable: false,
+    configurable: true,
+  });
+  return resolved;
 }
 
 // True only when two clips share the same effective director skillSlug and visual styleId.

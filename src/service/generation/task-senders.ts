@@ -12,6 +12,7 @@ import {
   sendCharacterVersion,
 } from "@/service/character/generate";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
@@ -156,6 +157,7 @@ async function sendCharacter(job: GenerationJob) {
 
 // Phase B runs once: a retry reuses the prompt already written to the clip.
 async function sendVideo(project: Project, clipNumber: number) {
+  project = resolveClipProject(project, clipNumber);
   if (!project.phaseA) throw new PermanentJobError("找不到分鏡");
   // Missing keyframes will not fix themselves; stop before spending a Phase B call.
   const startOnly = clipSkipsEndStill(project);

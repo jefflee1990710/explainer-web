@@ -326,10 +326,9 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   // For talking-head, if a clip has no next clip's start scene (last clip) and its start
   // is being generated while no completed end frame exists, automatically include its end frame.
   for (const target of drawable) {
-    const clipProj = resolveClipProject(project, target.clipNumber);
     if (
       target.position === "start" &&
-      !clipDrawsNoEndStill(clipProj, target.clipNumber) &&
+      !clipDrawsNoEndStill(project, target.clipNumber) &&
       !targets.some((t) => t.clipNumber === target.clipNumber && t.position === "end")
     ) {
       const existingEnd = project.frames?.find(
@@ -528,7 +527,7 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
   const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) => {
     const clipProj = resolveClipProject(project, clipNumber);
     return (
-      clipDrawsNoEndStill(clipProj, clipNumber) ? (["start"] as const) : (["start", "end"] as const)
+      clipDrawsNoEndStill(project, clipNumber) ? (["start"] as const) : (["start", "end"] as const)
     )
       .filter((position) => !isInheritedTalkingHeadStart(clipProj.skillSlug, clipNumber, position))
       .map((position) => ({ clipNumber, position }));
@@ -1444,16 +1443,17 @@ export async function submitDeferredEndIfNeeded(
   const jobs = await generationJobsCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
+  const clipProj = resolveClipProject(project, clipNumber);
 
   let end = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "end",
   );
   if (!end && !clipDrawsNoEndStill(project, clipNumber)) {
     const style = await loadRenderableStyle({
-      styleId: project.styleId,
+      styleId: clipProj.styleId,
       ownerClerkUserId: project.clerkUserId,
     });
-    const canvasProject = await withWrittenCanvas(project);
+    const canvasProject = await withWrittenCanvas(clipProj);
     const { prompt } = frameSubmitPlan(canvasProject, clipNumber, "end", undefined, style);
     const newEnd = {
       clipNumber,
@@ -1504,10 +1504,10 @@ export async function submitDeferredEndIfNeeded(
     framePosition: "end",
   });
   const style = await loadRenderableStyle({
-    styleId: project.styleId,
+    styleId: clipProj.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
-  const canvasProject = await withWrittenCanvas(project);
+  const canvasProject = await withWrittenCanvas(clipProj);
   const { prompt } = frameSubmitPlan(canvasProject, clipNumber, "end", end.revision, style);
   // Frame first so the job's `createdAt` is never older than `submittedAt`.
   await projects.updateOne(
