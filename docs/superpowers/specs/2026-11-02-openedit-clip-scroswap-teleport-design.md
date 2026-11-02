@@ -1,7 +1,7 @@
 # OpenEdit 分鏡片段套用 Scro Swap 與 Teleport
 
 **Date:** 2026-11-02  
-**Status:** 待審閱  
+**Status:** 已核准  
 **Surface:** OpenEdit / OpenCut 剪輯器（`/app/projects/...` Video 分頁右側屬性面板）
 
 ## Goal
@@ -143,7 +143,7 @@
 - `src/opencut/embed/scro-video-actions.ts` — `requestScroOpenAi` 支援 `"scro-swap" | "teleport"`。
 - `src/opencut/embed/scro-video-jutsu-actions.tsx` — 新元件：在已就緒的分鏡屬性面板顯示 Scro Swap 與 Teleport 按鈕，並匯出純判斷函式 `canApplyClipJutsu(clip)`。
 - `src/opencut/embed/scro-video-properties.tsx` — 掛載 `ScroVideoJutsuActions`。
-- `src/opencut/i18n/locales/en.ts`、`src/opencut/i18n/locales/zh-Hant.ts`、`src/opencut/i18n/locales/zh-Hans.ts` — 新增屬性面板按鈕文案。
+- `src/opencut/i18n/use-opencut-i18n.ts` — 新增屬性面板按鈕文案。
 - `src/model/jutsu-job.ts`、`src/model/teleport-job.ts` — 新增 `targetVideoId`、`targetClipNumber`、`previousClipVideoUrl`；`TeleportJob.aspectRatio` 使用 `AspectRatio`。
 - `src/service/teleport/start-input.ts`、`src/service/teleport/prompts.ts`、`src/service/teleport/pipeline.ts` — 支援可選 `aspectRatio`（預設 `"9:16"`）與目標分鏡欄位；完成／失敗時呼叫 `settleTargetClipFromEngineJob`。
 - `src/service/jutsu/pipeline.ts` — `StartScroSwapInput` 支援目標分鏡欄位；完成／失敗時呼叫 `settleTargetClipFromEngineJob`。
