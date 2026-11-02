@@ -424,6 +424,8 @@ export async function buildSam3MannequinAndMaskVideos(input: {
 }): Promise<{
   mannequinVideoBuffer: Buffer;
   checkMaskVideoBuffer: Buffer;
+  /** Frame-0 fal SAM person mask (null when fal was not used or frame 0 had no person). */
+  firstSubjectMask: { mask: Uint8Array; width: number; height: number } | null;
 }> {
   const dir = await mkdtemp(join(tmpdir(), "jutsu-sam-mannequin-"));
   const framesDir = join(dir, "frames");
@@ -487,6 +489,8 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       files.map((f) => readFile(join(framesDir, f))),
     );
 
+    // Only the fal SAM loop may fill this; VLM ellipses are not a real cutout.
+    let firstSubjectMask: { mask: Uint8Array; width: number; height: number } | null = null;
     const usedFal = await tryRenderMannequinFramesWithFal({
       sectionPath: join(dir, "section.mp4"),
       frameBuffers,
@@ -495,9 +499,14 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       target: input.target,
       margin: input.margin,
       manualBox: input.manualBox,
+      onFirstMask: (mask, width, height) => {
+        firstSubjectMask = { mask, width, height };
+      },
     });
 
     if (!usedFal) {
+      // fal failed midway: drop any partial capture so the mask matches the VLM fallback path.
+      firstSubjectMask = null;
       await renderMannequinFramesWithVlmBoxes({
         frameBuffers,
         mannDir,
@@ -569,7 +578,7 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       readFile(join(dir, "check-mask.mp4")),
     ]);
 
-    return { mannequinVideoBuffer, checkMaskVideoBuffer };
+    return { mannequinVideoBuffer, checkMaskVideoBuffer, firstSubjectMask };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -584,6 +593,8 @@ async function tryRenderMannequinFramesWithFal(input: {
   target: string;
   margin: JutsuMaskMargin;
   manualBox?: JutsuPlacementBox;
+  /** Called once with the frame-0 person mask when it has at least one positive value. */
+  onFirstMask?: (mask: Uint8Array, width: number, height: number) => void;
 }): Promise<boolean> {
   if (!hasFalKey()) return false;
 
@@ -641,6 +652,10 @@ async function tryRenderMannequinFramesWithFal(input: {
         mask = lastMask ? Uint8Array.from(lastMask) : mask;
       } else {
         lastMask = mask;
+      }
+
+      if (i === 0 && mask.some((value) => value > 0)) {
+        input.onFirstMask?.(Uint8Array.from(mask), frameW, frameH);
       }
 
       const rendered = await renderGreyMannequinAndMaskFrameFromMask({

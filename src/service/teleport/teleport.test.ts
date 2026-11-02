@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import sharp from "sharp";
 import { buildMinimaxH3Ref2VaBody } from "@/service/jutsu/minimax-h3-ref2va";
+import { cutSubjectOntoPlain } from "@/service/teleport/identity-frame";
 import {
   buildTeleportRelocatePrompt,
   buildTeleportScenePlatePrompt,
@@ -133,4 +135,17 @@ test("hailuo teleport prompt starts at the first prepared frame and ends at the 
   assert.match(prompt, /last frame/i);
   assert.match(prompt, /She steps forward/);
   assert.doesNotMatch(prompt, /Ignore the background of reference image 2/);
+});
+
+test("cutSubjectOntoPlain keeps masked pixels and paints the rest plain grey", async () => {
+  const frame = await sharp({
+    create: { width: 2, height: 2, channels: 3, background: { r: 200, g: 10, b: 10 } },
+  })
+    .png()
+    .toBuffer();
+  const mask = Uint8Array.from([1, 0, 0, 0]);
+  const cut = await cutSubjectOntoPlain(frame, mask, 2, 2);
+  const { data } = await sharp(cut).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.ok(data[0] > 150 && data[1] < 40);
+  assert.ok(data[4] > 220 && data[5] > 220 && data[6] > 220);
 });
