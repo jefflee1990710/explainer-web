@@ -148,6 +148,29 @@ export type StoryboardClipDraft = {
   sketchElements?: StoryboardSketchElement[];
 };
 
+// Per-clip director, style, cast, and voice overrides when a clip or appended video
+// is created with settings different from the parent Project.
+export type ClipDirectorOverrides = {
+  skillId?: ObjectId | string;
+  skillSlug?: string;
+  styleId?: string;
+  cast?: CastMember[];
+  products?: ProductShot[];
+  language?: VoLanguage;
+  narrationEnabled?: boolean;
+  voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
+  sceneTextEnabled?: boolean;
+  sceneTextLanguage?: SceneTextChoice;
+  directorBackgroundId?: string;
+  backgroundImageUrls?: string[];
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
+  logoUrl?: string;
+};
+
+export type ClipAppendMode = "single_clip" | "full_video";
+
 export type StoryboardRow = {
   clipNumber: number;
   timeRange: string;
@@ -168,6 +191,22 @@ export type StoryboardRow = {
   referenceImageIds?: string[];
   // Per-clip visual style override for multi-style directors (e.g., style-switch-director).
   styleId?: string;
+  // Per-clip director, cast, product, voice, and background overrides.
+  skillId?: ObjectId | string;
+  skillSlug?: string;
+  cast?: CastMember[];
+  products?: ProductShot[];
+  language?: VoLanguage;
+  narrationEnabled?: boolean;
+  voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
+  sceneTextEnabled?: boolean;
+  sceneTextLanguage?: SceneTextChoice;
+  directorBackgroundId?: string;
+  backgroundImageUrls?: string[];
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
+  logoUrl?: string;
   // Director's choice: attach this clip's start still when drawing the end.
   // Absent on older videos and after a user edits the camera text.
   endUsesStartStill?: boolean;
@@ -341,6 +380,12 @@ export type ClipAppendStatus = "queued" | "writing" | "failed";
 export type ClipAppend = {
   id: string;
   content: string;
+  spokenScript?: string;
+  mode?: ClipAppendMode;
+  durationPreset?: DurationPreset;
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
+  overrides?: ClipDirectorOverrides;
   // 1-based slot on the storyboard at enqueue time. Later inserts shift this.
   insertAt: number;
   status: ClipAppendStatus;
@@ -529,6 +574,25 @@ const frameRevisionSchema = z.object({
   annotatedUrl: z.string().optional(),
 });
 
+const clipDirectorOverridesSchema = z.object({
+  skillId: z.union([objectIdSchema, z.string()]).optional(),
+  skillSlug: z.string().optional(),
+  styleId: z.string().optional(),
+  cast: z.array(castMemberSchema).optional(),
+  products: z.array(productShotSchema).optional(),
+  language: z.enum(VO_LANGUAGE_IDS).optional(),
+  narrationEnabled: z.boolean().optional(),
+  voiceGender: z.enum(["male", "female"]).optional(),
+  speechPace: z.enum(["slow", "medium", "fast"]).optional(),
+  sceneTextEnabled: z.boolean().optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
+  directorBackgroundId: z.string().optional(),
+  backgroundImageUrls: z.array(z.string()).optional(),
+  talkingHeadBackgroundId: z.string().optional(),
+  talkingHeadPoseId: z.string().optional(),
+  logoUrl: z.string().optional(),
+});
+
 const storyboardRowSchema = z.object({
   clipNumber: z.number(),
   timeRange: z.string(),
@@ -545,6 +609,21 @@ const storyboardRowSchema = z.object({
   bgmSfx: z.string(),
   referenceImageIds: z.array(z.string()).optional(),
   styleId: z.string().optional(),
+  skillId: z.union([objectIdSchema, z.string()]).optional(),
+  skillSlug: z.string().optional(),
+  cast: z.array(castMemberSchema).optional(),
+  products: z.array(productShotSchema).optional(),
+  language: z.enum(VO_LANGUAGE_IDS).optional(),
+  narrationEnabled: z.boolean().optional(),
+  voiceGender: z.enum(["male", "female"]).optional(),
+  speechPace: z.enum(["slow", "medium", "fast"]).optional(),
+  sceneTextEnabled: z.boolean().optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
+  directorBackgroundId: z.string().optional(),
+  backgroundImageUrls: z.array(z.string()).optional(),
+  talkingHeadBackgroundId: z.string().optional(),
+  talkingHeadPoseId: z.string().optional(),
+  logoUrl: z.string().optional(),
   editedAt: z.string().optional(),
   endUsesStartStill: z.boolean().optional(),
   backgroundSetId: z.string().optional(),
@@ -743,6 +822,12 @@ export const projectSchema: z.ZodType<Project> = z.object({
       z.object({
         id: z.string(),
         content: z.string(),
+        spokenScript: z.string().optional(),
+        mode: z.enum(["single_clip", "full_video"]).optional(),
+        durationPreset: z.enum(DURATION_PRESET_IDS).optional(),
+        uploadedVoUrl: z.string().optional(),
+        uploadedVoDurationSeconds: z.number().optional(),
+        overrides: clipDirectorOverridesSchema.optional(),
         insertAt: z.number(),
         status: z.enum(["queued", "writing", "failed"]),
         error: z.string().optional(),

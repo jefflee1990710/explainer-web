@@ -414,6 +414,53 @@ function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneCha
   }));
 }
 
+function toHexId(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (
+    value &&
+    typeof value === "object" &&
+    "toHexString" in value &&
+    typeof (value as { toHexString: unknown }).toHexString === "function"
+  ) {
+    return (value as { toHexString(): string }).toHexString();
+  }
+  return String(value ?? "");
+}
+
+// Convert any ObjectId instances inside per-clip overrides so PublicVideo stays plain-JSON safe.
+function serializePhaseA(phaseA: Project["phaseA"]): Project["phaseA"] {
+  if (!phaseA) return undefined;
+  return {
+    ...phaseA,
+    clips: phaseA.clips.map((clip) => ({
+      ...clip,
+      ...(clip.skillId !== undefined ? { skillId: toHexId(clip.skillId) } : {}),
+      ...(clip.cast
+        ? {
+            cast: clip.cast.map((member) => ({
+              ...member,
+              characterId: toHexId(member.characterId) as unknown as typeof member.characterId,
+              ...(member.versionId !== undefined
+                ? { versionId: toHexId(member.versionId) as unknown as typeof member.versionId }
+                : {}),
+              ...(member.presetId !== undefined
+                ? { presetId: toHexId(member.presetId) as unknown as typeof member.presetId }
+                : {}),
+            })),
+          }
+        : {}),
+      ...(clip.products
+        ? {
+            products: clip.products.map((item) => ({
+              ...item,
+              productId: toHexId(item.productId) as unknown as typeof item.productId,
+            })),
+          }
+        : {}),
+    })),
+  };
+}
+
 export function toPublicVideo(video: Project): PublicVideo {
   const sceneText = resolveSceneText(video);
   return {
@@ -476,7 +523,7 @@ export function toPublicVideo(video: Project): PublicVideo {
       blueprintUrl: item.blueprintUrl,
     })),
     status: normalizeProjectStatus(video.status),
-    phaseA: video.phaseA,
+    phaseA: serializePhaseA(video.phaseA),
     frames: video.frames || [],
     clips: video.clips,
     sceneChats: toPublicSceneChats(video.sceneChats),
