@@ -337,16 +337,11 @@ export function AppendDirectorDialog({
       return;
     }
     setLocalError("");
-    const effectiveContent = talkingHead
-      ? mode === "add-clip"
-        ? spokenScript.trim() || source.trim()
-        : source.trim()
-      : source.trim();
 
     onConfirm({
       mode: mode === "add-video" ? "full_video" : "single_clip",
-      content: effectiveContent,
-      spokenScript: talkingHead ? spokenScript.trim() || undefined : undefined,
+      content: source.trim(),
+      spokenScript: talkingHead ? spokenScript.trim() : undefined,
       afterClipNumber:
         mode === "add-video" ? lastOption?.clipNumber : chosenAfter?.clipNumber,
       skillSlug,

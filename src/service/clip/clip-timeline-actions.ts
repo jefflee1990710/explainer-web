@@ -302,7 +302,7 @@ export async function appendDirectorClipAction(
     let spokenScript = rawSpokenScript;
 
     if (talkingHead) {
-      const spokenText = (rawSpokenScript ?? rawContent).trim();
+      const spokenText = rawSpokenScript !== undefined ? rawSpokenScript : rawContent;
       if (!spokenText && !uploadedVoUrl) {
         return {
           ok: false,
@@ -319,10 +319,8 @@ export async function appendDirectorClipAction(
       if (rawContent.length > maxContentLength) {
         return { ok: false, error: "內容過長" };
       }
-      if (mode === "single_clip" && !content) {
-        content = spokenText;
-      }
-      spokenScript = spokenText || undefined;
+      content = rawSpokenScript !== undefined ? rawContent : "";
+      spokenScript = spokenText;
     } else {
       if (!content) return { ok: false, error: "請輸入這一段的內容" };
       if (content.length > maxContentLength) return { ok: false, error: "內容過長" };
@@ -332,7 +330,7 @@ export async function appendDirectorClipAction(
     const job: ClipAppend = {
       id: randomUUID(),
       content,
-      ...(spokenScript ? { spokenScript } : {}),
+      ...(spokenScript !== undefined ? { spokenScript } : {}),
       mode,
       ...(input.durationPreset && isDurationPreset(input.durationPreset)
         ? { durationPreset: input.durationPreset }
@@ -540,7 +538,12 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
       skill,
       style,
       source: job.content,
-      spokenScript: job.spokenScript ?? (talkingHead ? job.content : project.spokenScript),
+      spokenScript:
+        job.spokenScript !== undefined
+          ? job.spokenScript
+          : talkingHead && !job.uploadedVoUrl
+            ? job.content
+            : project.spokenScript,
       aspectRatio: project.aspectRatio,
       durationPreset: job.durationPreset || "auto",
       language,
@@ -600,7 +603,7 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
       language,
       speechPace,
       aspectRatio: project.aspectRatio,
-      source: project.source,
+      source: talkingHead ? job.content || project.source : project.source,
       spokenScript: job.spokenScript ?? project.spokenScript,
       phaseA: project.phaseA,
       referenceImages: project.referenceImages,
@@ -611,7 +614,11 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
       uploadedVoUrl: job.uploadedVoUrl,
       uploadedVoDurationSeconds: job.uploadedVoDurationSeconds,
       cast,
-      content: job.spokenScript || job.content,
+      content: talkingHead
+        ? job.spokenScript !== undefined
+          ? job.spokenScript
+          : job.content
+        : job.content,
       insertAt: job.insertAt,
       subtitleOverlay: plateOverlay,
       noText: !resolveSceneText({
@@ -654,7 +661,7 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
   if (!inserted.ok) throw new Error(inserted.error);
   const now = new Date();
   const shiftsLaterClips = insertAt <= fresh.phaseA.clips.length;
-  const appendedSpoken = job.spokenScript || job.content;
+  const appendedSpoken = job.spokenScript !== undefined ? job.spokenScript : job.content;
   const wrote = await videos.updateOne(
     { _id: fresh._id, clerkUserId: fresh.clerkUserId, clipAppendLockToken: token },
     {
