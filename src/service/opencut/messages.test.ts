@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { canApplyClipJutsu } from "@/opencut/embed/scro-video-jutsu-actions";
 import { createScroOpenCutHost } from "@/service/opencut/host-channel";
 import { isEditorToHostMessage } from "@/service/opencut/messages";
 
@@ -48,5 +49,44 @@ describe("opencut bridge messages", () => {
 
     unsubEditor();
     unsubScro();
+  });
+
+  it("enables clip Scro Swap and Teleport only when clip stage is video_ready with a videoUrl", () => {
+    assert.equal(canApplyClipJutsu(null), false);
+    assert.equal(
+      canApplyClipJutsu({ stage: "frames_ready", videoUrl: "https://blob/c1.mp4" }),
+      false,
+    );
+    assert.equal(
+      canApplyClipJutsu({ stage: "video_generating", videoUrl: "https://blob/c1.mp4" }),
+      false,
+    );
+    assert.equal(canApplyClipJutsu({ stage: "video_ready", videoUrl: "" }), false);
+    assert.equal(
+      canApplyClipJutsu({ stage: "video_ready", videoUrl: "https://blob/c1.mp4" }),
+      true,
+    );
+  });
+
+  it("delivers scro-open-ai messages for scro-swap and teleport", () => {
+    const host = createScroOpenCutHost();
+    const received: unknown[] = [];
+    const unsub = host.subscribeScro((msg) => received.push(msg));
+
+    host.postToScro({
+      type: "scro-open-ai",
+      videoId: "vid-1",
+      clipNumber: 2,
+      kind: "scro-swap",
+    });
+    host.postToScro({
+      type: "scro-open-ai",
+      videoId: "vid-1",
+      clipNumber: 2,
+      kind: "teleport",
+    });
+
+    assert.equal(received.length, 2);
+    unsub();
   });
 });

@@ -3,6 +3,7 @@
 import { ScroClipTextField } from "@/opencut/embed/scro-clip-text-field";
 import { ScroSceneEditInput } from "@/opencut/embed/scro-scene-edit-input";
 import { ScroVideoAiEntry } from "@/opencut/embed/scro-video-ai-entry";
+import { ScroVideoJutsuActions } from "@/opencut/embed/scro-video-jutsu-actions";
 import { ScroVideoPrimaryActions } from "@/opencut/embed/scro-video-primary-actions";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
@@ -94,6 +95,7 @@ export function ScroVideoProperties({
 					<div className="space-y-3 px-3.5 py-3">
 						<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
 						<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
+						<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />
 					</div>
 					<div className="px-3.5 py-3">
 						<Detail clip={clip} />

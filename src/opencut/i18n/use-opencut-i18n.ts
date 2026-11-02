@@ -481,6 +481,27 @@ export function getOpencutMessages(locale?: string | null) {
 			renderingVideo: pick({ en: "Generating video…", zhHant: "正在產生影片…", zhHans: "正在生成视频…", ja: "動画を生成中…", ko: "동영상 생성 중…" }),
 			queuedVideo: pick({ en: "Queued video…", zhHant: "影片排隊中…", zhHans: "视频排队中…", ja: "動画キュー待機中…", ko: "동영상 대기열…" }),
 			cancelQueuedVideo: pick({ en: "Cancel queued video", zhHant: "取消排隊中嘅影片", zhHans: "取消排队中的视频", ja: "待機中の動画をキャンセル", ko: "대기 중인 동영상 취소" }),
+			relocateOrSwap: pick({
+				en: "Character & Scene",
+				zhHant: "換角與換場",
+				zhHans: "换角与换场",
+				ja: "キャラ・背景変更",
+				ko: "캐릭터 및 배경 변경",
+			}),
+			scroSwap: pick({
+				en: "Scro Swap",
+				zhHant: "Scro Swap 換角",
+				zhHans: "Scro Swap 换角",
+				ja: "Scro Swap",
+				ko: "Scro Swap",
+			}),
+			teleport: pick({
+				en: "Teleport",
+				zhHant: "Teleport 換場",
+				zhHans: "Teleport 换场",
+				ja: "Teleport",
+				ko: "Teleport",
+			}),
 			stageLabels: {
 				awaiting_frames: pick({ en: "Waiting for stills", zhHant: "等待場景圖", zhHans: "等待场景图", ja: "静止画待ち", ko: "스틸 대기 중" }),
 				frames_generating: pick({ en: "Drawing stills", zhHant: "繪製場景圖中", zhHans: "绘制场景图中", ja: "静止画を描画中", ko: "스틸 그리는 중" }),

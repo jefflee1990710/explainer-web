@@ -132,12 +132,12 @@ export type ScroClipActionMessage = {
   action: "generate-frames" | "generate-video" | "cancel-video";
 };
 
-/** Editor → host: open FrameEdit on the page shell. */
+/** Editor → host: open FrameEdit, SceneChat, Scro Swap, or Teleport on the page shell. */
 export type ScroOpenAiMessage = {
   type: "scro-open-ai";
   videoId: string;
   clipNumber: number;
-  kind: "scene-chat" | "frame-edit";
+  kind: "scene-chat" | "frame-edit" | "scro-swap" | "teleport";
   position?: FramePosition;
 };
 
