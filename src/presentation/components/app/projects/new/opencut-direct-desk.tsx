@@ -44,7 +44,14 @@ import {
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { FramePosition, FrameRevisionInput } from "@/model/project";
-import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
+import type {
+  PublicCharacter,
+  PublicProduct,
+  PublicSkill,
+  PublicStyle,
+  PublicTextStyle,
+  PublicVideo,
+} from "@/presentation/serialize";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { OpenCutEditorLoading } from "@/presentation/components/app/projects/new/opencut-editor-loading";
 import {
@@ -84,10 +91,18 @@ export type OpenCutProductionHandlers = {
 // Video tab: OpenCut runs in this page, not inside an iframe.
 export function OpenCutDirectDesk({
   project,
+  skills = [],
+  styles = [],
+  characters = [],
+  products = [],
   textStyles,
   production,
 }: {
   project: PublicVideo;
+  skills?: PublicSkill[];
+  styles?: PublicStyle[];
+  characters?: PublicCharacter[];
+  products?: PublicProduct[];
   textStyles: PublicTextStyle[];
   production?: OpenCutProductionHandlers;
 }) {
@@ -536,7 +551,12 @@ export function OpenCutDirectDesk({
       {production ? (
         <OpenCutScroToolbar
           project={project}
+          skills={skills}
+          styles={styles}
+          characters={characters}
+          products={products}
           credits={production.credits}
+          subscribed={production.subscribed}
           pending={production.pending}
           checkedClipNumbers={checkedClipNumbers}
           selectedClipNumber={selectedClipNumber}

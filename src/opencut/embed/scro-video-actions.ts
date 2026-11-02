@@ -2,7 +2,7 @@ import { scroEmbedParentOrigin } from "@/opencut/embed/scro-embed-parent";
 import { sendToScro } from "@/opencut/embed/scro-transport";
 import type { FramePosition } from "@/model/project";
 
-export type ScroClipMenuAction = "remaining" | "scenes" | "clips" | "add";
+export type ScroClipMenuAction = "remaining" | "scenes" | "clips" | "add" | "add-video";
 
 /** Ask the Scro host to open a clip toolbar action (finish, frames, videos, add, delete). */
 export function requestScroClipMenu({

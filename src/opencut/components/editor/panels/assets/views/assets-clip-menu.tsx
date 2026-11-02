@@ -94,6 +94,13 @@ function AssetsClipMenuButton({
 				>
 					{t("production.filmstrip.addClip")}
 				</DropdownMenuItem>
+				<DropdownMenuItem
+					icon={<AddClipIcon className="h-4 w-4" />}
+					disabled={!idle}
+					onSelect={() => run("add-video")}
+				>
+					{t("production.filmstrip.addVideo")}
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

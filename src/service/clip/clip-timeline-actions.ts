@@ -586,12 +586,12 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
                 ...project.phaseA,
                 clips: [
                   ...project.phaseA.clips,
-                  attachClipOverrides({ clipNumber: job.insertAt } as StoryboardRow, job.overrides),
+                  attachClipOverrides({ clipNumber: 0 } as StoryboardRow, job.overrides),
                 ],
               },
             },
             job.insertAt - 1,
-            job.insertAt,
+            0,
           )
         : false;
     const draftedSingle = await draftAppendedClips({

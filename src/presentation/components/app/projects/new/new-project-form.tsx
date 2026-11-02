@@ -2287,6 +2287,10 @@ export function NewProjectForm({
             <OpenCutVideoDesk
               key={project.id}
               project={project}
+              skills={skills}
+              styles={styles}
+              characters={characters}
+              products={products}
               textStyles={textStyles}
               production={{
                 credits: walletCredits,
