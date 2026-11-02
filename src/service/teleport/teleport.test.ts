@@ -149,3 +149,53 @@ test("cutSubjectOntoPlain keeps masked pixels and paints the rest plain grey", a
   assert.ok(data[0] > 150 && data[1] < 40);
   assert.ok(data[4] > 220 && data[5] > 220 && data[6] > 220);
 });
+
+import { ObjectId } from "mongodb";
+import { teleportTask } from "@/service/generation/task-list";
+
+test("teleportTask lists rendering and completed jobs on /app/teleport", () => {
+  const now = Date.now();
+  const id = new ObjectId();
+  const rendering = teleportTask(
+    {
+      _id: id,
+      userId: new ObjectId(),
+      clerkUserId: "u1",
+      status: "rendering",
+      sourceVideoUrl: "https://blob.test/src.mp4",
+      aspectRatio: "9:16",
+      sectionStart: 0,
+      sectionLength: 6,
+      scenePrompt: "雨夜咖啡館\n忽略",
+      createdAt: new Date(now - 5000),
+      updatedAt: new Date(now - 1000),
+    },
+    now,
+  );
+  assert.equal(rendering?.kind, "teleport");
+  assert.equal(rendering?.stage, "generating");
+  assert.equal(rendering?.title, "雨夜咖啡館");
+  assert.equal(rendering?.detailKey, "tasksPage.detail.teleport");
+  assert.equal(rendering?.href, "/app/teleport");
+
+  const done = teleportTask(
+    {
+      _id: id,
+      userId: new ObjectId(),
+      clerkUserId: "u1",
+      status: "completed",
+      sourceVideoUrl: "https://blob.test/src.mp4",
+      aspectRatio: "9:16",
+      sectionStart: 0,
+      sectionLength: 6,
+      outputVideoUrl: "https://blob.test/out.mp4",
+      preparedStartFrameUrl: "https://blob.test/start.webp",
+      createdAt: new Date(now - 5000),
+      updatedAt: new Date(now - 1000),
+    },
+    now,
+  );
+  assert.equal(done?.stage, "done");
+  assert.equal(done?.title, "Teleport");
+  assert.equal(done?.previewUrl, "https://blob.test/out.mp4");
+});

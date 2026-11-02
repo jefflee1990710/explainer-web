@@ -36,6 +36,7 @@ export const tasksPageZhHant = {
     reelDownload: "5/5 · 成片合成 · 下載第 {current} / {total} 段",
     reelJoin: "5/5 · 成片合成 · 接上第 {current} / {total} 段",
     scroSwap: "Scro Swap · 角色動作遷移",
+    teleport: "Teleport · 換場",
   },
   doneToast: "{detail} 完成",
   failedToast: "{detail} 失敗",

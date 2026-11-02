@@ -36,6 +36,7 @@ export const tasksPageEn = {
     reelDownload: "5/5 · Final reel · downloading clip {current} of {total}",
     reelJoin: "5/5 · Final reel · joining clip {current} of {total}",
     scroSwap: "Scro Swap · Character Motion Swap",
+    teleport: "Teleport · Scene relocate",
   },
   doneToast: "{detail} is ready",
   failedToast: "{detail} failed",
