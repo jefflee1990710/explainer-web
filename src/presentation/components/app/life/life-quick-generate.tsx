@@ -34,7 +34,9 @@ export function LifeQuickGenerate({
         {error ? (
           <p className="text-[11px] font-semibold text-red-600">{error}</p>
         ) : (
-          <p className="text-[11px] text-muted">{t("life.uploadHint")}</p>
+          <p className="text-[11px] text-muted">
+            用目前 LOOK 出圖 · Generate uses your current look
+          </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <button
