@@ -8,6 +8,19 @@ import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 
+/** Parse the start field; empty or invalid text falls back to 0, never below 0. */
+function clampStart(text: string): number {
+  const n = Number(text);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+/** Parse the length field; empty or invalid text falls back to 6, clamped to 2–15. */
+function clampLength(text: string): number {
+  const n = Number(text);
+  if (text.trim() === "" || !Number.isFinite(n)) return 6;
+  return Math.min(15, Math.max(2, n));
+}
+
 /** Modal for creating a Teleport job: source clip, section, scene still and/or prompt. */
 export function TeleportCreateDialog({
   onCreated,
@@ -22,8 +35,9 @@ export function TeleportCreateDialog({
 
   const [sourceVideoUrl, setSourceVideoUrl] = useState("");
   const [sourceUploadProgress, setSourceUploadProgress] = useState<number | null>(null);
-  const [sectionStart, setSectionStart] = useState(0);
-  const [sectionLength, setSectionLength] = useState(6);
+  // Raw input text so typing is not clamped per keystroke; clamped on blur and submit.
+  const [startText, setStartText] = useState("0");
+  const [lengthText, setLengthText] = useState("6");
   const [sceneImageUrl, setSceneImageUrl] = useState("");
   const [scenePrompt, setScenePrompt] = useState("");
   const [keepSourceAudio, setKeepSourceAudio] = useState(true);
@@ -48,6 +62,10 @@ export function TeleportCreateDialog({
   async function onSubmit() {
     if (!canSubmit) return;
     setError("");
+    const sectionStart = clampStart(startText);
+    const sectionLength = clampLength(lengthText);
+    setStartText(String(sectionStart));
+    setLengthText(String(sectionLength));
     setSubmitting(true);
     try {
       const res = await startTeleportJobAction({
@@ -148,12 +166,6 @@ export function TeleportCreateDialog({
                   src={sourceVideoUrl}
                   controls
                   playsInline
-                  onLoadedMetadata={(e) => {
-                    const dur = e.currentTarget.duration;
-                    if (!Number.isFinite(dur) || dur <= 0) return;
-                    setSectionStart(0);
-                    setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
-                  }}
                   className="max-h-52 w-full rounded-lg bg-black object-contain"
                 />
                 <div className="flex flex-col justify-center gap-3">
@@ -166,8 +178,9 @@ export function TeleportCreateDialog({
                       min={0}
                       step={0.5}
                       disabled={submitting}
-                      value={sectionStart}
-                      onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
+                      value={startText}
+                      onChange={(e) => setStartText(e.target.value)}
+                      onBlur={() => setStartText(String(clampStart(startText)))}
                       className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
                     />
                   </label>
@@ -181,10 +194,9 @@ export function TeleportCreateDialog({
                       max={15}
                       step={1}
                       disabled={submitting}
-                      value={sectionLength}
-                      onChange={(e) =>
-                        setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
-                      }
+                      value={lengthText}
+                      onChange={(e) => setLengthText(e.target.value)}
+                      onBlur={() => setLengthText(String(clampLength(lengthText)))}
                       className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
                     />
                   </label>
