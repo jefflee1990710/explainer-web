@@ -5,6 +5,7 @@ import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipelin
 import { failJob, runJobById } from "@/service/generation/task-runner";
 import { MAX_SUBMIT_ATTEMPTS, PROVIDER_TIMEOUT_MS, providerTimedOut } from "@/service/generation/task-policy";
 import { advanceJutsuJobs } from "@/service/jutsu/pipeline";
+import { advanceTeleportJobs } from "@/service/teleport/pipeline";
 import { recoverStaleReel } from "@/service/reel/enqueue";
 import type { GenerationJob } from "@/model/generation-job";
 
@@ -32,6 +33,9 @@ export function jobNeedsResend(
 export async function advanceOwnedJobs(clerkUserId: string) {
   await advanceJutsuJobs(clerkUserId).catch((error) => {
     console.error("[scro-swap] advance failed", { clerkUserId, error });
+  });
+  await advanceTeleportJobs(clerkUserId).catch((error) => {
+    console.error("[teleport] advance failed", { clerkUserId, error });
   });
 
   const videos = await videosCollection();

@@ -52,6 +52,12 @@ export function AppShell({
       icon: "styles",
       section: "create",
     },
+    {
+      href: "/app/teleport",
+      label: locale === "en" ? "Teleport" : "Teleport 換場",
+      icon: "room",
+      section: "create",
+    },
     ...(POSTS_FEATURE_ENABLED
       ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "create" as const }]
       : []),
