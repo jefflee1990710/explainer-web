@@ -12,6 +12,14 @@ const TAB_META: Record<
     description: string;
   }
 > = {
+  "post-template": {
+    title: "貼文類型與姿勢",
+    badge: "Post Type & Pose",
+    requiredSummary: "選擇貼文類型 (Post Type)",
+    optionalSummary: "角色姿勢 (Pose)、角色造型、背景場景照片、補充細節說明",
+    description:
+      "以貼文類型作為構圖與氛圍指南；若未上傳背景場景照片，AI 將自動根據貼文類型建構真實場景。",
+  },
   "replace-person": {
     title: "人物替換",
     badge: "Replace Person",
@@ -27,14 +35,6 @@ const TAB_META: Record<
     optionalSummary: "場景融入描述、角色姿勢 (Pose)、角色造型、位置塗鴉標註",
     description:
       "上傳或搜尋一張場景照片，AI 會將所選角色自然融入場景環境中，並匹配現場光影與透視比例。",
-  },
-  "post-template": {
-    title: "貼文類型與姿勢",
-    badge: "Post Type & Pose",
-    requiredSummary: "選擇貼文類型 (Post Type)",
-    optionalSummary: "角色姿勢 (Pose)、角色造型、背景場景照片、補充細節說明",
-    description:
-      "以貼文類型作為構圖與氛圍指南；若未上傳背景場景照片，AI 將自動根據貼文類型建構真實場景。",
   },
 };
 

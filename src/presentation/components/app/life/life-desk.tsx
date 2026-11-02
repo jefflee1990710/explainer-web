@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { lifePostTemplateById } from "@/model/life-post-template";
+import {
+  lifePostTemplateById,
+  pickRandomLifePostTemplateId,
+  QUICK_LIFE_TEMPLATE_ID,
+} from "@/model/life-post-template";
 import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
 import {
   generateLifeCaptionAction,
@@ -14,6 +18,11 @@ import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { LifeCharacterMenu } from "@/presentation/components/app/life/life-character-menu";
 import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
+import { LifeQuickGenerate } from "@/presentation/components/app/life/life-quick-generate";
+import {
+  LifeStudioModeTabs,
+  type LifeStudioMode,
+} from "@/presentation/components/app/life/life-studio-mode-tabs";
 import {
   LifeFormField,
   LifeFormSeparator,
@@ -201,7 +210,9 @@ export function LifeDesk({
   const [characterId, setCharacterId] = useState(first?.id || "");
   const [look, setLook] = useState<LifeLookSelection>(EMPTY_LIFE_LOOK);
   const [dressOpen, setDressOpen] = useState(false);
-  const [createMode, setCreateMode] = useState<LifeCreateMode>("replace-person");
+  // Default to the first tab: Post Type & Pose.
+  const [createMode, setCreateMode] = useState<LifeCreateMode>("post-template");
+  const [studioMode, setStudioMode] = useState<LifeStudioMode>("quick");
   const [place, setPlace] = useState(first?.persona?.city || "");
   // Post-type template and its optional pose/framing reference photo.
   const [templateId, setTemplateId] = useState("");
@@ -581,6 +592,42 @@ export function LifeDesk({
       setShots((current) => [result.shot, ...current]);
       setRecentOpen(true);
       resetCreateForm();
+    } catch {
+      setPending("");
+      setError(t("errors.lifeGenerateFailed"));
+    }
+  }
+
+  async function onQuickGenerate(templateId: string) {
+    if (!character?.ready) {
+      setError(t("life.needBlueprint"));
+      return;
+    }
+    const template = lifePostTemplateById(templateId);
+    if (!template) {
+      setError("找不到貼文類型 (Post Type)");
+      return;
+    }
+    setPending("generate");
+    setError("");
+    try {
+      const result = await generateLifeShotAction({
+        characterId: character.id,
+        createMode: "post-template",
+        place: character.persona?.city || "Scene",
+        kind: template.kind,
+        source: "upload",
+        templateId: template.id,
+        versionId: look.versionId || undefined,
+      });
+      setPending("");
+      if (!result.ok) {
+        setError(translateAppError(result.error, t));
+        if (isCreditGateError(result.error)) setCreditGate(true);
+        return;
+      }
+      setShots((current) => [result.shot, ...current]);
+      setRecentOpen(true);
     } catch {
       setPending("");
       setError(t("errors.lifeGenerateFailed"));
@@ -971,18 +1018,38 @@ export function LifeDesk({
           aria-label={t("life.place")}
           className="flex min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 lg:min-h-0 lg:flex-1"
         >
-          {/* 3-Tab Switcher */}
-          <LifeCreateTabs
-            value={createMode}
+          <LifeStudioModeTabs
+            value={studioMode}
             disabled={pending !== ""}
-            onChange={(nextMode) => {
-              setCreateMode(nextMode);
+            onChange={(next) => {
+              setStudioMode(next);
               setError("");
             }}
           />
 
-          {/* Center Scrollable Form Body */}
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+          {studioMode === "quick" ? (
+            <LifeQuickGenerate
+              disabled={!character?.ready}
+              pending={pending === "generate"}
+              error={error}
+              onGenerate={() => void onQuickGenerate(QUICK_LIFE_TEMPLATE_ID)}
+              onRandom={() =>
+                void onQuickGenerate(pickRandomLifePostTemplateId())
+              }
+            />
+          ) : (
+            <>
+              <LifeCreateTabs
+                value={createMode}
+                disabled={pending !== ""}
+                onChange={(nextMode) => {
+                  setCreateMode(nextMode);
+                  setError("");
+                }}
+              />
+
+              {/* Center Scrollable Form Body */}
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
             {createMode === "replace-person" ? (
               <>
                 <LifeFormField
@@ -1181,34 +1248,36 @@ export function LifeDesk({
                 </LifeFormField>
               </>
             )}
-          </div>
+              </div>
 
-          {/* Bottom Action Dock inside Center Pane */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-accent-ink/10 bg-paper px-4 py-2.5">
-            <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
-              {error ? (
-                <span className="font-semibold text-red-600">{error}</span>
-              ) : (
-                t("life.uploadHint")
-              )}
-            </p>
-            <button
-              type="button"
-              disabled={pending !== "" || !character?.ready}
-              onClick={() => void onGenerate()}
-              className="inline-flex h-10 shrink-0 cursor-pointer items-center rounded-full bg-accent px-5 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {pending === "generate" ? (
-                <Spinner className="mr-2 h-3.5 w-3.5" />
-              ) : null}
-              {pending === "generate"
-                ? "排入背景佇列中..."
-                : t("life.generate")}
-              <span className="ml-2 font-medium opacity-85">
-                · {t("life.cost", { cost: FRAME_COST })}
-              </span>
-            </button>
-          </div>
+              {/* Bottom Action Dock inside Center Pane */}
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-accent-ink/10 bg-paper px-4 py-2.5">
+                <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
+                  {error ? (
+                    <span className="font-semibold text-red-600">{error}</span>
+                  ) : (
+                    t("life.uploadHint")
+                  )}
+                </p>
+                <button
+                  type="button"
+                  disabled={pending !== "" || !character?.ready}
+                  onClick={() => void onGenerate()}
+                  className="inline-flex h-10 shrink-0 cursor-pointer items-center rounded-full bg-accent px-5 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {pending === "generate" ? (
+                    <Spinner className="mr-2 h-3.5 w-3.5" />
+                  ) : null}
+                  {pending === "generate"
+                    ? "排入背景佇列中..."
+                    : t("life.generate")}
+                  <span className="ml-2 font-medium opacity-85">
+                    · {t("life.cost", { cost: FRAME_COST })}
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
         </section>
         </div>
 

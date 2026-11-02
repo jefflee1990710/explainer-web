@@ -189,7 +189,7 @@ export function registerLifeTools({ server, user, apiKey }: Ctx) {
         createMode: z
           .enum(LIFE_CREATE_MODES)
           .optional()
-          .describe("replace-person | scene-place | post-template."),
+          .describe("post-template | replace-person | scene-place."),
         templateId: z
           .string()
           .optional()
