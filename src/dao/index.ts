@@ -36,6 +36,7 @@ export { uxEventsCollection } from "@/dao/ux-events";
 export { poseEditsCollection } from "@/dao/pose-edits";
 export { welcomeCreditGrantsCollection } from "@/dao/welcome-credit-grants";
 export { jutsuJobsCollection } from "@/dao/jutsu-jobs";
+export { teleportJobsCollection } from "@/dao/teleport-jobs";
 
 
 
