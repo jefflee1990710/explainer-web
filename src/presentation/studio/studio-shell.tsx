@@ -1,9 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { BrandMark } from "@/presentation/components/brand-mark";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { RouteTransitionProvider, useRouteTransition } from "@/presentation/studio/route-transition";
 import { StudioNav } from "@/presentation/studio/studio-nav";
+import {
+  hasSeenStudioNavTutorial,
+  StudioNavFeatureDiscovery,
+} from "@/presentation/studio/studio-nav-feature-discovery";
 import { StudioRouteSkeleton } from "@/presentation/studio/studio-route-skeleton";
 
 export type StudioNavSection = "create" | "character" | "assets" | "account";
@@ -80,18 +85,41 @@ function StudioMainSlot({ children }: { children: React.ReactNode }) {
 
 // Icon rail. Hover or keyboard focus expands labels over 200ms.
 function StudioRail({ items, children }: { items: StudioNavItem[]; children: React.ReactNode }) {
+  const [navTourOpen, setNavTourOpen] = useState(false);
+
+  useEffect(() => {
+    if (!hasSeenStudioNavTutorial()) {
+      const timer = window.setTimeout(() => setNavTourOpen(true), 350);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
+
   return (
-    <aside className="group/rail relative z-50 flex h-full w-[72px] shrink-0 flex-col overflow-hidden border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 transition-[width] duration-200 ease-out hover:w-[200px] focus-within:w-[200px]">
-      <div className="mb-2 flex shrink-0 justify-center border-b border-[var(--studio-line)] px-1 pb-3 pt-1 group-hover/rail:justify-start group-focus-within/rail:justify-start">
+    <aside
+      className={`group/rail relative z-50 flex h-full shrink-0 flex-col overflow-hidden border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 transition-[width] duration-200 ease-out hover:w-[200px] focus-within:w-[200px] ${
+        navTourOpen ? "w-[200px]" : "w-[72px]"
+      }`}
+    >
+      <div
+        className={`mb-2 flex shrink-0 border-b border-[var(--studio-line)] px-1 pb-3 pt-1 group-hover/rail:justify-start group-focus-within/rail:justify-start ${
+          navTourOpen ? "justify-start" : "justify-center"
+        }`}
+      >
         <BrandMark
           href="/app"
-          wordClassName="hidden text-xl font-bold tracking-tight group-hover/rail:inline group-focus-within/rail:inline"
+          wordClassName={`text-xl font-bold tracking-tight group-hover/rail:inline group-focus-within/rail:inline ${
+            navTourOpen ? "inline" : "hidden"
+          }`}
         />
       </div>
-      <StudioNav items={items} />
+      <StudioNav items={items} forceExpanded={navTourOpen} />
       <div className="mt-auto flex flex-col items-center gap-2 border-t border-[var(--studio-line)] pt-3 text-sm group-hover/rail:items-stretch group-focus-within/rail:items-stretch">
         {children}
       </div>
+      <StudioNavFeatureDiscovery
+        open={navTourOpen}
+        onClose={() => setNavTourOpen(false)}
+      />
     </aside>
   );
 }

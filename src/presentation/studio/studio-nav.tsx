@@ -10,7 +10,13 @@ const SECTIONS: StudioNavSection[] = ["create", "character", "assets", "account"
 
 // Rail groups follow the work: make something, dress the character, pick assets, then the account.
 // Headings stay for screen readers and appear when the rail expands.
-export function StudioNav({ items }: { items: StudioNavItem[] }) {
+export function StudioNav({
+  items,
+  forceExpanded = false,
+}: {
+  items: StudioNavItem[];
+  forceExpanded?: boolean;
+}) {
   const { t } = useI18n();
   const { activePathname } = useRouteTransition();
   const labels: Record<StudioNavSection, string> = {
@@ -34,17 +40,26 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
             {index > 0 ? (
               <span
                 aria-hidden
-                className="mx-2 mb-1 h-px bg-[var(--studio-line)] group-hover/rail:hidden group-focus-within/rail:hidden"
+                className={`mx-2 mb-1 h-px bg-[var(--studio-line)] group-hover/rail:hidden group-focus-within/rail:hidden ${
+                  forceExpanded ? "hidden" : ""
+                }`}
               />
             ) : null}
             <p
               id={labelId}
-              className="sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
+              className={`px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only ${
+                forceExpanded ? "not-sr-only" : "sr-only"
+              }`}
             >
               {labels[section]}
             </p>
             {group.map((item) => (
-              <StudioNavLink key={item.href} item={item} active={isStudioNavActive(activePathname, item.href)} />
+              <StudioNavLink
+                key={item.href}
+                item={item}
+                active={isStudioNavActive(activePathname, item.href)}
+                forceExpanded={forceExpanded}
+              />
             ))}
           </div>
         );
@@ -53,14 +68,25 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
   );
 }
 
-function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean }) {
+function StudioNavLink({
+  item,
+  active,
+  forceExpanded = false,
+}: {
+  item: StudioNavItem;
+  active: boolean;
+  forceExpanded?: boolean;
+}) {
   return (
     <Link
       href={item.href}
+      data-rail-tour={item.href}
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`group flex min-h-11 cursor-pointer items-center justify-center gap-2.5 rounded-xl px-1.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
+      className={`group flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-1.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
+        forceExpanded ? "justify-start" : "justify-center"
+      } ${
         active
           ? "bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
           : "font-medium text-[var(--studio-ink)] hover:bg-[var(--studio-fill)]"
@@ -73,7 +99,13 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
       >
         <RailIcon name={item.icon} />
       </span>
-      <span className="hidden truncate group-hover/rail:inline group-focus-within/rail:inline">{item.label}</span>
+      <span
+        className={`truncate group-hover/rail:inline group-focus-within/rail:inline ${
+          forceExpanded ? "inline" : "hidden"
+        }`}
+      >
+        {item.label}
+      </span>
       <NavPending />
     </Link>
   );
