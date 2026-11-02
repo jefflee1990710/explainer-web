@@ -378,6 +378,9 @@ async function finalizeTeleportRenderedVideo(
   rawVideoUrl: string,
 ): Promise<{ ok: true; job: PublicTeleportJob }> {
   const res = await fetch(rawVideoUrl);
+  if (!res.ok) {
+    throw new Error(`無法下載渲染影片（HTTP ${res.status}）`);
+  }
   let videoBuf: Buffer = Buffer.from(await res.arrayBuffer());
 
   if (job.applyColorFix !== false) {
@@ -451,7 +454,17 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
       const polled = await pollStatusOnce(job.openRouterStatusUrl);
 
       if (polled.status === "completed" && polled.video?.url) {
-        await finalizeTeleportRenderedVideo(job, polled.video.url);
+        try {
+          await finalizeTeleportRenderedVideo(job, polled.video.url);
+        } catch (error) {
+          // A finalize failure must not leave the job `rendering`; it would block the 12-job poll.
+          console.error("[teleport] finalize failed", { jobId: job._id.toHexString(), error });
+          const msg = error instanceof Error ? error.message : "Teleport 渲染失敗";
+          await col.updateOne(
+            { _id: job._id },
+            { $set: { status: "failed", error: msg, updatedAt: new Date() } },
+          );
+        }
         advanced++;
       } else if (polled.status === "failed" || polled.status === "nsfw") {
         const err = polled.error || "影片渲染失敗";
