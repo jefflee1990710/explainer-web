@@ -319,10 +319,11 @@ export async function prepareJutsuJob(
         const completedVer = [...(charDoc.versions || [])]
           .reverse()
           .find((v) => v.status === "completed" && (v.portraitUrl || v.blueprintUrl));
+        // If caller explicitly passed a preset/historical look URL, keep it.
         donorImageUrl =
+          donorImageUrl ||
           completedVer?.portraitUrl ||
-          completedVer?.blueprintUrl ||
-          donorImageUrl;
+          completedVer?.blueprintUrl;
       }
     }
 
@@ -842,10 +843,11 @@ export async function startScroSwapJob(
         const completedVer = [...(charDoc.versions || [])]
           .reverse()
           .find((v) => v.status === "completed" && (v.portraitUrl || v.blueprintUrl));
+        // If caller explicitly passed a preset/historical look URL, keep it.
         donorImageUrl =
+          donorImageUrl ||
           completedVer?.portraitUrl ||
-          completedVer?.blueprintUrl ||
-          donorImageUrl;
+          completedVer?.blueprintUrl;
       }
     }
 
