@@ -1431,35 +1431,49 @@ export function NewProjectForm({
                   transition={{ duration: 0.25, ease }}
                   className="space-y-4"
                 >
-                  {/* 01 Video type (director) — first choice in Quick Setup */}
+                  {/* 01 Video type (or Talking-head pose directly when in Talking Head mode) */}
                   <div
                     data-tour-id="video-type-card"
                     className="rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
                   >
-                    <Section
-                      step="01"
-                      title={t("brief.section01.title")}
-                      hint={t("brief.section01.hint")}
-                    >
-                      <SkillPicker
-                        skills={skills}
-                        value={skillSlug}
-                        onChange={onSkillChange}
-                        disabled={briefBusy}
-                      />
-                      {talkingHead ? (
-                        <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                      ) : null}
-                    </Section>
-                    {talkingHeadBackground ? (
-                      <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                    {talkingHead ? (
+                      <Section
+                        step="01"
+                        title={t("brief.talkingHeadPose.title")}
+                        hint={t("brief.talkingHeadPose.hint")}
+                      >
                         <TalkingHeadPoseField
                           value={talkingHeadPoseId}
                           onChange={setTalkingHeadPoseId}
                           disabled={briefBusy}
+                          hideHeader
                         />
-                      </div>
-                    ) : null}
+                      </Section>
+                    ) : (
+                      <>
+                        <Section
+                          step="01"
+                          title={t("brief.section01.title")}
+                          hint={t("brief.section01.hint")}
+                        >
+                          <SkillPicker
+                            skills={skills}
+                            value={skillSlug}
+                            onChange={onSkillChange}
+                            disabled={briefBusy}
+                          />
+                        </Section>
+                        {talkingHeadBackground ? (
+                          <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                            <TalkingHeadPoseField
+                              value={talkingHeadPoseId}
+                              onChange={setTalkingHeadPoseId}
+                              disabled={briefBusy}
+                            />
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                     {presetBackgrounds.length > 0 ? (
                       <div className="mt-4 border-t border-accent-ink/10 pt-4">
                         <DirectorBackgroundPicker
@@ -1582,20 +1596,32 @@ export function NewProjectForm({
                         transition={{ duration: 0.25, ease }}
                         className="space-y-4"
                       >
-                        {/* Row 1: Full-width Director Banner Card (Dropdown left, 4-point Director Spec right) — NO Instruction field here in Step 1 */}
+                        {/* Row 1: Director Banner Card (or Talking-head pose card when in Talking Head mode) */}
                         <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                          <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                            <SkillPicker
-                              skills={skills}
-                              value={skillSlug}
-                              onChange={onSkillChange}
-                              disabled={briefBusy}
-                              sideBySideGuide
-                            />
-                            {talkingHead ? (
-                              <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                            ) : null}
-                          </Section>
+                          {talkingHead ? (
+                            <Section
+                              step="01"
+                              title={t("brief.talkingHeadPose.title")}
+                              hint={t("brief.talkingHeadPose.hint")}
+                            >
+                              <TalkingHeadPoseField
+                                value={talkingHeadPoseId}
+                                onChange={setTalkingHeadPoseId}
+                                disabled={briefBusy}
+                                hideHeader
+                              />
+                            </Section>
+                          ) : (
+                            <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
+                              <SkillPicker
+                                skills={skills}
+                                value={skillSlug}
+                                onChange={onSkillChange}
+                                disabled={briefBusy}
+                                sideBySideGuide
+                              />
+                            </Section>
+                          )}
                           {presetBackgrounds.length > 0 ? (
                             <div className="mt-4 border-t border-accent-ink/10 pt-4">
                               <DirectorBackgroundPicker
@@ -1713,8 +1739,8 @@ export function NewProjectForm({
                           ) : null}
                         </div>
 
-                        {/* Talking-head only: framing zoom lives with Style & Cast. */}
-                        {talkingHeadBackground ? (
+                        {/* Non-talking-head with talking-head background still shows framing zoom below. */}
+                        {talkingHeadBackground && !talkingHead ? (
                           <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
                             <TalkingHeadPoseField
                               value={talkingHeadPoseId}

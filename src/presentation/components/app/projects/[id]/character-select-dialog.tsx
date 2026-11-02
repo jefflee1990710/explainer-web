@@ -15,6 +15,8 @@ import type {
   CharacterSelectionMap,
 } from "@/service/character/character-presets";
 
+type LookMode = "presets" | "history";
+
 const RECENT_PRESETS_STORAGE_KEY = "scro:recent-character-presets:v1";
 const MAX_RECENT_PRESETS = 6;
 
@@ -70,6 +72,23 @@ export function defaultSheetForStyle(
   return versions.find((version) => version.id === preferred) ?? versions[0] ?? null;
 }
 
+// Completed historical versions for a character in the given style, newest first.
+export function historyVersionsForCharacterStyle(
+  character: PublicCharacter,
+  styleId?: string,
+): PublicCharacterVersion[] {
+  return [...character.versions]
+    .filter((version) => {
+      const id = version.styleId || character.styleId;
+      return (
+        (!styleId || id === styleId) &&
+        version.status === "completed" &&
+        Boolean(version.blueprintUrl || version.portraitUrl || version.profileUrl)
+      );
+    })
+    .sort((a, b) => b.number - a.number);
+}
+
 // Presets belonging to a character for the current video style.
 export function presetsForCharacterStyle(
   character: PublicCharacter,
@@ -80,7 +99,7 @@ export function presetsForCharacterStyle(
   );
 }
 
-// Modal dialog for selecting characters and their saved blueprint presets during video generation.
+// Modal dialog for selecting characters and their saved blueprint presets / history / ad-hoc outfit changes.
 export function CharacterSelectDialog({
   characters: initialCharacters,
   styleId,
@@ -104,7 +123,8 @@ export function CharacterSelectDialog({
   onCharacterUpdated?: (next: PublicCharacter) => void;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
   const titleId = useId();
   const [overrides, setOverrides] = useState<Record<string, PublicCharacter>>(
     {},
@@ -114,6 +134,12 @@ export function CharacterSelectDialog({
     [initialCharacters, overrides],
   );
   const [managingCharId, setManagingCharId] = useState<string | null>(null);
+  const [activeCharId, setActiveCharId] = useState<string>(
+    () => value[0] || initialCharacters[0]?.id || "",
+  );
+  const [lookModeByChar, setLookModeByChar] = useState<Record<string, LookMode>>(
+    {},
+  );
   const [query, setQuery] = useState("");
   const [recentIds, setRecentIds] = useState<string[]>(() =>
     readRecentPresetIds(),
@@ -196,8 +222,9 @@ export function CharacterSelectDialog({
   const visibleCharacters = useMemo(() => {
     return characters.flatMap((character) => {
       const charPresets = presetsForCharacterStyle(character, styleId);
+      const historyVersions = historyVersionsForCharacterStyle(character, styleId);
       if (!normalizedQuery) {
-        return [{ character, presets: charPresets }];
+        return [{ character, presets: charPresets, historyVersions }];
       }
       const charMatches = character.name
         .toLowerCase()
@@ -213,6 +240,7 @@ export function CharacterSelectDialog({
         {
           character,
           presets: matchingPresets.length > 0 ? matchingPresets : charPresets,
+          historyVersions,
         },
       ];
     });
@@ -221,7 +249,9 @@ export function CharacterSelectDialog({
   function selectCharacterWithOption(
     characterId: string,
     option?: CharacterPresetSelection,
+    closeWhenSingle = true,
   ) {
+    setActiveCharId(characterId);
     const isAlreadySelected = value.includes(characterId);
     const currentSelection = selections[characterId];
     const sameOption =
@@ -232,8 +262,8 @@ export function CharacterSelectDialog({
       setRecentIds(recordRecentPresetId(option.presetId));
     }
 
-    // Clicking the exact same active option toggles the character off.
-    if (isAlreadySelected && sameOption) {
+    // Clicking the exact same active option toggles the character off when multi-select or optional.
+    if (isAlreadySelected && sameOption && (multiple || allowNone)) {
       onChange(value.filter((id) => id !== characterId));
       const nextSelections = { ...selections };
       delete nextSelections[characterId];
@@ -247,7 +277,7 @@ export function CharacterSelectDialog({
       if (option) nextSelections[characterId] = option;
       else delete nextSelections[characterId];
       onSelectionsChange(nextSelections);
-      if (!multiple) onClose();
+      if (!multiple && closeWhenSingle) onClose();
       return;
     }
 
@@ -255,7 +285,7 @@ export function CharacterSelectDialog({
     if (!multiple) {
       onChange([characterId]);
       onSelectionsChange(option ? { [characterId]: option } : {});
-      onClose();
+      if (closeWhenSingle) onClose();
       return;
     }
 
@@ -335,7 +365,7 @@ export function CharacterSelectDialog({
           />
         </div>
 
-        {/* Scrollable Content: Recent Presets + Characters with Available Presets */}
+        {/* Scrollable Content: Recent Presets + Characters (Presets | History | Ad-hoc Change Outfit) */}
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
           {/* Recent Presets Section */}
           {recentPresets.length > 0 ? (
@@ -401,19 +431,26 @@ export function CharacterSelectDialog({
             </section>
           ) : null}
 
-          {/* Character List with Available Presets */}
+          {/* Character List with Presets / History / Ad-hoc Change Outfit */}
           {visibleCharacters.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">
               {t("brief.castPicker.noSearchMatch", { query: query.trim() })}
             </p>
           ) : (
             <div className="space-y-4">
-              {visibleCharacters.map(({ character, presets }) => {
+              {visibleCharacters.map(({ character, presets, historyVersions }) => {
                 const charSelected = value.includes(character.id);
+                const isExpanded =
+                  charSelected ||
+                  activeCharId === character.id ||
+                  visibleCharacters.length === 1;
                 const activeSelection = selections[character.id];
                 const defaultSheet = defaultSheetForStyle(character, styleId);
                 const defaultSelected =
-                  charSelected && !activeSelection?.presetId;
+                  charSelected &&
+                  !activeSelection?.presetId &&
+                  (!activeSelection?.versionId ||
+                    activeSelection.versionId === defaultSheet?.id);
                 const full = !charSelected && multiple && value.length >= max;
                 const defaultThumb =
                   defaultSheet?.portraitUrl ||
@@ -421,139 +458,278 @@ export function CharacterSelectDialog({
                   defaultSheet?.blueprintUrl ||
                   character.previewUrl ||
                   "";
+                const lookMode: LookMode = lookModeByChar[character.id] ?? "presets";
 
                 return (
                   <div
                     key={character.id}
+                    onClick={() => setActiveCharId(character.id)}
                     className={`rounded-2xl border p-4 transition ${
                       charSelected
                         ? "border-accent-ink bg-accent-ink/[0.03] shadow-[4px_4px_0_0_rgba(18,20,28,0.1)]"
-                        : "border-accent-ink/15 bg-white/80"
+                        : "border-accent-ink/15 bg-white/80 hover:border-accent-ink/35"
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        disabled={full}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          setActiveCharId(character.id);
+                          if (!charSelected && defaultSheet) {
+                            selectCharacterWithOption(
+                              character.id,
+                              { versionId: defaultSheet.id },
+                              false,
+                            );
+                          }
+                        }}
+                        className="flex cursor-pointer items-center gap-2.5 text-left"
+                      >
+                        {defaultThumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={defaultThumb}
+                            alt=""
+                            className="h-9 w-9 shrink-0 rounded-full border border-accent-ink/15 object-cover object-top"
+                          />
+                        ) : null}
                         <span className="font-display text-base font-bold text-foreground">
                           {character.name}
                         </span>
-                        <span className="rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-[11px] font-semibold text-muted">
-                          {t("brief.castPicker.availablePresetsTitle", {
-                            n: presets.length,
-                          })}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setManagingCharId(character.id)}
-                        className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-3 py-1 text-xs font-semibold text-foreground transition hover:border-accent-ink"
-                      >
-                        {t("brief.castPicker.linkManage")}
                       </button>
-                    </div>
 
-                    {presets.length === 0 ? (
-                      <p className="mt-1 text-xs text-muted">
-                        {t("brief.castPicker.noPresetsYet")}
-                      </p>
-                    ) : null}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {/* Presets | History tabs */}
+                        <div
+                          role="tablist"
+                          className="inline-flex rounded-full border border-accent-ink/15 bg-paper p-0.5"
+                          onClick={(ev) => ev.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={lookMode === "presets"}
+                            onClick={() => {
+                              setActiveCharId(character.id);
+                              setLookModeByChar((prev) => ({
+                                ...prev,
+                                [character.id]: "presets",
+                              }));
+                            }}
+                            className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
+                              lookMode === "presets"
+                                ? "bg-accent-ink text-lime"
+                                : "text-muted hover:text-foreground"
+                            }`}
+                          >
+                            {isEn
+                              ? `Presets (${1 + presets.length})`
+                              : `預設造型 (${1 + presets.length})`}
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={lookMode === "history"}
+                            onClick={() => {
+                              setActiveCharId(character.id);
+                              setLookModeByChar((prev) => ({
+                                ...prev,
+                                [character.id]: "history",
+                              }));
+                            }}
+                            className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
+                              lookMode === "history"
+                                ? "bg-accent-ink text-lime"
+                                : "text-muted hover:text-foreground"
+                            }`}
+                          >
+                            {isEn
+                              ? `History (${historyVersions.length})`
+                              : `歷史造型 (${historyVersions.length})`}
+                          </button>
+                        </div>
 
-                    {/* Grid of Default Blueprint + Saved Presets for this character */}
-                    <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3">
-                      {/* Default Blueprint Card */}
-                      {defaultSheet ? (
+                        {/* Ad-hoc change outfit */}
                         <button
                           type="button"
-                          disabled={full}
-                          onClick={() =>
-                            selectCharacterWithOption(character.id, {
-                              versionId: defaultSheet.id,
-                            })
-                          }
-                          className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
-                            defaultSelected
-                              ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
-                              : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
-                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setActiveCharId(character.id);
+                            setManagingCharId(character.id);
+                          }}
+                          className="cursor-pointer rounded-full border border-accent-ink bg-lime/65 px-3 py-1 text-xs font-bold text-accent-ink transition hover:bg-lime"
                         >
-                          {defaultThumb ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={defaultThumb}
-                              alt=""
-                              className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
-                            />
-                          ) : null}
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-xs font-bold">
-                              {t("brief.castPicker.defaultLookBadge")}
-                            </span>
-                            <span
-                              className={`mt-0.5 block text-[11px] ${
-                                defaultSelected ? "text-paper/75" : "text-muted"
-                              }`}
-                            >
-                              {character.name}
-                            </span>
-                          </span>
+                          {isEn ? "+ Change outfit" : "+ 臨時換裝"}
                         </button>
-                      ) : null}
+                      </div>
+                    </div>
 
-                      {/* Saved Presets Cards */}
-                      {presets.map((preset) => {
-                        const isPresetSelected =
-                          charSelected &&
-                          activeSelection?.presetId === preset.id;
-                        const thumb =
-                          preset.portraitUrl ||
-                          preset.profileUrl ||
-                          preset.blueprintUrl ||
-                          defaultThumb;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            disabled={full}
-                            onClick={() =>
-                              selectCharacterWithOption(character.id, {
-                                versionId: preset.versionId,
-                                presetId: preset.id,
-                                presetName: preset.name,
-                              })
-                            }
-                            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
-                              isPresetSelected
-                                ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
-                                : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
-                            } disabled:cursor-not-allowed disabled:opacity-50`}
-                          >
-                            {thumb ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={thumb}
-                                alt=""
-                                className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
-                              />
-                            ) : null}
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs font-bold">
-                                {preset.name}
-                              </span>
-                              {preset.editInstruction ? (
+                    {isExpanded ? (
+                      lookMode === "presets" ? (
+                        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+                          {/* Default Blueprint Card */}
+                          {defaultSheet ? (
+                            <button
+                              type="button"
+                              disabled={full}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                selectCharacterWithOption(character.id, {
+                                  versionId: defaultSheet.id,
+                                });
+                              }}
+                              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                                defaultSelected
+                                  ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
+                                  : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                              } disabled:cursor-not-allowed disabled:opacity-50`}
+                            >
+                              {defaultThumb ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={defaultThumb}
+                                  alt=""
+                                  className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                />
+                              ) : null}
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-xs font-bold">
+                                  {t("brief.castPicker.defaultLookBadge")}
+                                </span>
                                 <span
-                                  className={`mt-0.5 block truncate text-[11px] ${
-                                    isPresetSelected
-                                      ? "text-paper/75"
-                                      : "text-muted"
+                                  className={`mt-0.5 block text-[11px] ${
+                                    defaultSelected ? "text-paper/75" : "text-muted"
                                   }`}
                                 >
-                                  {preset.editInstruction}
+                                  {character.name}
                                 </span>
-                              ) : null}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                              </span>
+                            </button>
+                          ) : null}
+
+                          {/* Saved Presets Cards */}
+                          {presets.map((preset) => {
+                            const isPresetSelected =
+                              charSelected &&
+                              activeSelection?.presetId === preset.id;
+                            const thumb =
+                              preset.portraitUrl ||
+                              preset.profileUrl ||
+                              preset.blueprintUrl ||
+                              defaultThumb;
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                disabled={full}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  selectCharacterWithOption(character.id, {
+                                    versionId: preset.versionId,
+                                    presetId: preset.id,
+                                    presetName: preset.name,
+                                  });
+                                }}
+                                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                                  isPresetSelected
+                                    ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
+                                    : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                                } disabled:cursor-not-allowed disabled:opacity-50`}
+                              >
+                                {thumb ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={thumb}
+                                    alt=""
+                                    className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                  />
+                                ) : null}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-xs font-bold">
+                                    {preset.name}
+                                  </span>
+                                  {preset.editInstruction ? (
+                                    <span
+                                      className={`mt-0.5 block truncate text-[11px] ${
+                                        isPresetSelected
+                                          ? "text-paper/75"
+                                          : "text-muted"
+                                      }`}
+                                    >
+                                      {preset.editInstruction}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        /* History Versions Grid */
+                        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+                          {historyVersions.map((ver) => {
+                            const isVerSelected =
+                              charSelected &&
+                              !activeSelection?.presetId &&
+                              activeSelection?.versionId === ver.id;
+                            const thumb =
+                              ver.portraitUrl ||
+                              ver.profileUrl ||
+                              ver.blueprintUrl ||
+                              defaultThumb;
+                            const label = ver.editInstruction
+                              ? ver.editInstruction
+                                  .replace(/\s*Isolated wardrobe piece [\w-]+\.?/gi, "")
+                                  .slice(0, 32)
+                              : isEn
+                                ? `Look #${ver.number}`
+                                : `歷史造型 #${ver.number}`;
+                            return (
+                              <button
+                                key={ver.id}
+                                type="button"
+                                disabled={full}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  selectCharacterWithOption(character.id, {
+                                    versionId: ver.id,
+                                    presetName: label,
+                                  });
+                                }}
+                                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                                  isVerSelected
+                                    ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
+                                    : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                                } disabled:cursor-not-allowed disabled:opacity-50`}
+                              >
+                                {thumb ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={thumb}
+                                    alt=""
+                                    className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                  />
+                                ) : null}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-xs font-bold">
+                                    {label}
+                                  </span>
+                                  <span
+                                    className={`mt-0.5 block truncate text-[11px] ${
+                                      isVerSelected ? "text-paper/75" : "text-muted"
+                                    }`}
+                                  >
+                                    v{ver.number} · {new Date(ver.createdAt).toLocaleDateString()}
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )
+                    ) : null}
                   </div>
                 );
               })}
@@ -567,11 +743,11 @@ export function CharacterSelectDialog({
             <button
               type="button"
               onClick={() =>
-                setManagingCharId(value[0] || characters[0]!.id)
+                setManagingCharId(value[0] || activeCharId || characters[0]!.id)
               }
               className="cursor-pointer text-xs font-semibold text-muted underline underline-offset-4 hover:text-foreground"
             >
-              {t("brief.castPicker.linkManage")}
+              {isEn ? "+ Ad-hoc change outfit / Manage" : "+ 臨時換裝／管理角色造型"}
             </button>
           ) : (
             <span />

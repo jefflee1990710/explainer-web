@@ -14,10 +14,12 @@ export function TalkingHeadPoseField({
   value,
   onChange,
   disabled,
+  hideHeader = false,
 }: {
   value: TalkingHeadPoseId;
   onChange: (id: TalkingHeadPoseId) => void;
   disabled?: boolean;
+  hideHeader?: boolean;
 }) {
   const { t, locale } = useI18n();
   const listboxId = useId();
@@ -44,10 +46,14 @@ export function TalkingHeadPoseField({
 
   return (
     <div>
-      <p className="text-sm font-semibold">{t("brief.talkingHeadPose.title")}</p>
-      <p className="mt-1 text-xs text-muted">{t("brief.talkingHeadPose.hint")}</p>
+      {hideHeader ? null : (
+        <>
+          <p className="text-sm font-semibold">{t("brief.talkingHeadPose.title")}</p>
+          <p className="mt-1 text-xs text-muted">{t("brief.talkingHeadPose.hint")}</p>
+        </>
+      )}
 
-      <div ref={rootRef} className={`relative mt-3 ${open ? "z-30" : ""}`}>
+      <div ref={rootRef} className={`relative ${hideHeader ? "" : "mt-3"} ${open ? "z-30" : ""}`}>
         <button
           type="button"
           id={`${listboxId}-trigger`}
