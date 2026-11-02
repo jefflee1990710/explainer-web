@@ -27,6 +27,8 @@ import {
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
+import { advanceJutsuJobs } from "@/service/jutsu/pipeline";
+import { advanceTeleportJobs } from "@/service/teleport/pipeline";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isProductionLike } from "@/service/project-status";
 import {
@@ -527,6 +529,14 @@ export async function refreshGenerationAction(
     }
 
     // Pending jobs, plus completed ones that never stored a file.
+    await Promise.all([
+      advanceJutsuJobs(clerkUserId).catch((error) => {
+        console.error("[scro-swap] refresh advance failed", { projectId, error });
+      }),
+      advanceTeleportJobs(clerkUserId).catch((error) => {
+        console.error("[teleport] refresh advance failed", { projectId, error });
+      }),
+    ]);
     if (isProductionLike(project.status)) {
       await refreshProjectJobs(id);
     }

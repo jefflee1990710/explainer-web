@@ -8,8 +8,10 @@ import {
   type PublicTeleportJob,
   type TeleportJob,
 } from "@/model/teleport-job";
+import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
   applyJutsuColorGradeBuffer,
   DEFAULT_JUTSU_COLOR_SETTINGS,
@@ -55,15 +57,16 @@ import { blobStoreHost } from "@/service/video-edit/edit-state";
 
 type TeleportJobDoc = TeleportJob & { _id: ObjectId };
 
-/** Seedream 5.0 Pro 9:16 2K still, re-encoded to WebP. */
+/** Seedream 5.0 Pro 2K still, re-encoded to WebP. */
 async function seedreamWebp(input: {
   prompt: string;
+  aspectRatio: AspectRatio;
   referenceImageUrls?: string[];
 }): Promise<Buffer> {
   const res = await submitOpenRouterImage({
     model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
     prompt: input.prompt,
-    aspectRatio: "9:16",
+    aspectRatio: input.aspectRatio,
     resolution: "2k",
     referenceImageUrls: input.referenceImageUrls,
   });
@@ -131,7 +134,7 @@ export async function startTeleportJob(
       clerkUserId: user.clerkUserId,
       status: "rendering",
       sourceVideoUrl: normalized.sourceVideoUrl,
-      aspectRatio: "9:16",
+      aspectRatio: normalized.aspectRatio,
       sectionStart: normalized.sectionStart,
       sectionLength: normalized.sectionLength,
       sceneImageUrl: normalized.sceneImageUrl,
@@ -139,6 +142,13 @@ export async function startTeleportJob(
       scenePlateGenerated: false,
       keepSourceAudio: normalized.keepSourceAudio,
       applyColorFix: normalized.applyColorFix,
+      ...(normalized.targetVideoId && ObjectId.isValid(normalized.targetVideoId)
+        ? { targetVideoId: new ObjectId(normalized.targetVideoId) }
+        : {}),
+      ...(normalized.targetClipNumber ? { targetClipNumber: normalized.targetClipNumber } : {}),
+      ...(normalized.previousClipVideoUrl
+        ? { previousClipVideoUrl: normalized.previousClipVideoUrl }
+        : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -210,7 +220,8 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
           return { sceneImageUrl: job.sceneImageUrl, scenePlateGenerated: false };
         }
         const plate = await seedreamWebp({
-          prompt: buildTeleportScenePlatePrompt(job.scenePrompt ?? ""),
+          prompt: buildTeleportScenePlatePrompt(job.scenePrompt ?? "", job.aspectRatio),
+          aspectRatio: job.aspectRatio,
         });
         const sceneImageUrl = await persistBuffer(
           plate,
@@ -268,10 +279,12 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     const [preparedStart, preparedEnd] = await Promise.all([
       seedreamWebp({
         prompt: startPrompt,
+        aspectRatio: job.aspectRatio,
         referenceImageUrls: [rawStartFrameUrl, scene.sceneImageUrl],
       }),
       seedreamWebp({
         prompt: endPrompt,
+        aspectRatio: job.aspectRatio,
         referenceImageUrls: [rawEndFrameUrl, scene.sceneImageUrl],
       }),
     ]);
@@ -320,12 +333,12 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
             mannequinVideoUrl,
             noLipSync: false,
             durationSeconds,
-            aspectRatio: "9:16",
+            aspectRatio: job.aspectRatio,
           })
         : await submitOpenRouterClipVideo({
             model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
             prompt,
-            aspectRatio: "9:16",
+            aspectRatio: job.aspectRatio,
             durationSeconds,
             startImageUrl: preparedStartFrameUrl,
             endImageUrl: preparedEndFrameUrl || preparedStartFrameUrl,
@@ -369,6 +382,13 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
       { _id: jobId },
       { $set: { status: "failed", error: msg, updatedAt: new Date() } },
     );
+    await settleTargetClipFromEngineJob({
+      targetVideoId: job.targetVideoId,
+      targetClipNumber: job.targetClipNumber,
+      previousClipVideoUrl: job.previousClipVideoUrl,
+      status: "failed",
+      error: msg,
+    });
   }
 }
 
@@ -411,6 +431,14 @@ async function finalizeTeleportRenderedVideo(
     { $set: { status: "completed", outputVideoUrl, error: undefined, updatedAt: now } },
   );
 
+  await settleTargetClipFromEngineJob({
+    targetVideoId: job.targetVideoId,
+    targetClipNumber: job.targetClipNumber,
+    previousClipVideoUrl: job.previousClipVideoUrl,
+    status: "completed",
+    outputVideoUrl,
+  });
+
   safeRevalidate();
   return {
     ok: true,
@@ -442,10 +470,18 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
     try {
       if (!job.openRouterStatusUrl) {
         if (job.createdAt.getTime() < staleCutoff) {
+          const timeoutErr = "Teleport 處理逾時，請重試";
           await col.updateOne(
             { _id: job._id },
-            { $set: { status: "failed", error: "Teleport 處理逾時，請重試", updatedAt: new Date() } },
+            { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
           );
+          await settleTargetClipFromEngineJob({
+            targetVideoId: job.targetVideoId,
+            targetClipNumber: job.targetClipNumber,
+            previousClipVideoUrl: job.previousClipVideoUrl,
+            status: "failed",
+            error: timeoutErr,
+          });
           advanced++;
         }
         continue;
@@ -464,6 +500,13 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
             { _id: job._id },
             { $set: { status: "failed", error: msg, updatedAt: new Date() } },
           );
+          await settleTargetClipFromEngineJob({
+            targetVideoId: job.targetVideoId,
+            targetClipNumber: job.targetClipNumber,
+            previousClipVideoUrl: job.previousClipVideoUrl,
+            status: "failed",
+            error: msg,
+          });
         }
         advanced++;
       } else if (polled.status === "failed" || polled.status === "nsfw") {
@@ -472,12 +515,27 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
           { _id: job._id },
           { $set: { status: "failed", error: err, updatedAt: new Date() } },
         );
+        await settleTargetClipFromEngineJob({
+          targetVideoId: job.targetVideoId,
+          targetClipNumber: job.targetClipNumber,
+          previousClipVideoUrl: job.previousClipVideoUrl,
+          status: "failed",
+          error: err,
+        });
         advanced++;
       } else if (job.createdAt.getTime() < staleCutoff) {
+        const timeoutErr = "Teleport 渲染逾時，請重試";
         await col.updateOne(
           { _id: job._id },
-          { $set: { status: "failed", error: "Teleport 渲染逾時，請重試", updatedAt: new Date() } },
+          { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
         );
+        await settleTargetClipFromEngineJob({
+          targetVideoId: job.targetVideoId,
+          targetClipNumber: job.targetClipNumber,
+          previousClipVideoUrl: job.previousClipVideoUrl,
+          status: "failed",
+          error: timeoutErr,
+        });
         advanced++;
       }
     } catch (error) {
@@ -519,6 +577,13 @@ export async function pollTeleportJobStatus(
         { _id: job._id },
         { $set: { status: "failed", error: err, updatedAt: now } },
       );
+      await settleTargetClipFromEngineJob({
+        targetVideoId: job.targetVideoId,
+        targetClipNumber: job.targetClipNumber,
+        previousClipVideoUrl: job.previousClipVideoUrl,
+        status: "failed",
+        error: err,
+      });
       return {
         ok: true,
         job: toPublicTeleportJob({ ...job, status: "failed", error: err, updatedAt: now }),

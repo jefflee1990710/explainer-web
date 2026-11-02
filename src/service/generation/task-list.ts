@@ -230,6 +230,7 @@ export function scroSwapTask(
         : job.preparedStartFrameUrl || job.rawStartFrameUrl,
     isVideo: true,
     href: "/app/scroswap",
+    videoId: job.targetVideoId?.toHexString(),
     error: stage === "failed" ? job.error : undefined,
     attempts: 0,
     createdAt: job.createdAt.toISOString(),
@@ -259,6 +260,7 @@ export function teleportTask(
         : job.preparedStartFrameUrl || job.sceneImageUrl,
     isVideo: true,
     href: "/app/teleport",
+    videoId: job.targetVideoId?.toHexString(),
     error: stage === "failed" ? job.error : undefined,
     attempts: 0,
     createdAt: job.createdAt.toISOString(),
@@ -352,41 +354,51 @@ export async function listTasks(
 ): Promise<PublicTask[]> {
   const { videoDocs, characters, styles, directors, posts, products } = await ownedScope(clerkUserId, options.videoId);
   const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
-  const swapDocs = options.videoId
-    ? []
-    : ((await (
-        await jutsuJobsCollection()
-      )
-        .find({
-          clerkUserId,
-          $or: [
-            { status: "rendering" },
-            { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
-          ],
-        })
-        .sort({ updatedAt: -1 })
-        .limit(40)
-        .toArray()) as Array<JutsuJob & { _id: ObjectId }>);
+  const targetVideoFilter =
+    options.videoId && ObjectId.isValid(options.videoId)
+      ? { targetVideoId: new ObjectId(options.videoId) }
+      : options.videoId
+        ? null
+        : {};
+  const swapDocs =
+    targetVideoFilter === null
+      ? []
+      : ((await (
+          await jutsuJobsCollection()
+        )
+          .find({
+            clerkUserId,
+            ...targetVideoFilter,
+            $or: [
+              { status: "rendering" },
+              { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
+            ],
+          })
+          .sort({ updatedAt: -1 })
+          .limit(40)
+          .toArray()) as Array<JutsuJob & { _id: ObjectId }>);
   const swapTasks = swapDocs.flatMap((doc) => {
     const t = scroSwapTask(doc);
     return t ? [t] : [];
   });
   // Teleport jobs: same filter, sort, and limit as Scro Swap.
-  const teleportDocs = options.videoId
-    ? []
-    : ((await (
-        await teleportJobsCollection()
-      )
-        .find({
-          clerkUserId,
-          $or: [
-            { status: "rendering" },
-            { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
-          ],
-        })
-        .sort({ updatedAt: -1 })
-        .limit(40)
-        .toArray()) as Array<TeleportJob & { _id: ObjectId }>);
+  const teleportDocs =
+    targetVideoFilter === null
+      ? []
+      : ((await (
+          await teleportJobsCollection()
+        )
+          .find({
+            clerkUserId,
+            ...targetVideoFilter,
+            $or: [
+              { status: "rendering" },
+              { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
+            ],
+          })
+          .sort({ updatedAt: -1 })
+          .limit(40)
+          .toArray()) as Array<TeleportJob & { _id: ObjectId }>);
   const teleportTasks = teleportDocs.flatMap((doc) => {
     const t = teleportTask(doc);
     return t ? [t] : [];

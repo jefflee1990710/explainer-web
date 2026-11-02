@@ -151,7 +151,8 @@ test("cutSubjectOntoPlain keeps masked pixels and paints the rest plain grey", a
 });
 
 import { ObjectId } from "mongodb";
-import { teleportTask } from "@/service/generation/task-list";
+import type { JutsuJob } from "@/model/jutsu-job";
+import { scroSwapTask, teleportTask } from "@/service/generation/task-list";
 
 test("teleportTask lists rendering and completed jobs on /app/teleport", () => {
   const now = Date.now();
@@ -218,4 +219,48 @@ test("normalizeTeleportStart defaults aspectRatio to 9:16 and preserves custom a
   assert.equal(wide.ok && wide.aspectRatio, "16:9");
   assert.equal(wide.ok && wide.targetClipNumber, 3);
   assert.equal(buildTeleportScenePlatePrompt("snowy street", "16:9").includes("16:9"), true);
+});
+
+test("scroSwapTask and teleportTask attach videoId when targetVideoId is set", () => {
+  const now = new Date("2026-11-02T12:00:00.000Z");
+  const targetVideoId = new ObjectId("507f1f77bcf86cd799439012");
+
+  const tTask = teleportTask(
+    {
+      _id: new ObjectId("507f1f77bcf86cd799439011"),
+      userId: new ObjectId("507f1f77bcf86cd799439013"),
+      clerkUserId: "user_1",
+      status: "rendering",
+      sourceVideoUrl: "https://example.public.blob.vercel-storage.com/in.mp4",
+      aspectRatio: "16:9",
+      sectionStart: 0,
+      sectionLength: 6,
+      scenePrompt: "Cyberpunk alley",
+      targetVideoId,
+      targetClipNumber: 2,
+      createdAt: now,
+      updatedAt: now,
+    },
+    now.getTime(),
+  );
+  assert.equal(tTask?.videoId, "507f1f77bcf86cd799439012");
+
+  const sDoc: JutsuJob & { _id: ObjectId } = {
+    _id: new ObjectId("507f1f77bcf86cd799439014"),
+    userId: new ObjectId("507f1f77bcf86cd799439013"),
+    clerkUserId: "user_1",
+    mode: "character_swap",
+    status: "rendering",
+    sourceVideoUrl: "https://example.public.blob.vercel-storage.com/in.mp4",
+    aspectRatio: "16:9",
+    sectionStart: 0,
+    sectionLength: 6,
+    characterName: "Leo",
+    targetVideoId,
+    targetClipNumber: 2,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const sTask = scroSwapTask(sDoc, now.getTime());
+  assert.equal(sTask?.videoId, "507f1f77bcf86cd799439012");
 });

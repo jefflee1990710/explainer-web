@@ -18,6 +18,7 @@ import {
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
   applyJutsuColorGradeBuffer,
   DEFAULT_JUTSU_COLOR_SETTINGS,
@@ -775,6 +776,14 @@ async function finalizeJutsuRenderedVideo(
     },
   );
 
+  await settleTargetClipFromEngineJob({
+    targetVideoId: job.targetVideoId,
+    targetClipNumber: job.targetClipNumber,
+    previousClipVideoUrl: job.previousClipVideoUrl,
+    status: "completed",
+    outputVideoUrl,
+  });
+
   try {
     revalidatePath("/app/scroswap");
   } catch {
@@ -806,6 +815,9 @@ export type StartScroSwapInput = {
   keepSourceAudio?: boolean;
   applyColorFix?: boolean;
   colorSettings?: JutsuColorSettings;
+  targetVideoId?: string;
+  targetClipNumber?: number;
+  previousClipVideoUrl?: string;
 };
 
 /**
@@ -895,6 +907,11 @@ export async function startScroSwapJob(
       keepSourceAudio,
       applyColorFix,
       colorSettings,
+      ...(input.targetVideoId && ObjectId.isValid(input.targetVideoId)
+        ? { targetVideoId: new ObjectId(input.targetVideoId) }
+        : {}),
+      ...(input.targetClipNumber ? { targetClipNumber: input.targetClipNumber } : {}),
+      ...(input.previousClipVideoUrl ? { previousClipVideoUrl: input.previousClipVideoUrl } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -1172,6 +1189,13 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       { _id: jobId },
       { $set: { status: "failed", error: msg, updatedAt: new Date() } },
     );
+    await settleTargetClipFromEngineJob({
+      targetVideoId: job.targetVideoId,
+      targetClipNumber: job.targetClipNumber,
+      previousClipVideoUrl: job.previousClipVideoUrl,
+      status: "failed",
+      error: msg,
+    });
   }
 }
 
@@ -1193,10 +1217,18 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
     try {
       if (!job.openRouterStatusUrl) {
         if (job.createdAt.getTime() < staleCutoff) {
+          const timeoutErr = "Scro Swap 處理逾時，請重試";
           await col.updateOne(
             { _id: job._id },
-            { $set: { status: "failed", error: "Scro Swap 處理逾時，請重試", updatedAt: new Date() } },
+            { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
           );
+          await settleTargetClipFromEngineJob({
+            targetVideoId: job.targetVideoId,
+            targetClipNumber: job.targetClipNumber,
+            previousClipVideoUrl: job.previousClipVideoUrl,
+            status: "failed",
+            error: timeoutErr,
+          });
           advanced++;
         }
         continue;
@@ -1218,12 +1250,27 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
           { _id: job._id },
           { $set: { status: "failed", error: err, updatedAt: new Date() } },
         );
+        await settleTargetClipFromEngineJob({
+          targetVideoId: job.targetVideoId,
+          targetClipNumber: job.targetClipNumber,
+          previousClipVideoUrl: job.previousClipVideoUrl,
+          status: "failed",
+          error: err,
+        });
         advanced++;
       } else if (job.createdAt.getTime() < staleCutoff) {
+        const timeoutErr = "Scro Swap 渲染逾時，請重試";
         await col.updateOne(
           { _id: job._id },
-          { $set: { status: "failed", error: "Scro Swap 渲染逾時，請重試", updatedAt: new Date() } },
+          { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
         );
+        await settleTargetClipFromEngineJob({
+          targetVideoId: job.targetVideoId,
+          targetClipNumber: job.targetClipNumber,
+          previousClipVideoUrl: job.previousClipVideoUrl,
+          status: "failed",
+          error: timeoutErr,
+        });
         advanced++;
       }
     } catch (error) {
@@ -1267,6 +1314,13 @@ export async function pollJutsuJobStatus(
         { _id: job._id },
         { $set: { status: "failed", error: err, updatedAt: now } },
       );
+      await settleTargetClipFromEngineJob({
+        targetVideoId: job.targetVideoId,
+        targetClipNumber: job.targetClipNumber,
+        previousClipVideoUrl: job.previousClipVideoUrl,
+        status: "failed",
+        error: err,
+      });
       return {
         ok: true,
         job: toPublicJutsuJob({ ...job, status: "failed", error: err, updatedAt: now }),
