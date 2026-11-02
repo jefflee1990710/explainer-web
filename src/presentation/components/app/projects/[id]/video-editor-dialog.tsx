@@ -29,6 +29,8 @@ export function VideoEditorDialog({
   objectSheetUrl,
   objectSheetItems,
   backgroundPlates,
+  historyCount,
+  onOpenHistory,
   children,
 }: {
   folderId: string;
@@ -45,9 +47,13 @@ export function VideoEditorDialog({
   objectSheetUrl?: string;
   objectSheetItems?: PublicVideo["objectSheetItems"];
   backgroundPlates?: PublicVideo["backgroundPlates"];
+  historyCount?: number;
+  onOpenHistory?: () => void;
   children: React.ReactNode;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const historyLabel =
+    locale === "zh-Hant" ? "歷史紀錄" : locale === "zh-Hans" ? "历史记录" : "History";
   const titleId = useId();
 
   useEffect(() => {
@@ -119,6 +125,32 @@ export function VideoEditorDialog({
             <span data-opencut-tour="header-more" className="inline-flex">
               <VideoEditorMoreMenu onDelete={onDelete} />
             </span>
+          ) : null}
+          {onOpenHistory ? (
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink"
+              aria-label={historyLabel}
+            >
+              <svg
+                aria-hidden
+                className="h-3.5 w-3.5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span>{historyLabel}</span>
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-accent-ink/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
+                {historyCount ?? 0}
+              </span>
+            </button>
           ) : null}
           <LanguageSwitcher />
           </div>

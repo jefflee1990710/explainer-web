@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
+import { UseCaseHistoryDialog } from "@/presentation/components/app/projects/[id]/use-case-history-dialog";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -14,6 +15,7 @@ import type {
   PublicStyle,
   PublicTextStyle,
   PublicVideo,
+  PublicVideoCard,
 } from "@/presentation/serialize";
 import type { ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderPath } from "@/service/folder-video-path";
@@ -34,6 +36,7 @@ export function VideoEditorWorkspace({
   hasAnyVideo = true,
   initialVideo,
   useCase,
+  historyVideos,
 }: {
   folderId: string;
   folderName: string;
@@ -49,11 +52,13 @@ export function VideoEditorWorkspace({
   initialVideo: PublicVideo | null;
   /** Create use-case: limit SkillPicker to matching system directors. */
   useCase?: VideoUseCase;
+  historyVideos?: PublicVideoCard[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [video, setVideo] = useState(initialVideo);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [stepNav, setStepNav] = useState<EditorStepNav | null>(null);
 
   useEffect(() => {
@@ -131,6 +136,10 @@ export function VideoEditorWorkspace({
         onExport={undefined}
         onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
         onDelete={() => setDeleteOpen(true)}
+        historyCount={historyVideos?.length}
+        onOpenHistory={
+          historyVideos !== undefined ? () => setHistoryOpen(true) : undefined
+        }
       >
         <NewProjectForm
           key={video?.id ?? `new-${useCase || "any"}`}
@@ -158,6 +167,15 @@ export function VideoEditorWorkspace({
             setDeleteOpen(false);
             goToFolder();
           }}
+        />
+      ) : null}
+      {historyVideos !== undefined ? (
+        <UseCaseHistoryDialog
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          useCase={useCase}
+          videos={historyVideos ?? []}
+          folders={folders}
         />
       ) : null}
     </>
