@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { ObjectId } from "mongodb";
 import type { PhaseAProposal, StoryboardRow } from "@/model/project";
+import type { Skill } from "@/model/skill";
+import { attachClipOverrides } from "@/service/clip/clip-context";
 import {
   type ClipOrderProject,
   applyClipOrder,
@@ -10,6 +13,9 @@ import {
   removeClip,
   selectedClipAfterRemoval,
 } from "@/service/clip/clip-order";
+import { draftAppendedClips } from "@/service/director/append-clip";
+import { resolvedStyle } from "@/service/style/load-style";
+import { renderableFromSystem } from "@/service/style/renderable-style";
 
 function row(clipNumber: number, seconds = 5): StoryboardRow {
   return {
@@ -273,4 +279,94 @@ test("a project with no plates stays without plates", () => {
   const result = applyClipOrder({ phaseA: proposal(), clips: [] } as ClipOrderProject, [2, 1]);
   assert.equal(result.ok, true);
   if (result.ok) assert.equal(result.project.subtitlePlates, undefined);
+});
+
+test("insertClips appends multiple clips with per-clip overrides and updates clipNumber and timeRange", () => {
+  const castMember = {
+    characterId: new ObjectId(),
+    versionId: new ObjectId(),
+    name: "Leo",
+    blueprintUrl: "https://blob/leo.png",
+    prompt: "Casual blazer",
+  };
+  const overrides = {
+    skillSlug: "talking-head-director",
+    styleId: "realistic",
+    cast: [castMember],
+  };
+  const drafted = [
+    attachClipOverrides(row(1, 6), overrides),
+    attachClipOverrides(row(2, 8), overrides),
+  ];
+  const result = insertClips(
+    {
+      phaseA: proposal(),
+      clips: [
+        { clipNumber: 1, durationSeconds: 5, prompt: "a", status: "completed" as const },
+        { clipNumber: 2, durationSeconds: 5, prompt: "b", status: "completed" as const },
+      ],
+    },
+    drafted,
+    3,
+    { language: "en" },
+  );
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.project.phaseA?.clipCount, 4);
+  assert.equal(result.project.phaseA?.targetDuration, "24s");
+  assert.deepEqual(
+    result.project.phaseA?.clips.map((clip) => [
+      clip.clipNumber,
+      clip.timeRange,
+      clip.skillSlug ?? null,
+      clip.styleId ?? null,
+      clip.cast?.[0]?.name ?? null,
+    ]),
+    [
+      [1, "0–5s", null, null, null],
+      [2, "5–10s", null, null, null],
+      [3, "10–16s", "talking-head-director", "realistic", "Leo"],
+      [4, "16–24s", "talking-head-director", "realistic", "Leo"],
+    ],
+  );
+});
+
+test("draftAppendedClips only inherits previous endScene when shareContinuity is true", async () => {
+  const phaseA = proposal();
+  phaseA.clips[1].endScene = "Inherited studio desk end scene.";
+  const talkingHeadSkill = {
+    _id: new ObjectId(),
+    slug: "talking-head-director",
+    title: "Talking Head",
+    description: "Talking head",
+    systemPrompt: "prompt",
+    references: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as unknown as Skill;
+  const realisticStyle = renderableFromSystem(resolvedStyle("realistic"));
+
+  const withContinuity = await draftAppendedClips({
+    skill: talkingHeadSkill,
+    style: realisticStyle,
+    aspectRatio: "9:16",
+    source: "Warm studio",
+    phaseA,
+    content: "Hello world.",
+    insertAt: 3,
+    shareContinuity: true,
+  });
+  assert.equal(withContinuity[0]?.startScene, "Inherited studio desk end scene.");
+
+  const withoutContinuity = await draftAppendedClips({
+    skill: talkingHeadSkill,
+    style: realisticStyle,
+    aspectRatio: "9:16",
+    source: "Warm studio",
+    phaseA,
+    content: "Hello world.",
+    insertAt: 3,
+    shareContinuity: false,
+  });
+  assert.notEqual(withoutContinuity[0]?.startScene, "Inherited studio desk end scene.");
 });

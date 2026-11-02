@@ -3,13 +3,27 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { generationJobsCollection, usersCollection, videosCollection } from "@/dao";
-import type { ClipAppend } from "@/model/project";
+import type {
+  ClipAppend,
+  ClipAppendMode,
+  ClipDirectorOverrides,
+  DurationPreset,
+  SceneTextChoice,
+  SpeechPace,
+  StoryboardRow,
+  VoLanguage,
+  VoiceGender,
+} from "@/model/project";
+import { isTalkingHeadPoseId } from "@/model/talking-head-options";
+import type { CharacterSelectionMap } from "@/service/character/character-presets";
+import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import {
   CLIP_APPEND_LEASE_MS,
   nextClipAppend,
   shiftPendingInserts,
   trimFailedClipAppends,
 } from "@/service/clip/clip-append";
+import { attachClipOverrides, clipsShareContinuity } from "@/service/clip/clip-context";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import {
@@ -23,19 +37,44 @@ import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { FRAME_COST } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
-import { resolveSceneText } from "@/service/director/scene-text";
+import { isSceneTextChoice, resolveSceneText, SCENE_TEXT_OFF } from "@/service/director/scene-text";
 import {
   applyClipOrder,
   insertClips,
   removeClip,
 } from "@/service/clip/clip-order";
 import { APPEND_CLIP_MAX, draftAppendedClips } from "@/service/director/append-clip";
+import { behaviorSlug } from "@/service/director/behavior-slug";
+import { isDurationPreset } from "@/service/director/duration-presets";
+import { isVoLanguage } from "@/service/director/languages";
 import { loadStoredSkill } from "@/service/director/load-skill";
+import { sanitizeOutfitChangePhaseA } from "@/service/director/outfit-change";
+import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
+import { runPhaseA } from "@/service/director/run-phase-a";
+import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
+import { findSelectableSkill } from "@/service/director/selectable-skills";
+import {
+  applySkillSceneText,
+  briefSkillError,
+  defaultDirectorBackgroundId,
+  isBookendSkill,
+  isOutfitChangeSkill,
+  isOutfitReelSkill,
+  isSurpriseInterviewSkill,
+  isValidDirectorBackgroundId,
+} from "@/service/director/skill-rules";
+import { isSpeechPace } from "@/service/director/speech-pace";
+import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import { isTalkingHeadSkill, talkingHeadSpokenError } from "@/service/director/talking-head";
+import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { clipFrameCost, isMediaBusy, isProjectBusy } from "@/service/clip-stage";
 import { enqueueClipFrameJobs, stillBlocker } from "@/service/higgsfield/pipeline";
+import { buildCast, buildProducts } from "@/service/project/actions";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { isProductionLike } from "@/service/project-status";
+import { isListedStyleId } from "@/service/style/list-selectable";
+import { hydrateStyles } from "@/service/style/load-style";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import {
   collectClipVideoBlobUrls,
@@ -45,6 +84,31 @@ import {
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 const CONTENT_MAX = 2000;
+const FULL_VIDEO_CONTENT_MAX = 10000;
+
+export type AppendDirectorClipInput = {
+  videoId: string;
+  content: string;
+  spokenScript?: string;
+  insertAt?: number;
+  mode?: "single_clip" | "full_video";
+  skillSlug?: string;
+  styleId?: string;
+  characterIds?: string[];
+  characterSelections?: CharacterSelectionMap;
+  productIds?: string[];
+  language?: VoLanguage;
+  voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
+  sceneTextLanguage?: SceneTextChoice;
+  durationPreset?: DurationPreset;
+  directorBackgroundId?: string;
+  backgroundImageUrls?: string[];
+  talkingHeadPoseId?: string;
+  logoUrl?: string;
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
+};
 
 type TimelineResult = { ok: true; project: PublicVideo } | { ok: false; error: string };
 
@@ -58,20 +122,15 @@ function fail(error: unknown, fallback: string): TimelineResult {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
 }
 
-// Queue a director write and return. The clip shows up when the background job finishes.
-export async function appendDirectorClipAction(input: {
-  videoId: string;
-  content: string;
-  // 1-based slot. Omit to add after the last clip.
-  insertAt?: number;
-}): Promise<TimelineResult> {
+// Queue a single-clip or full-video director write with optional per-clip director/style/cast overrides.
+export async function appendDirectorClipAction(
+  input: AppendDirectorClipInput,
+): Promise<TimelineResult> {
   try {
     const user = await requireAppUser();
     const videoId = String(input?.videoId ?? "");
-    const content = String(input?.content ?? "").trim();
     if (!ObjectId.isValid(videoId)) return { ok: false, error: "專案不存在" };
-    if (!content) return { ok: false, error: "請輸入這一段的內容" };
-    if (content.length > CONTENT_MAX) return { ok: false, error: "內容過長" };
+    const mode: ClipAppendMode = input?.mode === "full_video" ? "full_video" : "single_clip";
 
     const sub = await getActiveSubscription(user.clerkUserId);
     if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能新增片段" };
@@ -87,7 +146,10 @@ export async function appendDirectorClipAction(input: {
     if (project.phaseA.clips.length + pending >= APPEND_CLIP_MAX) {
       return { ok: false, error: `最多 ${APPEND_CLIP_MAX} 段` };
     }
-    const insertAt = input.insertAt ?? project.phaseA.clips.length + 1;
+    const insertAt =
+      mode === "full_video"
+        ? project.phaseA.clips.length + 1
+        : (input.insertAt ?? project.phaseA.clips.length + 1);
     if (!Number.isInteger(insertAt) || insertAt < 1 || insertAt > project.phaseA.clips.length + 1) {
       return { ok: false, error: "插入位置不正確" };
     }
@@ -99,16 +161,185 @@ export async function appendDirectorClipAction(input: {
       return { ok: false, error: "成片合成中，請完成後再插入片段" };
     }
 
-    const talkingHead = isTalkingHeadSkill(project.skillSlug);
+    const hasBriefOverrides =
+      input.skillSlug !== undefined ||
+      input.styleId !== undefined ||
+      input.characterIds !== undefined ||
+      input.productIds !== undefined ||
+      input.language !== undefined ||
+      input.voiceGender !== undefined ||
+      input.speechPace !== undefined ||
+      input.sceneTextLanguage !== undefined ||
+      input.directorBackgroundId !== undefined ||
+      input.backgroundImageUrls !== undefined ||
+      input.talkingHeadPoseId !== undefined ||
+      input.logoUrl !== undefined;
+
+    let effectiveSkillSlug = project.skillSlug;
+    let effectiveSpeechPace = project.speechPace;
+    let overrides: ClipDirectorOverrides | undefined;
+
+    if (hasBriefOverrides) {
+      const skill = await findSelectableSkill(
+        user.clerkUserId,
+        input.skillSlug || project.skillSlug,
+      );
+      if (!skill) return { ok: false, error: "找不到風格" };
+      effectiveSkillSlug = behaviorSlug(skill);
+      const effectiveStyleId = input.styleId?.trim() || project.styleId || "doodle";
+      if (input.styleId !== undefined && !isListedStyleId(effectiveStyleId)) {
+        return { ok: false, error: "請選擇視覺風格" };
+      }
+
+      const characterIds =
+        input.characterIds !== undefined
+          ? Array.from(
+              new Set(
+                input.characterIds.map(String).filter((id) => ObjectId.isValid(id)),
+              ),
+            )
+          : (project.cast ?? []).map((member) => member.characterId.toHexString());
+      const skillError = briefSkillError({
+        skillSlug: effectiveSkillSlug,
+        characterIds,
+      });
+      if (skillError) return { ok: false, error: skillError };
+
+      const castResult =
+        input.characterIds !== undefined
+          ? await buildCast(
+              user.clerkUserId,
+              effectiveStyleId,
+              characterIds,
+              input.characterSelections ?? {},
+            )
+          : { ok: true as const, cast: project.cast ?? [] };
+      if (!castResult.ok) return castResult;
+
+      const productIds =
+        input.productIds !== undefined
+          ? Array.from(
+              new Set(
+                input.productIds.map(String).filter((id) => ObjectId.isValid(id)),
+              ),
+            )
+          : [];
+      const productResult =
+        input.productIds !== undefined
+          ? await buildProducts(user.clerkUserId, productIds)
+          : { ok: true as const, products: project.products ?? [] };
+      if (!productResult.ok) return productResult;
+
+      const language =
+        input.language && isVoLanguage(input.language) ? input.language : project.language;
+      const voiceGender =
+        castResult.cast[0]?.voice?.gender ??
+        (input.voiceGender && isVoiceGender(input.voiceGender)
+          ? resolveVoiceGender(input.voiceGender)
+          : project.voiceGender);
+      const speechPace =
+        input.speechPace && isSpeechPace(input.speechPace)
+          ? input.speechPace
+          : project.speechPace;
+      effectiveSpeechPace = speechPace;
+      const sceneTextLanguage =
+        input.sceneTextLanguage && isSceneTextChoice(input.sceneTextLanguage)
+          ? input.sceneTextLanguage
+          : project.sceneTextLanguage;
+      const sceneTextEnabled =
+        sceneTextLanguage !== undefined
+          ? sceneTextLanguage === SCENE_TEXT_OFF
+            ? false
+            : applySkillSceneText(effectiveSkillSlug, true)
+          : project.sceneTextEnabled;
+      const rawDirectorBg = input.directorBackgroundId?.trim() || "";
+      const directorBackgroundId = isValidDirectorBackgroundId(effectiveSkillSlug, rawDirectorBg)
+        ? rawDirectorBg
+        : defaultDirectorBackgroundId(effectiveSkillSlug);
+      const talkingHeadPoseId =
+        input.talkingHeadPoseId && isTalkingHeadPoseId(input.talkingHeadPoseId)
+          ? input.talkingHeadPoseId
+          : undefined;
+      const logoUrl =
+        isBookendSkill(effectiveSkillSlug) && input.logoUrl?.trim()
+          ? input.logoUrl.trim()
+          : undefined;
+
+      overrides = {
+        skillId: skill._id,
+        skillSlug: effectiveSkillSlug,
+        styleId: effectiveStyleId,
+        ...(input.characterIds !== undefined ? { cast: castResult.cast } : {}),
+        ...(input.productIds !== undefined ? { products: productResult.products } : {}),
+        ...(language !== undefined ? { language } : {}),
+        ...(voiceGender !== undefined ? { voiceGender } : {}),
+        ...(speechPace !== undefined ? { speechPace } : {}),
+        ...(sceneTextEnabled !== undefined ? { sceneTextEnabled } : {}),
+        ...(sceneTextLanguage !== undefined ? { sceneTextLanguage } : {}),
+        ...(directorBackgroundId !== undefined ? { directorBackgroundId } : {}),
+        ...(input.backgroundImageUrls !== undefined
+          ? { backgroundImageUrls: input.backgroundImageUrls }
+          : {}),
+        ...(talkingHeadPoseId !== undefined ? { talkingHeadPoseId } : {}),
+        ...(logoUrl !== undefined ? { logoUrl } : {}),
+      };
+    }
+
+    const talkingHead = isTalkingHeadSkill(effectiveSkillSlug);
+    const rawContent = String(input?.content ?? "").trim();
+    const rawSpokenScript =
+      input?.spokenScript !== undefined ? String(input.spokenScript).trim() : undefined;
+    const uploadedVoUrl = input?.uploadedVoUrl?.trim() || undefined;
+    const uploadedVoDurationSeconds =
+      typeof input?.uploadedVoDurationSeconds === "number" &&
+      Number.isFinite(input.uploadedVoDurationSeconds) &&
+      input.uploadedVoDurationSeconds > 0
+        ? input.uploadedVoDurationSeconds
+        : undefined;
+    const maxContentLength = mode === "full_video" ? FULL_VIDEO_CONTENT_MAX : CONTENT_MAX;
+
+    let content = rawContent;
+    let spokenScript = rawSpokenScript;
+
     if (talkingHead) {
-      const spokenError = talkingHeadSpokenError(content, project.speechPace);
+      const spokenText = (rawSpokenScript ?? rawContent).trim();
+      if (!spokenText && !uploadedVoUrl) {
+        return {
+          ok: false,
+          error:
+            mode === "full_video"
+              ? "請輸入角色要讀的講稿，或上傳／錄製 VO 語音。"
+              : "請輸入這一段的內容",
+        };
+      }
+      const spokenError = talkingHeadSpokenError(spokenText, effectiveSpeechPace, {
+        hasUploadedVo: Boolean(uploadedVoUrl),
+      });
       if (spokenError) return { ok: false, error: spokenError };
+      if (rawContent.length > maxContentLength) {
+        return { ok: false, error: "內容過長" };
+      }
+      if (mode === "single_clip" && !content) {
+        content = spokenText;
+      }
+      spokenScript = spokenText || undefined;
+    } else {
+      if (!content) return { ok: false, error: "請輸入這一段的內容" };
+      if (content.length > maxContentLength) return { ok: false, error: "內容過長" };
     }
 
     const now = new Date();
     const job: ClipAppend = {
       id: randomUUID(),
       content,
+      ...(spokenScript ? { spokenScript } : {}),
+      mode,
+      ...(input.durationPreset && isDurationPreset(input.durationPreset)
+        ? { durationPreset: input.durationPreset }
+        : {}),
+      ...(uploadedVoUrl ? { uploadedVoUrl } : {}),
+      ...(uploadedVoDurationSeconds ? { uploadedVoDurationSeconds } : {}),
+      ...(overrides ? { overrides } : {}),
       insertAt,
       status: "queued",
       createdAt: now,
@@ -252,49 +483,156 @@ async function failClipAppend(videoId: ObjectId, token: string, jobId: string, e
   );
 }
 
-// Director writes one queued clip, then saves it under the same lease.
+// Director writes one queued clip (or full-video Phase A storyboard), then saves it under the same lease.
 async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) {
   const videos = await videosCollection();
   const project = await videos.findOne({ _id: videoId, clipAppendLockToken: token });
   const job = project?.clipAppends?.find((item) => item.id === jobId);
   if (!project?.phaseA || !job) return;
 
-  const plateOverlay = usesTalkingHeadSubtitleOverlay({
-    skillSlug: project.skillSlug,
-    styleId: project.styleId,
-  });
-  const talkingHead = isTalkingHeadSkill(project.skillSlug);
-  const skill = await loadStoredSkill(project.skillId);
+  await hydrateStyles();
+
+  const ov = job.overrides;
+  const rawSkillId = ov?.skillId ?? project.skillId;
+  const skillId =
+    typeof rawSkillId === "string" && ObjectId.isValid(rawSkillId)
+      ? new ObjectId(rawSkillId)
+      : (rawSkillId as ObjectId);
+  const skillSlug = ov?.skillSlug ?? project.skillSlug;
+  const styleId = ov?.styleId ?? project.styleId;
+  const cast = ov?.cast ?? project.cast;
+  const products = ov?.products ?? project.products;
+  const language = ov?.language ?? project.language;
+  const narrationEnabled = ov?.narrationEnabled ?? project.narrationEnabled;
+  const voiceGender = ov?.voiceGender ?? project.voiceGender;
+  const speechPace = ov?.speechPace ?? project.speechPace;
+  const sceneTextEnabled = ov?.sceneTextEnabled ?? project.sceneTextEnabled;
+  const sceneTextLanguage = ov?.sceneTextLanguage ?? project.sceneTextLanguage;
+  const directorBackgroundId = ov?.directorBackgroundId ?? project.directorBackgroundId;
+  const backgroundImageUrls = ov?.backgroundImageUrls ?? project.backgroundImageUrls;
+  const talkingHeadBackgroundId = ov?.talkingHeadBackgroundId ?? project.talkingHeadBackgroundId;
+  const talkingHeadPoseId = ov?.talkingHeadPoseId ?? project.talkingHeadPoseId;
+  const logoUrl = ov?.logoUrl ?? project.logoUrl;
+
+  const foundSkill = await loadStoredSkill(skillId);
+  const skill = foundSkill
+    ? await resolveRunSkill(foundSkill).catch((error: unknown) => {
+        if (error instanceof MissingTemplateError) return null;
+        throw error;
+      })
+    : null;
   if (!skill) throw new Error("找不到導演");
+
   const style = await loadRenderableStyle({
-    styleId: project.styleId,
+    styleId,
     ownerClerkUserId: project.clerkUserId,
   });
-  const insertAt = job.insertAt;
-  const drafted = await draftAppendedClips({
-    skill,
-    style,
-    language: project.language,
-    speechPace: project.speechPace,
-    aspectRatio: project.aspectRatio,
-    source: project.source,
-    spokenScript: project.spokenScript,
-    phaseA: project.phaseA,
-    referenceImages: project.referenceImages,
-    backgroundImageUrls: project.backgroundImageUrls,
-    talkingHeadBackgroundId: project.talkingHeadBackgroundId,
-    talkingHeadPoseId: project.talkingHeadPoseId,
-    startImageUrl: project.startImageUrl,
-    cast: project.cast,
-    content: job.content,
-    insertAt,
-    subtitleOverlay: plateOverlay,
-    noText: !resolveSceneText(project).enabled,
+  const plateOverlay = usesTalkingHeadSubtitleOverlay({
+    skillSlug: skill.slug,
+    styleId: style.id,
+    baseStyleId: style.baseStyleId,
   });
-  if (drafted.length === 0) throw new Error("導演沒有寫出片段");
+  const talkingHead = isTalkingHeadSkill(skill.slug);
+
+  let rawDrafted: StoryboardRow[];
+  if (job.mode === "full_video") {
+    let phaseA = await runPhaseA({
+      skill,
+      style,
+      source: job.content,
+      spokenScript: job.spokenScript ?? (talkingHead ? job.content : project.spokenScript),
+      aspectRatio: project.aspectRatio,
+      durationPreset: job.durationPreset || "auto",
+      language,
+      narrationEnabled,
+      voiceGender,
+      speechPace,
+      sceneTextEnabled,
+      sceneTextLanguage,
+      subtitleLook: project.subtitleLook,
+      textStyleImageUrl: project.textStyleImageUrl,
+      characterImageUrl: project.characterImageUrl,
+      cast: await withCurrentCharacterVoices(cast),
+      products,
+      logoUrl,
+      referenceImages: project.referenceImages,
+      backgroundImageUrls,
+      directorBackgroundId,
+      talkingHeadBackgroundId,
+      talkingHeadPoseId,
+      startImageUrl: project.startImageUrl,
+      uploadedVoUrl: job.uploadedVoUrl,
+      uploadedVoDurationSeconds: job.uploadedVoDurationSeconds,
+    });
+    if (isOutfitReelSkill(skillSlug)) {
+      phaseA = sanitizeOutfitPhaseA(phaseA, Math.random, {
+        lenses: isRealisticStyle(style),
+      });
+    }
+    if (isOutfitChangeSkill(skillSlug)) {
+      phaseA = sanitizeOutfitChangePhaseA(phaseA);
+    }
+    if (isSurpriseInterviewSkill(skillSlug)) {
+      phaseA = sanitizeSurprisePhaseA(phaseA);
+    }
+    rawDrafted = phaseA.clips;
+  } else {
+    const shareContinuity =
+      job.insertAt > 1
+        ? clipsShareContinuity(
+            {
+              ...project,
+              phaseA: {
+                ...project.phaseA,
+                clips: [
+                  ...project.phaseA.clips,
+                  attachClipOverrides({ clipNumber: job.insertAt } as StoryboardRow, job.overrides),
+                ],
+              },
+            },
+            job.insertAt - 1,
+            job.insertAt,
+          )
+        : false;
+    const draftedSingle = await draftAppendedClips({
+      skill,
+      style,
+      language,
+      speechPace,
+      aspectRatio: project.aspectRatio,
+      source: project.source,
+      spokenScript: job.spokenScript ?? project.spokenScript,
+      phaseA: project.phaseA,
+      referenceImages: project.referenceImages,
+      backgroundImageUrls,
+      talkingHeadBackgroundId,
+      talkingHeadPoseId,
+      startImageUrl: project.startImageUrl,
+      uploadedVoUrl: job.uploadedVoUrl,
+      uploadedVoDurationSeconds: job.uploadedVoDurationSeconds,
+      cast,
+      content: job.spokenScript || job.content,
+      insertAt: job.insertAt,
+      subtitleOverlay: plateOverlay,
+      noText: !resolveSceneText({
+        skillSlug,
+        sceneTextEnabled,
+        sceneTextLanguage,
+      }).enabled,
+      shareContinuity,
+    });
+    rawDrafted = draftedSingle.slice(0, 1);
+  }
+  if (rawDrafted.length === 0) throw new Error("導演沒有寫出片段");
 
   const fresh = await videos.findOne({ _id: videoId, clipAppendLockToken: token });
   if (!fresh?.phaseA) return;
+  const insertAt =
+    job.mode === "full_video" ? fresh.phaseA.clips.length + 1 : job.insertAt;
+  const drafted =
+    job.mode === "full_video"
+      ? rawDrafted.slice(0, Math.max(1, APPEND_CLIP_MAX - fresh.phaseA.clips.length))
+      : rawDrafted;
   if (fresh.phaseA.clips.length + drafted.length > APPEND_CLIP_MAX) {
     throw new Error(`最多 ${APPEND_CLIP_MAX} 段`);
   }
@@ -308,13 +646,15 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
     await assertCanSpendCredits(withUnlimitedCredits(account), FRAME_COST * drafted.length);
   }
 
-  const inserted = insertClips(fresh, drafted, insertAt, {
-    language: fresh.language,
+  const draftedWithOverrides = drafted.map((row) => attachClipOverrides(row, job.overrides));
+  const inserted = insertClips(fresh, draftedWithOverrides, insertAt, {
+    language,
     talkingHead,
   });
   if (!inserted.ok) throw new Error(inserted.error);
   const now = new Date();
   const shiftsLaterClips = insertAt <= fresh.phaseA.clips.length;
+  const appendedSpoken = job.spokenScript || job.content;
   const wrote = await videos.updateOne(
     { _id: fresh._id, clerkUserId: fresh.clerkUserId, clipAppendLockToken: token },
     {
@@ -334,10 +674,10 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
           ? { autoVideoClips: inserted.project.autoVideoClips }
           : {}),
         ...(inserted.project.edit ? { edit: inserted.project.edit } : {}),
-        ...(talkingHead
-          ? { spokenScript: [fresh.spokenScript?.trim(), job.content].filter(Boolean).join("\n") }
+        ...(talkingHead && isTalkingHeadSkill(fresh.skillSlug)
+          ? { spokenScript: [fresh.spokenScript?.trim(), appendedSpoken].filter(Boolean).join("\n") }
           : {}),
-        clipAppends: shiftPendingInserts(fresh.clipAppends ?? [], jobId, insertAt, drafted.length),
+        clipAppends: shiftPendingInserts(fresh.clipAppends ?? [], jobId, insertAt, draftedWithOverrides.length),
         updatedAt: now,
       },
       $unset: {
@@ -351,8 +691,8 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
     },
   );
   if (wrote.matchedCount !== 1) throw new Error("專案不存在");
-  if (shiftsLaterClips) await shiftInsertedClipJobs(fresh._id, insertAt, drafted.length);
-  const newNumbers = drafted.map((_, index) => insertAt + index);
+  if (shiftsLaterClips) await shiftInsertedClipJobs(fresh._id, insertAt, draftedWithOverrides.length);
+  const newNumbers = draftedWithOverrides.map((_, index) => insertAt + index);
   if (plateOverlay) {
     await queueNewClipPlates(fresh.clerkUserId, fresh._id, newNumbers);
   }

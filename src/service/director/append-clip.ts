@@ -115,8 +115,14 @@ export function appendClipContinuityLine(skillSlug: string) {
   return "Stay in the same visual world. This clip's picture illustrates the user's note, not the previous clip's last still.";
 }
 
-function inheritOpening(row: StoryboardRow, previous: StoryboardRow | undefined, skillSlug: string) {
-  if (!chainsClipStarts(skillSlug)) return row;
+// Copy the previous clip's endScene as the new clip's startScene only when continuity is shared.
+function inheritOpening(
+  row: StoryboardRow,
+  previous: StoryboardRow | undefined,
+  skillSlug: string,
+  shareContinuity = true,
+) {
+  if (!shareContinuity || !chainsClipStarts(skillSlug)) return row;
   const endScene = previous?.endScene?.trim();
   if (!endScene) return row;
   return clearEndStillChoice({ ...row, startScene: endScene });
@@ -136,6 +142,8 @@ type AppendInput = {
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
   startImageUrl?: string;
+  uploadedVoUrl?: string;
+  uploadedVoDurationSeconds?: number;
   cast?: CastMember[];
   content: string;
   // 1-based slot. Omit to add after the last clip.
@@ -144,6 +152,8 @@ type AppendInput = {
   subtitleOverlay?: boolean;
   // Brief chose None. The new clip's stills and motion stay free of writing.
   noText?: boolean;
+  // Whether this clip shares director + visual style continuity with the preceding clip.
+  shareContinuity?: boolean;
 };
 
 // Director flow for one extra clip: storyboard row, then the end-still rewrite.
@@ -151,6 +161,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
   const skillSlug = input.skill.slug;
   const insertAt = input.insertAt ?? input.phaseA.clips.length + 1;
   const previous = input.phaseA.clips.find((clip) => clip.clipNumber === insertAt - 1);
+  const shareContinuity = input.shareContinuity ?? true;
   if (isTalkingHeadSkill(skillSlug)) {
     const planned = planTalkingHeadClips({
       source: input.content,
@@ -172,8 +183,10 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
       overlay: input.subtitleOverlay === true,
       noText: input.noText === true,
       realistic: isRealisticStyle(input.style),
+      uploadedVoUrl: input.uploadedVoUrl,
+      uploadedVoDurationSeconds: input.uploadedVoDurationSeconds,
     });
-    return planned.map((row) => inheritOpening(row, previous, skillSlug));
+    return planned.map((row) => inheritOpening(row, previous, skillSlug, shareContinuity));
   }
 
   const language = LANGUAGE_PRESETS[input.language || "en"];
@@ -213,6 +226,7 @@ The user's note is what this clip shows and says. Do not replace that note with 
     dualBeat ? normalizeDualBeatRow({ ...sanitized, clipNumber: 0, timeRange: "" }) : { ...sanitized, clipNumber: 0, timeRange: "" },
     previous,
     skillSlug,
+    shareContinuity,
   );
   const [rewritten] = await rewriteEndScenes({
     clips: [row],

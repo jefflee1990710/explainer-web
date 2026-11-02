@@ -357,7 +357,7 @@ async function readVideoBrief(
   };
 }
 
-async function buildCast(
+export async function buildCast(
   clerkUserId: string,
   styleId: string,
   characterIds: string[],
@@ -452,7 +452,7 @@ async function buildCast(
 }
 
 // Products ignore the video style. Only a finished realistic sheet can be attached.
-async function buildProducts(
+export async function buildProducts(
   clerkUserId: string,
   productIds: string[],
 ): Promise<{ ok: true; products: ProductShot[] } | { ok: false; error: string }> {
