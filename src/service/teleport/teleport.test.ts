@@ -199,3 +199,23 @@ test("teleportTask lists rendering and completed jobs on /app/teleport", () => {
   assert.equal(done?.title, "Teleport");
   assert.equal(done?.previewUrl, "https://blob.test/out.mp4");
 });
+
+test("normalizeTeleportStart defaults aspectRatio to 9:16 and preserves custom aspectRatio", () => {
+  const def = normalizeTeleportStart({
+    sourceVideoUrl: "https://example.public.blob.vercel-storage.com/a.mp4",
+    scenePrompt: "snowy street",
+  });
+  assert.equal(def.ok && def.aspectRatio, "9:16");
+
+  const wide = normalizeTeleportStart({
+    sourceVideoUrl: "https://example.public.blob.vercel-storage.com/a.mp4",
+    scenePrompt: "snowy street",
+    aspectRatio: "16:9",
+    targetVideoId: "507f1f77bcf86cd799439011",
+    targetClipNumber: 3,
+    previousClipVideoUrl: "https://example.public.blob.vercel-storage.com/old.mp4",
+  });
+  assert.equal(wide.ok && wide.aspectRatio, "16:9");
+  assert.equal(wide.ok && wide.targetClipNumber, 3);
+  assert.equal(buildTeleportScenePlatePrompt("snowy street", "16:9").includes("16:9"), true);
+});

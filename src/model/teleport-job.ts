@@ -28,6 +28,9 @@ export type TeleportJob = {
   openRouterRequestId?: string;
   openRouterStatusUrl?: string;
   outputVideoUrl?: string;
+  targetVideoId?: ObjectId;
+  targetClipNumber?: number;
+  previousClipVideoUrl?: string;
   error?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +55,8 @@ export type PublicTeleportJob = {
   editPrompt?: string;
   motionDescription?: string;
   outputVideoUrl?: string;
+  targetVideoId?: string;
+  targetClipNumber?: number;
   error?: string;
   createdAt: string;
   updatedAt: string;
@@ -77,6 +82,8 @@ export function toPublicTeleportJob(doc: TeleportJob & { _id: ObjectId }): Publi
     editPrompt: doc.editPrompt,
     motionDescription: doc.motionDescription,
     outputVideoUrl: doc.outputVideoUrl,
+    targetVideoId: doc.targetVideoId?.toHexString(),
+    targetClipNumber: doc.targetClipNumber,
     error: doc.error,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),

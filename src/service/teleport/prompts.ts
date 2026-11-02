@@ -1,3 +1,5 @@
+import type { AspectRatio } from "@/model/project";
+
 export function teleportTaskTitle(scenePrompt?: string): string {
   const line = (scenePrompt ?? "").split(/\r?\n/)[0]?.trim() ?? "";
   if (!line) return "Teleport";
@@ -11,8 +13,11 @@ export function chooseTeleportVideoEngine(input: {
   return input.hasMannequin && input.hasMinimaxKey ? "h3" : "hailuo";
 }
 
-export function buildTeleportScenePlatePrompt(scenePrompt: string): string {
-  return `Create a photoreal 9:16 scene still with no people, no faces, no bodies, and no mannequins. Location: ${scenePrompt.trim()}. The frame is empty of humans. Natural perspective and lighting.`;
+export function buildTeleportScenePlatePrompt(
+  scenePrompt: string,
+  aspectRatio: AspectRatio = "9:16",
+): string {
+  return `Create a photoreal ${aspectRatio} scene still with no people, no faces, no bodies, and no mannequins. Location: ${scenePrompt.trim()}. The frame is empty of humans. Natural perspective and lighting.`;
 }
 
 export function buildTeleportRelocatePrompt(input: {
