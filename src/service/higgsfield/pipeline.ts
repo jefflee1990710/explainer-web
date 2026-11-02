@@ -19,6 +19,7 @@ import {
   resolveImageRoute,
 } from "@/service/generation/image-backend";
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { frameSubmitPlan, framesWithClipsReady, resolveClipStyleId } from "@/service/higgsfield/frame-prompts";
 import {
   clipDrawsNoEndStill,
@@ -218,6 +219,8 @@ export async function sendFrame(
   clipNumber: number,
   position: FramePosition,
 ): Promise<Sent> {
+  // Resolve per-clip director, style, cast, and language overrides before building the frame request.
+  project = resolveClipProject(project, clipNumber);
   const clipStyleId = resolveClipStyleId(project, clipNumber) ?? project.styleId;
   const style = await loadRenderableStyle({
     styleId: clipStyleId,
@@ -297,10 +300,12 @@ async function insertFrameJobs(
   project: Project,
   ready: FrameTarget[],
   deferred: FrameTarget[],
+  options?: { startsFollowFirstClip?: boolean },
 ) {
   const ids = await insertPendingJobs(
     frameJobDocs(project._id, ready, deferred, new Date(), {
-      startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+      startsFollowFirstClip:
+        options?.startsFollowFirstClip ?? isTalkingHeadSkill(project.skillSlug),
     }),
   );
   ids.slice(0, ready.length).forEach((id) => kickJob(id));
@@ -312,17 +317,19 @@ async function insertFrameJobs(
 // prompts should be built from, and the DB must hold the same storyboard and
 // revision since the sender rebuilds from it (re-fetch after editing a clip).
 export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
-  const drawable = targets.filter(
-    (target) => !isInheritedTalkingHeadStart(project.skillSlug, target.clipNumber, target.position),
-  );
+  const drawable = targets.filter((target) => {
+    const clipProj = resolveClipProject(project, target.clipNumber);
+    return !isInheritedTalkingHeadStart(clipProj.skillSlug, target.clipNumber, target.position);
+  });
   if (drawable.length === 0) return { deferred: [] as FrameTarget[] };
   targets = [...drawable];
   // For talking-head, if a clip has no next clip's start scene (last clip) and its start
   // is being generated while no completed end frame exists, automatically include its end frame.
   for (const target of drawable) {
+    const clipProj = resolveClipProject(project, target.clipNumber);
     if (
       target.position === "start" &&
-      !clipDrawsNoEndStill(project, target.clipNumber) &&
+      !clipDrawsNoEndStill(clipProj, target.clipNumber) &&
       !targets.some((t) => t.clipNumber === target.clipNumber && t.position === "end")
     ) {
       const existingEnd = project.frames?.find(
@@ -336,14 +343,20 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
+  const startsFollowFirstClip = targets.every((target) =>
+    isTalkingHeadSkill(resolveClipProject(project, target.clipNumber).skillSlug),
+  );
   const { ready, deferred } = planFrameSubmissions(targets, project.frames, {
-    startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+    startsFollowFirstClip,
   });
   const styleById = new Map<string, Awaited<ReturnType<typeof loadRenderableStyle>>>();
   const targetStyleIds = Array.from(
     new Set(
       targets
-        .map((t) => resolveClipStyleId(project, t.clipNumber) || project.styleId)
+        .map((t) => {
+          const clipProj = resolveClipProject(project, t.clipNumber);
+          return resolveClipStyleId(clipProj, t.clipNumber) || clipProj.styleId;
+        })
         .filter((id): id is string => Boolean(id)),
     ),
   );
@@ -432,11 +445,12 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       const stored = (project.frames || []).find(
         (frame) => frame.clipNumber === target.clipNumber && frame.position === target.position,
       );
+      const targetProj = resolveClipProject(canvasProject, target.clipNumber);
       const clipStyle =
-        styleById.get(resolveClipStyleId(project, target.clipNumber) || project.styleId || "") ??
+        styleById.get(resolveClipStyleId(targetProj, target.clipNumber) || targetProj.styleId || "") ??
         fallbackStyle;
       const built = frameSubmitPlan(
-        canvasProject,
+        targetProj,
         target.clipNumber,
         target.position,
         target.revision,
@@ -495,7 +509,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       );
     }),
   );
-  await insertFrameJobs(project, ready, deferred);
+  await insertFrameJobs(project, ready, deferred, { startsFollowFirstClip });
   // Do not reconcile here: enqueue should return after the jobs are written.
   // Cron / webhook / poll call syncProjectFromJobs once the provider moves.
   return { deferred };
@@ -511,13 +525,19 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
   );
   // Chained starts are copied from the previous end, never submitted. Talking-head
   // draws every start, and an end only on the last clip.
-  const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) =>
-    (clipDrawsNoEndStill(project, clipNumber) ? (["start"] as const) : (["start", "end"] as const))
-      .filter((position) => !isInheritedTalkingHeadStart(project.skillSlug, clipNumber, position))
-      .map((position) => ({ clipNumber, position })),
+  const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) => {
+    const clipProj = resolveClipProject(project, clipNumber);
+    return (
+      clipDrawsNoEndStill(clipProj, clipNumber) ? (["start"] as const) : (["start", "end"] as const)
+    )
+      .filter((position) => !isInheritedTalkingHeadStart(clipProj.skillSlug, clipNumber, position))
+      .map((position) => ({ clipNumber, position }));
+  });
+  const startsFollowFirstClip = targets.every((target) =>
+    isTalkingHeadSkill(resolveClipProject(project, target.clipNumber).skillSlug),
   );
   const { ready, deferred } = planFrameSubmissions(targets, frames, {
-    startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+    startsFollowFirstClip,
   });
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
@@ -586,7 +606,7 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
       : Promise.resolve(),
     deleteExplainerBlobUrls(oldUrls),
   ]);
-  await insertFrameJobs(project, ready, deferred);
+  await insertFrameJobs(project, ready, deferred, { startsFollowFirstClip });
   return { deferred };
 }
 
@@ -659,6 +679,8 @@ export async function sendClipVideo(
   clipNumber: number,
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
+  // Resolve per-clip director, style, cast, and voice overrides before submitting the video.
+  project = resolveClipProject(project, clipNumber);
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
   // Seated talking-head sends the start still plus the ElevenLabs mp3 to HeyGen Avatar IV (up to 120s).
   const skill = await loadSkill(project);
@@ -1091,17 +1113,22 @@ export async function applyJobStatus(input: {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (project) await hydrateStyles();
+  // Resolve per-clip context for frame and video jobs so style, voice swap, lip-sync, and grading match the clip's own overrides.
+  const clipProject =
+    project && (job.kind === "video" || job.kind === "frame") && job.clipIndex >= 0
+      ? resolveClipProject(project, job.clipIndex + 1)
+      : project;
 
   // Seated talking-head: the first MiniMax file only connects the stills.
   // The mouth pass replaces this job's provider id before the clip is saved.
   if (
-    project &&
+    clipProject &&
     job.kind === "video" &&
     job.talkingHeadStage === "bridge" &&
     status === "completed" &&
     outputUrl
   ) {
-    await advanceTalkingHeadBridge(job, project, outputUrl);
+    await advanceTalkingHeadBridge(job, clipProject, outputUrl);
     return;
   }
 
@@ -1110,10 +1137,10 @@ export async function applyJobStatus(input: {
   if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
-    const renderableStyle = project
+    const renderableStyle = clipProject
       ? await loadRenderableStyle({
-          styleId: project.styleId,
-          ownerClerkUserId: project.clerkUserId,
+          styleId: clipProject.styleId,
+          ownerClerkUserId: clipProject.clerkUserId,
         })
       : undefined;
     const realistic = isRealisticStyle(renderableStyle);
@@ -1124,41 +1151,41 @@ export async function applyJobStatus(input: {
         ? renderableStyle.canvasColor
         : undefined;
     const clipRowForJob =
-      project && job.kind === "video"
-        ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
+      clipProject && job.kind === "video"
+        ? clipProject.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
     const spokenLine = clipRowForJob?.englishVo;
     const hasSpokenLineForJob = Boolean(spokenLine?.trim() && !isSilentSpokenLine(spokenLine));
     const voiceId =
-      project &&
+      clipProject &&
       job.kind === "video" &&
-      project.narrationEnabled !== false &&
+      clipProject.narrationEnabled !== false &&
       hasSpokenLineForJob &&
-      !isSilentOutfitSkill(project.skillSlug)
+      !isSilentOutfitSkill(clipProject.skillSlug)
         ? resolveVoiceSwapId({
-            ...project,
+            ...clipProject,
             spokenLine,
-            cast: await withCurrentCharacterVoices(project.cast),
+            cast: await withCurrentCharacterVoices(clipProject.cast),
           }) || CANTONESE_VOICE_ID
         : null;
     const editorialInterviewBrollJob = Boolean(
-      project &&
-        (isEditorialInterviewSkill(project.skillSlug) || isTalkingBrollSkill(project.skillSlug)) &&
+      clipProject &&
+        (isEditorialInterviewSkill(clipProject.skillSlug) || isTalkingBrollSkill(clipProject.skillSlug)) &&
         /b[-_ ]?roll/i.test(clipRowForJob?.narrativeJob || ""),
     );
     const storedClip =
-      project && job.kind === "video"
-        ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
+      clipProject && job.kind === "video"
+        ? clipProject.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
     const usesLipSync = Boolean(
-      project && skillUsesOnScreenLipSync(project.skillSlug) && !editorialInterviewBrollJob,
+      clipProject && skillUsesOnScreenLipSync(clipProject.skillSlug) && !editorialInterviewBrollJob,
     );
     const audioFirstTalkingHead =
       job.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
       Boolean(
-        project &&
+        clipProject &&
           job.kind === "video" &&
-          project.skillSlug === TALKING_HEAD_SKILL_SLUG &&
+          clipProject.skillSlug === TALKING_HEAD_SKILL_SLUG &&
           !job.talkingHeadStage,
       );
     const swapVoice = (buffer: Buffer) =>
@@ -1169,7 +1196,7 @@ export async function applyJobStatus(input: {
             onsetSeconds: storedClip?.voOnsetSeconds,
             lipSync: usesLipSync,
             expandVideoToVo: Boolean(
-              project && (isDualBeatSkill(project.skillSlug) || editorialInterviewBrollJob),
+              clipProject && (isDualBeatSkill(clipProject.skillSlug) || editorialInterviewBrollJob),
             ),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
@@ -1185,7 +1212,7 @@ export async function applyJobStatus(input: {
       usesLipSync ||
       Boolean(
         voiceId &&
-          project?.narrationEnabled !== false &&
+          clipProject?.narrationEnabled !== false &&
           spokenLine &&
           !isSilentSpokenLine(spokenLine),
       );

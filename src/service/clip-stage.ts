@@ -1,6 +1,7 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, talkingHeadVideoCost, videoCost } from "@/service/credit-costs";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { TALKING_HEAD_SKILL_SLUG, talkingHeadFramesCost } from "@/service/director/talking-head";
 import {
@@ -16,6 +17,7 @@ import type {
   LegacyProjectStatus,
   ProjectClip,
   ProjectStatus,
+  StoryboardRow,
   VoLanguage,
 } from "@/model/project";
 
@@ -51,7 +53,12 @@ export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
   skillSlug?: string;
   styleId?: string;
-  phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
+  phaseA?: {
+    characterLock?: string;
+    clips: Array<
+      Partial<StoryboardRow> & { clipNumber: number; durationSeconds?: number; editedAt?: string }
+    >;
+  };
   frames?: ClipFrame[];
   clips: ProjectClip[];
   language?: VoLanguage;
@@ -95,14 +102,21 @@ function isLater(a?: string, b?: string) {
 
 // One still when the clip draws no end of its own; otherwise the talking-head pair rule.
 export function clipFrameCost(
-  project: { skillSlug?: string; styleId?: string; phaseA?: { clips: Array<{ clipNumber: number }> } },
+  project: {
+    skillSlug?: string;
+    styleId?: string;
+    phaseA?: { clips: Array<Partial<StoryboardRow> & { clipNumber: number }> };
+  },
   clipNumber: number,
 ) {
+  const clipProj = resolveClipProject(project, clipNumber);
   if (clipDrawsNoEndStill(project, clipNumber)) return FRAME_COST;
-  return talkingHeadFramesCost(project.skillSlug, clipNumber);
+  return talkingHeadFramesCost(clipProj.skillSlug, clipNumber);
 }
 
 export function clipStateFor(project: ClipStageSource, clipNumber: number): ClipState {
+  // Resolve clip-level director, style, cast, and language overrides for this clip.
+  const clipProj = resolveClipProject(project, clipNumber);
   const row = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
   const start = project.frames?.find(
     (item) => item.clipNumber === clipNumber && item.position === "start",
@@ -110,7 +124,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   // Talking-head clips before the last land on the next clip's start still.
   const endFromNextStart = clipEndIsNextStart(project, clipNumber);
   // An old end file is ignored: this clip is ready once the start image exists.
-  const end = clipSkipsEndStill(project)
+  const end = clipSkipsEndStill(clipProj)
     ? undefined
     : videoEndFrame(project.frames, clipNumber, endFromNextStart);
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
@@ -121,7 +135,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   // The next clip's start is that clip's own still, so it never marks these frames stale.
   const drawnFrames = frames.filter(
     (frame) =>
-      !inheritsPreviousEnd(project.skillSlug, clipNumber, frame.position) &&
+      !inheritsPreviousEnd(clipProj.skillSlug, clipNumber, frame.position) &&
       !(endFromNextStart && frame === end),
   );
   const stale = {
@@ -146,7 +160,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   else if (drawnFrames.some((frame) => frame.status === "failed")) stage = "frames_failed";
   else if (isCompleted(clip)) stage = "video_ready";
   else if (clip?.status === "failed") stage = "video_failed";
-  else if (isCompleted(start) && (clipSkipsEndStill(project) || isCompleted(end))) stage = "frames_ready";
+  else if (isCompleted(start) && (clipSkipsEndStill(clipProj) || isCompleted(end))) stage = "frames_ready";
   else stage = "no_frames";
 
   const waitItems = stage === "video_generating" ? [clip] : stage === "frames_generating" ? frames : [];
@@ -156,12 +170,12 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     stale,
     wait: waitKind(waitItems),
     videoCost:
-      project.skillSlug === TALKING_HEAD_SKILL_SLUG
+      clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG
         ? talkingHeadVideoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS)
         : videoCost(
             row?.durationSeconds ?? MIN_VIDEO_SECONDS,
-            project.styleId,
-            Boolean(resolveVoiceSwapId(project)),
+            clipProj.styleId,
+            Boolean(resolveVoiceSwapId(clipProj)),
           ),
     frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.

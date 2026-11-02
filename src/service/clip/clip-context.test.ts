@@ -6,6 +6,10 @@ import {
   clipsShareContinuity,
   resolveClipProject,
 } from "@/service/clip/clip-context";
+import { clipStateFor, clipFrameCost } from "@/service/clip-stage";
+import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
+import { clipEndIsNextStart, clipDrawsNoEndStill } from "@/service/director/steady-stills";
+import { clipVideoCost } from "@/service/production-plan";
 import { toPublicVideo } from "@/presentation/serialize";
 import type { Project, StoryboardRow } from "@/model/project";
 
@@ -174,3 +178,30 @@ describe("clipsShareContinuity", () => {
     assert.equal(typeof pubClip2?.products?.[0]?.productId, "string");
   });
 });
+
+describe("per-clip stage and steady-stills resolution", () => {
+  it("computes frameCost and clipDrawsNoEndStill per clip when a talking-head video appends a start-only explainer clip", () => {
+    const row1 = makeRow(1);
+    const row2 = attachClipOverrides(makeRow(2), {
+      skillSlug: "cartoon-explainer-video-director",
+      styleId: "doodle",
+    });
+    const project = makeProject([row1, row2]);
+
+    // Clip 1 (talking-head) followed by Clip 2 (cartoon-explainer) does not share continuity,
+    // so Clip 1 cannot use Clip 2's start frame as its end frame and must draw both stills.
+    assert.equal(clipEndIsNextStart(project, 1), false);
+    assert.equal(clipDrawsNoEndStill(project, 1), false);
+    assert.equal(clipFrameCost(project, 1), FRAMES_COST);
+    // Clip 2 is cartoon-explainer (start-only), so it draws no end still (1 frame = FRAME_COST).
+    assert.equal(clipDrawsNoEndStill(project, 2), true);
+    assert.equal(clipFrameCost(project, 2), FRAME_COST);
+
+    const state2 = clipStateFor(project, 2);
+    assert.equal(state2.frameCost, FRAME_COST);
+    assert.equal(clipVideoCost(project, 1), 20);
+    assert.equal(clipVideoCost(project, 2), 50);
+    assert.equal(state2.videoCost, 50);
+  });
+});
+

@@ -1,3 +1,8 @@
+import {
+  clipsShareContinuity,
+  resolveClipProject,
+  type ClipContextSource,
+} from "@/service/clip/clip-context";
 import { getDirectorBySlug } from "@/service/director/catalog";
 import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
@@ -21,23 +26,23 @@ export function clipSkipsEndStill(project: { skillSlug?: string; styleId?: strin
   return !isTalkingHeadSkill(project.skillSlug);
 }
 
-type StoryboardOwner = {
-  skillSlug?: string;
-  styleId?: string;
-  phaseA?: { clips: Array<{ clipNumber: number }> };
-};
+type StoryboardOwner = ClipContextSource;
 
 // Driven by `IDirector.behavior.keyframeMode === "end-is-next-start"`: a clip with a later clip lands on that clip's start still.
 export function clipEndIsNextStart(project: StoryboardOwner, clipNumber: number) {
-  const director = getDirectorBySlug(project.skillSlug);
+  const clipProj = resolveClipProject(project, clipNumber);
+  const director = getDirectorBySlug(clipProj.skillSlug);
   const usesNextStart = director
     ? director.behavior.keyframeMode === "end-is-next-start"
-    : isTalkingHeadSkill(project.skillSlug);
+    : isTalkingHeadSkill(clipProj.skillSlug);
   if (!usesNextStart) return false;
-  return Boolean(project.phaseA?.clips.some((clip) => clip.clipNumber === clipNumber + 1));
+  if (!project.phaseA?.clips.some((clip) => clip.clipNumber === clipNumber + 1)) return false;
+  // Adjacent clips with different director/style overrides do not share visual continuity.
+  return clipsShareContinuity(project, clipNumber, clipNumber + 1);
 }
 
 // This clip draws no end still of its own. Talking-head draws one for the last clip only.
 export function clipDrawsNoEndStill(project: StoryboardOwner, clipNumber: number) {
-  return clipSkipsEndStill(project) || clipEndIsNextStart(project, clipNumber);
+  const clipProj = resolveClipProject(project, clipNumber);
+  return clipSkipsEndStill(clipProj) || clipEndIsNextStart(project, clipNumber);
 }

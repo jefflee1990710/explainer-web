@@ -12,16 +12,18 @@ import {
 } from "@/service/credit-costs";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
 
 // Video credits for one storyboard clip, from its planned duration.
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
+  const clipProj = resolveClipProject(project, clipNumber);
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const seconds = row?.durationSeconds ?? MIN_VIDEO_SECONDS;
-  if (project.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCost(seconds);
-  return videoCost(seconds, project.styleId, Boolean(resolveVoiceSwapId(project)));
+  if (clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCost(seconds);
+  return videoCost(seconds, clipProj.styleId, Boolean(resolveVoiceSwapId(clipProj)));
 }
 
 // Scene-image credits. Talking-head clips pay for their start; the last clip pays for its end too.
