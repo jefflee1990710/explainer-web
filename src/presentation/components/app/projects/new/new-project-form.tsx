@@ -92,6 +92,8 @@ import { TalkingHeadBackgroundField } from "@/presentation/components/app/projec
 import { TalkingHeadPoseField } from "@/presentation/components/app/projects/new/talking-head-pose-field";
 import {
   DEFAULT_TALKING_HEAD_POSE_ID,
+  defaultTalkingHeadDirectorInstruction,
+  isDefaultTalkingHeadDirectorInstruction,
   isTalkingHeadPoseId,
   type TalkingHeadPoseId,
 } from "@/model/talking-head-options";
@@ -262,9 +264,13 @@ export function NewProjectForm({
   const [styleId, setStyleId] = useState<string>(
     initialVideo?.styleId || lastBrief?.styleId || pickerDefaultStyleId(styles),
   );
-  const [source, setSource] = useState(
-    initialVideo?.source || "",
-  );
+  const [source, setSource] = useState(() => {
+    if (initialVideo?.source) return initialVideo.source;
+    if (!initialVideo && isTalkingHeadSkill(ruleSlug)) {
+      return defaultTalkingHeadDirectorInstruction(locale);
+    }
+    return "";
+  });
   const [spokenScript, setSpokenScript] = useState(
     initialVideo?.spokenScript ||
       (isTalkingHeadSkill(initialVideo?.skillSlug)
@@ -1133,6 +1139,16 @@ export function NewProjectForm({
   function onSkillChange(nextSlug: string) {
     setSkillSlug(nextSlug);
     const nextRuleSlug = ruleSlugFor(nextSlug, skills);
+    if (!initialVideo) {
+      if (isTalkingHeadSkill(nextRuleSlug) && !source.trim()) {
+        setSource(defaultTalkingHeadDirectorInstruction(locale));
+      } else if (
+        !isTalkingHeadSkill(nextRuleSlug) &&
+        isDefaultTalkingHeadDirectorInstruction(source)
+      ) {
+        setSource("");
+      }
+    }
     const nextPresets = directorPresetBackgrounds(nextRuleSlug);
     if (nextPresets.length > 0) {
       if (!isValidDirectorBackgroundId(nextRuleSlug, directorBackgroundId)) {
@@ -1431,70 +1447,127 @@ export function NewProjectForm({
                   transition={{ duration: 0.25, ease }}
                   className="space-y-4"
                 >
-                  {/* 01 Video type (or Talking-head pose directly when in Talking Head mode) */}
-                  <div
-                    data-tour-id="video-type-card"
-                    className="rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                  >
-                    {talkingHead ? (
-                      <Section
-                        step="01"
-                        title={t("brief.talkingHeadPose.title")}
-                        hint={t("brief.talkingHeadPose.hint")}
-                      >
-                        <TalkingHeadPoseField
-                          value={talkingHeadPoseId}
-                          onChange={setTalkingHeadPoseId}
-                          disabled={briefBusy}
-                          hideHeader
-                        />
-                      </Section>
-                    ) : (
-                      <>
+                  {/* Top Row: 01 Video type / Talking-head pose · 02 Visual Style · 03 Characters (1 col on mobile, 3 cols side-by-side on desktop) */}
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:items-stretch">
+                    <div
+                      data-tour-id="video-type-card"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
+                    >
+                      {talkingHead ? (
                         <Section
                           step="01"
-                          title={t("brief.section01.title")}
-                          hint={t("brief.section01.hint")}
+                          title={t("brief.talkingHeadPose.title")}
+                          hint={t("brief.talkingHeadPose.hint")}
+                          equalHeaderHeight
                         >
-                          <SkillPicker
-                            skills={skills}
-                            value={skillSlug}
-                            onChange={onSkillChange}
+                          <TalkingHeadPoseField
+                            value={talkingHeadPoseId}
+                            onChange={setTalkingHeadPoseId}
                             disabled={briefBusy}
+                            hideHeader
                           />
                         </Section>
-                        {talkingHeadBackground ? (
-                          <div className="mt-4 border-t border-accent-ink/10 pt-4">
-                            <TalkingHeadPoseField
-                              value={talkingHeadPoseId}
-                              onChange={setTalkingHeadPoseId}
+                      ) : (
+                        <>
+                          <Section
+                            step="01"
+                            title={t("brief.section01.title")}
+                            hint={t("brief.section01.hint")}
+                            equalHeaderHeight
+                          >
+                            <SkillPicker
+                              skills={skills}
+                              value={skillSlug}
+                              onChange={onSkillChange}
                               disabled={briefBusy}
                             />
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                    {presetBackgrounds.length > 0 ? (
-                      <div className="mt-4 border-t border-accent-ink/10 pt-4">
-                        <DirectorBackgroundPicker
-                          presets={presetBackgrounds}
-                          selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
-                          customUrls={backgroundImageUrls}
-                          allowsUpload={allowsBgUpload}
-                          open={directorBackgroundDialogOpen}
+                          </Section>
+                          {talkingHeadBackground ? (
+                            <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                              <TalkingHeadPoseField
+                                value={talkingHeadPoseId}
+                                onChange={setTalkingHeadPoseId}
+                                disabled={briefBusy}
+                              />
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                      {presetBackgrounds.length > 0 ? (
+                        <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                          <DirectorBackgroundPicker
+                            presets={presetBackgrounds}
+                            selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
+                            customUrls={backgroundImageUrls}
+                            allowsUpload={allowsBgUpload}
+                            open={directorBackgroundDialogOpen}
+                            disabled={briefBusy}
+                            onOpenChange={setDirectorBackgroundDialogOpen}
+                            onSelectPreset={setDirectorBackgroundId}
+                            onChangeCustomUrls={setBackgroundImageUrls}
+                            onError={setError}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div
+                      data-tour-id="visual-style-card"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
+                    >
+                      <Section
+                        step="02"
+                        title={t("brief.visualStyle.title")}
+                        hint={t("brief.visualStyle.hint")}
+                        equalHeaderHeight
+                      >
+                        <StylePicker
+                          styles={styles}
+                          value={styleId}
+                          onChange={onStyleChange}
                           disabled={briefBusy}
-                          onOpenChange={setDirectorBackgroundDialogOpen}
-                          onSelectPreset={setDirectorBackgroundId}
-                          onChangeCustomUrls={setBackgroundImageUrls}
-                          onError={setError}
                         />
-                      </div>
-                    ) : null}
+                      </Section>
+                    </div>
+
+                    <div
+                      data-tour-id="character-card"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
+                    >
+                      <Section
+                        step="03"
+                        title={t("brief.cast.title")}
+                        hint={
+                          castNeed === 2
+                            ? t("brief.cast.hintRequiredTwo")
+                            : castNeed === 1
+                              ? t("brief.cast.hintRequiredOne")
+                              : t("brief.cast.hintOptional")
+                        }
+                        equalHeaderHeight
+                      >
+                        <CharacterPicker
+                          characters={characters}
+                          styles={styles}
+                          styleId={styleId}
+                          value={characterIds}
+                          onChange={setCharacterIds}
+                          onSelectStyle={onStyleChange}
+                          selections={characterSelections}
+                          onSelectionsChange={setCharacterSelections}
+                          credits={walletCredits}
+                          subscribed={walletSubscribed}
+                          disabled={briefBusy}
+                          max={castNeed > 0 ? castNeed : 1}
+                          required={castNeed}
+                        />
+                      </Section>
+                    </div>
                   </div>
 
-                  {/* 02 Content / Script */}
+                  {/* 04 Content / Script to read */}
                   <QuickScriptCard
-                    step="02"
+                    step="04"
                     source={source}
                     onSourceChange={(val) => {
                       setSource(val);
@@ -1518,62 +1591,6 @@ export function NewProjectForm({
                     onLanguageChange={onVoLanguageChange}
                     disabled={briefBusy}
                   />
-
-                  {/* 03 Visual Style & 04 Characters */}
-                  <div className="grid gap-3 md:grid-cols-2 lg:items-stretch">
-                    <div
-                      data-tour-id="visual-style-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                    >
-                      <Section
-                        step="03"
-                        title={t("brief.visualStyle.title")}
-                        hint={t("brief.visualStyle.hint")}
-                        equalHeaderHeight
-                      >
-                        <StylePicker
-                          styles={styles}
-                          value={styleId}
-                          onChange={onStyleChange}
-                          disabled={briefBusy}
-                        />
-                      </Section>
-                    </div>
-
-                    <div
-                      data-tour-id="character-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                    >
-                      <Section
-                        step="04"
-                        title={t("brief.cast.title")}
-                        hint={
-                          castNeed === 2
-                            ? t("brief.cast.hintRequiredTwo")
-                            : castNeed === 1
-                              ? t("brief.cast.hintRequiredOne")
-                              : t("brief.cast.hintOptional")
-                        }
-                        equalHeaderHeight
-                      >
-                        <CharacterPicker
-                          characters={characters}
-                          styles={styles}
-                          styleId={styleId}
-                          value={characterIds}
-                          onChange={setCharacterIds}
-                          onSelectStyle={onStyleChange}
-                          selections={characterSelections}
-                          onSelectionsChange={setCharacterSelections}
-                          credits={walletCredits}
-                          subscribed={walletSubscribed}
-                          disabled={briefBusy}
-                          max={castNeed > 0 ? castNeed : 4}
-                          required={castNeed}
-                        />
-                      </Section>
-                    </div>
-                  </div>
                 </motion.div>
               ) : (
                 <>
@@ -1596,58 +1613,64 @@ export function NewProjectForm({
                         transition={{ duration: 0.25, ease }}
                         className="space-y-4"
                       >
-                        {/* Row 1: Director Banner Card (or Talking-head pose card when in Talking Head mode) */}
-                        <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                          {talkingHead ? (
-                            <Section
-                              step="01"
-                              title={t("brief.talkingHeadPose.title")}
-                              hint={t("brief.talkingHeadPose.hint")}
-                            >
-                              <TalkingHeadPoseField
-                                value={talkingHeadPoseId}
-                                onChange={setTalkingHeadPoseId}
-                                disabled={briefBusy}
-                                hideHeader
-                              />
-                            </Section>
-                          ) : (
-                            <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                              <SkillPicker
-                                skills={skills}
-                                value={skillSlug}
-                                onChange={onSkillChange}
-                                disabled={briefBusy}
-                                sideBySideGuide
-                              />
-                            </Section>
-                          )}
-                          {presetBackgrounds.length > 0 ? (
-                            <div className="mt-4 border-t border-accent-ink/10 pt-4">
-                              <DirectorBackgroundPicker
-                                presets={presetBackgrounds}
-                                selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
-                                customUrls={backgroundImageUrls}
-                                allowsUpload={allowsBgUpload}
-                                open={directorBackgroundDialogOpen}
-                                disabled={briefBusy}
-                                onOpenChange={setDirectorBackgroundDialogOpen}
-                                onSelectPreset={setDirectorBackgroundId}
-                                onChangeCustomUrls={setBackgroundImageUrls}
-                                onError={setError}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {/* Row 2: Equal-height 3-column Studio Cards (02 Visual Style · 03 Characters · 04 Products) */}
+                        {/* Row 1: 3-column Studio Cards on desktop, 1 col on mobile (01 Talking-head pose / Video type · 02 Visual Style · 03 Characters · + Products when present) */}
                         <div
-                          className={`grid gap-4 lg:items-stretch ${
+                          className={`grid grid-cols-1 gap-4 lg:items-stretch ${
                             bookend
-                              ? "md:grid-cols-2 xl:grid-cols-4"
-                              : "md:grid-cols-2 lg:grid-cols-3"
+                              ? "lg:grid-cols-3"
+                              : products.length > 0 && !talkingHead
+                                ? "lg:grid-cols-4"
+                                : "lg:grid-cols-3"
                           }`}
                         >
+                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                            {talkingHead ? (
+                              <Section
+                                step="01"
+                                title={t("brief.talkingHeadPose.title")}
+                                hint={t("brief.talkingHeadPose.hint")}
+                                equalHeaderHeight
+                              >
+                                <TalkingHeadPoseField
+                                  value={talkingHeadPoseId}
+                                  onChange={setTalkingHeadPoseId}
+                                  disabled={briefBusy}
+                                  hideHeader
+                                />
+                              </Section>
+                            ) : (
+                              <Section
+                                step="01"
+                                title={t("brief.section01.title")}
+                                hint={t("brief.section01.hint")}
+                                equalHeaderHeight
+                              >
+                                <SkillPicker
+                                  skills={skills}
+                                  value={skillSlug}
+                                  onChange={onSkillChange}
+                                  disabled={briefBusy}
+                                />
+                              </Section>
+                            )}
+                            {presetBackgrounds.length > 0 ? (
+                              <div className="mt-4 border-t border-accent-ink/10 pt-4">
+                                <DirectorBackgroundPicker
+                                  presets={presetBackgrounds}
+                                  selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
+                                  customUrls={backgroundImageUrls}
+                                  allowsUpload={allowsBgUpload}
+                                  open={directorBackgroundDialogOpen}
+                                  disabled={briefBusy}
+                                  onOpenChange={setDirectorBackgroundDialogOpen}
+                                  onSelectPreset={setDirectorBackgroundId}
+                                  onChangeCustomUrls={setBackgroundImageUrls}
+                                  onError={setError}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+
                           <div
                             data-tour-id="visual-style-card"
                             className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
@@ -1695,7 +1718,7 @@ export function NewProjectForm({
                                 credits={walletCredits}
                                 subscribed={walletSubscribed}
                                 disabled={briefBusy}
-                                max={castNeed > 0 ? castNeed : 4}
+                                max={castNeed > 0 ? castNeed : 1}
                                 required={castNeed}
                               />
                             </Section>
@@ -1762,21 +1785,57 @@ export function NewProjectForm({
                     <div className="flex flex-col rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6 lg:col-span-7">
                       <Section
                         step="01"
-                        title={talkingHead ? t("brief.talkingHead.instructionTitle") : t("brief.section02.title")}
-                        hint={talkingHead ? t("brief.talkingHead.instructionHint") : t("brief.section02.hint")}
+                        title={talkingHead ? t("brief.talkingHead.scriptTitle") : t("brief.section02.title")}
+                        hint={talkingHead ? t("brief.talkingHead.hint") : t("brief.section02.hint")}
                       >
-                        <label htmlFor="source" className="sr-only">
-                          {t("brief.source.label")}
-                        </label>
+                        {talkingHead ? (
+                          <div className="mb-5">
+                            <TalkingHeadScriptField
+                              value={spokenScript}
+                              onChange={setSpokenScript}
+                              language={language}
+                              uploadedVoUrl={uploadedVoUrl}
+                              uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+                              onUploadedVoChange={({ url, durationSeconds }) => {
+                                setUploadedVoUrl(url);
+                                setUploadedVoDurationSeconds(durationSeconds);
+                                if (error) setError("");
+                              }}
+                              onError={setError}
+                              disabled={briefBusy}
+                              compact
+                            />
+                          </div>
+                        ) : null}
+
+                        {talkingHead ? (
+                          <div className="mb-2 border-t border-accent-ink/10 pt-4">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <label htmlFor="source" className="text-sm font-semibold">
+                                {t("brief.talkingHead.instructionTitle")}
+                              </label>
+                              <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
+                                {t("brief.source.charCount", { n: source.length.toLocaleString() })}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted">
+                              {t("brief.talkingHead.instructionHint")}
+                            </p>
+                          </div>
+                        ) : (
+                          <label htmlFor="source" className="sr-only">
+                            {t("brief.source.label")}
+                          </label>
+                        )}
                         <textarea
                           id="source"
                           name="source"
-                          rows={talkingHead ? 8 : 14}
+                          rows={talkingHead ? 6 : 14}
                           value={source}
                           onChange={(event) => setSource(event.target.value)}
                           disabled={briefBusy}
                           className={`w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60 ${
-                            talkingHead ? "min-h-[12rem]" : "min-h-[22rem] lg:min-h-[26rem]"
+                            talkingHead ? "min-h-[9rem]" : "min-h-[22rem] lg:min-h-[26rem]"
                           }`}
                           placeholder={
                             talkingHead
@@ -1793,26 +1852,12 @@ export function NewProjectForm({
                               if (nextSpoken !== undefined) setSpokenScript(nextSpoken);
                             }}
                           />
-                          <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
-                            {t("brief.source.charCount", { n: source.length.toLocaleString() })}
-                          </span>
+                          {!talkingHead ? (
+                            <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
+                              {t("brief.source.charCount", { n: source.length.toLocaleString() })}
+                            </span>
+                          ) : null}
                         </div>
-                        {talkingHead ? (
-                          <TalkingHeadScriptField
-                            value={spokenScript}
-                            onChange={setSpokenScript}
-                            language={language}
-                            uploadedVoUrl={uploadedVoUrl}
-                            uploadedVoDurationSeconds={uploadedVoDurationSeconds}
-                            onUploadedVoChange={({ url, durationSeconds }) => {
-                              setUploadedVoUrl(url);
-                              setUploadedVoDurationSeconds(durationSeconds);
-                              if (error) setError("");
-                            }}
-                            onError={setError}
-                            disabled={briefBusy}
-                          />
-                        ) : null}
                       </Section>
                     </div>
 

@@ -428,3 +428,38 @@ export function talkingHeadBackgroundPromptParts(
     light: isZh ? bg.lightYue : bg.lightEn,
   };
 }
+
+/** Default detailed director instruction pre-filled for Talking-Head so users only need to enter the script or upload audio. */
+export const DEFAULT_TALKING_HEAD_DIRECTOR_INSTRUCTION: Record<
+  "zh-Hant" | "zh-Hans" | "en",
+  string
+> = {
+  "zh-Hant":
+    "語氣自然親切、真誠可信，像跟一位好朋友直接分享實用經驗，節奏穩定清晰、不浮誇不硬銷。人物正面直視鏡頭，眼神專注有交流感，說話時搭配自然微表情、輕微點頭與重點字語氣強調，嘴型清晰自然、不誇張大笑。室內溫暖柔和的側窗自然光（約 3400K–4200K 暖色調），膚質與光影自然真實，背景乾淨有淺景深。",
+  "zh-Hans":
+    "语气自然亲切、真诚可信，像跟一位好朋友直接分享实用经验，节奏稳定清晰、不浮夸不硬销。人物正面直视镜头，眼神专注有交流感，说话时搭配自然微表情、轻微点头与重点字语气强调，嘴型清晰自然、不夸张大笑。室内温暖柔和的侧窗自然光（约 3400K–4200K 暖色调），肤质与光影自然真实，背景干净有浅景深。",
+  en: "Warm, conversational, and authentic delivery—like sharing a practical insight directly with a close friend, at a steady, natural pace with no hard sell. Keep eyes locked into the lens with subtle micro-expressions, gentle 1–2° head nods on key points, and clean natural lip-sync without wide toothy grins. Soft, warm 3400K–4200K side window daylight with gentle tonal roll-off, natural matte skin texture, and a clean shallow-depth-of-field background.",
+};
+
+const DEFAULT_TALKING_HEAD_INSTRUCTION_SET = new Set<string>(
+  Object.values(DEFAULT_TALKING_HEAD_DIRECTOR_INSTRUCTION).map((s) => s.trim()),
+);
+
+export function defaultTalkingHeadDirectorInstruction(locale?: string): string {
+  if (locale === "zh-Hant") {
+    return DEFAULT_TALKING_HEAD_DIRECTOR_INSTRUCTION["zh-Hant"];
+  }
+  if (locale === "zh-Hans") {
+    return DEFAULT_TALKING_HEAD_DIRECTOR_INSTRUCTION["zh-Hans"];
+  }
+  return DEFAULT_TALKING_HEAD_DIRECTOR_INSTRUCTION.en;
+}
+
+export function isDefaultTalkingHeadDirectorInstruction(
+  value: string | undefined | null,
+): boolean {
+  const trimmed = (value || "").trim();
+  return !trimmed || DEFAULT_TALKING_HEAD_INSTRUCTION_SET.has(trimmed);
+}
+
+

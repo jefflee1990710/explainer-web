@@ -55,10 +55,10 @@ export function QuickScriptCard({
 
   const quickHint = talkingHead
     ? locale === "zh-Hant"
-      ? "講稿必填。導演指示選填，只寫語氣同場景，唔好同講稿相同。"
+      ? "只需輸入角色講稿或上傳／錄製音訊；下方已預填完整導演指示（可按需要微調）。"
       : locale === "zh-Hans"
-        ? "讲稿必填。导演指示选填，只写语气和场景，不要和讲稿相同。"
-        : "Script to read is required. Director instruction is optional — tone and setting only, and not the same words."
+        ? "只需输入角色讲稿或上传／录制音频；下方已预填完整导演指示（可按需微调）。"
+        : "Just enter the script to read or upload/record audio. A full-detail director instruction is pre-filled below (editable)."
     : locale === "zh-Hant"
       ? "導演指示／腳本為選填（可輸入主題、腳本，或點下方「範例腳本」填入；留空亦會由導演根據所選風格與角色自動規劃），揀好下方視覺風格與角色即可按右下角「開始製作」！"
       : locale === "zh-Hans"
@@ -124,9 +124,21 @@ export function QuickScriptCard({
       <p className="mt-1 text-xs leading-5 text-muted">{quickHint}</p>
 
       {talkingHead ? (
-        /* Side-by-side 2-column layout when Talking-Head is active so both fields stay compact and 02/03 remain visible below */
-        <div className="mt-3 grid gap-4 md:grid-cols-2 md:items-start">
-          <div>
+        /* Stacked layout: Script to read / Audio to read on top, pre-filled full-detail Director instruction below */
+        <div className="mt-3 space-y-4">
+          <TalkingHeadScriptField
+            value={spokenScript}
+            onChange={onSpokenScriptChange}
+            language={language}
+            uploadedVoUrl={uploadedVoUrl}
+            uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+            onUploadedVoChange={onUploadedVoChange}
+            onError={onError}
+            disabled={disabled}
+            compact
+          />
+
+          <div className="border-t border-accent-ink/10 pt-3">
             <div className="flex items-baseline justify-between gap-2">
               <label htmlFor="quick-source" className="text-sm font-semibold">
                 {directorNoteLabel}
@@ -148,18 +160,6 @@ export function QuickScriptCard({
               className="mt-2 min-h-[5.5rem] w-full resize-y rounded-2xl border border-accent-ink/20 bg-paper px-4 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </div>
-
-          <TalkingHeadScriptField
-            value={spokenScript}
-            onChange={onSpokenScriptChange}
-            language={language}
-            uploadedVoUrl={uploadedVoUrl}
-            uploadedVoDurationSeconds={uploadedVoDurationSeconds}
-            onUploadedVoChange={onUploadedVoChange}
-            onError={onError}
-            disabled={disabled}
-            compact
-          />
         </div>
       ) : (
         <div className="mt-2.5">
