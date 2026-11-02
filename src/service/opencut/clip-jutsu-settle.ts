@@ -87,9 +87,8 @@ export async function settleTargetClipFromEngineJob(input: {
     { $set: { clips, status: nextStatus, updatedAt: now } },
   );
 
-  const updated = await videos.findOne({ _id: project._id });
-  if (updated && input.status === "completed") {
-    await queueReelIfReady(updated).catch((err) => {
+  if (input.status === "completed") {
+    await queueReelIfReady(project._id).catch((err) => {
       console.error("[clip-jutsu] queueReelIfReady failed", { videoId: project._id.toHexString(), err });
     });
   }
