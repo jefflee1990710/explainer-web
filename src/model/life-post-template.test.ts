@@ -5,9 +5,11 @@ import { test } from "node:test";
 import {
   LIFE_POST_CATEGORIES,
   LIFE_POST_TEMPLATES,
+  QUICK_LIFE_TEMPLATE_ID,
   lifePostTemplateById,
   lifePostTemplatePreviewSrc,
   lifePostTemplatesInCategory,
+  pickRandomLifePostTemplateId,
 } from "@/model/life-post-template";
 import { LIFE_SHOT_KINDS } from "@/model/life-shot-kind";
 import { LIFE_TEMPLATES_EN, LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-templates";
@@ -15,7 +17,7 @@ import { LIFE_TEMPLATES_EN, LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-
 test("life post template ids are unique and every category has templates", () => {
   const ids = LIFE_POST_TEMPLATES.map((t) => t.id);
   assert.equal(new Set(ids).size, ids.length);
-  assert.equal(ids.length, 46);
+  assert.equal(ids.length, 57);
   for (const category of LIFE_POST_CATEGORIES) {
     assert.ok(lifePostTemplatesInCategory(category).length >= 3, category);
   }
@@ -45,4 +47,23 @@ test("lifePostTemplateById returns null for unknown ids", () => {
   assert.equal(lifePostTemplateById("nope"), null);
   assert.equal(lifePostTemplateById(undefined), null);
   assert.equal(lifePostTemplateById("street-look-back")?.categoryId, "street");
+});
+
+test("QUICK_LIFE_TEMPLATE_ID is street-ootd-full and exists in the catalog", () => {
+  assert.equal(QUICK_LIFE_TEMPLATE_ID, "street-ootd-full");
+  assert.ok(lifePostTemplateById(QUICK_LIFE_TEMPLATE_ID));
+});
+
+test("pickRandomLifePostTemplateId returns a catalog id using the provided RNG", () => {
+  const id = pickRandomLifePostTemplateId(() => 0);
+  assert.equal(id, LIFE_POST_TEMPLATES[0].id);
+  const last = pickRandomLifePostTemplateId(() => 0.999999);
+  assert.equal(last, LIFE_POST_TEMPLATES[LIFE_POST_TEMPLATES.length - 1].id);
+});
+
+test("pickRandomLifePostTemplateId only returns known template ids", () => {
+  for (let i = 0; i < 40; i++) {
+    const id = pickRandomLifePostTemplateId();
+    assert.ok(lifePostTemplateById(id), `unknown id: ${id}`);
+  }
 });

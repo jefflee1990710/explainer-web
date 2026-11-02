@@ -488,3 +488,18 @@ export function lifePostTemplatesInCategory(categoryId: LifePostCategoryId) {
 export function lifePostTemplatePreviewSrc(id: string) {
   return `/life-templates/${id}.webp?v=2`;
 }
+
+/** Fixed post template used by Life Quick Generate. */
+export const QUICK_LIFE_TEMPLATE_ID = "street-ootd-full" as const;
+
+/** Uniform random catalog id. Pass `random` in tests to make the pick deterministic. */
+export function pickRandomLifePostTemplateId(random: () => number = Math.random): string {
+  if (LIFE_POST_TEMPLATES.length === 0) {
+    throw new Error("LIFE_POST_TEMPLATES is empty");
+  }
+  const index = Math.min(
+    LIFE_POST_TEMPLATES.length - 1,
+    Math.floor(random() * LIFE_POST_TEMPLATES.length),
+  );
+  return LIFE_POST_TEMPLATES[index].id;
+}
