@@ -1,0 +1,12 @@
+---
+description: Marketing folder workflow — generate marketing images and videos via OpenRouter and always send results to Telegram (TG).
+alwaysApply: true
+---
+
+# Marketing Folder Workflow (`Marketing/`)
+
+- All marketing scripts, prompts, and generated assets belong in the root `Marketing/` folder (`/Users/jefflee/Projects/Explainer.io/explainer-web/Marketing`).
+- When creating marketing photos or videos, use **OpenRouter** (`src/service/openrouter/generate.ts`):
+  - **Images**: `bytedance-seed/seedream-5-0-pro` (or `bytedance-seed/seedream-5-0-lite`) via `submitOpenRouterImage`.
+  - **Videos**: `minimax/hailuo-3`, `alibaba/wan-3.0`, or `heygen/avatar-iv` via `submitOpenRouterClipVideo` / `submitOpenRouterAvatarVideo` (or Scro Swap / Teleport pipelines).
+- **Mandatory Telegram Delivery**: Every generated marketing image or video **MUST** be sent to Telegram immediately upon completion using `sendMarketingPhotoToTelegram` / `sendMarketingVideoToTelegram` in `Marketing/telegram.ts`.
