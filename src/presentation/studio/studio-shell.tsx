@@ -96,7 +96,7 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
 
   return (
     <aside
-      className={`group/rail relative z-50 flex h-full shrink-0 flex-col overflow-hidden border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 transition-[width] duration-200 ease-out hover:w-[200px] focus-within:w-[200px] ${
+      className={`group/rail relative z-50 flex h-full shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 transition-[width] duration-200 ease-out hover:w-[200px] focus-within:w-[200px] ${
         navTourOpen ? "w-[200px]" : "w-[72px]"
       }`}
     >

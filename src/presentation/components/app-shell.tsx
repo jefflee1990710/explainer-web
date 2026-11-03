@@ -67,11 +67,6 @@ export function AppShell({
     { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "assets" },
     { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "assets" },
     { href: "/app/products", label: t("nav.products"), icon: "products", section: "assets" },
-    { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "account" },
-    { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "account" },
-    ...(affiliateEnabled
-      ? [{ href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" as const, section: "account" as const }]
-      : []),
   ];
 
   return (
@@ -95,6 +90,11 @@ export function AppShell({
           avatarUrl={avatarUrl}
           signOutLabel={t("auth.signOut")}
           settingsLabel={t("nav.settings")}
+          usageLabel={locale === "en" ? "Usage & Credits" : "用量與儲值 Usage"}
+          billingLabel={locale === "en" ? "Billing & Card" : "信用卡與付款 Billing"}
+          invoicesLabel={locale === "en" ? "Invoices" : "帳單紀錄 Invoices"}
+          mcpLabel={t("nav.mcp")}
+          affiliateLabel={affiliateEnabled ? t("nav.affiliate") : undefined}
           credits={credits}
           creditLimit={creditLimit}
           creditsLabel={t("common.credits")}
