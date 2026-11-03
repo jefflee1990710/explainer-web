@@ -1,14 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PublicCustomWardrobeItem } from "@/model/custom-wardrobe-item";
-import type { PublicJutsuJob } from "@/model/jutsu-job";
+import type { JutsuPersonMapping, PublicJutsuJob } from "@/model/jutsu-job";
 import {
   deleteJutsuJobAction,
+  detectJutsuPeopleAction,
   pollJutsuJobStatusAction,
   startScroSwapJobAction,
 } from "@/presentation/actions/jutsu";
+import {
+  captureVideoFrameDataUrl,
+  JutsuPersonRleOverlay,
+  JutsuPersonTabsBar,
+  type JutsuPersonSlotAssignment,
+} from "@/presentation/components/app/jutsu/jutsu-person-rle-mapper";
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
+import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-swap-history-dialog";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
@@ -21,6 +29,7 @@ import type {
   PublicCharacterVersion,
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
+import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
 
 type LookTab = "presets" | "historical";
 
@@ -110,6 +119,15 @@ export function JutsuStudio({
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
   const [managingCharacter, setManagingCharacter] = useState(false);
 
+  // SAM 3 RLE multi-person detection & per-person character assignment state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [detectedPeople, setDetectedPeople] = useState<DetectedSourcePerson[]>([]);
+  const [detectingPeople, setDetectingPeople] = useState(false);
+  const [activePersonIndex, setActivePersonIndex] = useState<number>(1);
+  const [personAssignments, setPersonAssignments] = useState<
+    Record<number, JutsuPersonSlotAssignment>
+  >({});
+
   // Advanced options
   const [relightEnabled, setRelightEnabled] = useState(false);
   const [relightId, setRelightId] = useState("golden_halo");
@@ -179,12 +197,144 @@ export function JutsuStudio({
     );
   }, [activeCharacter]);
 
+  function updateActivePersonSlot(patch: Partial<JutsuPersonSlotAssignment>) {
+    setPersonAssignments((prev) => {
+      const cur = prev[activePersonIndex] ?? {
+        keepOriginal: false,
+        characterId,
+        characterName: activeCharacter?.name ?? "",
+        lookTab,
+        selectedLookKey,
+        selectedLookUrl,
+        lookLabel: isEn ? "Default Look" : "預設造型",
+        uploadedPhotoUrl,
+      };
+      return {
+        ...prev,
+        [activePersonIndex]: { ...cur, ...patch },
+      };
+    });
+  }
+
+  function switchActivePerson(personIndex: number) {
+    setActivePersonIndex(personIndex);
+    const slot = personAssignments[personIndex];
+    if (!slot || slot.keepOriginal) return;
+    if (slot.uploadedPhotoUrl) {
+      setUploadedPhotoUrl(slot.uploadedPhotoUrl);
+      return;
+    }
+    if (slot.characterId) {
+      setCharacterId(slot.characterId);
+      setUploadedPhotoUrl("");
+      setLookTab(slot.lookTab || "presets");
+      setSelectedLookKey(slot.selectedLookKey || "default");
+      setSelectedLookUrl(slot.selectedLookUrl);
+    }
+  }
+
+  const runFramePeopleDetection = useCallback(async () => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !sourceVideoUrl) return;
+    setDetectingPeople(true);
+    try {
+      if (Math.abs(videoEl.currentTime - sectionStart) > 0.15) {
+        await new Promise<void>((resolve) => {
+          const onSeeked = () => {
+            videoEl.removeEventListener("seeked", onSeeked);
+            resolve();
+          };
+          videoEl.addEventListener("seeked", onSeeked, { once: true });
+          try {
+            videoEl.currentTime = sectionStart;
+          } catch {
+            videoEl.removeEventListener("seeked", onSeeked);
+            resolve();
+          }
+          window.setTimeout(() => {
+            videoEl.removeEventListener("seeked", onSeeked);
+            resolve();
+          }, 1200);
+        });
+      }
+
+      const frameDataUrl = captureVideoFrameDataUrl(videoEl, 640);
+      if (!frameDataUrl) return;
+
+      const res = await detectJutsuPeopleAction({ frameDataUrl });
+      if (!res.ok) return;
+
+      setDetectedPeople(res.people);
+      if (res.people.length > 0) {
+        const firstChar =
+          characters.find((c) => c.id === characterId) ?? characters[0] ?? null;
+        const nextMap: Record<number, JutsuPersonSlotAssignment> = {};
+        for (const p of res.people) {
+          if (p.personIndex === 1) {
+            nextMap[p.personIndex] = {
+              keepOriginal: false,
+              characterId: firstChar?.id ?? "",
+              characterName: firstChar?.name ?? "",
+              lookTab: "presets",
+              selectedLookKey: "default",
+              selectedLookUrl: defaultCharacterLookUrl(firstChar),
+              lookLabel: isEn ? "Default Look" : "預設造型",
+              uploadedPhotoUrl: "",
+            };
+          } else {
+            nextMap[p.personIndex] = {
+              keepOriginal: true,
+              characterId: firstChar?.id ?? "",
+              characterName: firstChar?.name ?? "",
+              lookTab: "presets",
+              selectedLookKey: "default",
+              selectedLookUrl: defaultCharacterLookUrl(firstChar),
+              lookLabel: isEn ? "Default Look" : "預設造型",
+              uploadedPhotoUrl: "",
+            };
+          }
+        }
+        setPersonAssignments(nextMap);
+        setActivePersonIndex(1);
+      } else {
+        setPersonAssignments({});
+        setActivePersonIndex(1);
+      }
+    } finally {
+      setDetectingPeople(false);
+    }
+  }, [sourceVideoUrl, sectionStart, characters, characterId, isEn]);
+
+  // Debounced auto-detection 800ms after `sourceVideoUrl` loads or `sectionStart` changes.
+  useEffect(() => {
+    if (!sourceVideoUrl) return;
+    const timer = window.setTimeout(() => {
+      void runFramePeopleDetection();
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [sourceVideoUrl, sectionStart, runFramePeopleDetection]);
+
+  function selectKeepOriginalForActivePerson() {
+    updateActivePersonSlot({ keepOriginal: true });
+  }
+
   function selectCharacter(char: PublicCharacter) {
+    const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
     setUploadedPhotoUrl("");
     setLookTab("presets");
     setSelectedLookKey("default");
-    setSelectedLookUrl(defaultCharacterLookUrl(char));
+    setSelectedLookUrl(defUrl);
+    updateActivePersonSlot({
+      keepOriginal: false,
+      characterId: char.id,
+      characterName: char.name,
+      lookTab: "presets",
+      selectedLookKey: "default",
+      selectedLookUrl: defUrl,
+      lookLabel: isEn ? "Default Look" : "預設造型",
+      uploadedPhotoUrl: "",
+    });
   }
 
   function handleCustomizedLook(
@@ -201,6 +351,16 @@ export function JutsuStudio({
         setLookTab("presets");
         setSelectedLookKey(`preset:${preset!.id}`);
         setSelectedLookUrl(url);
+        updateActivePersonSlot({
+          keepOriginal: false,
+          characterId: char.id,
+          characterName: char.name,
+          lookTab: "presets",
+          selectedLookKey: `preset:${preset!.id}`,
+          selectedLookUrl: url,
+          lookLabel: preset!.name,
+          uploadedPhotoUrl: "",
+        });
         return;
       }
     }
@@ -211,22 +371,84 @@ export function JutsuStudio({
         setLookTab("historical");
         setSelectedLookKey(`ver:${ver!.id}`);
         setSelectedLookUrl(url);
+        updateActivePersonSlot({
+          keepOriginal: false,
+          characterId: char.id,
+          characterName: char.name,
+          lookTab: "historical",
+          selectedLookKey: `ver:${ver!.id}`,
+          selectedLookUrl: url,
+          lookLabel: `v${ver!.number}`,
+          uploadedPhotoUrl: "",
+        });
       }
     }
   }
 
+  const activePersonKeepOriginal =
+    detectedPeople.length > 0 && Boolean(personAssignments[activePersonIndex]?.keepOriginal);
+
+  const builtPersonMappings = useMemo<JutsuPersonMapping[]>(() => {
+    if (detectedPeople.length === 0) return [];
+    const list: JutsuPersonMapping[] = [];
+    for (const person of detectedPeople) {
+      const slot = personAssignments[person.personIndex];
+      if (!slot || slot.keepOriginal) continue;
+      const refUrl = slot.uploadedPhotoUrl || slot.selectedLookUrl;
+      if (!refUrl) continue;
+      list.push({
+        objectId: person.objectId,
+        personIndex: person.personIndex,
+        anchorPoint: person.anchorPoint,
+        box: person.box,
+        characterId: slot.uploadedPhotoUrl ? undefined : slot.characterId || undefined,
+        characterName: slot.uploadedPhotoUrl ? undefined : slot.characterName || undefined,
+        referenceImageUrl: refUrl,
+      });
+    }
+    return list;
+  }, [detectedPeople, personAssignments]);
+
   async function onSubmit() {
     if (submitting || !sourceVideoUrl) return;
+    if (detectedPeople.length > 0 && builtPersonMappings.length === 0) {
+      setError(
+        isEn
+          ? "Please assign a character to at least one detected person."
+          : "請至少為 1 位畫面人物指定替換角色",
+      );
+      return;
+    }
     setError("");
     setSubmitting(true);
     try {
-      const effectiveRefUrl = uploadedPhotoUrl || selectedLookUrl || undefined;
+      const effectiveRefUrl =
+        builtPersonMappings[0]?.referenceImageUrl ||
+        uploadedPhotoUrl ||
+        selectedLookUrl ||
+        undefined;
+      const effectiveCharId =
+        builtPersonMappings.length > 0
+          ? builtPersonMappings[0]?.characterId
+          : uploadedPhotoUrl
+            ? undefined
+            : characterId || undefined;
+
       const res = await startScroSwapJobAction({
         sourceVideoUrl,
         sectionStart,
         sectionLength,
-        characterId: uploadedPhotoUrl ? undefined : characterId || undefined,
+        characterId: effectiveCharId,
         referenceImageUrl: effectiveRefUrl,
+        personMappings: builtPersonMappings.length > 0 ? builtPersonMappings : undefined,
+        allDetectedAnchors:
+          detectedPeople.length > 0
+            ? detectedPeople.map((p) => ({
+                objectId: p.objectId,
+                anchorPoint: p.anchorPoint,
+              }))
+            : undefined,
+        totalDetectedPeople: detectedPeople.length > 0 ? detectedPeople.length : undefined,
         relightId: relightEnabled ? relightId : undefined,
         customLightPrompt: relightEnabled ? customLightPrompt : undefined,
         maskMargin,
@@ -335,6 +557,8 @@ export function JutsuStudio({
                 disabled={submitting}
                 onUploaded={(asset) => {
                   if (asset.kind === "video") {
+                    setDetectedPeople([]);
+                    setPersonAssignments({});
                     setSourceVideoUrl(asset.url);
                     setError("");
                   }
@@ -345,53 +569,77 @@ export function JutsuStudio({
             </div>
 
             {sourceVideoUrl ? (
-              <div className="grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 sm:grid-cols-[1fr_14rem]">
-                <video
-                  src={sourceVideoUrl}
-                  controls
-                  playsInline
-                  onLoadedMetadata={(e) => {
-                    const dur = e.currentTarget.duration;
-                    if (!Number.isFinite(dur) || dur <= 0) return;
-                    setSectionStart(0);
-                    setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
-                  }}
-                  className="max-h-52 w-full rounded-lg bg-black object-contain"
-                />
-                <div className="flex flex-col justify-center gap-3">
-                  <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">
-                      {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={300}
-                      step={0.5}
-                      disabled={submitting}
-                      value={sectionStart}
-                      onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
-                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+              <div className="space-y-3">
+                <div className="grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 sm:grid-cols-[1fr_14rem]">
+                  <div className="relative max-h-52 w-full overflow-hidden rounded-lg bg-black">
+                    <video
+                      ref={videoRef}
+                      src={sourceVideoUrl}
+                      controls
+                      playsInline
+                      crossOrigin="anonymous"
+                      onLoadedMetadata={(e) => {
+                        const dur = e.currentTarget.duration;
+                        if (!Number.isFinite(dur) || dur <= 0) return;
+                        setSectionStart(0);
+                        setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
+                      }}
+                      className="max-h-52 w-full rounded-lg bg-black object-contain"
                     />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">
-                      {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
-                    </span>
-                    <input
-                      type="number"
-                      min={2}
-                      max={15}
-                      step={1}
-                      disabled={submitting}
-                      value={sectionLength}
-                      onChange={(e) =>
-                        setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
-                      }
-                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                    <JutsuPersonRleOverlay
+                      people={detectedPeople}
+                      activePersonIndex={activePersonIndex}
+                      assignments={personAssignments}
+                      onSelectPerson={switchActivePerson}
+                      isEn={isEn}
                     />
-                  </label>
+                  </div>
+                  <div className="flex flex-col justify-center gap-3">
+                    <label className="block">
+                      <span className="text-[11px] font-semibold text-muted">
+                        {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={300}
+                        step={0.5}
+                        disabled={submitting}
+                        value={sectionStart}
+                        onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
+                        className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[11px] font-semibold text-muted">
+                        {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
+                      </span>
+                      <input
+                        type="number"
+                        min={2}
+                        max={15}
+                        step={1}
+                        disabled={submitting}
+                        value={sectionLength}
+                        onChange={(e) =>
+                          setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
+                        }
+                        className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                      />
+                    </label>
+                  </div>
                 </div>
+
+                <JutsuPersonTabsBar
+                  people={detectedPeople}
+                  detecting={detectingPeople}
+                  activePersonIndex={activePersonIndex}
+                  assignments={personAssignments}
+                  onSelectPerson={switchActivePerson}
+                  onRedetect={() => void runFramePeopleDetection()}
+                  disabled={submitting}
+                  isEn={isEn}
+                />
               </div>
             ) : (
               <div className="grid h-28 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
@@ -415,7 +663,13 @@ export function JutsuStudio({
           <section className="space-y-4 border-t border-accent-ink/10 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-display text-sm font-bold">
-                {isEn ? "2. Select Character" : "2. 選擇角色"}
+                {detectedPeople.length > 0
+                  ? isEn
+                    ? `2. Assign Character for Person #${activePersonIndex}`
+                    : `2. 為「人物 #${activePersonIndex}」選擇替換角色`
+                  : isEn
+                    ? "2. Select Character"
+                    : "2. 選擇角色"}
               </span>
               <div className="flex items-center gap-2">
                 <BrandUploadButton
@@ -425,6 +679,10 @@ export function JutsuStudio({
                   onUploaded={(asset) => {
                     if (asset.kind === "image") {
                       setUploadedPhotoUrl(asset.url);
+                      updateActivePersonSlot({
+                        keepOriginal: false,
+                        uploadedPhotoUrl: asset.url,
+                      });
                     }
                   }}
                   onError={setError}
@@ -432,7 +690,10 @@ export function JutsuStudio({
                 {uploadedPhotoUrl ? (
                   <button
                     type="button"
-                    onClick={() => setUploadedPhotoUrl("")}
+                    onClick={() => {
+                      setUploadedPhotoUrl("");
+                      updateActivePersonSlot({ uploadedPhotoUrl: "" });
+                    }}
                     className="cursor-pointer text-xs font-semibold text-red-600"
                   >
                     {isEn ? "Clear photo" : "清除相片"}
@@ -442,10 +703,30 @@ export function JutsuStudio({
             </div>
 
             {/* Layer 1: Character avatar strip */}
-            {characters.length > 0 ? (
+            {characters.length > 0 || detectedPeople.length > 0 ? (
               <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
+                {detectedPeople.length > 0 ? (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={selectKeepOriginalForActivePerson}
+                    className={`group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
+                      activePersonKeepOriginal
+                        ? "border-2 border-accent-ink bg-accent-ink text-lime ring-2 ring-lime"
+                        : "border-accent-ink/15 bg-paper/70 text-muted hover:border-accent-ink/45 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="text-base font-bold">⊘</span>
+                    <span className="mt-1 text-[10px] font-bold leading-tight">
+                      {isEn ? "Keep Original" : "保留原人物"}
+                    </span>
+                  </button>
+                ) : null}
                 {characters.map((char) => {
-                  const active = characterId === char.id && !uploadedPhotoUrl;
+                  const active =
+                    !activePersonKeepOriginal &&
+                    characterId === char.id &&
+                    !uploadedPhotoUrl;
                   const avatar = characterAvatarUrl(char);
                   return (
                     <button
@@ -481,7 +762,13 @@ export function JutsuStudio({
             ) : null}
 
             {/* Layer 2: Selected Character's Presets / Historical / Customize Outfit */}
-            {uploadedPhotoUrl ? (
+            {activePersonKeepOriginal ? (
+              <div className="rounded-xl border border-accent-ink/15 bg-paper/65 p-3 text-xs text-muted">
+                {isEn
+                  ? `Person #${activePersonIndex} will stay unchanged in the output video. Click any character above to swap this person.`
+                  : `人物 #${activePersonIndex} 將保留原片樣貌與衣服唔變。點選上方任何角色即可替換呢位人物。`}
+              </div>
+            ) : uploadedPhotoUrl ? (
               <div className="flex items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -558,6 +845,14 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey("default");
                             setSelectedLookUrl(defUrl);
+                            updateActivePersonSlot({
+                              keepOriginal: false,
+                              lookTab: "presets",
+                              selectedLookKey: "default",
+                              selectedLookUrl: defUrl,
+                              lookLabel: isEn ? "Default Look" : "預設造型",
+                              uploadedPhotoUrl: "",
+                            });
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -566,12 +861,7 @@ export function JutsuStudio({
                           }`}
                         >
                           {defUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={defUrl}
-                              alt={activeCharacter.name}
-                              className="aspect-square w-full rounded-lg object-cover"
-                            />
+                            <LookCardImage src={defUrl} alt={activeCharacter.name} />
                           ) : null}
                           <span className="mt-1.5 truncate text-[11px] font-bold">
                             {isEn ? "Default Look" : "預設造型"}
@@ -594,6 +884,14 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey(key);
                             setSelectedLookUrl(url);
+                            updateActivePersonSlot({
+                              keepOriginal: false,
+                              lookTab: "presets",
+                              selectedLookKey: key,
+                              selectedLookUrl: url,
+                              lookLabel: preset.name,
+                              uploadedPhotoUrl: "",
+                            });
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -601,12 +899,7 @@ export function JutsuStudio({
                               : "border-accent-ink/12 bg-white hover:border-accent-ink/35"
                           }`}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt={preset.name}
-                            className="aspect-square w-full rounded-lg object-cover"
-                          />
+                          <LookCardImage src={url} alt={preset.name} />
                           <span className="mt-1.5 truncate text-[11px] font-bold">
                             {preset.name}
                           </span>
@@ -637,6 +930,14 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey(key);
                             setSelectedLookUrl(url);
+                            updateActivePersonSlot({
+                              keepOriginal: false,
+                              lookTab: "historical",
+                              selectedLookKey: key,
+                              selectedLookUrl: url,
+                              lookLabel: label,
+                              uploadedPhotoUrl: "",
+                            });
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -644,12 +945,7 @@ export function JutsuStudio({
                               : "border-accent-ink/12 bg-white hover:border-accent-ink/35"
                           }`}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt={label}
-                            className="aspect-square w-full rounded-lg object-cover"
-                          />
+                          <LookCardImage src={url} alt={label} />
                           <span className="mt-1.5 truncate text-[11px] font-bold">
                             {label}
                           </span>

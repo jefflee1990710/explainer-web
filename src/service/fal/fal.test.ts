@@ -197,7 +197,7 @@ test("detectPeopleWithFalSam3ImageRle decodes multi-person RLE masks, filters no
 
 test("segmentVideoWithFalSam3Rle forwards pointPrompts with object_id and foreground/background labels", async () => {
   process.env.FAL_KEY = "fal_sk_test:secret";
-  let submittedPayload: Record<string, unknown> | null = null;
+  let submittedPayload: { point_prompts?: unknown } = {};
 
   const fakeFetch: typeof fetch = async (input, init) => {
     const url = String(input);
