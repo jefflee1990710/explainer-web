@@ -21,6 +21,7 @@ import { scroHost } from "@/opencut/embed/scro-transport";
 import type { ScroClipMenuAction } from "@/opencut/embed/scro-video-actions";
 import { inFlightCounts } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
+import { mediaSrc } from "@/util/media-src";
 import { appendDirectorClipAction } from "@/presentation/actions/clip-timeline";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -56,6 +57,8 @@ export function OpenCutScroToolbar({
   onGenerateSelected,
   onClearChecked,
   onProject,
+  onOpenClipSwap,
+  onOpenClipTeleport,
 }: {
   project: PublicVideo;
   skills?: PublicSkill[];
@@ -71,8 +74,20 @@ export function OpenCutScroToolbar({
   onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
   onClearChecked: () => void;
   onProject: (project: PublicVideo) => void;
+  onOpenClipSwap?: (clipNumber: number) => void;
+  onOpenClipTeleport?: (clipNumber: number) => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const isEn = locale === "en";
+  const selectedClipDoc =
+    selectedClipNumber != null
+      ? project.clips.find((c) => c.clipNumber === selectedClipNumber)
+      : undefined;
+  const selectedClipReadyForJutsu = Boolean(
+    selectedClipDoc &&
+      selectedClipDoc.status === "completed" &&
+      mediaSrc(selectedClipDoc),
+  );
   const queue = inFlightCounts(project);
   const appends = project.clipAppends ?? [];
   const clipsQueued = appends.filter((job) => job.status === "queued").length;
@@ -183,6 +198,26 @@ export function OpenCutScroToolbar({
           />
         </div>
         <div className="flex items-center gap-2">
+          {selectedClipNumber != null && selectedClipReadyForJutsu ? (
+            <>
+              <button
+                type="button"
+                disabled={!idle}
+                onClick={() => onOpenClipSwap?.(selectedClipNumber)}
+                className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--studio-line)] bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>{isEn ? `Scro Swap #${selectedClipNumber}` : `Scro Swap 換角 #${selectedClipNumber}`}</span>
+              </button>
+              <button
+                type="button"
+                disabled={!idle}
+                onClick={() => onOpenClipTeleport?.(selectedClipNumber)}
+                className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--studio-line)] bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>{isEn ? `Teleport #${selectedClipNumber}` : `Teleport 換場 #${selectedClipNumber}`}</span>
+              </button>
+            </>
+          ) : null}
           <EditorReRecordVoDialog
             project={project}
             selectedClipNumber={selectedClipNumber}

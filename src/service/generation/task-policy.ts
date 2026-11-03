@@ -6,7 +6,7 @@ export const MAX_SUBMIT_ATTEMPTS = 3;
 export const SUBMIT_LOCK_MS = 5 * 60_000;
 export const PROVIDER_TIMEOUT_MS = 30 * 60_000;
 // Jobs sent per cron run; keeps one invocation well under the function timeout.
-export const SUBMIT_BATCH = 6;
+export const SUBMIT_BATCH = 20;
 
 const RETRY_DELAYS_MS = [60_000, 3 * 60_000, 10 * 60_000];
 

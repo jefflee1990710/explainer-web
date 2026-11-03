@@ -161,7 +161,14 @@ export function PropertiesPanel() {
 			: config.defaultTab;
 	const storedTabId = activeTabPerType[element.type];
 	const isStoredTabVisible = visibleTabs.some((t) => t.id === storedTabId);
-	const activeTabId = isStoredTabVisible ? storedTabId : defaultTabId;
+	// When selecting a Scro storyboard clip, default to "scro-scene" unless the user explicitly picked another tab for this element type.
+	const activeTabId = scroTab
+		? storedTabId && isStoredTabVisible
+			? storedTabId
+			: scroTab.id
+		: isStoredTabVisible
+			? storedTabId
+			: defaultTabId;
 	const activeTab =
 		visibleTabs.find((t) => t.id === activeTabId) ?? visibleTabs[0];
 

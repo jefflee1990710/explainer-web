@@ -93,9 +93,9 @@ export function ScroVideoProperties({
 						</span>
 					</div>
 					<div className="space-y-3 px-3.5 py-3">
+						<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />
 						<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
 						<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
-						<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />
 					</div>
 					<div className="px-3.5 py-3">
 						<Detail clip={clip} />

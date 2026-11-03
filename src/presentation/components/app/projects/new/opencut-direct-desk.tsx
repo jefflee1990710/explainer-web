@@ -575,6 +575,8 @@ export function OpenCutDirectDesk({
             host.postToEditor({ type: "scro-clear-checked", videoId: project.id });
           }}
           onProject={production.onProject}
+          onOpenClipSwap={(clipNum) => ai.setClipSwapClip(clipNum)}
+          onOpenClipTeleport={(clipNum) => ai.setClipTeleportClip(clipNum)}
         />
       ) : null}
       <OpenCutLoadProgressBar progress={loadProgress} />
