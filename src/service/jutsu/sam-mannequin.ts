@@ -163,8 +163,8 @@ export async function renderGreyMannequinAndMaskFrame(input: {
         normDx * normDx + normDy * normDy <= 1.08;
 
       if (inTightSilhouette) {
-        // H3GreyMannequins: neutral mid-grey mannequin preserving pose/limb shading contours
-        const greyVal = Math.min(200, Math.max(85, Math.round(115 + (luma - 128) * 0.45)));
+        // H3GreyMannequins: neutral mid-grey mannequin preserving crisp mouth/eye/limb shading contours
+        const greyVal = Math.min(225, Math.max(50, Math.round(118 + (luma - 128) * 0.75)));
         mannequinBuf[idx] = greyVal;
         mannequinBuf[idx + 1] = greyVal;
         mannequinBuf[idx + 2] = greyVal;
@@ -263,7 +263,7 @@ export async function renderGreyMannequinAndMaskFrameFromMask(input: {
       const inGrown = x >= gx0 && x <= gx1 && y >= gy0 && y <= gy1;
 
       if (inMask) {
-        const greyVal = Math.min(200, Math.max(85, Math.round(115 + (luma - 128) * 0.45)));
+        const greyVal = Math.min(225, Math.max(50, Math.round(118 + (luma - 128) * 0.75)));
         mannequinBuf[idx] = greyVal;
         mannequinBuf[idx + 1] = greyVal;
         mannequinBuf[idx + 2] = greyVal;

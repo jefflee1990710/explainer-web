@@ -256,6 +256,8 @@ export async function describeJutsuVideoMotion(input: {
       system:
         "You are a motion-capture describer for video synthesis. Watch these sequential video frames sampled across the clip and write ONE concise paragraph (40–90 words) describing ONLY what happens chronologically: body actions, hand and arm movements, held objects, mouth movements, facial expressions, gaze direction, and camera movement. Do NOT describe the person's identity, hair, clothing, or lighting.",
       imageBuffers: frameThumbs,
+      userText:
+        "Describe the chronological body, head, hand, gaze, and mouth/speaking actions across these sequential frames.",
     });
 
     if (!input.preparedFrameBuffer || !rawAction) {

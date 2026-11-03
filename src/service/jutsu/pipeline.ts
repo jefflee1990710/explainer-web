@@ -378,6 +378,48 @@ async function generatePreparedKeyframeBuffer(input: {
   return sharp(raw).webp({ quality: 88 }).toBuffer();
 }
 
+/** Extract the source video section's audio track as an `.mp3` buffer (`null` when silent/no audio stream). */
+export async function extractVideoSectionAudioMp3(
+  sourceVideoBuffer: Buffer,
+  sectionStart: number,
+  sectionLength: number,
+): Promise<Buffer | null> {
+  const dir = await mkdtemp(join(tmpdir(), "jutsu-audio-"));
+  try {
+    await writeFile(join(dir, "source.mp4"), sourceVideoBuffer);
+    const probe = await ffmpegStderr(dir, ["-i", "source.mp4"]);
+    if (!/Audio:/.test(probe)) {
+      return null;
+    }
+
+    await runFfmpeg(dir, [
+      "-y",
+      "-ss",
+      String(Math.max(0, sectionStart).toFixed(2)),
+      "-t",
+      String(Math.max(1, sectionLength).toFixed(2)),
+      "-i",
+      "source.mp4",
+      "-vn",
+      "-acodec",
+      "libmp3lame",
+      "-ar",
+      "44100",
+      "-ac",
+      "2",
+      "-b:a",
+      "192k",
+      "audio.mp3",
+    ]);
+    const buf = await readFile(join(dir, "audio.mp3"));
+    return buf.length > 0 ? buf : null;
+  } catch {
+    return null;
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 /** Mux the source video section's original audio stream onto the rendered Jutsu video. */
 export async function muxSourceSectionAudio(
   renderedVideoBuffer: Buffer,
@@ -697,6 +739,22 @@ export async function prepareJutsuJob(
       ]);
     }
 
+    let sectionAudioUrl: string | undefined;
+    if (!noLipSync) {
+      const audioMp3 = await extractVideoSectionAudioMp3(
+        videoBuffer,
+        sectionStart,
+        extracted.actualDuration,
+      );
+      if (audioMp3) {
+        sectionAudioUrl = await persistBuffer(
+          audioMp3,
+          `${prefix}/section-audio-${Date.now()}.mp3`,
+          "audio/mpeg",
+        );
+      }
+    }
+
     const now = new Date();
     const doc: JutsuJob & { _id: ObjectId } = {
       _id: jobId,
@@ -728,6 +786,7 @@ export async function prepareJutsuJob(
       motionSize,
       mannequinVideoUrl,
       checkMaskVideoUrl,
+      sectionAudioUrl,
       editPrompt: upsampledStartPrompt,
       motionDescription,
       colorSettings: input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS,
@@ -786,6 +845,8 @@ export async function renderJutsuVideo(input: {
     // Character swap: pass the original character photo so H3 does not drift from the redrawn still.
     const identityImageUrl =
       job.mode === "character_swap" ? job.referenceImageUrl : undefined;
+    const referenceAudioUrl =
+      !job.noLipSync && input.keepSourceAudio !== false ? job.sectionAudioUrl : undefined;
     const fullVideoPrompt = useH3Ref2Va
       ? buildJutsuRef2VaPrompt({
           motionText,
@@ -793,6 +854,7 @@ export async function renderJutsuVideo(input: {
           hasIdentityImage: Boolean(
             identityImageUrl && identityImageUrl !== job.preparedStartFrameUrl,
           ),
+          hasReferenceAudio: Boolean(referenceAudioUrl),
           characterOutfitSpec: job.characterOutfitSpec,
         })
       : [
@@ -816,7 +878,7 @@ export async function renderJutsuVideo(input: {
       },
     );
 
-    // Primary Motion Engine: MiniMax H3 `ref2va` (`reference_image` + `reference_video`).
+    // Primary Motion Engine: MiniMax H3 `ref2va` (`reference_image` + `reference_video` + `reference_audio`).
     // Falls back to OpenRouter Hailuo-3 dual-keyframe if `MINIMAX_API_KEY` is not set.
     const submitted = useH3Ref2Va
       ? await submitMinimaxH3Ref2VaVideo({
@@ -824,6 +886,7 @@ export async function renderJutsuVideo(input: {
           preparedImageUrl: job.preparedStartFrameUrl,
           identityImageUrl,
           mannequinVideoUrl: job.mannequinVideoUrl!,
+          audioUrl: referenceAudioUrl,
           noLipSync: job.noLipSync,
           durationSeconds: Math.min(15, Math.max(5, Math.round(job.sectionLength))),
           aspectRatio: job.aspectRatio,
@@ -1513,6 +1576,22 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         ]);
       }
 
+      let sectionAudioUrl: string | undefined;
+      if (!current.noLipSync && current.keepSourceAudio !== false && mediaKind === "video") {
+        const audioMp3 = await extractVideoSectionAudioMp3(
+          videoBuffer,
+          current.sectionStart,
+          effectiveSectionLength,
+        );
+        if (audioMp3) {
+          sectionAudioUrl = await persistBuffer(
+            audioMp3,
+            `${prefix}/section-audio-${Date.now()}.mp3`,
+            "audio/mpeg",
+          );
+        }
+      }
+
       const prepNow = new Date();
       await col.updateOne(
         { _id: current._id },
@@ -1527,6 +1606,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             preparedEndFrameUrl,
             mannequinVideoUrl,
             checkMaskVideoUrl,
+            sectionAudioUrl,
             editPrompt: upsampledStartPrompt,
             motionDescription,
             updatedAt: prepNow,
@@ -1545,6 +1625,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         preparedEndFrameUrl,
         mannequinVideoUrl,
         checkMaskVideoUrl,
+        sectionAudioUrl,
         editPrompt: upsampledStartPrompt,
         motionDescription,
         updatedAt: prepNow,
@@ -1567,6 +1648,10 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
           : identityImageUrl
             ? [identityImageUrl]
             : [];
+      const referenceAudioUrl =
+        !current.noLipSync && current.keepSourceAudio !== false
+          ? current.sectionAudioUrl
+          : undefined;
       const fullVideoPrompt = useH3Ref2Va
         ? buildJutsuRef2VaPrompt({
             motionText,
@@ -1575,6 +1660,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
               identityImageUrls.length > 0 &&
                 identityImageUrls[0] !== current.preparedStartFrameUrl,
             ),
+            hasReferenceAudio: Boolean(referenceAudioUrl),
             characterOutfitSpec: current.characterOutfitSpec,
             personMappings: current.personMappings,
           })
@@ -1594,6 +1680,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             identityImageUrl,
             identityImageUrls,
             mannequinVideoUrl: current.mannequinVideoUrl!,
+            audioUrl: referenceAudioUrl,
             noLipSync: current.noLipSync,
             durationSeconds: Math.min(
               15,

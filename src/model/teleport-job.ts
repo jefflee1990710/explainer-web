@@ -21,6 +21,7 @@ export type TeleportJob = {
   preparedStartFrameUrl?: string;
   preparedEndFrameUrl?: string;
   mannequinVideoUrl?: string;
+  sectionAudioUrl?: string;
   editPrompt?: string;
   motionDescription?: string;
   keepSourceAudio?: boolean;

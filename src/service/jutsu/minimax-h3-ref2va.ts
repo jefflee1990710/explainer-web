@@ -101,6 +101,7 @@ export function buildJutsuRef2VaPrompt(input: {
   motionText: string;
   lightText?: string;
   hasIdentityImage: boolean;
+  hasReferenceAudio?: boolean;
   characterOutfitSpec?: string;
   personMappings?: readonly JutsuPersonMapping[];
 }): string {
@@ -109,6 +110,9 @@ export function buildJutsuRef2VaPrompt(input: {
         (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
       )
     : [];
+  const audioLock = input.hasReferenceAudio
+    ? "Reference audio 1 is the spoken voice. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent."
+    : "";
 
   if (mappings.length > 1) {
     const locks = mappings.map((m, idx) => {
@@ -122,7 +126,8 @@ export function buildJutsuRef2VaPrompt(input: {
     return [
       "Reference image 1 is the prepared scene with the swapped characters and background to preserve. Reference video 1 shows grey mannequins performing the target motion for the swapped people while unmapped people stay as-is.",
       `${locks.join(". ")}.`,
-      "Follow each grey mannequin's pose, hands, and timing in Reference video 1 while keeping every character's face, outfit, any unmapped people, and the background from Reference image 1.",
+      "Follow each grey mannequin's exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing in Reference video 1 while keeping every character's face, outfit, any unmapped people, and the background from Reference image 1.",
+      audioLock,
       input.motionText,
       input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",
     ]
@@ -141,7 +146,8 @@ export function buildJutsuRef2VaPrompt(input: {
       ? "Reference image 2 is the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face."
       : "Keep the exact outfit from Reference image 1 (every garment, neckline, sleeve length, color, fabric texture, and graphic print) unchanged in every frame.",
     cleanOutfit ? `Character outfit lock: ${cleanOutfit}.` : "",
-    "Follow the mannequin's pose, hands, and timing exactly, while keeping the person, the exact background/room, and any on-screen text or graphic letters from Reference image 1.",
+    "Follow the mannequin's exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing, while keeping the person, the exact background/room, and any on-screen text or graphic letters from Reference image 1.",
+    audioLock,
     input.motionText,
     input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",
   ]

@@ -122,6 +122,8 @@ export type JutsuJob = {
   // SAM 3.1 Grey Mannequin motion reference MP4 & Check Mask preview MP4 (`workflows/mask.api.json`)
   mannequinVideoUrl?: string;
   checkMaskVideoUrl?: string;
+  // Extracted MP3 audio track of the selected video section for MiniMax H3 `reference_audio` lip-sync.
+  sectionAudioUrl?: string;
   // Two-pass VLM motion description & upsampled edit instruction.
   editPrompt?: string;
   motionDescription?: string;

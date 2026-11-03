@@ -96,10 +96,12 @@ test("teleport H3 prompt locks the new scene and can ignore a raw identity backg
     motionText: "She turns her head.",
     scenePrompt: "rainy night",
     identityIgnoresBackground: true,
+    hasReferenceAudio: true,
   });
   assert.match(prompt, /Reference image 1/);
   assert.match(prompt, /Reference image 2/);
   assert.match(prompt, /Reference video 1/);
+  assert.match(prompt, /Reference audio 1/);
   assert.match(prompt, /Ignore the background of reference image 2/);
   assert.match(prompt, /rainy night/);
   assert.match(prompt, /She turns her head/);
@@ -110,6 +112,7 @@ test("teleport H3 prompt locks the new scene and can ignore a raw identity backg
     preparedImageUrl: "https://blob.test/prepared.webp",
     identityImageUrl: "https://blob.test/identity.webp",
     mannequinVideoUrl: "https://blob.test/mann.mp4",
+    audioUrl: "https://blob.test/section-audio.mp3",
     noLipSync: false,
     durationSeconds: 6,
     aspectRatio: "9:16",
@@ -117,7 +120,7 @@ test("teleport H3 prompt locks the new scene and can ignore a raw identity backg
   const content = body.content as Array<{ type: string; role?: string }>;
   assert.deepEqual(
     content.map((item) => item.role ?? item.type),
-    ["text", "reference_image", "reference_image", "reference_video"],
+    ["text", "reference_image", "reference_image", "reference_video", "reference_audio"],
   );
   assert.equal(body.resolution, "2K");
   assert.equal(body.ratio, "9:16");

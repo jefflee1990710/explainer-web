@@ -44,6 +44,7 @@ export function buildTeleportVideoPrompt(input: {
   motionText: string;
   scenePrompt?: string;
   identityIgnoresBackground: boolean;
+  hasReferenceAudio?: boolean;
 }): string {
   const mood = input.scenePrompt?.trim() ? input.scenePrompt.trim() : "";
   if (input.engine === "hailuo") {
@@ -62,7 +63,10 @@ export function buildTeleportVideoPrompt(input: {
     input.identityIgnoresBackground
       ? "Ignore the background of reference image 2."
       : "",
-    "Reference video 1 is a grey mannequin. Follow its pose, hands, and timing.",
+    "Reference video 1 is a grey mannequin. Follow its exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing.",
+    input.hasReferenceAudio
+      ? "Reference audio 1 is the spoken voice. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent."
+      : "",
     input.motionText,
     mood,
   ]

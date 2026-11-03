@@ -25,6 +25,7 @@ import {
   submitMinimaxH3Ref2VaVideo,
 } from "@/service/jutsu/minimax-h3-ref2va";
 import {
+  extractVideoSectionAudioMp3,
   extractVideoSectionKeyframes,
   muxSourceSectionAudio,
 } from "@/service/jutsu/pipeline";
@@ -191,6 +192,7 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
       job.sectionStart,
       job.sectionLength,
     );
+    const effectiveSectionLength = extracted.actualDuration;
 
     const prefix = `explainer/teleport/${job.userId.toHexString()}/${job._id.toHexString()}`;
     const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
@@ -199,19 +201,26 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     ]);
     await col.updateOne(
       { _id: job._id },
-      { $set: { rawStartFrameUrl, rawEndFrameUrl, updatedAt: new Date() } },
+      {
+        $set: {
+          sectionLength: effectiveSectionLength,
+          rawStartFrameUrl,
+          rawEndFrameUrl,
+          updatedAt: new Date(),
+        },
+      },
     );
 
-    // SAM mannequin and scene plate do not depend on each other.
-    const [samResult, scene] = await Promise.all([
+    // SAM mannequin, scene plate, and section audio extraction do not depend on each other.
+    const [samResult, scene, sectionAudioMp3] = await Promise.all([
       buildSam3MannequinAndMaskVideos({
         sourceVideoBuffer,
         sectionStart: job.sectionStart,
-        sectionLength: job.sectionLength,
+        sectionLength: effectiveSectionLength,
         target: "person",
         margin: "normal",
         hatFix: false,
-        motionSize: 512,
+        motionSize: 768,
       }).catch((error) => {
         console.error("[teleport] mannequin failed", { jobId: job._id.toHexString(), error });
         return null;
@@ -231,6 +240,13 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         );
         return { sceneImageUrl, scenePlateGenerated: true };
       })(),
+      job.keepSourceAudio !== false
+        ? extractVideoSectionAudioMp3(
+            sourceVideoBuffer,
+            job.sectionStart,
+            effectiveSectionLength,
+          )
+        : Promise.resolve(null),
     ]);
 
     const firstSubjectMask = samResult?.firstSubjectMask ?? null;
@@ -244,10 +260,13 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         )
       : extracted.startFrameWebp;
 
-    const [identityFrameUrl, mannequinVideoUrl] = await Promise.all([
+    const [identityFrameUrl, mannequinVideoUrl, sectionAudioUrl] = await Promise.all([
       persistBuffer(identityBuffer, `${prefix}/identity.webp`, "image/webp"),
       samResult
         ? persistBuffer(samResult.mannequinVideoBuffer, `${prefix}/mannequin.mp4`, "video/mp4")
+        : Promise.resolve(undefined),
+      sectionAudioMp3
+        ? persistBuffer(sectionAudioMp3, `${prefix}/section-audio.mp3`, "audio/mpeg")
         : Promise.resolve(undefined),
     ]);
     await col.updateOne(
@@ -258,6 +277,7 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
           scenePlateGenerated: scene.scenePlateGenerated,
           identityFrameUrl,
           mannequinVideoUrl,
+          sectionAudioUrl,
           updatedAt: new Date(),
         },
       },
@@ -321,8 +341,9 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
       motionText,
       scenePrompt: job.scenePrompt,
       identityIgnoresBackground,
+      hasReferenceAudio: Boolean(sectionAudioUrl),
     });
-    const durationSeconds = teleportSubmitDurationSeconds(job.sectionLength);
+    const durationSeconds = teleportSubmitDurationSeconds(effectiveSectionLength);
 
     // H3 ref2va must not also receive first/last frames; Hailuo uses the two prepared keyframes.
     const submitted =
@@ -332,6 +353,7 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
             preparedImageUrl: preparedStartFrameUrl,
             identityImageUrl: identityFrameUrl,
             mannequinVideoUrl,
+            audioUrl: sectionAudioUrl,
             noLipSync: false,
             durationSeconds,
             aspectRatio: job.aspectRatio,
