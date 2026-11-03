@@ -112,7 +112,7 @@ export function ScroSwapCreateDialog({
   onCreated: (job: PublicJutsuJob) => void;
   onClose: () => void;
 }) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const isEn = locale === "en";
   const titleId = useId();
 

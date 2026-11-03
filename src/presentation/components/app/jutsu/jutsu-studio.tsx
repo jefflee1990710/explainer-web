@@ -107,7 +107,7 @@ export function JutsuStudio({
   customWardrobeItems?: PublicCustomWardrobeItem[];
   initialJobs: PublicJutsuJob[];
 }) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const isEn = locale === "en";
   const historyLabel =
     locale === "zh-Hant"

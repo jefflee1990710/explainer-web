@@ -30,7 +30,7 @@ function clampLength(text: string): number {
 
 /** Teleport studio: directly displays the creation form with a top-right History button. */
 export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob[] }) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const isEn = locale === "en";
   const historyLabel =
     locale === "zh-Hant"
