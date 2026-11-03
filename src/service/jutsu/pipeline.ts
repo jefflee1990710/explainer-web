@@ -56,6 +56,7 @@ import {
   fetchOpenRouterStatus,
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+  openRouterAuthHeaders,
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
@@ -895,7 +896,11 @@ async function finalizeJutsuRenderedVideo(
   rawVideoUrl: string,
   options?: { applyColorFix?: boolean; keepSourceAudio?: boolean },
 ): Promise<{ ok: true; job: PublicJutsuJob }> {
-  const res = await fetch(rawVideoUrl);
+  const headers = openRouterAuthHeaders(rawVideoUrl);
+  const res = await fetch(rawVideoUrl, headers ? { headers } : undefined);
+  if (!res.ok) {
+    throw new Error(`無法下載渲染影片（HTTP ${res.status}）`);
+  }
   let videoBuf: Buffer = Buffer.from(await res.arrayBuffer());
 
   if (options?.applyColorFix !== false && job.applyColorFix !== false && job.colorSettings) {

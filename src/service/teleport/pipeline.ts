@@ -37,6 +37,7 @@ import {
   fetchOpenRouterStatus,
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+  openRouterAuthHeaders,
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
@@ -397,7 +398,8 @@ async function finalizeTeleportRenderedVideo(
   job: TeleportJobDoc,
   rawVideoUrl: string,
 ): Promise<{ ok: true; job: PublicTeleportJob }> {
-  const res = await fetch(rawVideoUrl);
+  const headers = openRouterAuthHeaders(rawVideoUrl);
+  const res = await fetch(rawVideoUrl, headers ? { headers } : undefined);
   if (!res.ok) {
     throw new Error(`無法下載渲染影片（HTTP ${res.status}）`);
   }
