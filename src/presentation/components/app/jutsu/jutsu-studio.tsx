@@ -23,6 +23,7 @@ import {
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-swap-history-dialog";
+import { ScroSwapHistoryPanel } from "@/presentation/components/app/jutsu/scro-swap-history-panel";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
@@ -509,7 +510,9 @@ export function JutsuStudio({
         res.job,
         ...prev.filter((item) => item.id !== res.job.id),
       ]);
-      setHistoryOpen(true);
+      if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+        setHistoryOpen(true);
+      }
       notifyTasksChanged();
     } catch {
       setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
@@ -531,8 +534,8 @@ export function JutsuStudio({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12">
-      {/* Header with Top-Right History Button */}
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-12">
+      {/* Header with Top-Right History Button (mobile/tablet only; desktop shows right sidebar) */}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
@@ -553,7 +556,7 @@ export function JutsuStudio({
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-bold text-foreground transition hover:border-accent-ink"
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-bold text-foreground transition hover:border-accent-ink lg:hidden"
           aria-label={historyLabel}
         >
           <svg
@@ -576,8 +579,9 @@ export function JutsuStudio({
         </button>
       </header>
 
-      {/* Main Creation Form Card */}
-      <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
+        {/* Main Creation Form Card */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
         <div className="space-y-6 px-6 py-6">
           {/* Step 1: Source Media (Video / GIF / Image) */}
           <section className="space-y-3">
@@ -1158,7 +1162,20 @@ export function JutsuStudio({
         </div>
       </div>
 
-      {/* History Dialog */}
+        {/* Desktop Right-Side History Panel */}
+        <aside className="hidden lg:sticky lg:top-4 lg:block">
+          <ScroSwapHistoryPanel
+            jobs={jobs}
+            characters={characters}
+            activeJobId={activeJob?.id ?? null}
+            onSelectJob={setActiveJob}
+            onDeleteJob={(id) => void onDeleteJob(id)}
+            layout="sidebar"
+          />
+        </aside>
+      </div>
+
+      {/* History Dialog (mobile/tablet fallback) */}
       <ScroSwapHistoryDialog
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
