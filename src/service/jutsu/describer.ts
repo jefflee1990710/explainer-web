@@ -1,5 +1,10 @@
 import sharp from "sharp";
-import type { JutsuMode, JutsuObjectEditMode, JutsuPlacementBox } from "@/model/jutsu-job";
+import type {
+  JutsuMode,
+  JutsuObjectEditMode,
+  JutsuPersonMapping,
+  JutsuPlacementBox,
+} from "@/model/jutsu-job";
 import {
   JUTSU_CHARACTER_PREPARE_PROMPT,
   JUTSU_CHARACTER_RELIGHT_PROMPT,
@@ -145,6 +150,58 @@ export function buildDefaultJutsuEditPrompt(input: {
     JUTSU_CHARACTER_PREPARE_PROMPT,
     input.characterOutfitSpec,
   );
+}
+
+function horizontalZoneLabel(box: JutsuPlacementBox): string {
+  const cx = box.x + box.width / 2;
+  if (cx < 0.38) return `on the left (around ${Math.round(cx * 100)}% horizontal position)`;
+  if (cx > 0.62) return `on the right (around ${Math.round(cx * 100)}% horizontal position)`;
+  return `near the center (around ${Math.round(cx * 100)}% horizontal position)`;
+}
+
+/**
+ * Build the keyframe edit instruction when 1 or more detected people are mapped to specific
+ * character donors. Reference images are attached in order: `[donor_1, ..., donor_K, sourceFrame]`.
+ */
+export function buildMultiPersonJutsuEditPrompt(input: {
+  mappings: readonly JutsuPersonMapping[];
+  totalDetectedPeople?: number;
+  relightId?: string;
+  customLightPrompt?: string;
+}): string {
+  const sorted = [...input.mappings].sort(
+    (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+  );
+  if (sorted.length === 0) {
+    return buildDefaultJutsuEditPrompt({
+      mode: "character_swap",
+      relightId: input.relightId,
+      customLightPrompt: input.customLightPrompt,
+      hasReferenceImage: true,
+    });
+  }
+
+  const sourceImgIndex = sorted.length + 1;
+  const assignments = sorted.map((m, i) => {
+    const donorImgIndex = i + 1;
+    const zone = horizontalZoneLabel(m.box);
+    const outfitLock = m.characterOutfitSpec?.trim()
+      ? ` wearing the exact full-body outfit from attached image ${donorImgIndex} (${m.characterOutfitSpec.trim()})`
+      : ` wearing the exact full-body outfit and shoes from attached image ${donorImgIndex}`;
+    return `replace Person #${m.personIndex} located ${zone} in attached image ${sourceImgIndex} with the person from attached image ${donorImgIndex}${outfitLock}, matching Person #${m.personIndex}'s exact body pose, limb placement, hand gesture, and camera angle`;
+  });
+
+  const keepOthers =
+    (input.totalDetectedPeople ?? sorted.length) > sorted.length
+      ? ` Keep any other unmapped people in attached image ${sourceImgIndex} completely unchanged in their original identity, clothes, and pose.`
+      : "";
+
+  const light = resolveJutsuLightText(input.relightId, input.customLightPrompt);
+  const lightClause = light
+    ? ` Relight the entire scene: ${light}`
+    : ` Preserve the exact background, room geometry, props, and scene lighting from attached image ${sourceImgIndex}.`;
+
+  return `Using attached image ${sourceImgIndex} as the base scene frame, ${assignments.join("; and ")}.${keepOthers}${lightClause}`;
 }
 
 /** Upsample a Jutsu frame-edit request with reference image buffers via OpenRouter VLM. */

@@ -12,12 +12,18 @@ import {
   type JutsuJob,
   type JutsuMode,
   type JutsuObjectEditMode,
+  type JutsuPersonAnchor,
+  type JutsuPersonMapping,
   type JutsuPlacementBox,
   type PublicJutsuJob,
 } from "@/model/jutsu-job";
 import type { Character } from "@/model/character";
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
+import {
+  detectPeopleWithFalSam3ImageRle,
+  type DetectedSourcePerson,
+} from "@/service/fal/sam3-image";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
@@ -26,6 +32,7 @@ import {
 } from "@/service/jutsu/color-grade";
 import {
   buildDefaultJutsuEditPrompt,
+  buildMultiPersonJutsuEditPrompt,
   describeJutsuVideoMotion,
   upsampleJutsuFramePrompt,
 } from "@/service/jutsu/describer";
@@ -849,6 +856,9 @@ export type StartScroSwapInput = {
   sectionLength?: number;
   characterId?: string;
   referenceImageUrl?: string;
+  personMappings?: JutsuPersonMapping[];
+  allDetectedAnchors?: JutsuPersonAnchor[];
+  totalDetectedPeople?: number;
   relightId?: string;
   customLightPrompt?: string;
   maskMargin?: JutsuMaskMargin;
@@ -862,6 +872,45 @@ export type StartScroSwapInput = {
   targetClipNumber?: number;
   previousClipVideoUrl?: string;
 };
+
+/**
+ * Segment all distinct people on the opening frame of the source video section via `fal-ai/sam-3/image-rle`,
+ * returning left-to-right ordered RLE masks and interior anchor points for interactive UI mapping.
+ */
+export async function detectJutsuPeopleInFrame(input: {
+  frameDataUrl: string;
+}): Promise<{ ok: true; people: DetectedSourcePerson[] } | { ok: false; error: string }> {
+  try {
+    await requireAppUser();
+    const raw = (input.frameDataUrl || "").trim();
+    const match = /^data:image\/(?:jpeg|png|webp);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(raw);
+    if (!match) {
+      return { ok: false, error: "畫格影像格式無效" };
+    }
+    const buf = Buffer.from(match[1]!, "base64");
+    if (buf.length === 0 || buf.length > 8 * 1024 * 1024) {
+      return { ok: false, error: "畫格影像大小超出限制" };
+    }
+    const meta = await sharp(buf).metadata();
+    const width = meta.width || 0;
+    const height = meta.height || 0;
+    if (!width || !height) {
+      return { ok: false, error: "無法讀取畫格尺寸" };
+    }
+    const jpegBuf = await sharp(buf).jpeg({ quality: 86 }).toBuffer();
+    const people = await detectPeopleWithFalSam3ImageRle({
+      imageBuffer: jpegBuf,
+      width,
+      height,
+    });
+    return { ok: true, people };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "人物偵測失敗",
+    };
+  }
+}
 
 /**
  * One-step Scro Swap: creates a `rendering` job immediately and runs keyframe prepare +
@@ -885,11 +934,67 @@ export async function startScroSwapJob(
       return { ok: false, error: "來源影片網址無效" };
     }
 
+    const charCol = await charactersCollection();
+    const resolvedMappings: JutsuPersonMapping[] = [];
+    if (Array.isArray(input.personMappings) && input.personMappings.length > 0) {
+      for (const m of input.personMappings) {
+        let mDonorUrl = m.referenceImageUrl?.trim() || undefined;
+        let mCharName = m.characterName;
+        let mOutfitSpec = m.characterOutfitSpec;
+        if (m.characterId && ObjectId.isValid(m.characterId)) {
+          const charDoc = (await charCol.findOne({
+            _id: new ObjectId(m.characterId),
+            clerkUserId: user.clerkUserId,
+          })) as Character | null;
+          if (charDoc) {
+            const resolved = resolveCharacterDonorForSwap(charDoc, mDonorUrl);
+            mCharName = resolved.characterName;
+            mDonorUrl = resolved.donorImageUrl;
+            mOutfitSpec = resolved.characterOutfitSpec;
+          }
+        }
+        if (mDonorUrl) {
+          resolvedMappings.push({
+            objectId: Number(m.objectId) || 0,
+            personIndex: Number(m.personIndex) || resolvedMappings.length + 1,
+            anchorPoint: {
+              x: Math.min(1, Math.max(0, Number(m.anchorPoint?.x) || 0.5)),
+              y: Math.min(1, Math.max(0, Number(m.anchorPoint?.y) || 0.5)),
+            },
+            box: {
+              x: Math.min(1, Math.max(0, Number(m.box?.x) || 0)),
+              y: Math.min(1, Math.max(0, Number(m.box?.y) || 0)),
+              width: Math.min(1, Math.max(0.02, Number(m.box?.width) || 0.5)),
+              height: Math.min(1, Math.max(0.02, Number(m.box?.height) || 0.8)),
+            },
+            characterId: m.characterId,
+            characterName: mCharName,
+            referenceImageUrl: mDonorUrl,
+            characterOutfitSpec: mOutfitSpec,
+          });
+        }
+      }
+    }
+
+    resolvedMappings.sort(
+      (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+    );
+
+    let characterId = input.characterId;
     let characterName: string | undefined;
     let characterOutfitSpec: string | undefined;
     let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
-    if (input.characterId && ObjectId.isValid(input.characterId)) {
-      const charCol = await charactersCollection();
+
+    if (resolvedMappings.length > 0) {
+      const primary = resolvedMappings[0]!;
+      characterId = primary.characterId;
+      characterName =
+        resolvedMappings.length > 1
+          ? resolvedMappings.map((m) => m.characterName || `#${m.personIndex}`).join(" + ")
+          : primary.characterName;
+      donorImageUrl = primary.referenceImageUrl;
+      characterOutfitSpec = primary.characterOutfitSpec;
+    } else if (input.characterId && ObjectId.isValid(input.characterId)) {
       const charDoc = (await charCol.findOne({
         _id: new ObjectId(input.characterId),
         clerkUserId: user.clerkUserId,
@@ -934,10 +1039,16 @@ export async function startScroSwapJob(
       aspectRatio: "9:16",
       sectionStart,
       sectionLength,
-      characterId: input.characterId,
+      characterId,
       characterName,
       characterOutfitSpec,
       referenceImageUrl: donorImageUrl,
+      personMappings: resolvedMappings.length > 0 ? resolvedMappings : undefined,
+      allDetectedAnchors:
+        input.allDetectedAnchors && input.allDetectedAnchors.length > 0
+          ? input.allDetectedAnchors
+          : undefined,
+      totalDetectedPeople: input.totalDetectedPeople,
       relightId: input.relightId,
       customLightPrompt: input.customLightPrompt,
       maskMargin,
@@ -1005,25 +1116,51 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         persistBuffer(extracted.endFrameWebp, `${prefix}/raw-end.webp`, "image/webp"),
       ]);
 
-      const donorImageUrl = current.referenceImageUrl;
-      if (!donorImageUrl) {
+      const activeMappings =
+        current.personMappings && current.personMappings.length > 0
+          ? [...current.personMappings].sort(
+              (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+            )
+          : [];
+
+      const donorUrls =
+        activeMappings.length > 0
+          ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
+          : current.referenceImageUrl
+            ? [current.referenceImageUrl]
+            : [];
+
+      if (donorUrls.length === 0) {
         throw new Error("缺少角色參考圖片");
       }
 
-      const baseEditRequest = buildDefaultJutsuEditPrompt({
-        mode: "character_swap",
-        relightId: current.relightId,
-        customLightPrompt: current.customLightPrompt,
-        hasReferenceImage: true,
-        characterOutfitSpec: current.characterOutfitSpec,
-      });
+      const useMultiPersonPrompt =
+        activeMappings.length > 1 ||
+        (activeMappings.length === 1 && (current.totalDetectedPeople ?? 1) > 1);
+
+      const baseEditRequest = useMultiPersonPrompt
+        ? buildMultiPersonJutsuEditPrompt({
+            mappings: activeMappings,
+            totalDetectedPeople: current.totalDetectedPeople,
+            relightId: current.relightId,
+            customLightPrompt: current.customLightPrompt,
+          })
+        : buildDefaultJutsuEditPrompt({
+            mode: "character_swap",
+            relightId: current.relightId,
+            customLightPrompt: current.customLightPrompt,
+            hasReferenceImage: true,
+            characterOutfitSpec: current.characterOutfitSpec,
+          });
 
       const upsamplerBuffers: Buffer[] = [];
-      const donorBuf = await fetch(donorImageUrl)
-        .then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((ab) => (ab ? Buffer.from(ab) : null))
-        .catch(() => null);
-      if (donorBuf) upsamplerBuffers.push(donorBuf);
+      for (const dUrl of donorUrls) {
+        const donorBuf = await fetch(dUrl)
+          .then((r) => (r.ok ? r.arrayBuffer() : null))
+          .then((ab) => (ab ? Buffer.from(ab) : null))
+          .catch(() => null);
+        if (donorBuf) upsamplerBuffers.push(donorBuf);
+      }
       upsamplerBuffers.push(extracted.startFrameWebp);
 
       const upsampledStartPrompt = await upsampleJutsuFramePrompt({
@@ -1031,8 +1168,8 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         imageBuffers: upsamplerBuffers,
       });
 
-      const startRefs = [donorImageUrl, rawStartFrameUrl];
-      const endRefs = [donorImageUrl, rawEndFrameUrl];
+      const startRefs = [...donorUrls, rawStartFrameUrl];
+      const endRefs = [...donorUrls, rawEndFrameUrl];
 
       const [preparedStartBuf, preparedEndBuf] = await Promise.all([
         generatePreparedKeyframeBuffer({
@@ -1080,6 +1217,8 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
           margin: current.maskMargin ?? "normal",
           hatFix: Boolean(current.hatFix),
           motionSize: current.motionSize ?? 512,
+          personMappings: activeMappings.length > 0 ? activeMappings : undefined,
+          allDetectedAnchors: current.allDetectedAnchors,
         }).catch(() => null),
       ]);
 
@@ -1146,14 +1285,22 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       );
       const useH3Ref2Va = Boolean(current.mannequinVideoUrl && hasMinimaxApiKey());
       const identityImageUrl = current.referenceImageUrl;
+      const identityImageUrls =
+        current.personMappings && current.personMappings.length > 0
+          ? current.personMappings.map((m) => m.referenceImageUrl).filter(Boolean)
+          : identityImageUrl
+            ? [identityImageUrl]
+            : [];
       const fullVideoPrompt = useH3Ref2Va
         ? buildJutsuRef2VaPrompt({
             motionText,
             lightText,
             hasIdentityImage: Boolean(
-              identityImageUrl && identityImageUrl !== current.preparedStartFrameUrl,
+              identityImageUrls.length > 0 &&
+                identityImageUrls[0] !== current.preparedStartFrameUrl,
             ),
             characterOutfitSpec: current.characterOutfitSpec,
+            personMappings: current.personMappings,
           })
         : [
             "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
@@ -1169,6 +1316,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             prompt: fullVideoPrompt,
             preparedImageUrl: current.preparedStartFrameUrl,
             identityImageUrl,
+            identityImageUrls,
             mannequinVideoUrl: current.mannequinVideoUrl!,
             noLipSync: current.noLipSync,
             durationSeconds: Math.min(

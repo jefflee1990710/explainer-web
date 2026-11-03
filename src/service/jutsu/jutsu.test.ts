@@ -7,6 +7,7 @@ import {
 import {
   buildDefaultJutsuEditPrompt,
   buildJutsuObjectSwapPrompt,
+  buildMultiPersonJutsuEditPrompt,
 } from "@/service/jutsu/describer";
 import {
   findJutsuLightLook,
@@ -386,4 +387,85 @@ test("scroSwapTask surfaces rendering and completed Scro Swap jobs in the backgr
   );
   assert.equal(done?.stage, "done");
   assert.equal(done?.previewUrl, "https://blob.test/out.mp4");
+});
+
+test("buildMultiPersonJutsuEditPrompt and MiniMax H3 ref2va format left-to-right multi-person character mappings while preserving unmapped people", () => {
+  const mappings = [
+    {
+      objectId: 1,
+      personIndex: 1,
+      anchorPoint: { x: 0.22, y: 0.48 },
+      box: { x: 0.1, y: 0.15, width: 0.24, height: 0.75 },
+      characterId: "char-scro",
+      characterName: "Scro",
+      referenceImageUrl: "https://blob.test/scro-standing.png",
+      characterOutfitSpec: "Top: Pink crop top; Pants: Blue jeans",
+    },
+    {
+      objectId: 0,
+      personIndex: 2,
+      anchorPoint: { x: 0.76, y: 0.5 },
+      box: { x: 0.62, y: 0.14, width: 0.26, height: 0.78 },
+      characterId: "char-alice",
+      characterName: "Alice",
+      referenceImageUrl: "https://blob.test/alice-standing.png",
+      characterOutfitSpec: "Top: Navy tailored blazer",
+    },
+  ];
+
+  const editPrompt = buildMultiPersonJutsuEditPrompt({
+    mappings,
+    totalDetectedPeople: 3,
+    relightId: "golden_halo",
+  });
+
+  assert.match(editPrompt, /attached image 3/i);
+  assert.match(editPrompt, /attached image 1/i);
+  assert.match(editPrompt, /attached image 2/i);
+  assert.match(editPrompt, /Pink crop top/i);
+  assert.match(editPrompt, /Navy tailored blazer/i);
+  assert.match(editPrompt, /keep any other unmapped people/i);
+
+  const ref2vaBody = buildMinimaxH3Ref2VaBody({
+    prompt: "Multi swap.",
+    preparedImageUrl: "https://blob.test/prepared-start.webp",
+    identityImageUrls: [
+      "https://blob.test/scro-standing.png",
+      "https://blob.test/alice-standing.png",
+    ],
+    mannequinVideoUrl: "https://blob.test/union-mannequin.mp4",
+    durationSeconds: 6,
+    aspectRatio: "16:9",
+  });
+
+  assert.deepEqual(
+    ref2vaBody.content.filter((c) => c.type === "image_url"),
+    [
+      {
+        type: "image_url",
+        image_url: { url: "https://blob.test/prepared-start.webp" },
+        role: "reference_image",
+      },
+      {
+        type: "image_url",
+        image_url: { url: "https://blob.test/scro-standing.png" },
+        role: "reference_image",
+      },
+      {
+        type: "image_url",
+        image_url: { url: "https://blob.test/alice-standing.png" },
+        role: "reference_image",
+      },
+    ],
+  );
+
+  const ref2vaPrompt = buildJutsuRef2VaPrompt({
+    motionText: "Two people high-five.",
+    hasIdentityImage: true,
+    personMappings: mappings,
+  });
+  assert.match(ref2vaPrompt, /Reference image 2/i);
+  assert.match(ref2vaPrompt, /Reference image 3/i);
+  assert.match(ref2vaPrompt, /Pink crop top/i);
+  assert.match(ref2vaPrompt, /Navy tailored blazer/i);
 });

@@ -53,6 +53,22 @@ export type JutsuPlacementBox = {
   height: number;
 };
 
+export type JutsuPersonAnchor = {
+  objectId: number;
+  anchorPoint: { x: number; y: number };
+};
+
+export type JutsuPersonMapping = {
+  objectId: number;
+  personIndex: number;
+  anchorPoint: { x: number; y: number };
+  box: JutsuPlacementBox;
+  characterId?: string;
+  characterName?: string;
+  referenceImageUrl: string;
+  characterOutfitSpec?: string;
+};
+
 export type JutsuJobStatus =
   | "prepared"
   | "rendering"
@@ -81,6 +97,10 @@ export type JutsuJob = {
   characterName?: string;
   characterOutfitSpec?: string;
   referenceImageUrl?: string;
+  // Multi-person SAM 3 RLE mappings (left-to-right person targets -> Scro characters).
+  personMappings?: JutsuPersonMapping[];
+  allDetectedAnchors?: JutsuPersonAnchor[];
+  totalDetectedPeople?: number;
   // Relight preset id or custom light prompt.
   relightId?: string;
   customLightPrompt?: string;
@@ -131,6 +151,7 @@ export type PublicJutsuJob = {
   characterId?: string;
   characterName?: string;
   referenceImageUrl?: string;
+  personMappings?: JutsuPersonMapping[];
   relightId?: string;
   customLightPrompt?: string;
   objectEditMode?: JutsuObjectEditMode;
@@ -172,6 +193,7 @@ export function toPublicJutsuJob(
     characterId: doc.characterId,
     characterName: doc.characterName,
     referenceImageUrl: doc.referenceImageUrl,
+    personMappings: doc.personMappings,
     relightId: doc.relightId,
     customLightPrompt: doc.customLightPrompt,
     objectEditMode: doc.objectEditMode,

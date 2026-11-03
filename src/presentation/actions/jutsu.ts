@@ -53,3 +53,9 @@ export async function deleteJutsuJobAction(
 ) {
   return service.deleteJutsuJob(...args);
 }
+
+export async function detectJutsuPeopleAction(
+  ...args: Parameters<typeof service.detectJutsuPeopleInFrame>
+) {
+  return service.detectJutsuPeopleInFrame(...args);
+}

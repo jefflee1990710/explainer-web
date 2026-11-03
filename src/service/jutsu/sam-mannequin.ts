@@ -2,14 +2,22 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import type { JutsuPlacementBox } from "@/model/jutsu-job";
+import type {
+  JutsuPersonAnchor,
+  JutsuPersonMapping,
+  JutsuPlacementBox,
+} from "@/model/jutsu-job";
 import { hasFalKey } from "@/service/fal/key";
 import {
   decodeFalSparseRle,
   normalizedBBoxFromMask,
   resizeBinaryMaskNearest,
+  unionBinaryMasks,
 } from "@/service/fal/rle";
-import { segmentVideoWithFalSam3Rle } from "@/service/fal/sam3-video";
+import {
+  type FalSam3PointPrompt,
+  segmentVideoWithFalSam3Rle,
+} from "@/service/fal/sam3-video";
 import { assertOpenRouterKey, OPENROUTER_BASE_URL } from "@/service/openrouter/generate";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 
@@ -421,6 +429,8 @@ export async function buildSam3MannequinAndMaskVideos(input: {
   hatFix: boolean;
   motionSize: JutsuMotionSize;
   manualBox?: JutsuPlacementBox;
+  personMappings?: readonly JutsuPersonMapping[];
+  allDetectedAnchors?: readonly JutsuPersonAnchor[];
 }): Promise<{
   mannequinVideoBuffer: Buffer;
   checkMaskVideoBuffer: Buffer;
@@ -499,6 +509,8 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       target: input.target,
       margin: input.margin,
       manualBox: input.manualBox,
+      personMappings: input.personMappings,
+      allDetectedAnchors: input.allDetectedAnchors,
       onFirstMask: (mask, width, height) => {
         firstSubjectMask = { mask, width, height };
       },
@@ -593,6 +605,8 @@ async function tryRenderMannequinFramesWithFal(input: {
   target: string;
   margin: JutsuMaskMargin;
   manualBox?: JutsuPlacementBox;
+  personMappings?: readonly JutsuPersonMapping[];
+  allDetectedAnchors?: readonly JutsuPersonAnchor[];
   /** Called once with the frame-0 person mask when it has at least one positive value. */
   onFirstMask?: (mask: Uint8Array, width: number, height: number) => void;
 }): Promise<boolean> {
@@ -604,29 +618,76 @@ async function tryRenderMannequinFramesWithFal(input: {
     const frameH = meta.height || 0;
     if (!frameW || !frameH) return false;
 
-    const boxPrompts = input.manualBox
-      ? [
-          {
-            x_min: Math.round(input.manualBox.x * frameW),
-            y_min: Math.round(input.manualBox.y * frameH),
-            x_max: Math.round((input.manualBox.x + input.manualBox.width) * frameW),
-            y_max: Math.round((input.manualBox.y + input.manualBox.height) * frameH),
-            frame_index: 0,
-            object_id: 0,
-          },
-        ]
-      : [];
-
     const sectionBuffer = await readFile(input.sectionPath);
-    const { rleFrames } = await segmentVideoWithFalSam3Rle({
-      videoBuffer: sectionBuffer,
-      fileName: "jutsu-section.mp4",
-      prompt: falSamPromptForTarget(input.target),
-      detectionThreshold: 0.45,
-      boxPrompts,
-    });
+    const mappings = input.personMappings?.filter((m) => Boolean(m.referenceImageUrl)) ?? [];
 
-    const nonEmpty = rleFrames.filter((s) => (s || "").trim().length > 0).length;
+    let rleFrameSets: string[][];
+    if (mappings.length > 0) {
+      const anchors =
+        input.allDetectedAnchors && input.allDetectedAnchors.length > 0
+          ? input.allDetectedAnchors
+          : mappings.map((m) => ({ objectId: m.objectId, anchorPoint: m.anchorPoint }));
+
+      const sets = await Promise.all(
+        mappings.map(async (m) => {
+          const pointPrompts: FalSam3PointPrompt[] = [
+            {
+              x: Math.round(m.anchorPoint.x * frameW),
+              y: Math.round(m.anchorPoint.y * frameH),
+              label: 1,
+              frame_index: 0,
+              object_id: m.objectId,
+            },
+            ...anchors
+              .filter((other) => other.objectId !== m.objectId)
+              .map(
+                (other): FalSam3PointPrompt => ({
+                  x: Math.round(other.anchorPoint.x * frameW),
+                  y: Math.round(other.anchorPoint.y * frameH),
+                  label: 0,
+                  frame_index: 0,
+                  object_id: m.objectId,
+                }),
+              ),
+          ];
+
+          const { rleFrames } = await segmentVideoWithFalSam3Rle({
+            videoBuffer: sectionBuffer,
+            fileName: `jutsu-section-p${m.personIndex}.mp4`,
+            prompt: "person",
+            detectionThreshold: 0.45,
+            pointPrompts,
+          });
+          return rleFrames;
+        }),
+      );
+      rleFrameSets = sets;
+    } else {
+      const boxPrompts = input.manualBox
+        ? [
+            {
+              x_min: Math.round(input.manualBox.x * frameW),
+              y_min: Math.round(input.manualBox.y * frameH),
+              x_max: Math.round((input.manualBox.x + input.manualBox.width) * frameW),
+              y_max: Math.round((input.manualBox.y + input.manualBox.height) * frameH),
+              frame_index: 0,
+              object_id: 0,
+            },
+          ]
+        : [];
+
+      const { rleFrames } = await segmentVideoWithFalSam3Rle({
+        videoBuffer: sectionBuffer,
+        fileName: "jutsu-section.mp4",
+        prompt: falSamPromptForTarget(input.target),
+        detectionThreshold: 0.45,
+        boxPrompts,
+      });
+      rleFrameSets = [rleFrames];
+    }
+
+    const primaryFrames = rleFrameSets[0] || [];
+    const nonEmpty = primaryFrames.filter((s) => (s || "").trim().length > 0).length;
     if (nonEmpty < Math.max(1, Math.floor(input.frameBuffers.length * FAL_SAM_MIN_COVERAGE))) {
       console.warn(
         `[jutsu/sam] fal SAM coverage too low (${nonEmpty}/${input.frameBuffers.length}); falling back to VLM bbox`,
@@ -634,25 +695,40 @@ async function tryRenderMannequinFramesWithFal(input: {
       return false;
     }
 
-    // fal may return source-fps count; align by index, carrying forward the last good mask.
-    let lastMask: Uint8Array | null = null;
+    // fal may return source-fps count; align by index, carrying forward the last good mask per person.
+    const lastMasks: Array<Uint8Array | null> = rleFrameSets.map(() => null);
     const falW = frameW;
     const falH = frameH;
 
     for (let i = 0; i < input.frameBuffers.length; i++) {
-      const rle =
-        rleFrames[i] ??
-        rleFrames[Math.min(rleFrames.length - 1, Math.floor((i / Math.max(1, input.frameBuffers.length - 1)) * (rleFrames.length - 1)))] ??
-        "";
-      let mask = decodeFalSparseRle(rle, falW, falH);
-      if (mask.length !== frameW * frameH) {
-        mask = resizeBinaryMaskNearest(mask, falW, falH, frameW, frameH);
+      const perPersonMasks: Uint8Array[] = [];
+      for (let sIdx = 0; sIdx < rleFrameSets.length; sIdx++) {
+        const rleFrames = rleFrameSets[sIdx]!;
+        const rle =
+          rleFrames[i] ??
+          rleFrames[
+            Math.min(
+              rleFrames.length - 1,
+              Math.floor((i / Math.max(1, input.frameBuffers.length - 1)) * (rleFrames.length - 1)),
+            )
+          ] ??
+          "";
+        let m = decodeFalSparseRle(rle, falW, falH);
+        if (m.length !== frameW * frameH) {
+          m = resizeBinaryMaskNearest(m, falW, falH, frameW, frameH);
+        }
+        if (!m.some((v) => v)) {
+          m = lastMasks[sIdx] ? Uint8Array.from(lastMasks[sIdx]!) : m;
+        } else {
+          lastMasks[sIdx] = m;
+        }
+        perPersonMasks.push(m);
       }
-      if (!mask.some((v) => v)) {
-        mask = lastMask ? Uint8Array.from(lastMask) : mask;
-      } else {
-        lastMask = mask;
-      }
+
+      const mask =
+        perPersonMasks.length === 1
+          ? perPersonMasks[0]!
+          : unionBinaryMasks(perPersonMasks, frameW * frameH);
 
       if (i === 0 && mask.some((value) => value > 0)) {
         input.onFirstMask?.(Uint8Array.from(mask), frameW, frameH);
