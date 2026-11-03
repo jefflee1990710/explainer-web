@@ -1,11 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  computeMaskInteriorAnchorPoint,
   decodeFalSparseRle,
+  maskForegroundRatio,
   normalizedBBoxFromMask,
   resizeBinaryMaskNearest,
+  unionBinaryMasks,
 } from "@/service/fal/rle";
-import { resolveFalSam3RleFrames } from "@/service/fal/sam3-video";
+import { detectPeopleWithFalSam3ImageRle } from "@/service/fal/sam3-image";
+import {
+  resolveFalSam3RleFrames,
+  segmentVideoWithFalSam3Rle,
+} from "@/service/fal/sam3-video";
 import { falQueueSubscribe } from "@/service/fal/queue";
 import { uploadFalBuffer } from "@/service/fal/storage";
 
@@ -101,4 +108,145 @@ test("uploadFalBuffer + falQueueSubscribe use Authorization Key header (mocked)"
   );
   assert.deepEqual(result.rle, ["0 1", ""]);
   assert.ok(calls.every((c) => !c.auth || c.auth === "Key fal_sk_test:secret" || c.url.includes("upload.test")));
+});
+
+test("computeMaskInteriorAnchorPoint picks a foreground pixel inside concave masks and unionBinaryMasks merges masks", () => {
+  const maskA = decodeFalSparseRle("11 1 21 1 31 1", 10, 10);
+  const maskB = decodeFalSparseRle("18 1 28 1 38 1", 10, 10);
+
+  const anchorA = computeMaskInteriorAnchorPoint(maskA, 10, 10);
+  assert.ok(anchorA);
+  assert.equal(anchorA.x, 0.15);
+  assert.equal(anchorA.y, 0.25);
+
+  const merged = unionBinaryMasks([maskA, maskB], 100);
+  assert.equal(merged[21], 1);
+  assert.equal(merged[28], 1);
+  assert.equal(merged[25], 0);
+  assert.equal(maskForegroundRatio(merged), 6 / 100);
+});
+
+test("detectPeopleWithFalSam3ImageRle decodes multi-person RLE masks, filters noise, and sorts left-to-right", async () => {
+  process.env.FAL_KEY = "fal_sk_test:secret";
+  const rightPersonRle = "54 3 74 3 94 3 114 3 134 3";
+  const leftPersonRle = "42 3 62 3 82 3 102 3 122 3";
+  const tinyNoiseRle = "0 1";
+
+  const fakeFetch: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.includes("/storage/upload/initiate")) {
+      return new Response(
+        JSON.stringify({
+          upload_url: "https://upload.test/put-img",
+          file_url: "https://cdn.test/frame0.jpg",
+        }),
+        { status: 200 },
+      );
+    }
+    if (url === "https://upload.test/put-img") {
+      return new Response(null, { status: 200 });
+    }
+    if (url === "https://queue.fal.run/fal-ai/sam-3/image-rle") {
+      return new Response(
+        JSON.stringify({
+          request_id: "img-req-1",
+          status_url: "https://queue.fal.run/status/img-req-1",
+          response_url: "https://queue.fal.run/result/img-req-1",
+        }),
+        { status: 200 },
+      );
+    }
+    if (url === "https://queue.fal.run/status/img-req-1") {
+      return new Response(JSON.stringify({ status: "COMPLETED" }), { status: 200 });
+    }
+    if (url === "https://queue.fal.run/result/img-req-1") {
+      return new Response(
+        JSON.stringify({
+          rle: [rightPersonRle, leftPersonRle, tinyNoiseRle],
+          scores: [0.92, 0.95, 0.41],
+          metadata: [
+            { index: 0, score: 0.92 },
+            { index: 1, score: 0.95 },
+            { index: 2, score: 0.41 },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("unexpected", { status: 500 });
+  };
+
+  const people = await detectPeopleWithFalSam3ImageRle(
+    {
+      imageBuffer: Buffer.from("fake-jpeg"),
+      width: 20,
+      height: 10,
+    },
+    { fetch: fakeFetch, pollIntervalMs: 1 },
+  );
+
+  assert.equal(people.length, 2);
+  assert.equal(people[0]!.personIndex, 1);
+  assert.equal(people[0]!.objectId, 1);
+  assert.equal(people[0]!.label, "Person #1");
+  assert.ok(people[0]!.box.x < people[1]!.box.x);
+  assert.equal(people[1]!.personIndex, 2);
+  assert.equal(people[1]!.objectId, 0);
+  assert.equal(people[1]!.label, "Person #2");
+});
+
+test("segmentVideoWithFalSam3Rle forwards pointPrompts with object_id and foreground/background labels", async () => {
+  process.env.FAL_KEY = "fal_sk_test:secret";
+  let submittedPayload: Record<string, unknown> | null = null;
+
+  const fakeFetch: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes("/storage/upload/initiate")) {
+      return new Response(
+        JSON.stringify({
+          upload_url: "https://upload.test/put-vid",
+          file_url: "https://cdn.test/sec.mp4",
+        }),
+        { status: 200 },
+      );
+    }
+    if (url === "https://upload.test/put-vid") {
+      return new Response(null, { status: 200 });
+    }
+    if (url === "https://queue.fal.run/fal-ai/sam-3/video-rle") {
+      submittedPayload = JSON.parse(String(init?.body || "{}"));
+      return new Response(
+        JSON.stringify({
+          request_id: "vid-req-1",
+          status_url: "https://queue.fal.run/status/vid-req-1",
+          response_url: "https://queue.fal.run/result/vid-req-1",
+        }),
+        { status: 200 },
+      );
+    }
+    if (url === "https://queue.fal.run/status/vid-req-1") {
+      return new Response(JSON.stringify({ status: "COMPLETED" }), { status: 200 });
+    }
+    if (url === "https://queue.fal.run/result/vid-req-1") {
+      return new Response(JSON.stringify({ rle: ["10 5"] }), { status: 200 });
+    }
+    return new Response("unexpected", { status: 500 });
+  };
+
+  await segmentVideoWithFalSam3Rle(
+    {
+      videoBuffer: Buffer.from("mp4"),
+      prompt: "person",
+      pointPrompts: [
+        { x: 120, y: 240, label: 1, frame_index: 0, object_id: 1 },
+        { x: 400, y: 250, label: 0, frame_index: 0, object_id: 1 },
+      ],
+    },
+    { fetch: fakeFetch, pollIntervalMs: 1 },
+  );
+
+  assert.deepEqual(submittedPayload?.point_prompts, [
+    { x: 120, y: 240, label: 1, frame_index: 0, object_id: 1 },
+    { x: 400, y: 250, label: 0, frame_index: 0, object_id: 1 },
+  ]);
 });

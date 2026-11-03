@@ -12,6 +12,14 @@ export type FalSam3BoxPrompt = {
   object_id?: number;
 };
 
+export type FalSam3PointPrompt = {
+  x: number;
+  y: number;
+  label: 0 | 1;
+  frame_index?: number;
+  object_id?: number;
+};
+
 export type FalSam3VideoRleResult = {
   rle: string[] | { url: string };
   metadata?: Array<{ index: number; score?: number | null; box?: number[] | null }>;
@@ -56,6 +64,7 @@ export async function segmentVideoWithFalSam3Rle(
     prompt?: string;
     detectionThreshold?: number;
     boxPrompts?: FalSam3BoxPrompt[];
+    pointPrompts?: FalSam3PointPrompt[];
   },
   options: FetchOptions & { pollIntervalMs?: number; maxWaitMs?: number } = {},
 ): Promise<{ rleFrames: string[] }> {
@@ -75,7 +84,7 @@ export async function segmentVideoWithFalSam3Rle(
       video_url: videoUrl,
       prompt,
       detection_threshold: input.detectionThreshold ?? 0.5,
-      point_prompts: [],
+      point_prompts: input.pointPrompts || [],
       box_prompts: input.boxPrompts || [],
     },
     options,

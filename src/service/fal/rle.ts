@@ -74,3 +74,80 @@ export function resizeBinaryMaskNearest(
   }
   return out;
 }
+
+/** Share of pixels in [0..1] that are foreground (`1`). */
+export function maskForegroundRatio(mask: Uint8Array): number {
+  if (mask.length === 0) return 0;
+  let count = 0;
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i]) count++;
+  }
+  return count / mask.length;
+}
+
+/**
+ * Find the foreground pixel strictly inside `mask` that is closest to the mask's centroid,
+ * returned as normalized [0..1] coordinates (`(x + 0.5) / width`, `(y + 0.5) / height`).
+ */
+export function computeMaskInteriorAnchorPoint(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+): { x: number; y: number } | null {
+  if (width <= 0 || height <= 0 || mask.length < width * height) return null;
+  let sumX = 0;
+  let sumY = 0;
+  let count = 0;
+
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      if (!mask[row + x]) continue;
+      sumX += x;
+      sumY += y;
+      count++;
+    }
+  }
+  if (count === 0) return null;
+
+  const cx = sumX / count;
+  const cy = sumY / count;
+  let bestX = 0;
+  let bestY = 0;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    const dy = y - cy;
+    for (let x = 0; x < width; x++) {
+      if (!mask[row + x]) continue;
+      const dx = x - cx;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestDistSq) {
+        bestDistSq = d2;
+        bestX = x;
+        bestY = y;
+      }
+    }
+  }
+
+  return {
+    x: Math.round(((bestX + 0.5) / width) * 1000) / 1000,
+    y: Math.round(((bestY + 0.5) / height) * 1000) / 1000,
+  };
+}
+
+/** Bitwise-OR union of binary masks of length `size`. */
+export function unionBinaryMasks(
+  masks: readonly Uint8Array[],
+  size: number,
+): Uint8Array {
+  const out = new Uint8Array(Math.max(0, size));
+  for (const m of masks) {
+    const len = Math.min(out.length, m.length);
+    for (let i = 0; i < len; i++) {
+      if (m[i]) out[i] = 1;
+    }
+  }
+  return out;
+}
