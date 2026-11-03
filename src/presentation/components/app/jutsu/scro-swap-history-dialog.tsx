@@ -195,7 +195,11 @@ export function ScroSwapHistoryDialog({
                           {job.status === "completed"
                             ? isEn
                               ? "✓ Completed"
-                              : "✓ 已完成影片"
+                              : job.sourceMediaKind === "image" || job.outputImageUrl
+                                ? "✓ 已完成圖片"
+                                : job.sourceMediaKind === "gif" || job.outputGifUrl
+                                  ? "✓ 已完成 GIF"
+                                  : "✓ 已完成影片"
                             : job.status === "rendering"
                               ? isEn
                                 ? "⏳ Generating…"
@@ -207,8 +211,9 @@ export function ScroSwapHistoryDialog({
                                 : isEn
                                   ? "Prepared"
                                   : "已準備"}
-                          {" · "}
-                          {job.sectionLength}s
+                          {job.sourceMediaKind === "image" || job.outputImageUrl
+                            ? " · 2K Image"
+                            : ` · ${job.sectionLength}s`}
                         </p>
                       </div>
                       <button
@@ -252,35 +257,94 @@ export function ScroSwapHistoryDialog({
                         </h3>
                       </div>
                       <span className="text-xs font-semibold text-muted">
-                        {activeJob.sectionLength}s · {activeJob.aspectRatio}
+                        {activeJob.sourceMediaKind === "image" || activeJob.outputImageUrl
+                          ? `2K Image · ${activeJob.aspectRatio}`
+                          : `${activeJob.sectionLength}s · ${activeJob.aspectRatio}`}
                       </span>
                     </div>
 
-                    {activeJob.status === "completed" && activeJob.outputVideoUrl ? (
+                    {activeJob.status === "completed" && activeJob.outputImageUrl ? (
                       <div className="mt-4 space-y-3 rounded-2xl border border-accent-ink/15 bg-zinc-950 p-4 text-white">
-                        <video
-                          key={activeJob.outputVideoUrl}
-                          src={activeJob.outputVideoUrl}
-                          controls
-                          autoPlay
-                          playsInline
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          key={activeJob.outputImageUrl}
+                          src={activeJob.outputImageUrl}
+                          alt=""
                           className="max-h-[28rem] w-full rounded-xl object-contain"
                         />
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-xs text-white/75">
                             {isEn
-                              ? "Swapped MP4 with synchronized audio"
-                              : "已完成角色動作遷移並同步原片音軌"}
+                              ? "Swapped 2K character image"
+                              : "已完成 2K 角色與穿搭替換圖片"}
                           </span>
                           <a
-                            href={activeJob.outputVideoUrl}
-                            download={`scro-swap-${activeJob.id}.mp4`}
+                            href={activeJob.outputImageUrl}
+                            download={`scro-swap-${activeJob.id}.webp`}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex min-h-[36px] items-center rounded-full bg-lime px-4 text-xs font-bold text-accent-ink"
                           >
-                            {isEn ? "Download MP4" : "下載 MP4 影片"}
+                            {isEn ? "Download Image" : "下載換角圖片"}
                           </a>
+                        </div>
+                      </div>
+                    ) : activeJob.status === "completed" && activeJob.outputVideoUrl ? (
+                      <div className="mt-4 space-y-3 rounded-2xl border border-accent-ink/15 bg-zinc-950 p-4 text-white">
+                        {activeJob.outputGifUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={activeJob.outputGifUrl}
+                            src={activeJob.outputGifUrl}
+                            alt=""
+                            className="max-h-[28rem] w-full rounded-xl object-contain"
+                          />
+                        ) : (
+                          <video
+                            key={activeJob.outputVideoUrl}
+                            src={activeJob.outputVideoUrl}
+                            controls
+                            autoPlay
+                            playsInline
+                            className="max-h-[28rem] w-full rounded-xl object-contain"
+                          />
+                        )}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs text-white/75">
+                            {activeJob.outputGifUrl
+                              ? isEn
+                                ? "Swapped looping GIF & MP4 ready"
+                                : "已完成循環 GIF 與 MP4 角色動作遷移"
+                              : isEn
+                                ? "Swapped MP4 with synchronized audio"
+                                : "已完成角色動作遷移並同步原片音軌"}
+                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {activeJob.outputGifUrl ? (
+                              <a
+                                href={activeJob.outputGifUrl}
+                                download={`scro-swap-${activeJob.id}.gif`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex min-h-[36px] items-center rounded-full bg-lime px-4 text-xs font-bold text-accent-ink"
+                              >
+                                {isEn ? "Download GIF" : "下載 GIF 動圖"}
+                              </a>
+                            ) : null}
+                            <a
+                              href={activeJob.outputVideoUrl}
+                              download={`scro-swap-${activeJob.id}.mp4`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`inline-flex min-h-[36px] items-center rounded-full px-4 text-xs font-bold ${
+                                activeJob.outputGifUrl
+                                  ? "border border-white/25 bg-white/10 text-white hover:bg-white/20"
+                                  : "bg-lime text-accent-ink"
+                              }`}
+                            >
+                              {isEn ? "Download MP4" : "下載 MP4 影片"}
+                            </a>
+                          </div>
                         </div>
                       </div>
                     ) : activeJob.status === "failed" ? (

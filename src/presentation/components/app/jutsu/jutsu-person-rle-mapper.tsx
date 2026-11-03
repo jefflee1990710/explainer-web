@@ -74,6 +74,33 @@ export function captureVideoFrameDataUrl(
   }
 }
 
+/** Capture an HTMLImageElement (static image or first frame of GIF) as a scaled JPEG data URL. */
+export function captureImageElementDataUrl(
+  imgEl: HTMLImageElement,
+  maxEdge = 640,
+): string | null {
+  const iw = imgEl.naturalWidth || imgEl.width || 0;
+  const ih = imgEl.naturalHeight || imgEl.height || 0;
+  if (iw <= 0 || ih <= 0) return null;
+
+  const scale = Math.min(1, maxEdge / Math.max(iw, ih));
+  const w = Math.max(16, Math.round(iw * scale));
+  const h = Math.max(16, Math.round(ih * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  try {
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Pixel-accurate RLE silhouette overlay drawn directly on top of the source video preview.
  * Clicking a person's RLE mask switches `activePersonIndex`.

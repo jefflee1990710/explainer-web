@@ -18,9 +18,15 @@ type PrepareResult =
 export async function prepareBrandUpload(input: {
   contentType: string;
   size: number;
+  allowGif?: boolean;
 }): Promise<PrepareResult> {
   const user = await requireAppUser();
-  const plan = planBrandUpload(user.clerkUserId, { type: input.contentType, size: input.size }, randomUUID());
+  const plan = planBrandUpload(
+    user.clerkUserId,
+    { type: input.contentType, size: input.size },
+    randomUUID(),
+    { allowGif: input.allowGif },
+  );
   if (!plan.ok) return plan;
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return { ok: false, error: "尚未設定 Vercel Blob" };

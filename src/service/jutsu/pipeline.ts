@@ -15,6 +15,7 @@ import {
   type JutsuPersonAnchor,
   type JutsuPersonMapping,
   type JutsuPlacementBox,
+  type JutsuSourceMediaKind,
   type PublicJutsuJob,
 } from "@/model/jutsu-job";
 import type { Character } from "@/model/character";
@@ -130,6 +131,121 @@ export function computeJutsuH3Frames(seconds: number): number {
     5,
     Math.floor((Math.floor(seconds * 24 + 1e-6) - 5) / 17) * 17 + 5,
   );
+}
+
+/** Infer whether a Scro Swap source URL is a video (`mp4`/`mov`), animated `gif`, or static `image`. */
+export function inferJutsuSourceMediaKind(
+  url: string,
+  explicitKind?: JutsuSourceMediaKind,
+): JutsuSourceMediaKind {
+  if (explicitKind === "video" || explicitKind === "gif" || explicitKind === "image") {
+    return explicitKind;
+  }
+  const clean = (url || "").split("?")[0]?.split("#")[0]?.toLowerCase() ?? "";
+  if (clean.endsWith(".gif")) return "gif";
+  if (clean.endsWith(".png") || clean.endsWith(".jpg") || clean.endsWith(".jpeg") || clean.endsWith(".webp")) {
+    return "image";
+  }
+  return "video";
+}
+
+/**
+ * Convert an animated `.gif` buffer into a 24fps `yuv420p` MP4 buffer for SAM 3 RLE + MiniMax H3,
+ * looping short GIFs (<2s) so the video section has at least 2 seconds of motion while returning
+ * `originalDurationSeconds` so finalize can trim the output GIF back to the original GIF length.
+ */
+export async function convertGifBufferToMp4(gifBuffer: Buffer): Promise<{
+  mp4Buffer: Buffer;
+  originalDurationSeconds: number;
+}> {
+  const dir = await mkdtemp(join(tmpdir(), "jutsu-gif-in-"));
+  try {
+    await writeFile(join(dir, "in.gif"), gifBuffer);
+  const meta = await sharp(gifBuffer, { animated: true }).metadata().catch(() => null);
+  const delaySum = Array.isArray(meta?.delay)
+    ? meta!.delay.reduce((a, b) => a + b, 0) / 1000
+    : 0;
+  let origDur = delaySum;
+  if (!Number.isFinite(origDur) || origDur <= 0.1) {
+    const probe = await ffmpegStderr(dir, ["-i", "in.gif"]);
+    const durMatch = probe.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+    origDur = durMatch
+      ? Number(durMatch[1]) * 3600 + Number(durMatch[2]) * 60 + Number(durMatch[3])
+      : 2.5;
+    if (!Number.isFinite(origDur) || origDur <= 0.1) origDur = 2.5;
+  }
+
+    const targetDur = Math.max(2, Math.min(JUTSU_MAX_SECTION_SECONDS, origDur));
+    const loopCount = origDur < 2 ? Math.ceil(2 / Math.max(0.2, origDur)) : 0;
+    const args: string[] = ["-y"];
+    if (loopCount > 0) {
+      args.push("-stream_loop", String(loopCount));
+    }
+    args.push(
+      "-i",
+      "in.gif",
+      "-t",
+      String(targetDur.toFixed(2)),
+      "-vf",
+      "fps=24,scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos",
+      "-an",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-crf",
+      "18",
+      "-movflags",
+      "+faststart",
+      "out.mp4",
+    );
+    await runFfmpeg(dir, args);
+    const mp4Buffer = await readFile(join(dir, "out.mp4"));
+    return {
+      mp4Buffer,
+      originalDurationSeconds: Math.round(Math.min(JUTSU_MAX_SECTION_SECONDS, origDur) * 100) / 100,
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Convert a rendered MP4 buffer back into a high-quality looping `.gif` using a single-pass
+ * FFmpeg `palettegen` + `paletteuse` filtergraph, trimmed to `maxDurationSeconds`.
+ */
+export async function convertMp4BufferToLoopingGif(
+  mp4Buffer: Buffer,
+  options?: {
+    maxDurationSeconds?: number;
+    fps?: number;
+    maxEdge?: number;
+  },
+): Promise<Buffer> {
+  const dir = await mkdtemp(join(tmpdir(), "jutsu-gif-out-"));
+  try {
+    await writeFile(join(dir, "in.mp4"), mp4Buffer);
+    const fps = options?.fps ?? 15;
+    const maxEdge = options?.maxEdge ?? 540;
+    const maxDur = options?.maxDurationSeconds;
+    const args: string[] = ["-y"];
+    if (maxDur && Number.isFinite(maxDur) && maxDur > 0) {
+      args.push("-t", String(maxDur.toFixed(2)));
+    }
+    args.push(
+      "-i",
+      "in.mp4",
+      "-vf",
+      `fps=${fps},scale='min(${maxEdge},iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5`,
+      "-loop",
+      "0",
+      "out.gif",
+    );
+    await runFfmpeg(dir, args);
+    return await readFile(join(dir, "out.gif"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 /** Extract start frame, end frame, and 4 intermediate motion-sampling frames + detect aspect ratio. */
@@ -812,6 +928,23 @@ async function finalizeJutsuRenderedVideo(
     "video/mp4",
   );
 
+  let outputGifUrl: string | undefined;
+  const mediaKind = inferJutsuSourceMediaKind(job.sourceVideoUrl, job.sourceMediaKind);
+  if (mediaKind === "gif") {
+    const gifBuf = await convertMp4BufferToLoopingGif(videoBuf, {
+      maxDurationSeconds: job.sectionLength,
+      fps: 15,
+      maxEdge: 540,
+    }).catch(() => null);
+    if (gifBuf) {
+      outputGifUrl = await persistBuffer(
+        gifBuf,
+        `${prefix}/final-${Date.now()}.gif`,
+        "image/gif",
+      );
+    }
+  }
+
   const now = new Date();
   const col = await jutsuJobsCollection();
   await col.updateOne(
@@ -820,6 +953,7 @@ async function finalizeJutsuRenderedVideo(
       $set: {
         status: "completed",
         outputVideoUrl,
+        ...(outputGifUrl ? { outputGifUrl } : {}),
         error: undefined,
         updatedAt: now,
       },
@@ -845,6 +979,7 @@ async function finalizeJutsuRenderedVideo(
       ...job,
       status: "completed",
       outputVideoUrl,
+      ...(outputGifUrl ? { outputGifUrl } : {}),
       updatedAt: now,
     }),
   };
@@ -852,6 +987,7 @@ async function finalizeJutsuRenderedVideo(
 
 export type StartScroSwapInput = {
   sourceVideoUrl: string;
+  sourceMediaKind?: JutsuSourceMediaKind;
   sectionStart?: number;
   sectionLength?: number;
   characterId?: string;
@@ -1027,6 +1163,7 @@ export async function startScroSwapJob(
     const applyColorFix = input.applyColorFix !== false;
     const colorSettings = input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS;
 
+    const sourceMediaKind = inferJutsuSourceMediaKind(sourceUrl, input.sourceMediaKind);
     const now = new Date();
     const jobId = new ObjectId();
     const doc: JutsuJob & { _id: ObjectId } = {
@@ -1036,6 +1173,7 @@ export async function startScroSwapJob(
       mode: "character_swap",
       status: "rendering",
       sourceVideoUrl: sourceUrl,
+      sourceMediaKind,
       aspectRatio: "9:16",
       sectionStart,
       sectionLength,
@@ -1098,17 +1236,148 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
   try {
     let current = job;
+    const mediaKind = inferJutsuSourceMediaKind(
+      current.sourceVideoUrl,
+      current.sourceMediaKind,
+    );
+
+    // Static Image-to-Image Swap: run VLM prompt upsampler + Seedream 5.0 Pro (2K) directly
+    if (mediaKind === "image") {
+      const imgRes = await fetch(current.sourceVideoUrl);
+      if (!imgRes.ok) {
+        throw new Error("無法讀取來源圖片檔案");
+      }
+      const rawImgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      const meta = await sharp(rawImgBuffer).metadata();
+      const w = meta.width || 1024;
+      const h = meta.height || 1024;
+      const aspectRatio: AspectRatio =
+        Math.abs(w - h) < Math.min(w, h) * 0.15
+          ? "1:1"
+          : w > h
+            ? "16:9"
+            : "9:16";
+
+      const startFrameWebp = await sharp(rawImgBuffer).webp({ quality: 90 }).toBuffer();
+      const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
+      const rawStartFrameUrl = await persistBuffer(
+        startFrameWebp,
+        `${prefix}/raw-start.webp`,
+        "image/webp",
+      );
+
+      const activeMappings =
+        current.personMappings && current.personMappings.length > 0
+          ? [...current.personMappings].sort(
+              (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+            )
+          : [];
+
+      const donorUrls =
+        activeMappings.length > 0
+          ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
+          : current.referenceImageUrl
+            ? [current.referenceImageUrl]
+            : [];
+
+      if (donorUrls.length === 0) {
+        throw new Error("缺少角色參考圖片");
+      }
+
+      const useMultiPersonPrompt =
+        activeMappings.length > 1 ||
+        (activeMappings.length === 1 && (current.totalDetectedPeople ?? 1) > 1);
+
+      const baseEditRequest = useMultiPersonPrompt
+        ? buildMultiPersonJutsuEditPrompt({
+            mappings: activeMappings,
+            totalDetectedPeople: current.totalDetectedPeople,
+            relightId: current.relightId,
+            customLightPrompt: current.customLightPrompt,
+          })
+        : buildDefaultJutsuEditPrompt({
+            mode: "character_swap",
+            relightId: current.relightId,
+            customLightPrompt: current.customLightPrompt,
+            hasReferenceImage: true,
+            characterOutfitSpec: current.characterOutfitSpec,
+          });
+
+      const upsamplerBuffers: Buffer[] = [];
+      for (const dUrl of donorUrls) {
+        const donorBuf = await fetch(dUrl)
+          .then((r) => (r.ok ? r.arrayBuffer() : null))
+          .then((ab) => (ab ? Buffer.from(ab) : null))
+          .catch(() => null);
+        if (donorBuf) upsamplerBuffers.push(donorBuf);
+      }
+      upsamplerBuffers.push(startFrameWebp);
+
+      const upsampledStartPrompt = await upsampleJutsuFramePrompt({
+        baseRequest: baseEditRequest,
+        imageBuffers: upsamplerBuffers,
+      });
+
+      const preparedStartBuf = await generatePreparedKeyframeBuffer({
+        prompt: upsampledStartPrompt,
+        aspectRatio,
+        referenceImageUrls: [...donorUrls, rawStartFrameUrl],
+      });
+
+      const outputImageUrl = await persistBuffer(
+        preparedStartBuf,
+        `${prefix}/swapped-image-${Date.now()}.webp`,
+        "image/webp",
+      );
+
+      const doneNow = new Date();
+      await col.updateOne(
+        { _id: current._id },
+        {
+          $set: {
+            status: "completed",
+            sourceMediaKind: "image",
+            aspectRatio,
+            rawStartFrameUrl,
+            preparedStartFrameUrl: outputImageUrl,
+            outputImageUrl,
+            editPrompt: upsampledStartPrompt,
+            error: undefined,
+            updatedAt: doneNow,
+          },
+        },
+      );
+
+      try {
+        revalidatePath("/app/scroswap");
+      } catch {
+        // Non-request context
+      }
+      return;
+    }
+
     if (!current.preparedStartFrameUrl) {
       const videoRes = await fetch(current.sourceVideoUrl);
       if (!videoRes.ok) {
         throw new Error("無法讀取來源影片檔案");
       }
-      const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+      const rawSourceBuffer = Buffer.from(await videoRes.arrayBuffer());
+      let videoBuffer: Buffer = rawSourceBuffer;
+      let gifOriginalDuration: number | undefined;
+      if (mediaKind === "gif") {
+        const converted = await convertGifBufferToMp4(rawSourceBuffer);
+        videoBuffer = converted.mp4Buffer;
+        gifOriginalDuration = converted.originalDurationSeconds;
+      }
+
       const extracted = await extractVideoSectionKeyframes(
         videoBuffer,
-        current.sectionStart,
-        current.sectionLength,
+        mediaKind === "gif" ? 0 : current.sectionStart,
+        gifOriginalDuration
+          ? Math.max(2, Math.ceil(gifOriginalDuration))
+          : current.sectionLength,
       );
+      const effectiveSectionLength = gifOriginalDuration ?? extracted.actualDuration;
 
       const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
       const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
@@ -1211,7 +1480,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         }),
         buildSam3MannequinAndMaskVideos({
           sourceVideoBuffer: videoBuffer,
-          sectionStart: current.sectionStart,
+          sectionStart: mediaKind === "gif" ? 0 : current.sectionStart,
           sectionLength: extracted.actualDuration,
           target: "person",
           margin: current.maskMargin ?? "normal",
@@ -1244,8 +1513,9 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         { _id: current._id },
         {
           $set: {
+            sourceMediaKind: mediaKind,
             aspectRatio: extracted.aspectRatio,
-            sectionLength: extracted.actualDuration,
+            sectionLength: effectiveSectionLength,
             rawStartFrameUrl,
             rawEndFrameUrl,
             preparedStartFrameUrl,
@@ -1261,8 +1531,9 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
       current = {
         ...current,
+        sourceMediaKind: mediaKind,
         aspectRatio: extracted.aspectRatio,
-        sectionLength: extracted.actualDuration,
+        sectionLength: effectiveSectionLength,
         rawStartFrameUrl,
         rawEndFrameUrl,
         preparedStartFrameUrl,

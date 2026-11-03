@@ -17,6 +17,9 @@ import {
 import {
   computeJutsuH3Frames,
   computeJutsuPlaceStart,
+  convertGifBufferToMp4,
+  convertMp4BufferToLoopingGif,
+  inferJutsuSourceMediaKind,
   resolveCharacterDonorForSwap,
 } from "@/service/jutsu/pipeline";
 import {
@@ -468,4 +471,42 @@ test("buildMultiPersonJutsuEditPrompt and MiniMax H3 ref2va format left-to-right
   assert.match(ref2vaPrompt, /Reference image 3/i);
   assert.match(ref2vaPrompt, /Pink crop top/i);
   assert.match(ref2vaPrompt, /Navy tailored blazer/i);
+});
+
+test("inferJutsuSourceMediaKind and FFmpeg GIF<->MP4 round-trip support animated GIF and static image sources", async () => {
+  assert.equal(
+    inferJutsuSourceMediaKind("https://blob.test/explainer/brand/u1/clip.mp4"),
+    "video",
+  );
+  assert.equal(
+    inferJutsuSourceMediaKind("https://blob.test/explainer/brand/u1/meme.gif?v=1"),
+    "gif",
+  );
+  assert.equal(
+    inferJutsuSourceMediaKind("https://blob.test/explainer/brand/u1/photo.webp"),
+    "image",
+  );
+  assert.equal(
+    inferJutsuSourceMediaKind("https://blob.test/explainer/brand/u1/photo.png", "gif"),
+    "gif",
+  );
+
+  // Create a tiny GIF via sharp, convert to MP4 via FFmpeg, then convert back to looping GIF
+  const stacked = await sharp({
+    create: { width: 64, height: 64, channels: 4, background: { r: 220, g: 50, b: 50, alpha: 1 } },
+  })
+    .gif({ delay: [500], loop: 0 })
+    .toBuffer();
+
+  const mp4Res = await convertGifBufferToMp4(stacked);
+  assert.ok(mp4Res.mp4Buffer.length > 100);
+  assert.ok(mp4Res.originalDurationSeconds >= 0.4);
+
+  const gifOut = await convertMp4BufferToLoopingGif(mp4Res.mp4Buffer, {
+    maxDurationSeconds: 1.0,
+    fps: 10,
+    maxEdge: 64,
+  });
+  // GIF89a magic header
+  assert.equal(gifOut.subarray(0, 3).toString("ascii"), "GIF");
 });

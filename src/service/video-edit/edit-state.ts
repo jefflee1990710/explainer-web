@@ -192,6 +192,7 @@ const EXT_CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   webp: "image/webp",
+  gif: "image/gif",
   mp4: "video/mp4",
   mov: "video/quicktime",
 };
@@ -208,8 +209,15 @@ export type UploadCheck =
   | { ok: true; kind: "image" | "video"; ext: string }
   | { ok: false; error: string };
 
-export function checkBrandUpload(file: { type: string; size: number }): UploadCheck {
+export function checkBrandUpload(
+  file: { type: string; size: number },
+  options?: { allowGif?: boolean },
+): UploadCheck {
   if (file.size <= 0) return { ok: false, error: "檔案是空的" };
+  if (options?.allowGif && file.type === "image/gif") {
+    if (file.size > EDIT_LIMITS.videoBytes) return { ok: false, error: "GIF 不可超過 50MB" };
+    return { ok: true, kind: "image", ext: "gif" };
+  }
   if (IMAGE_TYPES[file.type]) {
     if (file.size > EDIT_LIMITS.imageBytes) return { ok: false, error: "圖片不可超過 5MB" };
     return { ok: true, kind: "image", ext: IMAGE_TYPES[file.type] };
@@ -238,14 +246,18 @@ export function planBrandUpload(
   clerkUserId: string,
   file: { type: string; size: number },
   id: string,
+  options?: { allowGif?: boolean },
 ): BrandUploadPlan {
-  const checked = checkBrandUpload(file);
+  const checked = checkBrandUpload(file, options);
   if (!checked.ok) return checked;
   return {
     ...checked,
     pathname: brandAssetPath(clerkUserId, id, checked.ext),
     contentType: file.type,
-    maximumSizeInBytes: checked.kind === "image" ? EDIT_LIMITS.imageBytes : EDIT_LIMITS.videoBytes,
+    maximumSizeInBytes:
+      checked.kind === "video" || checked.ext === "gif"
+        ? EDIT_LIMITS.videoBytes
+        : EDIT_LIMITS.imageBytes,
     allowedContentTypes: [file.type],
   };
 }

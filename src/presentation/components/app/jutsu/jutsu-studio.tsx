@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PublicCustomWardrobeItem } from "@/model/custom-wardrobe-item";
-import type { JutsuPersonMapping, PublicJutsuJob } from "@/model/jutsu-job";
+import type {
+  JutsuPersonMapping,
+  JutsuSourceMediaKind,
+  PublicJutsuJob,
+} from "@/model/jutsu-job";
 import {
   deleteJutsuJobAction,
   detectJutsuPeopleAction,
@@ -10,6 +14,7 @@ import {
   startScroSwapJobAction,
 } from "@/presentation/actions/jutsu";
 import {
+  captureImageElementDataUrl,
   captureVideoFrameDataUrl,
   JutsuPersonRleOverlay,
   JutsuPersonTabsBar,
@@ -46,6 +51,20 @@ function presetImageUrl(p: PublicCharacterPreset, char: PublicCharacter): string
   }
   const ver = char.versions.find((v) => v.id === p.versionId);
   return versionImageUrl(ver);
+}
+
+function inferClientSourceMediaKind(url: string): JutsuSourceMediaKind {
+  const clean = (url || "").split("?")[0]?.split("#")[0]?.toLowerCase() ?? "";
+  if (clean.endsWith(".gif")) return "gif";
+  if (
+    clean.endsWith(".png") ||
+    clean.endsWith(".jpg") ||
+    clean.endsWith(".jpeg") ||
+    clean.endsWith(".webp")
+  ) {
+    return "image";
+  }
+  return "video";
 }
 
 function defaultCharacterLookUrl(char?: PublicCharacter | null): string {
@@ -104,6 +123,7 @@ export function JutsuStudio({
 
   // Creation form state
   const [sourceVideoUrl, setSourceVideoUrl] = useState("");
+  const [sourceMediaKind, setSourceMediaKind] = useState<JutsuSourceMediaKind>("video");
   const [sourceUploadProgress, setSourceUploadProgress] = useState<number | null>(null);
   const [sectionStart, setSectionStart] = useState(0);
   const [sectionLength, setSectionLength] = useState(6);
@@ -121,6 +141,7 @@ export function JutsuStudio({
 
   // SAM 3 RLE multi-person detection & per-person character assignment state
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const [detectedPeople, setDetectedPeople] = useState<DetectedSourcePerson[]>([]);
   const [detectingPeople, setDetectingPeople] = useState(false);
   const [activePersonIndex, setActivePersonIndex] = useState<number>(1);
@@ -234,31 +255,51 @@ export function JutsuStudio({
   }
 
   const runFramePeopleDetection = useCallback(async () => {
-    const videoEl = videoRef.current;
-    if (!videoEl || !sourceVideoUrl) return;
+    if (!sourceVideoUrl) return;
     setDetectingPeople(true);
     try {
-      if (Math.abs(videoEl.currentTime - sectionStart) > 0.15) {
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            videoEl.removeEventListener("seeked", onSeeked);
-            resolve();
-          };
-          videoEl.addEventListener("seeked", onSeeked, { once: true });
-          try {
-            videoEl.currentTime = sectionStart;
-          } catch {
-            videoEl.removeEventListener("seeked", onSeeked);
-            resolve();
-          }
-          window.setTimeout(() => {
-            videoEl.removeEventListener("seeked", onSeeked);
-            resolve();
-          }, 1200);
-        });
+      let frameDataUrl: string | null = null;
+      if (sourceMediaKind === "video") {
+        const videoEl = videoRef.current;
+        if (!videoEl) return;
+        if (Math.abs(videoEl.currentTime - sectionStart) > 0.15) {
+          await new Promise<void>((resolve) => {
+            const onSeeked = () => {
+              videoEl.removeEventListener("seeked", onSeeked);
+              resolve();
+            };
+            videoEl.addEventListener("seeked", onSeeked, { once: true });
+            try {
+              videoEl.currentTime = sectionStart;
+            } catch {
+              videoEl.removeEventListener("seeked", onSeeked);
+              resolve();
+            }
+            window.setTimeout(() => {
+              videoEl.removeEventListener("seeked", onSeeked);
+              resolve();
+            }, 1200);
+          });
+        }
+        frameDataUrl = captureVideoFrameDataUrl(videoEl, 640);
+      } else {
+        const imgEl = imageRef.current;
+        if (!imgEl) return;
+        if (!imgEl.complete) {
+          await new Promise<void>((resolve) => {
+            const onLoad = () => {
+              imgEl.removeEventListener("load", onLoad);
+              resolve();
+            };
+            imgEl.addEventListener("load", onLoad, { once: true });
+            window.setTimeout(() => {
+              imgEl.removeEventListener("load", onLoad);
+              resolve();
+            }, 1200);
+          });
+        }
+        frameDataUrl = captureImageElementDataUrl(imgEl, 640);
       }
-
-      const frameDataUrl = captureVideoFrameDataUrl(videoEl, 640);
       if (!frameDataUrl) return;
 
       const res = await detectJutsuPeopleAction({ frameDataUrl });
@@ -303,7 +344,7 @@ export function JutsuStudio({
     } finally {
       setDetectingPeople(false);
     }
-  }, [sourceVideoUrl, sectionStart, characters, characterId, isEn]);
+  }, [sourceVideoUrl, sourceMediaKind, sectionStart, characters, characterId, isEn]);
 
   // Debounced auto-detection 800ms after `sourceVideoUrl` loads or `sectionStart` changes.
   useEffect(() => {
@@ -436,6 +477,7 @@ export function JutsuStudio({
 
       const res = await startScroSwapJobAction({
         sourceVideoUrl,
+        sourceMediaKind,
         sectionStart,
         sectionLength,
         characterId: effectiveCharId,
@@ -537,31 +579,33 @@ export function JutsuStudio({
       {/* Main Creation Form Card */}
       <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
         <div className="space-y-6 px-6 py-6">
-          {/* Step 1: Source Video */}
+          {/* Step 1: Source Media (Video / GIF / Image) */}
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-display text-sm font-bold">
-                {isEn ? "1. Source Video & Section" : "1. 上傳來源影片與截取片段"}
+                {isEn
+                  ? "1. Source Media (Video / GIF / Image)"
+                  : "1. 上傳來源媒體（影片 / GIF / 圖片）"}
               </span>
               <BrandUploadButton
                 label={
                   sourceVideoUrl
                     ? isEn
-                      ? "Replace Video"
-                      : "更換影片"
+                      ? "Replace Media"
+                      : "更換媒體"
                     : isEn
-                      ? "Upload MP4 / MOV"
-                      : "上傳影片 (MP4/MOV)"
+                      ? "Upload Video / GIF / Image"
+                      : "上傳影片 / GIF / 圖片"
                 }
-                accept="video/mp4,video/quicktime"
+                accept="video/mp4,video/quicktime,image/gif,image/png,image/jpeg,image/webp"
                 disabled={submitting}
                 onUploaded={(asset) => {
-                  if (asset.kind === "video") {
-                    setDetectedPeople([]);
-                    setPersonAssignments({});
-                    setSourceVideoUrl(asset.url);
-                    setError("");
-                  }
+                  const kind = inferClientSourceMediaKind(asset.url);
+                  setDetectedPeople([]);
+                  setPersonAssignments({});
+                  setSourceMediaKind(kind);
+                  setSourceVideoUrl(asset.url);
+                  setError("");
                 }}
                 onProgress={setSourceUploadProgress}
                 onError={setError}
@@ -570,22 +614,37 @@ export function JutsuStudio({
 
             {sourceVideoUrl ? (
               <div className="space-y-3">
-                <div className="grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 sm:grid-cols-[1fr_14rem]">
+                <div
+                  className={`grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 ${
+                    sourceMediaKind === "video" ? "sm:grid-cols-[1fr_14rem]" : ""
+                  }`}
+                >
                   <div className="relative max-h-52 w-full overflow-hidden rounded-lg bg-black">
-                    <video
-                      ref={videoRef}
-                      src={sourceVideoUrl}
-                      controls
-                      playsInline
-                      crossOrigin="anonymous"
-                      onLoadedMetadata={(e) => {
-                        const dur = e.currentTarget.duration;
-                        if (!Number.isFinite(dur) || dur <= 0) return;
-                        setSectionStart(0);
-                        setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
-                      }}
-                      className="max-h-52 w-full rounded-lg bg-black object-contain"
-                    />
+                    {sourceMediaKind === "video" ? (
+                      <video
+                        ref={videoRef}
+                        src={sourceVideoUrl}
+                        controls
+                        playsInline
+                        crossOrigin="anonymous"
+                        onLoadedMetadata={(e) => {
+                          const dur = e.currentTarget.duration;
+                          if (!Number.isFinite(dur) || dur <= 0) return;
+                          setSectionStart(0);
+                          setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
+                        }}
+                        className="max-h-52 w-full rounded-lg bg-black object-contain"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        ref={imageRef}
+                        src={sourceVideoUrl}
+                        alt=""
+                        crossOrigin="anonymous"
+                        className="max-h-52 w-full rounded-lg bg-black object-contain"
+                      />
+                    )}
                     <JutsuPersonRleOverlay
                       people={detectedPeople}
                       activePersonIndex={activePersonIndex}
@@ -594,40 +653,42 @@ export function JutsuStudio({
                       isEn={isEn}
                     />
                   </div>
-                  <div className="flex flex-col justify-center gap-3">
-                    <label className="block">
-                      <span className="text-[11px] font-semibold text-muted">
-                        {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={300}
-                        step={0.5}
-                        disabled={submitting}
-                        value={sectionStart}
-                        onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
-                        className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] font-semibold text-muted">
-                        {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
-                      </span>
-                      <input
-                        type="number"
-                        min={2}
-                        max={15}
-                        step={1}
-                        disabled={submitting}
-                        value={sectionLength}
-                        onChange={(e) =>
-                          setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
-                        }
-                        className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                      />
-                    </label>
-                  </div>
+                  {sourceMediaKind === "video" ? (
+                    <div className="flex flex-col justify-center gap-3">
+                      <label className="block">
+                        <span className="text-[11px] font-semibold text-muted">
+                          {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={300}
+                          step={0.5}
+                          disabled={submitting}
+                          value={sectionStart}
+                          onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
+                          className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-semibold text-muted">
+                          {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
+                        </span>
+                        <input
+                          type="number"
+                          min={2}
+                          max={15}
+                          step={1}
+                          disabled={submitting}
+                          value={sectionLength}
+                          onChange={(e) =>
+                            setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
+                          }
+                          className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
 
                 <JutsuPersonTabsBar
@@ -651,9 +712,9 @@ export function JutsuStudio({
                       : t("video.upload.uploading")}
                   </span>
                 ) : isEn ? (
-                  "Upload a source MP4/MOV video (up to 50MB) to begin."
+                  "Upload a source Video (MP4/MOV), animated GIF, or Image (PNG/JPG/WebP) to begin."
                 ) : (
-                  "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"
+                  "請點擊右上角上傳參考短片 (MP4/MOV)、動態 GIF 或圖片 (PNG/JPG/WebP)"
                 )}
               </div>
             )}

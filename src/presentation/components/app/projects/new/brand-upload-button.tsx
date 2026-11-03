@@ -45,7 +45,8 @@ export function BrandUploadButton({
     event.target.value = "";
     if (!file) return;
     const contentType = resolveBrandContentType(file);
-    const checked = checkBrandUpload({ type: contentType, size: file.size });
+    const allowGif = accept.includes("image/gif");
+    const checked = checkBrandUpload({ type: contentType, size: file.size }, { allowGif });
     if (!checked.ok) {
       onError(translateAppError(checked.error, t));
       return;
@@ -53,7 +54,11 @@ export function BrandUploadButton({
     setUploading(true);
     reportProgress(0);
     try {
-      const prepared = await prepareBrandUploadAction({ contentType, size: file.size });
+      const prepared = await prepareBrandUploadAction({
+        contentType,
+        size: file.size,
+        allowGif,
+      });
       if (!prepared.ok) {
         onError(translateAppError(prepared.error, t));
         return;

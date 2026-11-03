@@ -75,6 +75,8 @@ export type JutsuJobStatus =
   | "completed"
   | "failed";
 
+export type JutsuSourceMediaKind = "video" | "gif" | "image";
+
 // MongoDB document in `jutsu_jobs` representing a Scro Swap motion/object/relight/color job.
 export type JutsuJob = {
   _id?: ObjectId;
@@ -83,6 +85,7 @@ export type JutsuJob = {
   mode: JutsuMode;
   status: JutsuJobStatus;
   sourceVideoUrl: string;
+  sourceMediaKind?: JutsuSourceMediaKind;
   aspectRatio: AspectRatio;
   sectionStart: number;
   sectionLength: number;
@@ -128,6 +131,8 @@ export type JutsuJob = {
   openRouterRequestId?: string;
   openRouterStatusUrl?: string;
   outputVideoUrl?: string;
+  outputGifUrl?: string;
+  outputImageUrl?: string;
   targetVideoId?: ObjectId;
   targetClipNumber?: number;
   previousClipVideoUrl?: string;
@@ -141,6 +146,7 @@ export type PublicJutsuJob = {
   mode: JutsuMode;
   status: JutsuJobStatus;
   sourceVideoUrl: string;
+  sourceMediaKind?: JutsuSourceMediaKind;
   aspectRatio: AspectRatio;
   sectionStart: number;
   sectionLength: number;
@@ -168,6 +174,8 @@ export type PublicJutsuJob = {
   motionDescription?: string;
   colorSettings?: JutsuColorSettings;
   outputVideoUrl?: string;
+  outputGifUrl?: string;
+  outputImageUrl?: string;
   targetVideoId?: string;
   targetClipNumber?: number;
   error?: string;
@@ -183,6 +191,7 @@ export function toPublicJutsuJob(
     mode: doc.mode,
     status: doc.status,
     sourceVideoUrl: doc.sourceVideoUrl,
+    sourceMediaKind: doc.sourceMediaKind,
     aspectRatio: doc.aspectRatio,
     sectionStart: doc.sectionStart,
     sectionLength: doc.sectionLength,
@@ -210,6 +219,8 @@ export function toPublicJutsuJob(
     motionDescription: doc.motionDescription,
     colorSettings: doc.colorSettings,
     outputVideoUrl: doc.outputVideoUrl,
+    outputGifUrl: doc.outputGifUrl,
+    outputImageUrl: doc.outputImageUrl,
     targetVideoId: doc.targetVideoId?.toHexString(),
     targetClipNumber: doc.targetClipNumber,
     error: doc.error,
