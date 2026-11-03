@@ -365,8 +365,56 @@ export function CharacterSelectDialog({
           />
         </div>
 
-        {/* Scrollable Content: Recent Presets + Characters (Presets | History | Ad-hoc Change Outfit) */}
+        {/* Scrollable Content: None Option + Recent Presets + Characters */}
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          {/* None / No Character Option (for optional-cast directors like Explainer) */}
+          {allowNone ? (
+            <button
+              type="button"
+              onClick={() => {
+                onChange([]);
+                onSelectionsChange({});
+                if (!multiple) onClose();
+              }}
+              className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border p-3.5 text-left transition ${
+                value.length === 0
+                  ? "border-2 border-accent-ink bg-accent-ink text-paper shadow-[4px_4px_0_0_rgba(18,20,28,0.16)]"
+                  : "border-accent-ink/15 bg-white hover:border-accent-ink/40"
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <span
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border text-sm font-bold ${
+                    value.length === 0
+                      ? "border-paper/30 bg-paper/15 text-lime"
+                      : "border-accent-ink/15 bg-paper text-muted"
+                  }`}
+                >
+                  ∅
+                </span>
+                <span>
+                  <span className="block font-display text-sm font-bold">
+                    {isEn ? "None (No character)" : "不使用角色（None）"}
+                  </span>
+                  <span
+                    className={`mt-0.5 block text-xs ${
+                      value.length === 0 ? "text-paper/75" : "text-muted"
+                    }`}
+                  >
+                    {isEn
+                      ? "Focus on concepts, props, and visual diagrams without an on-screen character."
+                      : "只展示概念圖解與物件，畫面上唔出現固定角色。"}
+                  </span>
+                </span>
+              </span>
+              {value.length === 0 ? (
+                <span className="rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-bold text-accent-ink">
+                  {isEn ? "Selected" : "已選用"}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
+
           {/* Recent Presets Section */}
           {recentPresets.length > 0 ? (
             <section aria-label={t("brief.castPicker.recentPresetsTitle")}>
@@ -738,20 +786,18 @@ export function CharacterSelectDialog({
         </div>
 
         {/* Dialog Footer */}
-        <div className="flex shrink-0 items-center justify-between border-t border-accent-ink/10 bg-paper px-6 py-3.5">
+        <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-accent-ink/10 bg-paper px-6 py-3.5">
           {characters[0] ? (
             <button
               type="button"
               onClick={() =>
                 setManagingCharId(value[0] || activeCharId || characters[0]!.id)
               }
-              className="cursor-pointer text-xs font-semibold text-muted underline underline-offset-4 hover:text-foreground"
+              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-accent-ink bg-lime/65 px-4 text-xs font-bold text-accent-ink transition hover:-translate-y-0.5 hover:bg-lime"
             >
-              {isEn ? "+ Ad-hoc change outfit / Manage" : "+ 臨時換裝／管理角色造型"}
+              {isEn ? "Change outfit" : "更換穿搭"}
             </button>
-          ) : (
-            <span />
-          )}
+          ) : null}
           <button
             type="button"
             onClick={onClose}

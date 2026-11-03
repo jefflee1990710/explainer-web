@@ -66,7 +66,7 @@ const raw = {
     "maxBackgroundSets": 1,
     "speechMode": "narrator",
     "bansNarration": false,
-    "requiredCastCount": 1,
+    "requiredCastCount": 0,
     "selfShotCreatorCamera": false,
     "forcesSceneText": false,
     "allowsInWorldLabels": true,

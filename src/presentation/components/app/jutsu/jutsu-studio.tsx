@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PublicCustomWardrobeItem } from "@/model/custom-wardrobe-item";
 import type { PublicJutsuJob } from "@/model/jutsu-job";
 import {
@@ -29,7 +29,35 @@ export function JutsuStudio({
   const [activeJob, setActiveJob] = useState<PublicJutsuJob | null>(
     initialJobs[0] ?? null,
   );
+  const [characterFilter, setCharacterFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(initialJobs.length === 0);
+
+  const filteredJobs = useMemo(() => {
+    if (characterFilter === "all") return jobs;
+    if (characterFilter === "__custom__") {
+      return jobs.filter((j) => !j.characterId && !j.characterName);
+    }
+    return jobs.filter(
+      (j) =>
+        j.characterId === characterFilter ||
+        j.characterName === characterFilter,
+    );
+  }, [characterFilter, jobs]);
+
+  const filterCharacterOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const c of characters) {
+      byKey.set(c.id, c.name);
+    }
+    for (const j of jobs) {
+      if (j.characterId && j.characterName && !byKey.has(j.characterId)) {
+        byKey.set(j.characterId, j.characterName);
+      } else if (!j.characterId && j.characterName) {
+        byKey.set(j.characterName, j.characterName);
+      }
+    }
+    return Array.from(byKey.entries()).map(([id, name]) => ({ id, name }));
+  }, [characters, jobs]);
 
   const handleCharacterUpdated = useCallback((next: PublicCharacter) => {
     setCharacters((prev) => prev.map((c) => (c.id === next.id ? next : c)));
@@ -107,22 +135,46 @@ export function JutsuStudio({
         <aside className="flex flex-col rounded-2xl border border-accent-ink/12 bg-paper/90 p-4">
           <div className="flex items-center justify-between gap-2 pb-3">
             <h2 className="font-display text-sm font-bold">
-              {isEn ? `History (${jobs.length})` : `歷史紀錄（${jobs.length}）`}
+              {isEn
+                ? `History (${filteredJobs.length})`
+                : `歷史紀錄（${filteredJobs.length}）`}
             </h2>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="cursor-pointer text-xs font-bold text-accent hover:underline"
+            <select
+              aria-label={isEn ? "Filter by character" : "按角色篩選"}
+              value={characterFilter}
+              onChange={(ev) => {
+                const next = ev.target.value;
+                setCharacterFilter(next);
+              }}
+              className="h-8 max-w-[11rem] cursor-pointer truncate rounded-full border border-accent-ink/15 bg-white px-3 text-xs font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              {isEn ? "+ Add" : "+ 新增"}
-            </button>
+              <option value="all">
+                {isEn ? "All characters" : "全部角色"}
+              </option>
+              {filterCharacterOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.name}
+                </option>
+              ))}
+              {jobs.some((j) => !j.characterId && !j.characterName) ? (
+                <option value="__custom__">
+                  {isEn ? "Custom photo" : "自訂相片"}
+                </option>
+              ) : null}
+            </select>
           </div>
 
-          {jobs.length === 0 ? (
+          {filteredJobs.length === 0 ? (
             <div className="grid min-h-[16rem] place-items-center rounded-xl border border-dashed border-accent-ink/15 p-6 text-center">
               <div className="space-y-2">
                 <p className="text-xs font-bold text-foreground">
-                  {isEn ? "No swap history yet" : "尚無 Scro Swap 紀錄"}
+                  {jobs.length === 0
+                    ? isEn
+                      ? "No swap history yet"
+                      : "尚無 Scro Swap 紀錄"
+                    : isEn
+                      ? "No swaps for this character"
+                      : "此角色尚無 Swap 紀錄"}
                 </p>
                 <p className="text-[11px] text-muted">
                   {isEn
@@ -133,7 +185,7 @@ export function JutsuStudio({
             </div>
           ) : (
             <div className="flex max-h-[38rem] flex-col gap-2.5 overflow-y-auto pr-0.5">
-              {jobs.map((job) => {
+              {filteredJobs.map((job) => {
                 const selected = activeJob?.id === job.id;
                 const thumb =
                   job.preparedStartFrameUrl ||
@@ -242,7 +294,6 @@ export function JutsuStudio({
                     src={activeJob.outputVideoUrl}
                     controls
                     autoPlay
-                    loop
                     playsInline
                     className="max-h-[32rem] w-full rounded-xl object-contain"
                   />

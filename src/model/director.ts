@@ -164,8 +164,8 @@ export interface IDirectorBehavior {
   speechMode: DirectorSpeechMode;
   /** Whether third-person narration is forbidden (hides VoicePicker in UI). */
   bansNarration: boolean;
-  /** Required number of cast characters in the brief (1 or 2). */
-  requiredCastCount: 1 | 2;
+  /** Required number of cast characters in the brief (0 when character is optional, or 1 / 2). */
+  requiredCastCount: 0 | 1 | 2;
   /** Talking-head framing mode when part of the talking-head family. */
   talkingHeadShot?: "face" | "full-body";
   /** Whether realistic style switches to modern creator cameras (iPhone 16 Pro / Sony ZV-E1) and skips vintage 35mm film grain grading. */

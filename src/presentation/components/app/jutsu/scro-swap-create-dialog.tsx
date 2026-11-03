@@ -42,6 +42,25 @@ function defaultCharacterLookUrl(char?: PublicCharacter | null): string {
   return versionImageUrl(def ?? completed[0]) || char.previewUrl || "";
 }
 
+/** Single-portrait avatar URL (avoids the 2-column blueprint board image). */
+function characterAvatarUrl(char?: PublicCharacter | null): string {
+  if (!char) return "";
+  const completed = [...(char.versions || [])]
+    .reverse()
+    .filter((v) => v.status === "completed");
+  const def = char.defaultVersionId
+    ? completed.find((v) => v.id === char.defaultVersionId)
+    : undefined;
+  const pick = def ?? completed[0];
+  return (
+    pick?.portraitUrl ||
+    pick?.profileUrl ||
+    char.previewUrl ||
+    pick?.blueprintUrl ||
+    ""
+  );
+}
+
 /**
  * Large modal dialog for creating a new Scro Swap job:
  * - Video upload + start/length controls
@@ -354,38 +373,39 @@ export function ScroSwapCreateDialog({
                 </div>
               </div>
 
-              {/* Layer 1: Character strip */}
+              {/* Layer 1: Character avatar strip (image-only tile buttons, not pills) */}
               {characters.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 md:grid-cols-6">
+                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
                   {characters.map((char) => {
                     const active = characterId === char.id && !uploadedPhotoUrl;
+                    const avatar = characterAvatarUrl(char);
                     return (
                       <button
                         key={char.id}
                         type="button"
                         disabled={submitting}
+                        title={char.name}
+                        aria-label={char.name}
+                        aria-pressed={active}
                         onClick={() => selectCharacter(char)}
-                        className={`flex cursor-pointer flex-col items-center overflow-hidden rounded-xl border p-1.5 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                        className={`style-option group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                           active
-                            ? "border-2 border-accent-ink bg-accent-ink text-paper"
-                            : "border-accent-ink/15 bg-paper hover:border-accent-ink/40"
+                            ? "border-2 border-accent-ink ring-2 ring-lime"
+                            : "border-accent-ink/15 hover:border-accent-ink/45"
                         }`}
                       >
-                        {char.previewUrl ? (
+                        {avatar ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={char.previewUrl}
+                            src={avatar}
                             alt={char.name}
-                            className="aspect-square w-full rounded-lg object-cover"
+                            className="h-full w-full object-cover object-top"
                           />
                         ) : (
-                          <div className="grid aspect-square w-full place-items-center rounded-lg bg-zinc-200 text-xs font-bold text-zinc-600">
+                          <div className="grid h-full w-full place-items-center bg-zinc-200 text-xs font-bold text-zinc-600">
                             {char.name.slice(0, 2)}
                           </div>
                         )}
-                        <span className="mt-1 w-full truncate text-[11px] font-bold">
-                          {char.name}
-                        </span>
                       </button>
                     );
                   })}
