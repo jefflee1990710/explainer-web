@@ -6,12 +6,66 @@ import type { PublicJutsuJob } from "@/model/jutsu-job";
 import {
   deleteJutsuJobAction,
   pollJutsuJobStatusAction,
+  startScroSwapJobAction,
 } from "@/presentation/actions/jutsu";
-import { ScroSwapCreateDialog } from "@/presentation/components/app/jutsu/scro-swap-create-dialog";
+import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
+import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-swap-history-dialog";
+import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
+import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import type { PublicCharacter } from "@/presentation/serialize";
+import type {
+  PublicCharacter,
+  PublicCharacterPreset,
+  PublicCharacterVersion,
+} from "@/presentation/serialize";
+import type { CharacterPresetSelection } from "@/service/character/character-presets";
+
+type LookTab = "presets" | "historical";
+
+function versionImageUrl(v?: PublicCharacterVersion | null): string {
+  if (!v) return "";
+  return v.portraitUrl || v.profileUrl || v.blueprintUrl || "";
+}
+
+function presetImageUrl(p: PublicCharacterPreset, char: PublicCharacter): string {
+  if (p.portraitUrl || p.profileUrl || p.blueprintUrl) {
+    return p.portraitUrl || p.profileUrl || p.blueprintUrl || "";
+  }
+  const ver = char.versions.find((v) => v.id === p.versionId);
+  return versionImageUrl(ver);
+}
+
+function defaultCharacterLookUrl(char?: PublicCharacter | null): string {
+  if (!char) return "";
+  const completed = [...(char.versions || [])]
+    .reverse()
+    .filter((v) => v.status === "completed" && Boolean(versionImageUrl(v)));
+  const def = char.defaultVersionId
+    ? completed.find((v) => v.id === char.defaultVersionId)
+    : undefined;
+  return versionImageUrl(def ?? completed[0]) || char.previewUrl || "";
+}
+
+/** Single-portrait avatar URL (avoids the 2-column blueprint board image). */
+function characterAvatarUrl(char?: PublicCharacter | null): string {
+  if (!char) return "";
+  const completed = [...(char.versions || [])]
+    .reverse()
+    .filter((v) => v.status === "completed");
+  const def = char.defaultVersionId
+    ? completed.find((v) => v.id === char.defaultVersionId)
+    : undefined;
+  const pick = def ?? completed[0];
+  return (
+    pick?.portraitUrl ||
+    pick?.profileUrl ||
+    char.previewUrl ||
+    pick?.blueprintUrl ||
+    ""
+  );
+}
 
 export function JutsuStudio({
   characters: initialCharacters,
@@ -21,49 +75,58 @@ export function JutsuStudio({
   customWardrobeItems?: PublicCustomWardrobeItem[];
   initialJobs: PublicJutsuJob[];
 }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const isEn = locale === "en";
+  const historyLabel =
+    locale === "zh-Hant"
+      ? "歷史紀錄"
+      : locale === "zh-Hans"
+        ? "历史记录"
+        : "History";
 
   const [characters, setCharacters] = useState<PublicCharacter[]>(initialCharacters);
   const [jobs, setJobs] = useState<PublicJutsuJob[]>(initialJobs);
   const [activeJob, setActiveJob] = useState<PublicJutsuJob | null>(
     initialJobs[0] ?? null,
   );
-  const [characterFilter, setCharacterFilter] = useState<string>("all");
-  const [createOpen, setCreateOpen] = useState(initialJobs.length === 0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  const filteredJobs = useMemo(() => {
-    if (characterFilter === "all") return jobs;
-    if (characterFilter === "__custom__") {
-      return jobs.filter((j) => !j.characterId && !j.characterName);
-    }
-    return jobs.filter(
-      (j) =>
-        j.characterId === characterFilter ||
-        j.characterName === characterFilter,
-    );
-  }, [characterFilter, jobs]);
+  // Creation form state
+  const [sourceVideoUrl, setSourceVideoUrl] = useState("");
+  const [sourceUploadProgress, setSourceUploadProgress] = useState<number | null>(null);
+  const [sectionStart, setSectionStart] = useState(0);
+  const [sectionLength, setSectionLength] = useState(6);
 
-  const filterCharacterOptions = useMemo(() => {
-    const byKey = new Map<string, string>();
-    for (const c of characters) {
-      byKey.set(c.id, c.name);
-    }
-    for (const j of jobs) {
-      if (j.characterId && j.characterName && !byKey.has(j.characterId)) {
-        byKey.set(j.characterId, j.characterName);
-      } else if (!j.characterId && j.characterName) {
-        byKey.set(j.characterName, j.characterName);
-      }
-    }
-    return Array.from(byKey.entries()).map(([id, name]) => ({ id, name }));
-  }, [characters, jobs]);
+  const [characterId, setCharacterId] = useState<string>(
+    initialCharacters[0]?.id ?? "",
+  );
+  const [lookTab, setLookTab] = useState<LookTab>("presets");
+  const [selectedLookUrl, setSelectedLookUrl] = useState<string>(() =>
+    defaultCharacterLookUrl(initialCharacters[0]),
+  );
+  const [selectedLookKey, setSelectedLookKey] = useState<string>("default");
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
+  const [managingCharacter, setManagingCharacter] = useState(false);
+
+  // Advanced options
+  const [relightEnabled, setRelightEnabled] = useState(false);
+  const [relightId, setRelightId] = useState("golden_halo");
+  const [customLightPrompt, setCustomLightPrompt] = useState("");
+  const [maskMargin, setMaskMargin] = useState<"tight" | "normal" | "loose">("normal");
+  const [hatFix, setHatFix] = useState(false);
+  const [noLipSync, setNoLipSync] = useState(false);
+  const [motionSize, setMotionSize] = useState<512 | 768 | 1376>(512);
+  const [applyColorFixOnRender, setApplyColorFixOnRender] = useState(true);
+  const [keepSourceAudio, setKeepSourceAudio] = useState(true);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleCharacterUpdated = useCallback((next: PublicCharacter) => {
     setCharacters((prev) => prev.map((c) => (c.id === next.id ? next : c)));
   }, []);
 
-  // Poll any in-flight job automatically and keep the right result panel updated.
+  // Poll any in-flight job automatically and keep history updated.
   useEffect(() => {
     const runningIds = jobs
       .filter((item) => item.status === "rendering")
@@ -87,6 +150,96 @@ export function JutsuStudio({
     return () => window.clearInterval(timer);
   }, [jobs]);
 
+  const activeCharacter = useMemo(
+    () => characters.find((c) => c.id === characterId) ?? null,
+    [characters, characterId],
+  );
+
+  const completedVersions = useMemo(() => {
+    if (!activeCharacter) return [];
+    return [...(activeCharacter.versions || [])]
+      .filter((v) => v.status === "completed" && Boolean(versionImageUrl(v)))
+      .sort((a, b) => b.number - a.number);
+  }, [activeCharacter]);
+
+  const savedPresets = useMemo(() => {
+    if (!activeCharacter) return [];
+    return [...(activeCharacter.presets || [])].filter((p) =>
+      Boolean(presetImageUrl(p, activeCharacter)),
+    );
+  }, [activeCharacter]);
+
+  function selectCharacter(char: PublicCharacter) {
+    setCharacterId(char.id);
+    setUploadedPhotoUrl("");
+    setLookTab("presets");
+    setSelectedLookKey("default");
+    setSelectedLookUrl(defaultCharacterLookUrl(char));
+  }
+
+  function handleCustomizedLook(selection: CharacterPresetSelection) {
+    setManagingCharacter(false);
+    if (!activeCharacter) return;
+    if (selection.presetId) {
+      const preset = activeCharacter.presets.find((p) => p.id === selection.presetId);
+      const url = preset ? presetImageUrl(preset, activeCharacter) : "";
+      if (url) {
+        setLookTab("presets");
+        setSelectedLookKey(`preset:${preset!.id}`);
+        setSelectedLookUrl(url);
+        return;
+      }
+    }
+    if (selection.versionId) {
+      const ver = activeCharacter.versions.find((v) => v.id === selection.versionId);
+      const url = versionImageUrl(ver);
+      if (url) {
+        setLookTab("historical");
+        setSelectedLookKey(`ver:${ver!.id}`);
+        setSelectedLookUrl(url);
+      }
+    }
+  }
+
+  async function onSubmit() {
+    if (submitting || !sourceVideoUrl) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      const effectiveRefUrl = uploadedPhotoUrl || selectedLookUrl || undefined;
+      const res = await startScroSwapJobAction({
+        sourceVideoUrl,
+        sectionStart,
+        sectionLength,
+        characterId: uploadedPhotoUrl ? undefined : characterId || undefined,
+        referenceImageUrl: effectiveRefUrl,
+        relightId: relightEnabled ? relightId : undefined,
+        customLightPrompt: relightEnabled ? customLightPrompt : undefined,
+        maskMargin,
+        hatFix,
+        noLipSync,
+        motionSize,
+        keepSourceAudio,
+        applyColorFix: applyColorFixOnRender,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setActiveJob(res.job);
+      setJobs((prev) => [
+        res.job,
+        ...prev.filter((item) => item.id !== res.job.id),
+      ]);
+      setHistoryOpen(true);
+      notifyTasksChanged();
+    } catch {
+      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function onDeleteJob(id: string) {
     const res = await deleteJutsuJobAction(id);
     if (res.ok) {
@@ -100,8 +253,8 @@ export function JutsuStudio({
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-6 pb-12">
-      {/* Header with Top-Right Add Button */}
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12">
+      {/* Header with Top-Right History Button */}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
@@ -114,270 +267,543 @@ export function JutsuStudio({
           </div>
           <p className="mt-1 text-xs text-muted">
             {isEn
-              ? "Browse your swap history on the left, inspect or download the result on the right, or click + Add to start a new swap."
-              : "左側瀏覽歷史紀錄，右側即時播放與下載成片；點擊右上角「+ 新增」開啟建立視窗。"}
+              ? "Upload a reference video, pick a character and outfit look, then click Generate."
+              : "上傳參考短片，揀選角色與造型（Preset／歷史造型／自訂穿搭），再按 Generate。"}
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 text-sm font-bold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onClick={() => setHistoryOpen(true)}
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-bold text-foreground transition hover:border-accent-ink"
+          aria-label={historyLabel}
         >
-          <span>+</span>
-          <span>{isEn ? "New Swap" : "新增 Swap"}</span>
+          <svg
+            aria-hidden
+            className="h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <span>{historyLabel}</span>
+          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-accent-ink/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
+            {jobs.length}
+          </span>
         </button>
       </header>
 
-      {/* Main 2-Column Workspace: Left History | Right Result */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr] xl:grid-cols-[24rem_1fr]">
-        {/* Left Column: Swap History */}
-        <aside className="flex flex-col rounded-2xl border border-accent-ink/12 bg-paper/90 p-4">
-          <div className="flex items-center justify-between gap-2 pb-3">
-            <h2 className="font-display text-sm font-bold">
-              {isEn
-                ? `History (${filteredJobs.length})`
-                : `歷史紀錄（${filteredJobs.length}）`}
-            </h2>
-            <select
-              aria-label={isEn ? "Filter by character" : "按角色篩選"}
-              value={characterFilter}
-              onChange={(ev) => {
-                const next = ev.target.value;
-                setCharacterFilter(next);
-              }}
-              className="h-8 max-w-[11rem] cursor-pointer truncate rounded-full border border-accent-ink/15 bg-white px-3 text-xs font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <option value="all">
-                {isEn ? "All characters" : "全部角色"}
-              </option>
-              {filterCharacterOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.name}
-                </option>
-              ))}
-              {jobs.some((j) => !j.characterId && !j.characterName) ? (
-                <option value="__custom__">
-                  {isEn ? "Custom photo" : "自訂相片"}
-                </option>
-              ) : null}
-            </select>
-          </div>
-
-          {filteredJobs.length === 0 ? (
-            <div className="grid min-h-[16rem] place-items-center rounded-xl border border-dashed border-accent-ink/15 p-6 text-center">
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-foreground">
-                  {jobs.length === 0
+      {/* Main Creation Form Card */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
+        <div className="space-y-6 px-6 py-6">
+          {/* Step 1: Source Video */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-display text-sm font-bold">
+                {isEn ? "1. Source Video & Section" : "1. 上傳來源影片與截取片段"}
+              </span>
+              <BrandUploadButton
+                label={
+                  sourceVideoUrl
                     ? isEn
-                      ? "No swap history yet"
-                      : "尚無 Scro Swap 紀錄"
+                      ? "Replace Video"
+                      : "更換影片"
                     : isEn
-                      ? "No swaps for this character"
-                      : "此角色尚無 Swap 紀錄"}
-                </p>
-                <p className="text-[11px] text-muted">
-                  {isEn
-                    ? "Click + New Swap at top right to upload a video and pick a character."
-                    : "按右上角「+ 新增 Swap」上傳短片並揀選角色。"}
-                </p>
+                      ? "Upload MP4 / MOV"
+                      : "上傳影片 (MP4/MOV)"
+                }
+                accept="video/mp4,video/quicktime"
+                disabled={submitting}
+                onUploaded={(asset) => {
+                  if (asset.kind === "video") {
+                    setSourceVideoUrl(asset.url);
+                    setError("");
+                  }
+                }}
+                onProgress={setSourceUploadProgress}
+                onError={setError}
+              />
+            </div>
+
+            {sourceVideoUrl ? (
+              <div className="grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 sm:grid-cols-[1fr_14rem]">
+                <video
+                  src={sourceVideoUrl}
+                  controls
+                  playsInline
+                  onLoadedMetadata={(e) => {
+                    const dur = e.currentTarget.duration;
+                    if (!Number.isFinite(dur) || dur <= 0) return;
+                    setSectionStart(0);
+                    setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
+                  }}
+                  className="max-h-52 w-full rounded-lg bg-black object-contain"
+                />
+                <div className="flex flex-col justify-center gap-3">
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">
+                      {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={300}
+                      step={0.5}
+                      disabled={submitting}
+                      value={sectionStart}
+                      onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
+                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">
+                      {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
+                    </span>
+                    <input
+                      type="number"
+                      min={2}
+                      max={15}
+                      step={1}
+                      disabled={submitting}
+                      value={sectionLength}
+                      onChange={(e) =>
+                        setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
+                      }
+                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="grid h-28 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
+                {sourceUploadProgress != null ? (
+                  <span className="inline-flex items-center gap-2 font-semibold text-accent-ink">
+                    <Spinner className="h-4 w-4" />
+                    {sourceUploadProgress > 0
+                      ? t("video.upload.progress", { percent: sourceUploadProgress })
+                      : t("video.upload.uploading")}
+                  </span>
+                ) : isEn ? (
+                  "Upload a source MP4/MOV video (up to 50MB) to begin."
+                ) : (
+                  "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Step 2: Two-Layer Character & Outfit Picker */}
+          <section className="space-y-4 border-t border-accent-ink/10 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-display text-sm font-bold">
+                {isEn ? "2. Select Character" : "2. 選擇角色"}
+              </span>
+              <div className="flex items-center gap-2">
+                <BrandUploadButton
+                  label={isEn ? "Upload Custom Photo" : "上傳自訂人物相"}
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={submitting}
+                  onUploaded={(asset) => {
+                    if (asset.kind === "image") {
+                      setUploadedPhotoUrl(asset.url);
+                    }
+                  }}
+                  onError={setError}
+                />
+                {uploadedPhotoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setUploadedPhotoUrl("")}
+                    className="cursor-pointer text-xs font-semibold text-red-600"
+                  >
+                    {isEn ? "Clear photo" : "清除相片"}
+                  </button>
+                ) : null}
               </div>
             </div>
-          ) : (
-            <div className="flex max-h-[38rem] flex-col gap-2.5 overflow-y-auto pr-0.5">
-              {filteredJobs.map((job) => {
-                const selected = activeJob?.id === job.id;
-                const thumb =
-                  job.preparedStartFrameUrl ||
-                  job.rawStartFrameUrl ||
-                  job.referenceImageUrl;
-                return (
-                  <div
-                    key={job.id}
-                    onClick={() => setActiveJob(job)}
-                    className={`group relative flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition ${
-                      selected
-                        ? "border-2 border-accent-ink bg-white shadow-xs"
-                        : "border-accent-ink/12 bg-paper hover:border-accent-ink/35"
-                    }`}
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
-                      {thumb ? (
+
+            {/* Layer 1: Character avatar strip */}
+            {characters.length > 0 ? (
+              <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
+                {characters.map((char) => {
+                  const active = characterId === char.id && !uploadedPhotoUrl;
+                  const avatar = characterAvatarUrl(char);
+                  return (
+                    <button
+                      key={char.id}
+                      type="button"
+                      disabled={submitting}
+                      title={char.name}
+                      aria-label={char.name}
+                      aria-pressed={active}
+                      onClick={() => selectCharacter(char)}
+                      className={`style-option group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                        active
+                          ? "border-2 border-accent-ink ring-2 ring-lime"
+                          : "border-accent-ink/15 hover:border-accent-ink/45"
+                      }`}
+                    >
+                      {avatar ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={thumb}
-                          alt=""
-                          className="h-full w-full object-cover"
+                          src={avatar}
+                          alt={char.name}
+                          className="h-full w-full object-cover object-top"
                         />
                       ) : (
-                        <div className="grid h-full w-full place-items-center text-[10px] font-bold text-lime">
-                          MP4
+                        <div className="grid h-full w-full place-items-center bg-zinc-200 text-xs font-bold text-zinc-600">
+                          {char.name.slice(0, 2)}
                         </div>
                       )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold text-foreground">
-                        {job.characterName ||
-                          (isEn ? "Character Motion Swap" : "角色動作遷移")}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-muted">
-                        {job.status === "completed"
-                          ? isEn
-                            ? "✓ Completed"
-                            : "✓ 已完成影片"
-                          : job.status === "rendering"
-                            ? isEn
-                              ? "⏳ Generating…"
-                              : "⏳ 背景生成中…"
-                            : job.status === "failed"
-                              ? isEn
-                                ? "✕ Failed"
-                                : "✕ 失敗"
-                              : isEn
-                                ? "Prepared"
-                                : "已準備"}
-                        {" · "}
-                        {job.sectionLength}s
-                      </p>
-                    </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {/* Layer 2: Selected Character's Presets / Historical / Customize Outfit */}
+            {uploadedPhotoUrl ? (
+              <div className="flex items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={uploadedPhotoUrl}
+                  alt=""
+                  className="h-16 w-16 rounded-lg object-cover"
+                />
+                <div className="text-xs">
+                  <p className="font-bold text-foreground">
+                    {isEn ? "Custom character photo selected" : "已選用自訂上傳人物相片"}
+                  </p>
+                  <p className="mt-0.5 text-muted">
+                    {isEn
+                      ? "Click any character above to switch back to character presets & history."
+                      : "點選上方任何角色即可切回角色 Preset 與歷史造型。"}
+                  </p>
+                </div>
+              </div>
+            ) : activeCharacter ? (
+              <div className="space-y-3 rounded-2xl border border-accent-ink/15 bg-paper/65 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5" role="tablist">
                     <button
                       type="button"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        void onDeleteJob(job.id);
-                      }}
-                      aria-label={isEn ? "Delete job" : "刪除紀錄"}
-                      className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full text-xs text-muted hover:bg-red-50 hover:text-red-600"
+                      role="tab"
+                      aria-selected={lookTab === "presets"}
+                      onClick={() => setLookTab("presets")}
+                      className={`min-h-[36px] cursor-pointer rounded-full px-3.5 text-xs font-bold transition ${
+                        lookTab === "presets"
+                          ? "bg-accent-ink text-lime"
+                          : "border border-accent-ink/15 bg-white text-muted hover:text-foreground"
+                      }`}
                     >
-                      ×
+                      {isEn
+                        ? `Presets (${1 + savedPresets.length})`
+                        : `預設造型 Presets (${1 + savedPresets.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={lookTab === "historical"}
+                      onClick={() => setLookTab("historical")}
+                      className={`min-h-[36px] cursor-pointer rounded-full px-3.5 text-xs font-bold transition ${
+                        lookTab === "historical"
+                          ? "bg-accent-ink text-lime"
+                          : "border border-accent-ink/15 bg-white text-muted hover:text-foreground"
+                      }`}
+                    >
+                      {isEn
+                        ? `Historical (${completedVersions.length})`
+                        : `歷史造型 Historical (${completedVersions.length})`}
                     </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </aside>
 
-        {/* Right Column: Active Result */}
-        <section className="flex flex-col">
-          {activeJob ? (
-            <div className="rounded-2xl border-2 border-accent-ink bg-white p-5 shadow-[4px_4px_0_0_#12141c]">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 pb-3">
-                <div>
-                  <span className="rounded-full bg-lime/40 px-2.5 py-0.5 text-[11px] font-bold text-accent-ink">
-                    Character Motion Swap
-                    {activeJob.characterName ? ` · ${activeJob.characterName}` : ""}
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setManagingCharacter(true)}
+                    className="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink bg-lime/60 px-3.5 text-xs font-bold text-accent-ink transition hover:bg-lime"
+                  >
+                    <span>{isEn ? "+ Customize Outfit" : "+ 自訂穿搭 Customize Outfit"}</span>
+                  </button>
+                </div>
+
+                {lookTab === "presets" ? (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                    {/* Default preset card */}
+                    {(() => {
+                      const defUrl = defaultCharacterLookUrl(activeCharacter);
+                      const active = selectedLookKey === "default";
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedLookKey("default");
+                            setSelectedLookUrl(defUrl);
+                          }}
+                          className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
+                            active
+                              ? "border-2 border-accent-ink bg-white ring-2 ring-lime"
+                              : "border-accent-ink/12 bg-white hover:border-accent-ink/35"
+                          }`}
+                        >
+                          {defUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={defUrl}
+                              alt={activeCharacter.name}
+                              className="aspect-square w-full rounded-lg object-cover"
+                            />
+                          ) : null}
+                          <span className="mt-1.5 truncate text-[11px] font-bold">
+                            {isEn ? "Default Look" : "預設造型"}
+                          </span>
+                          <span className="text-[10px] text-muted">
+                            {activeCharacter.name}
+                          </span>
+                        </button>
+                      );
+                    })()}
+
+                    {savedPresets.map((preset) => {
+                      const url = presetImageUrl(preset, activeCharacter);
+                      const key = `preset:${preset.id}`;
+                      const active = selectedLookKey === key;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLookKey(key);
+                            setSelectedLookUrl(url);
+                          }}
+                          className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
+                            active
+                              ? "border-2 border-accent-ink bg-white ring-2 ring-lime"
+                              : "border-accent-ink/12 bg-white hover:border-accent-ink/35"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={preset.name}
+                            className="aspect-square w-full rounded-lg object-cover"
+                          />
+                          <span className="mt-1.5 truncate text-[11px] font-bold">
+                            {preset.name}
+                          </span>
+                          <span className="truncate text-[10px] text-muted">
+                            v{preset.versionNumber}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                    {completedVersions.map((ver) => {
+                      const url = versionImageUrl(ver);
+                      const key = `ver:${ver.id}`;
+                      const active = selectedLookKey === key;
+                      const label = ver.editInstruction
+                        ? ver.editInstruction
+                            .replace(/\s*Isolated wardrobe piece [\w-]+\.?/gi, "")
+                            .slice(0, 26)
+                        : isEn
+                          ? `Version #${ver.number}`
+                          : `造型 #${ver.number}`;
+                      return (
+                        <button
+                          key={ver.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLookKey(key);
+                            setSelectedLookUrl(url);
+                          }}
+                          className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
+                            active
+                              ? "border-2 border-accent-ink bg-white ring-2 ring-lime"
+                              : "border-accent-ink/12 bg-white hover:border-accent-ink/35"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={label}
+                            className="aspect-square w-full rounded-lg object-cover"
+                          />
+                          <span className="mt-1.5 truncate text-[11px] font-bold">
+                            {label}
+                          </span>
+                          <span className="text-[10px] text-muted">
+                            v{ver.number} · {new Date(ver.createdAt).toLocaleDateString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </section>
+
+          {/* Optional Relight & Render Settings */}
+          <details className="rounded-2xl border border-accent-ink/12 bg-paper/60 p-4">
+            <summary className="cursor-pointer font-display text-xs font-bold text-foreground">
+              {isEn
+                ? "Advanced: Relight & Motion Settings"
+                : "進階設定：打光 Relight 與遮罩參數"}
+            </summary>
+            <div className="mt-4 space-y-4">
+              <JutsuRelightPicker
+                enabled={relightEnabled}
+                onEnabledChange={setRelightEnabled}
+                selectedId={relightId}
+                onSelectId={setRelightId}
+                customPrompt={customLightPrompt}
+                onCustomPromptChange={setCustomLightPrompt}
+                disabled={submitting}
+              />
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="block">
+                  <span className="text-[11px] font-semibold text-muted">
+                    {isEn ? "Mask Margin" : "遮罩邊距 Mask Margin"}
                   </span>
-                  <h2 className="mt-1 font-display text-lg font-bold">
-                    {activeJob.status === "completed"
-                      ? isEn
-                        ? "Swap Result Ready"
-                        : "Scro Swap 成片已完成"
-                      : activeJob.status === "failed"
-                        ? isEn
-                          ? "Swap Failed"
-                          : "Scro Swap 失敗"
-                        : isEn
-                          ? "Running in Background…"
-                          : "背景生成中（可離開此頁，完成後自動更新）…"}
-                  </h2>
-                </div>
-                <span className="text-xs font-semibold text-muted">
-                  {activeJob.sectionLength}s · {activeJob.aspectRatio}
-                </span>
+                  <select
+                    value={maskMargin}
+                    disabled={submitting}
+                    onChange={(e) =>
+                      setMaskMargin(e.target.value as "tight" | "normal" | "loose")
+                    }
+                    className="mt-1 h-8 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                  >
+                    <option value="tight">Tight (20 px)</option>
+                    <option value="normal">Normal (40 px)</option>
+                    <option value="loose">Loose (60 px)</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-[11px] font-semibold text-muted">
+                    {isEn ? "Motion Resolution" : "動作參考解析度"}
+                  </span>
+                  <select
+                    value={motionSize}
+                    disabled={submitting}
+                    onChange={(e) =>
+                      setMotionSize(Number(e.target.value) as 512 | 768 | 1376)
+                    }
+                    className="mt-1 h-8 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                  >
+                    <option value={512}>512 px (Default)</option>
+                    <option value={768}>768 px (High Precision)</option>
+                    <option value={1376}>1376 px (Max Detail)</option>
+                  </select>
+                </label>
               </div>
 
-              {activeJob.status === "completed" && activeJob.outputVideoUrl ? (
-                <div className="mt-4 space-y-3 rounded-2xl border border-accent-ink/15 bg-zinc-950 p-4 text-white">
-                  <video
-                    key={activeJob.outputVideoUrl}
-                    src={activeJob.outputVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    className="max-h-[32rem] w-full rounded-xl object-contain"
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={hatFix}
+                    disabled={submitting}
+                    onChange={(e) => setHatFix(e.target.checked)}
+                    className="h-4 w-4 rounded accent-accent-ink"
                   />
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-white/75">
-                      {isEn
-                        ? "Swapped MP4 with synchronized audio"
-                        : "已完成角色動作遷移並同步原片音軌"}
-                    </span>
-                    <a
-                      href={activeJob.outputVideoUrl}
-                      download={`scro-swap-${activeJob.id}.mp4`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center rounded-full bg-lime px-4 text-xs font-bold text-accent-ink"
-                    >
-                      {isEn ? "Download MP4" : "下載 MP4 影片"}
-                    </a>
-                  </div>
-                </div>
-              ) : activeJob.status === "failed" ? (
-                <div className="mt-4 rounded-xl bg-red-50 p-4 text-xs font-semibold text-red-600">
-                  {activeJob.error || (isEn ? "Generation failed." : "生成失敗，請重試")}
-                </div>
-              ) : (
-                <div className="mt-4 grid min-h-[22rem] place-items-center rounded-2xl border border-accent-ink/12 bg-paper/70 p-6 text-center">
-                  <div className="max-w-md space-y-3">
-                    <Spinner className="mx-auto h-7 w-7 text-accent-ink" />
-                    <p className="font-display text-sm font-bold text-foreground">
-                      {activeJob.preparedStartFrameUrl
-                        ? isEn
-                          ? "Keyframes & motion ready — rendering final video…"
-                          : "已完成角色畫格與動作追蹤，正在渲染最終影片…"
-                        : isEn
-                          ? "Preparing character frame & tracking motion in background…"
-                          : "正在背景準備角色畫格與追蹤原片動作…"}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {isEn
-                        ? "This task is also tracked in the top background task bar. You can keep working and come back when it finishes."
-                        : "此任務已加入頂部背景任務列，你可以自由切換頁面，完成後會自動顯示成片。"}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="grid min-h-[24rem] place-items-center rounded-2xl border border-dashed border-accent-ink/20 bg-paper/60 p-8 text-center">
-              <div className="max-w-md space-y-3">
-                <p className="font-display text-base font-bold text-foreground">
-                  {isEn ? "Ready to run Scro Swap" : "準備好開始 Scro Swap"}
-                </p>
-                <p className="text-xs leading-relaxed text-muted">
-                  {isEn
-                    ? "Click + New Swap to upload a reference video and choose a character preset, historical look, or customized outfit."
-                    : "點擊「+ 新增 Swap」上傳參考短片，並揀選角色預設造型、歷史造型或自訂穿搭。"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(true)}
-                  className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 text-xs font-bold text-lime"
-                >
-                  {isEn ? "+ New Swap" : "+ 新增 Swap"}
-                </button>
+                  <span>{isEn ? "Hat fix" : "帽子修復 Hat Fix"}</span>
+                </label>
+
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={noLipSync}
+                    disabled={submitting}
+                    onChange={(e) => setNoLipSync(e.target.checked)}
+                    className="h-4 w-4 rounded accent-accent-ink"
+                  />
+                  <span>{isEn ? "No lip-sync" : "關閉對嘴 No Lip-Sync"}</span>
+                </label>
+
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={keepSourceAudio}
+                    disabled={submitting}
+                    onChange={(e) => setKeepSourceAudio(e.target.checked)}
+                    className="h-4 w-4 rounded accent-accent-ink"
+                  />
+                  <span>{isEn ? "Keep source audio" : "保留原片音軌"}</span>
+                </label>
+
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={applyColorFixOnRender}
+                    disabled={submitting}
+                    onChange={(e) => setApplyColorFixOnRender(e.target.checked)}
+                    className="h-4 w-4 rounded accent-accent-ink"
+                  />
+                  <span>{isEn ? "H3 Soft Color Fix" : "套用 H3 Soft 調色"}</span>
+                </label>
               </div>
             </div>
-          )}
-        </section>
+          </details>
+
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600"
+            >
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-accent-ink/10 bg-paper/80 px-6 py-4">
+          <button
+            type="button"
+            disabled={!sourceVideoUrl || submitting}
+            onClick={() => void onSubmit()}
+            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 text-sm font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? <Spinner className="h-4 w-4" /> : null}
+            <span>
+              {submitting
+                ? isEn
+                  ? "Starting Background Task…"
+                  : "正在啟動背景任務…"
+                : isEn
+                  ? "Generate"
+                  : "Generate 立即生成"}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {createOpen ? (
-        <ScroSwapCreateDialog
-          characters={characters}
+      {/* History Dialog */}
+      <ScroSwapHistoryDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        jobs={jobs}
+        characters={characters}
+        activeJobId={activeJob?.id ?? null}
+        onSelectJob={setActiveJob}
+        onDeleteJob={(id) => void onDeleteJob(id)}
+      />
+
+      {managingCharacter && activeCharacter ? (
+        <CharacterManageDialog
+          character={activeCharacter}
           onCharacterUpdated={handleCharacterUpdated}
-          onCreated={(job) => {
-            setActiveJob(job);
-            setJobs((prev) => [
-              job,
-              ...prev.filter((item) => item.id !== job.id),
-            ]);
-            setCreateOpen(false);
-            notifyTasksChanged();
-          }}
-          onClose={() => setCreateOpen(false)}
+          onSelectAndClose={handleCustomizedLook}
+          onClose={() => setManagingCharacter(false)}
         />
       ) : null}
     </div>

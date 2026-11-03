@@ -5,25 +5,58 @@ import type { PublicTeleportJob } from "@/model/teleport-job";
 import {
   deleteTeleportJobAction,
   pollTeleportJobStatusAction,
+  startTeleportJobAction,
 } from "@/presentation/actions/teleport";
+import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
-import { TeleportCreateDialog } from "@/presentation/components/app/teleport/teleport-create-dialog";
+import { TeleportHistoryDialog } from "@/presentation/components/app/teleport/teleport-history-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { teleportTaskTitle } from "@/service/teleport/prompts";
 
-/** Teleport studio: history on the left, active job result on the right. */
+/** Parse the start field; empty or invalid text falls back to 0, never below 0. */
+function clampStart(text: string): number {
+  const n = Number(text);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+/** Parse the length field; empty or invalid text falls back to 6, clamped to 2–15. */
+function clampLength(text: string): number {
+  const n = Number(text);
+  if (text.trim() === "" || !Number.isFinite(n)) return 6;
+  return Math.min(15, Math.max(2, n));
+}
+
+/** Teleport studio: directly displays the creation form with a top-right History button. */
 export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob[] }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const isEn = locale === "en";
+  const historyLabel =
+    locale === "zh-Hant"
+      ? "歷史紀錄"
+      : locale === "zh-Hans"
+        ? "历史记录"
+        : "History";
 
   const [jobs, setJobs] = useState<PublicTeleportJob[]>(initialJobs);
   const [activeJob, setActiveJob] = useState<PublicTeleportJob | null>(
     initialJobs[0] ?? null,
   );
-  const [createOpen, setCreateOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Poll every in-flight job and keep the right result panel in sync.
+  // Creation form state
+  const [sourceVideoUrl, setSourceVideoUrl] = useState("");
+  const [sourceUploadProgress, setSourceUploadProgress] = useState<number | null>(null);
+  const [startText, setStartText] = useState("0");
+  const [lengthText, setLengthText] = useState("6");
+  const [sceneImageUrl, setSceneImageUrl] = useState("");
+  const [scenePrompt, setScenePrompt] = useState("");
+  const [keepSourceAudio, setKeepSourceAudio] = useState(true);
+  const [applyColorFix, setApplyColorFix] = useState(true);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // Poll every in-flight job and keep history in sync.
   useEffect(() => {
     const runningIds = jobs
       .filter((item) => item.status === "rendering")
@@ -47,6 +80,44 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
     return () => window.clearInterval(timer);
   }, [jobs]);
 
+  const canSubmit =
+    !submitting &&
+    Boolean(sourceVideoUrl) &&
+    (Boolean(sceneImageUrl) || Boolean(scenePrompt.trim()));
+
+  async function onSubmit() {
+    if (!canSubmit) return;
+    setError("");
+    const sectionStart = clampStart(startText);
+    const sectionLength = clampLength(lengthText);
+    setStartText(String(sectionStart));
+    setLengthText(String(sectionLength));
+    setSubmitting(true);
+    try {
+      const res = await startTeleportJobAction({
+        sourceVideoUrl,
+        sectionStart,
+        sectionLength,
+        sceneImageUrl: sceneImageUrl || undefined,
+        scenePrompt: scenePrompt.trim() || undefined,
+        keepSourceAudio,
+        applyColorFix,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setActiveJob(res.job);
+      setJobs((prev) => [res.job, ...prev.filter((item) => item.id !== res.job.id)]);
+      setHistoryOpen(true);
+      notifyTasksChanged();
+    } catch {
+      setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   // Delete one job, drop the row, and move the selection if needed.
   async function onDeleteJob(id: string) {
     const res = await deleteTeleportJobAction(id);
@@ -61,8 +132,8 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-6 pb-12">
-      {/* Header with top-right add button */}
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12">
+      {/* Header with Top-Right History Button */}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
@@ -75,267 +146,274 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
           </div>
           <p className="mt-1 text-xs text-muted">
             {isEn
-              ? "Browse your Teleport history on the left, inspect or download the result on the right, or click + New Teleport to relocate a clip."
-              : "左側瀏覽歷史紀錄，右側即時播放與下載成片；點擊右上角「+ 新增換場」開啟建立視窗。"}
+              ? "Upload a clip, relocate it with a scene photo, and tweak the mood with text."
+              : "上傳短片，用場景照當地點，文字可以再改氣氛。"}
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 text-sm font-bold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onClick={() => setHistoryOpen(true)}
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-bold text-foreground transition hover:border-accent-ink"
+          aria-label={historyLabel}
         >
-          <span>+</span>
-          <span>{isEn ? "New Teleport" : "新增換場"}</span>
+          <svg
+            aria-hidden
+            className="h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <span>{historyLabel}</span>
+          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-accent-ink/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
+            {jobs.length}
+          </span>
         </button>
       </header>
 
-      {/* Two-column workspace: history | result */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr] xl:grid-cols-[24rem_1fr]">
-        {/* Left column: Teleport history */}
-        <aside className="flex flex-col rounded-2xl border border-accent-ink/12 bg-paper/90 p-4">
-          <div className="flex items-center justify-between gap-2 pb-3">
-            <h2 className="font-display text-sm font-bold">
-              {isEn ? `History (${jobs.length})` : `歷史紀錄（${jobs.length}）`}
-            </h2>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="cursor-pointer text-xs font-bold text-accent hover:underline"
-            >
-              {isEn ? "+ Add" : "+ 新增"}
-            </button>
-          </div>
-
-          {jobs.length === 0 ? (
-            <div className="grid min-h-[16rem] place-items-center rounded-xl border border-dashed border-accent-ink/15 p-6 text-center">
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-foreground">
-                  {isEn ? "No Teleport history yet" : "尚無 Teleport 紀錄"}
-                </p>
-                <p className="text-[11px] text-muted">
-                  {isEn
-                    ? "Click + New Teleport at top right to upload a clip and set a new scene."
-                    : "按右上角「+ 新增換場」上傳短片並指定新場景。"}
-                </p>
-              </div>
+      {/* Main Creation Form Card */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
+        <div className="space-y-6 px-6 py-6">
+          {/* Step 1: source video + section */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-display text-sm font-bold">
+                {isEn ? "1. Source Video & Section" : "1. 上傳來源影片與截取片段"}
+              </span>
+              <BrandUploadButton
+                label={
+                  sourceVideoUrl
+                    ? isEn
+                      ? "Replace Video"
+                      : "更換影片"
+                    : isEn
+                      ? "Upload MP4 / MOV"
+                      : "上傳影片 (MP4/MOV)"
+                }
+                accept="video/mp4,video/quicktime"
+                disabled={submitting}
+                onUploaded={(asset) => {
+                  if (asset.kind === "video") {
+                    setSourceVideoUrl(asset.url);
+                    setError("");
+                  }
+                }}
+                onProgress={setSourceUploadProgress}
+                onError={setError}
+              />
             </div>
-          ) : (
-            <div className="flex max-h-[38rem] flex-col gap-2.5 overflow-y-auto pr-0.5">
-              {jobs.map((job) => {
-                const selected = activeJob?.id === job.id;
-                const thumb =
-                  job.preparedStartFrameUrl ||
-                  job.sceneImageUrl ||
-                  job.rawStartFrameUrl;
-                return (
-                  <div
-                    key={job.id}
-                    onClick={() => setActiveJob(job)}
-                    className={`group relative flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition ${
-                      selected
-                        ? "border-2 border-accent-ink bg-white shadow-xs"
-                        : "border-accent-ink/12 bg-paper hover:border-accent-ink/35"
-                    }`}
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
-                      {thumb ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="grid h-full w-full place-items-center text-[10px] font-bold text-lime">
-                          MP4
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold text-foreground">
-                        {teleportTaskTitle(job.scenePrompt)}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-muted">
-                        {job.status === "completed"
-                          ? isEn
-                            ? "✓ Completed"
-                            : "✓ 已完成影片"
-                          : job.status === "rendering"
-                            ? isEn
-                              ? "⏳ Generating…"
-                              : "⏳ 背景生成中…"
-                            : isEn
-                              ? "✕ Failed"
-                              : "✕ 失敗"}
-                        {" · "}
-                        {job.sectionLength}s
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        void onDeleteJob(job.id);
-                      }}
-                      aria-label={isEn ? "Delete job" : "刪除紀錄"}
-                      className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full text-xs text-muted hover:bg-red-50 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </aside>
 
-        {/* Right column: active result */}
-        <section className="flex flex-col">
-          {activeJob ? (
-            <div className="rounded-2xl border-2 border-accent-ink bg-white p-5 shadow-[4px_4px_0_0_#12141c]">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 pb-3">
-                <div>
-                  <span className="rounded-full bg-lime/40 px-2.5 py-0.5 text-[11px] font-bold text-accent-ink">
-                    Teleport
-                  </span>
-                  <h2 className="mt-1 font-display text-lg font-bold">
-                    {activeJob.status === "completed"
-                      ? isEn
-                        ? "Teleport is ready"
-                        : "Teleport 成片已完成"
-                      : activeJob.status === "failed"
-                        ? isEn
-                          ? "Teleport failed"
-                          : "Teleport 失敗"
-                        : isEn
-                          ? "Relocating"
-                          : "換場進行中"}
-                  </h2>
-                </div>
-                <span className="text-xs font-semibold text-muted">
-                  {activeJob.sectionLength}s · {activeJob.aspectRatio}
-                </span>
-              </div>
-
-              {/* Scene still + prepared start frame */}
-              {activeJob.sceneImageUrl || activeJob.preparedStartFrameUrl ? (
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {activeJob.sceneImageUrl ? (
-                    <figure className="space-y-1">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={activeJob.sceneImageUrl}
-                        alt=""
-                        className="max-h-60 w-full rounded-xl border border-accent-ink/12 bg-zinc-900 object-contain"
-                      />
-                      <figcaption className="text-[11px] font-semibold text-muted">
-                        {isEn ? "Scene still" : "場景照"}
-                      </figcaption>
-                    </figure>
-                  ) : null}
-                  {activeJob.preparedStartFrameUrl ? (
-                    <figure className="space-y-1">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={activeJob.preparedStartFrameUrl}
-                        alt=""
-                        className="max-h-60 w-full rounded-xl border border-accent-ink/12 bg-zinc-900 object-contain"
-                      />
-                      <figcaption className="text-[11px] font-semibold text-muted">
-                        {isEn ? "Prepared start frame" : "起始畫格"}
-                      </figcaption>
-                    </figure>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {activeJob.outputVideoUrl ? (
-                <div className="mt-4 space-y-3 rounded-2xl border border-accent-ink/15 bg-zinc-950 p-4 text-white">
-                  <video
-                    key={activeJob.outputVideoUrl}
-                    src={activeJob.outputVideoUrl}
-                    controls
-                    playsInline
-                    className="max-h-[32rem] w-full rounded-xl object-contain"
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-white/75">
-                      {isEn ? "Relocated MP4" : "已完成換場的 MP4"}
+            {sourceVideoUrl ? (
+              <div className="grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 sm:grid-cols-[1fr_14rem]">
+                <video
+                  src={sourceVideoUrl}
+                  controls
+                  playsInline
+                  className="max-h-52 w-full rounded-lg bg-black object-contain"
+                />
+                <div className="flex flex-col justify-center gap-3">
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">
+                      {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
                     </span>
-                    <a
-                      href={activeJob.outputVideoUrl}
-                      download={`teleport-${activeJob.id}.mp4`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center rounded-full bg-lime px-4 text-xs font-bold text-accent-ink"
-                    >
-                      {isEn ? "Download MP4" : "下載 MP4 影片"}
-                    </a>
-                  </div>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      disabled={submitting}
+                      value={startText}
+                      onChange={(e) => setStartText(e.target.value)}
+                      onBlur={() => setStartText(String(clampStart(startText)))}
+                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">
+                      {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
+                    </span>
+                    <input
+                      type="number"
+                      min={2}
+                      max={15}
+                      step={1}
+                      disabled={submitting}
+                      value={lengthText}
+                      onChange={(e) => setLengthText(e.target.value)}
+                      onBlur={() => setLengthText(String(clampLength(lengthText)))}
+                      className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                    />
+                  </label>
                 </div>
-              ) : activeJob.status === "failed" ? (
-                <div className="mt-4 rounded-xl bg-red-50 p-4 text-xs font-semibold text-red-600">
-                  {activeJob.error || (isEn ? "Generation failed." : "生成失敗，請重試")}
-                </div>
+              </div>
+            ) : (
+              <div className="grid h-28 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
+                {sourceUploadProgress != null ? (
+                  <span className="inline-flex items-center gap-2 font-semibold text-accent-ink">
+                    <Spinner className="h-4 w-4" />
+                    {sourceUploadProgress > 0
+                      ? t("video.upload.progress", { percent: sourceUploadProgress })
+                      : t("video.upload.uploading")}
+                  </span>
+                ) : isEn ? (
+                  "Upload a source MP4/MOV video (up to 50MB) to begin."
+                ) : (
+                  "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Step 2: scene still + prompt */}
+          <section className="space-y-3 border-t border-accent-ink/10 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-display text-sm font-bold">
+                {isEn ? "2. New Scene" : "2. 新場景"}
+              </span>
+              <div className="flex items-center gap-2">
+                <BrandUploadButton
+                  label={
+                    sceneImageUrl
+                      ? isEn
+                        ? "Replace Scene Photo"
+                        : "更換場景照"
+                      : isEn
+                        ? "Upload Scene Photo"
+                        : "上傳場景照"
+                  }
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={submitting}
+                  onUploaded={(asset) => {
+                    if (asset.kind === "image") {
+                      setSceneImageUrl(asset.url);
+                      setError("");
+                    }
+                  }}
+                  onError={setError}
+                />
+                {sceneImageUrl ? (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setSceneImageUrl("")}
+                    className="cursor-pointer text-xs font-semibold text-red-600"
+                  >
+                    {isEn ? "Clear photo" : "清除相片"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+              {sceneImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={sceneImageUrl}
+                  alt=""
+                  className="h-32 w-full rounded-xl border border-accent-ink/12 bg-zinc-900 object-cover"
+                />
               ) : (
-                <div className="mt-4 grid min-h-[16rem] place-items-center rounded-2xl border border-accent-ink/12 bg-paper/70 p-6 text-center">
-                  <div className="max-w-md space-y-3">
-                    <Spinner className="mx-auto h-7 w-7 text-accent-ink" />
-                    <p className="font-display text-sm font-bold text-foreground">
-                      {isEn ? "Relocating" : "換場進行中"}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {isEn
-                        ? "This task is also tracked in the top background task bar. You can keep working and come back when it finishes."
-                        : "此任務已加入頂部背景任務列，你可以自由切換頁面，完成後會自動顯示成片。"}
-                    </p>
-                  </div>
+                <div className="grid h-32 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-3 text-center text-[11px] text-muted">
+                  {isEn ? "No scene photo" : "未上傳場景照"}
                 </div>
               )}
-
-              {/* Failed jobs that still have a partial video also show the error */}
-              {activeJob.status === "failed" && activeJob.outputVideoUrl && activeJob.error ? (
-                <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
-                  {activeJob.error}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="grid min-h-[24rem] place-items-center rounded-2xl border border-dashed border-accent-ink/20 bg-paper/60 p-8 text-center">
-              <div className="max-w-md space-y-3">
-                <p className="font-display text-base font-bold text-foreground">
-                  {isEn ? "Ready to run Teleport" : "準備好開始 Teleport"}
-                </p>
-                <p className="text-xs leading-relaxed text-muted">
+              <label className="block">
+                <span className="text-[11px] font-semibold text-muted">
                   {isEn
-                    ? "Click + New Teleport to upload a clip and set the new scene."
-                    : "點擊「+ 新增換場」上傳短片並指定新場景。"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(true)}
-                  className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 text-xs font-bold text-lime"
-                >
-                  {isEn ? "+ New Teleport" : "+ 新增換場"}
-                </button>
-              </div>
+                    ? "Scene description (optional with a photo)"
+                    : "場景描述（有場景照時可留空）"}
+                </span>
+                <textarea
+                  rows={4}
+                  disabled={submitting}
+                  value={scenePrompt}
+                  onChange={(e) => setScenePrompt(e.target.value)}
+                  placeholder={
+                    isEn
+                      ? "e.g. A rainy neon street at night"
+                      : "例如：下雨嘅霓虹街道夜景"
+                  }
+                  className="mt-1 w-full resize-none rounded-lg border border-accent-ink/20 bg-white px-2.5 py-2 text-xs font-semibold"
+                />
+              </label>
             </div>
-          )}
-        </section>
+          </section>
+
+          {/* Advanced options */}
+          <details className="rounded-2xl border border-accent-ink/12 bg-paper/60 p-4">
+            <summary className="cursor-pointer font-display text-xs font-bold text-foreground">
+              {isEn ? "Advanced" : "進階設定"}
+            </summary>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={keepSourceAudio}
+                  disabled={submitting}
+                  onChange={(e) => setKeepSourceAudio(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "Keep source audio" : "保留原片聲音"}</span>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={applyColorFix}
+                  disabled={submitting}
+                  onChange={(e) => setApplyColorFix(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "H3 Soft color" : "H3 Soft 調色"}</span>
+              </label>
+            </div>
+          </details>
+
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600"
+            >
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-accent-ink/10 bg-paper/80 px-6 py-4">
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => void onSubmit()}
+            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 text-sm font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? <Spinner className="h-4 w-4" /> : null}
+            <span>
+              {submitting
+                ? isEn
+                  ? "Starting Background Task…"
+                  : "正在啟動背景任務…"
+                : isEn
+                  ? "Generate"
+                  : "Generate 立即生成"}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {createOpen ? (
-        <TeleportCreateDialog
-          onCreated={(job) => {
-            setActiveJob(job);
-            setJobs((prev) => [job, ...prev.filter((item) => item.id !== job.id)]);
-            setCreateOpen(false);
-            notifyTasksChanged();
-          }}
-          onClose={() => setCreateOpen(false)}
-        />
-      ) : null}
+      {/* History Dialog */}
+      <TeleportHistoryDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        jobs={jobs}
+        activeJobId={activeJob?.id ?? null}
+        onSelectJob={setActiveJob}
+        onDeleteJob={(id) => void onDeleteJob(id)}
+      />
     </div>
   );
 }
