@@ -8,6 +8,7 @@ import {
   startTeleportJobAction,
 } from "@/presentation/actions/teleport";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
+import { BrandUploadDropzone } from "@/presentation/components/app/projects/new/brand-upload-dropzone";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { TeleportHistoryDialog } from "@/presentation/components/app/teleport/teleport-history-dialog";
 import { TeleportHistoryPanel } from "@/presentation/components/app/teleport/teleport-history-panel";
@@ -256,20 +257,24 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
                 </div>
               </div>
             ) : (
-              <div className="grid h-28 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
-                {sourceUploadProgress != null ? (
-                  <span className="inline-flex items-center gap-2 font-semibold text-accent-ink">
-                    <Spinner className="h-4 w-4" />
-                    {sourceUploadProgress > 0
-                      ? t("video.upload.progress", { percent: sourceUploadProgress })
-                      : t("video.upload.uploading")}
-                  </span>
-                ) : isEn ? (
-                  "Upload a source MP4/MOV video (up to 50MB) to begin."
-                ) : (
-                  "請點擊右上角「上傳影片 (MP4/MOV)」選擇要處理嘅參考短片"
-                )}
-              </div>
+              <BrandUploadDropzone
+                accept="video/mp4,video/quicktime"
+                disabled={submitting}
+                externalProgress={sourceUploadProgress}
+                hintText={
+                  isEn
+                    ? "Click or drag & drop a source MP4/MOV video (up to 50MB) here"
+                    : "點擊或拖曳上傳參考短片 (MP4/MOV，最高 50MB)"
+                }
+                onUploaded={(asset) => {
+                  if (asset.kind === "video") {
+                    setSourceVideoUrl(asset.url);
+                    setError("");
+                  }
+                }}
+                onProgress={setSourceUploadProgress}
+                onError={setError}
+              />
             )}
           </section>
 
@@ -322,9 +327,19 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
                   className="h-32 w-full rounded-xl border border-accent-ink/12 bg-zinc-900 object-cover"
                 />
               ) : (
-                <div className="grid h-32 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-3 text-center text-[11px] text-muted">
-                  {isEn ? "No scene photo" : "未上傳場景照"}
-                </div>
+                <BrandUploadDropzone
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={submitting}
+                  className="h-32"
+                  hintText={isEn ? "Click or drop scene photo" : "點擊或拖曳場景照"}
+                  onUploaded={(asset) => {
+                    if (asset.kind === "image") {
+                      setSceneImageUrl(asset.url);
+                      setError("");
+                    }
+                  }}
+                  onError={setError}
+                />
               )}
               <label className="block">
                 <span className="text-[11px] font-semibold text-muted">

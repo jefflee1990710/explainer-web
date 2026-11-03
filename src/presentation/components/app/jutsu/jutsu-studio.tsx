@@ -26,6 +26,7 @@ import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-
 import { ScroSwapHistoryPanel } from "@/presentation/components/app/jutsu/scro-swap-history-panel";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
+import { BrandUploadDropzone } from "@/presentation/components/app/projects/new/brand-upload-dropzone";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -707,20 +708,31 @@ export function JutsuStudio({
                 />
               </div>
             ) : (
-              <div className="grid h-28 place-items-center rounded-xl border-2 border-dashed border-accent-ink/20 bg-paper/50 p-4 text-center text-xs text-muted">
-                {sourceUploadProgress != null ? (
-                  <span className="inline-flex items-center gap-2 font-semibold text-accent-ink">
-                    <Spinner className="h-4 w-4" />
-                    {sourceUploadProgress > 0
-                      ? t("video.upload.progress", { percent: sourceUploadProgress })
-                      : t("video.upload.uploading")}
-                  </span>
-                ) : isEn ? (
-                  "Upload a source Video (MP4/MOV), animated GIF, or Image (PNG/JPG/WebP) to begin."
-                ) : (
-                  "請點擊右上角上傳參考短片 (MP4/MOV)、動態 GIF 或圖片 (PNG/JPG/WebP)"
-                )}
-              </div>
+              <BrandUploadDropzone
+                accept="video/mp4,video/quicktime,image/gif,image/png,image/jpeg,image/webp"
+                disabled={submitting}
+                externalProgress={sourceUploadProgress}
+                hintText={
+                  isEn
+                    ? "Click or drag & drop a Video (MP4/MOV), animated GIF, or Image (PNG/JPG/WebP) here"
+                    : "點擊或拖曳上傳參考短片 (MP4/MOV)、動態 GIF 或圖片 (PNG/JPG/WebP)"
+                }
+                subHintText={
+                  isEn
+                    ? "Up to 50MB for Video / GIF · up to 5MB for Image"
+                    : "影片與 GIF 最高 50MB · 靜態圖片最高 5MB"
+                }
+                onUploaded={(asset) => {
+                  const kind = inferClientSourceMediaKind(asset.url);
+                  setDetectedPeople([]);
+                  setPersonAssignments({});
+                  setSourceMediaKind(kind);
+                  setSourceVideoUrl(asset.url);
+                  setError("");
+                }}
+                onProgress={setSourceUploadProgress}
+                onError={setError}
+              />
             )}
           </section>
 
