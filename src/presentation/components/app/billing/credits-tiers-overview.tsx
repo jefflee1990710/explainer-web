@@ -81,10 +81,10 @@ export function CreditsTiersOverview({
             />
           </div>
           <div className="mt-4">
-            <AddCreditButton disabled={!subscribed} />
+            <AddCreditButton />
           </div>
           <p className="mt-2 text-xs text-muted">
-            {subscribed ? t("billing.bonusRollsOver") : t("billing.subscribeToTopUp")}
+            {t("billing.bonusRollsOver")}
           </p>
         </div>
 

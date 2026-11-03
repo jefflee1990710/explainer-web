@@ -23,22 +23,35 @@ test("plans keep their prices and grant credits sized to the worst-case margins"
   );
 });
 
-test("packs cost more per credit than the matching plan", () => {
-  assert.equal(CREDIT_PACKS.pack30.credits, 900);
-  assert.equal(CREDIT_PACKS.pack90.credits, 2100);
-  assert.equal(CREDIT_PACKS.pack200.credits, 4300);
-  assert.equal(CREDIT_PACKS.pack30.amountUsd, 59);
+test("packs cover $10, $20, $50, $100, $500, and $1,000 USD tiers", () => {
+  assert.equal(CREDIT_PACKS.pack10.credits, 150);
+  assert.equal(CREDIT_PACKS.pack20.credits, 310);
+  assert.equal(CREDIT_PACKS.pack50.credits, 800);
+  assert.equal(CREDIT_PACKS.pack100.credits, 1650);
+  assert.equal(CREDIT_PACKS.pack500.credits, 8500);
+  assert.equal(CREDIT_PACKS.pack1000.credits, 17500);
+  assert.deepEqual(
+    [
+      CREDIT_PACKS.pack10.amountUsd,
+      CREDIT_PACKS.pack20.amountUsd,
+      CREDIT_PACKS.pack50.amountUsd,
+      CREDIT_PACKS.pack100.amountUsd,
+      CREDIT_PACKS.pack500.amountUsd,
+      CREDIT_PACKS.pack1000.amountUsd,
+    ],
+    [10, 20, 50, 100, 500, 1000],
+  );
 });
 
 test("a stored Stripe pack price is replaced when its credits or amount change", () => {
-  const pack = CREDIT_PACKS.pack30;
-  const stored = { priceId: "price_1", productId: "prod_1", amountUsd: 59, credits: 900 };
+  const pack = CREDIT_PACKS.pack50;
+  const stored = { priceId: "price_1", productId: "prod_1", amountUsd: 50, credits: 800 };
   assert.equal(packPriceIsCurrent(stored, pack), true);
   assert.equal(packPriceIsCurrent({ ...stored, credits: 30 }, pack), false);
-  assert.equal(packPriceIsCurrent({ priceId: "price_1", productId: "prod_1", amountUsd: 59 }, pack), false);
+  assert.equal(packPriceIsCurrent({ priceId: "price_1", productId: "prod_1", amountUsd: 50 }, pack), false);
   assert.equal(packPriceIsCurrent({ ...stored, amountUsd: 49 }, pack), false);
   assert.equal(packPriceIsCurrent({ ...stored, priceId: "" }, pack), false);
-  assert.equal(packProductName(pack), "Scro 小補充 900 credits");
+  assert.equal(packProductName(pack), "Scro $50 儲值包 800 credits");
 });
 
 test("each image costs 4 credits", () => {

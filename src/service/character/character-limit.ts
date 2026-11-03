@@ -29,7 +29,9 @@ export function countedCharacterFilter(clerkUserId: string) {
 export function characterAllowance(
   planId: PlanId | null | undefined,
   email: string | null | undefined,
+  hasPaidPack?: boolean,
 ) {
   if (isCharacterLimitUnlocked(email)) return null;
+  if (!planId && hasPaidPack) return CHARACTER_LIMIT.starter;
   return characterLimit(planId);
 }

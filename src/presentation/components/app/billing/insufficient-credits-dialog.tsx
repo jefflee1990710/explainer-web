@@ -61,9 +61,7 @@ export function InsufficientCreditsDialog({
   const titleId = useId();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | null>(null);
   const [planLoading, setPlanLoading] = useState(subscribed);
-  const [offer, setOffer] = useState<Offer>(
-    subscribed ? { kind: "pack", id: "pack90" } : { kind: "plan", id: "studio" },
-  );
+  const [offer, setOffer] = useState<Offer>({ kind: "pack", id: "pack50" });
   const [error, setError] = useState("");
   const [waiting, setWaiting] = useState(false);
 
@@ -235,26 +233,24 @@ export function InsufficientCreditsDialog({
             : t("billing.subscribeBody", { credits: needed })}
         </p>
         <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
-        {subscribed && bonusPercent > 0 ? (
+        {bonusPercent > 0 ? (
           <p className="mt-1 text-xs font-semibold text-[#3d4a12]">
             {t("signupPromo.packBonus", { bonus: bonusPercent })}
           </p>
         ) : null}
         <form onSubmit={(event) => void onSubmit(event)} className="mt-5 space-y-5">
-          {subscribed ? (
-            <CreditOfferCards
-              legend={t("billing.choosePack")}
-              name="packId"
-              value={offer.kind === "pack" ? offer.id : null}
-              disabled={waiting}
-              onChange={(id) => setOffer({ kind: "pack", id })}
-              items={Object.values(CREDIT_PACKS).map((pack) => ({
-                id: pack.id,
-                title: `${pack.nameZh} · ${packCreditsWithBonus(pack.credits, bonusPercent)} credits`,
-                price: `$${pack.amountUsd}`,
-              }))}
-            />
-          ) : null}
+          <CreditOfferCards
+            legend={t("billing.choosePack")}
+            name="packId"
+            value={offer.kind === "pack" ? offer.id : null}
+            disabled={waiting}
+            onChange={(id) => setOffer({ kind: "pack", id })}
+            items={Object.values(CREDIT_PACKS).map((pack) => ({
+              id: pack.id,
+              title: `${pack.nameZh} · ${packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits`,
+              price: `$${pack.amountUsd}`,
+            }))}
+          />
           {subscribed && planLoading ? (
             <fieldset className="space-y-2">
               <legend className="mb-1.5 text-sm font-semibold">{t("billing.chooseUpgrade")}</legend>

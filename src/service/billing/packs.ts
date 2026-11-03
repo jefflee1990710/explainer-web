@@ -10,30 +10,58 @@ export type CreditPack = {
   blurb: string;
 };
 
-export const PACK_IDS: PackId[] = ["pack30", "pack90", "pack200"];
+export const PACK_IDS: PackId[] = [
+  "pack10",
+  "pack20",
+  "pack50",
+  "pack100",
+  "pack500",
+  "pack1000",
+];
 
-// One-time packs reuse the same list prices as Starter / Pro / Studio.
+// Pay-as-you-go one-time credit packs ($10, $20, $50, $100, $500, $1,000 USD).
 export const CREDIT_PACKS: Record<PackId, CreditPack> = {
-  pack30: {
-    id: "pack30",
-    credits: 900,
-    amountUsd: 59,
-    nameZh: "小補充",
-    blurb: "一次加上 900 credits。未用完的加購會留到下個週期。",
+  pack10: {
+    id: "pack10",
+    credits: 150,
+    amountUsd: 10,
+    nameZh: "$10 儲值包",
+    blurb: "一次加上 150 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
   },
-  pack90: {
-    id: "pack90",
-    credits: 2100,
-    amountUsd: 129,
-    nameZh: "中補充",
-    blurb: "一次加上 2,100 credits。未用完的加購會留到下個週期。",
+  pack20: {
+    id: "pack20",
+    credits: 310,
+    amountUsd: 20,
+    nameZh: "$20 儲值包",
+    blurb: "一次加上 310 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
   },
-  pack200: {
-    id: "pack200",
-    credits: 4300,
-    amountUsd: 249,
-    nameZh: "大補充",
-    blurb: "一次加上 4,300 credits。未用完的加購會留到下個週期。",
+  pack50: {
+    id: "pack50",
+    credits: 800,
+    amountUsd: 50,
+    nameZh: "$50 儲值包",
+    blurb: "一次加上 800 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
+  },
+  pack100: {
+    id: "pack100",
+    credits: 1650,
+    amountUsd: 100,
+    nameZh: "$100 儲值包",
+    blurb: "一次加上 1,650 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
+  },
+  pack500: {
+    id: "pack500",
+    credits: 8500,
+    amountUsd: 500,
+    nameZh: "$500 儲值包",
+    blurb: "一次加上 8,500 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
+  },
+  pack1000: {
+    id: "pack1000",
+    credits: 17500,
+    amountUsd: 1000,
+    nameZh: "$1,000 儲值包",
+    blurb: "一次加上 17,500 credits。免訂閱即可購買使用，未用完的 credits 永久保留。",
   },
 };
 
@@ -43,8 +71,12 @@ export function packProductName(pack: CreditPack) {
 }
 
 // True while the stored Stripe price still matches the pack's amount and credits.
-export function packPriceIsCurrent(stored: CreditPackPrice, pack: CreditPack) {
-  return Boolean(stored.priceId) && stored.amountUsd === pack.amountUsd && stored.credits === pack.credits;
+export function packPriceIsCurrent(stored: CreditPackPrice | undefined, pack: CreditPack) {
+  return (
+    Boolean(stored?.priceId) &&
+    stored?.amountUsd === pack.amountUsd &&
+    stored?.credits === pack.credits
+  );
 }
 
 export function isPackId(value: string | undefined): value is PackId {

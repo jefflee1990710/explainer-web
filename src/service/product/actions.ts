@@ -41,7 +41,14 @@ export async function createProductAction(formData: FormData): Promise<ProductRe
     if (referenceImageUrls.length === 0) return { ok: false, error: "請上傳至少一張產品照片" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    const allowance = productAllowance(isSubscriptionActive(sub) && sub ? sub.planId : null, user.email);
+    const hasPaidPack =
+      (user.bonusCredits ?? 0) > 0 ||
+      Boolean(user.processedCheckoutIds && user.processedCheckoutIds.length > 0);
+    const allowance = productAllowance(
+      isSubscriptionActive(sub) && sub ? sub.planId : null,
+      user.email,
+      hasPaidPack,
+    );
     const products = await productsCollection();
     if (allowance != null) {
       const count = await products.countDocuments({ clerkUserId: user.clerkUserId });

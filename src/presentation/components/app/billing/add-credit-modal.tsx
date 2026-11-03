@@ -12,7 +12,7 @@ import { CREDIT_PACKS } from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
 
-const DEFAULT_PACK: PackId = "pack90";
+const DEFAULT_PACK: PackId = "pack50";
 
 // Progress-bar trigger that opens the add-credit dialog.
 export function AddCreditButton({ disabled = false }: { disabled?: boolean }) {

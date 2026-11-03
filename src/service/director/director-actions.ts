@@ -6,7 +6,7 @@ import { directorsCollection, skillsCollection } from "@/dao";
 import type { IDirectorBehavior } from "@/model/director";
 import type { DirectorChatMessage, Skill } from "@/model/skill";
 import { requireAppUser } from "@/service/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { getActiveSubscription, hasPaidOrCreditAccess } from "@/service/billing/credits";
 import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { analyzeReferenceVideoToDirector } from "@/service/director/analyze-reference-video";
 import { customSkillSlug } from "@/service/director/behavior-slug";
@@ -509,7 +509,7 @@ export async function sendDirectorChatAction(input: {
     if (!skill) return { ok: false, error: "找不到 Director" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
 
     const message = String(input.message ?? "").trim();
     const imageUrl = parseChatImageUrl(input.imageUrl);

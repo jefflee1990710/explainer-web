@@ -10,10 +10,10 @@ import { CREDIT_PACKS } from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
 
-const DEFAULT_PACK: PackId = "pack90";
+const DEFAULT_PACK: PackId = "pack50";
 
-/** Inline one-time credit pack picker (fal-style Buy credits section). */
-export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
+/** Inline one-time credit pack picker (available to all accounts, with or without a subscription). */
+export function BuyCreditsSection(_props?: { subscribed?: boolean }) {
   const { t } = useI18n();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");
@@ -23,7 +23,6 @@ export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
   const selected = CREDIT_PACKS[packId];
 
   async function onCheckout() {
-    if (!subscribed) return;
     setSubmitting(true);
     setError("");
     const result = await startPackCheckoutAction(packId);
@@ -50,7 +49,7 @@ export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
         <p className="text-sm font-semibold">{t("billing.addCreditsHeading")}</p>
         <p className="mt-1 text-sm text-muted">{t("billing.addCreditsBlurb")}</p>
 
-        <fieldset disabled={submitting || !subscribed} className="mt-4 space-y-2">
+        <fieldset disabled={submitting} className="mt-4 space-y-2">
           <legend className="sr-only">{t("billing.choosePack")}</legend>
           {packs.map((pack) => (
             <label
@@ -59,7 +58,7 @@ export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
                 packId === pack.id
                   ? "border-accent-ink bg-lime/40"
                   : "border-accent-ink/15 bg-paper hover:border-accent-ink/30"
-              } ${!subscribed ? "cursor-not-allowed opacity-60" : ""}`}
+              }`}
             >
               <input
                 type="radio"
@@ -71,7 +70,7 @@ export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
               />
               <span className="flex-1">
                 <span className="block text-sm font-semibold">
-                  {pack.nameZh} · {packCreditsWithBonus(pack.credits, bonusPercent)} credits
+                  {pack.nameZh} · {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
                 </span>
                 <span className="mt-0.5 block text-xs text-muted">{pack.blurb}</span>
               </span>
@@ -86,14 +85,11 @@ export function BuyCreditsSection({ subscribed }: { subscribed: boolean }) {
           </p>
         ) : null}
 
-        {!subscribed ? (
-          <p className="mt-3 text-sm text-muted">{t("billing.subscribeToTopUp")}</p>
-        ) : null}
         {error ? <p className="mt-2 text-sm text-accent">{error}</p> : null}
 
         <button
           type="button"
-          disabled={!subscribed || submitting}
+          disabled={submitting}
           onClick={() => void onCheckout()}
           className="mt-5 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >

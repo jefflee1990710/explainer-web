@@ -1,7 +1,13 @@
 import { z } from "zod";
 import type { PlanId } from "@/model/subscription";
 
-export type PackId = "pack30" | "pack90" | "pack200";
+export type PackId =
+  | "pack10"
+  | "pack20"
+  | "pack50"
+  | "pack100"
+  | "pack500"
+  | "pack1000";
 
 export type CreditPackPrice = {
   priceId: string;
@@ -60,9 +66,12 @@ export const billingSettingsSchema: z.ZodType<BillingSettings> = z.object({
     scale: z.array(z.string()).optional(),
   }),
   creditPacks: z.object({
-    pack30: creditPackPriceSchema,
-    pack90: creditPackPriceSchema,
-    pack200: creditPackPriceSchema,
+    pack10: creditPackPriceSchema,
+    pack20: creditPackPriceSchema,
+    pack50: creditPackPriceSchema,
+    pack100: creditPackPriceSchema,
+    pack500: creditPackPriceSchema,
+    pack1000: creditPackPriceSchema,
   }),
   updatedAt: z.date(),
 });

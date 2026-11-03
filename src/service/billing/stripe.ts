@@ -36,9 +36,12 @@ function emptyLegacy(): BillingSettings["legacyPriceIds"] {
 
 function emptyCreditPacks(): BillingSettings["creditPacks"] {
   return {
-    pack30: { priceId: "", productId: "", amountUsd: 0 },
-    pack90: { priceId: "", productId: "", amountUsd: 0 },
-    pack200: { priceId: "", productId: "", amountUsd: 0 },
+    pack10: { priceId: "", productId: "", amountUsd: 0 },
+    pack20: { priceId: "", productId: "", amountUsd: 0 },
+    pack50: { priceId: "", productId: "", amountUsd: 0 },
+    pack100: { priceId: "", productId: "", amountUsd: 0 },
+    pack500: { priceId: "", productId: "", amountUsd: 0 },
+    pack1000: { priceId: "", productId: "", amountUsd: 0 },
   };
 }
 

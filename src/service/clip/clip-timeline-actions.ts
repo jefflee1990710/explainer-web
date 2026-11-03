@@ -30,7 +30,7 @@ import {
   assertCanSpendCredits,
   consumeCredits,
   getActiveSubscription,
-  isSubscriptionActive,
+  hasPaidOrCreditAccess,
   refundCredits,
 } from "@/service/billing/credits";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
@@ -133,7 +133,7 @@ export async function appendDirectorClipAction(
     const mode: ClipAppendMode = input?.mode === "full_video" ? "full_video" : "single_clip";
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能新增片段" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能新增片段" };
 
     const videos = await videosCollection();
     const project = await videos.findOne({

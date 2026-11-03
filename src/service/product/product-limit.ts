@@ -15,7 +15,12 @@ export function productLimit(planId: PlanId | null | undefined) {
 }
 
 // null means this account has no product cap.
-export function productAllowance(planId: PlanId | null | undefined, email: string | null | undefined) {
+export function productAllowance(
+  planId: PlanId | null | undefined,
+  email: string | null | undefined,
+  hasPaidPack?: boolean,
+) {
   if (isCharacterLimitUnlocked(email)) return null;
+  if (!planId && hasPaidPack) return PRODUCT_LIMIT.starter;
   return productLimit(planId);
 }

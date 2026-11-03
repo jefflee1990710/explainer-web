@@ -65,9 +65,12 @@ test("adhoc bonus defaults to 5 percent and scales pack credits", () => {
     assert.equal(signupPromoFold(), 85);
   });
   assert.equal(payPercent(15), 85);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack30.credits, 5), 945);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack90.credits, 5), 2205);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack200.credits, 5), 4515);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack10.credits, 5), 158);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack20.credits, 5), 326);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack50.credits, 5), 840);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack100.credits, 5), 1733);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack500.credits, 5), 8925);
+  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack1000.credits, 5), 18375);
 });
 
 test("permanent 85 percent pricing stays above the plan margin targets before affiliate", () => {

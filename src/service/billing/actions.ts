@@ -150,11 +150,6 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
     return { ok: false as const, error: "找不到加購包" };
   }
 
-  const sub = await getActiveSubscription(user.clerkUserId);
-  if (!isSubscriptionActive(sub)) {
-    return { ok: false as const, error: "請先訂閱方案才能加購 credits" };
-  }
-
   const pack = CREDIT_PACKS[packId];
   const grantedCredits = packCreditsWithBonus(pack.credits, adhocBonusPercent());
   const stripe = getStripe();

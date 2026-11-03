@@ -8,7 +8,7 @@ import { z } from "zod";
 import { textStylesCollection } from "@/dao";
 import type { TextStyleChatMessage, TextStyleDoc } from "@/model/text-style";
 import { requireAppUser } from "@/service/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { getActiveSubscription, hasPaidOrCreditAccess } from "@/service/billing/credits";
 import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 import { normalizeChatSummary } from "@/service/director/director-chat-prompt";
@@ -259,7 +259,7 @@ export async function sendTextStyleChatAction(input: {
     if (!doc) return { ok: false, error: "找不到文字樣式" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
 
     const message = String(input.message ?? "").trim();
     const imageUrl = parseChatImageUrl(input.imageUrl);

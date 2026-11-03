@@ -55,21 +55,42 @@ export function evaluateCreditSpendGate({
   throw new Error("credits 不足，請加購或升級方案");
 }
 
-// Free-trial accounts (no active subscription) may render Clip 1 as a 5s animated preview,
-// while Clip 2+ requires subscribing to unlock the full multi-clip video.
+// True when the user has an active subscription, has purchased a credit pack, or has credits available.
+export function hasPaidOrCreditAccess(
+  user: Pick<AppUser, "email" | "credits" | "bonusCredits" | "processedCheckoutIds">,
+  sub: Subscription | null,
+): boolean {
+  if (hasUnlimitedCredits(user.email)) return true;
+  if (isSubscriptionActive(sub)) return true;
+  if ((user.bonusCredits ?? 0) > 0) return true;
+  if (user.processedCheckoutIds && user.processedCheckoutIds.length > 0) return true;
+  if ((user.credits ?? 0) > 0) return true;
+  return false;
+}
+
+// Accounts with an active subscription, a credit top-up, or sufficient credits may render any clip.
 export function assertFreeTrialClipAllowed({
   email,
   sub,
   clipNumber,
+  bonusCredits,
+  processedCheckoutIds,
+  hasPaidForClip,
 }: {
   email?: string | null;
   sub: Subscription | null;
   clipNumber: number;
+  bonusCredits?: number;
+  processedCheckoutIds?: string[];
+  hasPaidForClip?: boolean;
 }): void {
   if (hasUnlimitedCredits(email)) return;
   if (isSubscriptionActive(sub)) return;
+  if ((bonusCredits ?? 0) > 0) return;
+  if (processedCheckoutIds && processedCheckoutIds.length > 0) return;
+  if (hasPaidForClip) return;
   if (clipNumber <= 1) return;
-  throw new Error("免費體驗僅支援預覽第 1 段動態影片，請先訂閱方案以解鎖完整影片");
+  throw new Error("免費體驗僅支援預覽第 1 段動態影片，請先加購 credits 或訂閱方案以解鎖完整影片");
 }
 
 export async function assertCanSpendCredits(

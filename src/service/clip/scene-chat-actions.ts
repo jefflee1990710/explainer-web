@@ -5,7 +5,7 @@ import { videosCollection } from "@/dao";
 import type { SceneChatMessage } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { assertCanSpendCredits, getActiveSubscription, hasPaidOrCreditAccess } from "@/service/billing/credits";
 import { sceneImageCost } from "@/service/production-plan";
 import { updateClipStoryboardAction } from "@/service/generation/actions";
 import { directorModel } from "@/service/director/model";
@@ -73,7 +73,7 @@ export async function sendClipSceneChatAction(input: {
     if (message.length > 2000) return { ok: false, error: "訊息過長" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({

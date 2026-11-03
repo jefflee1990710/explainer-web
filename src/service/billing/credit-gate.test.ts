@@ -62,8 +62,8 @@ test("checkoutUrls send popup returns to the done page", () => {
   assert.match(popup.success_url, /session_id=\{CHECKOUT_SESSION_ID\}/);
   assert.match(popup.cancel_url, /\/checkout\/done\?checkout=cancel/);
 
-  const page = checkoutUrls({ packId: "pack90" });
-  assert.match(page.success_url, /\/app\/billing\?checkout=success&pack=pack90/);
+  const page = checkoutUrls({ packId: "pack50" });
+  assert.match(page.success_url, /\/app\/billing\?checkout=success&pack=pack50/);
   assert.match(page.cancel_url, /\/app\/billing\?checkout=cancel/);
 });
 
@@ -106,7 +106,7 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
     }),
   );
 
-  // Free trial user trying to render Clip 2 gets subscription paywall
+  // Free trial user trying to render Clip 2 without top-up gets top-up/subscription paywall
   assert.throws(
     () =>
       assertFreeTrialClipAllowed({
@@ -114,7 +114,25 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
         sub: null,
         clipNumber: 2,
       }),
-    /請先訂閱方案/,
+    /加購 credits 或訂閱方案/,
+  );
+
+  // Unsubscribed user who topped up credits is allowed to render Clip 2+ without subscribing
+  assert.doesNotThrow(() =>
+    assertFreeTrialClipAllowed({
+      email: "newuser@example.com",
+      sub: null,
+      clipNumber: 2,
+      bonusCredits: 158,
+    }),
+  );
+  assert.doesNotThrow(() =>
+    assertFreeTrialClipAllowed({
+      email: "newuser@example.com",
+      sub: null,
+      clipNumber: 3,
+      hasPaidForClip: true,
+    }),
   );
 
   // Unsubscribed user after exhausting welcome credits gets subscription prompt

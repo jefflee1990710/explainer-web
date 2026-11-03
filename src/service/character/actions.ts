@@ -143,9 +143,13 @@ export async function createCharacterAction(
       return { ok: false, error: "請描述這個角色，或上傳參考圖" };
     }
     const sub = await getActiveSubscription(user.clerkUserId);
+    const hasPaidPack =
+      (user.bonusCredits ?? 0) > 0 ||
+      Boolean(user.processedCheckoutIds && user.processedCheckoutIds.length > 0);
     const allowance = characterAllowance(
       isSubscriptionActive(sub) && sub ? sub.planId : null,
       user.email,
+      hasPaidPack,
     );
     if (allowance != null) {
       const existing = await charactersCollection();

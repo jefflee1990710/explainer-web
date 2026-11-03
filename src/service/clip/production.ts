@@ -165,6 +165,9 @@ export async function generateClipVideoAction(
         email: user.email,
         sub,
         clipNumber,
+        bonusCredits: user.bonusCredits,
+        processedCheckoutIds: user.processedCheckoutIds,
+        hasPaidForClip: user.credits >= cost,
       });
     } catch (gateError) {
       logServerUxEvent(

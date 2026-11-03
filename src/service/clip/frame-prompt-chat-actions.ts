@@ -6,7 +6,7 @@ import { videosCollection } from "@/dao";
 import type { FramePosition, SceneChatMessage } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, getActiveSubscription, isSubscriptionActive, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCredits, consumeCredits, getActiveSubscription, hasPaidOrCreditAccess, refundCredits } from "@/service/billing/credits";
 import { sceneChatRateLimited } from "@/service/clip/scene-chat";
 import {
   FRAME_PROMPT_SUMMARY_MAX,
@@ -76,7 +76,7 @@ export async function openFramePromptChatAction(input: {
     if (!target) return { ok: false, error: "專案不存在" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({
@@ -164,7 +164,7 @@ export async function sendFramePromptChatAction(input: {
     if (message.length > 2000) return { ok: false, error: "訊息過長" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({
