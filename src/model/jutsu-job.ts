@@ -79,6 +79,7 @@ export type JutsuJob = {
   // Character / Donor reference image URL (from Scro Character blueprint or custom upload).
   characterId?: string;
   characterName?: string;
+  characterOutfitSpec?: string;
   referenceImageUrl?: string;
   // Relight preset id or custom light prompt.
   relightId?: string;

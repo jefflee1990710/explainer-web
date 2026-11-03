@@ -16,6 +16,7 @@ import {
 import {
   computeJutsuH3Frames,
   computeJutsuPlaceStart,
+  resolveCharacterDonorForSwap,
 } from "@/service/jutsu/pipeline";
 import {
   buildJutsuRef2VaPrompt,
@@ -233,10 +234,19 @@ test("SAM 3.1 headroom + margin expansion, grey mannequin rendering, and MiniMax
   assert.equal(dedupedBody.content.length, 3);
 });
 
-test("character swap prompts keep the donor face shape and only borrow expression from the source", () => {
-  const plain = buildDefaultJutsuEditPrompt({ mode: "character_swap" });
+test("character swap prompts keep the donor face shape, lock the exact character outfit, and only borrow expression from the source", () => {
+  const plain = buildDefaultJutsuEditPrompt({
+    mode: "character_swap",
+    characterOutfitSpec:
+      "Black sporty mesh football jersey mini dress with white athletic typography",
+  });
   assert.match(plain, /face shape/i);
   assert.match(plain, /facial features of attached image 1/i);
+  assert.match(plain, /Wardrobe lock: copy the exact outfit from attached image 1/i);
+  assert.match(
+    plain,
+    /Exact character outfit to wear \(from attached image 1\): Black sporty mesh football jersey mini dress with white athletic typography\./,
+  );
   assert.doesNotMatch(plain, /facial expression, and body cut of the person in attached image 2/i);
 
   const relit = buildDefaultJutsuEditPrompt({ mode: "character_swap", relightId: "golden_halo" });
@@ -246,8 +256,15 @@ test("character swap prompts keep the donor face shape and only borrow expressio
   const videoPrompt = buildJutsuRef2VaPrompt({
     motionText: "She waves.",
     hasIdentityImage: true,
+    characterOutfitSpec:
+      "Black sporty mesh football jersey mini dress with white athletic typography",
   });
   assert.match(videoPrompt, /Reference image 2/);
+  assert.match(videoPrompt, /exact outfit/i);
+  assert.match(
+    videoPrompt,
+    /Character outfit lock: Black sporty mesh football jersey mini dress with white athletic typography\./,
+  );
   assert.match(videoPrompt, /every frame/i);
   assert.match(videoPrompt, /on-screen text/i);
   assert.doesNotMatch(videoPrompt, /No on-screen text/i);
@@ -255,6 +272,73 @@ test("character swap prompts keep the donor face shape and only borrow expressio
     buildJutsuRef2VaPrompt({ motionText: "She waves.", hasIdentityImage: false }),
     /Reference image 2/,
   );
+
+  // resolveCharacterDonorForSwap upgrades a version's portraitUrl to its full-body standing profileUrl
+  // and extracts the exact outfit spec for that version.
+  const v1Id = new ObjectId("6ae377cdbc437efda274d699");
+  const v2Id = new ObjectId("6ae77368b80afb6463ce80f8");
+  const resolved = resolveCharacterDonorForSwap(
+    {
+      _id: new ObjectId("6addd845d3cb8cccfe4ee7e7"),
+      userId: new ObjectId("6abcc45aebdb844ee2cd8413"),
+      clerkUserId: "u1",
+      name: "Alice",
+      styleId: "realistic",
+      defaultVersionId: v2Id,
+      versions: [
+        {
+          id: v1Id,
+          styleId: "realistic",
+          prompt: "",
+          blueprintKind: "board",
+          status: "completed",
+          creditsCharged: true,
+          portraitUrl: "https://blob.test/v1-portrait",
+          profileUrl: "https://blob.test/v1-standing",
+          blueprintUrl: "https://blob.test/v1-board",
+          spec: {
+            identity: "East Asian woman",
+            face: "Oval face",
+            hair: "Black long",
+            skinTone: "Fair",
+            body: "Slender",
+            marks: "none",
+            outfit: "White linen shirt and grey micro shorts",
+            palette: [],
+          },
+          createdAt: new Date(1000),
+        },
+        {
+          id: v2Id,
+          styleId: "realistic",
+          prompt: "",
+          blueprintKind: "board",
+          status: "completed",
+          creditsCharged: true,
+          portraitUrl: "https://blob.test/v2-portrait",
+          profileUrl: "https://blob.test/v2-standing",
+          blueprintUrl: "https://blob.test/v2-board",
+          spec: {
+            identity: "East Asian woman",
+            face: "Oval face",
+            hair: "Black long",
+            skinTone: "Fair",
+            body: "Slender",
+            marks: "none",
+            outfit: "Black sporty mesh football jersey mini dress",
+            palette: [],
+          },
+          createdAt: new Date(2000),
+        },
+      ],
+      createdAt: new Date(1000),
+      updatedAt: new Date(2000),
+    },
+    "https://blob.test/v2-portrait",
+  );
+  assert.equal(resolved.characterName, "Alice");
+  assert.equal(resolved.donorImageUrl, "https://blob.test/v2-standing");
+  assert.equal(resolved.characterOutfitSpec, "Black sporty mesh football jersey mini dress");
 });
 
 test("scroSwapTask surfaces rendering and completed Scro Swap jobs in the background task list", () => {

@@ -15,6 +15,7 @@ import {
   type JutsuPlacementBox,
   type PublicJutsuJob,
 } from "@/model/jutsu-job";
+import type { Character } from "@/model/character";
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import { persistBuffer } from "@/service/higgsfield/persist";
@@ -59,6 +60,49 @@ export const JUTSU_DEFAULT_SECTION_SECONDS = 6;
 
 export const JUTSU_PLACES = ["Whole", "Start", "Middle", "End"] as const;
 export type JutsuPlace = (typeof JUTSU_PLACES)[number];
+
+/**
+ * Resolve the donor image URL and exact outfit description for a Scro Character.
+ * When `requestedUrl` points to a specific version's portrait/standing/blueprint (or when none is passed,
+ * the character's default version), prefer the full-body standing figure (`profileUrl`) so the entire
+ * outfit is visible, and return that version's `spec.outfit` (or `editInstruction`) for prompt locking.
+ */
+export function resolveCharacterDonorForSwap(
+  charDoc: Character,
+  requestedUrl?: string,
+): {
+  characterName: string;
+  donorImageUrl?: string;
+  characterOutfitSpec?: string;
+} {
+  const completed = [...(charDoc.versions || [])]
+    .reverse()
+    .filter((v) => v.status === "completed" && Boolean(v.profileUrl || v.portraitUrl || v.blueprintUrl));
+  const def = charDoc.defaultVersionId
+    ? completed.find((v) => v.id.equals(charDoc.defaultVersionId!))
+    : undefined;
+  const trimmed = requestedUrl?.trim();
+  const matched = trimmed
+    ? completed.find(
+        (v) =>
+          v.profileUrl === trimmed ||
+          v.portraitUrl === trimmed ||
+          v.blueprintUrl === trimmed,
+      )
+    : undefined;
+  const chosen = matched ?? (trimmed ? undefined : def ?? completed[0]);
+  const donorImageUrl = chosen
+    ? chosen.profileUrl || chosen.portraitUrl || chosen.blueprintUrl || trimmed
+    : trimmed || (def ?? completed[0])?.profileUrl || (def ?? completed[0])?.portraitUrl || (def ?? completed[0])?.blueprintUrl;
+  const rawOutfit =
+    chosen?.spec?.outfit ||
+    chosen?.editInstruction?.replace(/\s*Isolated wardrobe piece [\w-]+\.?/gi, "");
+  return {
+    characterName: charDoc.name,
+    donorImageUrl,
+    characterOutfitSpec: rawOutfit?.trim() || undefined,
+  };
+}
 
 /** Ported from Openjutsu `placeStart` (`lib/simple.ts`). */
 export function computeJutsuPlaceStart(
@@ -308,23 +352,19 @@ export async function prepareJutsuJob(
 
     // Resolve Scro Character blueprint if `characterId` is chosen
     let characterName: string | undefined;
+    let characterOutfitSpec: string | undefined;
     let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
     if (input.characterId && ObjectId.isValid(input.characterId)) {
       const charCol = await charactersCollection();
-      const charDoc = await charCol.findOne({
+      const charDoc = (await charCol.findOne({
         _id: new ObjectId(input.characterId),
         clerkUserId: user.clerkUserId,
-      });
+      })) as Character | null;
       if (charDoc) {
-        characterName = charDoc.name;
-        const completedVer = [...(charDoc.versions || [])]
-          .reverse()
-          .find((v) => v.status === "completed" && (v.portraitUrl || v.blueprintUrl));
-        // If caller explicitly passed a preset/historical look URL, keep it.
-        donorImageUrl =
-          donorImageUrl ||
-          completedVer?.portraitUrl ||
-          completedVer?.blueprintUrl;
+        const resolved = resolveCharacterDonorForSwap(charDoc, donorImageUrl);
+        characterName = resolved.characterName;
+        donorImageUrl = resolved.donorImageUrl;
+        characterOutfitSpec = resolved.characterOutfitSpec;
       }
     }
 
@@ -414,6 +454,7 @@ export async function prepareJutsuJob(
         objectChangeTo: input.objectChangeTo,
         hasReferenceImage: Boolean(donorImageUrl),
         placementBox: input.placementBox,
+        characterOutfitSpec,
       });
 
     // Load donor image buffer if present for the VLM prompt upsampler
@@ -549,6 +590,7 @@ export async function prepareJutsuJob(
       preparedEndFrameUrl,
       characterId: input.characterId,
       characterName,
+      characterOutfitSpec,
       referenceImageUrl: donorImageUrl,
       relightId: input.relightId,
       customLightPrompt: input.customLightPrompt,
@@ -627,6 +669,7 @@ export async function renderJutsuVideo(input: {
           hasIdentityImage: Boolean(
             identityImageUrl && identityImageUrl !== job.preparedStartFrameUrl,
           ),
+          characterOutfitSpec: job.characterOutfitSpec,
         })
       : [
           "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
@@ -843,23 +886,19 @@ export async function startScroSwapJob(
     }
 
     let characterName: string | undefined;
+    let characterOutfitSpec: string | undefined;
     let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
     if (input.characterId && ObjectId.isValid(input.characterId)) {
       const charCol = await charactersCollection();
-      const charDoc = await charCol.findOne({
+      const charDoc = (await charCol.findOne({
         _id: new ObjectId(input.characterId),
         clerkUserId: user.clerkUserId,
-      });
+      })) as Character | null;
       if (charDoc) {
-        characterName = charDoc.name;
-        const completedVer = [...(charDoc.versions || [])]
-          .reverse()
-          .find((v) => v.status === "completed" && (v.portraitUrl || v.blueprintUrl));
-        // If caller explicitly passed a preset/historical look URL, keep it.
-        donorImageUrl =
-          donorImageUrl ||
-          completedVer?.portraitUrl ||
-          completedVer?.blueprintUrl;
+        const resolved = resolveCharacterDonorForSwap(charDoc, donorImageUrl);
+        characterName = resolved.characterName;
+        donorImageUrl = resolved.donorImageUrl;
+        characterOutfitSpec = resolved.characterOutfitSpec;
       }
     }
 
@@ -897,6 +936,7 @@ export async function startScroSwapJob(
       sectionLength,
       characterId: input.characterId,
       characterName,
+      characterOutfitSpec,
       referenceImageUrl: donorImageUrl,
       relightId: input.relightId,
       customLightPrompt: input.customLightPrompt,
@@ -975,6 +1015,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         relightId: current.relightId,
         customLightPrompt: current.customLightPrompt,
         hasReferenceImage: true,
+        characterOutfitSpec: current.characterOutfitSpec,
       });
 
       const upsamplerBuffers: Buffer[] = [];
@@ -1112,6 +1153,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             hasIdentityImage: Boolean(
               identityImageUrl && identityImageUrl !== current.preparedStartFrameUrl,
             ),
+            characterOutfitSpec: current.characterOutfitSpec,
           })
         : [
             "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",

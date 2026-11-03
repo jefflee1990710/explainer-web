@@ -88,12 +88,15 @@ export function buildJutsuRef2VaPrompt(input: {
   motionText: string;
   lightText?: string;
   hasIdentityImage: boolean;
+  characterOutfitSpec?: string;
 }): string {
+  const cleanOutfit = (input.characterOutfitSpec || "").trim();
   return [
     "Reference image 1 is the person, outfit, and the source scene/background to preserve. Reference video 1 is a grey mannequin performing the motion.",
     input.hasIdentityImage
-      ? "Reference image 2 is the true face and identity of this character: keep exactly that face shape, eyes, nose, mouth, and skin in every frame, including when hands move near the face."
-      : "",
+      ? "Reference image 2 is the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face."
+      : "Keep the exact outfit from Reference image 1 (every garment, neckline, sleeve length, color, fabric texture, and graphic print) unchanged in every frame.",
+    cleanOutfit ? `Character outfit lock: ${cleanOutfit}.` : "",
     "Follow the mannequin's pose, hands, and timing exactly, while keeping the person, the exact background/room, and any on-screen text or graphic letters from Reference image 1.",
     input.motionText,
     input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",

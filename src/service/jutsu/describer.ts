@@ -5,6 +5,7 @@ import {
   JUTSU_CHARACTER_RELIGHT_PROMPT,
   JUTSU_FRAME_RELIGHT_PROMPT,
   resolveJutsuLightText,
+  withCharacterOutfitLock,
 } from "@/service/jutsu/light-looks";
 import { assertOpenRouterKey, OPENROUTER_BASE_URL } from "@/service/openrouter/generate";
 
@@ -112,6 +113,7 @@ export function buildDefaultJutsuEditPrompt(input: {
   objectChangeTo?: string;
   hasReferenceImage?: boolean;
   placementBox?: JutsuPlacementBox;
+  characterOutfitSpec?: string;
 }): string {
   const light = resolveJutsuLightText(input.relightId, input.customLightPrompt);
 
@@ -133,10 +135,16 @@ export function buildDefaultJutsuEditPrompt(input: {
   }
 
   if (light) {
-    return JUTSU_CHARACTER_RELIGHT_PROMPT.replace("{look}", light);
+    return withCharacterOutfitLock(
+      JUTSU_CHARACTER_RELIGHT_PROMPT.replace("{look}", light),
+      input.characterOutfitSpec,
+    );
   }
 
-  return JUTSU_CHARACTER_PREPARE_PROMPT;
+  return withCharacterOutfitLock(
+    JUTSU_CHARACTER_PREPARE_PROMPT,
+    input.characterOutfitSpec,
+  );
 }
 
 /** Upsample a Jutsu frame-edit request with reference image buffers via OpenRouter VLM. */

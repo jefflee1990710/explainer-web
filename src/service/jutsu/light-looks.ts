@@ -149,12 +149,18 @@ export const JUTSU_LIGHT_LOOKS: readonly JutsuLightLook[] = [
 export const JUTSU_FRAME_RELIGHT_PROMPT =
   "Relight this photograph. Keep the person, face, identity, expression, pose, hair, clothing, framing and setting exactly as they are; change only the lighting and the colour of the light. {look}";
 
-// Image 1 = character donor, image 2 = source frame: identity from 1, pose + scene from 2.
+// Image 1 = character donor, image 2 = source frame: identity + outfit from 1, pose + scene from 2.
 const JUTSU_CHARACTER_IDENTITY_LOCK =
-  "The face must be the same person as attached image 1: keep the face shape, jawline, eye shape, nose, lips, skin tone, and all facial features of attached image 1 exactly, plus its hair and clothing. From attached image 2 take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in attached image 2.";
+  "The face must be the same person as attached image 1: keep the face shape, jawline, eye shape, nose, lips, skin tone, and all facial features of attached image 1 exactly, plus its hair and clothing. Wardrobe lock: copy the exact outfit from attached image 1 (every garment, neckline, sleeve length, fabric texture, color, pattern, and chest graphic/logo if present) — never copy or blend any clothing from the person in attached image 2. From attached image 2 take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in attached image 2.";
 
 const JUTSU_CHARACTER_SCENE_LOCK =
   "Keep the exact room, furniture, props, on-screen text, and background of attached image 2 — never replace them with the backdrop from attached image 1.";
+
+export function withCharacterOutfitLock(basePrompt: string, outfitSpec?: string | null): string {
+  const cleanOutfit = (outfitSpec || "").trim();
+  if (!cleanOutfit) return basePrompt;
+  return `${basePrompt} Exact character outfit to wear (from attached image 1): ${cleanOutfit}.`;
+}
 
 export const JUTSU_CHARACTER_RELIGHT_PROMPT = `Create a photograph of the person from attached image 1 in exactly the pose, head angle, hand and arm positions, camera angle, framing and body cut of the person in attached image 2; describe that pose fully. ${JUTSU_CHARACTER_IDENTITY_LOCK} ${JUTSU_CHARACTER_SCENE_LOCK} {look}`;
 

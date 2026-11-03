@@ -34,7 +34,10 @@ export function CharacterManageDialog({
   styleId?: string;
   initialSelection?: CharacterPresetSelection;
   onCharacterUpdated: (next: PublicCharacter) => void;
-  onSelectAndClose: (selection: CharacterPresetSelection) => void;
+  onSelectAndClose: (
+    selection: CharacterPresetSelection,
+    updatedCharacter: PublicCharacter,
+  ) => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -155,12 +158,15 @@ export function CharacterManageDialog({
     const matchingPreset = (character.presets || []).find(
       (preset) => preset.versionId === selectedVersion.id,
     );
-    onSelectAndClose({
-      versionId: selectedVersion.id,
-      ...(matchingPreset
-        ? { presetId: matchingPreset.id, presetName: matchingPreset.name }
-        : {}),
-    });
+    onSelectAndClose(
+      {
+        versionId: selectedVersion.id,
+        ...(matchingPreset
+          ? { presetId: matchingPreset.id, presetName: matchingPreset.name }
+          : {}),
+      },
+      character,
+    );
   }
 
   return (

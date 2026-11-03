@@ -18,14 +18,16 @@ import type { CharacterPresetSelection } from "@/service/character/character-pre
 
 type LookTab = "presets" | "historical";
 
+// Prioritize the full-body standing figure (`profileUrl`) so full outfits (top, pants/skirt/shorts,
+// dress length, and shoes) are 100% visible when preparing the swapped keyframe.
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
-  return v.portraitUrl || v.profileUrl || v.blueprintUrl || "";
+  return v.profileUrl || v.portraitUrl || v.blueprintUrl || "";
 }
 
 function presetImageUrl(p: PublicCharacterPreset, char: PublicCharacter): string {
-  if (p.portraitUrl || p.profileUrl || p.blueprintUrl) {
-    return p.portraitUrl || p.profileUrl || p.blueprintUrl || "";
+  if (p.profileUrl || p.portraitUrl || p.blueprintUrl) {
+    return p.profileUrl || p.portraitUrl || p.blueprintUrl || "";
   }
   const ver = char.versions.find((v) => v.id === p.versionId);
   return versionImageUrl(ver);
@@ -147,12 +149,16 @@ export function ScroSwapCreateDialog({
     setSelectedLookUrl(defaultCharacterLookUrl(char));
   }
 
-  function handleCustomizedLook(selection: CharacterPresetSelection) {
+  function handleCustomizedLook(
+    selection: CharacterPresetSelection,
+    updatedCharacter?: PublicCharacter,
+  ) {
     setManagingCharacter(false);
-    if (!activeCharacter) return;
+    const char = updatedCharacter ?? activeCharacter;
+    if (!char) return;
     if (selection.presetId) {
-      const preset = activeCharacter.presets.find((p) => p.id === selection.presetId);
-      const url = preset ? presetImageUrl(preset, activeCharacter) : "";
+      const preset = char.presets.find((p) => p.id === selection.presetId);
+      const url = preset ? presetImageUrl(preset, char) : "";
       if (url) {
         setLookTab("presets");
         setSelectedLookKey(`preset:${preset!.id}`);
@@ -161,7 +167,7 @@ export function ScroSwapCreateDialog({
       }
     }
     if (selection.versionId) {
-      const ver = activeCharacter.versions.find((v) => v.id === selection.versionId);
+      const ver = char.versions.find((v) => v.id === selection.versionId);
       const url = versionImageUrl(ver);
       if (url) {
         setLookTab("historical");

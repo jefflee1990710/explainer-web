@@ -16,12 +16,12 @@ import type {
 
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
-  return v.portraitUrl || v.profileUrl || v.blueprintUrl || "";
+  return v.profileUrl || v.portraitUrl || v.blueprintUrl || "";
 }
 
 function presetImageUrl(p: PublicCharacterPreset, char: PublicCharacter): string {
-  if (p.portraitUrl || p.profileUrl || p.blueprintUrl) {
-    return p.portraitUrl || p.profileUrl || p.blueprintUrl || "";
+  if (p.profileUrl || p.portraitUrl || p.blueprintUrl) {
+    return p.profileUrl || p.portraitUrl || p.blueprintUrl || "";
   }
   const ver = char.versions.find((v) => v.id === p.versionId);
   return versionImageUrl(ver);
