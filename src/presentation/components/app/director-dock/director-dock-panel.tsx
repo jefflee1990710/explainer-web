@@ -114,6 +114,10 @@ export function DirectorDockCastGroup({
   tourId?: string;
   badgeLabel?: string;
 }) {
+  const { locale } = useI18n();
+  const emptySlotLabel =
+    badgeLabel || (locale === "en" ? "Cast" : "角色");
+
   return (
     <div
       data-tour-id={tourId}
@@ -127,7 +131,7 @@ export function DirectorDockCastGroup({
             type="button"
             disabled={disabled}
             onClick={char && onManageActive ? onManageActive : onOpenPicker}
-            title={char ? char.name : badgeLabel}
+            title={char ? char.name : emptySlotLabel}
             className="director-dock-cell group relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-[#f4f4f5] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {char?.previewUrl ? (
@@ -147,8 +151,25 @@ export function DirectorDockCastGroup({
                 {char.name.slice(0, 3)}
               </span>
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-zinc-400 group-hover:text-zinc-600">
-                +
+              <span className="relative flex h-full w-full flex-col items-center justify-center bg-gradient-to-b from-zinc-100 to-zinc-200/90 text-zinc-400 transition group-hover:text-zinc-600">
+                {/* Profile silhouette placeholder */}
+                <svg
+                  aria-hidden="true"
+                  className="mb-2.5 h-7 w-7"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+                </svg>
+                {/* Plus badge in top-right corner */}
+                <span className="absolute top-1 right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#12141c] text-[10px] font-bold leading-none text-[#c6f24b] shadow-2xs">
+                  +
+                </span>
+                {/* Bottom label */}
+                <span className="absolute inset-x-0 bottom-0 truncate bg-black/65 px-1 py-0.5 text-[9px] font-semibold text-white">
+                  {emptySlotLabel}
+                </span>
               </span>
             )}
           </button>
