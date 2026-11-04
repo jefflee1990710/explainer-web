@@ -3,7 +3,8 @@ export type DirectorStudioKind =
   | "talking-head"
   | "life"
   | "scroswap"
-  | "teleport";
+  | "teleport"
+  | "posts";
 
 export interface HeroShowcaseCard {
   imageUrl: string;
@@ -182,6 +183,38 @@ export function getDirectorHeroCopy(
           },
         ],
       };
+    case "posts":
+      return {
+        headline:
+          locale === "zh-Hant"
+            ? "生成海報貼文，點選任意元素即時改圖"
+            : locale === "zh-Hans"
+              ? "生成海报贴文，点选任意元素即时改图"
+              : "Create Posts & Edit Any Element with SAM",
+        subtitle:
+          locale === "zh-Hant"
+            ? "Seedream 5.0 Pro 生成 2K 貼文，SAM 3 自動分離人物、物件與文字供你單獨重繪"
+            : locale === "zh-Hans"
+              ? "Seedream 5.0 Pro 生成 2K 贴文，SAM 3 自动分离人物、物件与文字供你单独重绘"
+              : "Seedream 5.0 Pro 2K generation + SAM 3 segmentation for people, objects, and text",
+        cards: [
+          {
+            imageUrl: "/hero/outputs/life-cafe.webp",
+            tag: "SAM PERSON",
+            title: "Character Swap",
+          },
+          {
+            imageUrl: "/showcase/product-marketing.png",
+            tag: "POST STUDIO 2K",
+            title: "SEEDREAM 5 + SAM 3 EDIT",
+          },
+          {
+            imageUrl: "/hero/styles/paper-cutout.webp",
+            tag: "SAM TEXT & OBJECT",
+            title: "In-Place Poster Edit",
+          },
+        ],
+      };
   }
 }
 
@@ -311,7 +344,7 @@ export function resolveModeSwitchSkillSlug(
 
 export function isFullBleedStudioPath(pathname: string): boolean {
   return (
-    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|videos)(\/|$)/.test(
+    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|posts|videos)(\/|$)/.test(
       pathname,
     ) || /^\/app\/projects\/[^/]+\/videos(\/|$)/.test(pathname)
   );
