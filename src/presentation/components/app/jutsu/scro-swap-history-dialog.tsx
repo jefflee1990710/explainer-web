@@ -44,7 +44,7 @@ export function ScroSwapHistoryDialog({
 
   return createPortal(
     <div
-      className="pointer-events-auto fixed inset-0 z-[140] grid place-items-center bg-black/50 p-4 lg:hidden"
+      className="pointer-events-auto fixed inset-0 z-[140] grid place-items-center bg-black/55 p-4 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
@@ -52,7 +52,7 @@ export function ScroSwapHistoryDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[88dvh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border-2 border-accent-ink bg-paper shadow-[8px_8px_0_0_#12141c]"
+        className="flex max-h-[88dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-accent-ink/15 bg-paper shadow-2xl"
       >
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-accent-ink/10 px-6 py-4">
           <h2 id={titleId} className="font-display text-xl font-bold">

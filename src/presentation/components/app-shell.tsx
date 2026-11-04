@@ -2,7 +2,10 @@
 
 import { SignedInAccount } from "@/presentation/components/auth/signed-in-account";
 import { GenerationDoneNotifier } from "@/presentation/components/app/tasks/generation-done-notifier";
+import { queueBannerPending } from "@/presentation/components/app/tasks/queue-banner-copy";
+import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
 import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-banner";
+import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 import { POSTS_FEATURE_ENABLED } from "@/service/post/feature";
@@ -36,6 +39,13 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const { t, locale } = useI18n();
+  const { tasks, loaded } = useTaskPoll(readCachedTasks() ?? [], undefined, true);
+  const runningCount = queueBannerPending(
+    tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length,
+    loaded,
+    activeTasks,
+  );
+
   const items: StudioNavItem[] = [
     // Hide generic Video; Create is use-case first (Explainer / Talking Head).
     { href: "/app/explainers", label: t("nav.explainerVideo"), icon: "projects", section: "create" },
@@ -72,6 +82,19 @@ export function AppShell({
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
     { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },
     { href: "/app/products", label: t("nav.products"), icon: "products", section: "assets" },
+    {
+      href: "/app/videos",
+      label: locale === "en" ? "Video" : "影片庫 Video",
+      icon: "videos",
+      section: "assets",
+    },
+    {
+      href: "/app/tasks",
+      label: t("nav.tasks"),
+      icon: "tasks",
+      section: "assets",
+      badge: runningCount,
+    },
   ];
 
   return (

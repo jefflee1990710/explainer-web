@@ -93,11 +93,20 @@ function StudioNavLink({
       }`}
     >
       <span
-        className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors duration-200 ${
+        className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors duration-200 ${
           active ? "bg-[var(--studio-teal)] text-[var(--studio-ink)]" : "text-[var(--studio-ink)]"
         }`}
       >
         <RailIcon name={item.icon} />
+        {item.badge !== undefined && item.badge > 0 ? (
+          <span
+            className={`absolute -top-1 -right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[#12141c] px-1 text-[10px] font-extrabold leading-4 text-[#c6f24b] shadow-2xs group-hover/rail:hidden group-focus-within/rail:hidden ${
+              forceExpanded ? "hidden" : ""
+            }`}
+          >
+            {item.badge}
+          </span>
+        ) : null}
       </span>
       <span
         className={`truncate group-hover/rail:inline group-focus-within/rail:inline ${
@@ -106,6 +115,19 @@ function StudioNavLink({
       >
         {item.label}
       </span>
+      {item.badge !== undefined ? (
+        <span
+          className={`ml-auto rounded-2xl px-2 py-0.5 text-[11px] font-extrabold tabular-nums group-hover/rail:inline-flex group-focus-within/rail:inline-flex ${
+            forceExpanded ? "inline-flex" : "hidden"
+          } ${
+            item.badge > 0
+              ? "bg-[#12141c] text-[#c6f24b]"
+              : "bg-zinc-200/80 text-zinc-600"
+          }`}
+        >
+          {item.badge}
+        </span>
+      ) : null}
       <NavPending />
     </Link>
   );
@@ -173,6 +195,22 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
         <path d="M8 8.5h8l1 11H7l1-11Z" />
         <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" />
+      </svg>
+    );
+  }
+  if (name === "videos") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="2.5" y="5" width="14" height="14" rx="2" />
+        <path d="m21.5 7.5-5 4.5 5 4.5v-9Z" />
+      </svg>
+    );
+  }
+  if (name === "tasks") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
       </svg>
     );
   }

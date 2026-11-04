@@ -344,9 +344,11 @@ export function resolveModeSwitchSkillSlug(
 
 export function isFullBleedStudioPath(pathname: string): boolean {
   return (
-    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|posts|videos)(\/|$)/.test(
+    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|posts)(\/|$)/.test(
       pathname,
-    ) || /^\/app\/projects\/[^/]+\/videos(\/|$)/.test(pathname)
+    ) ||
+    /^\/app\/videos\/.+/.test(pathname) ||
+    /^\/app\/projects\/[^/]+\/videos(\/|$)/.test(pathname)
   );
 }
 

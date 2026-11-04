@@ -381,10 +381,10 @@ export function jobListQuery(input: {
 // Newest-first tasks for one user, optionally limited to a single video.
 export async function listTasks(
   clerkUserId: string,
-  options: { videoId?: string; limit?: number } = {},
+  options: { videoId?: string; limit?: number; lookbackMs?: number } = {},
 ): Promise<PublicTask[]> {
   const { videoDocs, characters, styles, directors, posts, products } = await ownedScope(clerkUserId, options.videoId);
-  const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
+  const cutoff = new Date(Date.now() - (options.lookbackMs ?? RECENT_SETTLED_MS));
   const targetVideoFilter =
     options.videoId && ObjectId.isValid(options.videoId)
       ? { targetVideoId: new ObjectId(options.videoId) }

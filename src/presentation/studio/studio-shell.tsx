@@ -18,7 +18,24 @@ export type StudioNavItem = {
   href: string;
   label: string;
   section: StudioNavSection;
-  icon: "projects" | "posts" | "directors" | "styles" | "wardrobe" | "characters" | "life" | "room" | "text" | "products" | "mcp" | "affiliate" | "billing" | "settings";
+  icon:
+    | "projects"
+    | "posts"
+    | "directors"
+    | "styles"
+    | "wardrobe"
+    | "characters"
+    | "life"
+    | "room"
+    | "text"
+    | "products"
+    | "videos"
+    | "tasks"
+    | "mcp"
+    | "affiliate"
+    | "billing"
+    | "settings";
+  badge?: number;
 };
 
 // Logged-in frame: full-height icon rail and a scrolling main slot.
