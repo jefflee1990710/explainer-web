@@ -7,6 +7,10 @@ import {
   buildPostElementEditPrompt,
   postTaskTitle,
 } from "@/service/post/prompts";
+import {
+  applyRevisionSelection,
+  validateEditPostElementInput,
+} from "@/service/post/pipeline";
 
 test("toPublicPost normalizes both new SAM Post docs and legacy SVG Post docs", () => {
   const id = new ObjectId("65f000000000000000000001");
@@ -108,4 +112,72 @@ test("buildPostElementEditPrompt handles person swap_character, object replace_p
   });
   assert.match(removeEdit, /Remove.*Sunglasses/i);
   assert.equal(postTaskTitle({ prompt: "  Hello world  " }), "Hello world");
+});
+
+test("validateEditPostElementInput rejects missing donor on swap_character and empty text on text change", () => {
+  const personEl = {
+    id: "person-1",
+    category: "person" as const,
+    categoryIndex: 1,
+    label: "Person #1",
+    rle: "0 10",
+    width: 10,
+    height: 10,
+    score: 0.9,
+    box: { x: 0.1, y: 0.1, width: 0.3, height: 0.8 },
+    anchorPoint: { x: 0.25, y: 0.5 },
+  };
+  const textEl = { ...personEl, id: "text-1", category: "text" as const, label: "Text #1" };
+
+  assert.equal(
+    validateEditPostElementInput({ element: personEl, editMode: "swap_character" }).ok,
+    false,
+  );
+  assert.equal(
+    validateEditPostElementInput({ element: textEl, editMode: "change", instruction: "   " }).ok,
+    false,
+  );
+  assert.equal(
+    validateEditPostElementInput({ element: textEl, editMode: "change", instruction: "NEW SALE" }).ok,
+    true,
+  );
+});
+
+test("applyRevisionSelection restores target revision imageUrl and detectedElements", () => {
+  const rev1Elements = [
+    {
+      id: "person-1",
+      category: "person" as const,
+      categoryIndex: 1,
+      label: "Person #1",
+      rle: "0 10",
+      width: 10,
+      height: 10,
+      score: 0.95,
+      box: { x: 0.1, y: 0.1, width: 0.3, height: 0.8 },
+      anchorPoint: { x: 0.2, y: 0.5 },
+    },
+  ];
+  const updated = applyRevisionSelection(
+    [
+      {
+        revisionId: "rev-1",
+        imageUrl: "https://blob.example/v1.webp",
+        prompt: "v1",
+        detectedElements: rev1Elements,
+        createdAt: "2026-11-04T10:00:00.000Z",
+      },
+      {
+        revisionId: "rev-2",
+        imageUrl: "https://blob.example/v2.webp",
+        prompt: "v2",
+        detectedElements: [],
+        createdAt: "2026-11-04T10:05:00.000Z",
+      },
+    ],
+    "rev-1",
+  );
+  assert.ok(updated);
+  assert.equal(updated.currentImageUrl, "https://blob.example/v1.webp");
+  assert.equal(updated.detectedElements.length, 1);
 });

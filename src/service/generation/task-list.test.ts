@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { clipAppendTasks, isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
+import { clipAppendTasks, isCurrentTask, jobListQuery, postTask, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -123,4 +123,28 @@ test("default list keeps pending and fresh settled, drops old history", () => {
   assert.equal(isCurrentTask("failed", fresh, now), true);
   assert.equal(isCurrentTask("done", stale, now), false);
   assert.equal(isCurrentTask("failed", stale, now), false);
+});
+
+test("postTask formats a Post Studio job for the global task banner", () => {
+  const now = Date.parse("2026-11-04T10:00:00.000Z");
+  const id = new ObjectId("65f000000000000000000099");
+  const task = postTask(
+    {
+      _id: id,
+      clerkUserId: "u1",
+      status: "completed",
+      prompt: "Matcha Drop Poster",
+      aspectRatio: "9:16",
+      currentImageUrl: "https://blob.example/post.webp",
+      revisions: [],
+      createdAt: new Date(now),
+      updatedAt: new Date(now),
+    },
+    now,
+  );
+  assert.ok(task);
+  assert.equal(task.id, `post:${id.toHexString()}`);
+  assert.equal(task.stage, "done");
+  assert.equal(task.title, "Matcha Drop Poster");
+  assert.equal(task.href, `/app/posts?id=${id.toHexString()}`);
 });

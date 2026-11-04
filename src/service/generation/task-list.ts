@@ -1,11 +1,12 @@
 import { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection, jutsuJobsCollection, teleportJobsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
-import { postHeadline } from "@/service/post/create-post";
+import { postHeadline, toPublicPost } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
 import type { JutsuJob } from "@/model/jutsu-job";
+import type { Post } from "@/model/post";
 import type { TeleportJob } from "@/model/teleport-job";
 import { teleportTaskTitle } from "@/service/teleport/prompts";
 import type { ClipAppend, ReelStatus } from "@/model/project";
@@ -268,6 +269,36 @@ export function teleportTask(
   };
 }
 
+// Post Studio jobs live in `posts`; surface rendering/completed/failed rows in the global task list.
+export function postTask(
+  doc: Record<string, unknown> & { _id: ObjectId },
+  now = Date.now(),
+): PublicTask | null {
+  const pub = toPublicPost(doc);
+  const stage: TaskStage =
+    pub.status === "completed"
+      ? "done"
+      : pub.status === "failed"
+        ? "failed"
+        : "generating";
+  if (!isCurrentTask(stage, pub.updatedAt, now)) return null;
+  return {
+    id: `post:${pub.id}`,
+    kind: "postPreview",
+    stage,
+    title: postHeadline({ prompt: pub.prompt }),
+    detail: "Post · 海報貼文",
+    detailKey: "tasksPage.detail.postPreview",
+    previewUrl: pub.currentImageUrl,
+    isVideo: false,
+    href: `/app/posts?id=${pub.id}`,
+    error: stage === "failed" ? pub.error : undefined,
+    attempts: 0,
+    createdAt: pub.createdAt,
+    updatedAt: pub.updatedAt,
+  };
+}
+
 // Jobs have no owner field: scope by the user's videos, characters, and styles.
 async function ownedScope(clerkUserId: string, videoId?: string) {
   const videos = await videosCollection();
@@ -296,11 +327,11 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
     .find({ ownerClerkUserId: clerkUserId, isActive: true }, { projection: { _id: 1, title: 1 } })
     .limit(200)
     .toArray();
-  const posts = await (await postsCollection())
-    .find({ clerkUserId }, { projection: { _id: 1, layers: 1 } })
+  const posts = (await (await postsCollection())
+    .find({ clerkUserId })
     .sort({ updatedAt: -1 })
-    .limit(120)
-    .toArray();
+    .limit(60)
+    .toArray()) as Array<Post & { _id: ObjectId }>;
   const products = await (await productsCollection())
     .find({ clerkUserId }, { projection: { _id: 1, name: 1 } })
     .limit(200)
@@ -403,6 +434,12 @@ export async function listTasks(
     const t = teleportTask(doc);
     return t ? [t] : [];
   });
+  const postTasks = options.videoId
+    ? []
+    : posts.flatMap((doc) => {
+        const t = postTask(doc as unknown as Record<string, unknown> & { _id: ObjectId });
+        return t ? [t] : [];
+      });
 
   if (
     videoDocs.length === 0 &&
@@ -412,7 +449,7 @@ export async function listTasks(
     posts.length === 0 &&
     products.length === 0
   ) {
-    return [...swapTasks, ...teleportTasks];
+    return [...swapTasks, ...teleportTasks, ...postTasks];
   }
   const videoById = new Map(videoDocs.map((doc) => [doc._id.toHexString(), doc]));
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
@@ -461,7 +498,7 @@ export async function listTasks(
     }),
   );
 
-  const tasks = [...swapTasks, ...teleportTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
+  const tasks = [...swapTasks, ...teleportTasks, ...postTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;

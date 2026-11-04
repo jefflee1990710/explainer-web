@@ -40,7 +40,6 @@ import {
   sendBackgroundPlate,
   sendObjectSheet,
 } from "@/service/higgsfield/video-locks-pipeline";
-import { sendPostPreview } from "@/service/post/send-preview";
 import { sendPoseEdit } from "@/service/pose-edit/send";
 import { loadProduct, sendProductBlueprint } from "@/service/product/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
@@ -52,7 +51,9 @@ import type { Project } from "@/model/project";
 
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
-  if (job.kind === "postPreview") return sendPostPreview(job);
+  if (job.kind === "postPreview") {
+    throw new PermanentJobError("舊版海報預覽任務已停用");
+  }
   if (job.kind === "product") {
     if (!job.productId) throw new PermanentJobError("找不到產品");
     const product = await loadProduct(job.productId);

@@ -6,7 +6,6 @@ import {
 import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
 import { syncOnscreenTextJob } from "@/service/opencut/on-screen-text";
-import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { failProduct, syncProductJob } from "@/service/product/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncTextStylePreviewJob } from "@/service/text-style/preview";
@@ -104,8 +103,8 @@ const SELF_SYNC_HANDLERS: Record<SelfSyncingJobKind, SelfSyncHandler> = {
     },
   },
   postPreview: {
-    syncStatus: (job, status, outputUrl) => syncPostPreviewJob(job, status, outputUrl),
-    failClaimed: (job) => syncPostPreviewJob(job, "failed"),
+    syncStatus: async () => {},
+    failClaimed: async () => {},
   },
   stylePreview: {
     syncStatus: (job, status, outputUrl) => syncStylePreviewJob(job, status, outputUrl),

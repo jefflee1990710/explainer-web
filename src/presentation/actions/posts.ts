@@ -1,45 +1,45 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { createPost, retryPostPreview } from "@/service/post/create-post";
-import { POSTS_FEATURE_ENABLED } from "@/service/post/feature";
-import { savePostLayers } from "@/service/post/save-layers";
-import type { PosterLayer } from "@/model/post";
+import { requireAppUser } from "@/service/auth";
+import {
+  createPostJob,
+  deletePostJob,
+  editPostElementJob,
+  loadOwnedPost,
+  redetectPostElements,
+  selectPostRevision,
+  type CreatePostJobInput,
+  type EditPostElementInput,
+} from "@/service/post/pipeline";
 
-function postsHidden() {
-  if (POSTS_FEATURE_ENABLED) return null;
-  return { ok: false as const, error: "layout_invalid" as const };
+export async function createPostJobAction(input: CreatePostJobInput) {
+  return createPostJob(input);
 }
 
-function refreshPost(id?: string) {
-  revalidatePath("/app/posts");
-  if (id) revalidatePath(`/app/posts/${id}`);
+export async function editPostElementJobAction(input: EditPostElementInput) {
+  return editPostElementJob(input);
 }
 
-export async function createPostAction(
-  layoutId: string,
-  instruction: string,
-  options?: { styleId?: string; characterIds?: string[]; productIds?: string[] },
-) {
-  const hidden = postsHidden();
-  if (hidden) return hidden;
-  const result = await createPost({ layoutId, instruction, ...options });
-  if (result.ok) refreshPost(result.id);
-  return result;
+export async function redetectPostElementsAction(postId: string) {
+  return redetectPostElements(postId);
 }
 
-export async function retryPostPreviewAction(postId: string) {
-  const hidden = postsHidden();
-  if (hidden) return hidden;
-  const result = await retryPostPreview(postId);
-  refreshPost(postId);
-  return result;
+export async function selectPostRevisionAction(input: {
+  postId: string;
+  revisionId: string;
+}) {
+  return selectPostRevision(input);
 }
 
-export async function savePostLayersAction(postId: string, layers: PosterLayer[], thumbnail: File) {
-  const hidden = postsHidden();
-  if (hidden) return hidden;
-  const result = await savePostLayers(postId, layers, thumbnail);
-  if (result.ok) refreshPost(postId);
-  return result;
+export async function deletePostJobAction(postId: string) {
+  return deletePostJob(postId);
+}
+
+export async function pollPostJobStatusAction(postId: string) {
+  const user = await requireAppUser();
+  const post = await loadOwnedPost(postId, user.clerkUserId);
+  if (!post) {
+    return { ok: false as const, error: "找不到貼文" };
+  }
+  return { ok: true as const, post };
 }
