@@ -13,7 +13,7 @@ import type { PackId } from "@/model/billing-settings";
 const DEFAULT_PACK: PackId = "pack50";
 
 /** Inline one-time credit pack picker (available to all accounts, with or without a subscription). */
-export function BuyCreditsSection(_props?: { subscribed?: boolean }) {
+export function BuyCreditsSection(_?: { subscribed?: boolean }) {
   const { t } = useI18n();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");

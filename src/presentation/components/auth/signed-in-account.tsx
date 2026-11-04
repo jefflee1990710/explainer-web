@@ -45,6 +45,7 @@ export function SignedInAccount({
   const { credits, creditLimit } = useCreditSnapshot(initialCredits, initialLimit);
   const { ratio } = creditProgress(credits, Math.max(creditLimit, credits));
   const avatar = showPhoto ? (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={avatarUrl}
       alt=""
