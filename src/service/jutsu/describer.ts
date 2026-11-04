@@ -15,7 +15,7 @@ import {
 import { assertOpenRouterKey, OPENROUTER_BASE_URL } from "@/service/openrouter/generate";
 
 export const OPENROUTER_JUTSU_VLM_MODEL =
-  process.env.OPENROUTER_JUTSU_VLM_MODEL || "google/gemini-2.5-flash";
+  process.env.OPENROUTER_JUTSU_VLM_MODEL || "qwen/qwen2.5-vl-72b-instruct";
 
 // Ported directly from Openjutsu's `KLEIN_UPSAMPLER` in `lib/picture.ts`.
 export const JUTSU_PROMPT_UPSAMPLER_SYSTEM =

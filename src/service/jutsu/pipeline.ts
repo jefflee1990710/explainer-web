@@ -176,8 +176,10 @@ export async function convertGifBufferToMp4(gifBuffer: Buffer): Promise<{
     if (!Number.isFinite(origDur) || origDur <= 0.1) origDur = 2.5;
   }
 
-    const targetDur = Math.max(2, Math.min(JUTSU_MAX_SECTION_SECONDS, origDur));
-    const loopCount = origDur < 2 ? Math.ceil(2 / Math.max(0.2, origDur)) : 0;
+    // MiniMax H3 minimum duration is 4s; loop short GIFs (<4s) at 1x native speed to fill 4s
+    // so H3 never stretches a 2–3s GIF into slow motion, then finalize trims back to `origDur`.
+    const targetDur = Math.max(4, Math.min(JUTSU_MAX_SECTION_SECONDS, Math.ceil(origDur)));
+    const loopCount = origDur < targetDur ? Math.ceil(targetDur / Math.max(0.2, origDur)) : 0;
     const args: string[] = ["-y"];
     if (loopCount > 0) {
       args.push("-stream_loop", String(loopCount));
@@ -320,8 +322,8 @@ export async function extractVideoSectionKeyframes(
       sharp(endRaw).webp({ quality: 88 }).toBuffer(),
     ]);
 
-    // Sample 4 frames across the section for Two-Pass VLM motion description
-    const sampleTimes = [0, 0.33, 0.66, 0.95].map(
+    // Sample 6 frames across the section for Two-Pass VLM motion description
+    const sampleTimes = [0, 0.2, 0.4, 0.6, 0.8, 0.96].map(
       (r) => startSec + lenSec * r,
     );
     const sampledFramesJpeg: Buffer[] = [];
@@ -1442,7 +1444,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         videoBuffer,
         mediaKind === "gif" ? 0 : current.sectionStart,
         gifOriginalDuration
-          ? Math.max(2, Math.ceil(gifOriginalDuration))
+          ? Math.max(4, Math.ceil(gifOriginalDuration))
           : current.sectionLength,
       );
       const effectiveSectionLength = gifOriginalDuration ?? extracted.actualDuration;
@@ -1684,7 +1686,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             noLipSync: current.noLipSync,
             durationSeconds: Math.min(
               15,
-              Math.max(5, Math.round(current.sectionLength)),
+              Math.max(4, Math.ceil(current.sectionLength)),
             ),
             aspectRatio: current.aspectRatio,
           })
