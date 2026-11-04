@@ -41,7 +41,7 @@ test("discoverPostObjectsWithVlm parses VLM JSON and falls back cleanly on error
     const fallbackRes = await discoverPostObjectsWithVlm(Buffer.from("fake-jpg"), {
       fetch: (async () => new Response("server error", { status: 500 })) as typeof fetch,
     });
-    assert.equal(fallbackRes.objects.length, 1);
+    assert.equal(fallbackRes.objects.length, 2);
     assert.equal(fallbackRes.objects[0]?.labelEn, "Object");
     assert.equal(fallbackRes.hasText, true);
   } finally {
@@ -91,7 +91,7 @@ test("detectPostElementsWithFalSam3 segments person, text, and object masks and 
       const kind =
         body.prompt === "person"
           ? "person"
-          : body.prompt?.includes("text")
+          : body.prompt === "word" || body.prompt === "title" || body.prompt?.includes("text")
             ? "text"
             : "object";
       return new Response(

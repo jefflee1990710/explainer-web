@@ -34,15 +34,21 @@ type FetchOptions = {
 
 const FALLBACK_DISCOVERED_OBJECTS: DiscoveredPostObject[] = [
   {
-    prompt: "foreground object, product, item",
+    prompt: "object",
     labelEn: "Object",
     labelZh: "物件",
   },
+  {
+    prompt: "icon",
+    labelEn: "Icon",
+    labelZh: "圖標",
+  },
 ];
 
-const VLM_POST_INVENTORY_SYSTEM_PROMPT = `You inspect a social media poster or promotional image and list up to 4 distinct foreground objects/props/products (excluding people and text) that a user might want to select and edit, plus whether the image contains visible text/typography.
+const VLM_POST_INVENTORY_SYSTEM_PROMPT = `You inspect a social media poster or promotional image and list up to 4 distinct foreground objects, props, icons, or graphic shapes (excluding people and text) that a user might want to select and edit, plus whether the image contains visible text/typography.
+Each "prompt" MUST be a simple 1-2 word singular English noun without commas (e.g. "coffee cup", "light bulb", "green square"). "labelZh" MUST be in Traditional Chinese (繁體中文).
 Return ONLY valid JSON with this exact shape:
-{"objects":[{"prompt":"short English noun for SAM segmentation, e.g. coffee cup","labelEn":"Coffee Cup","labelZh":"咖啡杯"}],"hasText":true}`;
+{"objects":[{"prompt":"coffee cup","labelEn":"Coffee Cup","labelZh":"咖啡杯"}],"hasText":true}`;
 
 /**
  * Use OpenRouter VLM to list up to 4 foreground objects in the post image so SAM 3 can segment
@@ -269,10 +275,13 @@ export async function detectPostElementsWithFalSam3(
 
   const objectQueries = inventory.objects.slice(0, 4);
 
-  const [personResult, textResult, ...objectResults] = await Promise.all([
+  const [personResult, wordTextResult, titleTextResult, ...objectResults] = await Promise.all([
     querySam3Prompt(imageUrl, "person", 6, options),
     inventory.hasText
-      ? querySam3Prompt(imageUrl, "text, title, headline, typography, logo", 6, options)
+      ? querySam3Prompt(imageUrl, "word", 6, options)
+      : Promise.resolve({} as FalSam3ImageRleResult),
+    inventory.hasText
+      ? querySam3Prompt(imageUrl, "title", 4, options)
       : Promise.resolve({} as FalSam3ImageRleResult),
     ...objectQueries.map((obj) => querySam3Prompt(imageUrl, obj.prompt, 2, options)),
   ]);
@@ -288,16 +297,27 @@ export async function detectPostElementsWithFalSam3(
   });
   const people = deduplicateCandidates(personRaw, 0.65);
 
-  const textRaw = parseCandidatesFromResult({
-    result: textResult,
-    category: "text",
-    baseLabelEn: "Text",
-    baseLabelZh: "文字",
-    width: input.width,
-    height: input.height,
-    minAreaRatio: 0.002,
-  });
-  const texts = deduplicateCandidates(textRaw, 0.65);
+  const textRaw = [
+    ...parseCandidatesFromResult({
+      result: wordTextResult,
+      category: "text",
+      baseLabelEn: "Text",
+      baseLabelZh: "文字",
+      width: input.width,
+      height: input.height,
+      minAreaRatio: 0.0015,
+    }),
+    ...parseCandidatesFromResult({
+      result: titleTextResult,
+      category: "text",
+      baseLabelEn: "Text",
+      baseLabelZh: "文字",
+      width: input.width,
+      height: input.height,
+      minAreaRatio: 0.0015,
+    }),
+  ];
+  const texts = deduplicateCandidates(textRaw, 0.55);
 
   const objectRaw: RawMaskCandidate[] = [];
   for (let i = 0; i < objectQueries.length; i++) {
