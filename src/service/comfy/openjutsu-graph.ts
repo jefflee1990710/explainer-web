@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import simpleWorkflowJson from "./workflows/simple.api.json";
+import objectWorkflowJson from "./workflows/object.api.json";
 
 // OpenJutsu graph edits, kept in step with experiments/openjutsu/lib/{simple,object,model}.ts.
 // Swap submits workflows/simple.api.json. Teleport and background object edits submit workflows/object.api.json.
@@ -94,8 +94,8 @@ function nodeByTitle(graph: ApiGraph, title: string) {
 }
 
 function loadGraph(kind: "simple" | "object"): ApiGraph {
-  const path = join(process.cwd(), "experiments/openjutsu/workflows", `${kind}.api.json`);
-  return JSON.parse(readFileSync(path, "utf8")) as ApiGraph;
+  const source = kind === "simple" ? simpleWorkflowJson : objectWorkflowJson;
+  return structuredClone(source) as unknown as ApiGraph;
 }
 
 // VHS errors if a node reads a soundtrack the file does not have. Feed silence instead.
