@@ -199,11 +199,45 @@
   border-radius: 8px;
 }
 
-.studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+.studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.director-dock-stage *) {
   border-radius: 8px;
   border-color: var(--studio-line);
   background-color: #fff;
   box-shadow: none;
+}
+
+/* Cinema Studio / Director Dock dark stage overrides */
+.studio-app .director-dock-stage {
+  background-color: #0c0d10;
+  color: #f4f4f6;
+}
+
+.studio-app .director-dock-stage textarea.director-dock-textarea,
+.studio-app .director-dock-stage input.director-dock-input {
+  background-color: transparent;
+  border-color: transparent;
+  color: #f4f4f6;
+  box-shadow: none;
+}
+
+.studio-app .director-dock-stage button.director-dock-generate {
+  border-radius: 16px;
+  background-color: #d8ff3e;
+  color: #111318;
+  box-shadow: 0 8px 28px rgba(216, 255, 62, 0.22);
+}
+
+.studio-app .director-dock-stage button.director-dock-generate:hover:not(:disabled) {
+  background-color: #e3ff66;
+  color: #0b0c10;
+}
+
+.studio-app .director-dock-stage button.director-dock-tile {
+  border-radius: 14px;
+}
+
+.studio-app .director-dock-stage button.director-dock-cell {
+  border-radius: 12px;
 }
 
 .studio-app [class*="bg-lime/"] {
