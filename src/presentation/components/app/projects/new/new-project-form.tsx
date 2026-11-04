@@ -142,8 +142,8 @@ import {
   type VideoUseCase,
 } from "@/service/video/use-case";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
-import { QuickScriptCard } from "@/presentation/components/app/projects/new/quick-script-card";
-import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
+import { DirectorDockBrief } from "@/presentation/components/app/projects/new/director-dock-brief";
+import { DEFAULT_SPEECH_PACE } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
@@ -1424,266 +1424,168 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className={`flex min-h-full w-full flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-5 lg:px-8 ${
-                setupMode === "quick" ? "justify-start" : "justify-between"
-              }`}
+              className={
+                setupMode === "quick"
+                  ? "flex min-h-full w-full flex-1 flex-col"
+                  : "flex min-h-full w-full flex-1 flex-col justify-between gap-4 p-4 sm:px-6 sm:py-5 lg:px-8"
+              }
             >
-              <div className="space-y-4">
               <input type="hidden" name="projectId" value={folderId} />
 
-              <BriefSetupModeBar
-                mode={setupMode}
-                onChange={(nextMode) => {
-                  setError("");
-                  setSetupMode(nextMode);
-                }}
-                defaultsSummary={[
-                  skillTitle,
-                  LANGUAGE_PRESETS[language].label,
-                  aspectRatio || "9:16",
-                  durationPresetLabel(t, durationPreset).label,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-                onOpenDetailsStep={() => {
-                  setError("");
-                  setSetupMode("details");
-                }}
-                onOpenTutorial={() => {
-                  setSetupMode("quick");
-                  setTutorialOpen(true);
-                }}
-                disabled={briefBusy}
-                projectPicker={
-                  !project ? (
-                    <ProjectPicker
-                      folders={folderOptions}
-                      value={folderId || "none"}
-                      disabled={briefBusy}
-                      onChange={(next) =>
-                        setFolderId(next === "none" || next === "all" ? "" : next)
-                      }
-                      onFolderCreated={(folder) =>
-                        setFolderOptions((current) => [
-                          folder,
-                          ...current.filter((item) => item.id !== folder.id),
-                        ])
-                      }
-                    />
-                  ) : undefined
-                }
-              />
-
               {setupMode === "quick" ? (
-                <motion.div
-                  key="quick-setup-view"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.25, ease }}
-                  className="space-y-4"
-                >
-                  {/* Top Row: 01 Video type / Talking-head pose · 02 Visual Style · 03 Characters (1 col on mobile, 3 cols side-by-side on desktop) */}
-                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:items-stretch">
-                    <div
-                      data-tour-id="video-type-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                    >
-                      {talkingHead ? (
-                        <Section
-                          step="01"
-                          title={t("brief.talkingHeadPose.title")}
-                          hint={t("brief.talkingHeadPose.hint")}
-                          equalHeaderHeight
-                        >
-                          <TalkingHeadPoseField
-                            value={talkingHeadPoseId}
-                            onChange={setTalkingHeadPoseId}
-                            disabled={briefBusy}
-                            hideHeader
-                          />
-                        </Section>
-                      ) : (
-                        <>
-                          <Section
-                            step="01"
-                            title={t("brief.section01.title")}
-                            hint={t("brief.section01.hint")}
-                            equalHeaderHeight
-                          >
-                            <SkillPicker
-                              skills={skills}
-                              value={skillSlug}
-                              onChange={onSkillChange}
-                              disabled={briefBusy}
-                            />
-                          </Section>
-                          {talkingHeadBackground ? (
-                            <div className="mt-4 border-t border-accent-ink/10 pt-4">
-                              <TalkingHeadPoseField
-                                value={talkingHeadPoseId}
-                                onChange={setTalkingHeadPoseId}
-                                disabled={briefBusy}
-                              />
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                      {presetBackgrounds.length > 0 ? (
-                        <div className="mt-4 border-t border-accent-ink/10 pt-4">
-                          <DirectorBackgroundPicker
-                            presets={presetBackgrounds}
-                            selectedId={directorBackgroundId || defaultDirectorBackgroundId(ruleSlug) || ""}
-                            customUrls={backgroundImageUrls}
-                            allowsUpload={allowsBgUpload}
-                            open={directorBackgroundDialogOpen}
-                            disabled={briefBusy}
-                            onOpenChange={setDirectorBackgroundDialogOpen}
-                            onSelectPreset={setDirectorBackgroundId}
-                            onChangeCustomUrls={setBackgroundImageUrls}
-                            onError={setError}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div
-                      data-tour-id="visual-style-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                    >
-                      <Section
-                        step="02"
-                        title={t("brief.visualStyle.title")}
-                        hint={t("brief.visualStyle.hint")}
-                        equalHeaderHeight
-                      >
-                        <StylePicker
-                          styles={styles}
-                          value={styleId}
-                          onChange={onStyleChange}
-                          disabled={briefBusy}
-                        />
-                      </Section>
-                    </div>
-
-                    <div
-                      data-tour-id="character-card"
-                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-4 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-5"
-                    >
-                      <Section
-                        step="03"
-                        title={t("brief.cast.title")}
-                        hint={
-                          castNeed === 2
-                            ? t("brief.cast.hintRequiredTwo")
-                            : castNeed === 1
-                              ? t("brief.cast.hintRequiredOne")
-                              : t("brief.cast.hintOptional")
+                <DirectorDockBrief
+                  skills={skills}
+                  skillSlug={skillSlug}
+                  skillTitle={skillTitle}
+                  ruleSlug={ruleSlug}
+                  onSkillChange={onSkillChange}
+                  styles={styles}
+                  styleId={styleId}
+                  styleName={styleName}
+                  onStyleChange={onStyleChange}
+                  characters={characters}
+                  characterIds={characterIds}
+                  onCharacterIdsChange={setCharacterIds}
+                  characterSelections={characterSelections}
+                  onCharacterSelectionsChange={setCharacterSelections}
+                  castNeed={castNeed}
+                  products={products}
+                  productIds={productIds}
+                  onProductIdsChange={setProductIds}
+                  bookend={bookend}
+                  logoUrl={logoUrl}
+                  onLogoUrlChange={setLogoUrl}
+                  talkingHead={talkingHead}
+                  talkingHeadBackground={talkingHeadBackground}
+                  talkingHeadPoseId={talkingHeadPoseId}
+                  onTalkingHeadPoseChange={setTalkingHeadPoseId}
+                  presetBackgrounds={presetBackgrounds}
+                  directorBackgroundId={directorBackgroundId}
+                  onDirectorBackgroundChange={setDirectorBackgroundId}
+                  allowsBgUpload={allowsBgUpload}
+                  backgroundImageUrls={backgroundImageUrls}
+                  onBackgroundImageUrlsChange={setBackgroundImageUrls}
+                  source={source}
+                  onSourceChange={(val) => {
+                    setSource(val);
+                    if (error) setError("");
+                  }}
+                  spokenScript={spokenScript}
+                  onSpokenScriptChange={(val) => {
+                    setSpokenScript(val);
+                    if (error) setError("");
+                  }}
+                  uploadedVoUrl={uploadedVoUrl}
+                  uploadedVoDurationSeconds={uploadedVoDurationSeconds}
+                  onUploadedVoChange={({ url, durationSeconds }) => {
+                    setUploadedVoUrl(url);
+                    setUploadedVoDurationSeconds(durationSeconds);
+                    if (error) setError("");
+                  }}
+                  referenceImages={referenceImages}
+                  onReferenceImagesChange={setReferenceImages}
+                  clipDrafts={clipDrafts}
+                  onClipDraftsChange={setClipDrafts}
+                  language={language}
+                  onVoLanguageChange={onVoLanguageChange}
+                  voiceGender={voiceGender}
+                  onVoiceGenderChange={setVoiceGender}
+                  dialogueOnly={dialogueOnly}
+                  speechPace={speechPace}
+                  onSpeechPaceChange={setSpeechPace}
+                  sceneTextLanguage={sceneTextLanguage}
+                  onSceneTextLanguageChange={(next) => {
+                    setLanguageExplicit(true);
+                    setSceneTextLanguage(next);
+                  }}
+                  aspectRatio={aspectRatio}
+                  onAspectRatioSelect={onAspectRatioSelect}
+                  durationPreset={durationPreset}
+                  onDurationPresetChange={setDurationPreset}
+                  credits={walletCredits}
+                  subscribed={walletSubscribed}
+                  briefBusy={briefBusy}
+                  submitting={submitting}
+                  canSubmit={canSubmit}
+                  error={error ? translateAppError(error, t) : ""}
+                  onError={setError}
+                  projectPicker={
+                    !project ? (
+                      <ProjectPicker
+                        folders={folderOptions}
+                        value={folderId || "none"}
+                        disabled={briefBusy}
+                        onChange={(next) =>
+                          setFolderId(next === "none" || next === "all" ? "" : next)
                         }
-                        equalHeaderHeight
-                      >
-                        <CharacterPicker
-                          characters={characters}
-                          styles={styles}
-                          styleId={styleId}
-                          value={characterIds}
-                          onChange={setCharacterIds}
-                          onSelectStyle={onStyleChange}
-                          selections={characterSelections}
-                          onSelectionsChange={setCharacterSelections}
-                          credits={walletCredits}
-                          subscribed={walletSubscribed}
-                          disabled={briefBusy}
-                          max={castNeed > 0 ? castNeed : 1}
-                          required={castNeed}
-                        />
-                      </Section>
-                    </div>
-                  </div>
-
-                  {/* 04 Content / Script to read */}
-                  <QuickScriptCard
-                    step="04"
-                    source={source}
-                    onSourceChange={(val) => {
-                      setSource(val);
-                      if (error) setError("");
+                        onFolderCreated={(folder) =>
+                          setFolderOptions((current) => [
+                            folder,
+                            ...current.filter((item) => item.id !== folder.id),
+                          ])
+                        }
+                      />
+                    ) : undefined
+                  }
+                  onOpenDetails={() => {
+                    setError("");
+                    setSetupMode("details");
+                  }}
+                  onOpenTutorial={() => {
+                    setSetupMode("quick");
+                    setTutorialOpen(true);
+                  }}
+                  restarting={restarting}
+                  onCancelRestart={cancelRestart}
+                  onSubmitCreateNew={() => void submitCreateNew()}
+                  creatingNew={creatingNew}
+                  hasExistingProject={Boolean(project)}
+                />
+              ) : (
+                <div className="space-y-4">
+                  <BriefSetupModeBar
+                    mode={setupMode}
+                    onChange={(nextMode) => {
+                      setError("");
+                      setSetupMode(nextMode);
                     }}
-                    talkingHead={talkingHead}
-                    spokenScript={spokenScript}
-                    onSpokenScriptChange={(val) => {
-                      setSpokenScript(val);
-                      if (error) setError("");
+                    defaultsSummary={[
+                      skillTitle,
+                      LANGUAGE_PRESETS[language].label,
+                      aspectRatio || "9:16",
+                      durationPresetLabel(t, durationPreset).label,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    onOpenDetailsStep={() => {
+                      setError("");
+                      setSetupMode("details");
                     }}
-                    uploadedVoUrl={uploadedVoUrl}
-                    uploadedVoDurationSeconds={uploadedVoDurationSeconds}
-                    onUploadedVoChange={({ url, durationSeconds }) => {
-                      setUploadedVoUrl(url);
-                      setUploadedVoDurationSeconds(durationSeconds);
-                      if (error) setError("");
+                    onOpenTutorial={() => {
+                      setSetupMode("quick");
+                      setTutorialOpen(true);
                     }}
-                    onError={setError}
-                    language={language}
-                    onLanguageChange={onVoLanguageChange}
                     disabled={briefBusy}
-                    actionSlot={
-                      <>
-                        {error ? (
-                          <p role="alert" className="w-full text-sm font-medium text-accent">
-                            {translateAppError(error, t)}
-                          </p>
-                        ) : null}
-                        <p className="text-xs text-muted">
-                          {castNeed > 0 && characterIds.length !== castNeed
-                            ? t("brief.footer.castRequired", { n: castNeed })
-                            : restarting
-                              ? t("brief.footer.restartWarning")
-                              : project
-                                ? t("brief.footer.editBriefWarning")
-                                : null}
-                        </p>
-                        {restarting ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={cancelRestart}
-                              disabled={submitting || creatingNew}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
-                            >
-                              {t("common.cancel")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void submitCreateNew()}
-                              disabled={!canSubmit}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                            >
-                              {creatingNew ? <Spinner /> : null}
-                              {creatingNew ? t("brief.submit.submitting") : t("brief.submit.createNew")}
-                            </button>
-                          </>
-                        ) : null}
-                        <motion.button
-                          type="submit"
-                          disabled={!canSubmit}
-                          whileTap={{ scale: 0.98 }}
-                          className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                        >
-                          {submitting ? <Spinner /> : null}
-                          {submitting
-                            ? t("brief.submit.submitting")
-                            : restarting
-                              ? t("brief.submit.regenerate")
-                              : project
-                                ? t("brief.submit.saveAndRegenerateStoryboard")
-                                : t("brief.submit.start")}
-                        </motion.button>
-                      </>
+                    projectPicker={
+                      !project ? (
+                        <ProjectPicker
+                          folders={folderOptions}
+                          value={folderId || "none"}
+                          disabled={briefBusy}
+                          onChange={(next) =>
+                            setFolderId(next === "none" || next === "all" ? "" : next)
+                          }
+                          onFolderCreated={(folder) =>
+                            setFolderOptions((current) => [
+                              folder,
+                              ...current.filter((item) => item.id !== folder.id),
+                            ])
+                          }
+                        />
+                      ) : undefined
                     }
                   />
-                </motion.div>
-              ) : (
-                <>
+
                   <BriefWizardStepper
                     currentStep={wizardStep}
                     maxReachableStep={maxWizardStep}
@@ -2103,15 +2005,14 @@ export function NewProjectForm({
                   </motion.div>
                     )}
                   </AnimatePresence>
-                </>
-              )}
 
-              {error && setupMode !== "quick" ? (
-                <p role="alert" className="text-sm font-medium text-accent">
-                  {translateAppError(error, t)}
-                </p>
-              ) : null}
-              </div>
+                  {error ? (
+                    <p role="alert" className="text-sm font-medium text-accent">
+                      {translateAppError(error, t)}
+                    </p>
+                  ) : null}
+                </div>
+              )}
 
               {setupMode === "details" ? (
               <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 bg-[var(--studio-panel)]/95 px-6 py-4 backdrop-blur-sm sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
