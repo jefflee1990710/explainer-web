@@ -16,19 +16,22 @@ import {
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
+import {
+  buildCastSlotItems,
+  DirectorDockCastGroup,
+  DirectorDockComposer,
+  DirectorDockCurveCell,
+  DirectorDockDivider,
+  DirectorDockDurationCell,
+  DirectorDockHero,
+  DirectorDockPanel,
+  DirectorDockPill,
+  DirectorDockQuickTile,
+  DirectorDockStage,
+  DirectorDockStepperCell,
+} from "@/presentation/components/app/director-dock";
 import { LifeCharacterMenu } from "@/presentation/components/app/life/life-character-menu";
-import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
-import { LifeQuickGenerate } from "@/presentation/components/app/life/life-quick-generate";
-import {
-  LifeStudioModeTabs,
-  type LifeStudioMode,
-} from "@/presentation/components/app/life/life-studio-mode-tabs";
-import {
-  LifeFormField,
-  LifeFormSeparator,
-} from "@/presentation/components/app/life/life-form-field";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
-import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
 import { LifePhotoEditor } from "@/presentation/components/app/life/life-photo-editor";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
@@ -37,7 +40,6 @@ import {
   LifeRecentOpenButton,
 } from "@/presentation/components/app/life/life-recent-drawer";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
-import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
 import { LifeDressDialog } from "@/presentation/components/app/life/life-dress-dialog";
 import {
   EMPTY_LIFE_LOOK,
@@ -203,7 +205,7 @@ export function LifeDesk({
   initialCharacterId?: string;
   subscribed: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const first =
     characters.find((item) => item.id === initialCharacterId) || characters[0];
   const [people, setPeople] = useState(characters);
@@ -212,7 +214,6 @@ export function LifeDesk({
   const [dressOpen, setDressOpen] = useState(false);
   // Default to the first tab: Post Type & Pose.
   const [createMode, setCreateMode] = useState<LifeCreateMode>("post-template");
-  const [studioMode, setStudioMode] = useState<LifeStudioMode>("quick");
   const [place, setPlace] = useState(first?.persona?.city || "");
   // Post-type template and its optional pose/framing reference photo.
   const [templateId, setTemplateId] = useState("");
@@ -221,6 +222,11 @@ export function LifeDesk({
   // Body pose from the pose library (independent of the template).
   const [poseId, setPoseId] = useState("");
   const [poseDialogOpen, setPoseDialogOpen] = useState(false);
+  const [wardrobeDialogOpen, setWardrobeDialogOpen] = useState(false);
+  const [lookDialogOpen, setLookDialogOpen] = useState(false);
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const sceneFileInputRef = useRef<HTMLInputElement | null>(null);
+  const compRefInputRef = useRef<HTMLInputElement | null>(null);
   // Optional hair / clothes overrides shared by all 3 creation modes.
   const [wardrobe, setWardrobe] = useState<CharacterWardrobePicks>({});
   const [wardrobeColors, setWardrobeColors] = useState<CharacterWardrobeColorPicks>({});
@@ -237,7 +243,6 @@ export function LifeDesk({
   const [creditGate, setCreditGate] = useState(false);
   const [placeDialogOpen, setPlaceDialogOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [historyEditPrompt, setHistoryEditPrompt] = useState("");
   const [generatedCaption, setGeneratedCaption] = useState("");
@@ -350,7 +355,6 @@ export function LifeDesk({
     setTemplateId("");
     setCompositionRefUrl("");
     setPlace(character?.persona?.city || "");
-    setIsDragging(false);
     resetRemarks();
   }
 
@@ -543,13 +547,11 @@ export function LifeDesk({
       setError(t("life.needBlueprint"));
       return;
     }
-    if (createMode === "post-template") {
-      if (!templateId) {
-        setError("請先選擇貼文類型 (Post Type)");
-        setTemplateDialogOpen(true);
-        return;
-      }
-    } else if (!sceneUrl) {
+    const effectiveTemplateId =
+      createMode === "post-template"
+        ? templateId || QUICK_LIFE_TEMPLATE_ID
+        : undefined;
+    if (createMode !== "post-template" && !sceneUrl) {
       setError(t("life.needScene"));
       return;
     }
@@ -573,9 +575,9 @@ export function LifeDesk({
           colorName: r.colorName,
           comment: r.comment,
         })),
-        templateId: createMode === "post-template" && templateId ? templateId : undefined,
+        templateId: effectiveTemplateId,
         compositionRefUrl:
-          createMode === "post-template" && templateId && compositionRefUrl
+          createMode === "post-template" && effectiveTemplateId && compositionRefUrl
             ? compositionRefUrl
             : undefined,
         poseId: poseId || undefined,
@@ -694,228 +696,86 @@ export function LifeDesk({
     );
   }
 
-  const uploadHeaderButtons = (
-    <>
-      {place ? (
-        <span className="rounded-full bg-accent-ink/6 px-2.5 py-0.5 text-[11px] font-medium text-muted">
-          {place}
-        </span>
-      ) : null}
-      {createMode !== "replace-person" ? (
-        <button
-          type="button"
-          disabled={pending !== ""}
-          onClick={() => setPlaceDialogOpen(true)}
-          className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {t("life.searchAction")}
-        </button>
-      ) : null}
-      <label className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink">
-        {pending === "upload"
-          ? t("common.loading")
-          : createMode === "replace-person"
-            ? "上傳人物照片"
-            : createMode === "post-template"
-              ? "上傳背景照片"
-              : t("life.upload")}
-        <input
-          type="file"
-          accept="image/*"
-          className="sr-only"
-          disabled={pending !== ""}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            void onUpload(file);
-          }}
-        />
-      </label>
-      {sceneUrl ? (
-        <button
-          type="button"
-          disabled={pending !== ""}
-          onClick={() => {
-            setSceneUrl("");
-            resetRemarks();
-          }}
-          className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/15 px-2.5 text-[11px] font-semibold text-muted hover:text-red-600"
-        >
-          移除圖片
-        </button>
-      ) : null}
-    </>
-  );
-
-  // Optional wardrobe field; the same picks apply in every creation mode.
-  const wardrobeField = (step: number) => (
-    <LifeFormField
-      step={step}
-      label="角色造型 (Hair & Outfit)"
-      required={false}
-      hint="可選填更換髮型、上衣、褲子、鞋子或配件；未選的部位沿用上方所選造型。"
-    >
-      <LifeWardrobePicker
-        value={wardrobe}
-        colors={wardrobeColors}
-        disabled={pending !== ""}
-        onChange={setWardrobe}
-        onColorsChange={setWardrobeColors}
-      />
-    </LifeFormField>
-  );
-
   const sceneUploadAndCanvasSection = (
     <div className="space-y-2.5">
-      {/* Drag & Drop Upload Zone + Interactive Remark / Person Selection Canvas */}
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setIsDragging(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file && file.type.startsWith("image/")) {
-            void onUpload(file);
-          }
-        }}
-        className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-3 transition ${
-          isDragging
-            ? "border-accent bg-accent/10"
-            : "border-accent-ink/20 bg-paper/60"
-        }`}
-      >
-        {!sceneUrl ? (
-          <label className="flex min-h-[10rem] w-full cursor-pointer flex-col items-center justify-center gap-2 text-center">
-            <span className="rounded-full bg-accent-ink/10 px-3 py-1 text-xs font-bold text-foreground">
-              {createMode === "replace-person"
-                ? "拖放含人物的照片至此，或點擊上傳"
-                : createMode === "scene-place"
-                  ? "拖放場景照片至此，或點擊上傳場景"
-                  : "拖放背景場景照片至此，或點擊上傳（未上傳則自動生成背景）"}
-            </span>
-            <span className="max-w-sm text-[11px] text-muted">
-              {createMode === "replace-person"
-                ? "上傳後可在圖中人物身上點擊或塗抹圈選要替換的人物，AI 將替換為所選角色的臉、髮型與預設服裝"
-                : createMode === "scene-place"
-                  ? "上傳後 AI 會將角色自然放入此場景，亦可直接在圖上塗鴉標記角色站位"
-                  : "若上傳場景圖，生成時會以該場景作為背景，並依照所選貼文類型與姿勢拍攝"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              disabled={pending !== ""}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                void onUpload(file);
-              }}
-            />
-          </label>
-        ) : (
-          <div className="flex w-full flex-col gap-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-bold text-muted">
-                  {createMode === "replace-person"
-                    ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
-                    : "畫筆標註（選填：在圖上塗鴉標記位置）："}
-                </span>
-                {remarks.map((r) => {
-                  const isActive = r.number === activeRemarkNumber;
-                  return (
-                    <button
-                      key={r.number}
-                      type="button"
-                      onClick={() => setActiveRemarkNumber(r.number)}
-                      style={{
-                        backgroundColor: isActive ? r.color : "transparent",
-                        borderColor: r.color,
-                        color: isActive ? "#ffffff" : r.color,
-                      }}
-                      className="cursor-pointer rounded-full border-2 px-2.5 py-0.5 text-xs font-bold transition"
-                    >
-                      #{r.number}
-                    </button>
-                  );
-                })}
-                {remarks.length < 6 ? (
-                  <button
-                    type="button"
-                    onClick={addRemarkSlot}
-                    className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-2.5 py-0.5 text-xs font-bold text-foreground hover:border-accent-ink"
-                  >
-                    + 新增 #{remarks.length + 1}
-                  </button>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-1.5">
-                {remarks.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={resetRemarks}
-                    className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
-                  >
-                    清除圈選
-                  </button>
-                ) : null}
-                <label className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground">
-                  更換圖片
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      void onUpload(file);
-                    }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Image + Drawing Overlay Canvas */}
-            <div className="relative mx-auto max-h-[16rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={sceneUrl}
-                alt="Scene reference"
-                draggable={false}
-                className="max-h-[16rem] w-auto object-contain"
-              />
-              <canvas
-                ref={canvasRef}
-                width={720}
-                height={960}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-                className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
-              />
-            </div>
-          </div>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-bold text-muted">
+            {createMode === "replace-person"
+              ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
+              : "畫筆標註（選填：在圖上塗鴉標記位置）："}
+          </span>
+          {remarks.map((r) => {
+            const isActive = r.number === activeRemarkNumber;
+            return (
+              <button
+                key={r.number}
+                type="button"
+                onClick={() => setActiveRemarkNumber(r.number)}
+                style={{
+                  backgroundColor: isActive ? r.color : "transparent",
+                  borderColor: r.color,
+                  color: isActive ? "#ffffff" : r.color,
+                }}
+                className="cursor-pointer rounded-full border-2 px-2.5 py-0.5 text-xs font-bold transition"
+              >
+                #{r.number}
+              </button>
+            );
+          })}
+          {remarks.length < 6 ? (
+            <button
+              type="button"
+              onClick={addRemarkSlot}
+              className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-2.5 py-0.5 text-xs font-bold text-foreground hover:border-accent-ink"
+            >
+              + 新增 #{remarks.length + 1}
+            </button>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {remarks.length > 0 ? (
+            <button
+              type="button"
+              onClick={resetRemarks}
+              className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
+            >
+              清除圈選
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => sceneFileInputRef.current?.click()}
+            className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
+          >
+            更換圖片
+          </button>
+        </div>
       </div>
 
-      {/* Numbered Remark Comment Inputs (#1, #2, #3...) — shown only when remarks exist */}
-      {sceneUrl && remarks.length > 0 ? (
+      {/* Image + Drawing Overlay Canvas */}
+      <div className="relative mx-auto max-h-[14rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={sceneUrl}
+          alt="Scene reference"
+          draggable={false}
+          className="max-h-[14rem] w-auto object-contain"
+        />
+        <canvas
+          ref={canvasRef}
+          width={720}
+          height={960}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
+        />
+      </div>
+
+      {remarks.length > 0 ? (
         <div className="space-y-1.5 rounded-xl border border-accent-ink/12 bg-paper p-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-1.5">
-            <span className="text-[11px] font-bold text-foreground">
-              {createMode === "replace-person"
-                ? "已圈選要替換的人物說明（生成結果不會顯示塗鴉線條與編號）"
-                : "標註位置說明（生成結果不會顯示塗鴉線條與編號）"}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-accent-ink/12 bg-accent-ink/6 px-2 py-0.5 text-[10px] font-bold text-muted">
-              圈選說明 · 可微調文字
-            </span>
-          </div>
           {remarks.map((r) => (
             <div key={r.number} className="flex items-center gap-2">
               <button
@@ -956,365 +816,565 @@ export function LifeDesk({
     </div>
   );
 
+  const selectedTemplate = lifePostTemplateById(templateId);
+  const selectedTemplateName = selectedTemplate
+    ? t(`life.templates.names.${selectedTemplate.id}`)
+    : "";
+  const wardrobeCount = Object.values(wardrobe).filter(Boolean).length;
+  const castSlots = buildCastSlotItems(
+    character ? [character.id] : [],
+    people.map((p) => ({
+      id: p.id,
+      name: p.name,
+      previewUrl:
+        (look.thumbUrl && p.id === characterId ? look.thumbUrl : p.previewUrl) ||
+        undefined,
+    })),
+    2,
+  );
+
+  const modeLabel =
+    createMode === "post-template"
+      ? locale === "en"
+        ? "Post Template"
+        : "IG 貼文模板"
+      : createMode === "scene-place"
+        ? locale === "en"
+          ? "Place in Scene"
+          : "融入實景"
+        : locale === "en"
+          ? "Replace Person"
+          : "局部換人";
+
   return (
-    <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
-      {/* Character picker sits at the top left. Recent opens a drawer only on small screens. */}
-      <header className="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <LifeCharacterMenu
-            characters={people}
-            selectedId={characterId}
-            onSelect={selectCharacter}
-          />
-          <div className="min-w-0 max-sm:sr-only sm:block">
-            <h1 className="font-display text-lg font-bold">{t("life.title")}</h1>
-            <p className="truncate text-xs text-muted">{t("life.subtitle")}</p>
+    <div className="min-h-[calc(100dvh-4.5rem)] w-full">
+      {/* Hidden file inputs for the two right quick-slot tiles */}
+      <input
+        ref={compRefInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        disabled={pending !== ""}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          void onUploadCompositionRef(file);
+        }}
+      />
+      <input
+        ref={sceneFileInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        disabled={pending !== ""}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          void onUpload(file);
+        }}
+      />
+
+      <DirectorDockStage
+        topLeft={
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="rounded-full bg-white/95 p-0.5 text-[#12141c] shadow-sm">
+              <LifeCharacterMenu
+                characters={people}
+                selectedId={characterId}
+                onSelect={selectCharacter}
+              />
+            </div>
+            {character ? (
+              <button
+                type="button"
+                disabled={pending !== ""}
+                onClick={() => setLookDialogOpen(true)}
+                className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-zinc-200 transition hover:border-white/30 hover:text-white"
+              >
+                <span>✨</span>
+                <span>
+                  {look.presetId
+                    ? locale === "en"
+                      ? "Saved Look"
+                      : "已選造型"
+                    : locale === "en"
+                      ? "Switch Look"
+                      : "切換造型"}
+                </span>
+              </button>
+            ) : null}
           </div>
-        </div>
-        <LifeRecentOpenButton
-          count={visibleShots.length}
-          generatingCount={generatingCount}
-          onClick={() => setRecentOpen(true)}
-          className="lg:hidden"
+        }
+        topRight={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={pending !== "" || !character?.ready}
+              onClick={() =>
+                void onQuickGenerate(pickRandomLifePostTemplateId())
+              }
+              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[#d8ff3e]/40 bg-[#d8ff3e]/10 px-3 text-xs font-bold text-[#d8ff3e] transition hover:bg-[#d8ff3e]/20 disabled:opacity-50"
+            >
+              <span>🎲</span>
+              <span>{locale === "en" ? "Surprise Me" : "隨機靈感一鍵拍"}</span>
+            </button>
+            <div className="rounded-full bg-white/95 text-[#12141c]">
+              <LifeRecentOpenButton
+                count={visibleShots.length}
+                generatingCount={generatingCount}
+                onClick={() => setRecentOpen(true)}
+              />
+            </div>
+          </div>
+        }
+        bottomContent={
+          visibleShots.length > 0 ? (
+            <div className="mt-8 rounded-2xl border border-white/10 bg-[#181920]/90 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-display text-sm font-bold text-zinc-100">
+                  {character
+                    ? `${character.name} · ${t("life.recent")}`
+                    : t("life.recent")}
+                </h2>
+                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-zinc-300">
+                  {visibleShots.length}
+                </span>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-[#12141c]">
+                <LifeShotGrid
+                  shots={visibleShots}
+                  selectedId={dialogShot?.id}
+                  onSelect={openShot}
+                  compact
+                />
+              </div>
+            </div>
+          ) : null
+        }
+      >
+        <DirectorDockHero kind="life" />
+
+        {character && !character.ready ? (
+          <p className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300">
+            {t("life.needBlueprint")}
+          </p>
+        ) : null}
+
+        {/* Collapsible 🎬 導演面板 */}
+        <DirectorDockPanel
+          headerRight={
+            <button
+              type="button"
+              onClick={() => setDressOpen(true)}
+              className="director-dock-cell cursor-pointer rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-[#d8ff3e] hover:border-[#d8ff3e]/50"
+            >
+              {locale === "en" ? "Dress Up & Presets" : "衣帽間與造型管理"}
+            </button>
+          }
+        >
+          {/* Cell 1: Character & Look */}
+          <DirectorDockCastGroup
+            slots={castSlots}
+            disabled={pending !== ""}
+            badgeLabel={character?.name || t("life.title")}
+            onOpenPicker={() => setLookDialogOpen(true)}
+            onManageActive={() => setDressOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 2: Post Template */}
+          <DirectorDockStepperCell
+            label={
+              locale === "zh-Hant"
+                ? "貼文類型"
+                : locale === "zh-Hans"
+                  ? "贴文类型"
+                  : "Post Type"
+            }
+            value={
+              selectedTemplateName ||
+              (locale === "en" ? "Auto / Pick" : "自動構圖")
+            }
+            disabled={pending !== ""}
+            onClick={() => setTemplateDialogOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 3: Body Pose */}
+          <DirectorDockCurveCell
+            label={
+              locale === "zh-Hant"
+                ? "角色姿勢"
+                : locale === "zh-Hans"
+                  ? "角色姿势"
+                  : "Body Pose"
+            }
+            value={poseId ? poseId : locale === "en" ? "Auto" : "自然擺拍"}
+            disabled={pending !== ""}
+            onClick={() => setPoseDialogOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 4: Wardrobe Override */}
+          <DirectorDockDurationCell
+            label={
+              locale === "zh-Hant"
+                ? "服飾微調"
+                : locale === "zh-Hans"
+                  ? "服饰微调"
+                  : "Wardrobe"
+            }
+            value={
+              wardrobeCount > 0
+                ? `${wardrobeCount} 項`
+                : locale === "en"
+                  ? "Default"
+                  : "預設穿搭"
+            }
+            disabled={pending !== ""}
+            onClick={() => setWardrobeDialogOpen(true)}
+          />
+        </DirectorDockPanel>
+
+        {/* Main Composer Box + Left Floating Mode Rail */}
+        <DirectorDockComposer
+          disabled={pending !== ""}
+          modeItems={[
+            {
+              id: "post-template",
+              label: locale === "en" ? "Post" : "模板",
+              icon: (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              ),
+            },
+            {
+              id: "scene-place",
+              label: locale === "en" ? "Scene" : "實景",
+              icon: (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              ),
+            },
+            {
+              id: "replace-person",
+              label: locale === "en" ? "Swap" : "換人",
+              icon: (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="m17 8 5 5m0-5-5 5" />
+                </svg>
+              ),
+            },
+          ]}
+          activeModeId={createMode}
+          onSelectMode={(next) => {
+            setCreateMode(next as LifeCreateMode);
+            setError("");
+          }}
+          topMediaSlot={
+            sceneUrl ? (
+              <div className="rounded-xl bg-white p-3 text-[#12141c]">
+                {sceneUploadAndCanvasSection}
+              </div>
+            ) : null
+          }
+          promptValue={customInstruction}
+          onPromptChange={(val) => {
+            setCustomInstruction(val);
+            if (error) setError("");
+          }}
+          promptPlaceholder={
+            createMode === "replace-person"
+              ? "上傳含人物照片後可塗鴉圈選目標，或在此補充說明（例：只替換左側人物、面帶微笑）..."
+              : createMode === "scene-place"
+                ? "描述希望角色如何出現在場景中（例：坐在窗邊看著窗外、手拿咖啡走在街頭）..."
+                : "描述你的生活照場景、光線或道具細節（例：傍晚暖陽逆光、桌上放著冰拿鐵與書本）..."
+          }
+          plusMenuOpen={plusMenuOpen}
+          onPlusToggle={() => setPlusMenuOpen((prev) => !prev)}
+          plusMenuSlot={
+            <div className="space-y-2.5">
+              <p className="text-[11px] font-bold text-zinc-400">
+                {locale === "en" ? "Scene Shortcuts" : "快捷情境指令"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {SCENE_PLACE_SHORTCUTS.map((sc) => (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomInstruction(sc.prompt);
+                      setPlusMenuOpen(false);
+                    }}
+                    className="cursor-pointer rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-100 hover:bg-white/20"
+                  >
+                    {sc.label}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-white/10 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlusMenuOpen(false);
+                    setPlaceDialogOpen(true);
+                  }}
+                  className="w-full cursor-pointer rounded-xl bg-white/10 px-3 py-1.5 text-left text-xs font-semibold text-[#d8ff3e] hover:bg-white/15"
+                >
+                  🔍 {t("life.searchAction")}
+                </button>
+              </div>
+            </div>
+          }
+          pills={
+            <>
+              <DirectorDockPill
+                accentBadge={<span>✦</span>}
+                label={modeLabel}
+                hasChevron
+                disabled={pending !== ""}
+                onClick={() => {
+                  const order: LifeCreateMode[] = [
+                    "post-template",
+                    "scene-place",
+                    "replace-person",
+                  ];
+                  const next =
+                    order[(order.indexOf(createMode) + 1) % order.length]!;
+                  setCreateMode(next);
+                }}
+              />
+
+              <DirectorDockPill
+                icon={<span>📍</span>}
+                label={place || (locale === "en" ? "Search Place" : "搜尋實景")}
+                hasChevron
+                disabled={pending !== ""}
+                onClick={() => setPlaceDialogOpen(true)}
+              />
+
+              <DirectorDockPill
+                label={
+                  selectedTemplateName ||
+                  (locale === "en" ? "Post Template" : "選擇貼文模板")
+                }
+                hasChevron
+                disabled={pending !== ""}
+                onClick={() => setTemplateDialogOpen(true)}
+              />
+
+              {poseId ? (
+                <DirectorDockPill
+                  label={`姿勢: ${poseId}`}
+                  disabled={pending !== ""}
+                  onClick={() => setPoseId("")}
+                />
+              ) : null}
+            </>
+          }
+          rightSlot1={
+            <DirectorDockQuickTile
+              label={
+                createMode === "post-template"
+                  ? locale === "en"
+                    ? "Ref Pose"
+                    : "構圖參考"
+                  : locale === "en"
+                    ? "Pose"
+                    : "動作姿勢"
+              }
+              badge={locale === "en" ? "Opt" : "可選"}
+              thumbUrl={
+                createMode === "post-template" ? compositionRefUrl : undefined
+              }
+              active={Boolean(compositionRefUrl || poseId)}
+              disabled={pending !== ""}
+              onClick={() => {
+                if (createMode === "post-template") {
+                  compRefInputRef.current?.click();
+                } else {
+                  setPoseDialogOpen(true);
+                }
+              }}
+              onClear={
+                compositionRefUrl ? () => setCompositionRefUrl("") : undefined
+              }
+            />
+          }
+          rightSlot2={
+            <DirectorDockQuickTile
+              label={
+                createMode === "replace-person"
+                  ? locale === "en"
+                    ? "Target"
+                    : "人物底圖"
+                  : locale === "en"
+                    ? "Scene"
+                    : "場景底圖"
+              }
+              badge={
+                createMode === "post-template"
+                  ? locale === "en"
+                    ? "Opt"
+                    : "可選"
+                  : locale === "en"
+                    ? "Req"
+                    : "必選"
+              }
+              thumbUrl={sceneUrl}
+              disabled={pending !== ""}
+              onClick={() => sceneFileInputRef.current?.click()}
+              onClear={
+                sceneUrl
+                  ? () => {
+                      setSceneUrl("");
+                      resetRemarks();
+                    }
+                  : undefined
+              }
+            />
+          }
+          onGenerate={() => void onGenerate()}
+          generateDisabled={pending !== "" || !character?.ready}
+          generating={pending === "generate"}
+          generateLabel={
+            pending === "generate"
+              ? locale === "en"
+                ? "Queueing..."
+                : "排入佇列..."
+              : locale === "en"
+                ? "Generate"
+                : "生成"
+          }
+          creditBadge={FRAME_COST}
+          error={error}
         />
-      </header>
+      </DirectorDockStage>
 
-      {character && !character.ready ? (
-        <p className="shrink-0 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-600">
-          {t("life.needBlueprint")}
-        </p>
-      ) : null}
-
-      {/* Create stays in the main column. Recent is a right rail from the lg breakpoint up. */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-stretch">
-        <div className="flex min-h-0 min-w-0 flex-col gap-3">
-          {character ? (
+      {/* Look Preset Selector Modal */}
+      {lookDialogOpen && character ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+          onClick={() => setLookDialogOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-accent-ink/15 bg-paper p-5 text-[#12141c] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold">
+                {locale === "en" ? "Select Character Look" : "選擇角色預設造型"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setLookDialogOpen(false)}
+                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
             <LifePresetTree
               character={character}
               look={look}
               disabled={pending !== ""}
-              onSelectDefault={() => setLook(EMPTY_LIFE_LOOK)}
-              onSelectStyle={(styleLook) =>
+              onSelectDefault={() => {
+                setLook(EMPTY_LIFE_LOOK);
+                setLookDialogOpen(false);
+              }}
+              onSelectStyle={(styleLook) => {
                 setLook({
                   versionId: styleLook.versionId || null,
                   presetId: null,
                   thumbUrl: styleLook.thumbUrl,
                   styleId: styleLook.styleId,
-                })
-              }
-              onSelectPreset={(preset) =>
+                });
+                setLookDialogOpen(false);
+              }}
+              onSelectPreset={(preset) => {
                 setLook({
                   versionId: preset.versionId,
                   presetId: preset.id,
                   thumbUrl: preset.thumbUrl,
                   styleId: preset.styleId,
-                })
-              }
-              onManage={() => setDressOpen(true)}
+                });
+                setLookDialogOpen(false);
+              }}
+              onManage={() => {
+                setLookDialogOpen(false);
+                setDressOpen(true);
+              }}
             />
-          ) : null}
-        {/* Center Column: 3-Tab Creation Studio */}
-        <section
-          aria-label={t("life.place")}
-          className="flex min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 lg:min-h-0 lg:flex-1"
-        >
-          <LifeStudioModeTabs
-            value={studioMode}
-            disabled={pending !== ""}
-            onChange={(next) => {
-              setStudioMode(next);
-              setError("");
-            }}
-          />
-
-          {studioMode === "quick" ? (
-            <LifeQuickGenerate
-              disabled={!character?.ready}
-              pending={pending === "generate"}
-              error={error}
-              onGenerate={() => void onQuickGenerate(QUICK_LIFE_TEMPLATE_ID)}
-              onRandom={() =>
-                void onQuickGenerate(pickRandomLifePostTemplateId())
-              }
-            />
-          ) : (
-            <>
-              <LifeCreateTabs
-                value={createMode}
-                disabled={pending !== ""}
-                onChange={(nextMode) => {
-                  setCreateMode(nextMode);
-                  setError("");
-                }}
-              />
-
-              {/* Center Scrollable Form Body */}
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-            {createMode === "replace-person" ? (
-              <>
-                <LifeFormField
-                  step={1}
-                  label="上傳含人物照片 & 圈選替換目標"
-                  required
-                  hint="請上傳包含人物的照片，並在圖中點擊或塗抹圈選要替換的人物（若未圈選，系統會自動替換主體人物）。"
-                  headerRight={uploadHeaderButtons}
-                >
-                  {sceneUploadAndCanvasSection}
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={2}
-                  label="角色姿勢 (Pose)"
-                  required={false}
-                  hint="預設會保留原圖中被替換人物的姿勢與手勢；若想改用其他姿勢，可在此選填覆寫。"
-                >
-                  <LifePoseBar
-                    poseId={poseId}
-                    disabled={pending !== ""}
-                    emptyHint="未選擇時將保留原圖被替換人物的姿勢；選擇後將改用新姿勢"
-                    onOpenPicker={() => setPoseDialogOpen(true)}
-                    onClear={() => setPoseId("")}
-                  />
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                {wardrobeField(3)}
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={4}
-                  label="補充替換說明 (Additional Instruction)"
-                  required={false}
-                  hint="若有多位人物或特殊要求，可在此輸入補充說明（不填寫亦可直接生成）。"
-                >
-                  <input
-                    type="text"
-                    value={customInstruction}
-                    onChange={(e) => setCustomInstruction(e.target.value)}
-                    placeholder="選填：例如「只替換左邊穿深色外套的人物，保留右側朋友」、「面帶微笑看鏡頭」..."
-                    className="h-9 w-full rounded-xl border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                  />
-                </LifeFormField>
-              </>
-            ) : createMode === "scene-place" ? (
-              <>
-                <LifeFormField
-                  step={1}
-                  label="場景照片 (Scene Image)"
-                  required
-                  hint="請上傳一張環境或風景照片（或搜尋地點照片），AI 會將所選角色自然放入此場景中；亦可直接在圖上塗鴉標記站位。"
-                  headerRight={uploadHeaderButtons}
-                >
-                  {sceneUploadAndCanvasSection}
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={2}
-                  label="場景融入描述 (Scene Description)"
-                  required={false}
-                  hint="描述希望角色如何出現在場景中（例如位置、互動動作或神情），或直接點選下方快捷標籤。"
-                >
-                  <div className="space-y-2 rounded-xl border border-accent-ink/12 bg-paper p-3">
-                    <input
-                      type="text"
-                      value={customInstruction}
-                      onChange={(e) => setCustomInstruction(e.target.value)}
-                      placeholder="選填：例「讓角色坐在窗邊看著窗外」、「手拿咖啡自然走在街道中央」..."
-                      className="h-9 w-full rounded-lg border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                    />
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="text-[10px] font-bold text-muted">
-                        快捷描述：
-                      </span>
-                      {SCENE_PLACE_SHORTCUTS.map((sc) => {
-                        const active = customInstruction === sc.prompt;
-                        return (
-                          <button
-                            key={sc.id}
-                            type="button"
-                            onClick={() =>
-                              setCustomInstruction(active ? "" : sc.prompt)
-                            }
-                            className={`cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition ${
-                              active
-                                ? "border-accent bg-accent text-white"
-                                : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
-                            }`}
-                          >
-                            {sc.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={3}
-                  label="角色姿勢 (Pose)"
-                  required={false}
-                  hint="可選填指定角色在場景中的身體姿勢與取景比例。"
-                >
-                  <LifePoseBar
-                    poseId={poseId}
-                    disabled={pending !== ""}
-                    onOpenPicker={() => setPoseDialogOpen(true)}
-                    onClear={() => setPoseId("")}
-                  />
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                {wardrobeField(4)}
-              </>
-            ) : (
-              <>
-                <LifeFormField
-                  step={1}
-                  label="貼文類型 (Post Type)"
-                  required
-                  hint="選擇一種 IG 貼文構圖與情境指南，決定鏡頭角度、距離與畫面氛圍。"
-                >
-                  <LifeTemplateGuide
-                    templateId={templateId}
-                    compositionRefUrl={compositionRefUrl}
-                    uploading={pending === "refUpload"}
-                    disabled={pending !== ""}
-                    onOpenPicker={() => setTemplateDialogOpen(true)}
-                    onClear={() => {
-                      setTemplateId("");
-                      setCompositionRefUrl("");
-                    }}
-                    onUploadRef={(file) => void onUploadCompositionRef(file)}
-                    onRemoveRef={() => setCompositionRefUrl("")}
-                  />
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={2}
-                  label="角色姿勢 (Pose)"
-                  required={false}
-                  hint="可選填搭配特定骨架姿勢；若未選擇則依照貼文類型自然擺拍。"
-                >
-                  <LifePoseBar
-                    poseId={poseId}
-                    disabled={pending !== ""}
-                    onOpenPicker={() => setPoseDialogOpen(true)}
-                    onClear={() => setPoseId("")}
-                  />
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                {wardrobeField(3)}
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={4}
-                  label="背景場景照片 (Scene Background)"
-                  required={false}
-                  hint="可選填上傳或搜尋場景照片作為背景；若未上傳，AI 會根據所選貼文類型自動生成真實背景。"
-                  headerRight={uploadHeaderButtons}
-                >
-                  {sceneUploadAndCanvasSection}
-                </LifeFormField>
-
-                <LifeFormSeparator />
-
-                <LifeFormField
-                  step={5}
-                  label="補充細節說明 (Custom Note)"
-                  required={false}
-                  hint="可選填補充光線、時間、道具或氛圍等細節要求。"
-                >
-                  <input
-                    type="text"
-                    value={customInstruction}
-                    onChange={(e) => setCustomInstruction(e.target.value)}
-                    placeholder="選填：例如「傍晚暖陽逆光」、「桌上放著一杯冰拿鐵與書本」..."
-                    className="h-9 w-full rounded-xl border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                  />
-                </LifeFormField>
-              </>
-            )}
-              </div>
-
-              {/* Bottom Action Dock inside Center Pane */}
-              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-accent-ink/10 bg-paper px-4 py-2.5">
-                <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
-                  {error ? (
-                    <span className="font-semibold text-red-600">{error}</span>
-                  ) : (
-                    t("life.uploadHint")
-                  )}
-                </p>
-                <button
-                  type="button"
-                  disabled={pending !== "" || !character?.ready}
-                  onClick={() => void onGenerate()}
-                  className="inline-flex h-10 shrink-0 cursor-pointer items-center rounded-full bg-accent px-5 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pending === "generate" ? (
-                    <Spinner className="mr-2 h-3.5 w-3.5" />
-                  ) : null}
-                  {pending === "generate"
-                    ? "排入背景佇列中..."
-                    : t("life.generate")}
-                  <span className="ml-2 font-medium opacity-85">
-                    · {t("life.cost", { cost: FRAME_COST })}
-                  </span>
-                </button>
-              </div>
-            </>
-          )}
-        </section>
+          </div>
         </div>
+      ) : null}
 
-        <aside
-          aria-label={t("life.recent")}
-          className="hidden min-h-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 lg:flex"
+      {/* Wardrobe Override Modal */}
+      {wardrobeDialogOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+          onClick={() => setWardrobeDialogOpen(false)}
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-accent-ink/10 px-3.5 py-3">
-            <h2 className="min-w-0 truncate font-display text-sm font-bold">
-              {character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
-            </h2>
-            <div className="flex shrink-0 items-center gap-1.5">
-              {generatingCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-bold text-lime">
-                  <Spinner className="h-3 w-3" />
-                  {generatingCount}
-                </span>
-              ) : null}
-              {visibleShots.length > 0 ? (
-                <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
-                  {visibleShots.length}
-                </span>
-              ) : null}
+          <div
+            className="max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-accent-ink/15 bg-paper p-5 text-[#12141c] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold">
+                {locale === "en"
+                  ? "Hair & Outfit Overrides"
+                  : "角色服飾微調 (Hair & Outfit)"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setWardrobeDialogOpen(false)}
+                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <LifeShotGrid
-              shots={visibleShots}
-              selectedId={dialogShot?.id}
-              onSelect={openShot}
-              compact
+            <LifeWardrobePicker
+              value={wardrobe}
+              colors={wardrobeColors}
+              disabled={pending !== ""}
+              onChange={setWardrobe}
+              onColorsChange={setWardrobeColors}
             />
           </div>
-        </aside>
-      </div>
+        </div>
+      ) : null}
 
-      <div className="lg:hidden">
       <LifeRecentDrawer
         open={recentOpen}
         onOpenChange={setRecentOpen}
@@ -1342,7 +1402,6 @@ export function LifeDesk({
           compact
         />
       </LifeRecentDrawer>
-      </div>
 
       {dialogShot ? (
         <div
