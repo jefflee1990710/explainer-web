@@ -325,6 +325,7 @@ export function DirectorDockBrief({
     return buildCastSlotItems(characterIds, enriched, slotTotal);
   }, [allCharacters, styleId, characterSelections, characterIds, castNeed, talkingHead]);
 
+  const activeSkill = skills.find((s) => s.slug === skillSlug);
   const activeStyle = styles.find((s) => s.id === styleId);
   const selectedPose = resolveTalkingHeadPose(talkingHeadPoseId);
   const selectedPoseCopy = localizedTalkingHeadPose(selectedPose, locale);
@@ -439,22 +440,10 @@ export function DirectorDockBrief({
           {/* Cell 2: Video Type (Director Skill) */}
           <DirectorDockStepperCell
             tourId="video-type-card"
-            icon={
-              <svg
-                aria-hidden="true"
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="2" y="3" width="20" height="18" rx="3" />
-                <path d="M2 8h20" />
-                <path d="M7 3v5" />
-                <path d="M13 3v5" />
-              </svg>
+            thumbUrl={
+              activeSkill?.previewUrl ||
+              activeStyle?.previewUrl ||
+              "/hero/outputs/explainer.webp"
             }
             label={
               locale === "zh-Hant"

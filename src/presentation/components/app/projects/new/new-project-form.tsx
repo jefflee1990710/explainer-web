@@ -288,15 +288,10 @@ export function NewProjectForm({
   // Picked director; form rules follow its behaviour (template) slug.
   const selectedSkill = skills.find((item) => item.slug === skillSlug);
   const ruleSlug = ruleSlugFor(skillSlug, skills);
-  // Visual style; the cast must share it, so changing it prunes mismatches.
+  // Visual style; defaults to Cinematic realistic (`pickerDefaultStyleId`).
   const [styleId, setStyleId] = useState<string>(() => {
     if (initialVideo?.styleId) return initialVideo.styleId;
-    const initRule = ruleSlugFor(initialSkillSlug, skills);
-    const preferred = preferredStyleIdForSkill(initRule, styles);
-    if (!initialVideo && (useCase === "explainer" || preferred)) {
-      return preferred ?? pickerDefaultStyleId(styles);
-    }
-    return lastBrief?.styleId || pickerDefaultStyleId(styles);
+    return pickerDefaultStyleId(styles);
   });
   const [source, setSource] = useState(() => {
     if (initialVideo?.source) return initialVideo.source;
@@ -365,12 +360,9 @@ export function NewProjectForm({
     if (initialVideo) {
       return initialVideo.cast.map((member) => member.characterId);
     }
-    if (lastBrief?.characterIds?.length) {
-      return lastBrief.characterIds;
-    }
     return defaultCastIdsForStyle(
       characters,
-      lastBrief?.styleId || pickerDefaultStyleId(styles),
+      pickerDefaultStyleId(styles),
       requiredCastCount(ruleSlug),
     );
   });
