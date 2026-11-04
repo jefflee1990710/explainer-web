@@ -232,21 +232,18 @@ export function PostElementTabsBar({
     <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/90 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="rounded bg-[#12141c] px-1.5 py-0.5 font-display text-[10px] font-bold text-[#c6f24b]">
-            SAM 3 RLE
-          </span>
           <span className="font-bold text-[#12141c]">
             {detecting
               ? isEn
-                ? "Segmenting people, objects & text…"
-                : "正在用 SAM 3 分離畫面人物、物件與文字…"
+                ? "Detecting people, objects & text…"
+                : "正在偵測畫面人物、物件與文字…"
               : elements.length > 0
                 ? isEn
                   ? `Detected ${elements.length} elements — click any mask or chip to edit`
-                  : `已分離 ${elements.length} 個元素（點擊畫面輪廓或下方標籤即可單獨重繪修改）`
+                  : `已偵測 ${elements.length} 個元素（點擊畫面輪廓或下方標籤即可單獨重繪修改）`
                 : isEn
-                  ? "No elements segmented yet (click Redetect to scan)"
-                  : "尚未偵測到分離元素（可按「重新偵測元素」掃描貼文）"}
+                  ? "No elements detected yet (click Redetect to scan)"
+                  : "尚未偵測到可編輯元素（可按「重新偵測元素」掃描海報）"}
           </span>
         </div>
 

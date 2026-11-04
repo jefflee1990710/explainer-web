@@ -269,11 +269,11 @@ export function PostHistoryDialog({
             <h2 id={titleId} className="font-display text-lg font-bold">
               {activePost
                 ? isEn
-                  ? "SAM 3 Interactive Post Editor"
-                  : "SAM 3 海報元素互動編輯"
+                  ? "Interactive Poster Editor"
+                  : "海報元素互動編輯"
                 : isEn
-                  ? "Post History"
-                  : "海報貼文歷史紀錄 · Post History"}
+                  ? "Poster History"
+                  : "海報貼文歷史紀錄 · Poster History"}
             </h2>
           </div>
 
@@ -595,11 +595,11 @@ export function PostHistoryDialog({
                     <span>
                       {submitting
                         ? isEn
-                          ? "Applying SAM Edit…"
-                          : "SAM 重繪中…"
+                          ? "Applying Edit…"
+                          : "元素重繪中…"
                         : isEn
-                          ? "Apply SAM Edit"
-                          : "執行 SAM 元素重繪"}
+                          ? "Apply Element Edit"
+                          : "執行元素重繪"}
                     </span>
                     <span className="rounded-xl bg-[#12141c]/10 px-2 py-0.5 text-xs font-bold">
                       ✦ {FRAME_COST}
@@ -657,8 +657,8 @@ export function PostHistoryDialog({
                     </p>
                     <p className="mt-0.5 text-[11px] text-muted">
                       {isEn
-                        ? `${post.detectedElements.length} SAM elements`
-                        : `已分離 ${post.detectedElements.length} 個 SAM 元素`}
+                        ? `${post.detectedElements.length} editable elements`
+                        : `已偵測 ${post.detectedElements.length} 個可編輯元素`}
                     </p>
                   </div>
 
@@ -668,7 +668,7 @@ export function PostHistoryDialog({
                       onClick={() => openPostInSam(post)}
                       className="cursor-pointer rounded-2xl bg-accent-ink px-3 py-1 text-xs font-bold text-[#c6f24b]"
                     >
-                      {isEn ? "SAM Edit" : "SAM 改圖"}
+                      {isEn ? "Edit Poster" : "編輯海報"}
                     </button>
                     <div className="flex items-center gap-1.5">
                       {post.currentImageUrl ? (

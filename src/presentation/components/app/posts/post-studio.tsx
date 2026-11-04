@@ -253,7 +253,7 @@ export function PostStudio({
       topLeft={
         <span className="inline-flex items-center gap-1.5 rounded-2xl border border-zinc-200/90 bg-white/90 px-3 py-1 text-xs font-bold text-[#12141c] shadow-xs">
           <span className="h-2 w-2 rounded-full bg-[#c6f24b]" />
-          <span>Post SAM Studio · 2K</span>
+          <span>{isEn ? "Poster Creator" : "海報製作 Poster Creator"}</span>
         </span>
       }
       topRight={
@@ -426,7 +426,7 @@ export function PostStudio({
                       className="h-9 w-9 rounded-xl object-cover"
                     />
                     <span className="font-bold text-[#12141c]">
-                      {isEn ? "Source Poster (SAM)" : "現有海報（SAM 分割）"}
+                      {isEn ? "Source Poster" : "現有海報"}
                     </span>
                     <button
                       type="button"
@@ -485,8 +485,8 @@ export function PostStudio({
                   accept="image/png,image/jpeg,image/webp"
                   label={
                     isEn
-                      ? "Upload Existing Post to Edit in SAM"
-                      : "上傳現有海報直接進入 SAM 分割編輯"
+                      ? "Upload Existing Poster to Edit"
+                      : "上傳現有海報直接編輯"
                   }
                   onUploaded={({ url }) => {
                     setSourceImageUrl(url);
@@ -532,8 +532,8 @@ export function PostStudio({
           generateLabel={
             sourceImageUrl && !createPrompt.trim()
               ? isEn
-                ? "Scan SAM"
-                : "SAM 分割"
+                ? "Analyze Poster"
+                : "解析海報"
               : isEn
                 ? "Generate"
                 : "生成海報"

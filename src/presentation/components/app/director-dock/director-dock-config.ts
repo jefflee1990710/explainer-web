@@ -129,10 +129,10 @@ export function getDirectorHeroCopy(
               : "Swap Any Motion Into Your Character",
         subtitle:
           locale === "zh-Hant"
-            ? "SAM 3 自動偵測畫面人物，保留原片肢體律動、光影與聲音"
+            ? "自動偵測畫面人物，保留原片肢體律動、光影與聲音"
             : locale === "zh-Hans"
-              ? "SAM 3 自动侦测画面人物，保留原片肢体律动、光影与声音"
-              : "SAM 3 multi-person detection with full-body motion, relighting, and lip-sync",
+              ? "自动侦测画面人物，保留原片肢体律动、光影与声音"
+              : "Multi-person detection with full-body motion, relighting, and lip-sync",
         cards: [
           {
             imageUrl: "/relight/golden_halo.webp",
@@ -190,27 +190,27 @@ export function getDirectorHeroCopy(
             ? "生成海報貼文，點選任意元素即時改圖"
             : locale === "zh-Hans"
               ? "生成海报贴文，点选任意元素即时改图"
-              : "Create Posts & Edit Any Element with SAM",
+              : "Create Posters & Edit Any Element",
         subtitle:
           locale === "zh-Hant"
-            ? "Seedream 5.0 Pro 生成 2K 貼文，SAM 3 自動分離人物、物件與文字供你單獨重繪"
+            ? "生成 2K 海報貼文，自動分離人物、物件與文字供你單獨重繪"
             : locale === "zh-Hans"
-              ? "Seedream 5.0 Pro 生成 2K 贴文，SAM 3 自动分离人物、物件与文字供你单独重绘"
-              : "Seedream 5.0 Pro 2K generation + SAM 3 segmentation for people, objects, and text",
+              ? "生成 2K 海报贴文，自动分离人物、物件与文字供你单独重绘"
+              : "2K poster generation with element editing for people, objects, and text",
         cards: [
           {
             imageUrl: "/hero/outputs/life-cafe.webp",
-            tag: "SAM PERSON",
+            tag: "CHARACTER",
             title: "Character Swap",
           },
           {
             imageUrl: "/showcase/product-marketing.png",
-            tag: "POST STUDIO 2K",
-            title: "SEEDREAM 5 + SAM 3 EDIT",
+            tag: "POSTER CREATOR",
+            title: "2K POSTER STUDIO",
           },
           {
             imageUrl: "/hero/styles/paper-cutout.webp",
-            tag: "SAM TEXT & OBJECT",
+            tag: "TEXT & OBJECT",
             title: "In-Place Poster Edit",
           },
         ],

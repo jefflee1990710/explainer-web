@@ -277,14 +277,11 @@ export function JutsuPersonTabsBar({
     <div className="space-y-2 rounded-xl border border-accent-ink/12 bg-white/85 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
-          <span className="rounded bg-accent-ink px-1.5 py-0.5 font-display text-[10px] font-bold text-lime">
-            SAM 3 RLE
-          </span>
           <span className="font-bold text-foreground">
             {detecting
               ? isEn
-                ? "Segmenting people in opening frame…"
-                : "正在用 SAM 3 RLE 分割首幀人物輪廓…"
+                ? "Detecting people in opening frame…"
+                : "正在偵測首幀人物輪廓…"
               : people.length > 0
                 ? isEn
                   ? `Detected ${people.length} ${people.length === 1 ? "person" : "people"} — click a person tab to assign character & outfit`
