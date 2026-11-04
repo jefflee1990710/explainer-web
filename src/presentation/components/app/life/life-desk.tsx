@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  LIFE_POSES,
+  lifePosePreviewSrc,
+} from "@/model/life-pose";
 import {
   lifePostTemplateById,
   pickRandomLifePostTemplateId,
@@ -18,12 +23,11 @@ import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import {
   buildCastSlotItems,
+  cycleOption,
   DirectorDockCastGroup,
   DirectorDockComposer,
-  DirectorDockCurveCell,
   DirectorDockDivider,
   DirectorDockDurationCell,
-  DirectorDockHero,
   DirectorDockPanel,
   DirectorDockPill,
   DirectorDockQuickTile,
@@ -95,8 +99,7 @@ const SCENE_PLACE_SHORTCUTS = [
   },
 ] as const;
 
-const DEFAULT_REPLACE_PERSON_COMMENT =
-  "將此標記處的人物替換為所選角色（保留原圖姿勢）";
+const POSE_OPTION_IDS = ["", ...LIFE_POSES.map((p) => p.id)];
 
 type Point = { x: number; y: number };
 
@@ -207,6 +210,7 @@ export function LifeDesk({
   initialCharacterId?: string;
   subscribed: boolean;
 }) {
+  const router = useRouter();
   const { t, locale } = useI18n();
   const first =
     characters.find((item) => item.id === initialCharacterId) || characters[0];
@@ -217,9 +221,8 @@ export function LifeDesk({
   // Default to the first tab: Post Type & Pose.
   const [createMode, setCreateMode] = useState<LifeCreateMode>("post-template");
   const [place, setPlace] = useState(first?.persona?.city || "");
-  // Post-type template and its optional pose/framing reference photo.
+  // Post-type template.
   const [templateId, setTemplateId] = useState("");
-  const [compositionRefUrl, setCompositionRefUrl] = useState("");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   // Body pose from the pose library (independent of the template).
   const [poseId, setPoseId] = useState("");
@@ -228,8 +231,7 @@ export function LifeDesk({
   const [lookDialogOpen, setLookDialogOpen] = useState(false);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const sceneFileInputRef = useRef<HTMLInputElement | null>(null);
-  const compRefInputRef = useRef<HTMLInputElement | null>(null);
-  // Optional hair / clothes overrides shared by all 3 creation modes.
+  // Optional hair / clothes overrides.
   const [wardrobe, setWardrobe] = useState<CharacterWardrobePicks>({});
   const [wardrobeColors, setWardrobeColors] = useState<CharacterWardrobeColorPicks>({});
   const kind: LifeShotKind = lifePostTemplateById(templateId)?.kind ?? "selfie";
@@ -239,7 +241,7 @@ export function LifeDesk({
   const [shots, setShots] = useState(initialShots);
   const [dialogShot, setDialogShot] = useState<PublicLifeShot | null>(null);
   const [pending, setPending] = useState<
-    "search" | "upload" | "refUpload" | "generate" | "regenerate" | ""
+    "search" | "upload" | "generate" | "regenerate" | ""
   >("");
   const [error, setError] = useState("");
   const [creditGate, setCreditGate] = useState(false);
@@ -355,7 +357,6 @@ export function LifeDesk({
     setPoseId("");
     setWardrobe({});
     setTemplateId("");
-    setCompositionRefUrl("");
     setPlace(character?.persona?.city || "");
     resetRemarks();
   }
@@ -420,10 +421,7 @@ export function LifeDesk({
             number: 1,
             color: palette.color,
             colorName: palette.name,
-            comment:
-              createMode === "replace-person"
-                ? DEFAULT_REPLACE_PERSON_COMMENT
-                : "",
+            comment: "",
             strokes: [[pt]],
           },
         ];
@@ -523,27 +521,6 @@ export function LifeDesk({
     }
   }
 
-  // Uploads the composition reference used only for pose, angle and crop.
-  async function onUploadCompositionRef(file: File | undefined) {
-    if (!file) return;
-    setPending("refUpload");
-    setError("");
-    try {
-      const data = new FormData();
-      data.set("file", file);
-      const uploaded = await uploadCharacterImageAction(data);
-      setPending("");
-      if (!uploaded.ok || !uploaded.url) {
-        setError(translateAppError(uploaded.ok ? "" : uploaded.error, t));
-        return;
-      }
-      setCompositionRefUrl(uploaded.url);
-    } catch {
-      setPending("");
-      setError(t("errors.genericRetry"));
-    }
-  }
-
   async function onGenerate(overrideInstruction?: string) {
     if (!character?.ready) {
       setError(t("life.needBlueprint"));
@@ -578,10 +555,6 @@ export function LifeDesk({
           comment: r.comment,
         })),
         templateId: effectiveTemplateId,
-        compositionRefUrl:
-          createMode === "post-template" && effectiveTemplateId && compositionRefUrl
-            ? compositionRefUrl
-            : undefined,
         poseId: poseId || undefined,
         wardrobe,
         wardrobeColors,
@@ -703,9 +676,7 @@ export function LifeDesk({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] font-bold text-muted">
-            {createMode === "replace-person"
-              ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
-              : "畫筆標註（選填：在圖上塗鴉標記位置）："}
+            畫筆標註（選填：在圖上塗鴉標記位置）：
           </span>
           {remarks.map((r) => {
             const isActive = r.number === activeRemarkNumber;
@@ -840,29 +811,16 @@ export function LifeDesk({
       ? locale === "en"
         ? "Post Template"
         : "IG 貼文模板"
-      : createMode === "scene-place"
-        ? locale === "en"
-          ? "Place in Scene"
-          : "融入實景"
-        : locale === "en"
-          ? "Replace Person"
-          : "局部換人";
+      : locale === "en"
+        ? "Place in Scene"
+        : "融入實景";
+
+  const activePosePreviewUrl = lifePosePreviewSrc(
+    poseId || LIFE_POSES[0]?.id || "stand-full-01",
+  );
 
   return (
     <div className="min-h-[calc(100dvh-4.5rem)] w-full">
-      {/* Hidden file inputs for the two right quick-slot tiles */}
-      <input
-        ref={compRefInputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        disabled={pending !== ""}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
-          void onUploadCompositionRef(file);
-        }}
-      />
       <input
         ref={sceneFileInputRef}
         type="file"
@@ -877,6 +835,7 @@ export function LifeDesk({
       />
 
       <DirectorDockStage
+        alignTop
         topLeft={
           <div className="flex flex-wrap items-center gap-2.5">
             <LifeCharacterMenu
@@ -889,9 +848,8 @@ export function LifeDesk({
                 type="button"
                 disabled={pending !== ""}
                 onClick={() => setLookDialogOpen(true)}
-                className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3 text-xs font-semibold text-[#12141c] transition hover:border-zinc-400"
+                className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-100 px-3 text-xs font-semibold text-[#12141c] transition hover:border-zinc-400"
               >
-                <span>✨</span>
                 <span>
                   {look.presetId
                     ? locale === "en"
@@ -913,9 +871,8 @@ export function LifeDesk({
               onClick={() =>
                 void onQuickGenerate(pickRandomLifePostTemplateId())
               }
-              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] transition hover:bg-black disabled:opacity-50"
+              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] transition hover:bg-black disabled:opacity-50"
             >
-              <span>🎲</span>
               <span>{locale === "en" ? "Surprise Me" : "隨機靈感一鍵拍"}</span>
             </button>
             <LifeRecentOpenButton
@@ -926,43 +883,39 @@ export function LifeDesk({
           </div>
         }
         bottomContent={
-          visibleShots.length > 0 ? (
-            <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-sm font-bold text-[#12141c]">
-                  {character
-                    ? `${character.name} · ${t("life.recent")}`
-                    : t("life.recent")}
-                </h2>
-                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">
-                  {visibleShots.length}
-                </span>
-              </div>
-              <LifeShotGrid
-                shots={visibleShots}
-                selectedId={dialogShot?.id}
-                onSelect={openShot}
-                compact
-              />
+          <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-sm font-bold text-[#12141c]">
+                {character
+                  ? `${character.name} · ${t("life.recent")}`
+                  : t("life.recent")}
+              </h2>
+              <span className="rounded-2xl bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">
+                {visibleShots.length}
+              </span>
             </div>
-          ) : null
+            <LifeShotGrid
+              shots={visibleShots}
+              selectedId={dialogShot?.id}
+              onSelect={openShot}
+              infinite
+            />
+          </div>
         }
       >
-        <DirectorDockHero kind="life" />
-
         {character && !character.ready ? (
-          <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600">
+          <p className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600">
             {t("life.needBlueprint")}
           </p>
         ) : null}
 
-        {/* Collapsible 🎬 導演面板 */}
+        {/* Collapsible Director Panel */}
         <DirectorDockPanel
           headerRight={
             <button
               type="button"
               onClick={() => setDressOpen(true)}
-              className="director-dock-cell cursor-pointer rounded-full bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] hover:bg-black"
+              className="director-dock-cell cursor-pointer rounded-2xl bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] hover:bg-black"
             >
               {locale === "en" ? "Dress Up & Presets" : "衣帽間與造型管理"}
             </button>
@@ -998,8 +951,9 @@ export function LifeDesk({
 
           <DirectorDockDivider />
 
-          {/* Cell 3: Body Pose */}
-          <DirectorDockCurveCell
+          {/* Cell 3: Body Pose with Pose Preview Image */}
+          <DirectorDockStepperCell
+            thumbUrl={activePosePreviewUrl}
             label={
               locale === "zh-Hant"
                 ? "角色姿勢"
@@ -1007,8 +961,16 @@ export function LifeDesk({
                   ? "角色姿势"
                   : "Body Pose"
             }
-            value={poseId ? poseId : locale === "en" ? "Auto" : "自然擺拍"}
+            value={
+              poseId
+                ? t(`life.poses.names.${poseId}`)
+                : locale === "en"
+                  ? "Auto"
+                  : "自然擺拍"
+            }
             disabled={pending !== ""}
+            onPrev={() => setPoseId(cycleOption(POSE_OPTION_IDS, poseId, -1))}
+            onNext={() => setPoseId(cycleOption(POSE_OPTION_IDS, poseId, 1))}
             onClick={() => setPoseDialogOpen(true)}
           />
 
@@ -1073,8 +1035,8 @@ export function LifeDesk({
               ),
             },
             {
-              id: "replace-person",
-              label: locale === "en" ? "Swap" : "換人",
+              id: "swap",
+              label: locale === "en" ? "Swap" : "換角",
               icon: (
                 <svg
                   className="h-4 w-4"
@@ -1092,12 +1054,16 @@ export function LifeDesk({
           ]}
           activeModeId={createMode}
           onSelectMode={(next) => {
+            if (next === "swap") {
+              router.push("/app/scroswap");
+              return;
+            }
             setCreateMode(next as LifeCreateMode);
             setError("");
           }}
           topMediaSlot={
             sceneUrl ? (
-              <div className="rounded-xl bg-white p-3 text-[#12141c]">
+              <div className="rounded-2xl bg-white p-3 text-[#12141c]">
                 {sceneUploadAndCanvasSection}
               </div>
             ) : null
@@ -1108,11 +1074,9 @@ export function LifeDesk({
             if (error) setError("");
           }}
           promptPlaceholder={
-            createMode === "replace-person"
-              ? "上傳含人物照片後可塗鴉圈選目標，或在此補充說明（例：只替換左側人物、面帶微笑）..."
-              : createMode === "scene-place"
-                ? "描述希望角色如何出現在場景中（例：坐在窗邊看著窗外、手拿咖啡走在街頭）..."
-                : "描述你的生活照場景、光線或道具細節（例：傍晚暖陽逆光、桌上放著冰拿鐵與書本）..."
+            createMode === "scene-place"
+              ? "描述希望角色如何出現在場景中（例：坐在窗邊看著窗外、手拿咖啡走在街頭）..."
+              : "描述你的生活照場景、光線或道具細節（例：傍晚暖陽逆光、桌上放著冰拿鐵與書本）..."
           }
           plusMenuOpen={plusMenuOpen}
           onPlusToggle={() => setPlusMenuOpen((prev) => !prev)}
@@ -1130,7 +1094,7 @@ export function LifeDesk({
                       setCustomInstruction(sc.prompt);
                       setPlusMenuOpen(false);
                     }}
-                    className="cursor-pointer rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-[#12141c] hover:bg-zinc-200"
+                    className="cursor-pointer rounded-2xl border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-[#12141c] hover:bg-zinc-200"
                   >
                     {sc.label}
                   </button>
@@ -1143,9 +1107,9 @@ export function LifeDesk({
                     setPlusMenuOpen(false);
                     setPlaceDialogOpen(true);
                   }}
-                  className="w-full cursor-pointer rounded-xl bg-[#12141c] px-3 py-1.5 text-left text-xs font-semibold text-[#c6f24b] hover:bg-black"
+                  className="w-full cursor-pointer rounded-2xl bg-[#12141c] px-3 py-1.5 text-left text-xs font-semibold text-[#c6f24b] hover:bg-black"
                 >
-                  🔍 {t("life.searchAction")}
+                  {t("life.searchAction")}
                 </button>
               </div>
             </div>
@@ -1153,24 +1117,17 @@ export function LifeDesk({
           pills={
             <>
               <DirectorDockPill
-                accentBadge={<span>✦</span>}
                 label={modeLabel}
                 hasChevron
                 disabled={pending !== ""}
                 onClick={() => {
-                  const order: LifeCreateMode[] = [
-                    "post-template",
-                    "scene-place",
-                    "replace-person",
-                  ];
-                  const next =
-                    order[(order.indexOf(createMode) + 1) % order.length]!;
-                  setCreateMode(next);
+                  setCreateMode((prev) =>
+                    prev === "post-template" ? "scene-place" : "post-template",
+                  );
                 }}
               />
 
               <DirectorDockPill
-                icon={<span>📍</span>}
                 label={place || (locale === "en" ? "Search Place" : "搜尋實景")}
                 hasChevron
                 disabled={pending !== ""}
@@ -1189,53 +1146,16 @@ export function LifeDesk({
 
               {poseId ? (
                 <DirectorDockPill
-                  label={`姿勢: ${poseId}`}
+                  label={`${locale === "en" ? "Pose" : "姿勢"}: ${t(`life.poses.names.${poseId}`)}`}
                   disabled={pending !== ""}
                   onClick={() => setPoseId("")}
                 />
               ) : null}
             </>
           }
-          rightSlot1={
-            <DirectorDockQuickTile
-              label={
-                createMode === "post-template"
-                  ? locale === "en"
-                    ? "Ref Pose"
-                    : "構圖參考"
-                  : locale === "en"
-                    ? "Pose"
-                    : "動作姿勢"
-              }
-              badge={locale === "en" ? "Opt" : "可選"}
-              thumbUrl={
-                createMode === "post-template" ? compositionRefUrl : undefined
-              }
-              active={Boolean(compositionRefUrl || poseId)}
-              disabled={pending !== ""}
-              onClick={() => {
-                if (createMode === "post-template") {
-                  compRefInputRef.current?.click();
-                } else {
-                  setPoseDialogOpen(true);
-                }
-              }}
-              onClear={
-                compositionRefUrl ? () => setCompositionRefUrl("") : undefined
-              }
-            />
-          }
           rightSlot2={
             <DirectorDockQuickTile
-              label={
-                createMode === "replace-person"
-                  ? locale === "en"
-                    ? "Target"
-                    : "人物底圖"
-                  : locale === "en"
-                    ? "Scene"
-                    : "場景底圖"
-              }
+              label={locale === "en" ? "Scene" : "場景底圖"}
               badge={
                 createMode === "post-template"
                   ? locale === "en"

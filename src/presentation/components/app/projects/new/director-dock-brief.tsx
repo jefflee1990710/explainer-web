@@ -28,13 +28,11 @@ import {
   cycleOption,
   DirectorDockCastGroup,
   DirectorDockComposer,
-  DirectorDockCurveCell,
   DirectorDockDivider,
   DirectorDockDurationCell,
   DirectorDockHero,
   DirectorDockPanel,
   DirectorDockPill,
-  DirectorDockQuickTile,
   DirectorDockStage,
   DirectorDockStepperCell,
   resolveCastSlotCount,
@@ -48,6 +46,7 @@ import {
 import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
 import { SkillSelectDialog } from "@/presentation/components/app/projects/[id]/skill-select-dialog";
 import { DirectorBackgroundPicker } from "@/presentation/components/app/projects/new/director-background-picker";
+import { localizedDirectorBackground } from "@/presentation/components/app/projects/new/director-background-select-dialog";
 import { LogoPicker } from "@/presentation/components/app/projects/new/logo-picker";
 import { ProductDropdown } from "@/presentation/components/app/projects/new/product-dropdown";
 import {
@@ -73,24 +72,10 @@ import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
 } from "@/service/director/skill-rules";
-import { VOICE_PRESETS } from "@/service/director/voice";
-import {
-  durationPresetLabel,
-  sceneTextLangLabel,
-  speechPaceLabel,
-} from "@/util/i18n/picker-labels";
+import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 
 const ASPECT_OPTIONS: readonly AspectRatio[] = ["9:16", "16:9", "1:1"];
-const DURATION_OPTIONS: readonly DurationPreset[] = [
-  "auto",
-  "micro",
-  "short",
-  "punchy",
-  "full",
-];
 const VO_LANG_OPTIONS: readonly VoLanguage[] = ["yue", "zh", "en", "ja"];
-const PACE_OPTIONS: readonly SpeechPace[] = ["slow", "medium", "fast"];
-const VOICE_GENDER_OPTIONS: readonly VoiceGender[] = ["female", "male"];
 const SCENE_TEXT_OPTIONS: readonly SceneTextChoice[] = [
   "zh-Hant",
   "zh-Hans",
@@ -184,17 +169,10 @@ export function DirectorDockBrief({
   onClipDraftsChange,
   language,
   onVoLanguageChange,
-  voiceGender,
-  onVoiceGenderChange,
-  dialogueOnly,
-  speechPace,
-  onSpeechPaceChange,
   sceneTextLanguage,
   onSceneTextLanguageChange,
   aspectRatio,
   onAspectRatioSelect,
-  durationPreset,
-  onDurationPresetChange,
   credits,
   subscribed,
   briefBusy,
@@ -202,9 +180,7 @@ export function DirectorDockBrief({
   canSubmit,
   error,
   onError,
-  projectPicker,
   onOpenDetails,
-  onOpenTutorial,
   restarting,
   onCancelRestart,
   onSubmitCreateNew,
@@ -259,17 +235,17 @@ export function DirectorDockBrief({
   onClipDraftsChange: (next: StoryboardClipDraft[]) => void;
   language: VoLanguage;
   onVoLanguageChange: (lang: VoLanguage) => void;
-  voiceGender: VoiceGender;
-  onVoiceGenderChange: (gender: VoiceGender) => void;
-  dialogueOnly: boolean;
-  speechPace: SpeechPace;
-  onSpeechPaceChange: (pace: SpeechPace) => void;
+  voiceGender?: VoiceGender;
+  onVoiceGenderChange?: (gender: VoiceGender) => void;
+  dialogueOnly?: boolean;
+  speechPace?: SpeechPace;
+  onSpeechPaceChange?: (pace: SpeechPace) => void;
   sceneTextLanguage: SceneTextChoice;
   onSceneTextLanguageChange: (choice: SceneTextChoice) => void;
   aspectRatio: AspectRatio | "";
   onAspectRatioSelect: (ratio: AspectRatio) => void;
-  durationPreset: DurationPreset;
-  onDurationPresetChange: (preset: DurationPreset) => void;
+  durationPreset?: DurationPreset;
+  onDurationPresetChange?: (preset: DurationPreset) => void;
   credits: number;
   subscribed: boolean;
   briefBusy: boolean;
@@ -279,7 +255,7 @@ export function DirectorDockBrief({
   onError: (msg: string) => void;
   projectPicker?: ReactNode;
   onOpenDetails: () => void;
-  onOpenTutorial: () => void;
+  onOpenTutorial?: () => void;
   restarting: boolean;
   onCancelRestart: () => void;
   onSubmitCreateNew: () => void;
@@ -388,6 +364,12 @@ export function DirectorDockBrief({
     }
   }
 
+  function stepSkill(delta: 1 | -1) {
+    if (skills.length < 2) return;
+    const slugs = skills.map((s) => s.slug);
+    onSkillChange(cycleOption(slugs, skillSlug, delta));
+  }
+
   function stepStyle(delta: 1 | -1) {
     if (styles.length < 2) return;
     const ids = styles.map((s) => s.id);
@@ -400,11 +382,27 @@ export function DirectorDockBrief({
     );
   }
 
-  const paceLabel = speechPaceLabel(t, speechPace).label;
-  const voiceLabel = dialogueOnly
-    ? paceLabel
-    : `${VOICE_PRESETS[voiceGender].label} · ${paceLabel}`;
-  const durationLabel = durationPresetLabel(t, durationPreset).label;
+  function stepScene(delta: 1 | -1) {
+    if (presetBackgrounds.length < 2) return;
+    const ids = presetBackgrounds.map((b) => b.id);
+    onDirectorBackgroundChange(cycleOption(ids, activeDirectorBgId, delta));
+  }
+
+  const sceneValueLabel =
+    backgroundImageUrls.length > 0
+      ? locale === "en"
+        ? "Custom Scene"
+        : "自訂場景"
+      : activeDirectorBg
+        ? localizedDirectorBackground(activeDirectorBg, locale).name
+        : !talkingHead && firstRefThumbUrl
+          ? locale === "en"
+            ? `Ref (${referenceImages.length})`
+            : `參考圖 (${referenceImages.length})`
+          : locale === "en"
+            ? "Auto Scene"
+            : "預設場景";
+
   const sceneTextLabel = sceneTextLangLabel(t, sceneTextLanguage).label;
 
   const generateLabel = submitting
@@ -417,79 +415,15 @@ export function DirectorDockBrief({
           ? "Generate"
           : "生成";
 
-  const creditEstimate = talkingHead ? "15/s" : durationPreset === "auto" ? "20" : durationPreset;
+  const creditEstimate = talkingHead ? "15/s" : "20";
 
   return (
     <>
-      <DirectorDockStage
-        topLeft={
-          <div
-            data-tour-id="setup-mode-bar"
-            className="flex flex-wrap items-center gap-2"
-          >
-            {projectPicker ? <div>{projectPicker}</div> : null}
-            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-              {talkingHead
-                ? locale === "en"
-                  ? "Talking Head Studio"
-                  : "真人開講工作台"
-                : locale === "en"
-                  ? "Explainer Studio"
-                  : "解說影片工作台"}
-            </span>
-          </div>
-        }
-        topRight={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenTutorial}
-              title={
-                locale === "zh-Hant"
-                  ? "查看操作教學導覽"
-                  : locale === "zh-Hans"
-                    ? "查看操作教学导览"
-                    : "Show guided tour"
-              }
-              className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-xs font-bold text-zinc-600 transition hover:border-zinc-400 hover:text-[#12141c]"
-            >
-              ?
-            </button>
-            <button
-              type="button"
-              disabled={briefBusy}
-              onClick={onOpenDetails}
-              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 text-xs font-bold text-[#12141c] transition hover:border-[#12141c] hover:bg-zinc-200/70 disabled:opacity-50"
-            >
-              <span>⚙</span>
-              <span>
-                {locale === "zh-Hant"
-                  ? "完整 4 步設定"
-                  : locale === "zh-Hans"
-                    ? "完整 4 步设置"
-                    : "Full 4-Step Setup"}
-              </span>
-            </button>
-          </div>
-        }
-      >
+      <DirectorDockStage>
         <DirectorDockHero kind={talkingHead ? "talking-head" : "explainer"} />
 
-        {/* Collapsible 🎬 導演面板 (Director Panel) */}
-        <DirectorDockPanel
-          headerRight={
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={briefBusy}
-                onClick={() => setCreateCharOpen(true)}
-                className="director-dock-cell cursor-pointer rounded-full bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] transition hover:bg-black"
-              >
-                {locale === "en" ? "+ New Character" : "+ 新增角色"}
-              </button>
-            </div>
-          }
-        >
+        {/* Collapsible Director Panel */}
+        <DirectorDockPanel>
           {/* Cell 1: Cast Avatar Slots */}
           <DirectorDockCastGroup
             tourId="character-card"
@@ -502,7 +436,43 @@ export function DirectorDockBrief({
 
           <DirectorDockDivider />
 
-          {/* Cell 2: Visual Style (Explainer) or Framing Pose (Talking Head) */}
+          {/* Cell 2: Video Type (Director Skill) */}
+          <DirectorDockStepperCell
+            tourId="video-type-card"
+            icon={
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="18" rx="3" />
+                <path d="M2 8h20" />
+                <path d="M7 3v5" />
+                <path d="M13 3v5" />
+              </svg>
+            }
+            label={
+              locale === "zh-Hant"
+                ? "影片類型"
+                : locale === "zh-Hans"
+                  ? "视频类型"
+                  : "Video Type"
+            }
+            value={skillTitle}
+            disabled={briefBusy}
+            onPrev={skills.length > 1 ? () => stepSkill(-1) : undefined}
+            onNext={skills.length > 1 ? () => stepSkill(1) : undefined}
+            onClick={() => setSkillDialogOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 3: Visual Style (Explainer) or Framing Pose (Talking Head) */}
           {talkingHead ? (
             <DirectorDockStepperCell
               tourId="visual-style-card"
@@ -541,37 +511,46 @@ export function DirectorDockBrief({
 
           <DirectorDockDivider />
 
-          {/* Cell 3: Speech Pace & Voice Curve */}
-          <DirectorDockCurveCell
+          {/* Cell 4: Scene & Background */}
+          <DirectorDockStepperCell
+            thumbUrl={activeBgThumbUrl || (!talkingHead ? firstRefThumbUrl : "")}
+            icon={
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
+            }
             label={
               locale === "zh-Hant"
-                ? "變速與聲線"
+                ? "場景背景"
                 : locale === "zh-Hans"
-                  ? "变速与声线"
-                  : "Pace & Voice"
+                  ? "场景背景"
+                  : "Scene"
             }
-            value={voiceLabel}
+            value={sceneValueLabel}
             disabled={briefBusy}
-            onPrev={() =>
-              onSpeechPaceChange(cycleOption(PACE_OPTIONS, speechPace, -1))
-            }
-            onNext={() =>
-              onSpeechPaceChange(cycleOption(PACE_OPTIONS, speechPace, 1))
-            }
+            onPrev={presetBackgrounds.length > 1 ? () => stepScene(-1) : undefined}
+            onNext={presetBackgrounds.length > 1 ? () => stepScene(1) : undefined}
             onClick={() => {
-              if (!dialogueOnly) {
-                onVoiceGenderChange(
-                  cycleOption(VOICE_GENDER_OPTIONS, voiceGender, 1),
-                );
+              if (talkingHead || presetBackgrounds.length > 0 || allowsBgUpload) {
+                setBgDialogOpen(true);
               } else {
-                onSpeechPaceChange(cycleOption(PACE_OPTIONS, speechPace, 1));
+                setRefDialogOpen(true);
               }
             }}
           />
 
-          <DirectorDockDivider />
-
-          {/* Cell 4: Duration (Explainer) or Acting Note (Talking Head) */}
+          {/* Optional Talking Head Acting Direction */}
           {talkingHead ? (
             <DirectorDockDurationCell
               label={
@@ -591,24 +570,7 @@ export function DirectorDockBrief({
               disabled={briefBusy}
               onClick={() => setActingNoteOpen(true)}
             />
-          ) : (
-            <DirectorDockDurationCell
-              label={
-                locale === "zh-Hant"
-                  ? "時長"
-                  : locale === "zh-Hans"
-                    ? "时长"
-                    : "Duration"
-              }
-              value={durationLabel}
-              disabled={briefBusy}
-              onClick={() =>
-                onDurationPresetChange(
-                  cycleOption(DURATION_OPTIONS, durationPreset, 1),
-                )
-              }
-            />
-          )}
+          ) : null}
         </DirectorDockPanel>
 
         {/* Main Composer Box + Left Floating Mode Rail */}
@@ -626,6 +588,7 @@ export function DirectorDockBrief({
                     : "Explain",
               icon: (
                 <svg
+                  aria-hidden="true"
                   className="h-4 w-4"
                   viewBox="0 0 24 24"
                   fill="none"
@@ -648,6 +611,7 @@ export function DirectorDockBrief({
                     : "Speak",
               icon: (
                 <svg
+                  aria-hidden="true"
                   className="h-4 w-4"
                   viewBox="0 0 24 24"
                   fill="none"
@@ -674,32 +638,45 @@ export function DirectorDockBrief({
           promptPlaceholder={
             talkingHead
               ? locale === "zh-Hant"
-                ? "輸入角色要朗讀的講稿，或點右側「配音」上傳／錄製音訊..."
+                ? "輸入角色要朗讀的講稿，或點下方「配音」上傳／錄製音訊..."
                 : locale === "zh-Hans"
-                  ? "输入角色要朗读的讲稿，或点右侧“配音”上传／录制音频..."
-                  : "Enter the script for your character to read, or attach voice audio on the right..."
+                  ? "输入角色要朗读的讲稿，或点下方“配音”上传／录制音频..."
+                  : "Enter the script for your character to read, or attach custom voice audio below..."
               : locale === "zh-Hant"
-                ? "描述你的場景、貼上主題或文章，使用上方導演面板加入角色與風格..."
+                ? "描述你的場景、貼上主題或文章，使用上方導演面板設定角色、風格與場景..."
                 : locale === "zh-Hans"
-                  ? "描述你的场景、贴上主题或文章，使用上方导演面板添加角色和风格..."
-                  : "Describe your topic or paste your script, and pick characters & style above..."
+                  ? "描述你的场景、贴上主题或文章，使用上方导演面板设置角色、风格与场景..."
+                  : "Describe your topic or paste your script, and configure characters, style & scene above..."
           }
           topMediaSlot={
             uploadedVoUrl && talkingHead ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs text-[#12141c]">
-                <span className="truncate font-semibold">
-                  🎙{" "}
-                  {locale === "en"
-                    ? "Custom voiceover audio attached"
-                    : "已附加自訂配音音訊"}
-                  {uploadedVoDurationSeconds
-                    ? ` (${Math.round(uploadedVoDurationSeconds)}s)`
-                    : ""}
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs text-[#12141c]">
+                <span className="inline-flex items-center gap-1.5 truncate font-semibold">
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                  <span>
+                    {locale === "en"
+                      ? "Custom voiceover audio attached"
+                      : "已附加自訂配音音訊"}
+                    {uploadedVoDurationSeconds
+                      ? ` (${Math.round(uploadedVoDurationSeconds)}s)`
+                      : ""}
+                  </span>
                 </span>
                 <button
                   type="button"
                   onClick={() => onUploadedVoChange({ url: undefined, durationSeconds: undefined })}
-                  className="cursor-pointer rounded px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-200 hover:text-[#12141c]"
+                  className="cursor-pointer rounded-xl px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-200 hover:text-[#12141c]"
                 >
                   {locale === "en" ? "Clear" : "移除"}
                 </button>
@@ -714,7 +691,7 @@ export function DirectorDockBrief({
                 <p className="mb-1.5 text-[11px] font-bold text-zinc-400">
                   {locale === "en" ? "Sample Scripts" : "一鍵填入範例腳本"}
                 </p>
-                <div className="rounded-xl bg-white p-2 text-[#12141c]">
+                <div className="rounded-2xl bg-white p-2 text-[#12141c]">
                   <SampleScriptBar
                     disabled={briefBusy}
                     talkingHead={talkingHead}
@@ -734,7 +711,7 @@ export function DirectorDockBrief({
                   <p className="mb-1.5 text-[11px] font-bold text-zinc-400">
                     {t("brief.products.title")}
                   </p>
-                  <div className="rounded-xl bg-white p-2 text-[#12141c]">
+                  <div className="rounded-2xl bg-white p-2 text-[#12141c]">
                     <ProductDropdown
                       products={products}
                       value={productIds}
@@ -750,7 +727,7 @@ export function DirectorDockBrief({
                   <p className="mb-1.5 text-[11px] font-bold text-zinc-400">
                     {t("brief.logo.title")}
                   </p>
-                  <div className="rounded-xl bg-white p-2 text-[#12141c]">
+                  <div className="rounded-2xl bg-white p-2 text-[#12141c]">
                     <LogoPicker
                       value={logoUrl}
                       onChange={onLogoUrlChange}
@@ -765,15 +742,6 @@ export function DirectorDockBrief({
           pills={
             <>
               <DirectorDockPill
-                tourId="video-type-card"
-                accentBadge={<span>〰</span>}
-                label={skillTitle}
-                hasChevron
-                disabled={briefBusy}
-                onClick={() => setSkillDialogOpen(true)}
-              />
-
-              <DirectorDockPill
                 icon={
                   <span className="inline-block h-3 w-2 rounded-[2px] border border-current" />
                 }
@@ -787,7 +755,22 @@ export function DirectorDockBrief({
               />
 
               <DirectorDockPill
-                icon={<span>🌐</span>}
+                icon={
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                }
                 label={LANGUAGE_PRESETS[language].label}
                 disabled={briefBusy}
                 onClick={() =>
@@ -796,6 +779,21 @@ export function DirectorDockBrief({
               />
 
               <DirectorDockPill
+                icon={
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="M7 15h4M15 15h2M7 11h2M13 11h4" />
+                  </svg>
+                }
                 label={
                   locale === "en"
                     ? `Text: ${sceneTextLabel}`
@@ -809,117 +807,100 @@ export function DirectorDockBrief({
                 }
               />
 
-              {!talkingHead ? (
+              {talkingHead ? (
                 <DirectorDockPill
-                  label={`- ${clipDrafts.length}/4 +`}
-                  hasChevron
-                  disabled={briefBusy}
-                  title={
-                    locale === "en"
-                      ? "Storyboard Sketch Pad"
-                      : "手繪分鏡草稿"
+                  icon={
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="22" />
+                    </svg>
                   }
-                  onClick={() => setDraftsDialogOpen(true)}
+                  label={
+                    uploadedVoUrl
+                      ? locale === "en"
+                        ? "Audio Ready"
+                        : "配音已附"
+                      : locale === "en"
+                        ? "Voice Audio"
+                        : "自訂配音"
+                  }
+                  disabled={briefBusy}
+                  onClick={() => setVoDialogOpen(true)}
                 />
-              ) : null}
+              ) : (
+                <>
+                  <DirectorDockPill
+                    icon={
+                      <svg
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="m21 15-5-5L5 21" />
+                      </svg>
+                    }
+                    label={
+                      referenceImages.length > 0
+                        ? locale === "en"
+                          ? `Ref (${referenceImages.length})`
+                          : `參考圖 (${referenceImages.length})`
+                        : locale === "en"
+                          ? "Reference"
+                          : "參考圖"
+                    }
+                    disabled={briefBusy}
+                    onClick={() => setRefDialogOpen(true)}
+                  />
+                  <DirectorDockPill
+                    icon={
+                      <svg
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                      </svg>
+                    }
+                    label={
+                      locale === "en"
+                        ? `Sketch ${clipDrafts.length}/4`
+                        : `分鏡草稿 ${clipDrafts.length}/4`
+                    }
+                    hasChevron
+                    disabled={briefBusy}
+                    title={
+                      locale === "en"
+                        ? "Storyboard Sketch Pad"
+                        : "手繪分鏡草稿"
+                    }
+                    onClick={() => setDraftsDialogOpen(true)}
+                  />
+                </>
+              )}
             </>
-          }
-          rightSlot1={
-            talkingHead ? (
-              <DirectorDockQuickTile
-                label={
-                  locale === "zh-Hant"
-                    ? "背景"
-                    : locale === "zh-Hans"
-                      ? "背景"
-                      : "Scene"
-                }
-                badge={locale === "en" ? "Opt" : "可選"}
-                thumbUrl={activeBgThumbUrl}
-                disabled={briefBusy}
-                onClick={() => setBgDialogOpen(true)}
-                onClear={
-                  backgroundImageUrls.length > 0
-                    ? () => onBackgroundImageUrlsChange([])
-                    : undefined
-                }
-              />
-            ) : (
-              <DirectorDockQuickTile
-                label={
-                  locale === "zh-Hant"
-                    ? "風格"
-                    : locale === "zh-Hans"
-                      ? "风格"
-                      : "Style"
-                }
-                thumbUrl={activeStyle?.previewUrl}
-                disabled={briefBusy}
-                onClick={() => setStyleDialogOpen(true)}
-              />
-            )
-          }
-          rightSlot2={
-            talkingHead ? (
-              <DirectorDockQuickTile
-                label={
-                  locale === "zh-Hant"
-                    ? "配音"
-                    : locale === "zh-Hans"
-                      ? "配音"
-                      : "Audio"
-                }
-                badge={
-                  uploadedVoUrl
-                    ? locale === "en"
-                      ? "Ready"
-                      : "已附"
-                    : locale === "en"
-                      ? "Opt"
-                      : "可選"
-                }
-                active={Boolean(uploadedVoUrl)}
-                icon={uploadedVoUrl ? "🎙" : "+"}
-                disabled={briefBusy}
-                onClick={() => setVoDialogOpen(true)}
-                onClear={
-                  uploadedVoUrl
-                    ? () =>
-                        onUploadedVoChange({
-                          url: undefined,
-                          durationSeconds: undefined,
-                        })
-                    : undefined
-                }
-              />
-            ) : (
-              <DirectorDockQuickTile
-                label={
-                  presetBackgrounds.length > 0 && !firstRefThumbUrl
-                    ? locale === "en"
-                      ? "Scene"
-                      : "場景"
-                    : locale === "zh-Hant"
-                      ? "參考圖"
-                      : locale === "zh-Hans"
-                        ? "参考图"
-                        : "Ref"
-                }
-                badge={locale === "en" ? "Opt" : "可選"}
-                thumbUrl={firstRefThumbUrl || activeBgThumbUrl}
-                disabled={briefBusy}
-                onClick={() =>
-                  presetBackgrounds.length > 0 && !firstRefThumbUrl
-                    ? setBgDialogOpen(true)
-                    : setRefDialogOpen(true)
-                }
-                onClear={
-                  firstRefThumbUrl
-                    ? () => onReferenceImagesChange([])
-                    : undefined
-                }
-              />
-            )
           }
           generateType="submit"
           generateDisabled={!canSubmit}
@@ -1004,6 +985,10 @@ export function DirectorDockBrief({
           onCharacterUpdated={(updated) =>
             setCharOverrides((prev) => ({ ...prev, [updated.id]: updated }))
           }
+          onCreateCharacter={() => {
+            setCharDialogOpen(false);
+            setCreateCharOpen(true);
+          }}
           onClose={() => setCharDialogOpen(false)}
         />
       ) : null}

@@ -7,12 +7,14 @@ export function DirectorDockStage({
   topRight,
   children,
   bottomContent,
+  alignTop = false,
   className = "",
 }: {
   topLeft?: ReactNode;
   topRight?: ReactNode;
   children: ReactNode;
   bottomContent?: ReactNode;
+  alignTop?: boolean;
   className?: string;
 }) {
   return (
@@ -30,7 +32,13 @@ export function DirectorDockStage({
         </div>
       ) : null}
 
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8">
+      <div
+        className={`mx-auto flex w-full max-w-4xl flex-col items-center px-4 sm:px-6 ${
+          alignTop
+            ? "justify-start pt-5 pb-4"
+            : "flex-1 justify-center py-6 sm:py-8"
+        }`}
+      >
         {children}
       </div>
 

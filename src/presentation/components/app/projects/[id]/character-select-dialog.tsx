@@ -110,6 +110,7 @@ export function CharacterSelectDialog({
   onChange,
   onSelectionsChange,
   onCharacterUpdated,
+  onCreateCharacter,
   onClose,
 }: {
   characters: PublicCharacter[];
@@ -121,6 +122,7 @@ export function CharacterSelectDialog({
   onChange: (ids: string[]) => void;
   onSelectionsChange: (next: CharacterSelectionMap) => void;
   onCharacterUpdated?: (next: PublicCharacter) => void;
+  onCreateCharacter?: () => void;
   onClose: () => void;
 }) {
   const { t, locale } = useI18n();
@@ -307,7 +309,7 @@ export function CharacterSelectDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-accent-ink bg-paper shadow-[8px_8px_0_0_#12141c]"
+        className="flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-accent-ink/15 bg-paper shadow-2xl"
       >
         {/* Dialog Header */}
         <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-accent-ink/10 px-6 py-4">
@@ -319,9 +321,30 @@ export function CharacterSelectDialog({
               {t("brief.castPicker.dialogSubtitle")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {onCreateCharacter ? (
+              <button
+                type="button"
+                onClick={onCreateCharacter}
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl bg-[#12141c] px-3.5 text-xs font-bold text-[#c6f24b] transition hover:bg-black"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span>{isEn ? "New Character" : "新增角色"}</span>
+              </button>
+            ) : null}
             <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              className={`rounded-2xl px-3 py-1 text-xs font-semibold ${
                 pick.ok
                   ? "bg-accent-ink/8 text-foreground"
                   : "bg-accent/15 text-accent"
@@ -628,10 +651,10 @@ export function CharacterSelectDialog({
                                   versionId: defaultSheet.id,
                                 });
                               }}
-                              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                              className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-2.5 text-left transition ${
                                 defaultSelected
-                                  ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
-                                  : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                                  ? "border-accent-ink bg-accent-ink text-paper"
+                                  : "border-accent-ink/15 bg-white hover:border-accent-ink/40"
                               } disabled:cursor-not-allowed disabled:opacity-50`}
                             >
                               {defaultThumb ? (
@@ -639,7 +662,7 @@ export function CharacterSelectDialog({
                                 <img
                                   src={defaultThumb}
                                   alt=""
-                                  className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                  className="h-14 w-14 shrink-0 rounded-xl border border-accent-ink/10 bg-white object-cover object-top"
                                 />
                               ) : null}
                               <span className="min-w-0 flex-1">
@@ -680,10 +703,10 @@ export function CharacterSelectDialog({
                                     presetName: preset.name,
                                   });
                                 }}
-                                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                                className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-2.5 text-left transition ${
                                   isPresetSelected
-                                    ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
-                                    : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                                    ? "border-accent-ink bg-accent-ink text-paper"
+                                    : "border-accent-ink/15 bg-white hover:border-accent-ink/40"
                                 } disabled:cursor-not-allowed disabled:opacity-50`}
                               >
                                 {thumb ? (
@@ -691,7 +714,7 @@ export function CharacterSelectDialog({
                                   <img
                                     src={thumb}
                                     alt=""
-                                    className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                    className="h-14 w-14 shrink-0 rounded-xl border border-accent-ink/10 bg-white object-cover object-top"
                                   />
                                 ) : null}
                                 <span className="min-w-0 flex-1">
@@ -746,10 +769,10 @@ export function CharacterSelectDialog({
                                     presetName: label,
                                   });
                                 }}
-                                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                                className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-2.5 text-left transition ${
                                   isVerSelected
-                                    ? "border-accent-ink bg-accent-ink text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.18)]"
-                                    : "border-accent-ink/15 bg-paper/70 hover:border-accent-ink/40"
+                                    ? "border-accent-ink bg-accent-ink text-paper"
+                                    : "border-accent-ink/15 bg-white hover:border-accent-ink/40"
                                 } disabled:cursor-not-allowed disabled:opacity-50`}
                               >
                                 {thumb ? (
@@ -757,7 +780,7 @@ export function CharacterSelectDialog({
                                   <img
                                     src={thumb}
                                     alt=""
-                                    className="h-14 w-14 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+                                    className="h-14 w-14 shrink-0 rounded-xl border border-accent-ink/10 bg-white object-cover object-top"
                                   />
                                 ) : null}
                                 <span className="min-w-0 flex-1">

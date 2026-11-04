@@ -81,7 +81,7 @@
 /* Primary actions: logo black with lime label. Destructive confirms stay red.
    OpenCut fields also use .bg-accent; leave those on the editor light theme. */
 .studio-app :is(button, a).bg-accent:not(.opencut-direct-host *) {
-  border-radius: 999px;
+  border-radius: 16px;
   background-color: #12141c;
   color: #c6f24b;
   box-shadow: none;
@@ -97,21 +97,21 @@
 }
 
 .studio-app :is(button, a).bg-accent-ink {
-  border-radius: 999px;
+  border-radius: 16px;
   background-color: var(--studio-ink);
   color: #fff;
   box-shadow: none;
 }
 
 .studio-app :is(button, a).bg-lime {
-  border-radius: 999px;
+  border-radius: 16px;
   background-color: #fff;
   color: var(--studio-ink);
   box-shadow: none;
 }
 
 .studio-app :is(button, a)[class*="rounded-full"] {
-  border-radius: 999px;
+  border-radius: 16px;
 }
 
 .studio-app :is(button, a)[class*="min-h-[44px]"],
@@ -124,11 +124,17 @@
 }
 
 .studio-app button[class*="border"][class*="bg-paper"] {
-  border-radius: 999px;
-  border-color: transparent;
+  border-radius: 16px;
+  border-color: var(--studio-line);
   background-color: var(--studio-fill);
   color: var(--studio-ink);
   box-shadow: none;
+}
+
+.studio-app :is(div, section, article, button, a)[class*="rounded-3xl"],
+.studio-app :is(div, section, article, button, a)[class*="rounded-2xl"],
+.studio-app :is(div, section, article, button, a)[class*="rounded-xl"] {
+  border-radius: 16px;
 }
 
 /* Folder grid corner actions. The rules above cancel Tailwind hover on these pills. */
@@ -171,12 +177,12 @@
 
 /* Connected split control inside CharacterPicker: keep straight middle seam and rounded outer corners. */
 .studio-app .character-split-control > button.character-split-trigger {
-  border-radius: 12px 0 0 12px;
+  border-radius: 16px 0 0 16px;
   border-color: var(--studio-line);
 }
 
 .studio-app .character-split-control > button.character-split-create {
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 16px 16px 0;
   background-color: var(--studio-ink);
   color: var(--studio-teal);
 }
@@ -193,14 +199,14 @@
   border-radius: 16px;
 }
 
-/* Dropdown fields use the same 8px corner as text inputs, not the pill button. */
+/* Dropdown fields use the same 16px corner across the platform. */
 .studio-app button[aria-haspopup="listbox"][class*="border"][class*="bg-paper"],
 .studio-app [role="listbox"] button {
-  border-radius: 8px;
+  border-radius: 16px;
 }
 
 .studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.director-dock-stage *) {
-  border-radius: 8px;
+  border-radius: 16px;
   border-color: var(--studio-line);
   background-color: #fff;
   box-shadow: none;
@@ -233,11 +239,11 @@
 }
 
 .studio-app .director-dock-stage button.director-dock-tile {
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .studio-app .director-dock-stage button.director-dock-cell:not([class*="rounded-full"]) {
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .studio-app [class*="bg-lime/"] {

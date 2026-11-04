@@ -1,4 +1,17 @@
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
+
+function toHexId(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (
+    val &&
+    typeof val === "object" &&
+    "toHexString" in val &&
+    typeof (val as { toHexString: unknown }).toHexString === "function"
+  ) {
+    return (val as { toHexString: () => string }).toHexString();
+  }
+  return "";
+}
 
 export const POST_ASPECT_RATIOS = ["9:16", "1:1", "16:9", "2:3"] as const;
 export type PostAspectRatio = (typeof POST_ASPECT_RATIOS)[number];
@@ -179,11 +192,7 @@ export function toPublicPost(
     ? doc.cast
         .map((item) => {
           const rec = (item ?? {}) as Record<string, unknown>;
-          const cid = rec.characterId instanceof ObjectId
-            ? rec.characterId.toHexString()
-            : typeof rec.characterId === "string"
-              ? rec.characterId
-              : "";
+          const cid = toHexId(rec.characterId);
           const lookUrl =
             typeof rec.lookUrl === "string"
               ? rec.lookUrl
@@ -207,11 +216,7 @@ export function toPublicPost(
     ? doc.products
         .map((item) => {
           const rec = (item ?? {}) as Record<string, unknown>;
-          const pid = rec.productId instanceof ObjectId
-            ? rec.productId.toHexString()
-            : typeof rec.productId === "string"
-              ? rec.productId
-              : "";
+          const pid = toHexId(rec.productId);
           const blueprintUrl = typeof rec.blueprintUrl === "string" ? rec.blueprintUrl : "";
           if (!pid || !blueprintUrl) return null;
           return {

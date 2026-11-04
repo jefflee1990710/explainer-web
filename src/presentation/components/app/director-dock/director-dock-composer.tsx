@@ -58,14 +58,26 @@ export function DirectorDockComposer({
   tourId?: string;
   disabled?: boolean;
 }) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      if (disabled || generateDisabled || generating) return;
+      if (generateType === "submit") {
+        e.currentTarget.form?.requestSubmit();
+      } else {
+        onGenerate?.();
+      }
+    }
+  }
+
   return (
-    <div className="mt-2.5 flex w-full max-w-4xl flex-col gap-2.5 md:flex-row md:items-center">
-      {/* Left Vertical Mode Rail (sits inside the max-w-4xl flex row so it never overflows left or pushes the right side off-screen) */}
+    <div className="mt-3 flex w-full max-w-4xl flex-col gap-2.5 md:flex-row md:items-stretch">
+      {/* Left Vertical Mode Rail — 16px studio surface */}
       {modeItems.length > 0 ? (
         <div
           role="tablist"
           aria-label="Creation mode"
-          className="inline-flex shrink-0 items-center gap-1 self-start rounded-2xl border border-zinc-200/90 bg-white p-1.5 shadow-[0_8px_24px_rgba(18,20,28,0.06)] md:self-center md:flex-col"
+          className="inline-flex shrink-0 items-center gap-1 self-start rounded-2xl border border-zinc-200/90 bg-white p-1.5 shadow-[0_8px_24px_rgba(18,20,28,0.06)] md:self-stretch md:flex-col md:justify-center"
         >
           {modeItems.map((item) => {
             const active = item.id === activeModeId;
@@ -77,7 +89,7 @@ export function DirectorDockComposer({
                 aria-selected={active}
                 disabled={disabled}
                 onClick={() => onSelectMode?.(item.id)}
-                className={`director-dock-cell flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition md:w-12 md:flex-col md:gap-1 md:px-1.5 md:py-2.5 ${
+                className={`director-dock-cell flex cursor-pointer items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-[11px] font-bold transition duration-200 md:w-14 md:flex-1 md:flex-col md:gap-1.5 md:px-2 md:py-2.5 ${
                   active
                     ? "bg-[#12141c] text-[#c6f24b] shadow-xs"
                     : "text-zinc-500 hover:bg-zinc-100 hover:text-[#12141c]"
@@ -91,7 +103,7 @@ export function DirectorDockComposer({
         </div>
       ) : null}
 
-      {/* Main Light Composer Box */}
+      {/* Main Light Composer Box — 16px standardized radius with right-docked Send/Generate button */}
       <div
         data-tour-id={tourId}
         className="relative flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-[0_12px_36px_rgba(18,20,28,0.07)]"
@@ -99,19 +111,19 @@ export function DirectorDockComposer({
         {topMediaSlot ? <div className="w-full">{topMediaSlot}</div> : null}
 
         <div className="flex flex-col items-stretch gap-3 sm:flex-row">
-          {/* Left column: Borderless Prompt Textarea + Bottom Pill Toolbar */}
-          <div className="flex min-h-[92px] min-w-0 flex-1 flex-col justify-between gap-2.5">
+          {/* Left column: Prompt Textarea + Bottom Toolbar */}
+          <div className="flex min-h-[96px] min-w-0 flex-1 flex-col justify-between gap-2.5">
             <textarea
-              rows={2}
+              rows={3}
               value={promptValue}
               onChange={(e) => onPromptChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               disabled={disabled}
               placeholder={promptPlaceholder}
-              className="director-dock-textarea min-h-[52px] w-full resize-none border-0 bg-transparent px-1 py-0.5 text-sm leading-6 text-[#12141c] placeholder:text-zinc-400 focus:outline-none disabled:opacity-60"
+              className="director-dock-textarea min-h-[58px] w-full resize-none border-0 bg-transparent px-1 py-0.5 text-sm leading-6 text-[#12141c] placeholder:text-zinc-400 focus:outline-none disabled:opacity-60"
             />
 
-            {/* Bottom-left pill toolbar */}
-            <div className="relative flex flex-wrap items-center gap-1.5">
+            <div className="relative flex flex-wrap items-center gap-2">
               {onPlusToggle ? (
                 <div className="relative">
                   <button
@@ -119,12 +131,23 @@ export function DirectorDockComposer({
                     disabled={disabled}
                     onClick={onPlusToggle}
                     aria-label="More options and samples"
-                    className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-[#f4f4f5] text-sm font-bold text-[#12141c] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:opacity-50"
+                    className="director-dock-cell inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-[#f4f4f5] text-[#12141c] transition duration-200 hover:border-zinc-400 hover:bg-zinc-200/70 disabled:opacity-50"
                   >
-                    +
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
                   </button>
                   {plusMenuOpen && plusMenuSlot ? (
-                    <div className="absolute bottom-10 left-0 z-40 min-w-[260px] rounded-2xl border border-zinc-200 bg-white p-3 text-[#12141c] shadow-2xl">
+                    <div className="absolute bottom-11 left-0 z-40 min-w-[260px] rounded-2xl border border-zinc-200 bg-white p-3 text-[#12141c] shadow-2xl">
                       {plusMenuSlot}
                     </div>
                   ) : null}
@@ -135,7 +158,7 @@ export function DirectorDockComposer({
             </div>
           </div>
 
-          {/* Right cluster: Two Quick Tiles + Lime Generate Button */}
+          {/* Right cluster: Optional side tiles + Right-side Send/Generate Button */}
           <div className="flex shrink-0 items-stretch gap-2">
             {rightSlot1}
             {rightSlot2}
@@ -144,17 +167,38 @@ export function DirectorDockComposer({
               type={generateType}
               disabled={generateDisabled || generating}
               onClick={generateType === "button" ? onGenerate : undefined}
-              className="director-dock-generate flex min-h-[84px] w-26 sm:w-28 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl bg-[#c6f24b] px-3.5 py-3 font-display text-sm font-extrabold text-[#12141c] transition hover:bg-[#b6e23a] disabled:cursor-not-allowed disabled:opacity-45"
+              title="Press Enter to generate (Shift+Enter for new line)"
+              className="director-dock-generate flex min-h-[96px] w-28 sm:w-30 shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl bg-[#c6f24b] px-4 py-3 font-display text-sm font-extrabold text-[#12141c] transition duration-200 hover:bg-[#b6e23a] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {generating ? (
                 <Spinner className="h-4 w-4 text-[#12141c]" />
-              ) : null}
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m5 12 14-7-4 14-3-5-7-2z" />
+                </svg>
+              )}
               <span className="text-sm font-extrabold tracking-tight">
                 {generateLabel}
               </span>
               {creditBadge !== undefined && creditBadge !== "" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#12141c]/80">
-                  <span>✦</span>
+                <span className="inline-flex items-center gap-1 rounded-xl bg-[#12141c]/10 px-2 py-0.5 text-[11px] font-bold text-[#12141c]">
+                  <svg
+                    aria-hidden="true"
+                    className="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" />
+                  </svg>
                   <span>{creditBadge}</span>
                 </span>
               ) : null}
@@ -207,18 +251,18 @@ export function DirectorDockPill({
       disabled={disabled}
       onClick={onClick}
       title={title}
-      className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-[#f4f4f5] px-3 text-xs font-semibold text-[#12141c] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
+      className="director-dock-cell inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-2xl border border-zinc-200 bg-[#f4f4f5] px-3 text-xs font-semibold text-[#12141c] transition duration-200 hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {accentBadge ? (
-        <span className="flex items-center rounded bg-[#12141c] px-1 py-0.5 text-[10px] font-bold text-[#c6f24b]">
+        <span className="flex items-center rounded-lg bg-[#12141c] px-1.5 py-0.5 text-[10px] font-bold text-[#c6f24b]">
           {accentBadge}
         </span>
       ) : null}
-      {icon ? <span className="flex items-center text-zinc-500">{icon}</span> : null}
-      <span className="max-w-[145px] truncate">{label}</span>
+      {icon ? <span className="flex items-center text-zinc-600">{icon}</span> : null}
+      <span className="max-w-[160px] truncate">{label}</span>
       {hasChevron ? (
         <svg
-          aria-hidden
+          aria-hidden="true"
           className="h-3 w-3 text-zinc-500"
           viewBox="0 0 24 24"
           fill="none"

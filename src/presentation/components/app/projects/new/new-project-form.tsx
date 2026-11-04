@@ -168,7 +168,7 @@ import {
   BriefSetupModeBar,
   type BriefSetupMode,
 } from "@/presentation/components/app/projects/new/brief-setup-mode-bar";
-import { ProjectPicker, type ProjectOption } from "@/presentation/components/app/project-picker";
+import type { ProjectOption } from "@/presentation/components/app/project-picker";
 import { CreateVideoFeatureDiscovery } from "@/presentation/components/app/projects/new/create-video-feature-discovery";
 import {
   FirstVideoOnboardingModal,
@@ -237,7 +237,6 @@ function chosenTextStyleId(
 
 export function NewProjectForm({
   projectId,
-  folders = [],
   skills: allSkills,
   styles,
   characters,
@@ -438,8 +437,8 @@ export function NewProjectForm({
   const allowsBgUpload = skillAllowsBackgroundUpload(ruleSlug);
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
-  const [folderId, setFolderId] = useState(projectId);
-  const [folderOptions, setFolderOptions] = useState(folders);
+  // All new videos default to no project folder.
+  const folderId = "";
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
@@ -1498,24 +1497,6 @@ export function NewProjectForm({
                   canSubmit={canSubmit}
                   error={error ? translateAppError(error, t) : ""}
                   onError={setError}
-                  projectPicker={
-                    !project ? (
-                      <ProjectPicker
-                        folders={folderOptions}
-                        value={folderId || "none"}
-                        disabled={briefBusy}
-                        onChange={(next) =>
-                          setFolderId(next === "none" || next === "all" ? "" : next)
-                        }
-                        onFolderCreated={(folder) =>
-                          setFolderOptions((current) => [
-                            folder,
-                            ...current.filter((item) => item.id !== folder.id),
-                          ])
-                        }
-                      />
-                    ) : undefined
-                  }
                   onOpenDetails={() => {
                     setError("");
                     setSetupMode("details");
@@ -1555,24 +1536,6 @@ export function NewProjectForm({
                       setTutorialOpen(true);
                     }}
                     disabled={briefBusy}
-                    projectPicker={
-                      !project ? (
-                        <ProjectPicker
-                          folders={folderOptions}
-                          value={folderId || "none"}
-                          disabled={briefBusy}
-                          onChange={(next) =>
-                            setFolderId(next === "none" || next === "all" ? "" : next)
-                          }
-                          onFolderCreated={(folder) =>
-                            setFolderOptions((current) => [
-                              folder,
-                              ...current.filter((item) => item.id !== folder.id),
-                            ])
-                          }
-                        />
-                      ) : undefined
-                    }
                   />
 
                   <BriefWizardStepper
