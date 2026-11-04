@@ -235,11 +235,27 @@ export function PostStudio({
     setError("");
     setSubmitting(true);
     try {
+      const characterLookUrls: Record<string, string> = {};
+      for (const cid of selectedCharacterIds) {
+        const sel = characterSelections[cid];
+        const charDoc = characters.find((c) => c.id === cid);
+        if (!sel || !charDoc) continue;
+        if (sel.presetId) {
+          const preset = charDoc.presets?.find((p) => p.id === sel.presetId);
+          const url = preset ? presetImageUrl(preset, charDoc) : "";
+          if (url) characterLookUrls[cid] = url;
+        } else if (sel.versionId) {
+          const ver = charDoc.versions.find((v) => v.id === sel.versionId);
+          const url = versionImageUrl(ver);
+          if (url) characterLookUrls[cid] = url;
+        }
+      }
       const res = await createPostJobAction({
         prompt: createPrompt.trim(),
         aspectRatio,
         styleId: selectedStyleId || undefined,
         characterIds: selectedCharacterIds,
+        characterLookUrls,
         productIds: selectedProductId ? [selectedProductId] : [],
         referenceImageUrl: referenceImageUrl || undefined,
         sourceImageUrl: sourceImageUrl || undefined,
@@ -803,27 +819,50 @@ export function PostStudio({
             <div className="text-xs font-bold text-[#12141c]">
               {isEn ? "Upload Image" : "上傳圖片"}
             </div>
-            <BrandUploadButton
-              accept="image/png,image/jpeg,image/webp"
-              label={
-                studioMode === "create"
-                  ? isEn
-                    ? "Upload Existing Post to Edit in SAM"
-                    : "上傳現有海報直接進入 SAM 分割編輯"
-                  : isEn
+            {studioMode === "create" ? (
+              <div className="space-y-2">
+                <BrandUploadButton
+                  accept="image/png,image/jpeg,image/webp"
+                  label={
+                    isEn
+                      ? "Upload Composition Reference (Ref Layout)"
+                      : "上傳構圖參考圖（Ref Layout）"
+                  }
+                  onUploaded={({ url }) => {
+                    setReferenceImageUrl(url);
+                    setPlusMenuOpen(false);
+                  }}
+                  onError={(msg) => setError(msg)}
+                />
+                <BrandUploadButton
+                  accept="image/png,image/jpeg,image/webp"
+                  label={
+                    isEn
+                      ? "Upload Existing Post to Edit in SAM"
+                      : "上傳現有海報直接進入 SAM 分割編輯"
+                  }
+                  onUploaded={({ url }) => {
+                    setSourceImageUrl(url);
+                    setPlusMenuOpen(false);
+                  }}
+                  onError={(msg) => setError(msg)}
+                />
+              </div>
+            ) : (
+              <BrandUploadButton
+                accept="image/png,image/jpeg,image/webp"
+                label={
+                  isEn
                     ? "Upload Donor / Reference Image"
                     : "上傳替換參考圖片"
-              }
-              onUploaded={({ url }) => {
-                if (studioMode === "create") {
-                  setSourceImageUrl(url);
-                } else {
-                  setEditReferenceUrl(url);
                 }
-                setPlusMenuOpen(false);
-              }}
-              onError={(msg) => setError(msg)}
-            />
+                onUploaded={({ url }) => {
+                  setEditReferenceUrl(url);
+                  setPlusMenuOpen(false);
+                }}
+                onError={(msg) => setError(msg)}
+              />
+            )}
           </div>
         }
         pills={

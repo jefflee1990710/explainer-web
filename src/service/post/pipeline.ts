@@ -43,10 +43,19 @@ export type CreatePostJobInput = {
   aspectRatio?: PostAspectRatio;
   styleId?: string;
   characterIds?: string[];
+  characterLookUrls?: Record<string, string>;
   productIds?: string[];
   referenceImageUrl?: string;
   sourceImageUrl?: string;
 };
+
+export function pickCharacterLookUrl(
+  characterId: string,
+  characterLookUrls?: Record<string, string>,
+): string | undefined {
+  const url = characterLookUrls?.[characterId]?.trim();
+  return url ? url : undefined;
+}
 
 export type EditPostElementInput = {
   postId: string;
@@ -162,6 +171,7 @@ async function segmentPostBuffer(imageBuffer: Buffer): Promise<DetectedPostEleme
 async function resolveCastMembers(
   clerkUserId: string,
   characterIds: readonly string[],
+  characterLookUrls?: Record<string, string>,
 ): Promise<PostCastMember[]> {
   const validIds = characterIds
     .map((id) => id.trim())
@@ -177,7 +187,8 @@ async function resolveCastMembers(
   for (const id of validIds) {
     const doc = docs.find((d) => d._id.toHexString() === id);
     if (!doc) continue;
-    const resolved = resolveCharacterDonorForSwap(doc);
+    const requestedLook = pickCharacterLookUrl(id, characterLookUrls);
+    const resolved = resolveCharacterDonorForSwap(doc, requestedLook);
     if (!resolved.donorImageUrl) continue;
     out.push({
       characterId: doc._id,
@@ -310,7 +321,11 @@ export async function createPostJob(
 
     await assertCanSpendCredits(user, FRAME_COST);
     const [cast, products] = await Promise.all([
-      resolveCastMembers(user.clerkUserId, input.characterIds ?? []),
+      resolveCastMembers(
+        user.clerkUserId,
+        input.characterIds ?? [],
+        input.characterLookUrls,
+      ),
       resolveProductItems(user.clerkUserId, input.productIds ?? []),
     ]);
 

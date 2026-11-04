@@ -9,6 +9,7 @@ import {
 } from "@/service/post/prompts";
 import {
   applyRevisionSelection,
+  pickCharacterLookUrl,
   validateEditPostElementInput,
 } from "@/service/post/pipeline";
 
@@ -180,4 +181,12 @@ test("applyRevisionSelection restores target revision imageUrl and detectedEleme
   assert.ok(updated);
   assert.equal(updated.currentImageUrl, "https://blob.example/v1.webp");
   assert.equal(updated.detectedElements.length, 1);
+});
+
+test("pickCharacterLookUrl prefers explicit characterLookUrls override when resolving cast", () => {
+  assert.equal(
+    pickCharacterLookUrl("char-1", { "char-1": "https://blob.example/preset-look.webp" }),
+    "https://blob.example/preset-look.webp",
+  );
+  assert.equal(pickCharacterLookUrl("char-2", { "char-1": "https://blob.example/preset-look.webp" }), undefined);
 });
