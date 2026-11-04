@@ -55,11 +55,12 @@ import {
   type LifeLookSelection,
 } from "@/presentation/components/app/life/life-preset-tree";
 import { LifeWardrobePicker } from "@/presentation/components/app/life/life-wardrobe-picker";
+import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { FRAME_COST } from "@/service/credit-costs";
-import type { PublicCharacter } from "@/presentation/serialize";
+import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import type {
   PublicLifeCharacter,
   PublicLifeShot,
@@ -67,7 +68,17 @@ import type {
 import type { LifeSceneHit } from "@/service/character/life-prompt";
 import type { CharacterWardrobePicks } from "@/service/character/character-look";
 import type { CharacterWardrobeColorPicks } from "@/service/character/wardrobe-colors";
+import { STYLES } from "@/service/style/catalog";
 import { translateAppError } from "@/util/i18n/translate-app-error";
+
+const LIFE_PUBLIC_STYLES: PublicStyle[] = STYLES.map((s) => ({
+  id: s.id,
+  name: s.name,
+  description: s.description,
+  canvasColor: s.canvasColor,
+  previewUrl: s.previewUrl,
+  isCustom: false,
+}));
 
 const REMARK_PALETTE = [
   { color: "#ff3b30", name: "red (#ff3b30)" },
@@ -229,6 +240,7 @@ export function LifeDesk({
   const [poseDialogOpen, setPoseDialogOpen] = useState(false);
   const [wardrobeDialogOpen, setWardrobeDialogOpen] = useState(false);
   const [lookDialogOpen, setLookDialogOpen] = useState(false);
+  const [createCharOpen, setCreateCharOpen] = useState(false);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const sceneFileInputRef = useRef<HTMLInputElement | null>(null);
   // Optional hair / clothes overrides.
@@ -927,7 +939,7 @@ export function LifeDesk({
             disabled={pending !== ""}
             badgeLabel={character?.name || t("life.title")}
             onOpenPicker={() => setLookDialogOpen(true)}
-            onManageActive={() => setDressOpen(true)}
+            onManageActive={() => setLookDialogOpen(true)}
           />
 
           <DirectorDockDivider />
@@ -1195,7 +1207,7 @@ export function LifeDesk({
         />
       </DirectorDockStage>
 
-      {/* Look Preset Selector Modal */}
+      {/* Character & Look Preset Selector Modal */}
       {lookDialogOpen && character ? (
         <div
           role="dialog"
@@ -1204,21 +1216,71 @@ export function LifeDesk({
           onClick={() => setLookDialogOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-accent-ink/15 bg-paper p-5 text-[#12141c] shadow-2xl"
+            className="max-h-[88dvh] w-full max-w-3xl space-y-4 overflow-y-auto rounded-2xl border border-accent-ink/15 bg-paper p-5 text-[#12141c] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-display text-sm font-bold">
-                {locale === "en" ? "Select Character Look" : "選擇角色預設造型"}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-display text-base font-bold">
+                {locale === "en" ? "Select Character & Preset" : "選擇角色與預設造型"}
               </h3>
-              <button
-                type="button"
-                onClick={() => setLookDialogOpen(false)}
-                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLookDialogOpen(false);
+                    setCreateCharOpen(true);
+                  }}
+                  className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-2xl bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] hover:bg-black"
+                >
+                  <span>+</span>
+                  <span>{locale === "en" ? "New Character" : "新增角色"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLookDialogOpen(false)}
+                  className="cursor-pointer rounded-2xl px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
+
+            {/* Character Avatar Strip */}
+            <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-7">
+              {people.map((person) => {
+                const active = person.id === characterId;
+                return (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => selectCharacter(person.id)}
+                    className={`group relative flex aspect-square w-full cursor-pointer flex-col justify-end overflow-hidden rounded-2xl border text-left transition ${
+                      active
+                        ? "border-2 border-[#12141c] ring-2 ring-[#c6f24b]"
+                        : "border-zinc-200 hover:border-zinc-400"
+                    }`}
+                  >
+                    {person.previewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={person.previewUrl}
+                        alt={person.name}
+                        className="absolute inset-0 h-full w-full object-cover object-top"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 grid place-items-center bg-zinc-100 text-xs font-bold text-zinc-500">
+                        {person.name.slice(0, 2)}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                    <span className="relative z-10 truncate px-2 py-1 text-[11px] font-bold text-white">
+                      {person.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             <LifePresetTree
               character={character}
               look={look}
@@ -1252,6 +1314,31 @@ export function LifeDesk({
             />
           </div>
         </div>
+      ) : null}
+
+      {createCharOpen ? (
+        <InlineCreateCharacterDialog
+          styles={LIFE_PUBLIC_STYLES}
+          defaultStyleId="realistic"
+          subscribed={subscribed}
+          onCreated={(created) => {
+            const newLifeChar: PublicLifeCharacter = {
+              id: created.id,
+              name: created.name,
+              styleId: created.styleId,
+              previewUrl: created.previewUrl,
+              ready: Boolean(created.previewUrl),
+              persona: created.persona,
+              styles: lifeStylesFromPublic(created),
+              presets: lifePresetsFromPublic(created.presets, created),
+            };
+            setPeople((prev) => [newLifeChar, ...prev]);
+            setCharacterId(created.id);
+            setLook(EMPTY_LIFE_LOOK);
+            setCreateCharOpen(false);
+          }}
+          onClose={() => setCreateCharOpen(false)}
+        />
       ) : null}
 
       {/* Wardrobe Override Modal */}

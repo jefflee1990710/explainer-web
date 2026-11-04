@@ -571,6 +571,7 @@ export function PostStudio({
       {characterDialogOpen ? (
         <CharacterSelectDialog
           characters={characters}
+          styles={styles}
           styleId={selectedStyleId}
           value={selectedCharacterIds}
           selections={characterSelections}

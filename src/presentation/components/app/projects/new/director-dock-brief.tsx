@@ -974,20 +974,23 @@ export function DirectorDockBrief({
 
       {charDialogOpen ? (
         <CharacterSelectDialog
-          characters={readyCharacters}
+          characters={allCharacters}
+          styles={styles}
           styleId={styleId}
           value={characterIds}
           selections={characterSelections}
           max={castNeed > 0 ? castNeed : 1}
           required={castNeed}
+          credits={credits}
+          subscribed={subscribed}
           onChange={onCharacterIdsChange}
           onSelectionsChange={onCharacterSelectionsChange}
           onCharacterUpdated={(updated) =>
             setCharOverrides((prev) => ({ ...prev, [updated.id]: updated }))
           }
-          onCreateCharacter={() => {
-            setCharDialogOpen(false);
-            setCreateCharOpen(true);
+          onCharacterCreated={(created) => {
+            setCreatedCharacters((prev) => [created, ...prev]);
+            setCharOverrides((prev) => ({ ...prev, [created.id]: created }));
           }}
           onClose={() => setCharDialogOpen(false)}
         />

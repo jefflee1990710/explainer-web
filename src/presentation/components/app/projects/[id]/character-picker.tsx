@@ -325,17 +325,21 @@ export function CharacterPicker({
 
       {open ? (
         <CharacterSelectDialog
-          characters={ready}
+          characters={characters}
+          styles={styles}
           styleId={styleId}
           value={value}
           selections={selections}
           max={max}
           required={required}
+          credits={credits}
+          subscribed={subscribed}
           onChange={onChange}
           onSelectionsChange={setSelections}
           onCharacterUpdated={(updated) =>
             setOverrides((prev) => ({ ...prev, [updated.id]: updated }))
           }
+          onCharacterCreated={handleCreatedCharacter}
           onClose={() => setOpen(false)}
         />
       ) : null}

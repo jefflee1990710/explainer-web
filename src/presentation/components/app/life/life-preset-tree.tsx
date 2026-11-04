@@ -124,8 +124,10 @@ export function LifePresetTree({
   onSelectPreset: (preset: PublicLifePreset) => void;
   onManage: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
   const [styleFilter, setStyleFilter] = useState<string>("all");
+  const [lookTab, setLookTab] = useState<"presets" | "history">("presets");
 
   const supportedStyles: PublicLifeStyleLook[] =
     character.styles && character.styles.length > 0
@@ -156,10 +158,14 @@ export function LifePresetTree({
       ? supportedStyles
       : supportedStyles.filter((s) => s.styleId === activeStyleFilter);
 
-  const visiblePresets =
+  const styleFilteredPresets =
     activeStyleFilter === "all"
       ? character.presets
       : character.presets.filter((p) => !p.styleId || p.styleId === activeStyleFilter);
+
+  const savedPresetsOnly = styleFilteredPresets.filter((p) => !p.id.startsWith("ver_"));
+  const historyPresetsOnly = styleFilteredPresets.filter((p) => p.id.startsWith("ver_"));
+  const visiblePresets = lookTab === "presets" ? savedPresetsOnly : historyPresetsOnly;
 
   const pinnedPreset =
     character.presets.find((preset) => preset.id === look.presetId) ||
@@ -214,7 +220,7 @@ export function LifePresetTree({
                 aria-selected={activeStyleFilter === "all"}
                 disabled={disabled}
                 onClick={() => setStyleFilter("all")}
-                className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
+                className={`cursor-pointer rounded-2xl px-2.5 py-1 text-[11px] font-bold transition ${
                   activeStyleFilter === "all"
                     ? "bg-accent-ink text-paper shadow-xs"
                     : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
@@ -247,7 +253,7 @@ export function LifePresetTree({
                       onSelectStyle(styleLook);
                     }
                   }}
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-2xl px-2.5 py-1 text-[11px] font-bold transition ${
                     isSelectedStyle
                       ? "bg-accent-ink text-lime shadow-xs"
                       : "border border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
@@ -268,13 +274,49 @@ export function LifePresetTree({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onManage}
-          className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink"
-        >
-          {t("life.manageDress")}
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Presets (first) | History (second) tabs */}
+          <div role="tablist" className="inline-flex rounded-2xl border border-accent-ink/15 bg-white p-0.5">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={lookTab === "presets"}
+              onClick={() => setLookTab("presets")}
+              className={`cursor-pointer rounded-2xl px-2.5 py-1 text-[11px] font-bold transition ${
+                lookTab === "presets"
+                  ? "bg-accent-ink text-lime"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {isEn
+                ? `Presets (${visibleStyles.length + savedPresetsOnly.length})`
+                : `預設造型 (${visibleStyles.length + savedPresetsOnly.length})`}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={lookTab === "history"}
+              onClick={() => setLookTab("history")}
+              className={`cursor-pointer rounded-2xl px-2.5 py-1 text-[11px] font-bold transition ${
+                lookTab === "history"
+                  ? "bg-accent-ink text-lime"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {isEn
+                ? `History (${historyPresetsOnly.length})`
+                : `歷史造型 (${historyPresetsOnly.length})`}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onManage}
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-2xl border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink"
+          >
+            {t("life.manageDress")}
+          </button>
+        </div>
       </div>
 
       <div
@@ -282,33 +324,35 @@ export function LifePresetTree({
         aria-label={t("life.presetHeading")}
         className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1"
       >
-        {visibleStyles.map((styleLook) => {
-          const globalIdx = supportedStyles.findIndex((s) => s.styleId === styleLook.styleId);
-          const active = isStyleCardActive(styleLook, globalIdx);
-          const styleName = getStyleLabel(styleLook.styleId);
-          return (
-            <OutfitCard
-              key={`style-${styleLook.styleId}`}
-              active={active}
-              disabled={disabled}
-              thumb={styleLook.thumbUrl ?? character.previewUrl}
-              label={
-                supportedStyles.length > 1
-                  ? styleName
-                  : `${t("life.defaultLook")} · ${styleName}`
-              }
-              badge={styleName}
-              detail={styleLook.detail || `${styleName} (${t("life.defaultLook")})`}
-              onSelect={() => {
-                if (globalIdx === 0 && (!primaryStyle?.versionId || styleLook.versionId === primaryStyle.versionId)) {
-                  onSelectDefault();
-                } else if (onSelectStyle) {
-                  onSelectStyle(styleLook);
-                }
-              }}
-            />
-          );
-        })}
+        {lookTab === "presets"
+          ? visibleStyles.map((styleLook) => {
+              const globalIdx = supportedStyles.findIndex((s) => s.styleId === styleLook.styleId);
+              const active = isStyleCardActive(styleLook, globalIdx);
+              const styleName = getStyleLabel(styleLook.styleId);
+              return (
+                <OutfitCard
+                  key={`style-${styleLook.styleId}`}
+                  active={active}
+                  disabled={disabled}
+                  thumb={styleLook.thumbUrl ?? character.previewUrl}
+                  label={
+                    supportedStyles.length > 1
+                      ? styleName
+                      : `${t("life.defaultLook")} · ${styleName}`
+                  }
+                  badge={styleName}
+                  detail={styleLook.detail || `${styleName} (${t("life.defaultLook")})`}
+                  onSelect={() => {
+                    if (globalIdx === 0 && (!primaryStyle?.versionId || styleLook.versionId === primaryStyle.versionId)) {
+                      onSelectDefault();
+                    } else if (onSelectStyle) {
+                      onSelectStyle(styleLook);
+                    }
+                  }}
+                />
+              );
+            })
+          : null}
 
         {customActive ? (
           <OutfitCard

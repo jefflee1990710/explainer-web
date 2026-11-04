@@ -30,9 +30,11 @@ import {
   type JutsuPersonSlotAssignment,
 } from "@/presentation/components/app/jutsu/jutsu-person-rle-mapper";
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
+import { AddCharacterStyleDialog } from "@/presentation/components/app/characters/[id]/add-character-style-dialog";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-swap-history-dialog";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
+import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -41,11 +43,22 @@ import type {
   PublicCharacter,
   PublicCharacterPreset,
   PublicCharacterVersion,
+  PublicStyle,
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
 import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
+import { STYLES } from "@/service/style/catalog";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
+
+const JUTSU_PUBLIC_STYLES: PublicStyle[] = STYLES.map((s) => ({
+  id: s.id,
+  name: s.name,
+  description: s.description,
+  canvasColor: s.canvasColor,
+  previewUrl: s.previewUrl,
+  isCustom: false,
+}));
 
 type LookTab = "presets" | "historical";
 
@@ -176,6 +189,8 @@ export function JutsuStudio({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [charModalOpen, setCharModalOpen] = useState(false);
+  const [createCharOpen, setCreateCharOpen] = useState(false);
+  const [addStyleOpen, setAddStyleOpen] = useState(false);
   const [relightModalOpen, setRelightModalOpen] = useState(false);
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
   const [sourceDragOver, setSourceDragOver] = useState(false);
@@ -1124,7 +1139,16 @@ export function JutsuStudio({
                     ? "Select Character & Outfit Look"
                     : "選擇替換角色與造型"}
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setCreateCharOpen(true)}
+                  className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-2xl bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] hover:bg-black"
+                >
+                  <span>+</span>
+                  <span>{isEn ? "New Character" : "新增角色"}</span>
+                </button>
                 <BrandUploadButton
                   label={isEn ? "Upload Custom Photo" : "上傳自訂人物相"}
                   accept="image/png,image/jpeg,image/webp"
@@ -1143,7 +1167,7 @@ export function JutsuStudio({
                 <button
                   type="button"
                   onClick={() => setCharModalOpen(false)}
-                  className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
+                  className="cursor-pointer rounded-2xl px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
                 >
                   ✕
                 </button>
@@ -1242,19 +1266,30 @@ export function JutsuStudio({
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => {
-                      setCharModalOpen(false);
-                      setManagingCharacter(true);
-                    }}
-                    className="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink bg-lime/60 px-3.5 text-xs font-bold text-accent-ink transition hover:bg-lime"
-                  >
-                    <span>
-                      {isEn ? "+ Customize Outfit" : "+ 自訂穿搭 Customize Outfit"}
-                    </span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => setAddStyleOpen(true)}
+                      className="inline-flex min-h-[36px] cursor-pointer items-center gap-1 rounded-2xl border border-zinc-300 bg-white px-3 text-xs font-bold text-[#12141c] hover:border-[#12141c]"
+                    >
+                      <span>+</span>
+                      <span>{isEn ? "Add Style" : "新增風格"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => {
+                        setCharModalOpen(false);
+                        setManagingCharacter(true);
+                      }}
+                      className="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-2xl border border-accent-ink bg-lime/60 px-3.5 text-xs font-bold text-accent-ink transition hover:bg-lime"
+                    >
+                      <span>
+                        {isEn ? "+ Customize Outfit" : "+ 自訂穿搭"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {lookTab === "presets" ? (
@@ -1632,6 +1667,31 @@ export function JutsuStudio({
         onSelectJob={setActiveJob}
         onDeleteJob={(id) => void onDeleteJob(id)}
       />
+
+      {createCharOpen ? (
+        <InlineCreateCharacterDialog
+          styles={JUTSU_PUBLIC_STYLES}
+          defaultStyleId="realistic"
+          onCreated={(created) => {
+            setCharacters((prev) => [created, ...prev]);
+            selectCharacter(created);
+          }}
+          onClose={() => setCreateCharOpen(false)}
+        />
+      ) : null}
+
+      {addStyleOpen && activeCharacter ? (
+        <AddCharacterStyleDialog
+          character={activeCharacter}
+          styles={JUTSU_PUBLIC_STYLES}
+          onClose={() => setAddStyleOpen(false)}
+          onAdded={(updated) => {
+            handleCharacterUpdated(updated);
+            setAddStyleOpen(false);
+          }}
+          onNeedCredits={() => setAddStyleOpen(false)}
+        />
+      ) : null}
 
       {managingCharacter && activeCharacter ? (
         <CharacterManageDialog
