@@ -52,7 +52,7 @@ export const zhHant: Messages = {
     talkingHeadVideo: "Talking Head",
     cantonese: "粵語",
     explainer: "Explainer",
-    explainerVideo: "Explainer Video",
+    explainerVideo: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "產品宣傳",
     features: "影片",

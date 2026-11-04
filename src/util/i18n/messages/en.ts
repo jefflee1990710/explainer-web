@@ -52,7 +52,7 @@ export const en: Messages = {
     talkingHeadVideo: "Talking Head",
     cantonese: "Cantonese",
     explainer: "Explainer",
-    explainerVideo: "Explainer Video",
+    explainerVideo: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "Product promo",
     features: "Videos",

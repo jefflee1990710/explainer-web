@@ -33,6 +33,7 @@ export const zhHans: Partial<Messages> = {
     talkingHead: "口播",
     cantonese: "粤语",
     explainer: "Explainer",
+    explainerVideo: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "产品宣传",
     features: "影片",

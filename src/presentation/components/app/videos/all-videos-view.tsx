@@ -1,48 +1,155 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import type { PublicJutsuJob } from "@/model/jutsu-job";
 import type { PublicTeleportJob } from "@/model/teleport-job";
-import { deleteJutsuJobAction } from "@/presentation/actions/jutsu";
-import { deleteTeleportJobAction } from "@/presentation/actions/teleport";
-import { ScroSwapHistoryPanel } from "@/presentation/components/app/jutsu/scro-swap-history-panel";
-import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
+import {
+  deleteJutsuJobAction,
+  pollJutsuJobStatusAction,
+} from "@/presentation/actions/jutsu";
+import {
+  deleteTeleportJobAction,
+  pollTeleportJobStatusAction,
+} from "@/presentation/actions/teleport";
+import { VideoListFilters } from "@/presentation/components/app/projects/[id]/video-list-filters";
+import { VideoTablePager } from "@/presentation/components/app/projects/[id]/video-table-pager";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
-import { TeleportHistoryPanel } from "@/presentation/components/app/teleport/teleport-history-panel";
+import { VideoListRow } from "@/presentation/components/app/videos/video-list-row";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import type { PublicCharacter, PublicVideoCard } from "@/presentation/serialize";
-
-type VideoCategoryTab = "all" | "studio" | "scroswap" | "teleport";
+import type {
+  PublicCharacter,
+  PublicVideoCard,
+} from "@/presentation/serialize";
+import {
+  VIDEO_LIST_FILTER_PARAM,
+  videoListFiltersFromSearch,
+  videoListFiltersSearchValue,
+  type VideoListFilter,
+} from "@/service/video/list-stage";
+import {
+  buildUnifiedVideoItems,
+  filterUnifiedVideoItems,
+  type UnifiedVideoCategory,
+} from "@/service/video/unified-video-list";
+import { pageCount, pageSlice } from "@/util/video-page";
 
 export function AllVideosView({
   initialVideos,
   initialSwapJobs,
   initialTeleportJobs,
-  characters,
 }: {
   initialVideos: PublicVideoCard[];
   initialSwapJobs: PublicJutsuJob[];
   initialTeleportJobs: PublicTeleportJob[];
-  characters: PublicCharacter[];
+  characters?: PublicCharacter[];
 }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const isEn = locale === "en";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filterQuery = searchParams.get(VIDEO_LIST_FILTER_PARAM);
 
-  const [tab, setTab] = useState<VideoCategoryTab>("all");
-  const [swapJobs, setSwapJobs] = useState<PublicJutsuJob[]>(initialSwapJobs);
-  const [activeSwapId, setActiveSwapId] = useState<string | null>(
-    initialSwapJobs[0]?.id ?? null,
+  const [tab, setTab] = useState<UnifiedVideoCategory>("all");
+  const [page, setPage] = useState(1);
+  const [polledSwapById, setPolledSwapById] = useState<
+    Record<string, PublicJutsuJob>
+  >({});
+  const [deletedSwapIds, setDeletedSwapIds] = useState<Record<string, boolean>>(
+    {},
   );
-  const [teleportJobs, setTeleportJobs] =
-    useState<PublicTeleportJob[]>(initialTeleportJobs);
-  const [activeTeleportId, setActiveTeleportId] = useState<string | null>(
-    initialTeleportJobs[0]?.id ?? null,
+  const [polledTeleportById, setPolledTeleportById] = useState<
+    Record<string, PublicTeleportJob>
+  >({});
+  const [deletedTeleportIds, setDeletedTeleportIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [postedOverrides, setPostedOverrides] = useState<
+    Record<string, string>
+  >({});
+  const [archivedOverrides, setArchivedOverrides] = useState<
+    Record<string, string | null>
+  >({});
+  const [filters, setFilters] = useState<VideoListFilter[]>(() =>
+    videoListFiltersFromSearch(filterQuery),
   );
+
+  const swapJobs = useMemo(
+    () =>
+      initialSwapJobs
+        .filter((item) => !deletedSwapIds[item.id])
+        .map((item) => polledSwapById[item.id] ?? item),
+    [initialSwapJobs, deletedSwapIds, polledSwapById],
+  );
+
+  const teleportJobs = useMemo(
+    () =>
+      initialTeleportJobs
+        .filter((item) => !deletedTeleportIds[item.id])
+        .map((item) => polledTeleportById[item.id] ?? item),
+    [initialTeleportJobs, deletedTeleportIds, polledTeleportById],
+  );
+
+  // Poll in-flight Scro Swap jobs every 4.5s
+  useEffect(() => {
+    const runningIds = swapJobs
+      .filter((item) => item.status === "rendering")
+      .map((item) => item.id);
+    if (runningIds.length === 0) return;
+
+    const timer = window.setInterval(async () => {
+      for (const id of runningIds) {
+        const res = await pollJutsuJobStatusAction(id);
+        if (!res.ok) continue;
+        setPolledSwapById((prev) => ({ ...prev, [res.job.id]: res.job }));
+        if (res.job.status === "completed" || res.job.status === "failed") {
+          notifyTasksChanged();
+        }
+      }
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, [swapJobs]);
+
+  // Poll in-flight Teleport jobs every 4.5s
+  useEffect(() => {
+    const runningIds = teleportJobs
+      .filter((item) => item.status === "rendering")
+      .map((item) => item.id);
+    if (runningIds.length === 0) return;
+
+    const timer = window.setInterval(async () => {
+      for (const id of runningIds) {
+        const res = await pollTeleportJobStatusAction(id);
+        if (!res.ok) continue;
+        setPolledTeleportById((prev) => ({ ...prev, [res.job.id]: res.job }));
+        if (res.job.status === "completed" || res.job.status === "failed") {
+          notifyTasksChanged();
+        }
+      }
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, [teleportJobs]);
+
+  function selectTab(nextTab: UnifiedVideoCategory) {
+    setTab(nextTab);
+    setPage(1);
+  }
+
+  function selectFilters(next: VideoListFilter[]) {
+    const value = videoListFiltersSearchValue(next);
+    setFilters(next);
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(VIDEO_LIST_FILTER_PARAM, value);
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+  }
 
   async function handleDeleteSwap(id: string) {
     const res = await deleteJutsuJobAction(id);
     if (res.ok) {
-      setSwapJobs((prev) => prev.filter((item) => item.id !== id));
+      setDeletedSwapIds((prev) => ({ ...prev, [id]: true }));
       notifyTasksChanged();
     }
   }
@@ -50,34 +157,92 @@ export function AllVideosView({
   async function handleDeleteTeleport(id: string) {
     const res = await deleteTeleportJobAction(id);
     if (res.ok) {
-      setTeleportJobs((prev) => prev.filter((item) => item.id !== id));
+      setDeletedTeleportIds((prev) => ({ ...prev, [id]: true }));
       notifyTasksChanged();
     }
   }
 
-  const totalCount =
-    initialVideos.length + swapJobs.length + teleportJobs.length;
+  function handlePosted(itemId: string, videoId?: string) {
+    const now = new Date().toISOString();
+    setPostedOverrides((prev) => ({
+      ...prev,
+      [itemId]: now,
+      ...(videoId ? { [videoId]: now } : {}),
+    }));
+  }
 
-  const tabs: Array<{ id: VideoCategoryTab; label: string; count: number }> = [
+  function handleArchived(itemId: string, videoId?: string) {
+    const now = new Date().toISOString();
+    setArchivedOverrides((prev) => ({
+      ...prev,
+      [itemId]: now,
+      ...(videoId ? { [videoId]: now } : {}),
+    }));
+  }
+
+  function handleUnarchived(itemId: string, videoId?: string) {
+    setArchivedOverrides((prev) => ({
+      ...prev,
+      [itemId]: null,
+      ...(videoId ? { [videoId]: null } : {}),
+    }));
+  }
+
+  const allItems = useMemo(
+    () =>
+      buildUnifiedVideoItems({
+        videos: initialVideos,
+        swapJobs,
+        teleportJobs,
+        postedOverrides,
+        archivedOverrides,
+        isEn,
+        t,
+      }),
+    [
+      initialVideos,
+      swapJobs,
+      teleportJobs,
+      postedOverrides,
+      archivedOverrides,
+      isEn,
+      t,
+    ],
+  );
+
+  const { filtered, categoryCounts, stageCounts } = useMemo(
+    () => filterUnifiedVideoItems(allItems, tab, filters),
+    [allItems, tab, filters],
+  );
+
+  const pages = pageCount(filtered.length);
+  const safePage = pages === 0 ? 1 : Math.min(page, pages);
+  const rows = pageSlice(filtered, safePage);
+
+  const tabs: Array<{
+    id: UnifiedVideoCategory;
+    label: string;
+    count: number;
+  }> = [
     {
       id: "all",
       label: isEn ? "All Videos" : "全部影片",
-      count: totalCount,
+      count: categoryCounts.all,
     },
     {
       id: "studio",
       label: isEn ? "Explainer & Talking Head" : "解說與開講影片",
-      count: initialVideos.length,
+      count: categoryCounts.studio,
     },
     {
       id: "scroswap",
       label: isEn ? "Scro Swap" : "Scro Swap 換角",
-      count: swapJobs.length,
+      count: categoryCounts.scroswap,
     },
     {
       id: "teleport",
       label: isEn ? "Teleport" : "Teleport 換場",
-      count: teleportJobs.length,
+      count: categoryCounts.teleport,
     },
   ];
 
@@ -109,7 +274,7 @@ export function AllVideosView({
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setTab(item.id)}
+                onClick={() => selectTab(item.id)}
                 className={`inline-flex cursor-pointer items-center gap-1.5 rounded-2xl px-3.5 py-1.5 text-xs font-bold transition ${
                   active
                     ? "bg-[#12141c] text-[#c6f24b]"
@@ -132,53 +297,38 @@ export function AllVideosView({
         </div>
       </div>
 
-      {totalCount === 0 ? (
+      {allItems.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white py-16 text-center text-sm text-zinc-500">
           {isEn ? "No generated videos yet." : "尚無已生成的影片紀錄。"}
         </div>
       ) : (
-        <div className="space-y-8">
-          {(tab === "all" || tab === "studio") && initialVideos.length > 0 ? (
-            <section className="space-y-3">
-              {tab === "all" ? (
-                <div className="flex items-center justify-between">
-                  <h2 className="font-display text-base font-bold text-[#12141c]">
-                    {isEn ? "Explainer & Talking Head" : "解說與開講影片"}
-                  </h2>
-                  <span className="rounded-2xl bg-zinc-200/80 px-2.5 py-0.5 text-xs font-bold text-zinc-700">
-                    {initialVideos.length}
-                  </span>
-                </div>
-              ) : null}
-              <VideoTable videos={initialVideos} />
-            </section>
-          ) : null}
-
-          {(tab === "all" || tab === "scroswap") && swapJobs.length > 0 ? (
-            <section className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5">
-              <ScroSwapHistoryPanel
-                jobs={swapJobs}
-                characters={characters}
-                activeJobId={activeSwapId}
-                onSelectJob={(job) => setActiveSwapId(job.id)}
-                onDeleteJob={(id) => void handleDeleteSwap(id)}
-                layout="modal"
-              />
-            </section>
-          ) : null}
-
-          {(tab === "all" || tab === "teleport") && teleportJobs.length > 0 ? (
-            <section className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5">
-              <TeleportHistoryPanel
-                jobs={teleportJobs}
-                activeJobId={activeTeleportId}
-                onSelectJob={(job) => setActiveTeleportId(job.id)}
-                onDeleteJob={(id) => void handleDeleteTeleport(id)}
-                layout="modal"
-              />
-            </section>
-          ) : null}
-        </div>
+        <section className="space-y-4">
+          <VideoListFilters
+            counts={stageCounts}
+            active={filters}
+            onChange={selectFilters}
+          />
+          {filtered.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-zinc-200 bg-white py-12 text-center text-sm text-zinc-500">
+              {t("video.filters.empty")}
+            </p>
+          ) : (
+            <div className="divide-y divide-zinc-200 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+              {rows.map((item) => (
+                <VideoListRow
+                  key={`${item.kind}-${item.id}`}
+                  item={item}
+                  onPosted={handlePosted}
+                  onArchived={handleArchived}
+                  onUnarchived={handleUnarchived}
+                  onDeleteSwap={(id) => void handleDeleteSwap(id)}
+                  onDeleteTeleport={(id) => void handleDeleteTeleport(id)}
+                />
+              ))}
+            </div>
+          )}
+          <VideoTablePager page={safePage} pages={pages} onPage={setPage} />
+        </section>
       )}
     </div>
   );

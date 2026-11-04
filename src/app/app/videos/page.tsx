@@ -23,10 +23,10 @@ export default async function VideosLibraryPage() {
     videosCol
       .find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION })
       .sort({ updatedAt: -1, createdAt: -1 })
-      .limit(100)
+      .limit(200)
       .toArray(),
-    listJutsuJobs(user.clerkUserId, 50),
-    listTeleportJobs(user.clerkUserId, 50),
+    listJutsuJobs(user.clerkUserId, 100),
+    listTeleportJobs(user.clerkUserId, 100),
     charCol
       .find({ clerkUserId: user.clerkUserId })
       .sort({ updatedAt: -1 })
