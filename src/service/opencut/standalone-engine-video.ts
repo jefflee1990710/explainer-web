@@ -16,18 +16,17 @@ import type {
 import type { TeleportJob } from "@/model/teleport-job";
 import { requireAppUser } from "@/service/auth";
 import { folderVideoPath } from "@/service/folder-video-path";
+import {
+  isStandaloneEngineSkillSlug,
+  SCRO_SWAP_STANDALONE_SKILL_SLUG,
+  TELEPORT_STANDALONE_SKILL_SLUG,
+} from "@/service/opencut/standalone-engine-slugs";
 
-export const SCRO_SWAP_STANDALONE_SKILL_SLUG = "scro-swap-director";
-export const TELEPORT_STANDALONE_SKILL_SLUG = "teleport-director";
-
-export function isStandaloneEngineSkillSlug(
-  skillSlug?: string | null,
-): boolean {
-  return (
-    skillSlug === SCRO_SWAP_STANDALONE_SKILL_SLUG ||
-    skillSlug === TELEPORT_STANDALONE_SKILL_SLUG
-  );
-}
+export {
+  isStandaloneEngineSkillSlug,
+  SCRO_SWAP_STANDALONE_SKILL_SLUG,
+  TELEPORT_STANDALONE_SKILL_SLUG,
+};
 
 export type BuildStandaloneEngineProjectInput = {
   userId: ObjectId;

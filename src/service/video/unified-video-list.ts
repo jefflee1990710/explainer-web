@@ -9,7 +9,7 @@ import {
   isStandaloneEngineSkillSlug,
   SCRO_SWAP_STANDALONE_SKILL_SLUG,
   TELEPORT_STANDALONE_SKILL_SLUG,
-} from "@/service/opencut/standalone-engine-video";
+} from "@/service/opencut/standalone-engine-slugs";
 import { teleportTaskTitle } from "@/service/teleport/prompts";
 import { computeCardPipelineProgress } from "@/service/video-progress-steps";
 import {
