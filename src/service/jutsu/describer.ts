@@ -227,12 +227,30 @@ export async function upsampleJutsuFramePrompt(input: {
   }
 }
 
+// Verbatim prompts from Openjutsu `workflows/build/openjutsu_picture_pipeline.py` & `from_picture_describe_flux3.api.json`:
+export const OPENJUTSU_DESCRIBE_VIDEO_PROMPT =
+  'These are frames from one video clip, in time order, two per second. Describe what happens, for a video model that redoes the clip with a new person. Write one paragraph of 80 to 180 words in the present tense, calling the main person "the person". Go through the frames in order and name every change: what they do with their body, hands, head and mouth, such as blowing, eating, drinking, speaking, singing or laughing; every object they hold, use or touch, with its shape, colour and material, and what happens to it, such as candles going out or a lid opening; their facial expression and when it changes; where they look; what any other people do; and how the camera moves or cuts. Do not describe the person\'s hair, face, body or clothing, except a movement of hair or clothing, such as hair swinging or a hand fixing a collar. Say nothing about the light, its colours or the colour grade. No preamble, lists or Markdown.';
+
+export const OPENJUTSU_DESCRIBE_PICTURE_PROMPT =
+  "Describe this picture for a casting sheet in two sentences: first the person's hair, outfit and accessories, then the setting behind them. Say nothing about their pose, hands, expression or the light. No preamble.";
+
+export const OPENJUTSU_REWRITE_SYSTEM_PROMPT = `You rewrite a video description for a new character. The user gives the new character and setting, then a description of what happens in the original video. The new video keeps the new character's looks and setting and the original video's actions. Rewrite the description as one paragraph of 60 to 160 words in the present tense, in the same time order, calling the main person "the character".
+
+Keep every action, gesture, head turn, gaze direction, expression change, mouth action, speech or singing, and camera movement. Keep every object the person holds, uses or touches, with its shape, colour and material and what happens to it.
+Fit everything tied to looks to the new character: never repeat the original person's hair, face, body or clothing; drop movements of hair, clothing or accessories the new character does not have, and describe the ones they do have as the new character's description gives them. Do not otherwise describe the new character's looks.
+Move the action into the new setting: drop or replace furniture, walls, rooms, stages, landscapes and places from the description that the new setting does not have, and never describe the original setting. Keep objects the person uses.
+Refer to other people only by what they do, such as "a second person", without their age, gender, hair, skin or clothing.
+Never mention lighting, light colours, colour grading, pictures, frames or the original video. Output only the paragraph.`;
+
 /**
- * Port of Openjutsu's Two-Pass Visual Describer (`from_picture_describe_flux3.api.json`) running 100% on OpenRouter:
- * - Pass 1 watches sampled frames from the source video section and extracts actions, held objects,
- *   mouth actions, facial expressions, gaze, and camera movement without the original person's looks.
- * - Pass 2 rewrites Pass 1 for the prepared character/scene picture so MiniMax Hailuo-3 reproduces
- *   the exact motion with the new character and lighting.
+ * Port of Openjutsu's Two-Pass Visual Describer (`from_picture_describe_flux3.api.json`):
+ * - Node 73 (Pass 1): watches 2fps sampled frames from the source video section and extracts actions,
+ *   held objects, mouth actions, facial expressions, gaze, and camera movement without the original person's looks.
+ * - Node 80 (Pass 2a): describes the prepared picture's hair, outfit, accessories, and setting in 2 sentences
+ *   (without mentioning pose, hands, expression, or light).
+ * - Node 78 (Pass 2b): rewrites Pass 1 for the new character & setting using TEXT ONLY (never attaching the
+ *   prepared image to the rewrite step, because showing the still image causes VLMs to describe its static pose
+ *   instead of the video's chronological actions).
  */
 export async function describeJutsuVideoMotion(input: {
   sampledFrameBuffers: Buffer[];
@@ -241,55 +259,56 @@ export async function describeJutsuVideoMotion(input: {
   relightText?: string;
 }): Promise<string> {
   if (input.sampledFrameBuffers.length === 0) {
-    return "The subject performs natural continuous movement matching the opening and closing keyframes, with expressive facial micro-acting and smooth camera motion.";
+    return "The character performs natural continuous movement matching the motion guide from start to finish, with expressive facial micro-acting and smooth camera motion.";
   }
 
   try {
     const frameThumbs = await Promise.all(
-      input.sampledFrameBuffers.slice(0, 6).map((buf) =>
+      input.sampledFrameBuffers.slice(0, 20).map((buf) =>
         sharp(buf).resize(512, 512, { fit: "inside" }).jpeg({ quality: 80 }).toBuffer(),
       ),
     );
 
-    // Pass 1: Extract pure motion, actions, held objects, expressions, gaze, and camera
+    // Node 73: Pass 1 · describe the source video at 2 frames per second
     const rawAction = await callOpenRouterVision({
-      system:
-        "You are a motion-capture describer for video synthesis. Watch these sequential video frames sampled across the clip and write ONE concise paragraph (40–90 words) describing ONLY what happens chronologically: body actions, hand and arm movements, held objects, mouth movements, facial expressions, gaze direction, and camera movement. Do NOT describe the person's identity, hair, clothing, or lighting.",
+      system: "You are a precise sequential video action describer.",
       imageBuffers: frameThumbs,
-      userText:
-        "Describe the chronological body, head, hand, gaze, and mouth/speaking actions across these sequential frames.",
+      userText: OPENJUTSU_DESCRIBE_VIDEO_PROMPT,
     });
 
     if (!input.preparedFrameBuffer || !rawAction) {
       return (
         rawAction ||
-        "The subject performs natural continuous motion from the start frame to the end frame, keeping consistent identity, outfit, and lighting."
+        "The character performs natural continuous motion from the start frame to the end frame, keeping consistent identity, outfit, and lighting."
       );
     }
 
-    // Pass 2: Rewrite the action for the prepared character & setting
+    // Node 80: Pass 2a · describe the prepared picture (hair, outfit, setting only — no pose/expression)
     const preparedThumb = await sharp(input.preparedFrameBuffer)
-      .resize(640, 640, { fit: "inside" })
+      .resize(768, 768, { fit: "inside" })
       .jpeg({ quality: 82 })
       .toBuffer();
 
-    const rewritten = await callOpenRouterVision({
-      system: [
-        "You rewrite a motion description for a newly prepared character frame.",
-        "First inspect the attached prepared image to see the character's appearance, outfit, lighting, and setting.",
-        "Then rewrite the provided motion description so this exact character performs every action, expression, gaze shift, and hand movement in this setting.",
-        input.characterName ? `Refer to the main character as ${input.characterName}.` : "",
-        input.relightText ? `Keep the lighting consistent: ${input.relightText}` : "",
-        "Output ONLY one continuous English paragraph (50–110 words) ready for video generation.",
-      ]
-        .filter(Boolean)
-        .join(" "),
+    const pictureDescription = await callOpenRouterVision({
+      system: "You describe a character casting still concisely in two sentences.",
       imageBuffers: [preparedThumb],
-      userText: `Source motion to rewrite:\n${rawAction}`,
+      userText: OPENJUTSU_DESCRIBE_PICTURE_PROMPT,
+    });
+
+    if (!pictureDescription) {
+      return rawAction;
+    }
+
+    // Node 78: Pass 2b · TEXT-ONLY rewrite for the prepared picture (imageBuffers: [])
+    const rewriteRequest = `New character and setting:\n${pictureDescription}\n\nOriginal video:\n${rawAction}`;
+    const rewritten = await callOpenRouterVision({
+      system: OPENJUTSU_REWRITE_SYSTEM_PROMPT,
+      imageBuffers: [],
+      userText: rewriteRequest,
     });
 
     return rewritten || rawAction;
   } catch {
-    return "The subject performs natural continuous motion from the start frame to the end frame, keeping consistent identity, outfit, and lighting.";
+    return "The character performs natural continuous motion from the start frame to the end frame, keeping consistent identity, outfit, and lighting.";
   }
 }

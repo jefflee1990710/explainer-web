@@ -40,6 +40,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { isSceneTextChoice, resolveSceneText, SCENE_TEXT_OFF } from "@/service/director/scene-text";
 import {
   applyClipOrder,
+  duplicateClip,
   insertClips,
   removeClip,
 } from "@/service/clip/clip-order";
@@ -816,6 +817,88 @@ export async function reorderClipsAction(videoId: string, order: number[]): Prom
     return { ok: true, project: toPublicVideo(updated) };
   } catch (error) {
     return fail(error, "調整順序失敗，請再試一次");
+  }
+}
+
+// Duplicate one storyboard clip right after `clipNumber`, copying its frames/video/prompts and shifting later clips.
+export async function duplicateClipAction(
+  videoId: string,
+  clipNumber: number,
+): Promise<TimelineResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(videoId) || !Number.isInteger(clipNumber) || clipNumber < 1) {
+      return { ok: false, error: "專案不存在" };
+    }
+    const videos = await videosCollection();
+    const project = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    if (!isProductionLike(project.status)) return { ok: false, error: "分鏡尚未完成" };
+    const pending = (project.clipAppends ?? []).filter((job) => job.status !== "failed").length;
+    if (project.phaseA.clips.length + pending >= APPEND_CLIP_MAX) {
+      return { ok: false, error: `最多 ${APPEND_CLIP_MAX} 段` };
+    }
+    if (isProjectBusy(project)) {
+      return { ok: false, error: "片段還在生成，請完成後再複製片段" };
+    }
+    if (isReelBusy(project.reelStatus)) {
+      return { ok: false, error: "成片合成中，請完成後再複製片段" };
+    }
+
+    const next = duplicateClip(project, clipNumber, {
+      language: project.language,
+      talkingHead: isTalkingHeadSkill(project.skillSlug),
+    });
+    if (!next.ok) return next;
+    const insertAt = next.newClipNumber;
+    const shiftsLaterClips = insertAt <= project.phaseA.clips.length;
+    const now = new Date();
+    const wrote = await videos.updateOne(
+      { _id: project._id, clerkUserId: user.clerkUserId },
+      {
+        $set: {
+          phaseA: next.project.phaseA,
+          clips: next.project.clips,
+          frames: next.project.frames ?? [],
+          ...(Array.isArray(next.project.subtitlePlates)
+            ? { subtitlePlates: next.project.subtitlePlates }
+            : {}),
+          ...(Array.isArray(next.project.sceneChats)
+            ? { sceneChats: next.project.sceneChats }
+            : {}),
+          ...(Array.isArray(next.project.backgroundPlates)
+            ? { backgroundPlates: next.project.backgroundPlates }
+            : {}),
+          ...(next.project.phaseB ? { phaseB: next.project.phaseB } : {}),
+          ...(Array.isArray(next.project.autoVideoClips)
+            ? { autoVideoClips: next.project.autoVideoClips }
+            : {}),
+          ...(next.project.edit ? { edit: next.project.edit } : {}),
+          updatedAt: now,
+        },
+        $unset: {
+          reelUrl: "",
+          reelStatus: "",
+          reelFingerprint: "",
+          reelError: "",
+          reelStep: "",
+          reelAttempts: "",
+        },
+      },
+    );
+    if (wrote.matchedCount !== 1) return { ok: false, error: "專案不存在" };
+    if (shiftsLaterClips) {
+      await shiftInsertedClipJobs(project._id, insertAt, 1);
+    }
+    const updated = await videos.findOne({ _id: project._id });
+    if (!updated) return { ok: false, error: "專案不存在" };
+    revalidateVideo(project.projectId?.toHexString());
+    return { ok: true, project: toPublicVideo(updated) };
+  } catch (error) {
+    return fail(error, "複製片段失敗，請再試一次");
   }
 }
 

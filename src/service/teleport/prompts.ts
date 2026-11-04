@@ -57,19 +57,39 @@ export function buildTeleportVideoPrompt(input: {
       .filter(Boolean)
       .join(" ");
   }
-  return [
+  // Background swap: the person stays visible in the motion guide; the old place is a grey blur (`flip_input`).
+  const subjects = [
+    "subject_definitions:",
     "Reference image 1 is the person already standing in the new scene. Keep that environment.",
     "Reference image 2 is the identity lock: keep that face, body, and outfit.",
-    input.identityIgnoresBackground
-      ? "Ignore the background of reference image 2."
-      : "",
-    "Reference video 1 is a grey mannequin. Follow its exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing.",
+  ];
+  if (input.identityIgnoresBackground) {
+    subjects.push("Ignore the background of reference image 2.");
+  }
+  subjects.push(
+    "Reference video 1 is the source footage in which the setting around the person is a smooth grey blur that supplies only the camera movement and rough layout. The person stays visible and supplies the exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing.",
+  );
+  if (input.hasReferenceAudio) {
+    subjects.push(
+      "Reference audio 1 is the spoken voice. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent.",
+    );
+  }
+  return [
+    ...subjects,
+    "",
+    "summary:",
+    "[video editing + reference generation + audio reuse] The person keeps their exact look and performance, while the setting around them becomes the scene in Reference image 1. Do not hold the reference picture's starting pose as the guide moves. No part of the original location remains.",
+    "",
+    "detailed_description:",
+    input.motionText.trim(),
+    ...(mood ? [mood] : []),
+    "Follow the visible person's poses at the corresponding moments, through the last frame. The grey background is not a place to copy.",
+    "",
+    "overall_soundscape:",
     input.hasReferenceAudio
-      ? "Reference audio 1 is the spoken voice. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent."
-      : "",
-    input.motionText,
-    mood,
+      ? "Reuse Reference audio 1 unchanged. Add no new voices, music or sound effects."
+      : "Keep the performance's sound coherent. Add no unrelated voices or music.",
   ]
-    .filter(Boolean)
-    .join(" ");
+    .filter((line) => line !== undefined)
+    .join("\n");
 }

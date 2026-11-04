@@ -98,6 +98,10 @@ test("teleport H3 prompt locks the new scene and can ignore a raw identity backg
     identityIgnoresBackground: true,
     hasReferenceAudio: true,
   });
+  assert.match(prompt, /subject_definitions:/);
+  assert.match(prompt, /smooth grey blur/);
+  assert.match(prompt, /Do not hold the reference picture's starting pose/);
+  assert.match(prompt, /No part of the original location remains/);
   assert.match(prompt, /Reference image 1/);
   assert.match(prompt, /Reference image 2/);
   assert.match(prompt, /Reference video 1/);

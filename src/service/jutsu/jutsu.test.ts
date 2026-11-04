@@ -27,9 +27,17 @@ import {
   buildMinimaxH3Ref2VaBody,
 } from "@/service/jutsu/minimax-h3-ref2va";
 import {
+  applyPeopleMask,
+  holdMasksOverTime,
+  JUTSU_SAM_LONG_EDGE,
+  openJutsuGreyByte,
+} from "@/service/jutsu/grey-mannequin";
+import {
   expandTrackedBoxWithHeadroomAndMargin,
   falSamPromptForTarget,
   interpolateTrackedBoxes,
+  JUTSU_SAM_LONG_EDGE as SAM_EDGE,
+  jutsuLongEdgeScaleFilter,
   renderGreyMannequinAndMaskFrame,
   renderGreyMannequinAndMaskFrameFromMask,
 } from "@/service/jutsu/sam-mannequin";
@@ -179,6 +187,50 @@ test("SAM 3.1 headroom + margin expansion, grey mannequin rendering, and MiniMax
   assert.equal(fromMaskMeta.height, 160);
   assert.equal(falSamPromptForTarget("人"), "person");
   assert.equal(falSamPromptForTarget("red jacket"), "red jacket");
+  assert.equal(JUTSU_SAM_LONG_EDGE, 1008);
+  assert.equal(SAM_EDGE, 1008);
+  assert.match(jutsuLongEdgeScaleFilter(1008), /1008/);
+  assert.equal(openJutsuGreyByte(0), 115);
+  assert.equal(openJutsuGreyByte(1), 230);
+
+  const held = holdMasksOverTime(
+    [Uint8Array.from([1, 0]), Uint8Array.from([0, 0]), Uint8Array.from([0, 0])],
+    1,
+  );
+  assert.equal(held[1]![0], 1);
+  assert.equal(held[2]![0], 0);
+
+  const head = new Uint8Array(4 * 6);
+  for (let y = 2; y <= 5; y++) {
+    head[y * 4 + 1] = 1;
+    head[y * 4 + 2] = 1;
+  }
+  const withRoom = applyPeopleMask(head, 4, 6, 0.5);
+  assert.equal(withRoom.mask[1], 1);
+  assert.equal(withRoom.mask[0], 0);
+
+  const { data: greyPixels, info: greyInfo } = await sharp(fromMask.mannequinJpeg)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const greyChannels = greyInfo.channels;
+  const center = (80 * 120 + 60) * greyChannels;
+  assert.ok(Math.abs(greyPixels[center]! - greyPixels[center + 1]!) < 12);
+  assert.ok(greyPixels[center]! > 140 && greyPixels[center]! < 200);
+  assert.ok(greyPixels[0]! > greyPixels[1]! + 40);
+
+  const background = await renderGreyMannequinAndMaskFrameFromMask({
+    frameBuffer: samplePng,
+    mask: binaryMask,
+    margin: "normal",
+    maskMode: "background",
+  });
+  const { data: bgPixels, info: bgInfo } = await sharp(background.mannequinJpeg)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const bgChannels = bgInfo.channels;
+  const bgCenter = (80 * 120 + 60) * bgChannels;
+  assert.ok(Math.abs(bgPixels[0]! - bgPixels[1]!) < 12);
+  assert.ok(bgPixels[bgCenter]! > bgPixels[bgCenter + 1]! + 40);
 
   const ref2vaBody = buildMinimaxH3Ref2VaBody({
     prompt: "The singer performs on stage.",
@@ -263,6 +315,9 @@ test("character swap prompts keep the donor face shape, lock the exact character
     characterOutfitSpec:
       "Black sporty mesh football jersey mini dress with white athletic typography",
   });
+  assert.match(videoPrompt, /subject_definitions:/);
+  assert.match(videoPrompt, /Do not hold the reference picture's starting pose/);
+  assert.match(videoPrompt, /overall_soundscape:/);
   assert.match(videoPrompt, /Reference image 2/);
   assert.match(videoPrompt, /exact outfit/i);
   assert.match(
@@ -467,6 +522,7 @@ test("buildMultiPersonJutsuEditPrompt and MiniMax H3 ref2va format left-to-right
     hasIdentityImage: true,
     personMappings: mappings,
   });
+  assert.match(ref2vaPrompt, /subject_definitions:/);
   assert.match(ref2vaPrompt, /Reference image 2/i);
   assert.match(ref2vaPrompt, /Reference image 3/i);
   assert.match(ref2vaPrompt, /Pink crop top/i);

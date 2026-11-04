@@ -3,6 +3,7 @@
 import {
   appendDirectorClipAction as appendDirectorClip,
   deleteClipAction as deleteClip,
+  duplicateClipAction as duplicateClip,
   reorderClipsAction as reorderClips,
 } from "@/service/clip/clip-timeline-actions";
 
@@ -10,6 +11,12 @@ export async function appendDirectorClipAction(
   ...args: Parameters<typeof appendDirectorClip>
 ) {
   return appendDirectorClip(...args);
+}
+
+export async function duplicateClipAction(
+  ...args: Parameters<typeof duplicateClip>
+) {
+  return duplicateClip(...args);
 }
 
 export async function reorderClipsAction(...args: Parameters<typeof reorderClips>) {

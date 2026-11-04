@@ -8,16 +8,27 @@ import type {
   JutsuPlacementBox,
 } from "@/model/jutsu-job";
 import { hasFalKey } from "@/service/fal/key";
-import {
-  decodeFalSparseRle,
-  normalizedBBoxFromMask,
-  resizeBinaryMaskNearest,
-  unionBinaryMasks,
-} from "@/service/fal/rle";
+import { decodeFalSparseRle, resizeBinaryMaskNearest, unionBinaryMasks } from "@/service/fal/rle";
 import {
   type FalSam3PointPrompt,
   segmentVideoWithFalSam3Rle,
 } from "@/service/fal/sam3-video";
+import {
+  applyPeopleMask,
+  dilateMask,
+  fillMaskHoles,
+  holdMasksOverTime,
+  invertMask,
+  JUTSU_EDIT_HEADROOM,
+  JUTSU_EDIT_HOLD_FRAMES,
+  JUTSU_MANNEQUIN_HOLD_FRAMES,
+  JUTSU_SAM_LONG_EDGE,
+  mannequinExpandPixels,
+  maskHasForeground,
+  openJutsuGreyByte,
+  paintOpenJutsuMannequinFrame,
+  type OpenJutsuMaskMode,
+} from "@/service/jutsu/grey-mannequin";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 
 export const JUTSU_MARGINS = {
@@ -27,6 +38,17 @@ export const JUTSU_MARGINS = {
 } as const;
 
 export type JutsuMaskMargin = keyof typeof JUTSU_MARGINS;
+
+/** `subject` greys the person. `background` flips the grown mask so the surroundings go grey. */
+export type JutsuMannequinMaskMode = OpenJutsuMaskMode;
+
+/** Openjutsu SAM canvas. Motion frames stay at `motionSize`; only the tracker sees 1008 px. */
+export { JUTSU_SAM_LONG_EDGE };
+
+/** `fps=24` plus long-edge scale, matching `ImageScaleToMaxDimension`. */
+export function jutsuLongEdgeScaleFilter(longEdge: number): string {
+  return `fps=24,scale='if(gt(iw,ih),${longEdge},-2)':'if(gt(iw,ih),-2,${longEdge})'`;
+}
 
 export const JUTSU_MOTION_SIZES = [512, 768, 1376] as const;
 export type JutsuMotionSize = (typeof JUTSU_MOTION_SIZES)[number];
@@ -162,8 +184,8 @@ export async function renderGreyMannequinAndMaskFrame(input: {
         normDx * normDx + normDy * normDy <= 1.08;
 
       if (inTightSilhouette) {
-        // H3GreyMannequins: neutral mid-grey mannequin preserving crisp mouth/eye/limb shading contours
-        const greyVal = Math.min(225, Math.max(50, Math.round(118 + (luma - 128) * 0.75)));
+        // H3GreyMannequins: light grey `0.45 + 0.45 * luma` so the original face and clothes cannot leak back.
+        const greyVal = openJutsuGreyByte(luma / 255);
         mannequinBuf[idx] = greyVal;
         mannequinBuf[idx + 1] = greyVal;
         mannequinBuf[idx + 2] = greyVal;
@@ -213,99 +235,81 @@ export async function renderGreyMannequinAndMaskFrame(input: {
 }
 
 /**
- * Pixel-accurate grey mannequin from a binary SAM mask (row-major `width*height`).
- * Grown cyan area uses the expanded bbox of the mask (Openjutsu headroom + margin).
+ * One raw SAM mask painted as an Openjutsu grey mannequin.
+ * Subject mode greys the person. Background mode flips the person mask, then grows it (`flip_input`).
  */
 export async function renderGreyMannequinAndMaskFrameFromMask(input: {
   frameBuffer: Buffer;
   mask: Uint8Array;
   margin: JutsuMaskMargin;
+  maskMode?: JutsuMannequinMaskMode;
 }): Promise<{ mannequinJpeg: Buffer; checkMaskJpeg: Buffer }> {
-  const { data, info } = await sharp(input.frameBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const { width, height, channels } = info;
-  if (input.mask.length < width * height) {
+  const meta = await sharp(input.frameBuffer).metadata();
+  const width = meta.width || 0;
+  const height = meta.height || 0;
+  if (!width || !height || input.mask.length < width * height) {
     throw new Error("SAM mask size does not match frame dimensions");
   }
-
-  const tightBox =
-    normalizedBBoxFromMask(input.mask, width, height) || {
-      x: 0.2,
-      y: 0.1,
-      width: 0.6,
-      height: 0.85,
-    };
-  const grownBox = expandTrackedBoxWithHeadroomAndMargin(tightBox, {
-    headroom: 0.1,
+  const painted = masksForMannequinFrame({
+    rawMask: input.mask,
+    width,
+    height,
     margin: input.margin,
+    maskMode: input.maskMode ?? "subject",
   });
+  return paintOpenJutsuMannequinFrame({
+    frameBuffer: input.frameBuffer,
+    greyMask: painted.greyMask,
+    size: painted.size,
+    editMask: painted.editMask,
+    trackedMask: painted.trackedMask,
+  });
+}
 
-  const mannequinBuf = Buffer.from(data);
-  const maskPreviewBuf = Buffer.from(data);
+/** Build the grey, cyan, and orange masks for one frame from a raw person mask. */
+function masksForMannequinFrame(input: {
+  rawMask: Uint8Array;
+  width: number;
+  height: number;
+  margin: JutsuMaskMargin;
+  maskMode: JutsuMannequinMaskMode;
+}): {
+  greyMask: Uint8Array;
+  size: Float32Array;
+  editMask: Uint8Array;
+  trackedMask: Uint8Array;
+} {
+  const person = applyPeopleMask(input.rawMask, input.width, input.height, 0);
+  const expandPx = mannequinExpandPixels(JUTSU_MARGINS[input.margin], input.width, input.height);
+  const headed = fillMaskHoles(
+    applyPeopleMask(input.rawMask, input.width, input.height, JUTSU_EDIT_HEADROOM).mask,
+    input.width,
+    input.height,
+  );
+  const grown =
+    input.maskMode === "background"
+      ? dilateMask(invertMask(headed), input.width, input.height, expandPx)
+      : dilateMask(headed, input.width, input.height, expandPx);
 
-  const gx0 = Math.floor(grownBox.x * width);
-  const gy0 = Math.floor(grownBox.y * height);
-  const gx1 = Math.ceil((grownBox.x + grownBox.width) * width);
-  const gy1 = Math.ceil((grownBox.y + grownBox.height) * height);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * channels;
-      const r = data[idx]!;
-      const g = data[idx + 1]!;
-      const b = data[idx + 2]!;
-      const luma = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-      const inMask = Boolean(input.mask[y * width + x]);
-      const inGrown = x >= gx0 && x <= gx1 && y >= gy0 && y <= gy1;
-
-      if (inMask) {
-        // High-contrast grey luma [18..242] so subtle eye blinks, tongue clicks, and lip sync remain sharp for H3 ref2va
-        const greyVal = Math.min(242, Math.max(18, Math.round(122 + (luma - 128) * 0.94)));
-        mannequinBuf[idx] = greyVal;
-        mannequinBuf[idx + 1] = greyVal;
-        mannequinBuf[idx + 2] = greyVal;
-        maskPreviewBuf[idx] = Math.round(r * 0.65 + 255 * 0.35);
-        maskPreviewBuf[idx + 1] = Math.round(g * 0.65 + 140 * 0.35);
-        maskPreviewBuf[idx + 2] = Math.round(b * 0.65 + 0 * 0.35);
-      } else if (inGrown) {
-        maskPreviewBuf[idx] = Math.round(r * 0.55 + 0 * 0.45);
-        maskPreviewBuf[idx + 1] = Math.round(g * 0.55 + 200 * 0.45);
-        maskPreviewBuf[idx + 2] = Math.round(b * 0.55 + 255 * 0.45);
-      }
+  if (input.maskMode === "background") {
+    // flip_input first, then grow: the grey area is the background plus a rim into the person.
+    const size = new Float32Array(grown.length);
+    for (let i = 0; i < grown.length; i++) {
+      if (grown[i]) size[i] = 1;
     }
+    const tracked = new Uint8Array(person.mask.length);
+    for (let i = 0; i < tracked.length; i++) {
+      if (person.mask[i] && !grown[i]) tracked[i] = 1;
+    }
+    return { greyMask: grown, size, editMask: grown, trackedMask: tracked };
   }
 
-  const [mannequinJpeg, leftMaskPng, rightMannequinPng] = await Promise.all([
-    sharp(mannequinBuf, { raw: { width, height, channels } })
-      .jpeg({ quality: 86 })
-      .toBuffer(),
-    sharp(maskPreviewBuf, { raw: { width, height, channels } })
-      .png()
-      .toBuffer(),
-    sharp(mannequinBuf, { raw: { width, height, channels } })
-      .png()
-      .toBuffer(),
-  ]);
-
-  const checkMaskJpeg = await sharp({
-    create: {
-      width: width * 2 + 4,
-      height,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 },
-    },
-  })
-    .composite([
-      { input: leftMaskPng, left: 0, top: 0 },
-      { input: rightMannequinPng, left: width + 4, top: 0 },
-    ])
-    .jpeg({ quality: 84 })
-    .toBuffer();
-
-  return { mannequinJpeg, checkMaskJpeg };
+  return {
+    greyMask: person.mask,
+    size: person.size,
+    editMask: grown,
+    trackedMask: person.mask,
+  };
 }
 
 /** Map Jutsu target text to a short fal SAM noun phrase. */
@@ -336,6 +340,8 @@ export async function buildSam3MannequinAndMaskVideos(input: {
   margin: JutsuMaskMargin;
   hatFix: boolean;
   motionSize: JutsuMotionSize;
+  /** `background` keeps the person and greys the surroundings (Teleport / object background). */
+  maskMode?: JutsuMannequinMaskMode;
   manualBox?: JutsuPlacementBox;
   personMappings?: readonly JutsuPersonMapping[];
   allDetectedAnchors?: readonly JutsuPersonAnchor[];
@@ -366,38 +372,41 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       import("node:fs/promises").then((fs) => fs.mkdir(maskDir, { recursive: true })),
     ]);
 
-    const scaleEdge = Math.min(768, input.motionSize || 512);
-    const scaleFilter = `fps=24,scale='if(gt(iw,ih),${scaleEdge},-2)':'if(gt(iw,ih),-2,${scaleEdge})'`;
+    const sectionStart = Math.max(0, input.sectionStart);
+    const sectionLength = Math.max(1, input.sectionLength);
+    // SAM tracks at 1008 px. The grey reference H3 follows is a separate scale (`motionSize`).
+    const encodeSection = (fileName: string, longEdge: number) =>
+      runFfmpeg(dir, [
+        "-y",
+        "-ss",
+        sectionStart.toFixed(2),
+        "-t",
+        sectionLength.toFixed(2),
+        "-i",
+        "in.mp4",
+        "-vf",
+        jutsuLongEdgeScaleFilter(longEdge),
+        "-an",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-crf",
+        "18",
+        "-movflags",
+        "+faststart",
+        fileName,
+      ]);
+    await encodeSection("section-sam.mp4", JUTSU_SAM_LONG_EDGE);
+    await encodeSection("section-motion.mp4", input.motionSize || 512);
 
-    // Encode a section clip first so fal RLE frames line up 1:1 with extracted JPEGs.
     await runFfmpeg(dir, [
       "-y",
-      "-ss",
-      String(Math.max(0, input.sectionStart).toFixed(2)),
-      "-t",
-      String(Math.max(1, input.sectionLength).toFixed(2)),
       "-i",
-      "in.mp4",
-      "-vf",
-      scaleFilter,
-      "-an",
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-crf",
-      "18",
-      "-movflags",
-      "+faststart",
-      "section.mp4",
-    ]);
-
-    await runFfmpeg(dir, [
-      "-y",
-      "-i",
-      "section.mp4",
+      "section-motion.mp4",
       join(framesDir, "f-%04d.jpg"),
     ]);
+    await runFfmpeg(dir, ["-y", "-i", "section-sam.mp4", "-frames:v", "1", "sam-size.jpg"]);
 
     const files = (await readdir(framesDir))
       .filter((f) => f.endsWith(".jpg"))
@@ -411,14 +420,24 @@ export async function buildSam3MannequinAndMaskVideos(input: {
       files.map((f) => readFile(join(framesDir, f))),
     );
 
+    const samMeta = await sharp(await readFile(join(dir, "sam-size.jpg"))).metadata();
+    const samWidth = samMeta.width || 0;
+    const samHeight = samMeta.height || 0;
+    if (!samWidth || !samHeight) {
+      throw new Error("無法讀取 SAM 畫格尺寸");
+    }
+
     let firstSubjectMask: { mask: Uint8Array; width: number; height: number } | null = null;
     await renderMannequinFramesWithFal({
-      sectionPath: join(dir, "section.mp4"),
+      sectionPath: join(dir, "section-sam.mp4"),
       frameBuffers,
+      samWidth,
+      samHeight,
       mannDir,
       maskDir,
       target: input.target,
       margin: input.margin,
+      maskMode: input.maskMode ?? "subject",
       manualBox: input.manualBox,
       personMappings: input.personMappings,
       allDetectedAnchors: input.allDetectedAnchors,
@@ -438,9 +457,9 @@ export async function buildSam3MannequinAndMaskVideos(input: {
     if (hasAudio) {
       mannArgs.push(
         "-ss",
-        String(Math.max(0, input.sectionStart).toFixed(2)),
+        sectionStart.toFixed(2),
         "-t",
-        String(Math.max(1, input.sectionLength).toFixed(2)),
+        sectionLength.toFixed(2),
         "-i",
         "in.mp4",
         "-map",
@@ -493,18 +512,48 @@ export async function buildSam3MannequinAndMaskVideos(input: {
   }
 }
 
+/** Pick one fal RLE string when the returned frame count does not match the motion frames. */
+function rleStringAt(rleFrames: readonly string[], index: number, frameCount: number): string {
+  if (rleFrames.length === 0) return "";
+  if (index < rleFrames.length && rleFrames[index]) return rleFrames[index]!;
+  const mapped = Math.min(
+    rleFrames.length - 1,
+    Math.floor((index / Math.max(1, frameCount - 1)) * (rleFrames.length - 1)),
+  );
+  return rleFrames[mapped] ?? "";
+}
+
+function unionSizedPeople(
+  parts: readonly { mask: Uint8Array; size: Float32Array }[],
+): { mask: Uint8Array; size: Float32Array } {
+  if (parts.length === 0) return { mask: new Uint8Array(), size: new Float32Array() };
+  const mask = new Uint8Array(parts[0]!.mask.length);
+  const size = new Float32Array(mask.length);
+  for (const part of parts) {
+    for (let i = 0; i < mask.length; i++) {
+      if (!part.mask[i]) continue;
+      mask[i] = 1;
+      if (part.size[i]! > size[i]!) size[i] = part.size[i]!;
+    }
+  }
+  return { mask, size };
+}
+
 /** Render grey mannequin frames exclusively from fal SAM 3 RLE pixel masks. */
 async function renderMannequinFramesWithFal(input: {
   sectionPath: string;
   frameBuffers: Buffer[];
+  samWidth: number;
+  samHeight: number;
   mannDir: string;
   maskDir: string;
   target: string;
   margin: JutsuMaskMargin;
+  maskMode: JutsuMannequinMaskMode;
   manualBox?: JutsuPlacementBox;
   personMappings?: readonly JutsuPersonMapping[];
   allDetectedAnchors?: readonly JutsuPersonAnchor[];
-  /** Called once with the frame-0 person mask when it has at least one positive value. */
+  /** Called once with the frame-0 person mask at SAM resolution. */
   onFirstMask?: (mask: Uint8Array, width: number, height: number) => void;
 }): Promise<void> {
   const meta = await sharp(input.frameBuffers[0]!).metadata();
@@ -516,6 +565,8 @@ async function renderMannequinFramesWithFal(input: {
 
   const sectionBuffer = await readFile(input.sectionPath);
   const mappings = input.personMappings?.filter((m) => Boolean(m.referenceImageUrl)) ?? [];
+  const samW = input.samWidth;
+  const samH = input.samHeight;
 
   let rleFrameSets: string[][];
   if (mappings.length > 0) {
@@ -528,8 +579,8 @@ async function renderMannequinFramesWithFal(input: {
       mappings.map(async (m) => {
         const pointPrompts: FalSam3PointPrompt[] = [
           {
-            x: Math.round(m.anchorPoint.x * frameW),
-            y: Math.round(m.anchorPoint.y * frameH),
+            x: Math.round(m.anchorPoint.x * samW),
+            y: Math.round(m.anchorPoint.y * samH),
             label: 1,
             frame_index: 0,
             object_id: m.objectId,
@@ -538,8 +589,8 @@ async function renderMannequinFramesWithFal(input: {
             .filter((other) => other.objectId !== m.objectId)
             .map(
               (other): FalSam3PointPrompt => ({
-                x: Math.round(other.anchorPoint.x * frameW),
-                y: Math.round(other.anchorPoint.y * frameH),
+                x: Math.round(other.anchorPoint.x * samW),
+                y: Math.round(other.anchorPoint.y * samH),
                 label: 0,
                 frame_index: 0,
                 object_id: m.objectId,
@@ -562,10 +613,10 @@ async function renderMannequinFramesWithFal(input: {
     const boxPrompts = input.manualBox
       ? [
           {
-            x_min: Math.round(input.manualBox.x * frameW),
-            y_min: Math.round(input.manualBox.y * frameH),
-            x_max: Math.round((input.manualBox.x + input.manualBox.width) * frameW),
-            y_max: Math.round((input.manualBox.y + input.manualBox.height) * frameH),
+            x_min: Math.round(input.manualBox.x * samW),
+            y_min: Math.round(input.manualBox.y * samH),
+            x_max: Math.round((input.manualBox.x + input.manualBox.width) * samW),
+            y_max: Math.round((input.manualBox.y + input.manualBox.height) * samH),
             frame_index: 0,
             object_id: 0,
           },
@@ -582,49 +633,78 @@ async function renderMannequinFramesWithFal(input: {
     rleFrameSets = [rleFrames];
   }
 
-  // fal may return source-fps count; align by index, carrying forward the last good mask per person.
-  const lastMasks: Array<Uint8Array | null> = rleFrameSets.map(() => null);
-  const falW = frameW;
-  const falH = frameH;
+  const frameCount = input.frameBuffers.length;
+  const motionTimelines: Uint8Array[][] = rleFrameSets.map(() => []);
+  const firstSamMasks: Uint8Array[] = [];
+  for (let sIdx = 0; sIdx < rleFrameSets.length; sIdx++) {
+    const rleFrames = rleFrameSets[sIdx]!;
+    for (let i = 0; i < frameCount; i++) {
+      const samMask = decodeFalSparseRle(rleStringAt(rleFrames, i, frameCount), samW, samH);
+      if (i === 0) firstSamMasks.push(samMask);
+      motionTimelines[sIdx]!.push(
+        samW === frameW && samH === frameH
+          ? samMask
+          : resizeBinaryMaskNearest(samMask, samW, samH, frameW, frameH),
+      );
+    }
+  }
 
-  for (let i = 0; i < input.frameBuffers.length; i++) {
-    const perPersonMasks: Uint8Array[] = [];
-    for (let sIdx = 0; sIdx < rleFrameSets.length; sIdx++) {
-      const rleFrames = rleFrameSets[sIdx]!;
-      const rle =
-        rleFrames[i] ??
-        rleFrames[
-          Math.min(
-            rleFrames.length - 1,
-            Math.floor((i / Math.max(1, input.frameBuffers.length - 1)) * (rleFrames.length - 1)),
-          )
-        ] ??
-        "";
-      let m = decodeFalSparseRle(rle, falW, falH);
-      if (m.length !== frameW * frameH) {
-        m = resizeBinaryMaskNearest(m, falW, falH, frameW, frameH);
+  const firstUnion =
+    firstSamMasks.length === 1
+      ? firstSamMasks[0]!
+      : unionBinaryMasks(firstSamMasks, samW * samH);
+  if (maskHasForeground(firstUnion)) {
+    input.onFirstMask?.(Uint8Array.from(firstUnion), samW, samH);
+  }
+
+  // Hold is per person, then the people are joined. A missing fal frame stays empty outside that window.
+  const heldMannequin = motionTimelines.map((timeline) =>
+    holdMasksOverTime(timeline, JUTSU_MANNEQUIN_HOLD_FRAMES),
+  );
+  const heldEdit = motionTimelines.map((timeline) =>
+    holdMasksOverTime(timeline, JUTSU_EDIT_HOLD_FRAMES),
+  );
+  const expandPx = mannequinExpandPixels(JUTSU_MARGINS[input.margin], frameW, frameH);
+
+  for (let i = 0; i < frameCount; i++) {
+    const mannequin = unionSizedPeople(
+      heldMannequin.map((timeline) => applyPeopleMask(timeline[i]!, frameW, frameH, 0)),
+    );
+    const editPeople = unionSizedPeople(
+      heldEdit.map((timeline) =>
+        applyPeopleMask(timeline[i]!, frameW, frameH, JUTSU_EDIT_HEADROOM),
+      ),
+    );
+    const solidPerson = fillMaskHoles(editPeople.mask, frameW, frameH);
+    // Background flips first, then grows, so the grey rim bites into the person instead of leaving an old-background halo.
+    const grown =
+      input.maskMode === "background"
+        ? dilateMask(invertMask(solidPerson), frameW, frameH, expandPx)
+        : dilateMask(solidPerson, frameW, frameH, expandPx);
+
+    let greyMask = mannequin.mask;
+    let size = mannequin.size;
+    let editMask = grown;
+    let trackedMask = mannequin.mask;
+    if (input.maskMode === "background") {
+      greyMask = grown;
+      size = new Float32Array(greyMask.length);
+      for (let p = 0; p < greyMask.length; p++) {
+        if (greyMask[p]) size[p] = 1;
       }
-      if (!m.some((v) => v)) {
-        m = lastMasks[sIdx] ? Uint8Array.from(lastMasks[sIdx]!) : m;
-      } else {
-        lastMasks[sIdx] = m;
+      editMask = greyMask;
+      trackedMask = new Uint8Array(mannequin.mask.length);
+      for (let p = 0; p < trackedMask.length; p++) {
+        if (mannequin.mask[p] && !greyMask[p]) trackedMask[p] = 1;
       }
-      perPersonMasks.push(m);
     }
 
-    const mask =
-      perPersonMasks.length === 1
-        ? perPersonMasks[0]!
-        : unionBinaryMasks(perPersonMasks, frameW * frameH);
-
-    if (i === 0 && mask.some((value) => value > 0)) {
-      input.onFirstMask?.(Uint8Array.from(mask), frameW, frameH);
-    }
-
-    const rendered = await renderGreyMannequinAndMaskFrameFromMask({
+    const rendered = await paintOpenJutsuMannequinFrame({
       frameBuffer: input.frameBuffers[i]!,
-      mask,
-      margin: input.margin,
+      greyMask,
+      size,
+      editMask,
+      trackedMask,
     });
     const num = String(i + 1).padStart(4, "0");
     await Promise.all([

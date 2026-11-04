@@ -69,7 +69,8 @@ import {
 	ScroOnscreenTextOverlays,
 	selectScroMediaClip,
 } from "@/opencut/embed/scro-video-assets";
-import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
+import { useScroClipMenuFlags, useScroVideos } from "@/opencut/embed/scro-video-store";
 import { AssetsClipMenu } from "@/opencut/components/editor/panels/assets/views/assets-clip-menu";
 import { BookendVideoCard } from "@/opencut/components/editor/panels/assets/views/assets-bookend-card";
 import { ScroStoryboardClipCard } from "@/opencut/components/editor/panels/assets/views/scro-storyboard-clip-card";
@@ -387,10 +388,16 @@ function MediaAssetDraggable({
 
 function MediaItemWithContextMenu({
 	item,
+	clipNumber,
+	duplicateDisabled = false,
+	onDuplicate,
 	children,
 	onRemove,
 }: {
 	item: MediaAsset;
+	clipNumber?: number | null;
+	duplicateDisabled?: boolean;
+	onDuplicate?: (clipNumber: number) => void;
 	children: React.ReactNode;
 	onRemove: ({
 		event,
@@ -409,6 +416,17 @@ function MediaItemWithContextMenu({
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
+				{clipNumber != null && onDuplicate ? (
+					<ContextMenuItem
+						disabled={duplicateDisabled}
+						onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+							event.stopPropagation();
+							onDuplicate(clipNumber);
+						}}
+					>
+						Duplicate
+					</ContextMenuItem>
+				) : null}
 				<ContextMenuItem>Export clips</ContextMenuItem>
 				<ContextMenuItem
 					variant="destructive"
@@ -443,7 +461,18 @@ function MediaItemList({
 	const { t } = useI18n();
 	const editor = useEditor();
 	const scroVideos = useScroVideos();
+	const menuFlags = useScroClipMenuFlags();
 	const isGrid = mode === "grid";
+	const duplicateDisabled = !menuFlags.idle;
+
+	const handleDuplicateClip = (clipNumber: number) => {
+		if (!scroVideos?.videoId || duplicateDisabled) return;
+		requestScroClipAction({
+			videoId: scroVideos.videoId,
+			clipNumber,
+			action: "duplicate-clip",
+		});
+	};
 
 	const bookendNames = new Set(
 		bookends.map((video) => `${localizedVideoType(t, video.skillSlug)} · ${video.title}`),
@@ -481,7 +510,13 @@ function MediaItemList({
 		});
 		return (
 			<div key={item.id} className={cn(isGrid && "contents")}>
-				<MediaItemWithContextMenu item={item} onRemove={onRemove}>
+				<MediaItemWithContextMenu
+					item={item}
+					clipNumber={clipNumber}
+					duplicateDisabled={duplicateDisabled}
+					onDuplicate={handleDuplicateClip}
+					onRemove={onRemove}
+				>
 					<SelectableItem
 						className={cn(!isGrid && "w-full")}
 						id={item.id}
@@ -528,6 +563,8 @@ function MediaItemList({
 										editor,
 									})
 								}
+								onDuplicate={() => handleDuplicateClip(clip.clipNumber)}
+								duplicateDisabled={duplicateDisabled}
 							/>
 						);
 					})

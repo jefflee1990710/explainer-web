@@ -1,5 +1,11 @@
 "use client";
 
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@/opencut/components/ui/context-menu";
 import { DraggableItem } from "@/opencut/components/editor/panels/assets/draggable-item";
 import { LoadingMediaImage } from "@/opencut/components/loading-media-image";
 import { ScroMediaOverlays } from "@/opencut/embed/scro-video-assets";
@@ -17,15 +23,18 @@ export function ScroStoryboardClipCard({
 	variant,
 	aspectRatio,
 	onSelect,
+	onDuplicate,
+	duplicateDisabled = false,
 }: {
 	clip: ScroVideoSeedClip;
 	variant: "card" | "compact";
 	aspectRatio: number;
 	onSelect: () => void;
+	onDuplicate?: () => void;
+	duplicateDisabled?: boolean;
 }) {
 	const showDuration = variant === "card" && clip.durationSeconds > 0;
-
-	return (
+	const card = (
 		<div
 			role="button"
 			tabIndex={0}
@@ -73,5 +82,24 @@ export function ScroStoryboardClipCard({
 				}
 			/>
 		</div>
+	);
+
+	if (!onDuplicate) return card;
+
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+			<ContextMenuContent>
+				<ContextMenuItem
+					disabled={duplicateDisabled}
+					onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+						event.stopPropagation();
+						onDuplicate();
+					}}
+				>
+					Duplicate
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }

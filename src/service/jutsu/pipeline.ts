@@ -49,11 +49,6 @@ import {
   type JutsuMotionSize,
 } from "@/service/jutsu/sam-mannequin";
 import {
-  fetchMinimaxVideoStatus,
-  isMinimaxVideoStatusUrl,
-} from "@/service/minimax/talking-head-reference";
-import {
-  fetchOpenRouterStatus,
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   openRouterAuthHeaders,
@@ -62,6 +57,12 @@ import {
 } from "@/service/openrouter/generate";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
+import {
+  comfyRenderStaleMs,
+  comfyViewAuthHeaders,
+  pollVideoProviderStatus,
+} from "@/service/comfy/openjutsu-client";
+import { trySubmitJutsuComfy } from "@/service/comfy/submit-swap";
 
 export const JUTSU_MIN_SECTION_SECONDS = 2;
 export const JUTSU_MAX_SECTION_SECONDS = 15;
@@ -322,9 +323,10 @@ export async function extractVideoSectionKeyframes(
       sharp(endRaw).webp({ quality: 88 }).toBuffer(),
     ]);
 
-    // Sample 6 frames across the section for Two-Pass VLM motion description
-    const sampleTimes = [0, 0.2, 0.4, 0.6, 0.8, 0.96].map(
-      (r) => startSec + lenSec * r,
+    // Sample frames at 2 frames per second (matching Openjutsu Node 70 `select_every_nth: 12` at 24fps, up to 20 frames)
+    const sampleCount = Math.min(20, Math.max(4, Math.round(lenSec * 2)));
+    const sampleTimes = Array.from({ length: sampleCount }, (_, idx) =>
+      startSec + (lenSec * idx) / Math.max(1, sampleCount - 1) * 0.96,
     );
     const sampledFramesJpeg: Buffer[] = [];
     for (let i = 0; i < sampleTimes.length; i++) {
@@ -661,25 +663,28 @@ export async function prepareJutsuJob(
           ? [rawStartFrameUrl, donorImageUrl]
           : [rawStartFrameUrl];
 
-    const endRefs =
-      input.mode === "character_swap" && donorImageUrl
+    // H3 ref2va uses the prepared still plus the grey video. A second end still is only for the Hailuo fallback.
+    const h3Ready = hasMinimaxApiKey();
+    const endRefs = h3Ready
+      ? []
+      : input.mode === "character_swap" && donorImageUrl
         ? [donorImageUrl, rawEndFrameUrl]
         : donorImageUrl
           ? [rawEndFrameUrl, donorImageUrl]
           : [rawEndFrameUrl];
 
-    const [preparedStartBuf, preparedEndBuf] = await Promise.all([
-      generatePreparedKeyframeBuffer({
-        prompt: upsampledStartPrompt,
-        aspectRatio: extracted.aspectRatio,
-        referenceImageUrls: startRefs,
-      }),
-      generatePreparedKeyframeBuffer({
-        prompt: upsampledStartPrompt,
-        aspectRatio: extracted.aspectRatio,
-        referenceImageUrls: endRefs,
-      }),
-    ]);
+    const preparedStartBuf = await generatePreparedKeyframeBuffer({
+      prompt: upsampledStartPrompt,
+      aspectRatio: extracted.aspectRatio,
+      referenceImageUrls: startRefs,
+    });
+    const preparedEndBuf = h3Ready
+      ? null
+      : await generatePreparedKeyframeBuffer({
+          prompt: upsampledStartPrompt,
+          aspectRatio: extracted.aspectRatio,
+          referenceImageUrls: endRefs,
+        });
 
     const maskMargin: JutsuMaskMargin = input.maskMargin ?? "normal";
     const hatFix = Boolean(input.hatFix);
@@ -697,11 +702,13 @@ export async function prepareJutsuJob(
         `${prefix}/prepared-start-${Date.now()}.webp`,
         "image/webp",
       ),
-      persistBuffer(
-        preparedEndBuf,
-        `${prefix}/prepared-end-${Date.now()}.webp`,
-        "image/webp",
-      ),
+      preparedEndBuf
+        ? persistBuffer(
+            preparedEndBuf,
+            `${prefix}/prepared-end-${Date.now()}.webp`,
+            "image/webp",
+          )
+        : Promise.resolve(undefined),
       describeJutsuVideoMotion({
         sampledFrameBuffers: extracted.sampledFramesJpeg,
         preparedFrameBuffer:
@@ -720,6 +727,10 @@ export async function prepareJutsuJob(
         margin: maskMargin,
         hatFix,
         motionSize,
+        maskMode:
+          input.mode === "object_swap" && input.objectEditMode === "background"
+            ? "background"
+            : "subject",
         manualBox: input.placementBox,
       }).catch(() => null),
     ]);
@@ -771,7 +782,7 @@ export async function prepareJutsuJob(
       rawStartFrameUrl,
       rawEndFrameUrl,
       preparedStartFrameUrl,
-      preparedEndFrameUrl,
+      ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
       characterId: input.characterId,
       characterName,
       characterOutfitSpec,
@@ -880,9 +891,11 @@ export async function renderJutsuVideo(input: {
       },
     );
 
-    // Primary Motion Engine: MiniMax H3 `ref2va` (`reference_image` + `reference_video` + `reference_audio`).
-    // Falls back to OpenRouter Hailuo-3 dual-keyframe if `MINIMAX_API_KEY` is not set.
-    const submitted = useH3Ref2Va
+    // Self-hosted OpenJutsu runs the masked H3 edit. Cloud ref2va is the fallback.
+    const comfySubmitted = await trySubmitJutsuComfy(job);
+    const submitted = comfySubmitted
+      ? comfySubmitted
+      : useH3Ref2Va
       ? await submitMinimaxH3Ref2VaVideo({
           prompt: fullVideoPrompt,
           preparedImageUrl: job.preparedStartFrameUrl,
@@ -916,12 +929,9 @@ export async function renderJutsuVideo(input: {
     // If provider returned a synchronous video URL, finalize right away; otherwise poll up to 90s or let client poll
     let rawVideoUrl = submitted.video?.url;
     if (!rawVideoUrl && submitted.status_url) {
-      const isMinimax = isMinimaxVideoStatusUrl(submitted.status_url);
       for (let attempt = 0; attempt < 24; attempt++) {
         await new Promise((r) => setTimeout(r, 3500));
-        const polled = isMinimax
-          ? await fetchMinimaxVideoStatus(submitted.status_url)
-          : await fetchOpenRouterStatus(submitted.status_url);
+        const polled = await pollVideoProviderStatus(submitted.status_url);
         if (polled.status === "completed" && polled.video?.url) {
           rawVideoUrl = polled.video.url;
           break;
@@ -961,8 +971,11 @@ async function finalizeJutsuRenderedVideo(
   rawVideoUrl: string,
   options?: { applyColorFix?: boolean; keepSourceAudio?: boolean },
 ): Promise<{ ok: true; job: PublicJutsuJob }> {
-  const headers = openRouterAuthHeaders(rawVideoUrl);
-  const res = await fetch(rawVideoUrl, headers ? { headers } : undefined);
+  const headers = {
+    ...openRouterAuthHeaders(rawVideoUrl),
+    ...comfyViewAuthHeaders(rawVideoUrl),
+  };
+  const res = await fetch(rawVideoUrl, Object.keys(headers).length ? { headers } : undefined);
   if (!res.ok) {
     throw new Error(`無法下載渲染影片（HTTP ${res.status}）`);
   }
@@ -1508,20 +1521,20 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       });
 
       const startRefs = [...donorUrls, rawStartFrameUrl];
-      const endRefs = [...donorUrls, rawEndFrameUrl];
-
-      const [preparedStartBuf, preparedEndBuf] = await Promise.all([
-        generatePreparedKeyframeBuffer({
-          prompt: upsampledStartPrompt,
-          aspectRatio: extracted.aspectRatio,
-          referenceImageUrls: startRefs,
-        }),
-        generatePreparedKeyframeBuffer({
-          prompt: upsampledStartPrompt,
-          aspectRatio: extracted.aspectRatio,
-          referenceImageUrls: endRefs,
-        }),
-      ]);
+      const h3Ready = hasMinimaxApiKey();
+      const preparedStartBuf = await generatePreparedKeyframeBuffer({
+        prompt: upsampledStartPrompt,
+        aspectRatio: extracted.aspectRatio,
+        referenceImageUrls: startRefs,
+      });
+      // H3 ref2va does not take a last frame. Hailuo fallback reuses the start still when this is skipped.
+      const preparedEndBuf = h3Ready
+        ? null
+        : await generatePreparedKeyframeBuffer({
+            prompt: upsampledStartPrompt,
+            aspectRatio: extracted.aspectRatio,
+            referenceImageUrls: [...donorUrls, rawEndFrameUrl],
+          });
 
       const [
         preparedStartFrameUrl,
@@ -1534,11 +1547,13 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
           `${prefix}/prepared-start-${Date.now()}.webp`,
           "image/webp",
         ),
-        persistBuffer(
-          preparedEndBuf,
-          `${prefix}/prepared-end-${Date.now()}.webp`,
-          "image/webp",
-        ),
+        preparedEndBuf
+          ? persistBuffer(
+              preparedEndBuf,
+              `${prefix}/prepared-end-${Date.now()}.webp`,
+              "image/webp",
+            )
+          : Promise.resolve(undefined),
         describeJutsuVideoMotion({
           sampledFrameBuffers: extracted.sampledFramesJpeg,
           preparedFrameBuffer: preparedStartBuf,
@@ -1556,6 +1571,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
           margin: current.maskMargin ?? "normal",
           hatFix: Boolean(current.hatFix),
           motionSize: current.motionSize ?? 512,
+          maskMode: current.objectEditMode === "background" ? "background" : "subject",
           personMappings: activeMappings.length > 0 ? activeMappings : undefined,
           allDetectedAnchors: current.allDetectedAnchors,
         }).catch(() => null),
@@ -1605,7 +1621,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             rawStartFrameUrl,
             rawEndFrameUrl,
             preparedStartFrameUrl,
-            preparedEndFrameUrl,
+            ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
             mannequinVideoUrl,
             checkMaskVideoUrl,
             sectionAudioUrl,
@@ -1624,7 +1640,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         rawStartFrameUrl,
         rawEndFrameUrl,
         preparedStartFrameUrl,
-        preparedEndFrameUrl,
+        ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
         mannequinVideoUrl,
         checkMaskVideoUrl,
         sectionAudioUrl,
@@ -1675,7 +1691,10 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             .filter(Boolean)
             .join(" ");
 
-      const submitted = useH3Ref2Va
+      const comfySubmitted = await trySubmitJutsuComfy(current);
+      const submitted = comfySubmitted
+        ? comfySubmitted
+        : useH3Ref2Va
         ? await submitMinimaxH3Ref2VaVideo({
             prompt: fullVideoPrompt,
             preparedImageUrl: current.preparedStartFrameUrl,
@@ -1715,12 +1734,9 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
       let rawVideoUrl = submitted.video?.url;
       if (!rawVideoUrl && submitted.status_url) {
-        const isMinimax = isMinimaxVideoStatusUrl(submitted.status_url);
         for (let attempt = 0; attempt < 24; attempt++) {
           await new Promise((r) => setTimeout(r, 3500));
-          const polled = isMinimax
-            ? await fetchMinimaxVideoStatus(submitted.status_url)
-            : await fetchOpenRouterStatus(submitted.status_url);
+          const polled = await pollVideoProviderStatus(submitted.status_url);
           if (polled.status === "completed" && polled.video?.url) {
             rawVideoUrl = polled.video.url;
             break;
@@ -1801,9 +1817,7 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
           return 0;
         }
 
-        const polled = isMinimaxVideoStatusUrl(job.openRouterStatusUrl)
-          ? await fetchMinimaxVideoStatus(job.openRouterStatusUrl)
-          : await fetchOpenRouterStatus(job.openRouterStatusUrl);
+        const polled = await pollVideoProviderStatus(job.openRouterStatusUrl);
 
         if (polled.status === "completed" && polled.video?.url) {
           await finalizeJutsuRenderedVideo(job, polled.video.url, {
@@ -1827,7 +1841,7 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
           });
           return 1;
         }
-        if (job.createdAt.getTime() < staleCutoff) {
+        if (job.createdAt.getTime() < nowMs - comfyRenderStaleMs(job.openRouterStatusUrl)) {
           const timeoutErr = "Scro Swap 渲染逾時，請重試";
           await col.updateOne(
             { _id: job._id },
@@ -1876,9 +1890,7 @@ export async function pollJutsuJobStatus(
       return { ok: true, job: toPublicJutsuJob(job) };
     }
 
-    const polled = isMinimaxVideoStatusUrl(job.openRouterStatusUrl)
-      ? await fetchMinimaxVideoStatus(job.openRouterStatusUrl)
-      : await fetchOpenRouterStatus(job.openRouterStatusUrl);
+    const polled = await pollVideoProviderStatus(job.openRouterStatusUrl);
     if (polled.status === "completed" && polled.video?.url) {
       return await finalizeJutsuRenderedVideo(job, polled.video.url);
     }

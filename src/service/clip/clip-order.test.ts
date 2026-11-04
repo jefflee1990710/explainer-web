@@ -7,6 +7,7 @@ import { attachClipOverrides } from "@/service/clip/clip-context";
 import {
   type ClipOrderProject,
   applyClipOrder,
+  duplicateClip,
   insertClips,
   moveClipIds,
   placeAppendedClip,
@@ -369,4 +370,142 @@ test("draftAppendedClips only inherits previous endScene when shareContinuity is
     shareContinuity: false,
   });
   assert.notEqual(withoutContinuity[0]?.startScene, "Inherited studio desk end scene.");
+});
+
+test("duplicateClip clones the storyboard row, frames, video, subtitle plates, and shifts later clips", () => {
+  const phaseA = proposal();
+  phaseA.clips = [row(1, 5), row(2, 6)];
+  phaseA.clipCount = 2;
+
+  const result = duplicateClip(
+    {
+      phaseA,
+      clips: [
+        {
+          clipNumber: 1,
+          durationSeconds: 5,
+          prompt: "video prompt 1",
+          status: "completed" as const,
+          outputUrl: "https://blob/clip-1.mp4",
+          creditsCharged: 15,
+        },
+        {
+          clipNumber: 2,
+          durationSeconds: 6,
+          prompt: "video prompt 2",
+          status: "completed" as const,
+          outputUrl: "https://blob/clip-2.mp4",
+        },
+      ],
+      frames: [
+        {
+          clipNumber: 1,
+          position: "start" as const,
+          prompt: "frame 1 start",
+          status: "completed" as const,
+          outputUrl: "https://blob/frame-1-start.webp",
+        },
+        {
+          clipNumber: 1,
+          position: "end" as const,
+          prompt: "frame 1 end",
+          status: "completed" as const,
+          outputUrl: "https://blob/frame-1-end.webp",
+        },
+        {
+          clipNumber: 2,
+          position: "start" as const,
+          prompt: "frame 2 start",
+          status: "completed" as const,
+          outputUrl: "https://blob/frame-2-start.webp",
+        },
+      ],
+      subtitlePlates: [
+        {
+          clipNumber: 1,
+          status: "completed" as const,
+          outputUrl: "https://blob/plate-1.png",
+          creditsCharged: 1,
+        },
+      ],
+      phaseB: {
+        globalContinuity: "lock",
+        prompts: [
+          { clipNumber: 1, durationSeconds: 5, prompt: "p1" },
+          { clipNumber: 2, durationSeconds: 6, prompt: "p2" },
+        ],
+        stitchingGuide: "cut",
+        voiceMusicNote: "vo",
+      },
+      backgroundPlates: [{ setId: "room", clipNumbers: [1, 2] }],
+      reelUrl: "https://blob/old-reel.mp4",
+    },
+    1,
+    { language: "en" },
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.newClipNumber, 2);
+  assert.equal(result.project.phaseA?.clipCount, 3);
+  assert.equal(result.project.phaseA?.targetDuration, "16s");
+  assert.deepEqual(
+    result.project.phaseA?.clips.map((clip) => [
+      clip.clipNumber,
+      clip.narrativeJob,
+      clip.timeRange,
+    ]),
+    [
+      [1, "job 1", "0–5s"],
+      [2, "job 1", "5–10s"],
+      [3, "job 2", "10–16s"],
+    ],
+  );
+  assert.deepEqual(
+    result.project.clips.map((clip) => [
+      clip.clipNumber,
+      clip.outputUrl,
+      clip.creditsCharged ?? null,
+    ]),
+    [
+      [1, "https://blob/clip-1.mp4", 15],
+      [2, "https://blob/clip-1.mp4", null],
+      [3, "https://blob/clip-2.mp4", null],
+    ],
+  );
+  assert.deepEqual(
+    result.project.frames?.map((frame) => [
+      frame.clipNumber,
+      frame.position,
+      frame.outputUrl,
+    ]),
+    [
+      [1, "start", "https://blob/frame-1-start.webp"],
+      [1, "end", "https://blob/frame-1-end.webp"],
+      [2, "start", "https://blob/frame-1-start.webp"],
+      [2, "end", "https://blob/frame-1-end.webp"],
+      [3, "start", "https://blob/frame-2-start.webp"],
+    ],
+  );
+  assert.deepEqual(
+    result.project.subtitlePlates?.map((plate) => [
+      plate.clipNumber,
+      plate.outputUrl,
+      plate.creditsCharged ?? null,
+    ]),
+    [
+      [1, "https://blob/plate-1.png", 1],
+      [2, "https://blob/plate-1.png", null],
+    ],
+  );
+  assert.deepEqual(
+    result.project.phaseB?.prompts.map((p) => [p.clipNumber, p.prompt]),
+    [
+      [1, "p1"],
+      [2, "p1"],
+      [3, "p2"],
+    ],
+  );
+  assert.deepEqual(result.project.backgroundPlates?.[0]?.clipNumbers, [1, 3, 2]);
+  assert.equal(result.project.reelUrl, undefined);
 });

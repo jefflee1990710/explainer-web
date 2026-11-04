@@ -96,7 +96,12 @@ export function buildMinimaxH3Ref2VaBody(input: {
   };
 }
 
-/** Text prompt for the H3 ref2va render. Reference numbering must match `buildMinimaxH3Ref2VaBody` order. */
+/**
+ * H3 ref2va prompt in Openjutsu's section order
+ * (`subject_definitions` / `summary` / `detailed_description` / `overall_soundscape`).
+ * Reference numbering matches `buildMinimaxH3Ref2VaBody`.
+ * The motion line is the two-pass describer; the picture is appearance, the grey video is motion.
+ */
 export function buildJutsuRef2VaPrompt(input: {
   motionText: string;
   lightText?: string;
@@ -110,49 +115,68 @@ export function buildJutsuRef2VaPrompt(input: {
         (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
       )
     : [];
-  const audioLock = input.hasReferenceAudio
-    ? "Reference audio 1 is the spoken voice. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent."
-    : "";
+  const cleanOutfit = (
+    mappings.length > 1
+      ? ""
+      : mappings[0]?.characterOutfitSpec || input.characterOutfitSpec || ""
+  ).trim();
 
+  const subjects = [
+    "subject_definitions:",
+    "<Picture 1> (Reference image 1) defines the character, outfit, background, colors, materials and lighting throughout the output.",
+  ];
   if (mappings.length > 1) {
-    const locks = mappings.map((m, idx) => {
+    for (const [idx, mapping] of mappings.entries()) {
       const refNum = idx + 2;
-      const cx = Math.round((m.box.x + m.box.width / 2) * 100);
-      const spec = m.characterOutfitSpec?.trim()
-        ? ` (${m.characterOutfitSpec.trim()})`
+      const cx = Math.round((mapping.box.x + mapping.box.width / 2) * 100);
+      const spec = mapping.characterOutfitSpec?.trim()
+        ? ` (${mapping.characterOutfitSpec.trim()})`
         : "";
-      return `Reference image ${refNum} locks the true face, identity, and exact full-body outfit${spec} for the swapped person at ~${cx}% horizontal position`;
-    });
-    return [
-      "Reference image 1 is the prepared scene with the swapped characters and background to preserve. Reference video 1 shows grey mannequins performing the target motion for the swapped people while unmapped people stay as-is.",
-      `${locks.join(". ")}.`,
-      "Follow each grey mannequin's exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing in Reference video 1 while keeping every character's face, outfit, any unmapped people, and the background from Reference image 1.",
-      audioLock,
-      input.motionText,
-      input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+      subjects.push(
+        `<Picture ${refNum}> (Reference image ${refNum}) locks the true face, identity, and exact full-body outfit${spec} for the swapped person at ~${cx}% horizontal position.`,
+      );
+    }
+  } else if (input.hasIdentityImage) {
+    subjects.push(
+      "Reference image 2 locks the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face.",
+    );
+  } else {
+    subjects.push(
+      "Keep the exact outfit from Reference image 1 (every garment, neckline, sleeve length, color, fabric texture, and graphic print) unchanged in every frame.",
+    );
+  }
+  if (cleanOutfit) subjects.push(`Character outfit lock: ${cleanOutfit}.`);
+  subjects.push(
+    "<Video 1> (Reference video 1) is a smooth grey mannequin motion guide at 24 fps. The grey figure supplies body pose, gestures, head direction, gaze, facial expression, mouth opening, framing and timing. Its grey colors are not the appearance of the final video.",
+  );
+  if (input.hasReferenceAudio) {
+    subjects.push(
+      "<Audio 1> (Reference audio 1) is the original synchronized soundtrack. Synchronize the person's lip and mouth movements accurately word-for-word with Reference audio 1, and keep the mouth naturally relaxed when silent.",
+    );
   }
 
-  const cleanOutfit = (
-    mappings[0]?.characterOutfitSpec ||
-    input.characterOutfitSpec ||
-    ""
-  ).trim();
+  const detail = [
+    "detailed_description:",
+    input.motionText.trim(),
+    "Follow the motion guide's poses and gestures at the corresponding moments, through the last frame. Match its relative character size, camera perspective and any camera movement. Keep the picture's environment coherent throughout the performance. Do not copy the grey colors or replace the picture's setting with the source video's setting. Preserve any on-screen text or graphic letters from Reference image 1.",
+  ];
+  if (input.lightText?.trim()) {
+    detail.push(`Lighting remains consistent with the picture: ${input.lightText.trim()}`);
+  }
+
   return [
-    "Reference image 1 is the person, outfit, and the source scene/background to preserve. Reference video 1 is a grey mannequin performing the motion.",
-    input.hasIdentityImage
-      ? "Reference image 2 is the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face."
-      : "Keep the exact outfit from Reference image 1 (every garment, neckline, sleeve length, color, fabric texture, and graphic print) unchanged in every frame.",
-    cleanOutfit ? `Character outfit lock: ${cleanOutfit}.` : "",
-    "Follow the mannequin's exact head angle, gaze, facial expression, mouth opening, pose, hands, and timing, while keeping the person, the exact background/room, and any on-screen text or graphic letters from Reference image 1.",
-    audioLock,
-    input.motionText,
-    input.lightText ? `Lighting remains consistent: ${input.lightText}` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+    ...subjects,
+    "",
+    "summary:",
+    "[video editing + reference generation + audio reuse] Animate the character from Reference image 1 with the performance and framing of the grey figure in Reference video 1. Keep the identity, outfit, background and lighting of Reference image 1. The picture is the appearance reference; the grey mannequin video is the motion reference. Do not hold the reference picture's starting pose as the guide moves.",
+    "",
+    ...detail,
+    "",
+    "overall_soundscape:",
+    input.hasReferenceAudio
+      ? "Reuse Reference audio 1 unchanged. Add no new voices, music or sound effects."
+      : "Keep the soundtrack coherent with the performance. Add no unrelated voices or music.",
+  ].join("\n");
 }
 
 export function hasMinimaxApiKey(): boolean {

@@ -15,7 +15,8 @@ import {
 } from "@/opencut/components/loading-media-image";
 import { Spinner } from "@/opencut/components/ui/spinner";
 import { useScroOnscreenTexts } from "@/opencut/embed/scro-onscreen-text";
-import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
+import { useScroClipMenuFlags, useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { AudioWaveform, WAVEFORM_GAIN_SAMPLE_COUNT } from "./audio-waveform";
 import { TimelineStillPlaceholder } from "./timeline-still-placeholder";
@@ -248,6 +249,7 @@ export function TimelineElement({
 }: TimelineElementProps) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
 	const scroVideos = useScroVideos();
+	const scroMenuFlags = useScroClipMenuFlags();
 	// Before video is generated, ScroVideo cannot be trimmed or edited.
 	const lengthLocked = isScroClipLengthLocked({
 		element,
@@ -255,6 +257,11 @@ export function TimelineElement({
 		clips: scroVideos?.clips,
 	});
 	const editLocked = isScroClipEditLocked({
+		element,
+		assets: mediaAssets,
+		clips: scroVideos?.clips,
+	});
+	const elementScroClipNumber = resolveElementScroClipNumber({
 		element,
 		assets: mediaAssets,
 		clips: scroVideos?.clips,
@@ -470,15 +477,31 @@ export function TimelineElement({
 						Split
 					</ActionMenuItem>
 					<CopyMenuItem disabled={editLocked} />
-					{selectedElements.length === 1 && (
-						<ActionMenuItem
-							action="duplicate-selected"
-							disabled={editLocked}
-							icon={<HugeiconsIcon icon={Copy01Icon} />}
-						>
-							Duplicate
-						</ActionMenuItem>
-					)}
+					{selectedElements.length === 1 &&
+						(elementScroClipNumber != null && scroVideos?.videoId ? (
+							<ContextMenuItem
+								disabled={!scroMenuFlags.idle}
+								icon={<HugeiconsIcon icon={Copy01Icon} />}
+								onClick={(event: React.MouseEvent) => {
+									event.stopPropagation();
+									requestScroClipAction({
+										videoId: scroVideos.videoId,
+										clipNumber: elementScroClipNumber,
+										action: "duplicate-clip",
+									});
+								}}
+							>
+								Duplicate
+							</ContextMenuItem>
+						) : (
+							<ActionMenuItem
+								action="duplicate-selected"
+								disabled={editLocked}
+								icon={<HugeiconsIcon icon={Copy01Icon} />}
+							>
+								Duplicate
+							</ActionMenuItem>
+						))}
 					{canElementHaveAudio(element) && hasAudio && (
 						<MuteMenuItem
 							isMultipleSelected={selectedElements.length > 1}

@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import { useTimelineStore } from "@/opencut/timeline/timeline-store";
 import { useActionHandler } from "@/opencut/actions/use-action-handler";
 import { useEditor } from "@/opencut/editor/use-editor";
-import { isScroClipEditLocked } from "@/opencut/embed/scro-clip-number";
-import { getScroVideos } from "@/opencut/embed/scro-video-store";
+import {
+	isScroClipEditLocked,
+	resolveElementScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
+import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
+import { getScroClipMenuFlags, getScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import {
 	addMediaTime,
@@ -447,6 +451,29 @@ export function useEditorActions() {
 	useActionHandler(
 		"duplicate-selected",
 		() => {
+			const scroStore = getScroVideos();
+			if (selectedElements.length === 1 && scroStore?.videoId) {
+				const withTracks = editor.timeline.getElementsWithTracks({
+					elements: selectedElements,
+				});
+				const selectedElement = withTracks[0]?.element;
+				if (selectedElement) {
+					const scroClipNumber = resolveElementScroClipNumber({
+						element: selectedElement,
+						assets: editor.media.getAssets(),
+						clips: scroStore.clips,
+					});
+					if (scroClipNumber != null) {
+						if (!getScroClipMenuFlags().idle) return;
+						requestScroClipAction({
+							videoId: scroStore.videoId,
+							clipNumber: scroClipNumber,
+							action: "duplicate-clip",
+						});
+						return;
+					}
+				}
+			}
 			const editableElements = filterEditableElements(selectedElements);
 			if (editableElements.length === 0) return;
 			editor.timeline.duplicateElements({

@@ -24,7 +24,7 @@ export function requestScroClipAction({
 }: {
 	videoId: string;
 	clipNumber: number;
-	action: "generate-frames" | "generate-video" | "cancel-video";
+	action: "generate-frames" | "generate-video" | "cancel-video" | "duplicate-clip";
 }) {
 	const origin = scroEmbedParentOrigin() ?? window.location.origin;
 	sendToScro(

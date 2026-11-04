@@ -179,6 +179,83 @@ export function insertClips<T extends ClipOrderProject>(
   return { ok: true, project: cleared };
 }
 
+function cloneAndRenumber<T extends Numbered>(
+  items: T[],
+  sourceClipNumber: number,
+  insertedClipNumber: number,
+  map: Map<number, number>,
+  sanitize?: (item: T) => T,
+): T[] {
+  const bumped = items.map((item) => ({
+    ...item,
+    clipNumber: map.get(item.clipNumber) ?? item.clipNumber,
+  }));
+  const clones = items
+    .filter((item) => item.clipNumber === sourceClipNumber)
+    .map((item) => {
+      const cloned = { ...item, clipNumber: insertedClipNumber };
+      return sanitize ? sanitize(cloned) : cloned;
+    });
+  return [...bumped, ...clones].sort((a, b) => a.clipNumber - b.clipNumber);
+}
+
+// Duplicate one storyboard clip right after `clipNumber`, copying its completed frames/video/plates and shifting later clips.
+export function duplicateClip<T extends ClipOrderProject>(
+  project: T,
+  clipNumber: number,
+  options?: { language?: VoLanguage; talkingHead?: boolean },
+): { ok: true; project: T; newClipNumber: number } | { ok: false; error: string } {
+  const current = [...(project.phaseA?.clips ?? [])].sort((a, b) => a.clipNumber - b.clipNumber);
+  const sourceRow = current.find((clip) => clip.clipNumber === clipNumber);
+  if (!project.phaseA || !sourceRow) {
+    return { ok: false, error: "找不到這段分鏡" };
+  }
+  const insertAt = clipNumber + 1;
+  const inserted = insertClips(
+    project,
+    [{ ...sourceRow }],
+    insertAt,
+    options,
+  );
+  if (!inserted.ok) return inserted;
+
+  const map = bumpMap(
+    current.map((clip) => clip.clipNumber),
+    insertAt,
+    1,
+  );
+  const nextProject = {
+    ...inserted.project,
+    clips: cloneAndRenumber(
+      project.clips,
+      clipNumber,
+      insertAt,
+      map,
+      (item) => ({ ...item, creditsCharged: undefined }) as typeof item,
+    ),
+    frames: project.frames
+      ? cloneAndRenumber(project.frames, clipNumber, insertAt, map)
+      : project.frames,
+    subtitlePlates: project.subtitlePlates
+      ? cloneAndRenumber(
+          project.subtitlePlates,
+          clipNumber,
+          insertAt,
+          map,
+          (item) => ({ ...item, creditsCharged: undefined }) as typeof item,
+        )
+      : project.subtitlePlates,
+    phaseB: project.phaseB
+      ? {
+          ...project.phaseB,
+          prompts: cloneAndRenumber(project.phaseB.prompts, clipNumber, insertAt, map),
+        }
+      : project.phaseB,
+  };
+
+  return { ok: true, project: nextProject, newClipNumber: insertAt };
+}
+
 // A new clip stays in the same empty set as the clip it follows.
 export function keepAppendedClipOnPreviousSet<
   T extends {

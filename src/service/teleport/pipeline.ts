@@ -31,11 +31,12 @@ import {
 } from "@/service/jutsu/pipeline";
 import { buildSam3MannequinAndMaskVideos } from "@/service/jutsu/sam-mannequin";
 import {
-  fetchMinimaxVideoStatus,
-  isMinimaxVideoStatusUrl,
-} from "@/service/minimax/talking-head-reference";
+  comfyRenderStaleMs,
+  comfyViewAuthHeaders,
+  pollVideoProviderStatus,
+} from "@/service/comfy/openjutsu-client";
+import { trySubmitTeleportComfy } from "@/service/comfy/submit-swap";
 import {
-  fetchOpenRouterStatus,
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   openRouterAuthHeaders,
@@ -96,11 +97,9 @@ function safeRevalidate() {
   }
 }
 
-/** Poll the provider status URL once (MiniMax official or OpenRouter). */
+/** Poll cloud MiniMax / OpenRouter, or the self-hosted OpenJutsu prompt. */
 function pollStatusOnce(statusUrl: string) {
-  return isMinimaxVideoStatusUrl(statusUrl)
-    ? fetchMinimaxVideoStatus(statusUrl)
-    : fetchOpenRouterStatus(statusUrl);
+  return pollVideoProviderStatus(statusUrl);
 }
 
 /** Create a `rendering` Teleport job and run the pipeline in `after()`. */
@@ -221,6 +220,8 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         margin: "normal",
         hatFix: false,
         motionSize: 768,
+        // Openjutsu object-swap background: flip the grown person mask and grey the surroundings.
+        maskMode: "background",
       }).catch((error) => {
         console.error("[teleport] mannequin failed", { jobId: job._id.toHexString(), error });
         return null;
@@ -286,15 +287,19 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     // Upsample the relocate prompts against [raw frame, scene] so Seedream keeps the person and enters the place.
     const sceneBuffer = await fetchBufferOrNull(scene.sceneImageUrl);
     const withScene = (raw: Buffer) => (sceneBuffer ? [raw, sceneBuffer] : [raw]);
+    // H3 ref2va animates the start still. The end still is only for the Hailuo fallback.
+    const h3Ready = hasMinimaxApiKey();
     const [startPrompt, endPrompt] = await Promise.all([
       upsampleJutsuFramePrompt({
         baseRequest: buildTeleportRelocatePrompt({ moment: "start", scenePrompt: job.scenePrompt }),
         imageBuffers: withScene(extracted.startFrameWebp),
       }),
-      upsampleJutsuFramePrompt({
-        baseRequest: buildTeleportRelocatePrompt({ moment: "end", scenePrompt: job.scenePrompt }),
-        imageBuffers: withScene(extracted.endFrameWebp),
-      }),
+      h3Ready
+        ? Promise.resolve(null)
+        : upsampleJutsuFramePrompt({
+            baseRequest: buildTeleportRelocatePrompt({ moment: "end", scenePrompt: job.scenePrompt }),
+            imageBuffers: withScene(extracted.endFrameWebp),
+          }),
     ]);
 
     const [preparedStart, preparedEnd] = await Promise.all([
@@ -303,15 +308,19 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         aspectRatio: job.aspectRatio,
         referenceImageUrls: [rawStartFrameUrl, scene.sceneImageUrl],
       }),
-      seedreamWebp({
-        prompt: endPrompt,
-        aspectRatio: job.aspectRatio,
-        referenceImageUrls: [rawEndFrameUrl, scene.sceneImageUrl],
-      }),
+      endPrompt
+        ? seedreamWebp({
+            prompt: endPrompt,
+            aspectRatio: job.aspectRatio,
+            referenceImageUrls: [rawEndFrameUrl, scene.sceneImageUrl],
+          })
+        : Promise.resolve(null),
     ]);
     const [preparedStartFrameUrl, preparedEndFrameUrl] = await Promise.all([
       persistBuffer(preparedStart, `${prefix}/prepared-start.webp`, "image/webp"),
-      persistBuffer(preparedEnd, `${prefix}/prepared-end.webp`, "image/webp"),
+      preparedEnd
+        ? persistBuffer(preparedEnd, `${prefix}/prepared-end.webp`, "image/webp")
+        : Promise.resolve(undefined),
     ]);
 
     const motionText = await describeJutsuVideoMotion({
@@ -324,7 +333,7 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
       {
         $set: {
           preparedStartFrameUrl,
-          preparedEndFrameUrl,
+          ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
           editPrompt: startPrompt,
           motionDescription: motionText,
           updatedAt: new Date(),
@@ -345,9 +354,11 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     });
     const durationSeconds = teleportSubmitDurationSeconds(effectiveSectionLength);
 
-    // H3 ref2va must not also receive first/last frames; Hailuo uses the two prepared keyframes.
-    const submitted =
-      engine === "h3" && mannequinVideoUrl
+    // OpenJutsu object/background keeps the person and repaints the setting inside the mask.
+    const comfySubmitted = await trySubmitTeleportComfy(job);
+    const submitted = comfySubmitted
+      ? comfySubmitted
+      : engine === "h3" && mannequinVideoUrl
         ? await submitMinimaxH3Ref2VaVideo({
             prompt,
             preparedImageUrl: preparedStartFrameUrl,
@@ -420,8 +431,11 @@ async function finalizeTeleportRenderedVideo(
   job: TeleportJobDoc,
   rawVideoUrl: string,
 ): Promise<{ ok: true; job: PublicTeleportJob }> {
-  const headers = openRouterAuthHeaders(rawVideoUrl);
-  const res = await fetch(rawVideoUrl, headers ? { headers } : undefined);
+  const headers = {
+    ...openRouterAuthHeaders(rawVideoUrl),
+    ...comfyViewAuthHeaders(rawVideoUrl),
+  };
+  const res = await fetch(rawVideoUrl, Object.keys(headers).length ? { headers } : undefined);
   if (!res.ok) {
     throw new Error(`無法下載渲染影片（HTTP ${res.status}）`);
   }
@@ -558,7 +572,7 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
           });
           return 1;
         }
-        if (job.createdAt.getTime() < staleCutoff) {
+        if (job.createdAt.getTime() < nowMs - comfyRenderStaleMs(job.openRouterStatusUrl)) {
           const timeoutErr = "Teleport 渲染逾時，請重試";
           await col.updateOne(
             { _id: job._id },
