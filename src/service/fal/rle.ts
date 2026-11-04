@@ -151,3 +151,18 @@ export function unionBinaryMasks(
   }
   return out;
 }
+
+/** Compute Intersection-over-Union (IoU) in [0..1] between two binary masks. */
+export function binaryMaskIoU(a: Uint8Array, b: Uint8Array): number {
+  const len = Math.min(a.length, b.length);
+  if (len <= 0) return 0;
+  let inter = 0;
+  let union = 0;
+  for (let i = 0; i < len; i++) {
+    const av = a[i] ? 1 : 0;
+    const bv = b[i] ? 1 : 0;
+    if (av && bv) inter++;
+    if (av || bv) union++;
+  }
+  return union > 0 ? inter / union : 0;
+}
