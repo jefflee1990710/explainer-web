@@ -14,6 +14,21 @@ import {
   startScroSwapJobAction,
 } from "@/presentation/actions/jutsu";
 import {
+  buildCastSlotItems,
+  cycleOption,
+  DirectorDockCastGroup,
+  DirectorDockComposer,
+  DirectorDockCurveCell,
+  DirectorDockDivider,
+  DirectorDockDurationCell,
+  DirectorDockHero,
+  DirectorDockPanel,
+  DirectorDockPill,
+  DirectorDockQuickTile,
+  DirectorDockStage,
+  DirectorDockStepperCell,
+} from "@/presentation/components/app/director-dock";
+import {
   captureImageElementDataUrl,
   captureVideoFrameDataUrl,
   JutsuPersonRleOverlay,
@@ -26,10 +41,8 @@ import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-
 import { ScroSwapHistoryPanel } from "@/presentation/components/app/jutsu/scro-swap-history-panel";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
-import { BrandUploadDropzone } from "@/presentation/components/app/projects/new/brand-upload-dropzone";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
 import type {
   PublicCharacter,
   PublicCharacterPreset,
@@ -164,6 +177,10 @@ export function JutsuStudio({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [charModalOpen, setCharModalOpen] = useState(false);
+  const [relightModalOpen, setRelightModalOpen] = useState(false);
+  const [sectionModalOpen, setSectionModalOpen] = useState(false);
+  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
 
   const handleCharacterUpdated = useCallback((next: PublicCharacter) => {
     setCharacters((prev) => prev.map((c) => (c.id === next.id ? next : c)));
@@ -534,220 +551,449 @@ export function JutsuStudio({
     }
   }
 
+  const castSlots = buildCastSlotItems(
+    activeCharacter ? [activeCharacter.id] : [],
+    characters.map((c) => ({
+      id: c.id,
+      name: c.name,
+      previewUrl:
+        (c.id === characterId
+          ? uploadedPhotoUrl || selectedLookUrl || characterAvatarUrl(c)
+          : characterAvatarUrl(c)) || undefined,
+    })),
+    2,
+  );
+
+  const maskOptions = ["tight", "normal", "loose"] as const;
+  const motionSizes = [512, 768, 1376] as const;
+
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-12">
-      {/* Header with Top-Right History Button (mobile/tablet only; desktop shows right sidebar) */}
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
-        <div>
+    <div className="min-h-[calc(100dvh-4.5rem)] w-full">
+      <DirectorDockStage
+        topLeft={
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-[11px] font-bold uppercase tracking-wider text-lime">
+            <span className="rounded-full bg-[#d8ff3e] px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-[#111318]">
               Scro Swap
             </span>
-            <h1 className="font-display text-xl font-bold">
-              {isEn ? "Character Motion Swap" : "Scro Swap 角色動作遷移"}
-            </h1>
+            <span className="text-xs font-semibold text-zinc-300">
+              {isEn ? "Character Motion Swap" : "角色動作遷移"}
+            </span>
           </div>
-          <p className="mt-1 text-xs text-muted">
-            {isEn
-              ? "Upload a reference video, pick a character and outfit look, then click Generate."
-              : "上傳參考短片，揀選角色與造型（Preset／歷史造型／自訂穿搭），再按 Generate。"}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(true)}
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-bold text-foreground transition hover:border-accent-ink lg:hidden"
-          aria-label={historyLabel}
-        >
-          <svg
-            aria-hidden
-            className="h-3.5 w-3.5 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        }
+        topRight={
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 text-xs font-bold text-zinc-100 transition hover:border-white/30 hover:text-white"
+            aria-label={historyLabel}
           >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-          <span>{historyLabel}</span>
-          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-accent-ink/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
-            {jobs.length}
-          </span>
-        </button>
-      </header>
-
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
-        {/* Main Creation Form Card */}
-        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-accent-ink bg-white shadow-[4px_4px_0_0_#12141c]">
-        <div className="space-y-6 px-6 py-6">
-          {/* Step 1: Source Media (Video / GIF / Image) */}
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-display text-sm font-bold">
-                {isEn
-                  ? "1. Source Media (Video / GIF / Image)"
-                  : "1. 上傳來源媒體（影片 / GIF / 圖片）"}
-              </span>
-              <BrandUploadButton
-                label={
-                  sourceVideoUrl
-                    ? isEn
-                      ? "Replace Media"
-                      : "更換媒體"
-                    : isEn
-                      ? "Upload Video / GIF / Image"
-                      : "上傳影片 / GIF / 圖片"
-                }
-                accept="video/mp4,video/quicktime,image/gif,image/png,image/jpeg,image/webp"
-                disabled={submitting}
-                onUploaded={(asset) => {
-                  const kind = inferClientSourceMediaKind(asset.url);
-                  setDetectedPeople([]);
-                  setPersonAssignments({});
-                  setSourceMediaKind(kind);
-                  setSourceVideoUrl(asset.url);
-                  setError("");
-                }}
-                onProgress={setSourceUploadProgress}
-                onError={setError}
+            <svg
+              aria-hidden
+              className="h-3.5 w-3.5 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            <span>{historyLabel}</span>
+            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-200">
+              {jobs.length}
+            </span>
+          </button>
+        }
+        bottomContent={
+          jobs.length > 0 ? (
+            <div className="mt-8 rounded-2xl border border-white/10 bg-white p-4 text-[#12141c]">
+              <ScroSwapHistoryPanel
+                jobs={jobs}
+                characters={characters}
+                activeJobId={activeJob?.id ?? null}
+                onSelectJob={setActiveJob}
+                onDeleteJob={(id) => void onDeleteJob(id)}
+                layout="sidebar"
               />
             </div>
+          ) : null
+        }
+      >
+        <DirectorDockHero kind="scroswap" />
 
-            {sourceVideoUrl ? (
-              <div className="space-y-3">
-                <div
-                  className={`grid gap-4 rounded-xl border border-accent-ink/12 bg-paper/70 p-3 ${
-                    sourceMediaKind === "video" ? "sm:grid-cols-[1fr_14rem]" : ""
-                  }`}
+        {/* Collapsible 🎬 導演面板 */}
+        <DirectorDockPanel
+          headerRight={
+            activeCharacter ? (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setManagingCharacter(true)}
+                className="director-dock-cell cursor-pointer rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-[#d8ff3e] hover:border-[#d8ff3e]/50"
+              >
+                {isEn ? "+ Customize Outfit" : "+ 自訂穿搭"}
+              </button>
+            ) : null
+          }
+        >
+          {/* Cell 1: Target Character & Look */}
+          <DirectorDockCastGroup
+            slots={castSlots}
+            disabled={submitting}
+            badgeLabel={activeCharacter?.name || (isEn ? "Character" : "選擇角色")}
+            onOpenPicker={() => setCharModalOpen(true)}
+            onManageActive={() => setCharModalOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 2: Relight */}
+          <DirectorDockStepperCell
+            thumbUrl={
+              relightEnabled ? `/relight/${relightId}.webp` : "/relight/golden_halo.webp"
+            }
+            label={isEn ? "Relight" : "光影重打"}
+            value={
+              relightEnabled
+                ? relightId.replace(/_/g, " ")
+                : isEn
+                  ? "Original"
+                  : "原片光線"
+            }
+            disabled={submitting}
+            onPrev={() => setRelightEnabled((prev) => !prev)}
+            onNext={() => setRelightEnabled((prev) => !prev)}
+            onClick={() => setRelightModalOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 3: Motion & Mask */}
+          <DirectorDockCurveCell
+            label={isEn ? "Mask & Lip-Sync" : "遮罩與對嘴"}
+            value={`${maskMargin} · ${noLipSync ? (isEn ? "Locked" : "鎖嘴") : isEn ? "LipSync" : "對嘴"}`}
+            disabled={submitting}
+            onPrev={() =>
+              setMaskMargin(cycleOption(maskOptions, maskMargin, -1))
+            }
+            onNext={() =>
+              setMaskMargin(cycleOption(maskOptions, maskMargin, 1))
+            }
+            onClick={() => setRelightModalOpen(true)}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 4: Section Length */}
+          <DirectorDockDurationCell
+            label={isEn ? "Duration" : "截取時長"}
+            value={`${sectionLength}s`}
+            disabled={submitting}
+            onClick={() => setSectionModalOpen(true)}
+          />
+        </DirectorDockPanel>
+
+        {/* Main Composer Box + Left Floating Mode Rail */}
+        <DirectorDockComposer
+          disabled={submitting}
+          modeItems={[
+            {
+              id: "presets",
+              label: isEn ? "Presets" : "造型",
+              icon: (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 >
-                  <div className="relative max-h-52 w-full overflow-hidden rounded-lg bg-black">
-                    {sourceMediaKind === "video" ? (
-                      <video
-                        ref={videoRef}
-                        src={sourceVideoUrl}
-                        controls
-                        playsInline
-                        crossOrigin="anonymous"
-                        onLoadedMetadata={(e) => {
-                          const dur = e.currentTarget.duration;
-                          if (!Number.isFinite(dur) || dur <= 0) return;
-                          setSectionStart(0);
-                          setSectionLength(Math.min(15, Math.max(2, Math.round(dur))));
-                        }}
-                        className="max-h-52 w-full rounded-lg bg-black object-contain"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        ref={imageRef}
-                        src={sourceVideoUrl}
-                        alt=""
-                        crossOrigin="anonymous"
-                        className="max-h-52 w-full rounded-lg bg-black object-contain"
-                      />
-                    )}
-                    <JutsuPersonRleOverlay
-                      people={detectedPeople}
-                      activePersonIndex={activePersonIndex}
-                      assignments={personAssignments}
-                      onSelectPerson={switchActivePerson}
-                      isEn={isEn}
-                    />
-                  </div>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+              ),
+            },
+            {
+              id: "historical",
+              label: isEn ? "History" : "版本",
+              icon: (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              ),
+            },
+          ]}
+          activeModeId={lookTab}
+          onSelectMode={(next) => {
+            setLookTab(next as LookTab);
+            setCharModalOpen(true);
+          }}
+          topMediaSlot={
+            sourceVideoUrl ? (
+              <div className="space-y-2.5 rounded-xl bg-white p-3 text-[#12141c]">
+                <div className="relative mx-auto max-h-52 w-full overflow-hidden rounded-lg bg-black">
                   {sourceMediaKind === "video" ? (
-                    <div className="flex flex-col justify-center gap-3">
-                      <label className="block">
-                        <span className="text-[11px] font-semibold text-muted">
-                          {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
-                        </span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={300}
-                          step={0.5}
-                          disabled={submitting}
-                          value={sectionStart}
-                          onChange={(e) => setSectionStart(Math.max(0, Number(e.target.value)))}
-                          className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-[11px] font-semibold text-muted">
-                          {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
-                        </span>
-                        <input
-                          type="number"
-                          min={2}
-                          max={15}
-                          step={1}
-                          disabled={submitting}
-                          value={sectionLength}
-                          onChange={(e) =>
-                            setSectionLength(Math.min(15, Math.max(2, Number(e.target.value))))
-                          }
-                          className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                        />
-                      </label>
-                    </div>
-                  ) : null}
+                    <video
+                      ref={videoRef}
+                      src={sourceVideoUrl}
+                      controls
+                      playsInline
+                      crossOrigin="anonymous"
+                      onLoadedMetadata={(e) => {
+                        const dur = e.currentTarget.duration;
+                        if (!Number.isFinite(dur) || dur <= 0) return;
+                        setSectionStart(0);
+                        setSectionLength(
+                          Math.min(15, Math.max(2, Math.round(dur))),
+                        );
+                      }}
+                      className="max-h-52 w-full rounded-lg bg-black object-contain"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      ref={imageRef}
+                      src={sourceVideoUrl}
+                      alt=""
+                      crossOrigin="anonymous"
+                      className="max-h-52 w-full rounded-lg bg-black object-contain"
+                    />
+                  )}
+                  <JutsuPersonRleOverlay
+                    people={detectedPeople}
+                    activePersonIndex={activePersonIndex}
+                    assignments={personAssignments}
+                    onSelectPerson={(idx) => {
+                      switchActivePerson(idx);
+                      setCharModalOpen(true);
+                    }}
+                    isEn={isEn}
+                  />
                 </div>
-
                 <JutsuPersonTabsBar
                   people={detectedPeople}
                   detecting={detectingPeople}
                   activePersonIndex={activePersonIndex}
                   assignments={personAssignments}
-                  onSelectPerson={switchActivePerson}
+                  onSelectPerson={(idx) => {
+                    switchActivePerson(idx);
+                    setCharModalOpen(true);
+                  }}
                   onRedetect={() => void runFramePeopleDetection()}
                   disabled={submitting}
                   isEn={isEn}
                 />
               </div>
-            ) : (
-              <BrandUploadDropzone
-                accept="video/mp4,video/quicktime,image/gif,image/png,image/jpeg,image/webp"
+            ) : null
+          }
+          promptValue={customLightPrompt}
+          onPromptChange={(val) => {
+            setCustomLightPrompt(val);
+            if (val.trim() && !relightEnabled) {
+              setRelightEnabled(true);
+            }
+          }}
+          promptPlaceholder={
+            isEn
+              ? "Upload a source clip on the right, click detected people to assign characters, or add custom relight notes here..."
+              : "點擊右側上傳來源影片並選擇替換角色，或在此輸入自訂打光與環境氛圍描述（選填）..."
+          }
+          plusMenuOpen={uploadMenuOpen}
+          onPlusToggle={() => setUploadMenuOpen((prev) => !prev)}
+          plusMenuSlot={
+            <div className="space-y-3 text-[#12141c]">
+              <div className="rounded-xl bg-white p-3">
+                <p className="mb-2 text-xs font-bold">
+                  {isEn
+                    ? "Upload Source Media (MP4 / MOV / GIF / Image)"
+                    : "上傳來源媒體（影片 / GIF / 圖片）"}
+                </p>
+                <BrandUploadButton
+                  label={
+                    sourceVideoUrl
+                      ? isEn
+                        ? "Replace Source Media"
+                        : "更換來源媒體"
+                      : isEn
+                        ? "Upload Video / GIF / Image"
+                        : "上傳影片 / GIF / 圖片"
+                  }
+                  accept="video/mp4,video/quicktime,image/gif,image/png,image/jpeg,image/webp"
+                  disabled={submitting}
+                  onUploaded={(asset) => {
+                    const kind = inferClientSourceMediaKind(asset.url);
+                    setDetectedPeople([]);
+                    setPersonAssignments({});
+                    setSourceMediaKind(kind);
+                    setSourceVideoUrl(asset.url);
+                    setError("");
+                    setUploadMenuOpen(false);
+                  }}
+                  onProgress={setSourceUploadProgress}
+                  onError={setError}
+                />
+              </div>
+            </div>
+          }
+          pills={
+            <>
+              <DirectorDockPill
+                accentBadge={<span>⚡</span>}
+                label={`Scro Swap ${motionSize}p`}
+                hasChevron
                 disabled={submitting}
-                externalProgress={sourceUploadProgress}
-                hintText={
-                  isEn
-                    ? "Click or drag & drop a Video (MP4/MOV), animated GIF, or Image (PNG/JPG/WebP) here"
-                    : "點擊或拖曳上傳參考短片 (MP4/MOV)、動態 GIF 或圖片 (PNG/JPG/WebP)"
+                onClick={() =>
+                  setMotionSize(cycleOption(motionSizes, motionSize, 1))
                 }
-                subHintText={
-                  isEn
-                    ? "Up to 50MB for Video / GIF · up to 5MB for Image"
-                    : "影片與 GIF 最高 50MB · 靜態圖片最高 5MB"
-                }
-                onUploaded={(asset) => {
-                  const kind = inferClientSourceMediaKind(asset.url);
-                  setDetectedPeople([]);
-                  setPersonAssignments({});
-                  setSourceMediaKind(kind);
-                  setSourceVideoUrl(asset.url);
-                  setError("");
-                }}
-                onProgress={setSourceUploadProgress}
-                onError={setError}
               />
-            )}
-          </section>
 
-          {/* Step 2: Two-Layer Character & Outfit Picker */}
-          <section className="space-y-4 border-t border-accent-ink/10 pt-5">
+              <DirectorDockPill
+                label={
+                  keepSourceAudio
+                    ? isEn
+                      ? "Audio: ON"
+                      : "保留原聲: 開"
+                    : isEn
+                      ? "Audio: OFF"
+                      : "保留原聲: 關"
+                }
+                disabled={submitting}
+                onClick={() => setKeepSourceAudio((prev) => !prev)}
+              />
+
+              <DirectorDockPill
+                label={
+                  applyColorFixOnRender
+                    ? isEn
+                      ? "Color Fix: ON"
+                      : "H3 調色: 開"
+                    : isEn
+                      ? "Color Fix: OFF"
+                      : "H3 調色: 關"
+                }
+                disabled={submitting}
+                onClick={() => setApplyColorFixOnRender((prev) => !prev)}
+              />
+
+              {sourceVideoUrl ? (
+                <DirectorDockPill
+                  label={
+                    detectingPeople
+                      ? isEn
+                        ? "Detecting..."
+                        : "偵測人物中..."
+                      : isEn
+                        ? "Redetect People"
+                        : "🔍 重新偵測人物"
+                  }
+                  disabled={submitting || detectingPeople}
+                  onClick={() => void runFramePeopleDetection()}
+                />
+              ) : null}
+            </>
+          }
+          rightSlot1={
+            <DirectorDockQuickTile
+              label={isEn ? "Source" : "來源媒體"}
+              badge={
+                sourceUploadProgress !== null
+                  ? `${Math.round(sourceUploadProgress)}%`
+                  : isEn
+                    ? "Req"
+                    : "必選"
+              }
+              videoUrl={
+                sourceVideoUrl && sourceMediaKind === "video"
+                  ? sourceVideoUrl
+                  : undefined
+              }
+              thumbUrl={
+                sourceVideoUrl && sourceMediaKind !== "video"
+                  ? sourceVideoUrl
+                  : undefined
+              }
+              disabled={submitting}
+              onClick={() => setUploadMenuOpen(true)}
+              onClear={
+                sourceVideoUrl
+                  ? () => {
+                      setSourceVideoUrl("");
+                      setDetectedPeople([]);
+                      setPersonAssignments({});
+                    }
+                  : undefined
+              }
+            />
+          }
+          rightSlot2={
+            <DirectorDockQuickTile
+              label={isEn ? "Character" : "替換角色"}
+              badge={activeCharacter?.name?.slice(0, 4)}
+              thumbUrl={
+                uploadedPhotoUrl ||
+                selectedLookUrl ||
+                characterAvatarUrl(activeCharacter)
+              }
+              disabled={submitting}
+              onClick={() => setCharModalOpen(true)}
+              onClear={
+                uploadedPhotoUrl
+                  ? () => {
+                      setUploadedPhotoUrl("");
+                      updateActivePersonSlot({ uploadedPhotoUrl: "" });
+                    }
+                  : undefined
+              }
+            />
+          }
+          onGenerate={() => void onSubmit()}
+          generateDisabled={!sourceVideoUrl || submitting}
+          generating={submitting}
+          generateLabel={
+            submitting
+              ? isEn
+                ? "Starting..."
+                : "啟動中..."
+              : isEn
+                ? "Generate"
+                : "生成"
+          }
+          creditBadge="2K"
+          error={error}
+        />
+      </DirectorDockStage>
+
+      {/* Character & Outfit Selection Modal */}
+      {charModalOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
+          onClick={() => setCharModalOpen(false)}
+        >
+          <div
+            className="max-h-[85dvh] w-full max-w-3xl space-y-4 overflow-y-auto rounded-2xl border border-accent-ink/15 bg-white p-6 text-[#12141c] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-display text-sm font-bold">
+              <h3 className="font-display text-base font-bold">
                 {detectedPeople.length > 0
                   ? isEn
-                    ? `2. Assign Character for Person #${activePersonIndex}`
-                    : `2. 為「人物 #${activePersonIndex}」選擇替換角色`
+                    ? `Assign Character for Person #${activePersonIndex}`
+                    : `為「人物 #${activePersonIndex}」選擇替換角色與造型`
                   : isEn
-                    ? "2. Select Character"
-                    : "2. 選擇角色"}
-              </span>
+                    ? "Select Character & Outfit Look"
+                    : "選擇替換角色與造型"}
+              </h3>
               <div className="flex items-center gap-2">
                 <BrandUploadButton
                   label={isEn ? "Upload Custom Photo" : "上傳自訂人物相"}
@@ -764,22 +1010,16 @@ export function JutsuStudio({
                   }}
                   onError={setError}
                 />
-                {uploadedPhotoUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadedPhotoUrl("");
-                      updateActivePersonSlot({ uploadedPhotoUrl: "" });
-                    }}
-                    className="cursor-pointer text-xs font-semibold text-red-600"
-                  >
-                    {isEn ? "Clear photo" : "清除相片"}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setCharModalOpen(false)}
+                  className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
+                >
+                  ✕
+                </button>
               </div>
             </div>
 
-            {/* Layer 1: Character avatar strip */}
             {characters.length > 0 || detectedPeople.length > 0 ? (
               <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
                 {detectedPeople.length > 0 ? (
@@ -811,10 +1051,8 @@ export function JutsuStudio({
                       type="button"
                       disabled={submitting}
                       title={char.name}
-                      aria-label={char.name}
-                      aria-pressed={active}
                       onClick={() => selectCharacter(char)}
-                      className={`style-option group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                      className={`style-option group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border transition ${
                         active
                           ? "border-2 border-accent-ink ring-2 ring-lime"
                           : "border-accent-ink/15 hover:border-accent-ink/45"
@@ -838,33 +1076,7 @@ export function JutsuStudio({
               </div>
             ) : null}
 
-            {/* Layer 2: Selected Character's Presets / Historical / Customize Outfit */}
-            {activePersonKeepOriginal ? (
-              <div className="rounded-xl border border-accent-ink/15 bg-paper/65 p-3 text-xs text-muted">
-                {isEn
-                  ? `Person #${activePersonIndex} will stay unchanged in the output video. Click any character above to swap this person.`
-                  : `人物 #${activePersonIndex} 將保留原片樣貌與衣服唔變。點選上方任何角色即可替換呢位人物。`}
-              </div>
-            ) : uploadedPhotoUrl ? (
-              <div className="flex items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={uploadedPhotoUrl}
-                  alt=""
-                  className="h-16 w-16 rounded-lg object-cover"
-                />
-                <div className="text-xs">
-                  <p className="font-bold text-foreground">
-                    {isEn ? "Custom character photo selected" : "已選用自訂上傳人物相片"}
-                  </p>
-                  <p className="mt-0.5 text-muted">
-                    {isEn
-                      ? "Click any character above to switch back to character presets & history."
-                      : "點選上方任何角色即可切回角色 Preset 與歷史造型。"}
-                  </p>
-                </div>
-              </div>
-            ) : activeCharacter ? (
+            {activeCharacter && !activePersonKeepOriginal && !uploadedPhotoUrl ? (
               <div className="space-y-3 rounded-2xl border border-accent-ink/15 bg-paper/65 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5" role="tablist">
@@ -903,16 +1115,20 @@ export function JutsuStudio({
                   <button
                     type="button"
                     disabled={submitting}
-                    onClick={() => setManagingCharacter(true)}
+                    onClick={() => {
+                      setCharModalOpen(false);
+                      setManagingCharacter(true);
+                    }}
                     className="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink bg-lime/60 px-3.5 text-xs font-bold text-accent-ink transition hover:bg-lime"
                   >
-                    <span>{isEn ? "+ Customize Outfit" : "+ 自訂穿搭 Customize Outfit"}</span>
+                    <span>
+                      {isEn ? "+ Customize Outfit" : "+ 自訂穿搭 Customize Outfit"}
+                    </span>
                   </button>
                 </div>
 
                 {lookTab === "presets" ? (
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
-                    {/* Default preset card */}
                     {(() => {
                       const defUrl = defaultCharacterLookUrl(activeCharacter);
                       const active = selectedLookKey === "default";
@@ -930,6 +1146,7 @@ export function JutsuStudio({
                               lookLabel: isEn ? "Default Look" : "預設造型",
                               uploadedPhotoUrl: "",
                             });
+                            setCharModalOpen(false);
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -969,6 +1186,7 @@ export function JutsuStudio({
                               lookLabel: preset.name,
                               uploadedPhotoUrl: "",
                             });
+                            setCharModalOpen(false);
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -1015,6 +1233,7 @@ export function JutsuStudio({
                               lookLabel: label,
                               uploadedPhotoUrl: "",
                             });
+                            setCharModalOpen(false);
                           }}
                           className={`flex cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 text-left transition ${
                             active
@@ -1027,7 +1246,7 @@ export function JutsuStudio({
                             {label}
                           </span>
                           <span className="text-[10px] text-muted">
-                            v{ver.number} · {new Date(ver.createdAt).toLocaleDateString()}
+                            v{ver.number}
                           </span>
                         </button>
                       );
@@ -1036,158 +1255,200 @@ export function JutsuStudio({
                 )}
               </div>
             ) : null}
-          </section>
-
-          {/* Optional Relight & Render Settings */}
-          <details className="rounded-2xl border border-accent-ink/12 bg-paper/60 p-4">
-            <summary className="cursor-pointer font-display text-xs font-bold text-foreground">
-              {isEn
-                ? "Advanced: Relight & Motion Settings"
-                : "進階設定：打光 Relight 與遮罩參數"}
-            </summary>
-            <div className="mt-4 space-y-4">
-              <JutsuRelightPicker
-                enabled={relightEnabled}
-                onEnabledChange={setRelightEnabled}
-                selectedId={relightId}
-                onSelectId={setRelightId}
-                customPrompt={customLightPrompt}
-                onCustomPromptChange={setCustomLightPrompt}
-                disabled={submitting}
-              />
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <label className="block">
-                  <span className="text-[11px] font-semibold text-muted">
-                    {isEn ? "Mask Margin" : "遮罩邊距 Mask Margin"}
-                  </span>
-                  <select
-                    value={maskMargin}
-                    disabled={submitting}
-                    onChange={(e) =>
-                      setMaskMargin(e.target.value as "tight" | "normal" | "loose")
-                    }
-                    className="mt-1 h-8 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                  >
-                    <option value="tight">Tight (20 px)</option>
-                    <option value="normal">Normal (40 px)</option>
-                    <option value="loose">Loose (60 px)</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="text-[11px] font-semibold text-muted">
-                    {isEn ? "Motion Resolution" : "動作參考解析度"}
-                  </span>
-                  <select
-                    value={motionSize}
-                    disabled={submitting}
-                    onChange={(e) =>
-                      setMotionSize(Number(e.target.value) as 512 | 768 | 1376)
-                    }
-                    className="mt-1 h-8 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
-                  >
-                    <option value={512}>512 px (Default)</option>
-                    <option value={768}>768 px (High Precision)</option>
-                    <option value={1376}>1376 px (Max Detail)</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={hatFix}
-                    disabled={submitting}
-                    onChange={(e) => setHatFix(e.target.checked)}
-                    className="h-4 w-4 rounded accent-accent-ink"
-                  />
-                  <span>{isEn ? "Hat fix" : "帽子修復 Hat Fix"}</span>
-                </label>
-
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={noLipSync}
-                    disabled={submitting}
-                    onChange={(e) => setNoLipSync(e.target.checked)}
-                    className="h-4 w-4 rounded accent-accent-ink"
-                  />
-                  <span>{isEn ? "No lip-sync" : "關閉對嘴 No Lip-Sync"}</span>
-                </label>
-
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={keepSourceAudio}
-                    disabled={submitting}
-                    onChange={(e) => setKeepSourceAudio(e.target.checked)}
-                    className="h-4 w-4 rounded accent-accent-ink"
-                  />
-                  <span>{isEn ? "Keep source audio" : "保留原片音軌"}</span>
-                </label>
-
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={applyColorFixOnRender}
-                    disabled={submitting}
-                    onChange={(e) => setApplyColorFixOnRender(e.target.checked)}
-                    className="h-4 w-4 rounded accent-accent-ink"
-                  />
-                  <span>{isEn ? "H3 Soft Color Fix" : "套用 H3 Soft 調色"}</span>
-                </label>
-              </div>
-            </div>
-          </details>
-
-          {error ? (
-            <p
-              role="alert"
-              className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600"
-            >
-              {error}
-            </p>
-          ) : null}
+          </div>
         </div>
+      ) : null}
 
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-accent-ink/10 bg-paper/80 px-6 py-4">
-          <button
-            type="button"
-            disabled={!sourceVideoUrl || submitting}
-            onClick={() => void onSubmit()}
-            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 text-sm font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+      {/* Relight & Motion Settings Modal */}
+      {relightModalOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
+          onClick={() => setRelightModalOpen(false)}
+        >
+          <div
+            className="max-h-[85dvh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl border border-accent-ink/15 bg-white p-6 text-[#12141c] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            {submitting ? <Spinner className="h-4 w-4" /> : null}
-            <span>
-              {submitting
-                ? isEn
-                  ? "Starting Background Task…"
-                  : "正在啟動背景任務…"
-                : isEn
-                  ? "Generate"
-                  : "Generate 立即生成"}
-            </span>
-          </button>
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-base font-bold">
+                {isEn
+                  ? "Relight & Motion Mask Settings"
+                  : "光影重打 Relight 與遮罩參數"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRelightModalOpen(false)}
+                className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <JutsuRelightPicker
+              enabled={relightEnabled}
+              onEnabledChange={setRelightEnabled}
+              selectedId={relightId}
+              onSelectId={setRelightId}
+              customPrompt={customLightPrompt}
+              onCustomPromptChange={setCustomLightPrompt}
+              disabled={submitting}
+            />
+
+            <div className="grid grid-cols-2 gap-3 border-t border-accent-ink/10 pt-4">
+              <label className="block">
+                <span className="text-[11px] font-semibold text-muted">
+                  {isEn ? "Mask Margin" : "遮罩邊距 Mask Margin"}
+                </span>
+                <select
+                  value={maskMargin}
+                  disabled={submitting}
+                  onChange={(e) =>
+                    setMaskMargin(e.target.value as "tight" | "normal" | "loose")
+                  }
+                  className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                >
+                  <option value="tight">Tight (20 px)</option>
+                  <option value="normal">Normal (40 px)</option>
+                  <option value="loose">Loose (60 px)</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-[11px] font-semibold text-muted">
+                  {isEn ? "Motion Resolution" : "動作參考解析度"}
+                </span>
+                <select
+                  value={motionSize}
+                  disabled={submitting}
+                  onChange={(e) =>
+                    setMotionSize(Number(e.target.value) as 512 | 768 | 1376)
+                  }
+                  className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                >
+                  <option value={512}>512 px (Default)</option>
+                  <option value={768}>768 px (High Precision)</option>
+                  <option value={1376}>1376 px (Max Detail)</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={hatFix}
+                  disabled={submitting}
+                  onChange={(e) => setHatFix(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "Hat fix" : "帽子修復 Hat Fix"}</span>
+              </label>
+
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={noLipSync}
+                  disabled={submitting}
+                  onChange={(e) => setNoLipSync(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "No lip-sync" : "關閉對嘴 No Lip-Sync"}</span>
+              </label>
+
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={keepSourceAudio}
+                  disabled={submitting}
+                  onChange={(e) => setKeepSourceAudio(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "Keep source audio" : "保留原片音軌"}</span>
+              </label>
+
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={applyColorFixOnRender}
+                  disabled={submitting}
+                  onChange={(e) => setApplyColorFixOnRender(e.target.checked)}
+                  className="h-4 w-4 rounded accent-accent-ink"
+                />
+                <span>{isEn ? "H3 Soft Color Fix" : "套用 H3 Soft 調色"}</span>
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-        {/* Desktop Right-Side History Panel */}
-        <aside className="hidden lg:sticky lg:top-4 lg:block">
-          <ScroSwapHistoryPanel
-            jobs={jobs}
-            characters={characters}
-            activeJobId={activeJob?.id ?? null}
-            onSelectJob={setActiveJob}
-            onDeleteJob={(id) => void onDeleteJob(id)}
-            layout="sidebar"
-          />
-        </aside>
-      </div>
+      {/* Section Start & Length Modal */}
+      {sectionModalOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
+          onClick={() => setSectionModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md space-y-4 rounded-2xl border border-accent-ink/15 bg-white p-6 text-[#12141c] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-base font-bold">
+                {isEn ? "Clip Section Trim" : "影片截取範圍設定"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSectionModalOpen(false)}
+                className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-[11px] font-semibold text-muted">
+                  {isEn ? "Starts at (sec)" : "起始秒數 Starts at (s)"}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={300}
+                  step={0.5}
+                  disabled={submitting}
+                  value={sectionStart}
+                  onChange={(e) =>
+                    setSectionStart(Math.max(0, Number(e.target.value)))
+                  }
+                  className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-semibold text-muted">
+                  {isEn ? "Clip Length (2–15s)" : "截取長度 Length (2–15秒)"}
+                </span>
+                <input
+                  type="number"
+                  min={2}
+                  max={15}
+                  step={1}
+                  disabled={submitting}
+                  value={sectionLength}
+                  onChange={(e) =>
+                    setSectionLength(
+                      Math.min(15, Math.max(2, Number(e.target.value))),
+                    )
+                  }
+                  className="mt-1 h-9 w-full rounded-lg border border-accent-ink/20 bg-white px-2.5 text-xs font-bold"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-      {/* History Dialog (mobile/tablet fallback) */}
       <ScroSwapHistoryDialog
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
