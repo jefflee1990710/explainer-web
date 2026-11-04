@@ -155,10 +155,10 @@ export function getDirectorHeroCopy(
       return {
         headline:
           locale === "zh-Hant"
-            ? "一鍵將人物瞬移到全新場景"
+            ? "一鍵將角色瞬移到全新場景"
             : locale === "zh-Hans"
-              ? "一键将人物瞬移到全新场景"
-              : "Teleport Your Subject Anywhere",
+              ? "一键将角色瞬移到全新场景"
+              : "Teleport Your Character Anywhere",
         subtitle:
           locale === "zh-Hant"
             ? "保留原片人物動作與神態，用場景圖或文字描述瞬間切換背景與光線"

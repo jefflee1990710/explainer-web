@@ -232,6 +232,9 @@ export function JutsuStudio({
     setPersonAssignments({});
     setSourceMediaKind(kind);
     setSourceVideoUrl(uploaded.url);
+    if (kind === "video" || kind === "gif") {
+      setSectionModalOpen(true);
+    }
   }
 
   async function handleCharacterFile(file: File | undefined) {
@@ -805,29 +808,6 @@ export function JutsuStudio({
             onPrev={() => setApplyColorFixOnRender((prev) => !prev)}
             onNext={() => setApplyColorFixOnRender((prev) => !prev)}
             onClick={() => setApplyColorFixOnRender((prev) => !prev)}
-          />
-
-          {/* Setting 5: Interactive Timeline Range Trim */}
-          <DirectorDockStepperCell
-            icon={
-              <svg
-                aria-hidden="true"
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            }
-            label={isEn ? "Timeline Range" : "時間軸截取"}
-            value={`${sectionStart}s–${sectionStart + sectionLength}s (${sectionLength}s)`}
-            disabled={submitting}
-            onClick={() => setSectionModalOpen(true)}
           />
         </DirectorDockPanel>
 
@@ -1531,15 +1511,51 @@ export function JutsuStudio({
                     </span>
                   </div>
 
-                  {/* Visual timeline range track */}
-                  <div className="relative h-8 w-full overflow-hidden rounded-2xl bg-zinc-200">
+                  {/* Visual draggable timeline range track */}
+                  <div
+                    onPointerDown={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const updateFromClientX = (clientX: number) => {
+                        const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / Math.max(1, rect.width)));
+                        const tSec = Math.round(ratio * maxDur * 2) / 2;
+                        const currentEnd = sectionStart + sectionLength;
+                        const distStart = Math.abs(tSec - sectionStart);
+                        const distEnd = Math.abs(tSec - currentEnd);
+                        if (distStart <= distEnd) {
+                          const nextStart = Math.max(0, Math.min(currentEnd - 2, tSec));
+                          const nextLen = Math.min(15, Math.max(2, Math.round(currentEnd - nextStart)));
+                          setSectionStart(nextStart);
+                          setSectionLength(nextLen);
+                          if (trimVideoRef.current) trimVideoRef.current.currentTime = nextStart;
+                        } else {
+                          const nextLen = Math.min(15, Math.max(2, Math.round(tSec - sectionStart)));
+                          setSectionLength(nextLen);
+                          if (trimVideoRef.current) trimVideoRef.current.currentTime = sectionStart + nextLen;
+                        }
+                      };
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      updateFromClientX(e.clientX);
+                      const el = e.currentTarget;
+                      const onMove = (ev: PointerEvent) => updateFromClientX(ev.clientX);
+                      const onUp = () => {
+                        el.removeEventListener("pointermove", onMove);
+                        el.removeEventListener("pointerup", onUp);
+                      };
+                      el.addEventListener("pointermove", onMove);
+                      el.addEventListener("pointerup", onUp);
+                    }}
+                    className="relative h-10 w-full cursor-ew-resize touch-none overflow-hidden rounded-2xl bg-zinc-200 select-none"
+                  >
                     <div
-                      className="absolute inset-y-0 rounded-2xl border-2 border-[#12141c] bg-[#c6f24b]/85 transition-all"
+                      className="absolute inset-y-0 flex items-center justify-between rounded-2xl border-2 border-[#12141c] bg-[#c6f24b]/90 px-1.5"
                       style={{
                         left: `${startPct}%`,
-                        width: `${Math.max(4, widthPct)}%`,
+                        width: `${Math.max(6, widthPct)}%`,
                       }}
-                    />
+                    >
+                      <span className="h-5 w-1.5 rounded-full bg-[#12141c]" />
+                      <span className="h-5 w-1.5 rounded-full bg-[#12141c]" />
+                    </div>
                   </div>
 
                   {/* Interactive Start & Duration Sliders */}
