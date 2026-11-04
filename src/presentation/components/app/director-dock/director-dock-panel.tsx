@@ -119,22 +119,17 @@ export function DirectorDockStyleButton({
       className="director-dock-cell group relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-[#f4f4f5] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {thumbUrl ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={thumbUrl}
-            alt={label}
-            className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
-          />
-          <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-[9px] font-semibold text-white">
-            {label}
-          </span>
-        </>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumbUrl}
+          alt={label}
+          className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
+        />
       ) : (
-        <span className="relative flex h-full w-full flex-col items-center justify-center bg-gradient-to-b from-zinc-100 to-zinc-200/90 text-zinc-500">
+        <span className="relative flex h-full w-full items-center justify-center bg-gradient-to-b from-zinc-100 to-zinc-200/90 text-zinc-500">
           <svg
             aria-hidden="true"
-            className="mb-2.5 h-6 w-6"
+            className="h-6 w-6"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -148,9 +143,6 @@ export function DirectorDockStyleButton({
             <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
           </svg>
-          <span className="absolute inset-x-0 bottom-0 truncate bg-black/65 px-1 py-0.5 text-[9px] font-semibold text-white">
-            {label}
-          </span>
         </span>
       )}
     </button>
