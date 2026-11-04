@@ -7,6 +7,7 @@ import {
   computeSkillSwitchState,
   cycleOption,
   getDirectorHeroCopy,
+  isFullBleedStudioPath,
   LIFE_REMARK_STAGE_CLASS,
   resolveCastSlotCount,
   resolveModeSwitchSkillSlug,
@@ -85,4 +86,18 @@ test("LIFE_REMARK_STAGE_CLASS includes w-fit and tokens.css preserves rounded-fu
   );
   assert.match(css, /\.director-dock-cell:not\(\[class\*="rounded-full"\]\)/);
 });
+
+test("isFullBleedStudioPath matches all 5 Director Dock studios, video editor routes, and fitting room", () => {
+  assert.equal(isFullBleedStudioPath("/app/explainers"), true);
+  assert.equal(isFullBleedStudioPath("/app/talking-heads"), true);
+  assert.equal(isFullBleedStudioPath("/app/videos/new"), true);
+  assert.equal(isFullBleedStudioPath("/app/projects/abc/videos/new"), true);
+  assert.equal(isFullBleedStudioPath("/app/life"), true);
+  assert.equal(isFullBleedStudioPath("/app/scroswap"), true);
+  assert.equal(isFullBleedStudioPath("/app/teleport"), true);
+  assert.equal(isFullBleedStudioPath("/app/room"), true);
+  assert.equal(isFullBleedStudioPath("/app/characters"), false);
+  assert.equal(isFullBleedStudioPath("/app/billing"), false);
+});
+
 

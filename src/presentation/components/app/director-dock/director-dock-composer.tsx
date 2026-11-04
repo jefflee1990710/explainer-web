@@ -59,13 +59,13 @@ export function DirectorDockComposer({
   disabled?: boolean;
 }) {
   return (
-    <div className="relative mt-2.5 w-full max-w-4xl">
-      {/* Left Floating Vertical Mode Rail (matches 图像 / 视频 pill on the left of the screenshot) */}
+    <div className="mt-2.5 flex w-full max-w-4xl flex-col gap-2.5 md:flex-row md:items-center">
+      {/* Left Vertical Mode Rail (sits inside the max-w-4xl flex row so it never overflows left or pushes the right side off-screen) */}
       {modeItems.length > 0 ? (
         <div
           role="tablist"
           aria-label="Creation mode"
-          className="mb-2.5 inline-flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-[#181920]/95 p-1.5 shadow-xl lg:absolute lg:top-1/2 lg:-left-[68px] lg:mb-0 lg:-translate-y-1/2 lg:flex-col"
+          className="inline-flex shrink-0 items-center gap-1 self-start rounded-2xl border border-zinc-200/90 bg-white p-1.5 shadow-[0_8px_24px_rgba(18,20,28,0.06)] md:self-center md:flex-col"
         >
           {modeItems.map((item) => {
             const active = item.id === activeModeId;
@@ -77,10 +77,10 @@ export function DirectorDockComposer({
                 aria-selected={active}
                 disabled={disabled}
                 onClick={() => onSelectMode?.(item.id)}
-                className={`director-dock-cell flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition lg:w-12 lg:flex-col lg:gap-1 lg:px-1.5 lg:py-2.5 ${
+                className={`director-dock-cell flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold transition md:w-12 md:flex-col md:gap-1 md:px-1.5 md:py-2.5 ${
                   active
-                    ? "bg-[#2a2d37] text-white shadow-inner"
-                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+                    ? "bg-[#12141c] text-[#c6f24b] shadow-xs"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-[#12141c]"
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 <span className="shrink-0">{item.icon}</span>
@@ -91,23 +91,23 @@ export function DirectorDockComposer({
         </div>
       ) : null}
 
-      {/* Main Dark Composer Box */}
+      {/* Main Light Composer Box */}
       <div
         data-tour-id={tourId}
-        className="relative flex w-full flex-col gap-3 rounded-2xl border border-white/[0.08] bg-[#181920]/95 p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-md"
+        className="relative flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-[0_12px_36px_rgba(18,20,28,0.07)]"
       >
         {topMediaSlot ? <div className="w-full">{topMediaSlot}</div> : null}
 
-        <div className="flex flex-col items-stretch gap-3 md:flex-row">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row">
           {/* Left column: Borderless Prompt Textarea + Bottom Pill Toolbar */}
-          <div className="flex min-h-[96px] min-w-0 flex-1 flex-col justify-between gap-2.5">
+          <div className="flex min-h-[92px] min-w-0 flex-1 flex-col justify-between gap-2.5">
             <textarea
               rows={2}
               value={promptValue}
               onChange={(e) => onPromptChange(e.target.value)}
               disabled={disabled}
               placeholder={promptPlaceholder}
-              className="director-dock-textarea min-h-[54px] w-full resize-none border-0 bg-transparent px-1 py-0.5 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
+              className="director-dock-textarea min-h-[52px] w-full resize-none border-0 bg-transparent px-1 py-0.5 text-sm leading-6 text-[#12141c] placeholder:text-zinc-400 focus:outline-none disabled:opacity-60"
             />
 
             {/* Bottom-left pill toolbar */}
@@ -119,12 +119,12 @@ export function DirectorDockComposer({
                     disabled={disabled}
                     onClick={onPlusToggle}
                     aria-label="More options and samples"
-                    className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/[0.08] bg-[#23252e] text-sm font-bold text-zinc-200 transition hover:border-white/25 hover:bg-[#2c2f3a] hover:text-white disabled:opacity-50"
+                    className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-[#f4f4f5] text-sm font-bold text-[#12141c] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:opacity-50"
                   >
                     +
                   </button>
                   {plusMenuOpen && plusMenuSlot ? (
-                    <div className="absolute bottom-10 left-0 z-40 min-w-[260px] rounded-2xl border border-white/15 bg-[#1e2029] p-3 text-zinc-100 shadow-2xl">
+                    <div className="absolute bottom-10 left-0 z-40 min-w-[260px] rounded-2xl border border-zinc-200 bg-white p-3 text-[#12141c] shadow-2xl">
                       {plusMenuSlot}
                     </div>
                   ) : null}
@@ -144,16 +144,16 @@ export function DirectorDockComposer({
               type={generateType}
               disabled={generateDisabled || generating}
               onClick={generateType === "button" ? onGenerate : undefined}
-              className="director-dock-generate flex min-h-[86px] w-28 sm:w-32 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl bg-[#d8ff3e] px-4 py-3 font-display text-sm font-extrabold text-[#111318] transition hover:bg-[#e3ff66] disabled:cursor-not-allowed disabled:opacity-45"
+              className="director-dock-generate flex min-h-[84px] w-26 sm:w-28 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl bg-[#c6f24b] px-3.5 py-3 font-display text-sm font-extrabold text-[#12141c] transition hover:bg-[#b6e23a] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {generating ? (
-                <Spinner className="h-4 w-4 text-[#111318]" />
+                <Spinner className="h-4 w-4 text-[#12141c]" />
               ) : null}
               <span className="text-sm font-extrabold tracking-tight">
                 {generateLabel}
               </span>
               {creditBadge !== undefined && creditBadge !== "" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#111318]/85">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#12141c]/80">
                   <span>✦</span>
                   <span>{creditBadge}</span>
                 </span>
@@ -165,14 +165,14 @@ export function DirectorDockComposer({
         {error ? (
           <p
             role="alert"
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
           >
             {error}
           </p>
         ) : null}
 
         {footerNotice ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
             {footerNotice}
           </div>
         ) : null}
@@ -207,17 +207,19 @@ export function DirectorDockPill({
       disabled={disabled}
       onClick={onClick}
       title={title}
-      className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#23252e] px-3 text-xs font-semibold text-zinc-200 transition hover:border-white/25 hover:bg-[#2c2f3a] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-[#f4f4f5] px-3 text-xs font-semibold text-[#12141c] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {accentBadge ? (
-        <span className="flex items-center text-[#d8ff3e]">{accentBadge}</span>
+        <span className="flex items-center rounded bg-[#12141c] px-1 py-0.5 text-[10px] font-bold text-[#c6f24b]">
+          {accentBadge}
+        </span>
       ) : null}
-      {icon ? <span className="flex items-center text-zinc-400">{icon}</span> : null}
-      <span className="max-w-[160px] truncate">{label}</span>
+      {icon ? <span className="flex items-center text-zinc-500">{icon}</span> : null}
+      <span className="max-w-[145px] truncate">{label}</span>
       {hasChevron ? (
         <svg
           aria-hidden
-          className="h-3 w-3 text-zinc-400"
+          className="h-3 w-3 text-zinc-500"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -255,6 +257,7 @@ export function DirectorDockQuickTile({
   disabled?: boolean;
   title?: string;
 }) {
+  const hasMedia = Boolean(thumbUrl || videoUrl);
   return (
     <div className="relative flex">
       <button
@@ -262,20 +265,21 @@ export function DirectorDockQuickTile({
         disabled={disabled}
         onClick={onClick}
         title={title || label}
-        className={`director-dock-tile group relative flex min-h-[86px] w-[78px] sm:w-[86px] shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border p-2.5 text-left transition ${
-          active || thumbUrl || videoUrl
-            ? "border-[#d8ff3e]/50 bg-[#252833]"
-            : "border-white/[0.08] bg-[#22242c] hover:border-white/25 hover:bg-[#292c36]"
+        className={`director-dock-tile group relative flex min-h-[84px] w-[74px] sm:w-[80px] shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border p-2 text-left transition ${
+          active || hasMedia
+            ? "border-[#12141c] bg-zinc-100"
+            : "border-zinc-200 bg-[#f4f4f5] hover:border-zinc-400 hover:bg-zinc-200/60"
         } disabled:cursor-not-allowed disabled:opacity-50`}
       >
         {thumbUrl ? (
           <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={thumbUrl}
               alt={label}
-              className="absolute inset-0 h-full w-full object-cover opacity-75 transition group-hover:opacity-90"
+              className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/15" />
           </>
         ) : videoUrl ? (
           <>
@@ -283,29 +287,45 @@ export function DirectorDockQuickTile({
               src={videoUrl}
               muted
               playsInline
-              className="absolute inset-0 h-full w-full object-cover opacity-75"
+              className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/15" />
           </>
         ) : null}
 
         <div className="relative z-10 flex w-full items-center justify-between gap-1">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-black/40 text-xs font-bold text-zinc-200">
+          <span
+            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${
+              hasMedia
+                ? "border-white/30 bg-black/50 text-white"
+                : "border-zinc-300 bg-white text-zinc-700"
+            }`}
+          >
             {icon || "+"}
           </span>
           {badge ? (
-            <span className="rounded bg-white/10 px-1 py-0.5 text-[9px] font-semibold text-zinc-300 backdrop-blur-xs">
+            <span
+              className={`rounded px-1 py-0.5 text-[9px] font-semibold ${
+                hasMedia
+                  ? "bg-black/55 text-white backdrop-blur-xs"
+                  : "bg-zinc-200/90 text-zinc-600"
+              }`}
+            >
               {badge}
             </span>
           ) : null}
         </div>
 
-        <span className="relative z-10 block truncate text-[11px] font-bold text-zinc-100">
+        <span
+          className={`relative z-10 block truncate text-[11px] font-bold ${
+            hasMedia ? "text-white" : "text-[#12141c]"
+          }`}
+        >
           {label}
         </span>
       </button>
 
-      {onClear && (thumbUrl || videoUrl) ? (
+      {onClear && hasMedia ? (
         <button
           type="button"
           onClick={(e) => {
@@ -313,7 +333,7 @@ export function DirectorDockQuickTile({
             onClear();
           }}
           aria-label={`Clear ${label}`}
-          className="absolute -top-1.5 -right-1.5 z-20 inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/85 text-[10px] font-bold text-white hover:bg-red-500"
+          className="absolute -top-1.5 -right-1.5 z-20 inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-[#12141c] text-[10px] font-bold text-white hover:bg-red-500"
         >
           ×
         </button>

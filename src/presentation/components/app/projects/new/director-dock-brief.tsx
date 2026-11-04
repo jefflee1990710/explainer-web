@@ -427,12 +427,8 @@ export function DirectorDockBrief({
             data-tour-id="setup-mode-bar"
             className="flex flex-wrap items-center gap-2"
           >
-            {projectPicker ? (
-              <div className="rounded-full bg-white/95 px-1 py-0.5 text-[#12141c] shadow-sm">
-                {projectPicker}
-              </div>
-            ) : null}
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-zinc-300">
+            {projectPicker ? <div>{projectPicker}</div> : null}
+            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
               {talkingHead
                 ? locale === "en"
                   ? "Talking Head Studio"
@@ -455,7 +451,7 @@ export function DirectorDockBrief({
                     ? "查看操作教学导览"
                     : "Show guided tour"
               }
-              className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-xs font-bold text-zinc-300 transition hover:border-white/30 hover:text-white"
+              className="director-dock-cell inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-xs font-bold text-zinc-600 transition hover:border-zinc-400 hover:text-[#12141c]"
             >
               ?
             </button>
@@ -463,7 +459,7 @@ export function DirectorDockBrief({
               type="button"
               disabled={briefBusy}
               onClick={onOpenDetails}
-              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 text-xs font-bold text-zinc-200 transition hover:border-[#d8ff3e]/60 hover:text-white disabled:opacity-50"
+              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 text-xs font-bold text-[#12141c] transition hover:border-[#12141c] hover:bg-zinc-200/70 disabled:opacity-50"
             >
               <span>⚙</span>
               <span>
@@ -487,7 +483,7 @@ export function DirectorDockBrief({
                 type="button"
                 disabled={briefBusy}
                 onClick={() => setCreateCharOpen(true)}
-                className="director-dock-cell cursor-pointer rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-[#d8ff3e] transition hover:border-[#d8ff3e]/50 hover:bg-white/10"
+                className="director-dock-cell cursor-pointer rounded-full bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] transition hover:bg-black"
               >
                 {locale === "en" ? "+ New Character" : "+ 新增角色"}
               </button>
@@ -690,8 +686,8 @@ export function DirectorDockBrief({
           }
           topMediaSlot={
             uploadedVoUrl && talkingHead ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-[#d8ff3e]/30 bg-[#d8ff3e]/10 px-3 py-1.5 text-xs text-zinc-100">
-                <span className="truncate font-semibold text-[#d8ff3e]">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs text-[#12141c]">
+                <span className="truncate font-semibold">
                   🎙{" "}
                   {locale === "en"
                     ? "Custom voiceover audio attached"
@@ -703,7 +699,7 @@ export function DirectorDockBrief({
                 <button
                   type="button"
                   onClick={() => onUploadedVoChange({ url: undefined, durationSeconds: undefined })}
-                  className="cursor-pointer rounded px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-white/10 hover:text-white"
+                  className="cursor-pointer rounded px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-200 hover:text-[#12141c]"
                 >
                   {locale === "en" ? "Clear" : "移除"}
                 </button>

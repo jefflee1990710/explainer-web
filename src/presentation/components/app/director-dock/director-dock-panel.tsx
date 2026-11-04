@@ -30,18 +30,18 @@ export function DirectorDockPanel({
   return (
     <div
       data-tour-id={tourId}
-      className="w-full max-w-4xl rounded-2xl border border-white/[0.08] bg-[#181920]/95 px-3.5 py-2.5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-md"
+      className="w-full max-w-4xl rounded-2xl border border-zinc-200/90 bg-white px-3.5 py-2.5 shadow-[0_8px_28px_rgba(18,20,28,0.06)]"
     >
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
-          className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-zinc-200"
+          className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-bold text-zinc-600 transition hover:text-[#12141c]"
         >
           <svg
             aria-hidden
-            className="h-3.5 w-3.5 text-zinc-400"
+            className="h-3.5 w-3.5 text-zinc-500"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -63,7 +63,7 @@ export function DirectorDockPanel({
             type="button"
             onClick={() => setOpen((prev) => !prev)}
             aria-label={open ? "Collapse director panel" : "Expand director panel"}
-            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-[#12141c]"
           >
             <svg
               aria-hidden
@@ -84,7 +84,7 @@ export function DirectorDockPanel({
       </div>
 
       {open ? (
-        <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center lg:gap-2.5">
+        <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:gap-2">
           {children}
         </div>
       ) : null}
@@ -93,7 +93,7 @@ export function DirectorDockPanel({
 }
 
 export function DirectorDockDivider() {
-  return <div aria-hidden className="hidden h-9 w-px shrink-0 bg-white/[0.08] lg:block" />;
+  return <div aria-hidden className="hidden h-8 w-px shrink-0 bg-zinc-200 lg:block" />;
 }
 
 export function DirectorDockCastGroup({
@@ -117,7 +117,7 @@ export function DirectorDockCastGroup({
   return (
     <div
       data-tour-id={tourId}
-      className="flex items-center gap-1.5 shrink-0"
+      className="flex shrink-0 items-center gap-1.5"
     >
       {/* Person + add icon slot matching printscreen */}
       <button
@@ -125,7 +125,7 @@ export function DirectorDockCastGroup({
         disabled={disabled}
         onClick={onOpenPicker}
         title={badgeLabel}
-        className="director-dock-cell inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.07] bg-[#22242c] text-zinc-300 transition hover:border-white/20 hover:bg-[#2a2d37] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="director-dock-cell inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-[#f4f4f5] text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200/70 hover:text-[#12141c] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg
           aria-hidden
@@ -153,10 +153,11 @@ export function DirectorDockCastGroup({
             disabled={disabled}
             onClick={char && onManageActive ? onManageActive : onOpenPicker}
             title={char ? char.name : badgeLabel}
-            className="director-dock-cell group relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-white/[0.07] bg-[#22242c] transition hover:border-white/25 hover:bg-[#2a2d37] disabled:cursor-not-allowed disabled:opacity-50"
+            className="director-dock-cell group relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-zinc-200 bg-[#f4f4f5] transition hover:border-zinc-400 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {char?.previewUrl ? (
               <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={char.previewUrl}
                   alt={char.name}
@@ -167,11 +168,11 @@ export function DirectorDockCastGroup({
                 </span>
               </>
             ) : char ? (
-              <span className="flex h-full w-full items-center justify-center px-1 text-[10px] font-bold text-zinc-200">
+              <span className="flex h-full w-full items-center justify-center px-1 text-[10px] font-bold text-[#12141c]">
                 {char.name.slice(0, 3)}
               </span>
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-zinc-600 group-hover:text-zinc-400">
+              <span className="flex h-full w-full items-center justify-center text-zinc-400 group-hover:text-zinc-600">
                 +
               </span>
             )}
@@ -206,43 +207,44 @@ export function DirectorDockStepperCell({
   return (
     <div
       data-tour-id={tourId}
-      className="flex h-12 min-w-[148px] flex-1 items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-[#22242c] px-2.5 transition hover:border-white/20"
+      className="flex h-12 min-w-[132px] flex-1 items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-[#f4f4f5] px-2.5 transition hover:border-zinc-300"
     >
       <button
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="director-dock-cell flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
+        className="director-dock-cell flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
       >
         {thumbUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbUrl}
             alt={value}
-            className="h-8 w-8 shrink-0 rounded-lg border border-white/10 object-cover"
+            className="h-8 w-8 shrink-0 rounded-lg border border-zinc-200 bg-white object-cover"
           />
         ) : icon ? (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-zinc-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-700">
             {icon}
           </span>
         ) : null}
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-[10px] font-medium text-zinc-400">
+          <span className="block truncate text-[10px] font-medium text-zinc-500">
             {label}
           </span>
-          <span className="block truncate text-xs font-bold text-zinc-100">
+          <span className="block truncate text-xs font-bold text-[#12141c]">
             {value}
           </span>
         </div>
       </button>
 
       {onPrev || onNext ? (
-        <div className="flex flex-col items-center justify-center gap-0.5 text-zinc-400">
+        <div className="flex flex-col items-center justify-center gap-0.5 text-zinc-500">
           <button
             type="button"
             disabled={disabled}
             onClick={onPrev}
             aria-label={`Previous ${label}`}
-            className="cursor-pointer rounded p-0.5 hover:bg-white/10 hover:text-white disabled:opacity-40"
+            className="cursor-pointer rounded p-0.5 hover:bg-zinc-200 hover:text-[#12141c] disabled:opacity-40"
           >
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 7l-6 6h12z" />
@@ -253,7 +255,7 @@ export function DirectorDockStepperCell({
             disabled={disabled}
             onClick={onNext}
             aria-label={`Next ${label}`}
-            className="cursor-pointer rounded p-0.5 hover:bg-white/10 hover:text-white disabled:opacity-40"
+            className="cursor-pointer rounded p-0.5 hover:bg-zinc-200 hover:text-[#12141c] disabled:opacity-40"
           >
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 17l6-6H6z" />
@@ -285,16 +287,16 @@ export function DirectorDockCurveCell({
   return (
     <div
       data-tour-id={tourId}
-      className="flex h-12 min-w-[205px] flex-[1.35] items-center justify-between gap-2.5 rounded-xl border border-white/[0.07] bg-[#22242c] px-3 transition hover:border-white/20"
+      className="flex h-12 min-w-[172px] flex-[1.2] items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-[#f4f4f5] px-2.5 transition hover:border-zinc-300"
     >
       <button
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="director-dock-cell flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
+        className="director-dock-cell flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
       >
         {/* Blue bezier speed/pace curve matching the reference screenshot */}
-        <div className="flex h-8 w-24 shrink-0 items-center justify-center rounded-lg bg-[#191b22] px-2">
+        <div className="flex h-8 w-20 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white px-1.5">
           <svg
             aria-hidden
             viewBox="0 0 96 28"
@@ -306,40 +308,40 @@ export function DirectorDockCurveCell({
               y1="14"
               x2="92"
               y2="14"
-              stroke="rgba(255,255,255,0.12)"
+              stroke="rgba(18,20,28,0.12)"
               strokeWidth="1"
             />
             <path
               d="M 8 10 C 24 10, 32 21, 48 20 C 64 19, 72 9, 88 9"
-              stroke="#2ea8ff"
-              strokeWidth="2"
+              stroke="#0284c7"
+              strokeWidth="2.2"
               strokeLinecap="round"
             />
-            <circle cx="8" cy="10" r="3" fill="#2ea8ff" />
-            <circle cx="48" cy="20" r="3" fill="#2ea8ff" />
-            <circle cx="70" cy="10" r="3" fill="#2ea8ff" />
-            <circle cx="88" cy="9" r="3" fill="#2ea8ff" />
+            <circle cx="8" cy="10" r="3" fill="#0284c7" />
+            <circle cx="48" cy="20" r="3" fill="#0284c7" />
+            <circle cx="70" cy="10" r="3" fill="#0284c7" />
+            <circle cx="88" cy="9" r="3" fill="#0284c7" />
           </svg>
         </div>
 
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-[10px] font-medium text-zinc-400">
+          <span className="block truncate text-[10px] font-medium text-zinc-500">
             {label}
           </span>
-          <span className="block truncate text-xs font-bold text-zinc-100">
+          <span className="block truncate text-xs font-bold text-[#12141c]">
             {value}
           </span>
         </div>
       </button>
 
       {onPrev || onNext ? (
-        <div className="flex flex-col items-center justify-center gap-0.5 text-zinc-400">
+        <div className="flex flex-col items-center justify-center gap-0.5 text-zinc-500">
           <button
             type="button"
             disabled={disabled}
             onClick={onPrev}
             aria-label={`Previous ${label}`}
-            className="cursor-pointer rounded p-0.5 hover:bg-white/10 hover:text-white disabled:opacity-40"
+            className="cursor-pointer rounded p-0.5 hover:bg-zinc-200 hover:text-[#12141c] disabled:opacity-40"
           >
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 7l-6 6h12z" />
@@ -350,7 +352,7 @@ export function DirectorDockCurveCell({
             disabled={disabled}
             onClick={onNext}
             aria-label={`Next ${label}`}
-            className="cursor-pointer rounded p-0.5 hover:bg-white/10 hover:text-white disabled:opacity-40"
+            className="cursor-pointer rounded p-0.5 hover:bg-zinc-200 hover:text-[#12141c] disabled:opacity-40"
           >
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 17l6-6H6z" />
@@ -381,19 +383,19 @@ export function DirectorDockDurationCell({
       data-tour-id={tourId}
       disabled={disabled}
       onClick={onClick}
-      className="director-dock-cell flex h-12 min-w-[116px] shrink-0 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-[#22242c] px-3.5 text-left transition hover:border-white/20 hover:bg-[#2a2d37] disabled:cursor-not-allowed disabled:opacity-50"
+      className="director-dock-cell flex h-12 min-w-[96px] shrink-0 cursor-pointer items-center justify-between gap-2.5 rounded-xl border border-zinc-200 bg-[#f4f4f5] px-3 text-left transition hover:border-zinc-300 hover:bg-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <div className="min-w-0">
-        <span className="block truncate text-[10px] font-medium text-zinc-400">
+        <span className="block truncate text-[10px] font-medium text-zinc-500">
           {label}
         </span>
-        <span className="block truncate text-xs font-bold text-zinc-100">
+        <span className="block truncate text-xs font-bold text-[#12141c]">
           {value}
         </span>
       </div>
-      {/* Vertical white bar indicator matching the screenshot's 10s duration control */}
+      {/* Vertical bar indicator matching the screenshot's duration control */}
       <div className="flex items-center gap-1.5">
-        <span className="h-7 w-1 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+        <span className="h-6 w-1 rounded-full bg-[#12141c]" />
       </div>
     </button>
   );

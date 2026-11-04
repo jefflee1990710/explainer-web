@@ -573,10 +573,10 @@ export function JutsuStudio({
       <DirectorDockStage
         topLeft={
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[#d8ff3e] px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-[#111318]">
+            <span className="rounded-full bg-[#12141c] px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-[#c6f24b]">
               Scro Swap
             </span>
-            <span className="text-xs font-semibold text-zinc-300">
+            <span className="text-xs font-semibold text-zinc-600">
               {isEn ? "Character Motion Swap" : "角色動作遷移"}
             </span>
           </div>
@@ -585,7 +585,7 @@ export function JutsuStudio({
           <button
             type="button"
             onClick={() => setHistoryOpen(true)}
-            className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 text-xs font-bold text-zinc-100 transition hover:border-white/30 hover:text-white"
+            className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3.5 text-xs font-bold text-[#12141c] transition hover:border-zinc-400"
             aria-label={historyLabel}
           >
             <svg
@@ -602,14 +602,14 @@ export function JutsuStudio({
               <path d="M12 6v6l4 2" />
             </svg>
             <span>{historyLabel}</span>
-            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-200">
+            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-zinc-200 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-700">
               {jobs.length}
             </span>
           </button>
         }
         bottomContent={
           jobs.length > 0 ? (
-            <div className="mt-8 rounded-2xl border border-white/10 bg-white p-4 text-[#12141c]">
+            <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 text-[#12141c] shadow-xs">
               <ScroSwapHistoryPanel
                 jobs={jobs}
                 characters={characters}
@@ -632,7 +632,7 @@ export function JutsuStudio({
                 type="button"
                 disabled={submitting}
                 onClick={() => setManagingCharacter(true)}
-                className="director-dock-cell cursor-pointer rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-[#d8ff3e] hover:border-[#d8ff3e]/50"
+                className="director-dock-cell cursor-pointer rounded-full bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] hover:bg-black"
               >
                 {isEn ? "+ Customize Outfit" : "+ 自訂穿搭"}
               </button>

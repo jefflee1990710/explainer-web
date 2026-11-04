@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { isFullBleedStudioPath } from "@/presentation/components/app/director-dock/director-dock-config";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { RouteTransitionProvider, useRouteTransition } from "@/presentation/studio/route-transition";
 import { StudioNav } from "@/presentation/studio/studio-nav";
@@ -62,8 +63,8 @@ export function StudioShell({
 function StudioMainSlot({ children }: { children: React.ReactNode }) {
   const { pendingHref, activePathname } = useRouteTransition();
   const isVideoEditorRoute = Boolean(pendingHref && /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(pendingHref));
-  // Fitting room fills the pane. Other pages keep the studio inset.
-  const fullBleed = /^\/app\/room(\/|$)/.test(activePathname);
+  // Fitting room and Director Dock studios fill the pane without outer padding.
+  const fullBleed = isFullBleedStudioPath(activePathname);
   return (
     <div
       className={`flex min-h-0 flex-1 flex-col ${

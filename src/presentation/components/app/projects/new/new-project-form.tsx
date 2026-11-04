@@ -169,10 +169,7 @@ import {
   type BriefSetupMode,
 } from "@/presentation/components/app/projects/new/brief-setup-mode-bar";
 import { ProjectPicker, type ProjectOption } from "@/presentation/components/app/project-picker";
-import {
-  CreateVideoFeatureDiscovery,
-  hasSeenCreateVideoTutorial,
-} from "@/presentation/components/app/projects/new/create-video-feature-discovery";
+import { CreateVideoFeatureDiscovery } from "@/presentation/components/app/projects/new/create-video-feature-discovery";
 import {
   FirstVideoOnboardingModal,
   isFirstVideoModalDismissedInSession,
@@ -498,16 +495,6 @@ export function NewProjectForm({
   useEffect(() => {
     setWalletCredits(credits);
   }, [credits]);
-
-  // Automatically open the 4-step Feature Discovery spotlight tour the first time a user opens the Create Video form,
-  // unless the 0-video First Video Onboarding popup is currently open.
-  useEffect(() => {
-    if (initialVideo || firstVideoModalOpen) return;
-    if (!hasSeenCreateVideoTutorial()) {
-      const timer = window.setTimeout(() => setTutorialOpen(true), 350);
-      return () => window.clearTimeout(timer);
-    }
-  }, [initialVideo, firstVideoModalOpen]);
 
   // A settled frame or clip should refresh the task list immediately so the
   // browser notification can fire without waiting for the next 5s tick.

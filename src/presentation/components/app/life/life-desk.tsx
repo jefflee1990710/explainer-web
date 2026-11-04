@@ -879,19 +879,17 @@ export function LifeDesk({
       <DirectorDockStage
         topLeft={
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="rounded-full bg-white/95 p-0.5 text-[#12141c] shadow-sm">
-              <LifeCharacterMenu
-                characters={people}
-                selectedId={characterId}
-                onSelect={selectCharacter}
-              />
-            </div>
+            <LifeCharacterMenu
+              characters={people}
+              selectedId={characterId}
+              onSelect={selectCharacter}
+            />
             {character ? (
               <button
                 type="button"
                 disabled={pending !== ""}
                 onClick={() => setLookDialogOpen(true)}
-                className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-zinc-200 transition hover:border-white/30 hover:text-white"
+                className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-3 text-xs font-semibold text-[#12141c] transition hover:border-zinc-400"
               >
                 <span>✨</span>
                 <span>
@@ -915,41 +913,37 @@ export function LifeDesk({
               onClick={() =>
                 void onQuickGenerate(pickRandomLifePostTemplateId())
               }
-              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[#d8ff3e]/40 bg-[#d8ff3e]/10 px-3 text-xs font-bold text-[#d8ff3e] transition hover:bg-[#d8ff3e]/20 disabled:opacity-50"
+              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] transition hover:bg-black disabled:opacity-50"
             >
               <span>🎲</span>
               <span>{locale === "en" ? "Surprise Me" : "隨機靈感一鍵拍"}</span>
             </button>
-            <div className="rounded-full bg-white/95 text-[#12141c]">
-              <LifeRecentOpenButton
-                count={visibleShots.length}
-                generatingCount={generatingCount}
-                onClick={() => setRecentOpen(true)}
-              />
-            </div>
+            <LifeRecentOpenButton
+              count={visibleShots.length}
+              generatingCount={generatingCount}
+              onClick={() => setRecentOpen(true)}
+            />
           </div>
         }
         bottomContent={
           visibleShots.length > 0 ? (
-            <div className="mt-8 rounded-2xl border border-white/10 bg-[#181920]/90 p-4">
+            <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-sm font-bold text-zinc-100">
+                <h2 className="font-display text-sm font-bold text-[#12141c]">
                   {character
                     ? `${character.name} · ${t("life.recent")}`
                     : t("life.recent")}
                 </h2>
-                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-zinc-300">
+                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">
                   {visibleShots.length}
                 </span>
               </div>
-              <div className="rounded-xl bg-white p-3 text-[#12141c]">
-                <LifeShotGrid
-                  shots={visibleShots}
-                  selectedId={dialogShot?.id}
-                  onSelect={openShot}
-                  compact
-                />
-              </div>
+              <LifeShotGrid
+                shots={visibleShots}
+                selectedId={dialogShot?.id}
+                onSelect={openShot}
+                compact
+              />
             </div>
           ) : null
         }
@@ -957,7 +951,7 @@ export function LifeDesk({
         <DirectorDockHero kind="life" />
 
         {character && !character.ready ? (
-          <p className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300">
+          <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600">
             {t("life.needBlueprint")}
           </p>
         ) : null}
@@ -968,7 +962,7 @@ export function LifeDesk({
             <button
               type="button"
               onClick={() => setDressOpen(true)}
-              className="director-dock-cell cursor-pointer rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-semibold text-[#d8ff3e] hover:border-[#d8ff3e]/50"
+              className="director-dock-cell cursor-pointer rounded-full bg-[#12141c] px-2.5 py-0.5 text-[11px] font-bold text-[#c6f24b] hover:bg-black"
             >
               {locale === "en" ? "Dress Up & Presets" : "衣帽間與造型管理"}
             </button>
@@ -1124,7 +1118,7 @@ export function LifeDesk({
           onPlusToggle={() => setPlusMenuOpen((prev) => !prev)}
           plusMenuSlot={
             <div className="space-y-2.5">
-              <p className="text-[11px] font-bold text-zinc-400">
+              <p className="text-[11px] font-bold text-zinc-500">
                 {locale === "en" ? "Scene Shortcuts" : "快捷情境指令"}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -1136,20 +1130,20 @@ export function LifeDesk({
                       setCustomInstruction(sc.prompt);
                       setPlusMenuOpen(false);
                     }}
-                    className="cursor-pointer rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-100 hover:bg-white/20"
+                    className="cursor-pointer rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-[#12141c] hover:bg-zinc-200"
                   >
                     {sc.label}
                   </button>
                 ))}
               </div>
-              <div className="border-t border-white/10 pt-2">
+              <div className="border-t border-zinc-200 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setPlusMenuOpen(false);
                     setPlaceDialogOpen(true);
                   }}
-                  className="w-full cursor-pointer rounded-xl bg-white/10 px-3 py-1.5 text-left text-xs font-semibold text-[#d8ff3e] hover:bg-white/15"
+                  className="w-full cursor-pointer rounded-xl bg-[#12141c] px-3 py-1.5 text-left text-xs font-semibold text-[#c6f24b] hover:bg-black"
                 >
                   🔍 {t("life.searchAction")}
                 </button>

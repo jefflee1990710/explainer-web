@@ -309,3 +309,12 @@ export function resolveModeSwitchSkillSlug(
   return fallback?.slug ?? skills.find((s) => s.slug !== "talking-head-director")?.slug ?? null;
 }
 
+export function isFullBleedStudioPath(pathname: string): boolean {
+  return (
+    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|videos)(\/|$)/.test(
+      pathname,
+    ) || /^\/app\/projects\/[^/]+\/videos(\/|$)/.test(pathname)
+  );
+}
+
+
