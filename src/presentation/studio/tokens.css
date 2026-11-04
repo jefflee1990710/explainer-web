@@ -236,7 +236,7 @@
   border-radius: 14px;
 }
 
-.studio-app .director-dock-stage button.director-dock-cell {
+.studio-app .director-dock-stage button.director-dock-cell:not([class*="rounded-full"]) {
   border-radius: 12px;
 }
 

@@ -217,3 +217,95 @@ export function buildCastSlotItems<
   }
   return result;
 }
+
+export const LIFE_REMARK_STAGE_CLASS =
+  "relative mx-auto w-fit max-h-[14rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none";
+
+export function resolveCastSlotCount(
+  kind: DirectorStudioKind,
+  castNeed: number,
+): number {
+  if (kind === "life" || kind === "scroswap") return 1;
+  return Math.max(1, castNeed);
+}
+
+export function computeSkillSwitchState<
+  T extends {
+    id: string;
+    name: string;
+    styleId?: string;
+    styleIds?: readonly string[];
+    previewUrl?: string | null;
+  },
+>({
+  currentStyleId,
+  preferredStyleId,
+  nextCastNeed,
+  characters,
+  currentCharacterIds,
+}: {
+  currentStyleId: string;
+  preferredStyleId?: string;
+  nextCastNeed: number;
+  characters: readonly T[];
+  currentCharacterIds: readonly string[];
+}): { styleId: string; characterIds: string[] } {
+  const targetStyleId = preferredStyleId || currentStyleId;
+  const matchesStyle = (c: T) => {
+    const styles = c.styleIds?.length ? c.styleIds : c.styleId ? [c.styleId] : [];
+    return Boolean(c.previewUrl) && styles.includes(targetStyleId);
+  };
+  const kept = currentCharacterIds.filter((cid) => {
+    const found = characters.find((c) => c.id === cid);
+    return found ? matchesStyle(found) : false;
+  });
+
+  if (nextCastNeed <= 0) {
+    return { styleId: targetStyleId, characterIds: kept.slice(0, 1) };
+  }
+  if (kept.length >= nextCastNeed) {
+    return { styleId: targetStyleId, characterIds: kept.slice(0, nextCastNeed) };
+  }
+  const pool = characters.filter(matchesStyle);
+  const aera = pool.find((c) => /aera/i.test(c.name));
+  const ordered = aera ? [aera, ...pool.filter((c) => c.id !== aera.id)] : pool;
+  const merged = [...kept];
+  for (const c of ordered) {
+    if (merged.length >= nextCastNeed) break;
+    if (!merged.includes(c.id)) merged.push(c.id);
+  }
+  return { styleId: targetStyleId, characterIds: merged };
+}
+
+export function resolveModeSwitchSkillSlug(
+  targetMode: "explainer" | "talking-head",
+  skills: readonly { slug: string; behaviorSlug?: string; isCustom?: boolean }[],
+): string | null {
+  if (targetMode === "talking-head") {
+    const exact = skills.find((s) => s.slug === "talking-head-director");
+    if (exact) return exact.slug;
+    const anyTh = skills.find(
+      (s) =>
+        s.slug === "talking-head-director" ||
+        s.behaviorSlug === "talking-head-director",
+    );
+    return anyTh?.slug ?? null;
+  }
+  const preferredExplainers = [
+    "paper-cutout-explainer-video-director",
+    "cartoon-explainer-video-director",
+    "mentalok-explainer-video-director",
+  ];
+  for (const slug of preferredExplainers) {
+    const found = skills.find((s) => !s.isCustom && s.slug === slug);
+    if (found) return found.slug;
+  }
+  const fallback = skills.find(
+    (s) =>
+      !s.isCustom &&
+      s.slug !== "talking-head-director" &&
+      s.slug !== "dialogue-qa-director",
+  );
+  return fallback?.slug ?? skills.find((s) => s.slug !== "talking-head-director")?.slug ?? null;
+}
+

@@ -143,6 +143,7 @@ import {
 } from "@/service/video/use-case";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { DirectorDockBrief } from "@/presentation/components/app/projects/new/director-dock-brief";
+import { computeSkillSwitchState } from "@/presentation/components/app/director-dock";
 import { DEFAULT_SPEECH_PACE } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
@@ -1164,6 +1165,7 @@ export function NewProjectForm({
   const dialogueOnly = skillBansNarration(ruleSlug);
 
   function onSkillChange(nextSlug: string) {
+    setError("");
     setSkillSlug(nextSlug);
     const nextRuleSlug = ruleSlugFor(nextSlug, skills);
     if (!initialVideo) {
@@ -1178,9 +1180,6 @@ export function NewProjectForm({
     }
     const nextPresets = directorPresetBackgrounds(nextRuleSlug);
     const matchedStyleId = preferredStyleIdForSkill(nextRuleSlug, styles);
-    if (matchedStyleId && matchedStyleId !== styleId) {
-      onStyleChange(matchedStyleId);
-    }
     if (nextPresets.length > 0) {
       if (!isValidDirectorBackgroundId(nextRuleSlug, directorBackgroundId)) {
         setDirectorBackgroundId(defaultDirectorBackgroundId(nextRuleSlug) || nextPresets[0]!.id);
@@ -1192,15 +1191,18 @@ export function NewProjectForm({
       setWizardStep(2);
     }
     const nextNeed = requiredCastCount(nextRuleSlug);
-    if (nextNeed > 0) {
-      setCharacterIds((ids) => {
-        if (ids.length > nextNeed) return ids.slice(0, nextNeed);
-        if (ids.length < nextNeed) {
-          return defaultCastIdsForStyle(characters, styleId, nextNeed);
-        }
-        return ids;
-      });
+    const switchState = computeSkillSwitchState({
+      currentStyleId: styleId,
+      preferredStyleId: matchedStyleId,
+      nextCastNeed: nextNeed,
+      characters,
+      currentCharacterIds: characterIds,
+    });
+    if (switchState.styleId !== styleId) {
+      setStyleId(switchState.styleId);
+      setCharacterSelections({});
     }
+    setCharacterIds(switchState.characterIds);
   }
 
   function onVoLanguageChange(nextLanguage: VoLanguage) {

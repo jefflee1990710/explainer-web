@@ -29,6 +29,8 @@ import {
   DirectorDockQuickTile,
   DirectorDockStage,
   DirectorDockStepperCell,
+  LIFE_REMARK_STAGE_CLASS,
+  resolveCastSlotCount,
 } from "@/presentation/components/app/director-dock";
 import { LifeCharacterMenu } from "@/presentation/components/app/life/life-character-menu";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
@@ -754,7 +756,7 @@ export function LifeDesk({
       </div>
 
       {/* Image + Drawing Overlay Canvas */}
-      <div className="relative mx-auto max-h-[14rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none">
+      <div className={LIFE_REMARK_STAGE_CLASS}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={sceneUrl}
@@ -830,7 +832,7 @@ export function LifeDesk({
         (look.thumbUrl && p.id === characterId ? look.thumbUrl : p.previewUrl) ||
         undefined,
     })),
-    2,
+    resolveCastSlotCount("life", 1),
   );
 
   const modeLabel =

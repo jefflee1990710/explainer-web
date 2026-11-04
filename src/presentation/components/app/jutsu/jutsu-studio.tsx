@@ -27,6 +27,7 @@ import {
   DirectorDockQuickTile,
   DirectorDockStage,
   DirectorDockStepperCell,
+  resolveCastSlotCount,
 } from "@/presentation/components/app/director-dock";
 import {
   captureImageElementDataUrl,
@@ -561,7 +562,7 @@ export function JutsuStudio({
           ? uploadedPhotoUrl || selectedLookUrl || characterAvatarUrl(c)
           : characterAvatarUrl(c)) || undefined,
     })),
-    2,
+    resolveCastSlotCount("scroswap", 1),
   );
 
   const maskOptions = ["tight", "normal", "loose"] as const;

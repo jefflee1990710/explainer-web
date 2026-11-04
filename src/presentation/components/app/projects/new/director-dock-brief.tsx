@@ -37,6 +37,8 @@ import {
   DirectorDockQuickTile,
   DirectorDockStage,
   DirectorDockStepperCell,
+  resolveCastSlotCount,
+  resolveModeSwitchSkillSlug,
 } from "@/presentation/components/app/director-dock";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import {
@@ -71,7 +73,6 @@ import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
 } from "@/service/director/skill-rules";
-import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { VOICE_PRESETS } from "@/service/director/voice";
 import {
   durationPresetLabel,
@@ -341,9 +342,12 @@ export function DirectorDockBrief({
         characterSelections[c.id],
       ),
     }));
-    const slotTotal = Math.max(castNeed > 0 ? castNeed : 2, 2);
+    const slotTotal = resolveCastSlotCount(
+      talkingHead ? "talking-head" : "explainer",
+      castNeed,
+    );
     return buildCastSlotItems(characterIds, enriched, slotTotal);
-  }, [allCharacters, styleId, characterSelections, characterIds, castNeed]);
+  }, [allCharacters, styleId, characterSelections, characterIds, castNeed, talkingHead]);
 
   const activeStyle = styles.find((s) => s.id === styleId);
   const selectedPose = resolveTalkingHeadPose(talkingHeadPoseId);
@@ -360,23 +364,24 @@ export function DirectorDockBrief({
   const firstRefThumbUrl = referenceImages[0]?.url || "";
 
   function handleSelectMode(nextId: string) {
+    if (error) onError("");
     if (nextId === "details") {
       onOpenDetails();
       return;
     }
     if (nextId === "talking-head" && !talkingHead) {
-      const thSkill = skills.find((s) => isTalkingHeadSkill(s.slug));
-      if (thSkill) {
-        onSkillChange(thSkill.slug);
+      const thSlug = resolveModeSwitchSkillSlug("talking-head", skills);
+      if (thSlug) {
+        onSkillChange(thSlug);
       } else {
         router.push("/app/talking-heads");
       }
       return;
     }
     if (nextId === "explainer" && talkingHead) {
-      const expSkill = skills.find((s) => !isTalkingHeadSkill(s.slug));
-      if (expSkill) {
-        onSkillChange(expSkill.slug);
+      const expSlug = resolveModeSwitchSkillSlug("explainer", skills);
+      if (expSlug) {
+        onSkillChange(expSlug);
       } else {
         router.push("/app/explainers");
       }
