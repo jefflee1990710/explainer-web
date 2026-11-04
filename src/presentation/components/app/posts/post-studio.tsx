@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { put } from "@vercel/blob/client";
 import {
   POST_ASPECT_RATIOS,
   type DetectedPostElement,
@@ -9,6 +10,7 @@ import {
   type PostElementEditMode,
   type PublicPost,
 } from "@/model/post";
+import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import {
   createPostJobAction,
   deletePostJobAction,
@@ -25,7 +27,6 @@ import {
   DirectorDockHero,
   DirectorDockPanel,
   DirectorDockPill,
-  DirectorDockQuickTile,
   DirectorDockStage,
   DirectorDockStepperCell,
 } from "@/presentation/components/app/director-dock";
@@ -49,6 +50,8 @@ import type {
 } from "@/presentation/serialize";
 import type { CharacterSelectionMap } from "@/service/character/character-presets";
 import { FRAME_COST } from "@/service/credit-costs";
+import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
@@ -87,7 +90,7 @@ export function PostStudio({
   products: PublicProduct[];
   initialPostId?: string;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const isEn = locale === "en";
   const historyLabel =
     locale === "zh-Hant"
@@ -149,6 +152,50 @@ export function PostStudio({
   const [detecting, setDetecting] = useState(false);
   const [switchingRevision, setSwitchingRevision] = useState(false);
   const [error, setError] = useState("");
+  const [dropZoneActive, setDropZoneActive] = useState(false);
+  const [uploadingAsset, setUploadingAsset] = useState(false);
+  const refInputRef = useRef<HTMLInputElement>(null);
+  const sourcePostInputRef = useRef<HTMLInputElement>(null);
+  const donorInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadPostImage(
+    file: File | undefined,
+    onDone: (url: string) => void,
+  ) {
+    if (!file || submitting) return;
+    const contentType = resolveBrandContentType(file);
+    const checked = checkBrandUpload({ type: contentType, size: file.size }, { allowGif: false });
+    if (!checked.ok) {
+      setError(translateAppError(checked.error, t));
+      return;
+    }
+    setError("");
+    setUploadingAsset(true);
+    try {
+      const prepared = await prepareBrandUploadAction({
+        contentType,
+        size: file.size,
+        allowGif: false,
+      });
+      if (!prepared.ok) {
+        setError(translateAppError(prepared.error, t));
+        return;
+      }
+      const blob = await put(prepared.pathname, file, {
+        access: "public",
+        token: prepared.token,
+        contentType: prepared.contentType,
+        multipart: file.size > 8 * 1024 * 1024,
+      });
+      if (prepared.kind === "image") {
+        onDone(blob.url);
+      }
+    } catch {
+      setError(t("errors.uploadFailed"));
+    } finally {
+      setUploadingAsset(false);
+    }
+  }
 
   const selectedElement: DetectedPostElement | null = useMemo(() => {
     if (!activePost || activePost.detectedElements.length === 0) return null;
@@ -410,7 +457,7 @@ export function PostStudio({
   return (
     <DirectorDockStage
       topLeft={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/90 bg-white/90 px-3 py-1 text-xs font-bold text-[#12141c] shadow-xs">
+        <span className="inline-flex items-center gap-1.5 rounded-2xl border border-zinc-200/90 bg-white/90 px-3 py-1 text-xs font-bold text-[#12141c] shadow-xs">
           <span className="h-2 w-2 rounded-full bg-[#c6f24b]" />
           <span>Post SAM Studio · 2K</span>
         </span>
@@ -423,9 +470,8 @@ export function PostStudio({
               onClick={() =>
                 setStudioMode((m) => (m === "create" ? "edit" : "create"))
               }
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-[#12141c] shadow-xs transition hover:border-[#12141c]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-[#12141c] shadow-xs transition hover:border-[#12141c]"
             >
-              <span>{studioMode === "create" ? "🎯" : "✨"}</span>
               <span>
                 {studioMode === "create"
                   ? isEn
@@ -440,92 +486,65 @@ export function PostStudio({
           <button
             type="button"
             onClick={() => setHistoryOpen(true)}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-[#12141c] shadow-xs transition hover:border-[#12141c]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-[#12141c] shadow-xs transition hover:border-[#12141c]"
           >
             <span>{historyLabel}</span>
-            <span className="rounded-full bg-[#12141c] px-2 py-0.5 font-display text-[11px] font-bold text-[#c6f24b]">
+            <span className="rounded-2xl bg-[#12141c] px-2 py-0.5 font-display text-[11px] font-bold text-[#c6f24b]">
               {posts.length}
             </span>
           </button>
         </div>
       }
-      bottomContent={
-        activePost ? (
-          <div className="mx-auto mt-6 w-full max-w-4xl rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-[#12141c] px-2.5 py-0.5 font-display text-[11px] font-bold text-[#c6f24b]">
-                  V{Math.max(1, activePost.revisions.length)}
-                </span>
-                <span className="text-xs font-bold text-[#12141c]">
-                  {isEn ? "Revision History" : "版本修改紀錄（點擊任意版本即可切換或繼續編輯）"}
-                </span>
-              </div>
-              {activePost.currentImageUrl ? (
-                <a
-                  href={activePost.currentImageUrl}
-                  download={`post-${activePost.id}.webp`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full bg-[#12141c] px-3 py-1 text-xs font-bold text-[#c6f24b]"
-                >
-                  <span>↓</span>
-                  <span>{isEn ? "Download 2K WebP" : "下載 2K 海報"}</span>
-                </a>
-              ) : null}
-            </div>
-
-            {activePost.revisions.length > 0 ? (
-              <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
-                {activePost.revisions.map((rev, idx) => {
-                  const isCurrent = rev.imageUrl === activePost.currentImageUrl;
-                  return (
-                    <button
-                      key={rev.revisionId}
-                      type="button"
-                      disabled={switchingRevision || submitting}
-                      onClick={() => void handleSelectRevision(rev.revisionId)}
-                      className={`group flex w-36 shrink-0 cursor-pointer items-center gap-2 rounded-xl border p-1.5 text-left transition ${
-                        isCurrent
-                          ? "border-2 border-[#12141c] bg-zinc-50 ring-2 ring-[#c6f24b]"
-                          : "border-zinc-200 bg-white hover:border-zinc-400"
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={rev.imageUrl}
-                        alt={rev.editSummary || rev.revisionId}
-                        className="h-12 w-10 shrink-0 rounded-lg object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-display text-[11px] font-extrabold text-[#12141c]">
-                          V{idx + 1}
-                        </div>
-                        <div className="truncate text-[10px] font-semibold text-zinc-500">
-                          {rev.editSummary || (idx === 0 ? "初始版本" : rev.prompt)}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : undefined
-      }
     >
+      <input
+        ref={refInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        disabled={submitting}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void uploadPostImage(file, setReferenceImageUrl);
+        }}
+      />
+      <input
+        ref={sourcePostInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        disabled={submitting}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void uploadPostImage(file, setSourceImageUrl);
+        }}
+      />
+      <input
+        ref={donorInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        disabled={submitting}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void uploadPostImage(file, setEditReferenceUrl);
+        }}
+      />
+
       <DirectorDockHero kind="posts" />
 
-      {/* Director Panel */}
+      {/* Director Panel — All Post Settings */}
       <DirectorDockPanel
         title={
           studioMode === "create"
             ? isEn
-              ? "🎬 Post Director Panel"
-              : "🎬 海報導演面板"
+              ? "Post Director Panel"
+              : "海報導演面板"
             : isEn
-              ? "🎯 SAM Element Edit Panel"
-              : "🎯 SAM 元素重繪面板"
+              ? "SAM Element Edit Panel"
+              : "SAM 元素重繪面板"
         }
       >
         {studioMode === "create" ? (
@@ -594,17 +613,47 @@ export function PostStudio({
               }
               disabled={submitting}
             />
+            <DirectorDockDivider />
+            <DirectorDockStepperCell
+              thumbUrl={referenceImageUrl || undefined}
+              icon={
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              }
+              label={isEn ? "Ref Layout" : "構圖參考圖"}
+              value={
+                referenceImageUrl
+                  ? isEn
+                    ? "Attached (Click to change)"
+                    : "已附加（點擊更換）"
+                  : isEn
+                    ? "Optional (Upload)"
+                    : "選填（點擊上傳）"
+              }
+              disabled={submitting || uploadingAsset}
+              onClick={() => refInputRef.current?.click()}
+            />
           </>
         ) : (
           <div className="flex w-full flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-extrabold text-[#12141c]">
                 {selectedElement
-                  ? `${selectedElement.category === "person" ? "👤" : selectedElement.category === "object" ? "📦" : "🔤"} ${
-                      isEn
-                        ? selectedElement.label
-                        : selectedElement.labelZh || selectedElement.label
-                    }`
+                  ? isEn
+                    ? selectedElement.label
+                    : selectedElement.labelZh || selectedElement.label
                   : isEn
                     ? "Select an element on the post"
                     : "請點擊下方海報中的元素"}
@@ -623,7 +672,7 @@ export function PostStudio({
                       key={m.id}
                       type="button"
                       onClick={() => setEditMode(m.id)}
-                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition ${
+                      className={`cursor-pointer rounded-2xl px-3 py-1 text-xs font-bold transition ${
                         editMode === m.id
                           ? "bg-[#12141c] text-[#c6f24b]"
                           : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400"
@@ -646,7 +695,7 @@ export function PostStudio({
                       key={m.id}
                       type="button"
                       onClick={() => setEditMode(m.id)}
-                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition ${
+                      className={`cursor-pointer rounded-2xl px-3 py-1 text-xs font-bold transition ${
                         editMode === m.id
                           ? "bg-[#12141c] text-[#c6f24b]"
                           : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400"
@@ -668,7 +717,7 @@ export function PostStudio({
                       key={m.id}
                       type="button"
                       onClick={() => setEditMode(m.id)}
-                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition ${
+                      className={`cursor-pointer rounded-2xl px-3 py-1 text-xs font-bold transition ${
                         editMode === m.id
                           ? "bg-[#12141c] text-[#c6f24b]"
                           : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400"
@@ -681,7 +730,6 @@ export function PostStudio({
               ) : null}
             </div>
 
-            {/* Context-sensitive character or product selector strip */}
             {selectedElement?.category === "person" &&
             editMode === "swap_character" &&
             characters.length > 0 ? (
@@ -694,11 +742,11 @@ export function PostStudio({
                     const nextChar = characters.find((c) => c.id === nextId);
                     setSwapLookUrl(defaultCharacterLookUrl(nextChar));
                   }}
-                  className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#12141c]"
+                  className="rounded-2xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#12141c]"
                 >
                   {characters.map((c) => (
                     <option key={c.id} value={c.id}>
-                      👤 {c.name}
+                      {c.name}
                     </option>
                   ))}
                 </select>
@@ -713,7 +761,7 @@ export function PostStudio({
                           key={preset.id}
                           type="button"
                           onClick={() => setSwapLookUrl(url)}
-                          className={`relative h-9 w-7 shrink-0 cursor-pointer overflow-hidden rounded-lg border transition ${
+                          className={`relative h-9 w-7 shrink-0 cursor-pointer overflow-hidden rounded-xl border transition ${
                             active
                               ? "border-2 border-[#12141c] ring-2 ring-[#c6f24b]"
                               : "border-zinc-200 opacity-75 hover:opacity-100"
@@ -735,14 +783,14 @@ export function PostStudio({
               <select
                 value={replaceProductId}
                 onChange={(e) => setReplaceProductId(e.target.value)}
-                className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#12141c]"
+                className="rounded-2xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#12141c]"
               >
                 <option value="">
                   {isEn ? "Select a Product…" : "選擇要植入的產品…"}
                 </option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    📦 {p.name}
+                    {p.name}
                   </option>
                 ))}
               </select>
@@ -751,286 +799,326 @@ export function PostStudio({
         )}
       </DirectorDockPanel>
 
-      {/* Main Composer & Interactive SAM Stage */}
-      <DirectorDockComposer
-        modeItems={[
-          {
-            id: "create",
-            label: isEn ? "Create" : "生貼文",
-            icon: <span>✨</span>,
-          },
-          {
-            id: "edit",
-            label: isEn ? "SAM Edit" : "SAM 改圖",
-            icon: <span>🎯</span>,
-          },
-        ]}
-        activeModeId={studioMode}
-        onSelectMode={(id) => setStudioMode(id === "edit" ? "edit" : "create")}
-        promptValue={studioMode === "create" ? createPrompt : editInstruction}
-        onPromptChange={(val) => {
-          if (studioMode === "create") setCreatePrompt(val);
-          else setEditInstruction(val);
+      {/* Main Composer & Drag-and-Drop / Interactive SAM Stage */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!submitting) setDropZoneActive(true);
         }}
-        promptPlaceholder={
-          studioMode === "create"
-            ? isEn
-              ? "Describe your social post or poster (include headline text in quotes if desired)…"
-              : "描述你想生成的貼文或海報畫面（若有標題文案可直接寫在描述中，或右側上傳現有海報直接用 SAM 改圖）…"
-            : editPromptPlaceholder
-        }
-        topMediaSlot={
-          studioMode === "edit" && activePost?.currentImageUrl ? (
-            <div className="space-y-2.5">
-              <div className="relative mx-auto flex max-h-[420px] w-fit items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={activePost.currentImageUrl}
-                  alt={activePost.prompt}
-                  className="max-h-[420px] w-auto object-contain select-none"
-                />
-                <PostElementRleOverlay
-                  elements={activePost.detectedElements}
-                  activeElementId={effectiveElementId}
-                  categoryFilter={categoryFilter}
-                  onSelectElement={handleSelectElement}
-                  isEn={isEn}
-                />
-              </div>
-
-              <PostElementTabsBar
-                elements={activePost.detectedElements}
-                detecting={detecting}
-                activeElementId={effectiveElementId}
-                categoryFilter={categoryFilter}
-                onCategoryFilterChange={setCategoryFilter}
-                onSelectElement={handleSelectElement}
-                onRedetect={() => void handleRedetect()}
-                disabled={submitting}
-                isEn={isEn}
-              />
-            </div>
-          ) : undefined
-        }
-        plusMenuOpen={plusMenuOpen}
-        onPlusToggle={() => setPlusMenuOpen((v) => !v)}
-        plusMenuSlot={
-          <div className="space-y-2">
-            <div className="text-xs font-bold text-[#12141c]">
-              {isEn ? "Upload Image" : "上傳圖片"}
-            </div>
-            {studioMode === "create" ? (
-              <div className="space-y-2">
-                <BrandUploadButton
-                  accept="image/png,image/jpeg,image/webp"
-                  label={
-                    isEn
-                      ? "Upload Composition Reference (Ref Layout)"
-                      : "上傳構圖參考圖（Ref Layout）"
-                  }
-                  onUploaded={({ url }) => {
-                    setReferenceImageUrl(url);
-                    setPlusMenuOpen(false);
-                  }}
-                  onError={(msg) => setError(msg)}
-                />
-                <BrandUploadButton
-                  accept="image/png,image/jpeg,image/webp"
-                  label={
-                    isEn
-                      ? "Upload Existing Post to Edit in SAM"
-                      : "上傳現有海報直接進入 SAM 分割編輯"
-                  }
-                  onUploaded={({ url }) => {
-                    setSourceImageUrl(url);
-                    setPlusMenuOpen(false);
-                  }}
-                  onError={(msg) => setError(msg)}
-                />
-              </div>
-            ) : (
-              <BrandUploadButton
-                accept="image/png,image/jpeg,image/webp"
-                label={
-                  isEn
-                    ? "Upload Donor / Reference Image"
-                    : "上傳替換參考圖片"
-                }
-                onUploaded={({ url }) => {
-                  setEditReferenceUrl(url);
-                  setPlusMenuOpen(false);
-                }}
-                onError={(msg) => setError(msg)}
-              />
-            )}
-          </div>
-        }
-        pills={
-          studioMode === "create" ? (
-            <>
-              <DirectorDockPill
-                accentBadge="2K"
-                label="Seedream 5.0 Pro"
-                disabled={submitting}
-              />
-              <DirectorDockPill
-                label={aspectRatio}
-                hasChevron
-                onClick={() =>
-                  setAspectRatio(cycleOption(POST_ASPECT_RATIOS, aspectRatio, 1))
-                }
-                disabled={submitting}
-              />
-              <DirectorDockPill
-                label={activeStyle?.name || (isEn ? "Style" : "視覺風格")}
-                hasChevron
-                onClick={() => setStyleDialogOpen(true)}
-                disabled={submitting}
-              />
-            </>
-          ) : (
-            <>
-              <DirectorDockPill
-                accentBadge="SAM 3"
-                label={
-                  selectedElement
-                    ? isEn
-                      ? selectedElement.label
-                      : selectedElement.labelZh || selectedElement.label
-                    : isEn
-                      ? "Pick Element"
-                      : "點選元素"
-                }
-                disabled={submitting}
-              />
-              <DirectorDockPill
-                label={
-                  editMode === "swap_character"
-                    ? isEn
-                      ? "Swap Character"
-                      : "替換角色"
-                    : editMode === "replace_product"
-                      ? isEn
-                        ? "Replace Product"
-                        : "替換產品"
-                      : editMode === "remove"
-                        ? isEn
-                          ? "Remove Element"
-                          : "無縫移除"
-                        : isEn
-                          ? "Modify Element"
-                          : "局部重繪"
-                }
-                disabled={submitting}
-              />
-            </>
-          )
-        }
-        rightSlot1={
-          studioMode === "create" ? (
-            <DirectorDockQuickTile
-              label={isEn ? "Ref Layout" : "構圖參考"}
-              badge={isEn ? "Opt" : "可選"}
-              thumbUrl={referenceImageUrl || undefined}
-              onClick={() => setPlusMenuOpen(true)}
-              onClear={
-                referenceImageUrl ? () => setReferenceImageUrl("") : undefined
-              }
-              disabled={submitting}
-            />
-          ) : (
-            <DirectorDockQuickTile
-              label={
-                selectedElement?.category === "person"
-                  ? isEn
-                    ? "Character"
-                    : "替換角色"
-                  : selectedElement?.category === "object"
-                    ? isEn
-                      ? "Product"
-                      : "替換產品"
-                    : isEn
-                      ? "Base Post"
-                      : "目前海報"
-              }
-              thumbUrl={
-                selectedElement?.category === "person"
-                  ? swapLookUrl || undefined
-                  : selectedElement?.category === "object"
-                    ? products.find((p) => p.id === replaceProductId)?.blueprintUrl
-                    : activePost?.currentImageUrl
-              }
-              onClick={() => {
-                if (selectedElement?.category === "person" && characters.length > 0) {
-                  const ids = characters.map((c) => c.id);
-                  const nextId = cycleOption(ids, swapCharacterId, 1);
-                  setSwapCharacterId(nextId);
-                  setSwapLookUrl(
-                    defaultCharacterLookUrl(characters.find((c) => c.id === nextId)),
-                  );
-                } else if (selectedElement?.category === "object" && products.length > 0) {
-                  const ids = products.map((p) => p.id);
-                  setReplaceProductId(cycleOption(ids, replaceProductId, 1));
-                }
-              }}
-              disabled={submitting}
-            />
-          )
-        }
-        rightSlot2={
-          studioMode === "create" ? (
-            <DirectorDockQuickTile
-              label={isEn ? "Source Post" : "現有海報"}
-              badge={isEn ? "SAM" : "直接分割"}
-              thumbUrl={sourceImageUrl || undefined}
-              onClick={() => setPlusMenuOpen(true)}
-              onClear={sourceImageUrl ? () => setSourceImageUrl("") : undefined}
-              disabled={submitting}
-            />
-          ) : (
-            <DirectorDockQuickTile
-              label={isEn ? "Donor Image" : "自訂參考圖"}
-              badge={isEn ? "Opt" : "可選"}
-              thumbUrl={editReferenceUrl || undefined}
-              onClick={() => setPlusMenuOpen(true)}
-              onClear={
-                editReferenceUrl ? () => setEditReferenceUrl("") : undefined
-              }
-              disabled={submitting}
-            />
-          )
-        }
-        onGenerate={() => {
+        onDragLeave={() => setDropZoneActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDropZoneActive(false);
+          const file = e.dataTransfer.files?.[0];
           if (studioMode === "create") {
-            void handleCreatePost();
+            void uploadPostImage(file, setSourceImageUrl);
           } else {
-            void handleEditElement();
+            void uploadPostImage(file, setEditReferenceUrl);
           }
         }}
-        generateDisabled={
-          studioMode === "create" ? !canSubmitCreate : !canSubmitEdit
-        }
-        generating={submitting}
-        generateLabel={
-          studioMode === "create"
-            ? sourceImageUrl && !createPrompt.trim()
+        className={`w-full max-w-4xl rounded-2xl transition ${
+          dropZoneActive ? "ring-2 ring-[#c6f24b]" : ""
+        }`}
+      >
+        <DirectorDockComposer
+          modeItems={[
+            {
+              id: "create",
+              label: isEn ? "Create" : "生貼文",
+              icon: (
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              ),
+            },
+            {
+              id: "edit",
+              label: isEn ? "SAM Edit" : "SAM 改圖",
+              icon: (
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              ),
+            },
+          ]}
+          activeModeId={studioMode}
+          onSelectMode={(id) => setStudioMode(id === "edit" ? "edit" : "create")}
+          promptValue={studioMode === "create" ? createPrompt : editInstruction}
+          onPromptChange={(val) => {
+            if (studioMode === "create") setCreatePrompt(val);
+            else setEditInstruction(val);
+          }}
+          promptPlaceholder={
+            studioMode === "create"
               ? isEn
-                ? "Scan SAM"
-                : "SAM 分割"
+                ? "Describe your social post or drop an existing poster image to edit in SAM…"
+                : "描述你想生成的貼文或海報畫面，或直接拖放現有海報圖片進入 SAM 分割編輯…"
+              : editPromptPlaceholder
+          }
+          topMediaSlot={
+            studioMode === "create" && (sourceImageUrl || referenceImageUrl) ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-[#f4f4f5] p-2.5 text-xs">
+                {sourceImageUrl ? (
+                  <div className="flex items-center gap-2 rounded-2xl bg-white px-2.5 py-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={sourceImageUrl}
+                      alt="Source post"
+                      className="h-9 w-9 rounded-xl object-cover"
+                    />
+                    <span className="font-bold text-[#12141c]">
+                      {isEn ? "Source Poster (SAM)" : "現有海報（SAM 分割）"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSourceImageUrl("")}
+                      className="cursor-pointer px-1 text-zinc-500 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : null}
+                {referenceImageUrl ? (
+                  <div className="flex items-center gap-2 rounded-2xl bg-white px-2.5 py-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={referenceImageUrl}
+                      alt="Reference layout"
+                      className="h-9 w-9 rounded-xl object-cover"
+                    />
+                    <span className="font-bold text-[#12141c]">
+                      {isEn ? "Ref Layout" : "構圖參考圖"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setReferenceImageUrl("")}
+                      className="cursor-pointer px-1 text-zinc-500 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : studioMode === "edit" && activePost?.currentImageUrl ? (
+              <div className="space-y-2.5">
+                <div className="relative mx-auto flex max-h-[420px] w-fit items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-950">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={activePost.currentImageUrl}
+                    alt={activePost.prompt}
+                    className="max-h-[420px] w-auto object-contain select-none"
+                  />
+                  <PostElementRleOverlay
+                    elements={activePost.detectedElements}
+                    activeElementId={effectiveElementId}
+                    categoryFilter={categoryFilter}
+                    onSelectElement={handleSelectElement}
+                    isEn={isEn}
+                  />
+                </div>
+
+                <PostElementTabsBar
+                  elements={activePost.detectedElements}
+                  detecting={detecting}
+                  activeElementId={effectiveElementId}
+                  categoryFilter={categoryFilter}
+                  onCategoryFilterChange={setCategoryFilter}
+                  onSelectElement={handleSelectElement}
+                  onRedetect={() => void handleRedetect()}
+                  disabled={submitting}
+                  isEn={isEn}
+                />
+
+                {activePost.revisions.length > 1 ? (
+                  <div className="flex items-center gap-2 overflow-x-auto pt-1">
+                    {activePost.revisions.map((rev, idx) => {
+                      const isCurrent = rev.imageUrl === activePost.currentImageUrl;
+                      return (
+                        <button
+                          key={rev.revisionId}
+                          type="button"
+                          disabled={switchingRevision || submitting}
+                          onClick={() => void handleSelectRevision(rev.revisionId)}
+                          className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl border px-2.5 py-1 text-xs font-bold transition ${
+                            isCurrent
+                              ? "border-[#12141c] bg-[#12141c] text-[#c6f24b]"
+                              : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400"
+                          }`}
+                        >
+                          <span>V{idx + 1}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : undefined
+          }
+          plusMenuOpen={plusMenuOpen}
+          onPlusToggle={() => setPlusMenuOpen((v) => !v)}
+          plusMenuSlot={
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-[#12141c]">
+                {isEn ? "Upload Image" : "上傳圖片"}
+              </div>
+              {studioMode === "create" ? (
+                <div className="space-y-2">
+                  <BrandUploadButton
+                    accept="image/png,image/jpeg,image/webp"
+                    label={
+                      isEn
+                        ? "Upload Composition Reference (Ref Layout)"
+                        : "上傳構圖參考圖（Ref Layout）"
+                    }
+                    onUploaded={({ url }) => {
+                      setReferenceImageUrl(url);
+                      setPlusMenuOpen(false);
+                    }}
+                    onError={(msg) => setError(msg)}
+                  />
+                  <BrandUploadButton
+                    accept="image/png,image/jpeg,image/webp"
+                    label={
+                      isEn
+                        ? "Upload Existing Post to Edit in SAM"
+                        : "上傳現有海報直接進入 SAM 分割編輯"
+                    }
+                    onUploaded={({ url }) => {
+                      setSourceImageUrl(url);
+                      setPlusMenuOpen(false);
+                    }}
+                    onError={(msg) => setError(msg)}
+                  />
+                </div>
+              ) : (
+                <BrandUploadButton
+                  accept="image/png,image/jpeg,image/webp"
+                  label={
+                    isEn
+                      ? "Upload Donor / Reference Image"
+                      : "上傳替換參考圖片"
+                  }
+                  onUploaded={({ url }) => {
+                    setEditReferenceUrl(url);
+                    setPlusMenuOpen(false);
+                  }}
+                  onError={(msg) => setError(msg)}
+                />
+              )}
+            </div>
+          }
+          pills={
+            studioMode === "create" ? (
+              <>
+                <DirectorDockPill
+                  icon={
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  }
+                  label={
+                    sourceImageUrl
+                      ? isEn
+                        ? "Replace Poster"
+                        : "更換現有海報"
+                      : isEn
+                        ? "Upload Existing Poster"
+                        : "上傳現有海報改圖"
+                  }
+                  disabled={submitting || uploadingAsset}
+                  onClick={() => sourcePostInputRef.current?.click()}
+                />
+              </>
+            ) : (
+              <>
+                <DirectorDockPill
+                  icon={
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="3" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                  }
+                  label={
+                    editReferenceUrl
+                      ? isEn
+                        ? "Ref Attached"
+                        : "已附替換參考圖"
+                      : isEn
+                        ? "Upload Ref Image"
+                        : "上傳替換參考圖"
+                  }
+                  disabled={submitting || uploadingAsset}
+                  onClick={() => donorInputRef.current?.click()}
+                />
+              </>
+            )
+          }
+          onGenerate={() => {
+            if (studioMode === "create") {
+              void handleCreatePost();
+            } else {
+              void handleEditElement();
+            }
+          }}
+          generateDisabled={
+            studioMode === "create" ? !canSubmitCreate : !canSubmitEdit
+          }
+          generating={submitting}
+          generateLabel={
+            studioMode === "create"
+              ? sourceImageUrl && !createPrompt.trim()
+                ? isEn
+                  ? "Scan SAM"
+                  : "SAM 分割"
+                : isEn
+                  ? "Generate"
+                  : "生成海報"
               : isEn
-                ? "Generate"
-                : "生成海報"
-            : isEn
-              ? "Regenerate"
-              : "重繪元素"
-        }
-        creditBadge={
-          studioMode === "create" && sourceImageUrl && !createPrompt.trim()
-            ? 0
-            : FRAME_COST
-        }
-        error={error}
-      />
+                ? "Regenerate"
+                : "重繪元素"
+          }
+          creditBadge={
+            studioMode === "create" && sourceImageUrl && !createPrompt.trim()
+              ? 0
+              : FRAME_COST
+          }
+          error={error}
+        />
+      </div>
 
       {styleDialogOpen ? (
         <StyleSelectDialog
