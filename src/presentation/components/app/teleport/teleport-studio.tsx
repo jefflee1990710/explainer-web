@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { put } from "@vercel/blob/client";
 import type { PublicTeleportJob } from "@/model/teleport-job";
 import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
@@ -19,11 +20,13 @@ import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-sig
 import { TeleportHistoryDialog } from "@/presentation/components/app/teleport/teleport-history-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 /** Teleport studio: Director Panel settings + Drag & Drop Source Video + Scene Photo + Generate workbench. */
 export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob[] }) {
+  const router = useRouter();
   const { t, locale } = useI18n();
   const isEn = locale === "en";
   const historyLabel =
@@ -169,10 +172,14 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
       }
       setActiveJob(res.job);
       setJobs((prev) => [res.job, ...prev.filter((item) => item.id !== res.job.id)]);
+      notifyTasksChanged();
+      if (res.job.targetVideoId) {
+        router.push(folderVideoPath(undefined, res.job.targetVideoId));
+        return;
+      }
       if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
         setHistoryOpen(true);
       }
-      notifyTasksChanged();
     } catch {
       setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
     } finally {

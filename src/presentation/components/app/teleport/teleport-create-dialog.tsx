@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PublicTeleportJob } from "@/model/teleport-job";
 import { startTeleportJobAction } from "@/presentation/actions/teleport";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
@@ -8,6 +9,7 @@ import { BrandUploadDropzone } from "@/presentation/components/app/projects/new/
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { folderVideoPath } from "@/service/folder-video-path";
 
 /** Parse the start field; empty or invalid text falls back to 0, never below 0. */
 function clampStart(text: string): number {
@@ -30,6 +32,7 @@ export function TeleportCreateDialog({
   onCreated: (job: PublicTeleportJob) => void;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { locale } = useI18n();
   const isEn = locale === "en";
   const titleId = useId();
@@ -83,6 +86,9 @@ export function TeleportCreateDialog({
         return;
       }
       onCreated(res.job);
+      if (res.job.targetVideoId) {
+        router.push(folderVideoPath(undefined, res.job.targetVideoId));
+      }
     } catch {
       setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
     } finally {

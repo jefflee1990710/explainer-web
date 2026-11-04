@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { put } from "@vercel/blob/client";
 import type { PublicCustomWardrobeItem } from "@/model/custom-wardrobe-item";
 import type {
@@ -47,6 +48,7 @@ import type {
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
 import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { STYLES } from "@/service/style/catalog";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -129,6 +131,7 @@ export function JutsuStudio({
   customWardrobeItems?: PublicCustomWardrobeItem[];
   initialJobs: PublicJutsuJob[];
 }) {
+  const router = useRouter();
   const { t, locale } = useI18n();
   const isEn = locale === "en";
   const historyLabel =
@@ -616,10 +619,14 @@ export function JutsuStudio({
         res.job,
         ...prev.filter((item) => item.id !== res.job.id),
       ]);
+      notifyTasksChanged();
+      if (res.job.targetVideoId) {
+        router.push(folderVideoPath(undefined, res.job.targetVideoId));
+        return;
+      }
       if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
         setHistoryOpen(true);
       }
-      notifyTasksChanged();
     } catch {
       setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
     } finally {

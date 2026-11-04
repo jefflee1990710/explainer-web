@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   JutsuPersonMapping,
   JutsuSourceMediaKind,
@@ -32,6 +33,7 @@ import type {
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
 import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
+import { folderVideoPath } from "@/service/folder-video-path";
 
 type LookTab = "presets" | "historical";
 
@@ -112,6 +114,7 @@ export function ScroSwapCreateDialog({
   onCreated: (job: PublicJutsuJob) => void;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { locale } = useI18n();
   const isEn = locale === "en";
   const titleId = useId();
@@ -469,6 +472,9 @@ export function ScroSwapCreateDialog({
         return;
       }
       onCreated(res.job);
+      if (res.job.targetVideoId) {
+        router.push(folderVideoPath(undefined, res.job.targetVideoId));
+      }
     } catch {
       setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
     } finally {

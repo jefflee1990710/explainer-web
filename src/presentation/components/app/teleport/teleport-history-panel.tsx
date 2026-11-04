@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PublicTeleportJob } from "@/model/teleport-job";
+import { openTeleportJobInEditorAction } from "@/presentation/actions/teleport";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { teleportTaskTitle } from "@/service/teleport/prompts";
 
 /**
@@ -23,8 +26,27 @@ export function TeleportHistoryPanel({
   onDeleteJob: (id: string) => void;
   layout?: "sidebar" | "modal";
 }) {
+  const router = useRouter();
   const { locale } = useI18n();
   const isEn = locale === "en";
+  const [openingJobId, setOpeningJobId] = useState<string | null>(null);
+
+  async function openInEditor(job: PublicTeleportJob) {
+    if (openingJobId) return;
+    if (job.targetVideoId) {
+      router.push(folderVideoPath(undefined, job.targetVideoId));
+      return;
+    }
+    setOpeningJobId(job.id);
+    try {
+      const res = await openTeleportJobInEditorAction(job.id);
+      if (res.ok) {
+        router.push(folderVideoPath(undefined, res.videoId));
+      }
+    } finally {
+      setOpeningJobId(null);
+    }
+  }
 
   const activeJob = useMemo(() => {
     if (jobs.length === 0) return null;
@@ -105,9 +127,22 @@ export function TeleportHistoryPanel({
                               : "換場進行中…"}
                       </h3>
                     </div>
-                    <span className="text-[11px] font-semibold text-muted">
-                      {activeJob.sectionLength}s · {activeJob.aspectRatio}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={openingJobId === activeJob.id}
+                        onClick={() => void openInEditor(activeJob)}
+                        className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {openingJobId === activeJob.id ? (
+                          <Spinner className="h-3 w-3 text-lime" />
+                        ) : null}
+                        <span>{isEn ? "Open in OpenCut" : "在剪輯器開啟"}</span>
+                      </button>
+                      <span className="text-[11px] font-semibold text-muted">
+                        {activeJob.sectionLength}s · {activeJob.aspectRatio}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Scene still + prepared start frame */}
@@ -248,6 +283,20 @@ export function TeleportHistoryPanel({
                         {job.sectionLength}s
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      disabled={openingJobId === job.id}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        void openInEditor(job);
+                      }}
+                      className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-accent-ink/20 bg-white px-2.5 text-[11px] font-bold text-accent-ink transition hover:border-accent-ink hover:bg-lime/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {openingJobId === job.id ? (
+                        <Spinner className="h-3 w-3 text-accent-ink" />
+                      ) : null}
+                      <span>{isEn ? "Open in OpenCut" : "在剪輯器開啟"}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={(ev) => {
