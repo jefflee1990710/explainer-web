@@ -1,2 +1,2 @@
-// Poster (海報) stays in the codebase but is hidden until the feature is ready.
-export const POSTS_FEATURE_ENABLED = false;
+// Post SAM Studio (`/app/posts`) is enabled in the navigation rail and workspace.
+export const POSTS_FEATURE_ENABLED = true;

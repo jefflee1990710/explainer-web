@@ -1,116 +1,246 @@
-import type { ObjectId } from "mongodb";
-import { z } from "zod";
-import { objectIdSchema } from "@/model/primitives";
-import { productShotSchema, type ProductShot } from "@/model/product";
-import {
-  POSTER_LAYOUT_IDS,
-  type PosterLayer,
-  type PosterLayoutId,
-  type PostPreviewStatus,
-} from "@/model/post-layers";
+import { ObjectId } from "mongodb";
 
-export type {
-  PosterLayer,
-  PosterLayout,
-  PosterLayoutId,
-  PosterShapeKind,
-  PosterShapeLayer,
-  PosterTextLayer,
-  PosterTextRole,
-  PostPreviewStatus,
-  PublicPost,
-} from "@/model/post-layers";
+export const POST_ASPECT_RATIOS = ["9:16", "1:1", "16:9", "2:3"] as const;
+export type PostAspectRatio = (typeof POST_ASPECT_RATIOS)[number];
 
-export {
-  INSTRUCTION_MAX,
-  POSTER_CANVAS,
-  POSTER_FILLS,
-  POSTER_LAYOUT_IDS,
-  SLOT_CHAR_LIMITS,
-  isPosterLayoutId,
-} from "@/model/post-layers";
+export const POST_ELEMENT_CATEGORIES = ["person", "object", "text"] as const;
+export type PostElementCategory = (typeof POST_ELEMENT_CATEGORIES)[number];
 
-// One user's poster. Layers are the editor source of truth.
+export const POST_ELEMENT_EDIT_MODES = [
+  "swap_character",
+  "replace_product",
+  "change",
+  "remove",
+] as const;
+export type PostElementEditMode = (typeof POST_ELEMENT_EDIT_MODES)[number];
+
+export const POST_PROMPT_MAX = 2000;
+
+export type DetectedPostElement = {
+  id: string;
+  category: PostElementCategory;
+  categoryIndex: number;
+  label: string;
+  labelZh?: string;
+  rle: string;
+  width: number;
+  height: number;
+  score: number;
+  box: { x: number; y: number; width: number; height: number };
+  anchorPoint: { x: number; y: number };
+};
+
+export type PostRevision = {
+  revisionId: string;
+  imageUrl: string;
+  prompt: string;
+  editSummary?: string;
+  targetElementId?: string;
+  targetCategory?: PostElementCategory;
+  editMode?: PostElementEditMode;
+  detectedElements?: DetectedPostElement[];
+  createdAt: string;
+};
+
+export type PostJobStatus = "rendering" | "completed" | "failed";
+
+export type PostCastMember = {
+  characterId: ObjectId;
+  name: string;
+  lookUrl: string;
+  outfitSpec?: string;
+};
+
+export type PostProductItem = {
+  productId: ObjectId;
+  name: string;
+  blueprintUrl: string;
+};
+
 export type Post = {
   _id: ObjectId;
+  userId?: ObjectId;
   clerkUserId: string;
-  layoutId: PosterLayoutId;
-  instruction: string;
-  layers: PosterLayer[];
-  // Optional cast and style, same idea as a video. Products stay realistic.
+  status: PostJobStatus;
+  prompt: string;
+  aspectRatio: PostAspectRatio;
   styleId?: string;
-  cast?: Array<{ characterId: ObjectId; name: string; blueprintUrl: string }>;
-  products?: ProductShot[];
-  previewUrl?: string;
-  thumbnailUrl?: string;
-  previewStatus: PostPreviewStatus;
-  previewJobId?: ObjectId;
-  // Set while a charged preview can still be refunded.
-  previewSpendKey?: string;
-  aspectRatio: "2:3";
+  cast?: PostCastMember[];
+  products?: PostProductItem[];
+  referenceImageUrl?: string;
+  currentImageUrl?: string;
+  detectedElements?: DetectedPostElement[];
+  revisions: PostRevision[];
+  error?: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-const shapeLayerSchema = z.object({
-  id: z.string(),
-  type: z.literal("shape"),
-  shape: z.enum([
-    "rect",
-    "circle",
-    "quarterCircle",
-    "semicircle",
-    "triangle",
-    "lineStack",
-    "ellipse",
-    "blob",
-  ]),
-  x: z.number(),
-  y: z.number(),
-  w: z.number(),
-  h: z.number(),
-  fill: z.string(),
-  axis: z.enum(["horizontal", "vertical"]).optional(),
-  corner: z.enum(["tl", "tr", "bl", "br"]).optional(),
-  side: z.enum(["top", "bottom", "left", "right"]).optional(),
-});
+export type PublicPost = {
+  id: string;
+  status: PostJobStatus;
+  prompt: string;
+  aspectRatio: PostAspectRatio;
+  styleId?: string;
+  cast?: Array<{
+    characterId: string;
+    name: string;
+    lookUrl: string;
+    outfitSpec?: string;
+  }>;
+  products?: Array<{
+    productId: string;
+    name: string;
+    blueprintUrl: string;
+  }>;
+  referenceImageUrl?: string;
+  currentImageUrl?: string;
+  detectedElements: DetectedPostElement[];
+  revisions: PostRevision[];
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-const textLayerSchema = z.object({
-  id: z.string(),
-  type: z.literal("text"),
-  role: z.enum(["mark", "headline", "subhead", "body"]),
-  text: z.string(),
-  x: z.number(),
-  y: z.number(),
-  w: z.number(),
-  h: z.number(),
-  fontSize: z.number(),
-  fontWeight: z.union([z.literal(500), z.literal(700)]),
-  align: z.enum(["left", "center", "right"]),
-  color: z.string(),
-  vertical: z.boolean().optional(),
-  tracking: z.number().optional(),
-});
+export function isPostAspectRatio(value: string): value is PostAspectRatio {
+  return (POST_ASPECT_RATIOS as readonly string[]).includes(value);
+}
 
-export const posterLayerSchema = z.discriminatedUnion("type", [shapeLayerSchema, textLayerSchema]);
+function normalizeStatus(raw: Record<string, unknown>): PostJobStatus {
+  const status = raw.status;
+  if (status === "rendering" || status === "completed" || status === "failed") {
+    return status;
+  }
+  const previewStatus = raw.previewStatus;
+  if (previewStatus === "ready") return "completed";
+  if (previewStatus === "generating") return "rendering";
+  if (previewStatus === "failed") return "failed";
+  return typeof raw.currentImageUrl === "string" || typeof raw.previewUrl === "string"
+    ? "completed"
+    : "failed";
+}
 
-export const postSchema: z.ZodType<Post> = z.object({
-  _id: objectIdSchema,
-  clerkUserId: z.string(),
-  layoutId: z.enum(POSTER_LAYOUT_IDS),
-  instruction: z.string(),
-  layers: z.array(posterLayerSchema),
-  styleId: z.string().optional(),
-  cast: z
-    .array(z.object({ characterId: objectIdSchema, name: z.string(), blueprintUrl: z.string() }))
-    .optional(),
-  products: z.array(productShotSchema).optional(),
-  previewUrl: z.string().optional(),
-  thumbnailUrl: z.string().optional(),
-  previewStatus: z.enum(["generating", "ready", "failed"]),
-  previewJobId: objectIdSchema.optional(),
-  previewSpendKey: z.string().optional(),
-  aspectRatio: z.literal("2:3"),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
+function normalizeIsoDate(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string" && value.trim()) return value;
+  return new Date(0).toISOString();
+}
+
+/**
+ * Serialize a MongoDB `posts` document (supporting both new SAM Post Studio docs
+ * and legacy SVG poster docs) into a client-safe `PublicPost`.
+ */
+export function toPublicPost(
+  doc: Record<string, unknown> & { _id: ObjectId },
+): PublicPost {
+  const promptRaw =
+    typeof doc.prompt === "string" && doc.prompt.trim()
+      ? doc.prompt.trim()
+      : typeof doc.instruction === "string"
+        ? doc.instruction.trim()
+        : "";
+
+  const currentImageUrl =
+    typeof doc.currentImageUrl === "string" && doc.currentImageUrl.trim()
+      ? doc.currentImageUrl.trim()
+      : typeof doc.thumbnailUrl === "string" && doc.thumbnailUrl.trim()
+        ? doc.thumbnailUrl.trim()
+        : typeof doc.previewUrl === "string" && doc.previewUrl.trim()
+          ? doc.previewUrl.trim()
+          : undefined;
+
+  const rawRatio = typeof doc.aspectRatio === "string" ? doc.aspectRatio : "9:16";
+  const aspectRatio: PostAspectRatio = isPostAspectRatio(rawRatio) ? rawRatio : "2:3";
+  const status = normalizeStatus(doc);
+  const createdAt = normalizeIsoDate(doc.createdAt);
+  const updatedAt = normalizeIsoDate(doc.updatedAt ?? doc.createdAt);
+
+  const detectedElements = Array.isArray(doc.detectedElements)
+    ? (doc.detectedElements as DetectedPostElement[])
+    : [];
+
+  let revisions: PostRevision[] = Array.isArray(doc.revisions)
+    ? (doc.revisions as PostRevision[])
+    : [];
+
+  if (revisions.length === 0 && currentImageUrl) {
+    revisions = [
+      {
+        revisionId: "rev-1",
+        imageUrl: currentImageUrl,
+        prompt: promptRaw,
+        detectedElements,
+        createdAt,
+      },
+    ];
+  }
+
+  const cast = Array.isArray(doc.cast)
+    ? doc.cast
+        .map((item) => {
+          const rec = (item ?? {}) as Record<string, unknown>;
+          const cid = rec.characterId instanceof ObjectId
+            ? rec.characterId.toHexString()
+            : typeof rec.characterId === "string"
+              ? rec.characterId
+              : "";
+          const lookUrl =
+            typeof rec.lookUrl === "string"
+              ? rec.lookUrl
+              : typeof rec.blueprintUrl === "string"
+                ? rec.blueprintUrl
+                : "";
+          if (!cid || !lookUrl) return null;
+          return {
+            characterId: cid,
+            name: typeof rec.name === "string" ? rec.name : "",
+            lookUrl,
+            ...(typeof rec.outfitSpec === "string" && rec.outfitSpec.trim()
+              ? { outfitSpec: rec.outfitSpec.trim() }
+              : {}),
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => Boolean(x))
+    : undefined;
+
+  const products = Array.isArray(doc.products)
+    ? doc.products
+        .map((item) => {
+          const rec = (item ?? {}) as Record<string, unknown>;
+          const pid = rec.productId instanceof ObjectId
+            ? rec.productId.toHexString()
+            : typeof rec.productId === "string"
+              ? rec.productId
+              : "";
+          const blueprintUrl = typeof rec.blueprintUrl === "string" ? rec.blueprintUrl : "";
+          if (!pid || !blueprintUrl) return null;
+          return {
+            productId: pid,
+            name: typeof rec.name === "string" ? rec.name : "",
+            blueprintUrl,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => Boolean(x))
+    : undefined;
+
+  return {
+    id: doc._id.toHexString(),
+    status,
+    prompt: promptRaw,
+    aspectRatio,
+    ...(typeof doc.styleId === "string" && doc.styleId.trim()
+      ? { styleId: doc.styleId.trim() }
+      : {}),
+    ...(cast && cast.length > 0 ? { cast } : {}),
+    ...(products && products.length > 0 ? { products } : {}),
+    ...(typeof doc.referenceImageUrl === "string" && doc.referenceImageUrl.trim()
+      ? { referenceImageUrl: doc.referenceImageUrl.trim() }
+      : {}),
+    ...(currentImageUrl ? { currentImageUrl } : {}),
+    detectedElements,
+    revisions,
+    ...(typeof doc.error === "string" && doc.error.trim() ? { error: doc.error.trim() } : {}),
+    createdAt,
+    updatedAt,
+  };
+}
