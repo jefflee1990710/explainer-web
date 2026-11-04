@@ -13,6 +13,11 @@ import { requireAppUser } from "@/service/auth";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
+  createStandaloneEngineProject,
+  deleteStandaloneEngineProjectIfOwned,
+  syncStandaloneEngineFrame,
+} from "@/service/opencut/standalone-engine-video";
+import {
   applyJutsuColorGradeBuffer,
   DEFAULT_JUTSU_COLOR_SETTINGS,
 } from "@/service/jutsu/color-grade";
@@ -129,6 +134,28 @@ export async function startTeleportJob(
 
     const now = new Date();
     const jobId = new ObjectId();
+    let resolvedTargetVideoId =
+      normalized.targetVideoId && ObjectId.isValid(normalized.targetVideoId)
+        ? new ObjectId(normalized.targetVideoId)
+        : undefined;
+    let resolvedTargetClipNumber = normalized.targetClipNumber;
+    if (!resolvedTargetVideoId) {
+      resolvedTargetVideoId = await createStandaloneEngineProject({
+        userId: user._id,
+        clerkUserId: user.clerkUserId,
+        kind: "teleport",
+        title: normalized.scenePrompt
+          ? `Teleport · ${normalized.scenePrompt.slice(0, 48)}`
+          : "Teleport",
+        sourceVideoUrl: normalized.sourceVideoUrl,
+        aspectRatio: normalized.aspectRatio,
+        durationSeconds: normalized.sectionLength,
+        status: "rendering",
+        now,
+      });
+      resolvedTargetClipNumber = 1;
+    }
+
     const doc: TeleportJobDoc = {
       _id: jobId,
       userId: user._id,
@@ -143,10 +170,8 @@ export async function startTeleportJob(
       scenePlateGenerated: false,
       keepSourceAudio: normalized.keepSourceAudio,
       applyColorFix: normalized.applyColorFix,
-      ...(normalized.targetVideoId && ObjectId.isValid(normalized.targetVideoId)
-        ? { targetVideoId: new ObjectId(normalized.targetVideoId) }
-        : {}),
-      ...(normalized.targetClipNumber ? { targetClipNumber: normalized.targetClipNumber } : {}),
+      ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
+      ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(normalized.previousClipVideoUrl
         ? { previousClipVideoUrl: normalized.previousClipVideoUrl }
         : {}),
@@ -340,6 +365,14 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         },
       },
     );
+
+    await syncStandaloneEngineFrame({
+      targetVideoId: job.targetVideoId,
+      targetClipNumber: job.targetClipNumber,
+      aspectRatio: extracted.aspectRatio,
+      durationSeconds: effectiveSectionLength,
+      posterUrl: preparedStartFrameUrl,
+    });
 
     const engine = chooseTeleportVideoEngine({
       hasMannequin: Boolean(mannequinVideoUrl),
@@ -676,8 +709,20 @@ export async function deleteTeleportJob(
     const user = await requireAppUser();
     if (!ObjectId.isValid(jobId)) return { ok: false, error: "找不到任務" };
     const col = await teleportJobsCollection();
+    const job = (await col.findOne({
+      _id: new ObjectId(jobId),
+      clerkUserId: user.clerkUserId,
+    })) as TeleportJobDoc | null;
     await col.deleteOne({ _id: new ObjectId(jobId), clerkUserId: user.clerkUserId });
-    revalidatePath("/app/teleport");
+    if (job?.targetVideoId) {
+      await deleteStandaloneEngineProjectIfOwned(job.targetVideoId, user.clerkUserId);
+    }
+    try {
+      revalidatePath("/app/teleport");
+      revalidatePath("/app/videos");
+    } catch {
+      // Non-request context
+    }
     return { ok: true };
   } catch (error) {
     return {

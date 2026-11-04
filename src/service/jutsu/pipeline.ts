@@ -28,6 +28,11 @@ import {
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
+  createStandaloneEngineProject,
+  deleteStandaloneEngineProjectIfOwned,
+  syncStandaloneEngineFrame,
+} from "@/service/opencut/standalone-engine-video";
+import {
   applyJutsuColorGradeBuffer,
   DEFAULT_JUTSU_COLOR_SETTINGS,
 } from "@/service/jutsu/color-grade";
@@ -1249,6 +1254,26 @@ export async function startScroSwapJob(
     const sourceMediaKind = inferJutsuSourceMediaKind(sourceUrl, input.sourceMediaKind);
     const now = new Date();
     const jobId = new ObjectId();
+    let resolvedTargetVideoId =
+      input.targetVideoId && ObjectId.isValid(input.targetVideoId)
+        ? new ObjectId(input.targetVideoId)
+        : undefined;
+    let resolvedTargetClipNumber = input.targetClipNumber;
+    if (!resolvedTargetVideoId && sourceMediaKind !== "image") {
+      resolvedTargetVideoId = await createStandaloneEngineProject({
+        userId: user._id,
+        clerkUserId: user.clerkUserId,
+        kind: "scroswap",
+        title: characterName ? `Scro Swap · ${characterName}` : "Scro Swap",
+        sourceVideoUrl: sourceUrl,
+        aspectRatio: "9:16",
+        durationSeconds: sectionLength,
+        status: "rendering",
+        now,
+      });
+      resolvedTargetClipNumber = 1;
+    }
+
     const doc: JutsuJob & { _id: ObjectId } = {
       _id: jobId,
       userId: user._id,
@@ -1279,10 +1304,8 @@ export async function startScroSwapJob(
       keepSourceAudio,
       applyColorFix,
       colorSettings,
-      ...(input.targetVideoId && ObjectId.isValid(input.targetVideoId)
-        ? { targetVideoId: new ObjectId(input.targetVideoId) }
-        : {}),
-      ...(input.targetClipNumber ? { targetClipNumber: input.targetClipNumber } : {}),
+      ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
+      ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(input.previousClipVideoUrl ? { previousClipVideoUrl: input.previousClipVideoUrl } : {}),
       createdAt: now,
       updatedAt: now,
@@ -1648,6 +1671,14 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         motionDescription,
         updatedAt: prepNow,
       };
+
+      await syncStandaloneEngineFrame({
+        targetVideoId: current.targetVideoId,
+        targetClipNumber: current.targetClipNumber,
+        aspectRatio: extracted.aspectRatio,
+        durationSeconds: effectiveSectionLength,
+        posterUrl: preparedStartFrameUrl,
+      });
     }
 
     if (!current.openRouterStatusUrl && current.preparedStartFrameUrl) {
@@ -1943,11 +1974,23 @@ export async function deleteJutsuJob(
     const user = await requireAppUser();
     if (!ObjectId.isValid(jobId)) return { ok: false, error: "找不到任務" };
     const col = await jutsuJobsCollection();
+    const job = (await col.findOne({
+      _id: new ObjectId(jobId),
+      clerkUserId: user.clerkUserId,
+    })) as (JutsuJob & { _id: ObjectId }) | null;
     await col.deleteOne({
       _id: new ObjectId(jobId),
       clerkUserId: user.clerkUserId,
     });
-    revalidatePath("/app/scroswap");
+    if (job?.targetVideoId) {
+      await deleteStandaloneEngineProjectIfOwned(job.targetVideoId, user.clerkUserId);
+    }
+    try {
+      revalidatePath("/app/scroswap");
+      revalidatePath("/app/videos");
+    } catch {
+      // Non-request context
+    }
     return { ok: true };
   } catch (error) {
     return {

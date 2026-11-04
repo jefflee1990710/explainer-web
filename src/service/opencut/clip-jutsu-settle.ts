@@ -4,6 +4,7 @@ import { videosCollection } from "@/dao";
 import type { ProjectClip } from "@/model/project";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { nextProjectStatus } from "@/service/higgsfield/reconcile";
+import { isStandaloneEngineSkillSlug } from "@/service/opencut/standalone-engine-video";
 import { queueReelIfReady } from "@/service/reel/enqueue";
 
 /** Pure helper: replace the target clip's video URL when Scro Swap or Teleport completes. */
@@ -82,9 +83,26 @@ export async function settleTargetClipFromEngineJob(input: {
   const next = { ...project, clips };
   const nextStatus = nextProjectStatus(next);
   const now = new Date();
+  const isStandalone = isStandaloneEngineSkillSlug(project.skillSlug);
   await videos.updateOne(
     { _id: project._id },
-    { $set: { clips, status: nextStatus, updatedAt: now } },
+    {
+      $set: {
+        clips,
+        status: nextStatus,
+        ...(isStandalone && input.status === "completed" && input.outputVideoUrl
+          ? {
+              reelUrl: input.outputVideoUrl,
+              reelStatus: "completed" as const,
+              error: undefined,
+            }
+          : {}),
+        ...(isStandalone && input.status === "failed"
+          ? { error: input.error || "影片處理失敗" }
+          : {}),
+        updatedAt: now,
+      },
+    },
   );
 
   if (input.status === "completed") {
@@ -95,6 +113,7 @@ export async function settleTargetClipFromEngineJob(input: {
 
   try {
     revalidatePath("/app");
+    revalidatePath("/app/videos");
     revalidatePath(folderVideoPath(project.projectId?.toHexString(), project._id.toHexString()));
   } catch {
     // Non-request background / cron context

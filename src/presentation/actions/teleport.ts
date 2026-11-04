@@ -1,5 +1,6 @@
 "use server";
 
+import { ensureTeleportJobOpenCutVideo } from "@/service/opencut/standalone-engine-video";
 import {
   deleteTeleportJob,
   pollTeleportJobStatus,
@@ -22,4 +23,8 @@ export async function deleteTeleportJobAction(
   ...args: Parameters<typeof deleteTeleportJob>
 ) {
   return deleteTeleportJob(...args);
+}
+
+export async function openTeleportJobInEditorAction(jobId: string) {
+  return ensureTeleportJobOpenCutVideo(jobId);
 }

@@ -2,6 +2,7 @@
 
 import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import * as service from "@/service/jutsu/pipeline";
+import { ensureJutsuJobOpenCutVideo } from "@/service/opencut/standalone-engine-video";
 
 export async function startScroSwapJobAction(
   ...args: Parameters<typeof service.startScroSwapJob>
@@ -58,4 +59,8 @@ export async function detectJutsuPeopleAction(
   ...args: Parameters<typeof service.detectJutsuPeopleInFrame>
 ) {
   return service.detectJutsuPeopleInFrame(...args);
+}
+
+export async function openJutsuJobInEditorAction(jobId: string) {
+  return ensureJutsuJobOpenCutVideo(jobId);
 }
