@@ -19,7 +19,7 @@ export interface DirectorHeroCopy {
 
 export function getDirectorHeroCopy(
   kind: DirectorStudioKind,
-  locale: "zh-Hant" | "zh-Hans" | "en",
+  locale: string,
 ): DirectorHeroCopy {
   switch (kind) {
     case "explainer":
