@@ -23,6 +23,7 @@ import {
   DirectorDockPill,
   DirectorDockStage,
   DirectorDockStepperCell,
+  DirectorDockStyleButton,
 } from "@/presentation/components/app/director-dock";
 import { PostHistoryDialog } from "@/presentation/components/app/posts/post-history-dialog";
 import { CharacterSelectDialog } from "@/presentation/components/app/projects/[id]/character-select-dialog";
@@ -302,28 +303,16 @@ export function PostStudio({
       <DirectorDockPanel
         title={isEn ? "Post Director Panel" : "海報導演面板"}
       >
+        <DirectorDockStyleButton
+          thumbUrl={activeStyle?.previewUrl}
+          label={activeStyle?.name || (isEn ? "Realistic" : "寫實風格")}
+          onClick={() => setStyleDialogOpen(true)}
+          disabled={submitting}
+        />
         <DirectorDockCastGroup
           badgeLabel={isEn ? "Cast" : "角色"}
           slots={castSlots}
           onOpenPicker={() => setCharacterDialogOpen(true)}
-          disabled={submitting}
-        />
-        <DirectorDockDivider />
-        <DirectorDockStepperCell
-          label={isEn ? "Visual Style" : "視覺風格"}
-          value={activeStyle?.name || (isEn ? "Realistic" : "寫實風格")}
-          thumbUrl={activeStyle?.previewUrl}
-          onClick={() => setStyleDialogOpen(true)}
-          onPrev={() => {
-            if (styles.length === 0) return;
-            const next = cycleOption(styles, activeStyle ?? styles[0]!, -1);
-            setSelectedStyleId(next.id);
-          }}
-          onNext={() => {
-            if (styles.length === 0) return;
-            const next = cycleOption(styles, activeStyle ?? styles[0]!, 1);
-            setSelectedStyleId(next.id);
-          }}
           disabled={submitting}
         />
         <DirectorDockDivider />

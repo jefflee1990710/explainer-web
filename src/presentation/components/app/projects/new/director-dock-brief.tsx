@@ -35,6 +35,7 @@ import {
   DirectorDockPill,
   DirectorDockStage,
   DirectorDockStepperCell,
+  DirectorDockStyleButton,
   resolveCastSlotCount,
   resolveModeSwitchSkillSlug,
 } from "@/presentation/components/app/director-dock";
@@ -371,12 +372,6 @@ export function DirectorDockBrief({
     onSkillChange(cycleOption(slugs, skillSlug, delta));
   }
 
-  function stepStyle(delta: 1 | -1) {
-    if (styles.length < 2) return;
-    const ids = styles.map((s) => s.id);
-    onStyleChange(cycleOption(ids, styleId, delta));
-  }
-
   function stepPose(delta: 1 | -1) {
     onTalkingHeadPoseChange(
       cycleOption(TALKING_HEAD_POSE_IDS, talkingHeadPoseId, delta),
@@ -425,7 +420,18 @@ export function DirectorDockBrief({
 
         {/* Collapsible Director Panel */}
         <DirectorDockPanel>
-          {/* Cell 1: Cast Avatar Slots */}
+          {/* Left Icon 1: Visual Style (on left side of character selection button) */}
+          {!talkingHead ? (
+            <DirectorDockStyleButton
+              tourId="visual-style-card"
+              thumbUrl={activeStyle?.previewUrl}
+              label={styleName}
+              disabled={briefBusy}
+              onClick={() => setStyleDialogOpen(true)}
+            />
+          ) : null}
+
+          {/* Left Icon 2: Cast Avatar Slots */}
           <DirectorDockCastGroup
             tourId="character-card"
             slots={castSlots}
@@ -437,7 +443,7 @@ export function DirectorDockBrief({
 
           <DirectorDockDivider />
 
-          {/* Cell 2: Video Type (Director Skill) */}
+          {/* Cell: Video Type (Director Skill) */}
           <DirectorDockStepperCell
             tourId="video-type-card"
             thumbUrl={
@@ -461,7 +467,7 @@ export function DirectorDockBrief({
 
           <DirectorDockDivider />
 
-          {/* Cell 3: Visual Style (Explainer) or Framing Pose (Talking Head) */}
+          {/* Cell: Framing Pose (Talking Head only) */}
           {talkingHead ? (
             <DirectorDockStepperCell
               tourId="visual-style-card"
@@ -479,24 +485,7 @@ export function DirectorDockBrief({
               onNext={() => stepPose(1)}
               onClick={() => stepPose(1)}
             />
-          ) : (
-            <DirectorDockStepperCell
-              tourId="visual-style-card"
-              thumbUrl={activeStyle?.previewUrl}
-              label={
-                locale === "zh-Hant"
-                  ? "視覺風格"
-                  : locale === "zh-Hans"
-                    ? "视觉风格"
-                    : "Visual Style"
-              }
-              value={styleName}
-              disabled={briefBusy}
-              onPrev={() => stepStyle(-1)}
-              onNext={() => stepStyle(1)}
-              onClick={() => setStyleDialogOpen(true)}
-            />
-          )}
+          ) : null}
 
           <DirectorDockDivider />
 

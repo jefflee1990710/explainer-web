@@ -186,20 +186,10 @@ import {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function preferredStyleIdForSkill(
-  slug: string,
+  _slug: string,
   availableStyles: PublicStyle[],
 ): string | undefined {
-  if (
-    slug === "paper-cutout-explainer-video-director" &&
-    availableStyles.some((s) => s.id === "paper-cutout")
-  ) {
-    return "paper-cutout";
-  }
-  if (slug === "cartoon-explainer-video-director") {
-    if (availableStyles.some((s) => s.id === "whiteboard")) return "whiteboard";
-    if (availableStyles.some((s) => s.id === "cartoon")) return "cartoon";
-  }
-  return undefined;
+  return pickerDefaultStyleId(availableStyles);
 }
 
 function initialSkillSlugForForm(
