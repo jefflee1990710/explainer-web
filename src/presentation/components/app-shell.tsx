@@ -45,7 +45,6 @@ export function AppShell({
       icon: "directors",
       section: "create",
     },
-    { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
     {
       href: "/app/scroswap",
       label: locale === "en" ? "Scro Swap" : "Scro Swap 換角",
@@ -59,8 +58,16 @@ export function AppShell({
       section: "create",
     },
     ...(POSTS_FEATURE_ENABLED
-      ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "create" as const }]
+      ? [
+          {
+            href: "/app/posts",
+            label: locale === "en" ? "Poster" : t("nav.posts"),
+            icon: "posts" as const,
+            section: "create" as const,
+          },
+        ]
       : []),
+    { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
     { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },

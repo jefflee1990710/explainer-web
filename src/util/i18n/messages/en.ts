@@ -40,7 +40,7 @@ export const en: Messages = {
     signIn: "Sign in",
     workspace: "Workspace",
     language: "Language",
-    posts: "Post",
+    posts: "Poster",
     blog: "Post",
     products: "Product",
     textStyles: "Text style",
