@@ -50,7 +50,7 @@ export type ScroSeedMessage = {
   clips: ScroVideoSeedClip[];
   /** Create or recreate: drop the main-track cut and place the storyboard. */
   replace?: boolean;
-  /** Only auto-generate the subtitle track on seed for talking-head directors. */
+  /** Whether to auto-generate the subtitle track on seed (off by default). */
   autoSubtitles?: boolean;
 };
 

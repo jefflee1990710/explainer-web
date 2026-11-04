@@ -14,6 +14,11 @@ export function folderVideoPath(folderId?: string | null, videoId?: string) {
   return `${folderPath(folderId)}/videos/${videoId}`;
 }
 
+// After creating or saving a video, navigate directly to its OpenCut editor route (never the video list).
+export function postCreateVideoPath(folderId: string | null | undefined, videoId: string) {
+  return folderVideoPath(folderId, videoId);
+}
+
 export function folderVideoRedirectFromQuery(folderId?: string | null, videoId?: string | null) {
   const id = videoId?.trim();
   if (!id) return null;

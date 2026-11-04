@@ -22,7 +22,7 @@ import { getOpencutEditAction } from "@/presentation/actions/opencut-edit";
 import { generateSelectedClipsAction } from "@/presentation/actions/clip-production";
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
-import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import { isProductionLike } from "@/service/project-status";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import {
   beginAutosave,
@@ -39,6 +39,7 @@ import { allFramesReady, planRemaining } from "@/service/production-plan";
 import {
   buildSeedClips,
   diffScroSeedClips,
+  shouldAutoGenerateSubtitlesOnSeed,
   storyboardLayoutAction,
 } from "@/service/scro-video/timeline-seed";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
@@ -227,7 +228,7 @@ export function OpenCutDirectDesk({
         // No saved cut (a recreate deleted it). Replace the local timeline
         // so the previous videos do not stay under the new storyboard.
         replace: true,
-        autoSubtitles: isTalkingHeadSkill(projectRef.current.skillSlug),
+        autoSubtitles: shouldAutoGenerateSubtitlesOnSeed(projectRef.current.skillSlug),
       });
       prevSeedRef.current = clips;
       syncedRef.current = true;
@@ -457,7 +458,7 @@ export function OpenCutDirectDesk({
         aspectRatio: project.aspectRatio,
         clips: seedClips,
         replace: true,
-        autoSubtitles: isTalkingHeadSkill(project.skillSlug),
+        autoSubtitles: shouldAutoGenerateSubtitlesOnSeed(project.skillSlug),
       });
       return;
     }
@@ -520,7 +521,7 @@ export function OpenCutDirectDesk({
 
   // Queue missing start stills for any newly added or unplanned storyboard clips. Videos wait for a click.
   useEffect(() => {
-    if (!project.phaseA?.clips?.length) {
+    if (!project.phaseA?.clips?.length || !isProductionLike(project.status)) {
       autoPlannedClipsRef.current.clear();
       return;
     }

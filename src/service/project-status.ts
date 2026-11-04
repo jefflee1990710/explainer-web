@@ -88,6 +88,22 @@ export function isProductionLike(status: ProjectStatus | LegacyProjectStatus) {
   );
 }
 
+// Open the OpenCut video desk directly once the video enters Phase A or production on the Video step.
+export function shouldOpenVideoDesk(
+  project:
+    | {
+        status: ProjectStatus | LegacyProjectStatus;
+        phaseA?: PhaseAProposal;
+      }
+    | null
+    | undefined,
+  viewing: number,
+): boolean {
+  if (viewing !== VIDEO_INDEX || !project) return false;
+  if (project.status === "phase_a") return true;
+  return Boolean(project.phaseA && isProductionLike(project.status));
+}
+
 // Failed videos stay on Video so retry / progress copy stays in one place.
 export function failedStepFor(_project: {
   phaseA?: PhaseAProposal;

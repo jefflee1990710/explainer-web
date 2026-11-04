@@ -5,6 +5,7 @@ import {
   folderVideoMatchesTask,
   folderVideoPath,
   folderVideoRedirectFromQuery,
+  postCreateVideoPath,
 } from "@/service/folder-video-path";
 
 test("folder path is the project video list or dashboard when omitted", () => {
@@ -35,3 +36,10 @@ test("task href matches a video on the new or legacy path", () => {
   assert.equal(folderVideoMatchesTask("/app/projects/f1?video=v1", "v1"), true);
   assert.equal(folderVideoMatchesTask("/app/projects/f1/videos/other", "v1"), false);
 });
+
+test("postCreateVideoPath navigates directly to the OpenCut video editor instead of the video list", () => {
+  assert.equal(postCreateVideoPath(undefined, "v1"), "/app/videos/v1");
+  assert.equal(postCreateVideoPath("", "v1"), "/app/videos/v1");
+  assert.equal(postCreateVideoPath("f1", "v1"), "/app/projects/f1/videos/v1");
+});
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { folderVideoPath } from "@/service/folder-video-path";
+import { folderVideoPath, postCreateVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import {
@@ -97,7 +97,7 @@ import {
   isTalkingHeadPoseId,
   type TalkingHeadPoseId,
 } from "@/model/talking-head-options";
-import { failedStepFor, isProductionLike } from "@/service/project-status";
+import { failedStepFor, shouldOpenVideoDesk } from "@/service/project-status";
 import type {
   PublicCharacter,
   PublicProduct,
@@ -123,7 +123,6 @@ import type { CharacterSelectionMap } from "@/service/character/character-preset
 import { ProductDropdown } from "@/presentation/components/app/projects/new/product-dropdown";
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
-import { DirectorProgress } from "@/presentation/components/app/projects/new/director-progress";
 import { DurationPicker } from "@/presentation/components/app/projects/new/duration-picker";
 import { LogoPicker } from "@/presentation/components/app/projects/new/logo-picker";
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
@@ -458,7 +457,8 @@ export function NewProjectForm({
     step: number;
   } | null>(() =>
     initialVideo &&
-    (initialVideo.status === "ready" ||
+    (initialVideo.status === "phase_a" ||
+      initialVideo.status === "ready" ||
       initialVideo.status === "production" ||
       Boolean(initialVideo.phaseA?.clips?.length))
       ? { id: initialVideo.id, status: initialVideo.status, step: 1 }
@@ -845,11 +845,7 @@ export function NewProjectForm({
     setProject(result.project);
     onVideoCreated?.(result.project);
     const nextFolder = result.project.projectId;
-    router.replace(
-      nextFolder
-        ? folderVideoPath(nextFolder, result.project.id)
-        : `/app?stay=1`,
-    );
+    router.replace(postCreateVideoPath(nextFolder, result.project.id));
   }
 
   async function submitBrief() {
@@ -864,18 +860,11 @@ export function NewProjectForm({
       setError(translateAppError(result.error, t));
       return;
     }
-    // A new video goes back to this project's list. Phase A keeps running.
-    // Saving an existing brief stays on that video.
+    // After create or brief save, open the OpenCut video editor directly.
     setProject(result.project);
     onVideoCreated?.(result.project);
     const nextFolder = result.project.projectId;
-    router.replace(
-      project
-        ? folderVideoPath(nextFolder, result.project.id)
-        : nextFolder
-          ? `/app?stay=1&project=${nextFolder}`
-          : "/app?stay=1",
-    );
+    router.replace(postCreateVideoPath(nextFolder, result.project.id));
   }
 
   // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.
@@ -1408,18 +1397,16 @@ export function NewProjectForm({
     (castNeed === 0 || characterIds.length === castNeed) &&
     referenceImages.every((item) => item.description.trim().length > 0) &&
     !briefBusy;
-  // Video desk opens as soon as Phase A has a storyboard (not only when ready).
-  const videoDesk =
-    viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
-  const directorBusy = viewing === 1 && project?.status === "phase_a";
-  const desk = videoDesk || directorBusy;
+  // Video desk opens directly in OpenCut (including while Phase A writes the storyboard).
+  const videoDesk = shouldOpenVideoDesk(project, viewing);
+  const desk = videoDesk;
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           className={
-            desk || directorBusy
+            desk
               ? "flex min-h-0 flex-1 flex-col overflow-hidden"
               : "min-h-0 flex-1 space-y-6 overflow-y-auto"
           }
@@ -2279,11 +2266,7 @@ export function NewProjectForm({
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {directorBusy ? (
-            <div key="phase-a" className="grid min-h-0 flex-1 place-items-center px-6">
-              <DirectorProgress />
-            </div>
-          ) : videoDesk && project ? (
+          {videoDesk && project ? (
             <OpenCutVideoDesk
               key={project.id}
               project={project}

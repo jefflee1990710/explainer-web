@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildSeedClips,
   diffScroSeedClips,
+  shouldAutoGenerateSubtitlesOnSeed,
   staleTimelineElementIds,
   storyboardLayoutAction,
 } from "@/service/scro-video/timeline-seed";
@@ -170,3 +171,14 @@ describe("diffScroSeedClips", () => {
     assert.equal(changed[0].clipNumber, 2);
   });
 });
+
+describe("shouldAutoGenerateSubtitlesOnSeed", () => {
+  it("does not add subtitles by default for explainer or talking-head videos", () => {
+    assert.equal(shouldAutoGenerateSubtitlesOnSeed("cartoon-explainer-video-director"), false);
+    assert.equal(shouldAutoGenerateSubtitlesOnSeed("paper-cutout-explainer-video-director"), false);
+    assert.equal(shouldAutoGenerateSubtitlesOnSeed("talking-head-director"), false);
+    assert.equal(shouldAutoGenerateSubtitlesOnSeed("full-body-talking-head-director"), false);
+    assert.equal(shouldAutoGenerateSubtitlesOnSeed(undefined), false);
+  });
+});
+

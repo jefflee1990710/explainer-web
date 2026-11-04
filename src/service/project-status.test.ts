@@ -6,6 +6,7 @@ import {
   maxReachableStep,
   normalizeProjectStatus,
   PROJECT_STEP_IDS,
+  shouldOpenVideoDesk,
   stepVisualState,
 } from "@/service/project-status";
 
@@ -63,3 +64,19 @@ test("step visuals for two-step input → video", () => {
   assert.equal(stepVisualState(1, 1, true, false), "current");
   assert.equal(stepVisualState(1, 1, true, true), "done");
 });
+
+test("shouldOpenVideoDesk opens OpenCut editor directly during phase_a and production", () => {
+  assert.equal(shouldOpenVideoDesk({ status: "phase_a" }, 1), true);
+  assert.equal(
+    shouldOpenVideoDesk({ status: "production", phaseA: { clips: [] } as never }, 1),
+    true,
+  );
+  assert.equal(
+    shouldOpenVideoDesk({ status: "ready", phaseA: { clips: [] } as never }, 1),
+    true,
+  );
+  assert.equal(shouldOpenVideoDesk({ status: "phase_a" }, 0), false);
+  assert.equal(shouldOpenVideoDesk({ status: "failed" }, 1), false);
+  assert.equal(shouldOpenVideoDesk(null, 1), false);
+});
+

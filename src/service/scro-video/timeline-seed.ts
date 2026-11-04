@@ -158,3 +158,10 @@ export function diffScroSeedClips({
   }
   return changed;
 }
+
+/** Subtitles are never added by default on timeline seed; users add them manually from the Subtitles panel. */
+export function shouldAutoGenerateSubtitlesOnSeed(skillSlug?: string): boolean {
+  void skillSlug;
+  return false;
+}
+
