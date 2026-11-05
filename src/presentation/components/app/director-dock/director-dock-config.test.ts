@@ -6,6 +6,7 @@ import {
   buildCastSlotItems,
   computeSkillSwitchState,
   cycleOption,
+  getAspectRatioIconSizeClass,
   getDirectorHeroCopy,
   isFullBleedStudioPath,
   LIFE_REMARK_STAGE_CLASS,
@@ -99,5 +100,14 @@ test("isFullBleedStudioPath matches all 5 Director Dock studios, video editor ro
   assert.equal(isFullBleedStudioPath("/app/characters"), false);
   assert.equal(isFullBleedStudioPath("/app/billing"), false);
 });
+
+test("getAspectRatioIconSizeClass returns portrait, landscape, and square icon dimensions for aspect ratio pills", () => {
+  assert.equal(getAspectRatioIconSizeClass("9:16"), "h-3 w-2");
+  assert.equal(getAspectRatioIconSizeClass("2:3"), "h-3 w-2");
+  assert.equal(getAspectRatioIconSizeClass("16:9"), "h-2 w-3");
+  assert.equal(getAspectRatioIconSizeClass("1:1"), "h-2.5 w-2.5");
+  assert.equal(getAspectRatioIconSizeClass(""), "h-3 w-2");
+});
+
 
 

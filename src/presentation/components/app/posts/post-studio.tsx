@@ -24,6 +24,7 @@ import {
   DirectorDockStage,
   DirectorDockStepperCell,
   DirectorDockStyleButton,
+  getAspectRatioIconSizeClass,
 } from "@/presentation/components/app/director-dock";
 import { PostHistoryDialog } from "@/presentation/components/app/posts/post-history-dialog";
 import { CharacterSelectDialog } from "@/presentation/components/app/projects/[id]/character-select-dialog";
@@ -342,6 +343,11 @@ export function PostStudio({
         />
         <DirectorDockDivider />
         <DirectorDockStepperCell
+          icon={
+            <span
+              className={`inline-block rounded-[2px] border border-current ${getAspectRatioIconSizeClass(aspectRatio)}`}
+            />
+          }
           label={isEn ? "Aspect Ratio" : "海報比例"}
           value={aspectRatio}
           onClick={() =>

@@ -352,4 +352,11 @@ export function isFullBleedStudioPath(pathname: string): boolean {
   );
 }
 
+export function getAspectRatioIconSizeClass(aspectRatio?: string | null): string {
+  if (aspectRatio === "16:9") return "h-2 w-3";
+  if (aspectRatio === "1:1") return "h-2.5 w-2.5";
+  return "h-3 w-2";
+}
+
+
 

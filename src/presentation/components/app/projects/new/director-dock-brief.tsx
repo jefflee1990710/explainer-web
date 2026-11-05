@@ -36,6 +36,7 @@ import {
   DirectorDockStage,
   DirectorDockStepperCell,
   DirectorDockStyleButton,
+  getAspectRatioIconSizeClass,
   resolveCastSlotCount,
   resolveModeSwitchSkillSlug,
 } from "@/presentation/components/app/director-dock";
@@ -721,7 +722,9 @@ export function DirectorDockBrief({
             <>
               <DirectorDockPill
                 icon={
-                  <span className="inline-block h-3 w-2 rounded-[2px] border border-current" />
+                  <span
+                    className={`inline-block rounded-[2px] border border-current ${getAspectRatioIconSizeClass(aspectRatio || "9:16")}`}
+                  />
                 }
                 label={aspectRatio || "9:16"}
                 disabled={briefBusy}
