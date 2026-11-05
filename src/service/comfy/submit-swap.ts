@@ -1,5 +1,6 @@
 import type { JutsuJob } from "@/model/jutsu-job";
 import type { TeleportJob } from "@/model/teleport-job";
+import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import {
   hasComfyEndpoint,
   openJutsuMargin,
@@ -17,7 +18,8 @@ export async function trySubmitJutsuComfy(
   if (job.sourceMediaKind === "image") return null;
   if (job.mode !== "character_swap" && job.mode !== "object_swap") return null;
 
-  const video = await fetchMedia(job.sourceVideoUrl);
+  const rawVideo = await fetchMedia(job.sourceVideoUrl);
+  const video = await ensureMp4HasAudioStream(rawVideo);
   const runId = job._id.toHexString();
   const section = { start: job.sectionStart, length: job.sectionLength };
   const shared = {
@@ -67,10 +69,11 @@ export async function trySubmitTeleportComfy(
 ): Promise<ComfySubmitResult | null> {
   if (!hasComfyEndpoint()) return null;
   if (!job.sceneImageUrl) throw new Error("缺少場景圖片");
-  const [video, image] = await Promise.all([
+  const [rawVideo, image] = await Promise.all([
     fetchMedia(job.sourceVideoUrl),
     fetchMedia(job.sceneImageUrl),
   ]);
+  const video = await ensureMp4HasAudioStream(rawVideo);
   return submitOpenJutsuObject({
     video,
     image,

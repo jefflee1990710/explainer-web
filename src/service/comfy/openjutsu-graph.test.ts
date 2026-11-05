@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
+import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import { buildObjectGraph, buildSimpleGraph } from "@/service/comfy/openjutsu-graph";
 
 const section = { start: 1.5, length: 8 };
@@ -106,4 +107,41 @@ test("object history prefers h3_oneclick_edit over the assemble log path", () =>
     subfolder: "h3_oneclick_edit",
     type: "output",
   });
+});
+
+test("ensureMp4HasAudioStream adds a silent AAC track to a video-only MP4 and leaves voiced MP4s untouched", async () => {
+  const { mkdtemp, readFile, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { ffmpegStderr, runFfmpeg } = await import("@/service/reel/concat");
+
+  const dir = await mkdtemp(join(tmpdir(), "comfy-audio-test-"));
+  try {
+    await runFfmpeg(dir, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=black:s=64x64:d=1",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "silent.mp4",
+    ]);
+    const videoOnly = await readFile(join(dir, "silent.mp4"));
+    const probeBefore = await ffmpegStderr(dir, ["-i", "silent.mp4"]);
+    assert.equal(/Audio:/.test(probeBefore), false);
+
+    const withAudio = await ensureMp4HasAudioStream(videoOnly);
+    await writeFile(join(dir, "with-audio.mp4"), withAudio);
+    const probeAfter = await ffmpegStderr(dir, ["-i", "with-audio.mp4"]);
+    assert.equal(/Audio:/.test(probeAfter), true);
+
+    // Calling again on a file that already has audio returns the exact same buffer without re-muxing
+    const secondPass = await ensureMp4HasAudioStream(withAudio);
+    assert.equal(secondPass, withAudio);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
