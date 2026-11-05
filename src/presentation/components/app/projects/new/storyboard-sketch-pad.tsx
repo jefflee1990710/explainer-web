@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRef, useState } from "react";
-import type { AspectRatio } from "@/model/project";
+import { useEffect, useRef, useState } from "react";
+import type { AspectRatio, StoryboardSketchElement } from "@/model/project";
 import type {
   AnnotationEditorHandle,
   AnnotationTool,
@@ -52,28 +52,33 @@ function sketchDimensions(aspectRatio: AspectRatio): {
   };
 }
 
-// Interactive whiteboard sketchpad for drawing a storyboard clip layout and text annotations.
+// Interactive whiteboard sketchpad for drawing a storyboard clip layout, dropping 1-click diagram stamps, and placing text annotations.
 export function StoryboardSketchPad({
   clipNumber,
   aspectRatio = "16:9",
   sketchUrl,
+  sketchElements,
   disabled,
   onSketchChange,
+  onAutoLayoutRequest,
 }: {
   clipNumber: number;
   aspectRatio?: AspectRatio;
   sketchUrl?: string;
+  sketchElements?: StoryboardSketchElement[];
   disabled?: boolean;
   onSketchChange: (dataUrl: string | undefined) => void;
+  onAutoLayoutRequest?: () => void;
 }) {
   const { t } = useI18n();
   const editorRef = useRef<AnnotationEditorHandle>(null);
   const [tool, setTool] = useState<AnnotationTool>("draw");
   const [objectCount, setObjectCount] = useState(0);
   const [selectedCount, setSelectedCount] = useState(0);
+  const lastElementsJsonRef = useRef<string>("");
   const { width, height, boxClass } = sketchDimensions(aspectRatio);
 
-  // Sync the drawn PNG data URL back to the parent draft whenever strokes or text change.
+  // Sync the drawn PNG data URL back to the parent draft whenever strokes, stamps, or text change.
   function syncCanvas(nextCount: number) {
     setObjectCount(nextCount);
     window.requestAnimationFrame(() => {
@@ -82,15 +87,41 @@ export function StoryboardSketchPad({
     });
   }
 
+  // When `sketchElements` are updated by AI Auto-Draft or a layout preset button, render them onto the canvas.
+  useEffect(() => {
+    const serialized = JSON.stringify(sketchElements ?? []);
+    if (!sketchElements || sketchElements.length === 0) {
+      lastElementsJsonRef.current = serialized;
+      return;
+    }
+    if (serialized === lastElementsJsonRef.current) return;
+    lastElementsJsonRef.current = serialized;
+
+    const timer = window.setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.loadSketchElements(sketchElements);
+        setTool("select");
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [sketchElements]);
+
   function handleClear() {
     editorRef.current?.clear();
+    lastElementsJsonRef.current = "[]";
     setObjectCount(0);
     setSelectedCount(0);
     onSketchChange(undefined);
   }
 
+  function handleAddStamp(element: StoryboardSketchElement) {
+    if (disabled) return;
+    setTool("select");
+    editorRef.current?.addStamp(element);
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-1.5">
@@ -157,6 +188,125 @@ export function StoryboardSketchPad({
             </button>
           ) : null}
         </div>
+      </div>
+
+      {/* Approach B: 1-Click Visual Stamps & Auto-Layout Bar */}
+      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-accent-ink/10 bg-white/80 px-2.5 py-2">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "person",
+              x: 10,
+              y: 42,
+              width: 20,
+              height: 42,
+              label: "Host",
+              color: "#ff4d2e",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampPerson")}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "rect",
+              x: 36,
+              y: 28,
+              width: 26,
+              height: 24,
+              label: "Step / Box",
+              color: "#2563eb",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampBox")}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "circle",
+              x: 42,
+              y: 30,
+              width: 20,
+              height: 20,
+              label: "Icon",
+              color: "#059669",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampCircle")}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "arrow",
+              x: 32,
+              y: 46,
+              x2: 64,
+              y2: 46,
+              color: "#ff4d2e",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampArrow")}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "line",
+              x: 50,
+              y: 12,
+              x2: 50,
+              y2: 88,
+              color: "#12141c",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampDivider")}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            handleAddStamp({
+              type: "text",
+              x: 28,
+              y: 14,
+              label: "「Hook Title」",
+              color: "#12141c",
+            })
+          }
+          className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink hover:bg-lime/25 disabled:opacity-50"
+        >
+          {t("brief.drafts.stampTitle")}
+        </button>
+
+        {onAutoLayoutRequest ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onAutoLayoutRequest}
+            className="ml-auto cursor-pointer rounded-full bg-accent-ink px-2.5 py-1 text-[11px] font-bold text-lime transition hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {t("brief.drafts.applyTemplateToCanvas")}
+          </button>
+        ) : null}
       </div>
 
       {/* Whiteboard canvas with subtle dot grid matching the chosen video aspect ratio */}

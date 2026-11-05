@@ -646,6 +646,52 @@ function talkingHeadFrameProject(project: Project): Project {
   return { ...project, cast: project.cast.slice(0, 1) };
 }
 
+function clipDraftForClip(project: Pick<Project, "clipDrafts">, clipNumber: number) {
+  return project.clipDrafts?.find((draft) => draft.clipNumber === clipNumber);
+}
+
+function clipDraftSketchReference(
+  project: Pick<Project, "clipDrafts">,
+  clipNumber: number,
+  position: FramePosition,
+): string | undefined {
+  if (position !== "start") return undefined;
+  const url = clipDraftForClip(project, clipNumber)?.sketchUrl?.trim();
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:image/")) return url;
+  return undefined;
+}
+
+function clipDraftStagingLine(
+  project: Pick<Project, "clipDrafts">,
+  clipNumber: number,
+  position: FramePosition,
+  sketchAttachmentIndex?: number,
+): string {
+  const draft = clipDraftForClip(project, clipNumber);
+  if (!draft) return "";
+  const clauses: string[] = [];
+  if (draft.diagramLayout && draft.diagramLayout !== "auto") {
+    clauses.push(`diagramLayout=${draft.diagramLayout}`);
+  }
+  if (draft.characterPosition && draft.characterPosition !== "auto") {
+    clauses.push(`character position=${draft.characterPosition}`);
+  }
+  if (draft.characterAction?.trim()) {
+    clauses.push(`character action="${draft.characterAction.trim()}"`);
+  }
+  if (draft.visualNodes && draft.visualNodes.length > 0) {
+    clauses.push(`required cartoon/diagram elements=[${draft.visualNodes.join(" | ")}]`);
+  }
+  if (position === "start" && sketchAttachmentIndex) {
+    clauses.push(
+      `attached image ${sketchAttachmentIndex} is the user's spatial layout sketch for this clip — follow its 2D diagram placement, box/arrow structure, and character position while rendering everything in the active visual style (never copy raw wireframe boxes or stick-figure placeholders literally)`,
+    );
+  }
+  if (clauses.length === 0) return "";
+  return `LAYOUT & CARTOON STAGING LOCK: ${clauses.join("; ")}.`;
+}
+
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
 export function buildFramePrompt(
@@ -806,6 +852,16 @@ export function buildFramePrompt(
   const logoLines = logoUrls.length
     ? bookendLogoFrameLines(productStart + productUrls.length)
     : [];
+  const draftSketchUrl = clipDraftSketchReference(project, clipNumber, position);
+  const draftSketchIndex = draftSketchUrl
+    ? productStart + productUrls.length + logoUrls.length
+    : undefined;
+  const draftStagingLine = clipDraftStagingLine(
+    project,
+    clipNumber,
+    position,
+    draftSketchIndex,
+  );
 
   const sceneForFrame =
     position === "start" ? clipStartScene(row) : clipEndScene(row);
@@ -1001,6 +1057,7 @@ export function buildFramePrompt(
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${parts.scene}`,
+    ...(draftStagingLine ? [draftStagingLine] : []),
     // Stays after the Scene when generic lines such as Render detail are trimmed away.
     ...(parts.sightline ? [parts.sightline] : []),
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
@@ -1154,6 +1211,8 @@ export function frameSubmitPlan(
   // Subtitles are never generated into scene images, so no lettering-sample slot is reserved.
   const textStyleUrls: string[] = [];
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
+  const draftSketchUrl = clipDraftSketchReference(project, clipNumber, position);
+  const draftSketchUrls = draftSketchUrl ? [draftSketchUrl] : [];
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
@@ -1164,13 +1223,14 @@ export function frameSubmitPlan(
       videoLockUrls.length +
       logoUrls.length +
       productUrls.length +
-      textStyleUrls.length,
+      textStyleUrls.length +
+      draftSketchUrls.length,
   );
   const openingUrls = openingPhotoUrl ? [openingPhotoUrl] : [];
   const orderedLocks =
     castUrls.length > 0
-      ? [...openingUrls, ...castUrls, ...videoLockUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
-      : [...openingUrls, ...sceneRefUrls, ...castUrls, ...videoLockUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
+      ? [...openingUrls, ...castUrls, ...videoLockUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls, ...draftSketchUrls]
+      : [...openingUrls, ...sceneRefUrls, ...castUrls, ...videoLockUrls, ...productUrls, ...logoUrls, ...textStyleUrls, ...draftSketchUrls];
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,

@@ -1837,4 +1837,33 @@ test("invented clip style follows the project style in the frame prompt", async 
   assert.doesNotMatch(start.prompt, /doodle look/);
 });
 
+test("explainer clipDraft structured controls and sketchUrl are wired into start frameSubmitPlan and prompt", () => {
+  const video = project("doodle");
+  video.skillSlug = "cartoon-explainer-video-director";
+  video.clipDrafts = [
+    {
+      clipNumber: 1,
+      explanation: "Split old vs new workflow",
+      diagramLayout: "split-compare",
+      characterPosition: "left",
+      characterAction: "指住圖表講解",
+      visualNodes: ["「舊方法」混亂線團", "「新系統」綠色直線"],
+      sketchUrl: "https://blob/clip1-layout-sketch.png",
+    },
+  ];
+  const startPlan = frameSubmitPlan(video, 1, "start");
+  assert.equal(startPlan.refs.includes("https://blob/clip1-layout-sketch.png"), true);
+  assert.match(startPlan.prompt, /LAYOUT & CARTOON STAGING LOCK/);
+  assert.match(startPlan.prompt, /split-compare/);
+  assert.match(startPlan.prompt, /position=left/);
+  assert.match(startPlan.prompt, /指住圖表講解/);
+  assert.match(startPlan.prompt, /「舊方法」混亂線團/);
+  assert.match(startPlan.prompt, /spatial layout sketch/);
+
+  const endPlan = frameSubmitPlan(video, 1, "end");
+  assert.equal(endPlan.refs.includes("https://blob/clip1-layout-sketch.png"), false);
+  assert.match(endPlan.prompt, /LAYOUT & CARTOON STAGING LOCK/);
+});
+
+
 

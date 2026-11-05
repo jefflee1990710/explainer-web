@@ -127,6 +127,29 @@ export type StoryboardSketchElementType =
   | "line"
   | "text";
 
+export const STORYBOARD_DIAGRAM_LAYOUTS = [
+  "auto",
+  "split-compare",
+  "process-flow",
+  "funnel",
+  "balance-scale",
+  "iceberg",
+  "timeline",
+  "character-scene",
+] as const;
+
+export type StoryboardDiagramLayout = (typeof STORYBOARD_DIAGRAM_LAYOUTS)[number];
+
+export const STORYBOARD_CHARACTER_POSITIONS = [
+  "auto",
+  "left",
+  "right",
+  "center",
+  "none",
+] as const;
+
+export type StoryboardCharacterPosition = (typeof STORYBOARD_CHARACTER_POSITIONS)[number];
+
 export type StoryboardSketchElement = {
   type: StoryboardSketchElementType;
   // Normalized coordinates (0..100) across the clip canvas.
@@ -146,6 +169,10 @@ export type StoryboardClipDraft = {
   voDraft?: string;
   sketchUrl?: string;
   sketchElements?: StoryboardSketchElement[];
+  diagramLayout?: StoryboardDiagramLayout;
+  characterPosition?: StoryboardCharacterPosition;
+  characterAction?: string;
+  visualNodes?: string[];
 };
 
 // Per-clip director, style, cast, and voice overrides when a clip or appended video
@@ -704,6 +731,10 @@ export const projectSchema: z.ZodType<Project> = z.object({
         explanation: z.string(),
         voDraft: z.string().optional(),
         sketchUrl: z.string().optional(),
+        diagramLayout: z.enum(STORYBOARD_DIAGRAM_LAYOUTS).optional(),
+        characterPosition: z.enum(STORYBOARD_CHARACTER_POSITIONS).optional(),
+        characterAction: z.string().optional(),
+        visualNodes: z.array(z.string()).optional(),
         sketchElements: z
           .array(
             z.object({

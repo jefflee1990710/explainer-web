@@ -1,18 +1,34 @@
 "use client";
 
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
-import { Canvas, IText, PencilBrush, type FabricObject, type Point } from "fabric";
+import {
+  Canvas,
+  Circle,
+  Group,
+  IText,
+  Line,
+  PencilBrush,
+  Polygon,
+  Rect,
+  type FabricObject,
+  type Point,
+} from "fabric";
+import type { StoryboardSketchElement } from "@/model/project";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 export type AnnotationTool = "draw" | "select" | "text";
 
-// Imperative API for the toolbar (delete/clear) and the submit step (export).
+// Imperative API for the toolbar (delete/clear/stamps) and the submit step (export).
 export type AnnotationEditorHandle = {
   deleteSelected: () => void;
   clear: () => void;
   isEmpty: () => boolean;
   // Transparent PNG of every object at the intrinsic `width × height`; null when empty.
   toDataURL: () => string | null;
+  // Drop a single wireframe stamp (person, box, circle, arrow, line, text) onto the canvas.
+  addStamp: (element: StoryboardSketchElement) => void;
+  // Replace canvas contents with a list of normalized (0..100) wireframe elements.
+  loadSketchElements: (elements: StoryboardSketchElement[]) => void;
 };
 
 // Single annotation colour. The image prompt names this exact colour so the
@@ -271,40 +287,245 @@ export function AnnotationEditor({
 
   useImperativeHandle(
     editorRef,
-    () => ({
-      deleteSelected: () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const selected = canvas.getActiveObjects();
-        if (selected.length === 0) return;
-        canvas.discardActiveObject();
-        canvas.remove(...selected);
-        canvas.requestRenderAll();
-      },
-      clear: () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        canvas.discardActiveObject();
-        canvas.remove(...canvas.getObjects());
-        canvas.requestRenderAll();
-      },
-      isEmpty: () => (canvasRef.current?.getObjects().length ?? 0) === 0,
-      toDataURL: () => {
-        const canvas = canvasRef.current;
-        if (!canvas || canvas.getObjects().length === 0) return null;
-        const active = canvas.getActiveObject();
-        if (active instanceof IText && active.isEditing) active.exitEditing();
-        canvas.discardActiveObject();
-        canvas.renderAll();
-        // Display px × multiplier = intrinsic px, ignoring devicePixelRatio.
-        return canvas.toDataURL({
-          format: "png",
-          multiplier: width / canvas.getWidth(),
-          enableRetinaScaling: false,
-        });
-      },
-    }),
-    [width],
+    () => {
+      function renderElementOnCanvas(
+        canvas: Canvas,
+        el: StoryboardSketchElement,
+      ) {
+        const zoom = zoomRef.current || 1;
+        const stroke = el.color || ANNOTATION_COLOR;
+        const px = (el.x / 100) * width;
+        const py = (el.y / 100) * height;
+        const pw = ((el.width ?? 22) / 100) * width;
+        const ph = ((el.height ?? 18) / 100) * height;
+        const fontSize = Math.max(14, Math.round(18 / zoom));
+
+        if (el.type === "rect") {
+          const rect = new Rect({
+            left: px,
+            top: py,
+            width: pw,
+            height: ph,
+            rx: 12,
+            ry: 12,
+            fill: "rgba(255, 255, 255, 0.9)",
+            stroke,
+            strokeWidth: 4,
+            strokeUniform: true,
+          });
+          styleControls(rect);
+          canvas.add(rect);
+          if (el.label) {
+            const label = new IText(el.label, {
+              left: px + pw / 2,
+              top: py + ph / 2,
+              originX: "center",
+              originY: "center",
+              fontSize,
+              fontFamily: FONT_FAMILY,
+              fontWeight: "700",
+              fill: stroke,
+              editable: true,
+            });
+            styleControls(label);
+            canvas.add(label);
+          }
+          return;
+        }
+
+        if (el.type === "circle") {
+          const radius = Math.max(18, Math.min(pw, ph) / 2);
+          const circle = new Circle({
+            left: px,
+            top: py,
+            radius,
+            fill: "rgba(255, 255, 255, 0.9)",
+            stroke,
+            strokeWidth: 4,
+            strokeUniform: true,
+          });
+          styleControls(circle);
+          canvas.add(circle);
+          if (el.label) {
+            const label = new IText(el.label, {
+              left: px + radius,
+              top: py + radius,
+              originX: "center",
+              originY: "center",
+              fontSize,
+              fontFamily: FONT_FAMILY,
+              fontWeight: "700",
+              fill: stroke,
+              editable: true,
+            });
+            styleControls(label);
+            canvas.add(label);
+          }
+          return;
+        }
+
+        if (el.type === "person") {
+          const headRadius = Math.max(14, Math.min(pw, ph) * 0.22);
+          const centerX = px + pw / 2;
+          const head = new Circle({
+            left: centerX - headRadius,
+            top: py,
+            radius: headRadius,
+            fill: "rgba(255, 244, 238, 0.95)",
+            stroke,
+            strokeWidth: 4,
+            strokeUniform: true,
+          });
+          const bodyTop = py + headRadius * 2 + 4;
+          const bodyHeight = Math.max(24, ph - headRadius * 2 - 8);
+          const body = new Rect({
+            left: px + pw * 0.15,
+            top: bodyTop,
+            width: pw * 0.7,
+            height: bodyHeight,
+            rx: 14,
+            ry: 14,
+            fill: "rgba(255, 244, 238, 0.95)",
+            stroke,
+            strokeWidth: 4,
+            strokeUniform: true,
+          });
+          const group = new Group([head, body], {
+            left: px,
+            top: py,
+          });
+          styleControls(group);
+          canvas.add(group);
+          if (el.label) {
+            const badge = new IText(el.label, {
+              left: centerX,
+              top: py + ph + 14,
+              originX: "center",
+              originY: "center",
+              fontSize: Math.max(13, Math.round(16 / zoom)),
+              fontFamily: FONT_FAMILY,
+              fontWeight: "700",
+              fill: stroke,
+              editable: true,
+            });
+            styleControls(badge);
+            canvas.add(badge);
+          }
+          return;
+        }
+
+        if (el.type === "line") {
+          const x2 = ((el.x2 ?? el.x) / 100) * width;
+          const y2 = ((el.y2 ?? Math.min(95, el.y + 50)) / 100) * height;
+          const line = new Line([px, py, x2, y2], {
+            stroke,
+            strokeWidth: 4,
+            strokeDashArray: [10, 6],
+            strokeUniform: true,
+          });
+          styleControls(line);
+          canvas.add(line);
+          return;
+        }
+
+        if (el.type === "arrow") {
+          const x2 = ((el.x2 ?? Math.min(92, el.x + 18)) / 100) * width;
+          const y2 = ((el.y2 ?? el.y) / 100) * height;
+          const line = new Line([px, py, x2, y2], {
+            stroke,
+            strokeWidth: 5,
+            strokeUniform: true,
+          });
+          const angle = Math.atan2(y2 - py, x2 - px);
+          const headLen = 14;
+          const p1 = { x: x2, y: y2 };
+          const p2 = {
+            x: x2 - headLen * Math.cos(angle - Math.PI / 6),
+            y: y2 - headLen * Math.sin(angle - Math.PI / 6),
+          };
+          const p3 = {
+            x: x2 - headLen * Math.cos(angle + Math.PI / 6),
+            y: y2 - headLen * Math.sin(angle + Math.PI / 6),
+          };
+          const head = new Polygon([p1, p2, p3], {
+            fill: stroke,
+            stroke,
+            strokeWidth: 2,
+          });
+          const arrowGroup = new Group([line, head]);
+          styleControls(arrowGroup);
+          canvas.add(arrowGroup);
+          return;
+        }
+
+        if (el.type === "text") {
+          const text = new IText(el.label || "「Title」", {
+            left: px,
+            top: py,
+            fontSize: Math.max(18, Math.round(24 / zoom)),
+            fontFamily: FONT_FAMILY,
+            fontWeight: "700",
+            fill: stroke,
+            editable: true,
+          });
+          styleControls(text);
+          canvas.add(text);
+        }
+      }
+
+      return {
+        deleteSelected: () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const selected = canvas.getActiveObjects();
+          if (selected.length === 0) return;
+          canvas.discardActiveObject();
+          canvas.remove(...selected);
+          canvas.requestRenderAll();
+        },
+        clear: () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          canvas.discardActiveObject();
+          canvas.remove(...canvas.getObjects());
+          canvas.requestRenderAll();
+        },
+        isEmpty: () => (canvasRef.current?.getObjects().length ?? 0) === 0,
+        toDataURL: () => {
+          const canvas = canvasRef.current;
+          if (!canvas || canvas.getObjects().length === 0) return null;
+          const active = canvas.getActiveObject();
+          if (active instanceof IText && active.isEditing) active.exitEditing();
+          canvas.discardActiveObject();
+          canvas.renderAll();
+          // Display px × multiplier = intrinsic px, ignoring devicePixelRatio.
+          return canvas.toDataURL({
+            format: "png",
+            multiplier: width / canvas.getWidth(),
+            enableRetinaScaling: false,
+          });
+        },
+        addStamp: (element: StoryboardSketchElement) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          renderElementOnCanvas(canvas, element);
+          canvas.requestRenderAll();
+          onChangeRef.current?.(canvas.getObjects().length);
+        },
+        loadSketchElements: (elements: StoryboardSketchElement[]) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          canvas.discardActiveObject();
+          canvas.remove(...canvas.getObjects());
+          for (const el of elements) {
+            renderElementOnCanvas(canvas, el);
+          }
+          canvas.requestRenderAll();
+          onChangeRef.current?.(canvas.getObjects().length);
+        },
+      };
+    },
+    [width, height],
   );
 
   return (
