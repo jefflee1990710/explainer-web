@@ -1,8 +1,10 @@
 import { mediaSrc } from "@/util/media-src";
 import { clipStateFor } from "@/service/clip-stage";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { clipEndIsNextStart } from "@/service/director/steady-stills";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
+import { resolveClipInspectorKind } from "@/service/opencut/clip-inspector-kind";
 import {
   scroVideosFor,
   type ScroVideoSource,
@@ -12,6 +14,8 @@ import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 type StoryboardSeedRow = {
   clipNumber: number;
   durationSeconds?: number;
+  styleId?: string;
+  skillSlug?: string;
   timeRange?: string;
   englishVo?: string;
   subtitleCues?: string[];
@@ -23,16 +27,21 @@ type StoryboardSeedRow = {
 
 type SeedSource = ScroVideoSource & {
   skillSlug?: string;
+  styleId?: string;
   phaseA?: { clips: StoryboardSeedRow[] };
 };
 
 /** Ordered seed rows for OpenCut from the current project storyboard. */
 export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
-  const dualBeat = isDualBeatSkill(project.skillSlug);
   const storyRows = (project.phaseA?.clips ?? []) as StoryboardSeedRow[];
   const rowsByNumber = new Map(storyRows.map((row) => [row.clipNumber, row]));
   return scroVideosFor(project).map((view) => {
     const row = rowsByNumber.get(view.clipNumber);
+    const clipProj = resolveClipProject(project, view.clipNumber);
+    const effectiveSkillSlug = clipProj.skillSlug ?? project.skillSlug;
+    const effectiveStyleId = clipProj.styleId ?? project.styleId;
+    const dualBeat = isDualBeatSkill(effectiveSkillSlug);
+    const inspectorKind = resolveClipInspectorKind(effectiveSkillSlug);
     const state = clipStateFor(project, view.clipNumber);
     const start = project.frames?.find(
       (frame) => frame.clipNumber === view.clipNumber && frame.position === "start",
@@ -44,6 +53,8 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       clipNumber: view.clipNumber,
       durationSeconds: view.durationSeconds,
       stage: view.stage,
+      inspectorKind,
+      styleId: effectiveStyleId,
       posterUrl: view.posterUrl,
       endPosterUrl: end?.status === "completed" ? mediaSrc(end) : undefined,
       endFromClipNumber: endFromNextStart ? view.clipNumber + 1 : undefined,
@@ -139,6 +150,8 @@ export function diffScroSeedClips({
     if (
       !before ||
       before.stage !== clip.stage ||
+      before.inspectorKind !== clip.inspectorKind ||
+      before.styleId !== clip.styleId ||
       before.posterUrl !== clip.posterUrl ||
       before.endPosterUrl !== clip.endPosterUrl ||
       before.endPending !== clip.endPending ||

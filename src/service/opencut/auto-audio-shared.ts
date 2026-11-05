@@ -405,3 +405,46 @@ export function isAiSfxElementName(name: string) {
 export function isAiBgmElementName(name: string) {
 	return /^BGM\b/i.test(name.trim());
 }
+
+/**
+ * Resolve per-clip planning lines from the subtitle catalog, falling back to
+ * seed clips (`englishVo` / `explainerScene` / `motionCamera` / `name`) when the
+ * video has no spoken dialogue lines (e.g. silent explainers, Scro Swap, Teleport).
+ */
+export function resolveAutoAudioLines(
+	catalogLines: ReadonlyArray<{ clipNumber: number; line: string }> | undefined | null,
+	seedClips:
+		| ReadonlyArray<{
+				clipNumber: number;
+				englishVo?: string;
+				explainerScene?: string;
+				motionCamera?: string;
+				name?: string;
+		  }>
+		| undefined
+		| null,
+): Array<{ clipNumber: number; line: string }> {
+	const validCatalog = (catalogLines ?? []).filter(
+		(item) => typeof item.line === "string" && item.line.trim().length > 0,
+	);
+	if (validCatalog.length > 0) {
+		return validCatalog.map((item) => ({
+			clipNumber: item.clipNumber,
+			line: item.line.trim(),
+		}));
+	}
+	const fallback: Array<{ clipNumber: number; line: string }> = [];
+	for (const clip of seedClips ?? []) {
+		const vo = (clip.englishVo || "").trim();
+		const validVo = vo && !/^\(\s*no\s+dialogue\s*\)$/i.test(vo) ? vo : "";
+		const line =
+			validVo ||
+			(clip.explainerScene || "").trim() ||
+			(clip.motionCamera || "").trim() ||
+			(clip.name || "").trim();
+		if (line) {
+			fallback.push({ clipNumber: clip.clipNumber, line });
+		}
+	}
+	return fallback;
+}

@@ -141,6 +141,10 @@ import {
   filterSkillsForUseCase,
   type VideoUseCase,
 } from "@/service/video/use-case";
+import {
+  inferVideoUseCaseFromSkillSlug,
+  resolveVideoRestartTarget,
+} from "@/service/video/restart-target";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { DirectorDockBrief } from "@/presentation/components/app/projects/new/director-dock-brief";
 import { computeSkillSwitchState } from "@/presentation/components/app/director-dock";
@@ -258,8 +262,10 @@ export function NewProjectForm({
 }) {
   const router = useRouter();
   const { t, locale } = useI18n();
-  const skills = useCase
-    ? filterSkillsForUseCase(allSkills, useCase)
+  const effectiveUseCase =
+    useCase ?? inferVideoUseCaseFromSkillSlug(initialVideo?.skillSlug);
+  const skills = effectiveUseCase
+    ? filterSkillsForUseCase(allSkills, effectiveUseCase)
     : allSkills;
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
@@ -272,7 +278,7 @@ export function NewProjectForm({
     initialVideo,
     rememberedSkill,
     skills,
-    useCase,
+    effectiveUseCase,
   );
   const [skillSlug, setSkillSlug] = useState(initialSkillSlug);
   // Picked director; form rules follow its behaviour (template) slug.
@@ -917,11 +923,16 @@ export function NewProjectForm({
 
   const onRestart = useCallback(() => {
     if (!project) return;
+    const target = resolveVideoRestartTarget(project, effectiveUseCase);
+    if (target.kind === "redirect") {
+      router.push(target.href);
+      return;
+    }
     resetBriefFromProject(project, skills);
     setError("");
     setWizardStep(0);
     setRestarting(true);
-  }, [project, skills]);
+  }, [effectiveUseCase, project, router, skills]);
 
   function cancelRestart() {
     if (project) resetBriefFromProject(project, skills);

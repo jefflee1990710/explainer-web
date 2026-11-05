@@ -1,16 +1,19 @@
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { AspectRatio, FramePosition, OnscreenTextItem } from "@/model/project";
 import type { PublicVideo } from "@/presentation/serialize";
+import type { ScroClipInspectorKind } from "@/service/opencut/clip-inspector-kind";
 import type { ScroVideoUiStage } from "@/service/scro-video/view-model";
 import type { SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 
-export type { ScroVideoUiStage };
+export type { ScroClipInspectorKind, ScroVideoUiStage };
 
 /** Seed / Assets / Properties row for one storyboard clip. */
 export type ScroVideoSeedClip = {
   clipNumber: number;
   durationSeconds: number;
   stage: ScroVideoUiStage;
+  inspectorKind?: ScroClipInspectorKind;
+  styleId?: string;
   posterUrl?: string;
   /** Completed still the video ends on. Shown beside the start so it can be added on its own. */
   endPosterUrl?: string;
@@ -132,12 +135,12 @@ export type ScroClipActionMessage = {
   action: "generate-frames" | "generate-video" | "cancel-video";
 };
 
-/** Editor → host: open FrameEdit, SceneChat, Scro Swap, or Teleport on the page shell. */
+/** Editor → host: open FrameEdit, SceneChat, Scro Swap, Teleport, or Clip Style on the page shell. */
 export type ScroOpenAiMessage = {
   type: "scro-open-ai";
   videoId: string;
   clipNumber: number;
-  kind: "scene-chat" | "frame-edit" | "scro-swap" | "teleport";
+  kind: "scene-chat" | "frame-edit" | "scro-swap" | "teleport" | "clip-style";
   position?: FramePosition;
 };
 

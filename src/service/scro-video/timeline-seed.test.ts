@@ -170,6 +170,36 @@ describe("diffScroSeedClips", () => {
     assert.equal(changed.length, 1);
     assert.equal(changed[0].clipNumber, 2);
   });
+
+  it("populates inspectorKind and per-clip styleId and detects styleId changes in diffScroSeedClips", () => {
+    const seeded = buildSeedClips({
+      ...sampleProject,
+      skillSlug: "paper-cutout-explainer-video-director",
+      styleId: "doodle",
+      phaseA: {
+        clips: [
+          { clipNumber: 1, durationSeconds: 5 },
+          { clipNumber: 2, durationSeconds: 6, styleId: "japanese-anime" },
+        ],
+      },
+    });
+    assert.equal(seeded[0]?.inspectorKind, "explainer");
+    assert.equal(seeded[0]?.styleId, "doodle");
+    assert.equal(seeded[1]?.styleId, "japanese-anime");
+
+    const swapSeeded = buildSeedClips({
+      ...sampleProject,
+      skillSlug: "scro-swap-director",
+    });
+    assert.equal(swapSeeded[0]?.inspectorKind, "scroswap");
+
+    const next = seeded.map((c) =>
+      c.clipNumber === 1 ? { ...c, styleId: "realistic" } : c,
+    );
+    const changed = diffScroSeedClips({ previous: seeded, next });
+    assert.equal(changed.length, 1);
+    assert.equal(changed[0]?.clipNumber, 1);
+  });
 });
 
 describe("shouldAutoGenerateSubtitlesOnSeed", () => {

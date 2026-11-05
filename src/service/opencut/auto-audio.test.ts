@@ -11,6 +11,7 @@ import {
 	isAiBgmElementName,
 	isAiSfxElementName,
 	mapTimelineCuesToSfxCandidates,
+	resolveAutoAudioLines,
 } from "@/service/opencut/auto-audio-shared";
 import { matchIgViralSfxPreset } from "@/service/sound-effect/ig-viral-sfx";
 
@@ -184,4 +185,28 @@ test("isAiSfxElementName / isAiBgmElementName match auto-insert prefixes", () =>
 	assert.equal(isAiBgmElementName("BGM · calm · Night Loop"), true);
 	assert.equal(isAiBgmElementName("bgm bed"), true);
 	assert.equal(isAiBgmElementName("SFX 1 · click"), false);
+});
+
+test("resolveAutoAudioLines prefers non-empty catalog lines and falls back to seed clips when catalog has no lines", () => {
+	assert.deepEqual(
+		resolveAutoAudioLines(
+			[{ clipNumber: 1, line: "Hello world" }],
+			[{ clipNumber: 1, explainerScene: "Hero stands up" }],
+		),
+		[{ clipNumber: 1, line: "Hello world" }],
+	);
+
+	assert.deepEqual(
+		resolveAutoAudioLines(
+			[],
+			[
+				{ clipNumber: 1, englishVo: "(no dialogue)", explainerScene: "Fast car drift on wet street" },
+				{ clipNumber: 2, name: "Clip 2", motionCamera: "Slow zoom in" },
+			],
+		),
+		[
+			{ clipNumber: 1, line: "Fast car drift on wet street" },
+			{ clipNumber: 2, line: "Slow zoom in" },
+		],
+	);
 });

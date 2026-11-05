@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	FavouriteIcon,
+	MagicWand05Icon,
 	MusicNote03Icon,
 	PauseIcon,
 	PlayIcon,
@@ -14,7 +15,10 @@ import { Button } from "@/opencut/components/ui/button";
 import { Input } from "@/opencut/components/ui/input";
 import { ScrollArea } from "@/opencut/components/ui/scroll-area";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { runAutoInsertBgmOnTimeline } from "@/opencut/embed/scro-auto-audio";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
+import { useScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
 import type { SoundEffect } from "@/opencut/sounds/types";
 import { buildLibraryAudioElement } from "@/opencut/timeline/element-utils";
@@ -29,6 +33,7 @@ import {
 	AI_BGM_NAME_PREFIX,
 	AI_BGM_VOLUME_DB,
 	isAiBgmElementName,
+	resolveAutoAudioLines,
 	type LibrarySound,
 } from "@/service/opencut/auto-audio-shared";
 
@@ -280,6 +285,33 @@ export function BgmView() {
 
 	const displayedTracks = viewTab === "saved" ? savedAsLibrary : tracks;
 	const { locale, oc } = useOpencutI18n();
+	const catalog = useScroSubtitleCatalog();
+	const scroVideos = useScroVideos();
+	const [autoBgmBusy, setAutoBgmBusy] = useState(false);
+	const autoLines = resolveAutoAudioLines(catalog?.lines, scroVideos?.clips);
+
+	const handleAutoBgm = async () => {
+		if (autoBgmBusy) return;
+		setAutoBgmBusy(true);
+		try {
+			const firstClip = scroVideos?.clips?.[0];
+			const res = await runAutoInsertBgmOnTimeline({
+				editor,
+				lines: autoLines,
+				title:
+					firstClip?.englishVo?.slice(0, 40) || firstClip?.name?.slice(0, 40),
+			});
+			if (res.error) toast.error(res.error);
+			else {
+				const mood = res.selection?.mood ?? "ambient";
+				toast.success(`已自動加入背景音樂（${mood}）`);
+			}
+		} catch {
+			toast.error("自動加入背景音樂失敗");
+		} finally {
+			setAutoBgmBusy(false);
+		}
+	};
 
 	return (
 		<div className="flex h-full flex-col">
@@ -287,7 +319,7 @@ export function BgmView() {
 			<div className="border-border space-y-2.5 border-b p-3">
 				<div className="flex items-center justify-between gap-2">
 					<div className="flex items-center gap-2">
-						<div className="bg-secondary text-foreground grid size-7 shrink-0 place-items-center rounded-md border">
+						<div className="bg-secondary text-foreground grid size-8 shrink-0 place-items-center rounded-lg border">
 							<HugeiconsIcon icon={MusicNote03Icon} size={15} />
 						</div>
 						<div>
@@ -301,7 +333,7 @@ export function BgmView() {
 					</div>
 
 					{/* Browse vs Saved Segmented Pill */}
-					<div className="bg-muted/60 inline-flex shrink-0 rounded-full border p-0.5">
+					<div className="bg-muted/60 inline-flex shrink-0 rounded-lg border p-0.5">
 						<button
 							type="button"
 							disabled={loading}
@@ -311,7 +343,7 @@ export function BgmView() {
 								setViewTab("browse");
 							}}
 							className={cn(
-								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+								"cursor-pointer rounded-md px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 								viewTab === "browse"
 									? "bg-foreground text-background shadow-xs"
 									: "text-muted-foreground hover:text-foreground",
@@ -328,7 +360,7 @@ export function BgmView() {
 								setViewTab("saved");
 							}}
 							className={cn(
-								"cursor-pointer rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+								"cursor-pointer rounded-md px-2.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 								viewTab === "saved"
 									? "bg-foreground text-background shadow-xs"
 									: "text-muted-foreground hover:text-foreground",
@@ -338,6 +370,18 @@ export function BgmView() {
 						</button>
 					</div>
 				</div>
+
+				<Button
+					type="button"
+					variant="secondary"
+					size="sm"
+					disabled={autoBgmBusy || autoLines.length === 0}
+					onClick={() => void handleAutoBgm()}
+					className="h-7 w-full justify-center gap-1.5 rounded-lg text-xs font-semibold"
+				>
+					<HugeiconsIcon icon={MagicWand05Icon} className="size-3.5" />
+					<span>{autoBgmBusy ? oc.bgm.autoBgmBusy : oc.bgm.autoBgm}</span>
+				</Button>
 
 				{viewTab === "browse" ? (
 					<>

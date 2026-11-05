@@ -31,12 +31,18 @@ import {
 	type SoundEffectSourceFilter,
 } from "@/opencut/sounds/types";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
+import { useEditor } from "@/opencut/editor/use-editor";
+import { runAutoInsertSfxOnTimeline } from "@/opencut/embed/scro-auto-audio";
+import { useScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { resolveAutoAudioLines } from "@/service/opencut/auto-audio-shared";
 import { cn } from "@/opencut/utils/ui";
 import { generateElevenLabsSoundEffectAction } from "@/presentation/actions/sound-effects";
 import { toast } from "sonner";
 import {
 	FavouriteIcon,
 	FilterMailIcon,
+	MagicWand05Icon,
 	PauseIcon,
 	PlayIcon,
 	PlusSignIcon,
@@ -45,14 +51,45 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 export function SoundsView() {
 	const { oc } = useOpencutI18n();
+	const editor = useEditor();
+	const catalog = useScroSubtitleCatalog();
+	const scroVideos = useScroVideos();
+	const [autoSfxBusy, setAutoSfxBusy] = useState(false);
+	const autoLines = resolveAutoAudioLines(catalog?.lines, scroVideos?.clips);
+
+	const handleAutoSfx = async () => {
+		if (autoSfxBusy) return;
+		setAutoSfxBusy(true);
+		try {
+			const res = await runAutoInsertSfxOnTimeline({ editor, lines: autoLines });
+			if (res.error) toast.error(res.error);
+			else toast.success(`已自動加入 ${res.insertedCount} 段聲效`);
+		} catch {
+			toast.error("自動加入聲效失敗");
+		} finally {
+			setAutoSfxBusy(false);
+		}
+	};
+
 	return (
 		<div className="flex h-full flex-col">
 			<Tabs defaultValue="sound-effects" className="flex h-full flex-col">
-				<div className="px-3 pt-4 pb-0">
+				<div className="flex items-center justify-between gap-2 px-3 pt-4 pb-0">
 					<TabsList>
 						<TabsTrigger value="sound-effects">{oc.sfx.tabSfx}</TabsTrigger>
 						<TabsTrigger value="saved">{oc.sfx.tabSaved}</TabsTrigger>
 					</TabsList>
+					<Button
+						type="button"
+						variant="secondary"
+						size="sm"
+						disabled={autoSfxBusy || autoLines.length === 0}
+						onClick={() => void handleAutoSfx()}
+						className="h-7 shrink-0 gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
+					>
+						<HugeiconsIcon icon={MagicWand05Icon} className="size-3.5" />
+						<span>{autoSfxBusy ? oc.sfx.autoSfxBusy : oc.sfx.autoSfx}</span>
+					</Button>
 				</div>
 				<Separator className="my-4" />
 				<TabsContent

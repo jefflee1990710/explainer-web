@@ -30,7 +30,12 @@ export function ScroOnScreenTextRailButton() {
 					aria-label={label}
 					aria-pressed={open}
 					data-opencut-tour="rail-on-screen-text"
-					className={cn("h-8 w-8 shrink-0", !open && "text-muted-foreground")}
+					className={cn(
+						"h-8 w-8 shrink-0 rounded-lg",
+						open
+							? "bg-[#f4fcd4] text-[#12141c] border-[#c6f24b]/60"
+							: "text-muted-foreground",
+					)}
 					onClick={() => setScroOnScreenTextOpen(!open)}
 				>
 					<HugeiconsIcon icon={TextIcon} />

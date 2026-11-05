@@ -1,13 +1,23 @@
 "use client";
 
+import { Button } from "@/opencut/components/ui/button";
 import { ScroClipTextField } from "@/opencut/embed/scro-clip-text-field";
 import { ScroSceneEditInput } from "@/opencut/embed/scro-scene-edit-input";
+import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
 import { ScroVideoAiEntry } from "@/opencut/embed/scro-video-ai-entry";
-import { ScroVideoJutsuActions } from "@/opencut/embed/scro-video-jutsu-actions";
+import {
+	canApplyClipJutsu,
+	ScroVideoJutsuActions,
+} from "@/opencut/embed/scro-video-jutsu-actions";
 import { ScroVideoPrimaryActions } from "@/opencut/embed/scro-video-primary-actions";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
-import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
+import {
+	localizeBilingualLabel,
+	useOpencutI18n,
+} from "@/opencut/i18n/use-opencut-i18n";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
+import { canChangeClipStyle } from "@/service/opencut/clip-inspector-kind";
+import { localizedStyleName } from "@/util/style-i18n";
 
 function Field({ label, value }: { label: string; value?: string }) {
 	const text = value?.trim();
@@ -16,6 +26,7 @@ function Field({ label, value }: { label: string; value?: string }) {
 }
 
 function Detail({ clip }: { clip: ScroVideoSeedClip }) {
+	const isTalkingHead = clip.inspectorKind === "talking-head";
 	return (
 		<div className="space-y-3">
 			{clip.dualBeat ? (
@@ -27,12 +38,12 @@ function Detail({ clip }: { clip: ScroVideoSeedClip }) {
 				<Field label="VO" value={clip.englishVo} />
 			)}
 			<Field label="Scene" value={clip.explainerScene} />
-			<Field label="Motion" value={clip.motionCamera} />
+			{!isTalkingHead ? <Field label="Motion" value={clip.motionCamera} /> : null}
 		</div>
 	);
 }
 
-/** Properties panel body for a selected ScroVideo clip. */
+/** Properties panel body for a selected ScroVideo clip, tailored by clip creation type. */
 export function ScroVideoProperties({
 	clipNumber,
 	showInspectorHeader = true,
@@ -41,7 +52,7 @@ export function ScroVideoProperties({
 	showInspectorHeader?: boolean;
 }) {
 	const store = useScroVideos();
-	const { oc } = useOpencutI18n();
+	const { locale, oc } = useOpencutI18n();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
 	if (!store || !clip) {
 		return (
@@ -51,6 +62,24 @@ export function ScroVideoProperties({
 		);
 	}
 
+	const inspectorKind = clip.inspectorKind ?? "explainer";
+	const isStandaloneSwap = inspectorKind === "scroswap";
+	const isStandaloneTeleport = inspectorKind === "teleport";
+	const isStandaloneEngine = isStandaloneSwap || isStandaloneTeleport;
+	const modeLabel = isStandaloneSwap
+		? oc.inspector.modeScroSwap
+		: isStandaloneTeleport
+			? oc.inspector.modeTeleport
+			: inspectorKind === "talking-head"
+				? oc.inspector.modeTalkingHead
+				: oc.inspector.modeExplainer;
+
+	const styleLabel = clip.styleId
+		? localizeBilingualLabel(localizedStyleName(clip.styleId), locale)
+		: localizeBilingualLabel(localizedStyleName("realistic"), locale);
+	const canChangeStyle = canChangeClipStyle(clip);
+	const canRunJutsu = canApplyClipJutsu(clip);
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			{showInspectorHeader ? (
@@ -59,14 +88,21 @@ export function ScroVideoProperties({
 						<span className="text-foreground text-[13px] font-semibold tracking-tight">
 							{oc.inspector.title}
 						</span>
-						<span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
+						<span className="bg-muted text-muted-foreground rounded-lg px-2 py-0.5 text-[10px] font-medium">
 							{oc.inspector.stageLabels[clip.stage]}
 						</span>
 					</div>
 					<div className="border-border space-y-1 border-b px-3.5 py-2.5">
-						<p className="text-muted-foreground text-[11px] font-medium">
-							{oc.inspector.selected}
-						</p>
+						<div className="flex items-center justify-between gap-2">
+							<p className="text-muted-foreground text-[11px] font-medium">
+								{modeLabel}
+							</p>
+							{clip.timeRange ? (
+								<p className="text-muted-foreground text-[11px] tabular-nums">
+									{clip.timeRange}
+								</p>
+							) : null}
+						</div>
 						<p className="text-foreground truncate text-[13px] font-semibold">
 							{clip.name}
 							<span className="text-muted-foreground font-medium">
@@ -74,11 +110,6 @@ export function ScroVideoProperties({
 								· {clip.durationSeconds}s
 							</span>
 						</p>
-						{clip.timeRange ? (
-							<p className="text-muted-foreground text-[11px] tabular-nums">
-								{clip.timeRange}
-							</p>
-						) : null}
 					</div>
 				</div>
 			) : null}
@@ -88,21 +119,105 @@ export function ScroVideoProperties({
 						<span className="text-muted-foreground text-[11px] font-medium">
 							{oc.inspector.stage}
 						</span>
-						<span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-[11px] font-medium">
+						<span className="bg-muted text-foreground rounded-lg px-2 py-0.5 text-[11px] font-medium">
 							{oc.inspector.stageLabels[clip.stage]}
 						</span>
 					</div>
-					<div className="space-y-3 px-3.5 py-3">
-						<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />
-						<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
-						<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
-					</div>
-					<div className="px-3.5 py-3">
-						<Detail clip={clip} />
-					</div>
+
+					{isStandaloneEngine ? (
+						<div className="space-y-3 px-3.5 py-3">
+							<p className="text-muted-foreground text-xs leading-relaxed">
+								{isStandaloneSwap ? oc.inspector.reSwapDesc : oc.inspector.reTeleportDesc}
+							</p>
+							{clip.stage === "video_generating" ? (
+								<p className="text-muted-foreground text-xs font-medium">
+									{oc.inspector.renderingVideo}
+								</p>
+							) : null}
+							{clip.error ? (
+								<p role="alert" className="text-destructive text-xs">
+									{clip.error}
+								</p>
+							) : null}
+							<Button
+								type="button"
+								size="sm"
+								disabled={!canRunJutsu}
+								className="w-full rounded-lg text-xs font-semibold"
+								onClick={() =>
+									requestScroOpenAi({
+										videoId: store.videoId,
+										clipNumber: clip.clipNumber,
+										kind: isStandaloneSwap ? "scro-swap" : "teleport",
+									})
+								}
+							>
+								{isStandaloneSwap
+									? oc.inspector.reSwapCharacter
+									: oc.inspector.reTeleportScene}
+							</Button>
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								disabled={!canRunJutsu}
+								className="w-full rounded-lg text-xs"
+								onClick={() =>
+									requestScroOpenAi({
+										videoId: store.videoId,
+										clipNumber: clip.clipNumber,
+										kind: isStandaloneSwap ? "teleport" : "scro-swap",
+									})
+								}
+							>
+								{isStandaloneSwap ? oc.inspector.teleport : oc.inspector.scroSwap}
+							</Button>
+						</div>
+					) : (
+						<>
+							<div className="space-y-2 px-3.5 py-3">
+								<div className="flex items-center justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+											{oc.inspector.currentStyle}
+										</p>
+										<p className="text-foreground truncate text-xs font-semibold">
+											{styleLabel}
+										</p>
+									</div>
+									<Button
+										type="button"
+										variant="secondary"
+										size="sm"
+										disabled={!canChangeStyle}
+										className="shrink-0 rounded-lg text-xs font-semibold"
+										onClick={() =>
+											requestScroOpenAi({
+												videoId: store.videoId,
+												clipNumber: clip.clipNumber,
+												kind: "clip-style",
+											})
+										}
+									>
+										{oc.inspector.changeStyle}
+									</Button>
+								</div>
+							</div>
+							<div className="space-y-3 px-3.5 py-3">
+								<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />
+								<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
+								<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
+							</div>
+							<div className="px-3.5 py-3">
+								<Detail clip={clip} />
+							</div>
+						</>
+					)}
 				</div>
 			</div>
-			<ScroSceneEditInput videoId={store.videoId} clipNumber={clip.clipNumber} />
+			{!isStandaloneEngine ? (
+				<ScroSceneEditInput videoId={store.videoId} clipNumber={clip.clipNumber} />
+			) : null}
 		</div>
 	);
 }

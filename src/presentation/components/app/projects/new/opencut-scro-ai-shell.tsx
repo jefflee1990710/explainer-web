@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { OpenCutClipScroSwapDialog } from "@/presentation/components/app/projects/new/opencut-clip-scro-swap-dialog";
+import { OpenCutClipStyleDialog } from "@/presentation/components/app/projects/new/opencut-clip-style-dialog";
 import { OpenCutClipTeleportDialog } from "@/presentation/components/app/projects/new/opencut-clip-teleport-dialog";
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
 import { SceneChatDialog } from "@/presentation/components/project/scene-chat-dialog";
+import { resolveClipProject } from "@/service/clip/clip-context";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { mediaSrc } from "@/util/media-src";
 import type { FramePosition, FrameRevisionInput } from "@/model/project";
-import type { PublicCharacter, PublicVideo } from "@/presentation/serialize";
+import type { PublicCharacter, PublicStyle, PublicVideo } from "@/presentation/serialize";
 
-/** Host-side SceneChat, FrameEdit, Scro Swap, and Teleport dialogs opened from OpenCut Properties. */
+/** Host-side SceneChat, FrameEdit, Scro Swap, Teleport, and Clip Style dialogs opened from OpenCut Properties. */
 export function OpenCutScroAiShell({
   project,
+  styles = [],
   characters = [],
   credits,
   pending,
@@ -21,14 +24,17 @@ export function OpenCutScroAiShell({
   editingFrame,
   clipSwapClip,
   clipTeleportClip,
+  clipStyleClip,
   onCloseSceneChat,
   onCloseFrameEdit,
   onCloseClipSwap,
   onCloseClipTeleport,
+  onCloseClipStyle,
   onProject,
   onRegenerateFrame,
 }: {
   project: PublicVideo;
+  styles?: PublicStyle[];
   characters?: PublicCharacter[];
   credits: number;
   pending: string;
@@ -37,10 +43,12 @@ export function OpenCutScroAiShell({
   editingFrame: { clipNumber: number; position: FramePosition } | null;
   clipSwapClip: number | null;
   clipTeleportClip: number | null;
+  clipStyleClip: number | null;
   onCloseSceneChat: () => void;
   onCloseFrameEdit: () => void;
   onCloseClipSwap: () => void;
   onCloseClipTeleport: () => void;
+  onCloseClipStyle: () => void;
   onProject: (project: PublicVideo) => void;
   onRegenerateFrame: (
     clipNumber: number,
@@ -79,6 +87,17 @@ export function OpenCutScroAiShell({
       ? project.phaseA?.clips.find((row) => row.clipNumber === clipTeleportClip)
       : undefined;
   const teleportVideoUrl = teleportClipDoc ? mediaSrc(teleportClipDoc) : undefined;
+
+  const styleClipDoc =
+    clipStyleClip != null
+      ? project.clips.find((item) => item.clipNumber === clipStyleClip)
+      : undefined;
+  const styleRow =
+    clipStyleClip != null
+      ? project.phaseA?.clips.find((row) => row.clipNumber === clipStyleClip)
+      : undefined;
+  const styleClipProj =
+    clipStyleClip != null ? resolveClipProject(project, clipStyleClip) : undefined;
 
   return (
     <>
@@ -137,6 +156,18 @@ export function OpenCutScroAiShell({
           onClose={onCloseClipTeleport}
         />
       ) : null}
+      {clipStyleClip != null && styleRow ? (
+        <OpenCutClipStyleDialog
+          key={`style:${clipStyleClip}`}
+          videoId={project.id}
+          clipNumber={clipStyleClip}
+          durationSeconds={styleRow.durationSeconds ?? styleClipDoc?.durationSeconds ?? 6}
+          currentStyleId={styleClipProj?.styleId || project.styleId || "realistic"}
+          styles={styles}
+          onApplied={onProject}
+          onClose={onCloseClipStyle}
+        />
+      ) : null}
     </>
   );
 }
@@ -150,6 +181,7 @@ export function useOpenCutScroAiState() {
   } | null>(null);
   const [clipSwapClip, setClipSwapClip] = useState<number | null>(null);
   const [clipTeleportClip, setClipTeleportClip] = useState<number | null>(null);
+  const [clipStyleClip, setClipStyleClip] = useState<number | null>(null);
   return {
     sceneChatClip,
     setSceneChatClip,
@@ -159,5 +191,7 @@ export function useOpenCutScroAiState() {
     setClipSwapClip,
     clipTeleportClip,
     setClipTeleportClip,
+    clipStyleClip,
+    setClipStyleClip,
   };
 }

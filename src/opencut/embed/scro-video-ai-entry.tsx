@@ -24,13 +24,14 @@ export function ScroVideoAiEntry({
 	// Talking-head: the video ends on the next clip's start, so the end tile edits that still.
 	const endClipNumber = clip.endFromClipNumber ?? clip.clipNumber;
 	const endPosition = clip.endFromClipNumber ? "start" : "end";
+	const singleFrameOnly = clip.inspectorKind === "talking-head";
 
 	return (
 		<div className="space-y-2">
 			<div className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
 				{oc.inspector.edit}
 			</div>
-			<div className="grid grid-cols-2 gap-2">
+			<div className={singleFrameOnly ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
 				<button
 					type="button"
 					disabled={!clip.hasStartFrame && !clip.posterUrl}
@@ -42,7 +43,7 @@ export function ScroVideoAiEntry({
 							position: "start",
 						})
 					}
-					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-xl border text-left"
+					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-lg border text-left"
 				>
 					<div
 						className="bg-muted relative w-full overflow-hidden"
@@ -59,42 +60,46 @@ export function ScroVideoAiEntry({
 							</div>
 						)}
 					</div>
-					<span className="px-1.5 py-1 text-[0.65rem]">{oc.inspector.redrawStart}</span>
-				</button>
-				<button
-					type="button"
-					disabled={!clip.hasEndFrame && !clip.endPosterUrl}
-					onClick={() =>
-						requestScroOpenAi({
-							videoId,
-							clipNumber: endClipNumber,
-							kind: "frame-edit",
-							position: endPosition,
-						})
-					}
-					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-xl border text-left"
-				>
-					<div
-						className="bg-muted relative w-full overflow-hidden"
-						style={{ aspectRatio }}
-					>
-						{clip.endPending ? (
-							<MediaLoadingMark />
-						) : clip.endPosterUrl ? (
-							// eslint-disable-next-line @next/next/no-img-element
-							<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
-						) : (
-							<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
-								{oc.inspector.end}
-							</div>
-						)}
-					</div>
-					<span className="px-1.5 py-1 text-[0.65rem]">
-						{clip.endFromClipNumber
-							? oc.inspector.redrawEndClipStart(clip.endFromClipNumber)
-							: oc.inspector.redrawEnd}
+					<span className="px-2 py-1 text-[0.65rem] font-medium">
+						{singleFrameOnly ? oc.inspector.redrawAvatarFrame : oc.inspector.redrawStart}
 					</span>
 				</button>
+				{!singleFrameOnly ? (
+					<button
+						type="button"
+						disabled={!clip.hasEndFrame && !clip.endPosterUrl}
+						onClick={() =>
+							requestScroOpenAi({
+								videoId,
+								clipNumber: endClipNumber,
+								kind: "frame-edit",
+								position: endPosition,
+							})
+						}
+						className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-lg border text-left"
+					>
+						<div
+							className="bg-muted relative w-full overflow-hidden"
+							style={{ aspectRatio }}
+						>
+							{clip.endPending ? (
+								<MediaLoadingMark />
+							) : clip.endPosterUrl ? (
+								// eslint-disable-next-line @next/next/no-img-element
+								<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
+							) : (
+								<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
+									{oc.inspector.end}
+								</div>
+							)}
+						</div>
+						<span className="px-2 py-1 text-[0.65rem] font-medium">
+							{clip.endFromClipNumber
+								? oc.inspector.redrawEndClipStart(clip.endFromClipNumber)
+								: oc.inspector.redrawEnd}
+						</span>
+					</button>
+				) : null}
 			</div>
 		</div>
 	);

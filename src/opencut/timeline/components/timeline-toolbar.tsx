@@ -23,7 +23,6 @@ import { ScenesView } from "@/opencut/components/editor/scenes-view";
 import { type TActionWithOptionalArgs, invokeAction } from "@/opencut/actions";
 import {
 	canToggleSourceAudio,
-	getSourceAudioActionLabel,
 	isSourceAudioSeparated,
 } from "@/opencut/timeline/audio-separation";
 import { hasMediaId } from "@/opencut/timeline";
@@ -46,7 +45,8 @@ import {
 	Chart03Icon,
 	Unlink02Icon,
 	MagicWand05Icon,
-	Image02Icon,
+	HeadphonesIcon,
+	MusicNote03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { OcRippleIcon } from "@/opencut/components/icons";
@@ -55,12 +55,16 @@ import { PopoverTrigger } from "@/opencut/components/ui/popover";
 import { useGraphEditorController } from "./graph-editor/use-controller";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+	runAutoInsertBgmOnTimeline,
+	runAutoInsertSfxOnTimeline,
+} from "@/opencut/embed/scro-auto-audio";
 import { runSmoothSilenceGapsOnTimeline } from "@/opencut/embed/scro-smooth-silence";
 import {
 	useScroSubtitleCatalog,
-	useScroSubtitleVideoId,
 } from "@/opencut/embed/scro-subtitle-store";
-import { runAutoInsertBrollOnTimeline } from "@/opencut/components/editor/panels/assets/views/stock-media-view";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
+import { resolveAutoAudioLines } from "@/service/opencut/auto-audio-shared";
 
 export function TimelineToolbar({
 	zoomLevel,
@@ -99,44 +103,67 @@ export function TimelineToolbar({
 
 function ToolbarLeftSection() {
 	const editor = useEditor();
+	const { oc } = useOpencutI18n();
 	const mediaAssets = useEditor((currentEditor) =>
 		currentEditor.media.getAssets(),
 	);
 	const scroVideos = useScroVideos();
 	const subtitleCatalog = useScroSubtitleCatalog();
-	const subtitleVideoId = useScroSubtitleVideoId();
 	const { selectedElements } = useElementSelection();
 	const graphEditor = useGraphEditorController();
 	const [smoothingPauses, setSmoothingPauses] = useState(false);
-	const [insertingBroll, setInsertingBroll] = useState(false);
+	const [addingSfx, setAddingSfx] = useState(false);
+	const [addingBgm, setAddingBgm] = useState(false);
 	const isCurrentlyBookmarked = useEditor((e) =>
 		e.scenes.isBookmarked({ time: e.playback.getCurrentTime() }),
 	);
+	const autoAudioLines = resolveAutoAudioLines(
+		subtitleCatalog?.lines,
+		scroVideos?.clips,
+	);
 
-	const handleAutoInsertBroll = async () => {
-		if (insertingBroll) return;
-		const lines = subtitleCatalog?.lines ?? [];
-		if (lines.length === 0) {
-			toast.info("這支影片尚無對白可分析 B-Roll 插圖");
-			return;
-		}
-		setInsertingBroll(true);
+	const handleAutoInsertSfx = async () => {
+		if (addingSfx) return;
+		setAddingSfx(true);
 		try {
-			const res = await runAutoInsertBrollOnTimeline({
+			const res = await runAutoInsertSfxOnTimeline({
 				editor,
-				lines,
-				videoId: subtitleVideoId ?? scroVideos?.videoId,
-				mediaType: "image",
+				lines: autoAudioLines,
 			});
 			if (res.error) {
 				toast.error(res.error);
 			} else {
-				toast.success(`已自動在中間加插 ${res.insertedCount} 段 B-Roll 插圖！`);
+				toast.success(`已自動加入 ${res.insertedCount} 段聲效`);
 			}
 		} catch {
-			toast.error("自動加插 B-Roll 失敗");
+			toast.error("自動加入聲效失敗");
 		} finally {
-			setInsertingBroll(false);
+			setAddingSfx(false);
+		}
+	};
+
+	const handleAutoInsertBgm = async () => {
+		if (addingBgm) return;
+		setAddingBgm(true);
+		try {
+			const firstClip = scroVideos?.clips?.[0];
+			const res = await runAutoInsertBgmOnTimeline({
+				editor,
+				lines: autoAudioLines,
+				title:
+					firstClip?.englishVo?.slice(0, 40) ||
+					firstClip?.name?.slice(0, 40),
+			});
+			if (res.error) {
+				toast.error(res.error);
+			} else {
+				const mood = res.selection?.mood ?? "ambient";
+				toast.success(`已自動加入背景音樂（${mood}）`);
+			}
+		} catch {
+			toast.error("自動加入背景音樂失敗");
+		} finally {
+			setAddingBgm(false);
 		}
 	};
 
@@ -191,17 +218,17 @@ function ToolbarLeftSection() {
 		!hasEditLockedSelection &&
 		!!selectedElement &&
 		canToggleSourceAudio(selectedElement.element, selectedMediaAsset);
-	const sourceAudioLabel =
-		selectedElement?.element.type === "video"
-			? getSourceAudioActionLabel({
-					element: selectedElement.element,
-				})
-			: "Extract audio";
 	const isSelectedSourceAudioSeparated =
 		selectedElement?.element.type === "video" &&
 		isSourceAudioSeparated({
 			element: selectedElement.element,
 		});
+	const sourceAudioLabel =
+		selectedElement?.element.type === "video"
+			? isSelectedSourceAudioSeparated
+				? oc.timelineToolbar.recoverAudio
+				: oc.timelineToolbar.separateAudio
+			: oc.timelineToolbar.extractAudio;
 
 	const handleAction = ({
 		action,
@@ -219,21 +246,21 @@ function ToolbarLeftSection() {
 			<TooltipProvider delayDuration={500}>
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
-					tooltip="Split element"
+					tooltip={oc.timelineToolbar.splitElement}
 					disabled={hasEditLockedSelection}
 					onClick={({ event }) => handleAction({ action: "split", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignLeftIcon} />}
-					tooltip="Split left"
+					tooltip={oc.timelineToolbar.splitLeft}
 					disabled={hasEditLockedSelection}
 					onClick={({ event }) => handleAction({ action: "split-left", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignRightIcon} />}
-					tooltip="Split right"
+					tooltip={oc.timelineToolbar.splitRight}
 					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "split-right", event })
@@ -255,7 +282,7 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Copy01Icon} />}
-					tooltip="Duplicate element"
+					tooltip={oc.timelineToolbar.duplicateElement}
 					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "duplicate-selected", event })
@@ -264,14 +291,14 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={SnowIcon} />}
-					tooltip="Freeze frame (coming soon)"
+					tooltip={oc.timelineToolbar.freezeFrameSoon}
 					disabled={true}
 					onClick={({ event: _event }) => {}}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Delete02Icon} />}
-					tooltip="Delete element"
+					tooltip={oc.timelineToolbar.deleteElement}
 					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "delete-selected", event })
@@ -280,23 +307,41 @@ function ToolbarLeftSection() {
 
 				<div className="bg-border mx-1 h-6 w-px" />
 
-				<Tooltip>
-					<ToolbarButton
-						icon={<HugeiconsIcon icon={Bookmark02Icon} />}
-						isActive={isCurrentlyBookmarked}
-						tooltip={isCurrentlyBookmarked ? "Remove bookmark" : "Add bookmark"}
-						onClick={({ event }) =>
-							handleAction({ action: "toggle-bookmark", event })
-						}
-					/>
-				</Tooltip>
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={Bookmark02Icon} />}
+					isActive={isCurrentlyBookmarked}
+					tooltip={
+						isCurrentlyBookmarked
+							? oc.timelineToolbar.removeBookmark
+							: oc.timelineToolbar.addBookmark
+					}
+					onClick={({ event }) =>
+						handleAction({ action: "toggle-bookmark", event })
+					}
+				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={MagicWand05Icon} />}
 					isActive={smoothingPauses}
 					disabled={smoothingPauses}
-					tooltip="平滑接口停頓 · Smooth clip silence pauses"
+					tooltip={oc.timelineToolbar.smoothSilence}
 					onClick={() => void handleSmoothSilenceGaps()}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={HeadphonesIcon} />}
+					isActive={addingSfx}
+					disabled={addingSfx || autoAudioLines.length === 0}
+					tooltip={oc.timelineToolbar.autoSfx}
+					onClick={() => void handleAutoInsertSfx()}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={MusicNote03Icon} />}
+					isActive={addingBgm}
+					disabled={addingBgm || autoAudioLines.length === 0}
+					tooltip={oc.timelineToolbar.autoBgm}
+					onClick={() => void handleAutoInsertBgm()}
 				/>
 
 				<GraphEditorPopover
@@ -317,7 +362,11 @@ function ToolbarLeftSection() {
 				>
 					<ToolbarButton
 						icon={<HugeiconsIcon icon={Chart03Icon} />}
-						tooltip={graphEditor.tooltip}
+						tooltip={
+							graphEditor.canOpen
+								? oc.timelineToolbar.openGraphEditor
+								: graphEditor.tooltip
+						}
 						disabled={!graphEditor.canOpen}
 						buttonWrapper={(button) =>
 							graphEditor.canOpen ? (
@@ -335,12 +384,15 @@ function ToolbarLeftSection() {
 
 function SceneSelector() {
 	const editor = useEditor();
+	const { oc } = useOpencutI18n();
 	const currentScene = editor.scenes.getActiveScene();
 
 	return (
 		<div>
 			<SplitButton className="border-foreground/10 border">
-				<SplitButtonLeft>{currentScene?.name || "No Scene"}</SplitButtonLeft>
+				<SplitButtonLeft>
+					{currentScene?.name || oc.timelineToolbar.noScene}
+				</SplitButtonLeft>
 				<SplitButtonSeparator />
 				<ScenesView>
 					<SplitButtonRight onClick={() => {}}>
@@ -363,6 +415,7 @@ function ToolbarRightSection({
 	onZoomChange: (zoom: number) => void;
 	onZoom: (options: { direction: "in" | "out" }) => void;
 }) {
+	const { oc } = useOpencutI18n();
 	const snappingEnabled = useTimelineStore((s) => s.snappingEnabled);
 	const rippleEditingEnabled = useTimelineStore((s) => s.rippleEditingEnabled);
 	const toggleSnapping = useTimelineStore((s) => s.toggleSnapping);
@@ -374,14 +427,14 @@ function ToolbarRightSection({
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={MagnetIcon} />}
 					isActive={snappingEnabled}
-					tooltip="Auto snapping"
+					tooltip={oc.timelineToolbar.autoSnapping}
 					onClick={() => toggleSnapping()}
 				/>
 
 				<ToolbarButton
 					icon={<OcRippleIcon size={24} className="scale-110" />}
 					isActive={rippleEditingEnabled}
-					tooltip="Ripple editing"
+					tooltip={oc.timelineToolbar.rippleEditing}
 					onClick={() => toggleRippleEditing()}
 				/>
 			</TooltipProvider>
@@ -440,7 +493,7 @@ function ToolbarButton({
 			disabled={disabled}
 			onClick={onClick ? (event) => onClick({ event }) : undefined}
 			className={cn(
-				"rounded-sm",
+				"rounded-lg",
 				disabled ? "cursor-not-allowed opacity-50" : "",
 			)}
 		>

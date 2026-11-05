@@ -356,6 +356,10 @@ export function OpenCutDirectDesk({
             aiRef.current.setClipTeleportClip(payload.clipNumber);
             return;
           }
+          if (payload.kind === "clip-style") {
+            aiRef.current.setClipStyleClip(payload.clipNumber);
+            return;
+          }
           if (
             payload.kind === "frame-edit" &&
             (payload.position === "start" || payload.position === "end")
@@ -591,6 +595,7 @@ export function OpenCutDirectDesk({
       {production ? (
         <OpenCutScroAiShell
           project={project}
+          styles={styles}
           characters={characters}
           credits={production.credits}
           pending={production.pending}
@@ -599,10 +604,12 @@ export function OpenCutDirectDesk({
           editingFrame={ai.editingFrame}
           clipSwapClip={ai.clipSwapClip}
           clipTeleportClip={ai.clipTeleportClip}
+          clipStyleClip={ai.clipStyleClip}
           onCloseSceneChat={() => ai.setSceneChatClip(null)}
           onCloseFrameEdit={() => ai.setEditingFrame(null)}
           onCloseClipSwap={() => ai.setClipSwapClip(null)}
           onCloseClipTeleport={() => ai.setClipTeleportClip(null)}
+          onCloseClipStyle={() => ai.setClipStyleClip(null)}
           onProject={production.onProject}
           onRegenerateFrame={production.onRegenerateFrame}
         />

@@ -84,7 +84,7 @@ export function TabBar() {
 											aria-label={label}
 											data-opencut-tour={`rail-${tabKey}`}
 											className={cn(
-												"shrink-0 rounded-xl",
+												"shrink-0 rounded-lg",
 												"h-8 w-8",
 												active
 													? "bg-[#f4fcd4] text-[#12141c] border-[#c6f24b]/60"

@@ -85,8 +85,14 @@ describe("opencut bridge messages", () => {
       clipNumber: 2,
       kind: "teleport",
     });
+    host.postToScro({
+      type: "scro-open-ai",
+      videoId: "vid-1",
+      clipNumber: 2,
+      kind: "clip-style",
+    });
 
-    assert.equal(received.length, 2);
+    assert.equal(received.length, 3);
     unsub();
   });
 });
