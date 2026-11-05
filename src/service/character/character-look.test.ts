@@ -59,10 +59,10 @@ test("preview prompt isolates that one option with stylish editorial framing and
   assert.match(prompt, /Not an illustration/);
   assert.match(prompt, /Plain light grey seamless background/);
   assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=6");
-  // Silhouette catalogue cuts reuse a family still instead of a missing glyph.
-  assert.equal(characterLookPreviewSrc("pants", "sgjeans01"), "/character-looks/pants-jeans.webp?v=6");
-  assert.equal(characterLookPreviewSrc("top", "sgtee12"), "/character-looks/top-tee.webp?v=6");
-  assert.equal(characterLookPreviewSrc("shoes", "sgsneaker03"), "/character-looks/shoes-sneakers.webp?v=6");
+  // Every option (including silhouette catalogue cuts) resolves to its own dedicated WebP file, never a shared duplicate.
+  assert.equal(characterLookPreviewSrc("pants", "sgjeans01"), "/character-looks/pants-sgjeans01.webp?v=6");
+  assert.equal(characterLookPreviewSrc("top", "sgtee12"), "/character-looks/top-sgtee12.webp?v=6");
+  assert.equal(characterLookPreviewSrc("shoes", "sgsneaker03"), "/character-looks/shoes-sgsneaker03.webp?v=6");
   assert.match(characterLookPreviewPrompt("hair", "beehive"), /1960s beehive/);
   assert.match(characterLookPreviewPrompt("hair", "hime"), /Japanese hime cut/);
   assert.doesNotMatch(characterLookPreviewPrompt("hair", "braids"), /Do not braid it/);
@@ -108,17 +108,11 @@ test("preview prompt isolates that one option with stylish editorial framing and
   }
 });
 
-test("visualOptionsForLookPart returns only options with unique 1-to-1 preview images and zero repeated thumbnails", () => {
+test("every option across all look parts has a unique 1-to-1 preview URL with zero repeated thumbnails", () => {
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
-    const visual = visualOptionsForLookPart(part);
-    assert.ok(visual.length > 0, `Expected visual options for ${part}`);
+    const all = optionsForLookPart(part);
     const seenUrls = new Set<string>();
-    for (const opt of visual) {
-      assert.equal(
-        /^sg[a-z]+\d{2}$/.test(opt.id),
-        false,
-        `Synthetic silhouette item ${opt.id} should not appear in visualOptionsForLookPart(${part})`,
-      );
+    for (const opt of all) {
       if (opt.id === "none") continue;
       const src = characterLookPreviewSrc(part, opt.id);
       assert.ok(src, `Expected preview src for ${part}:${opt.id}`);

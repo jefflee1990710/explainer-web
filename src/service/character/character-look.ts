@@ -326,13 +326,11 @@ export function silhouetteFamilyPreviewFile(part: AnyCharacterLookPart, id: stri
   return SILHOUETTE_FAMILY_PREVIEW[`${part}:${match[1]}`] || "";
 }
 
-// Public file for the studio preview of one option.
+// Public file for the studio preview of one option. Every option uses its own dedicated WebP path.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
   // "None" has no photo; the picker shows the plain part glyph instead.
   if (id === NO_PANTS_ID) return "";
-  const family = silhouetteFamilyPreviewFile(part, id);
-  if (family) return `/character-looks/${family}.webp?v=6`;
   return `/character-looks/${part}-${id}.webp?v=6`;
 }
 
@@ -570,7 +568,7 @@ export function randomizeCharacterLook(
   };
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     if (options.locked?.[part]) continue;
-    const all = visualOptionsForLookPart(part).filter(
+    const all = optionsForLookPart(part).filter(
       (item) => !(item.id === NO_PANTS_ID && (part === "hair" || part === "pants" || part === "shoes")),
     );
     const pool = options.extremeOnly

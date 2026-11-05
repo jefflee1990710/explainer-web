@@ -33,8 +33,8 @@ import {
   defaultCharacterLook,
   isCharacterLookId,
   isExaggeratedLookOption,
+  optionsForLookPart,
   randomizeCharacterLook,
-  visualOptionsForLookPart,
   type AnyCharacterLookPart,
   type CharacterExaggerationLevel,
   type CharacterGender,
@@ -257,7 +257,7 @@ export function CharacterGeneratorForm({
       name: locale === "en" ? item.name : item.nameZh || item.name,
       silhouette: lookSilhouette(activePart, { id: item.optionId, prompt: item.prompt }),
     }));
-    const builtInMapped = visualOptionsForLookPart(activePart).map((option) => ({
+    const builtInMapped = optionsForLookPart(activePart).map((option) => ({
       id: option.id,
       name: t(`characters.look.options.${activePart}.${option.id}`),
       silhouette: lookSilhouette(activePart, option),
