@@ -12,6 +12,7 @@ import { LandingKol } from "@/presentation/components/landing-kol";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 import { LandingUseCases } from "@/presentation/components/landing-use-cases";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
+import { PLANS } from "@/service/billing/plans";
 import { catalogShowcaseStats } from "@/service/character/catalog-stats";
 import { getSiteUrl } from "@/util/app-url";
 import { getMessages } from "@/util/i18n";
@@ -65,11 +66,30 @@ export default async function HomePage() {
       },
       {
         "@type": "SoftwareApplication",
+        "@id": `${siteUrl}/#software`,
         name: "Scro",
         applicationCategory: "MultimediaApplication",
         operatingSystem: "Web",
         url: siteUrl,
         description: messages.meta.description,
+        offers: {
+          "@type": "AggregateOffer",
+          lowPrice: String(PLANS.starter.amountUsd),
+          highPrice: String(PLANS.scale.amountUsd),
+          priceCurrency: "USD",
+          offerCount: Object.keys(PLANS).length,
+          url: `${siteUrl}/pricing`,
+        },
+        featureList: [
+          "AI Influencer Identity Lock & Root-Anchored Custom Wardrobe",
+          "Up to 120s 1080p Lip-Sync Talking-Head & 2-Speaker Dialogue Q&A",
+          "21-Language Voice Cloning (including Hong Kong Cantonese) & Direct Mic Recording",
+          "Whiteboard Doodle & Paper Cutout 6-Diagram Explainer Videos",
+          "Scro Swap: SAM 3 Multi-Person Video Character Motion Swap & 17-Look Cinematic Relight",
+          "Teleport: AI Video Scene & Background Relocation",
+          "Poster Studio: 2K Social Posters with SAM 3 Person/Object/Text Inpainting",
+          "OpenCut Multi-Track Video Editor with IG Viral SFX Peak Alignment & BGM Auto-Ducking",
+        ],
       },
     ],
   };

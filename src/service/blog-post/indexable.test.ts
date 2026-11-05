@@ -41,7 +41,7 @@ test("hreflang is omitted until a real translation sibling exists", () => {
   );
 });
 
-test("Cantonese articles link to the Cantonese studio, other posts do not invent one", () => {
+test("resolveBlogLandingPath maps every article to its matching product landing page and rejects off-site URLs", () => {
   assert.equal(
     resolveBlogLandingPath({
       title: "香港中小企點樣拍粵語口播",
@@ -52,11 +52,35 @@ test("Cantonese articles link to the Cantonese studio, other posts do not invent
   );
   assert.equal(
     resolveBlogLandingPath({
-      title: "How to storyboard a reel",
+      title: "How to storyboard a whiteboard reel",
       tags: ["Explainer"],
       locale: "en",
     }),
-    undefined,
+    "/explainer",
+  );
+  assert.equal(
+    resolveBlogLandingPath({
+      title: "Best AI talking-head generator with captions",
+      tags: ["Talking Head"],
+      locale: "en",
+    }),
+    "/talking-head",
+  );
+  assert.equal(
+    resolveBlogLandingPath({
+      title: "How DTC brands shoot product UGC ads",
+      tags: ["Product Promo", "UGC"],
+      locale: "en",
+    }),
+    "/product-promo",
+  );
+  assert.equal(
+    resolveBlogLandingPath({
+      title: "Building a virtual KOL and AI influencer",
+      tags: ["AI Influencer"],
+      locale: "en",
+    }),
+    "/ai-influencer",
   );
   assert.equal(
     resolveBlogLandingPath({
@@ -71,8 +95,9 @@ test("Cantonese articles link to the Cantonese studio, other posts do not invent
     resolveBlogLandingPath({
       title: "Off site",
       tags: [],
+      locale: "en",
       landingPath: "https://evil.example/phish",
     }),
-    undefined,
+    "/right-tool",
   );
 });

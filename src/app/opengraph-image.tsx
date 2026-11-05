@@ -105,14 +105,14 @@ export default function OpenGraphImage() {
           >
             Inject a soul into your AI Influencer.
           </div>
-          <div
+           <div
             style={{
               fontSize: "28px",
               lineHeight: 1.45,
               color: "rgba(255, 255, 255, 0.76)",
             }}
           >
-            One locked face, root-anchored custom wardrobe, 21-language voice cloning, Life feed photos, and AI-directed short videos.
+            Locked face &amp; wardrobe, 120s 1080p lip-sync, Whiteboard &amp; Paper Cutout explainers, SAM 3 Scro Swap, Teleport &amp; OpenCut AI Editor.
           </div>
         </div>
 
@@ -127,14 +127,16 @@ export default function OpenGraphImage() {
             color: "rgba(255, 255, 255, 0.65)",
           }}
         >
-          <div style={{ display: "flex", gap: "28px" }}>
-            <span style={{ color: "#c6f24b", fontWeight: 600 }}>Identity Lock</span>
+          <div style={{ display: "flex", gap: "24px" }}>
+            <span style={{ color: "#c6f24b", fontWeight: 600 }}>120s Lip-Sync</span>
             <span>·</span>
-            <span>Custom Wardrobe</span>
+            <span>Explainers</span>
             <span>·</span>
-            <span>Life Feed</span>
+            <span>Scro Swap</span>
             <span>·</span>
-            <span>AI Video Director</span>
+            <span>Teleport</span>
+            <span>·</span>
+            <span>OpenCut AI</span>
           </div>
           <span style={{ color: "#ffffff", fontWeight: 600 }}>scro.io</span>
         </div>

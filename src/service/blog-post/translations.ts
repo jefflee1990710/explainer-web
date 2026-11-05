@@ -50,12 +50,33 @@ function safeLandingPath(value: string | undefined): string | undefined {
   return path;
 }
 
-function looksCantonese(post: { title: string; tags: string[] }): boolean {
-  const haystack = `${post.title} ${post.tags.join(" ")}`;
-  return /cantonese|粵語|廣東話|广东话|\byue\b/i.test(haystack);
+function withBlogLocaleQuery(basePath: string, locale: BlogLocale): string {
+  if (locale === "en") return basePath;
+  return `${basePath}?hl=${encodeURIComponent(locale)}`;
 }
 
-// Explicit landingPath wins. A Cantonese article without one still links to the Cantonese studio.
+function inferTopicLandingPath(post: { title: string; tags: string[] }): string {
+  const haystack = `${post.title} ${post.tags.join(" ")}`.toLowerCase();
+
+  if (/cantonese|粵語|廣東話|广东话|香港|\byue\b|\bhk\b/i.test(haystack)) {
+    return "/cantonese";
+  }
+  if (/talking[- ]?head|口播|對嘴|字幕|caption|subtitle|lip[- ]?sync|avatar/i.test(haystack)) {
+    return "/talking-head";
+  }
+  if (/product|ugc|promo|帶貨|種草|商品|電商|ecommerce|shop|ad\b|ads\b/i.test(haystack)) {
+    return "/product-promo";
+  }
+  if (/influencer|virtual kol|ai creator|wardrobe|網紅|虛擬|角色|穿搭|人設/i.test(haystack)) {
+    return "/ai-influencer";
+  }
+  if (/explainer|whiteboard|storyboard|diagram|解說|白板|剪紙|分鏡|tutorial|教學/i.test(haystack)) {
+    return "/explainer";
+  }
+  return "/right-tool";
+}
+
+// Explicit safe landingPath wins; otherwise infer the matching core product landing page for internal SEO linking.
 export function resolveBlogLandingPath(post: {
   title: string;
   tags: string[];
@@ -65,6 +86,6 @@ export function resolveBlogLandingPath(post: {
   const explicit = safeLandingPath(post.landingPath);
   if (explicit) return explicit;
   const locale = isBlogLocale(post.locale) ? post.locale : "en";
-  if (locale === "zh-Hant" && looksCantonese(post)) return "/cantonese?hl=zh-Hant";
-  return undefined;
+  const basePath = inferTopicLandingPath(post);
+  return withBlogLocaleQuery(basePath, locale);
 }

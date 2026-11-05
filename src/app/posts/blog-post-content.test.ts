@@ -49,6 +49,27 @@ Keep every frame focused on one visual point.
   assert.match(html, /Bottom Register CTA/);
 });
 
+test("BlogPostContent generates heading anchor IDs and a Table of Contents for 3+ h2 sections", () => {
+  const markdown = `
+## Step 1: Plan the Hook
+Intro text.
+## Step 2: Lock Character
+Middle text.
+### Sub-step: Wardrobe
+Details.
+## Step 3: Export Reel
+Final text.
+`;
+  const html = renderToStaticMarkup(
+    createElement(BlogPostContent, { content: markdown }),
+  );
+  assert.match(html, /id="step-1-plan-the-hook"/);
+  assert.match(html, /id="step-2-lock-character"/);
+  assert.match(html, /id="sub-step-wardrobe"/);
+  assert.match(html, /aria-label="Table of contents"/);
+  assert.match(html, /href="#step-1-plan-the-hook"/);
+});
+
 test("BlogPostContent renders external links as dofollow without nofollow or noreferrer", () => {
   const html = renderToStaticMarkup(
     createElement(BlogPostContent, {

@@ -14,6 +14,7 @@ import { BlogPostLinks } from "@/app/posts/[slug]/blog-post-links";
 import { blogPostLanguageAlternates } from "@/service/blog-post/translations";
 import { getSiteUrl } from "@/util/app-url";
 import { getMessages } from "@/util/i18n";
+import { isLocaleId } from "@/util/i18n/locales";
 import { getRequestLocale } from "@/util/i18n/request-locale";
 import { openGraphLocale, postDocumentTitle, socialImage } from "@/util/seo/public-metadata";
 
@@ -44,6 +45,7 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
   const canonicalPath = `/posts/${encodeURIComponent(post.slug)}`;
   const title = postDocumentTitle(post.title);
   const languages = blogPostLanguageAlternates(post);
+  const effectiveLocale = isLocaleId(post.locale) ? post.locale : locale;
   return {
     title,
     description: post.excerpt,
@@ -68,7 +70,7 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
       type: "article",
       siteName: "Scro",
       url: canonicalPath,
-      locale: openGraphLocale(locale),
+      locale: openGraphLocale(effectiveLocale),
       publishedTime: post.createdAt,
       modifiedTime: post.updatedAt,
       tags: post.tags,
@@ -175,17 +177,18 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
         <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
           {/* Left/Main Column: Article Content + In-Article & Bottom Register CTAs */}
-          <article className="min-w-0 lg:col-span-8">
+          <article lang={post.locale} className="min-w-0 lg:col-span-8">
             <header className="mb-8">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                 <time dateTime={post.createdAt}>{formatDetailDate(post.createdAt, locale)}</time>
                 {post.tags.map((tag) => (
-                  <span
+                  <Link
                     key={tag}
-                    className="rounded-full bg-zinc-100 px-2.5 py-0.5 font-medium text-zinc-700"
+                    href={`/posts?tag=${encodeURIComponent(tag)}`}
+                    className="rounded-full bg-zinc-100 px-2.5 py-0.5 font-medium text-zinc-700 transition-colors hover:bg-zinc-200 hover:text-zinc-950"
                   >
                     {tag}
-                  </span>
+                  </Link>
                 ))}
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">

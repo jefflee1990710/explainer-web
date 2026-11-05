@@ -86,6 +86,20 @@ function isMarkdownTableBlock(lines: string[]): boolean {
   return lines[0].includes("|") && isTableSeparatorLine(lines[1]);
 }
 
+function slugifyHeadingId(raw: string, seen: Map<string, number>): string {
+  const base =
+    raw
+      .replace(/(\*\*|~~|`|\*)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .toLowerCase()
+      .trim()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "") || "section";
+  const count = seen.get(base) ?? 0;
+  seen.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count + 1}`;
+}
+
 // Split Markdown content into logical blocks while keeping fenced code blocks intact.
 function tokenizeMarkdownBlocks(content: string): string[] {
   const normalized = content.replace(/\r\n/g, "\n");
@@ -125,6 +139,12 @@ function tokenizeMarkdownBlocks(content: string): string[] {
       continue;
     }
 
+    if (/^#{1,4}\s+/.test(trimmed)) {
+      flushCurrent();
+      blocks.push(trimmed);
+      continue;
+    }
+
     current.push(line);
   }
 
@@ -149,10 +169,58 @@ export function BlogPostContent({
       ? Math.max(2, Math.floor(blocks.length * 0.45))
       : -1;
 
+  const headingIdSeen = new Map<string, number>();
+  const blockHeadingMeta = blocks.map((block) => {
+    if (block.startsWith("## ")) {
+      const label = block.slice(3).trim();
+      return { level: 2 as const, label, id: slugifyHeadingId(label, headingIdSeen) };
+    }
+    if (block.startsWith("# ")) {
+      const label = block.slice(2).trim();
+      return { level: 2 as const, label, id: slugifyHeadingId(label, headingIdSeen) };
+    }
+    if (block.startsWith("### ")) {
+      const label = block.slice(4).trim();
+      return { level: 3 as const, label, id: slugifyHeadingId(label, headingIdSeen) };
+    }
+    if (block.startsWith("#### ")) {
+      const label = block.slice(5).trim();
+      return { level: 4 as const, label, id: slugifyHeadingId(label, headingIdSeen) };
+    }
+    return null;
+  });
+
+  const tocEntries = blockHeadingMeta.filter(
+    (meta): meta is NonNullable<typeof meta> => meta !== null && meta.level === 2,
+  );
+
   return (
     <div className="space-y-5 text-base leading-relaxed text-zinc-700">
+      {tocEntries.length >= 3 ? (
+        <nav
+          aria-label="Table of contents"
+          className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+            On this page
+          </p>
+          <ol className="mt-2.5 space-y-1.5 text-sm">
+            {tocEntries.map((entry) => (
+              <li key={entry.id}>
+                <a
+                  href={`#${entry.id}`}
+                  className="font-medium text-zinc-700 hover:text-zinc-950 hover:underline"
+                >
+                  {renderInline(entry.label)}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      ) : null}
       {blocks.map((block, idx) => {
         if (!block) return null;
+        const headingMeta = blockHeadingMeta[idx];
 
         const renderedBlock = (() => {
         if (block.startsWith("```") && block.endsWith("```")) {
@@ -189,7 +257,11 @@ export function BlogPostContent({
 
         if (block.startsWith("#### ")) {
           return (
-            <h4 key={idx} className="pt-2 text-lg font-semibold tracking-tight text-zinc-900">
+            <h4
+              key={idx}
+              id={headingMeta?.id}
+              className="scroll-mt-20 pt-2 text-lg font-semibold tracking-tight text-zinc-900"
+            >
               {renderInline(block.slice(5))}
             </h4>
           );
@@ -197,7 +269,11 @@ export function BlogPostContent({
 
         if (block.startsWith("### ")) {
           return (
-            <h3 key={idx} className="pt-3 text-xl font-bold tracking-tight text-zinc-900">
+            <h3
+              key={idx}
+              id={headingMeta?.id}
+              className="scroll-mt-20 pt-3 text-xl font-bold tracking-tight text-zinc-900"
+            >
               {renderInline(block.slice(4))}
             </h3>
           );
@@ -205,7 +281,11 @@ export function BlogPostContent({
 
         if (block.startsWith("## ")) {
           return (
-            <h2 key={idx} className="pt-4 text-2xl font-bold tracking-tight text-zinc-900">
+            <h2
+              key={idx}
+              id={headingMeta?.id}
+              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-zinc-900"
+            >
               {renderInline(block.slice(3))}
             </h2>
           );
@@ -213,7 +293,11 @@ export function BlogPostContent({
 
         if (block.startsWith("# ")) {
           return (
-            <h2 key={idx} className="pt-4 text-2xl font-bold tracking-tight text-zinc-900">
+            <h2
+              key={idx}
+              id={headingMeta?.id}
+              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-zinc-900"
+            >
               {renderInline(block.slice(2))}
             </h2>
           );
