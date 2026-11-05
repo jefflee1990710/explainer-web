@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
-import { openJutsuJobInEditorAction } from "@/presentation/actions/jutsu";
-import { openTeleportJobInEditorAction } from "@/presentation/actions/teleport";
 import {
   markVideoArchivedAction,
   unarchiveVideoAction,
@@ -26,7 +24,6 @@ import {
 } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
 import {
   canGenerateAllVideos,
   type GenerationDetailTag,
@@ -135,7 +132,6 @@ export function VideoListRow({
   const isEn = locale === "en";
   const router = useRouter();
 
-  const [openingEditor, setOpeningEditor] = useState(false);
   const [submittingClips, setSubmittingClips] = useState(false);
   const [posting, setPosting] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -144,9 +140,8 @@ export function VideoListRow({
 
   const studioVideo = item.studioVideo;
   const targetVideoId = studioVideo?.id ?? item.editorVideoId;
-  const canOpenEditor = item.sourceMediaKind !== "image";
   const directEditorHref =
-    canOpenEditor && item.editorVideoId
+    studioVideo && item.editorVideoId
       ? folderVideoPath(item.folderId, item.editorVideoId)
       : null;
 
@@ -159,39 +154,6 @@ export function VideoListRow({
       ? videosAsBusy(studioVideo.tags)
       : studioVideo.tags
     : [];
-
-  async function handleOpenEditor() {
-    if (!canOpenEditor || openingEditor) return;
-    if (directEditorHref) {
-      router.push(directEditorHref);
-      return;
-    }
-    setLocalError("");
-    setOpeningEditor(true);
-    try {
-      if (item.swapJob) {
-        const res = await openJutsuJobInEditorAction(item.swapJob.id);
-        if (!res.ok) {
-          setLocalError(res.error);
-          return;
-        }
-        router.push(folderVideoPath(undefined, res.videoId));
-        return;
-      }
-      if (item.teleportJob) {
-        const res = await openTeleportJobInEditorAction(item.teleportJob.id);
-        if (!res.ok) {
-          setLocalError(res.error);
-          return;
-        }
-        router.push(folderVideoPath(undefined, res.videoId));
-      }
-    } catch {
-      setLocalError(t("errors.genericRetry"));
-    } finally {
-      setOpeningEditor(false);
-    }
-  }
 
   async function handleGenerateAll() {
     if (!studioVideo || isGeneratingAll) return;
@@ -358,15 +320,6 @@ export function VideoListRow({
         >
           {thumbnailContent}
         </Link>
-      ) : canOpenEditor ? (
-        <button
-          type="button"
-          onClick={() => void handleOpenEditor()}
-          disabled={openingEditor}
-          className="relative aspect-video w-full shrink-0 cursor-pointer overflow-hidden rounded-xl bg-zinc-900 text-left disabled:cursor-wait sm:w-44"
-        >
-          {thumbnailContent}
-        </button>
       ) : (
         <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-xl bg-zinc-900 sm:w-44">
           {thumbnailContent}
@@ -398,15 +351,6 @@ export function VideoListRow({
             >
               {item.title}
             </Link>
-          ) : canOpenEditor ? (
-            <button
-              type="button"
-              onClick={() => void handleOpenEditor()}
-              disabled={openingEditor}
-              className="block max-w-full cursor-pointer truncate text-left font-display text-sm font-bold text-[#12141c] hover:underline disabled:cursor-wait"
-            >
-              {item.title}
-            </button>
           ) : (
             <h3 className="truncate font-display text-sm font-bold text-[#12141c]">
               {item.title}
@@ -434,27 +378,6 @@ export function VideoListRow({
 
       {/* Right Actions Column */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-        {canOpenEditor ? (
-          directEditorHref ? (
-            <Link
-              href={directEditorHref}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#12141c] px-3 py-1.5 text-xs font-bold text-[#c6f24b] transition hover:bg-[#12141c]/90"
-            >
-              {isEn ? "Open in OpenCut" : "在剪輯器開啟"}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled={openingEditor}
-              onClick={() => void handleOpenEditor()}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#12141c] px-3 py-1.5 text-xs font-bold text-[#c6f24b] transition hover:bg-[#12141c]/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {openingEditor ? <Spinner className="h-3 w-3" /> : null}
-              <span>{isEn ? "Open in OpenCut" : "在剪輯器開啟"}</span>
-            </button>
-          )
-        ) : null}
-
         {studioVideo &&
         readyToGenerateAll &&
         !isGeneratingAll &&

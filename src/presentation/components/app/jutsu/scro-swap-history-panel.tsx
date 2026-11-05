@@ -1,13 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { PublicJutsuJob } from "@/model/jutsu-job";
-import { openJutsuJobInEditorAction } from "@/presentation/actions/jutsu";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
-import { folderVideoPath } from "@/service/folder-video-path";
 
 /**
  * Reusable Scro Swap history & active-result panel.
@@ -28,29 +25,9 @@ export function ScroSwapHistoryPanel({
   onDeleteJob: (id: string) => void;
   layout?: "sidebar" | "modal";
 }) {
-  const router = useRouter();
   const { locale } = useI18n();
   const isEn = locale === "en";
   const [characterFilter, setCharacterFilter] = useState<string>("all");
-  const [openingJobId, setOpeningJobId] = useState<string | null>(null);
-
-  async function openInEditor(job: PublicJutsuJob) {
-    if (job.sourceMediaKind === "image" || job.outputImageUrl) return;
-    if (openingJobId) return;
-    if (job.targetVideoId) {
-      router.push(folderVideoPath(undefined, job.targetVideoId));
-      return;
-    }
-    setOpeningJobId(job.id);
-    try {
-      const res = await openJutsuJobInEditorAction(job.id);
-      if (res.ok) {
-        router.push(folderVideoPath(undefined, res.videoId));
-      }
-    } finally {
-      setOpeningJobId(null);
-    }
-  }
 
   const filteredJobs = useMemo(() => {
     if (characterFilter === "all") return jobs;
@@ -188,19 +165,6 @@ export function ScroSwapHistoryPanel({
                       </h3>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {activeJob.sourceMediaKind !== "image" && !activeJob.outputImageUrl ? (
-                        <button
-                          type="button"
-                          disabled={openingJobId === activeJob.id}
-                          onClick={() => void openInEditor(activeJob)}
-                          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {openingJobId === activeJob.id ? (
-                            <Spinner className="h-3 w-3 text-lime" />
-                          ) : null}
-                          <span>{isEn ? "Open in OpenCut" : "在剪輯器開啟"}</span>
-                        </button>
-                      ) : null}
                       <span className="text-[11px] font-semibold text-muted">
                         {activeJob.sourceMediaKind === "image" || activeJob.outputImageUrl
                           ? `2K Image · ${activeJob.aspectRatio}`
@@ -384,22 +348,6 @@ export function ScroSwapHistoryPanel({
                           : ` · ${job.sectionLength}s`}
                       </p>
                     </div>
-                    {job.sourceMediaKind !== "image" && !job.outputImageUrl ? (
-                      <button
-                        type="button"
-                        disabled={openingJobId === job.id}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          void openInEditor(job);
-                        }}
-                        className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-accent-ink/20 bg-white px-2.5 text-[11px] font-bold text-accent-ink transition hover:border-accent-ink hover:bg-lime/40 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {openingJobId === job.id ? (
-                          <Spinner className="h-3 w-3 text-accent-ink" />
-                        ) : null}
-                        <span>{isEn ? "Open in OpenCut" : "在剪輯器開啟"}</span>
-                      </button>
-                    ) : null}
                     <button
                       type="button"
                       onClick={(ev) => {

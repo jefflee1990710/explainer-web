@@ -45,7 +45,7 @@ export function StudioPowertoolsBand({
           {
             badge: "02 · Scro Swap 換角 & Teleport 換場",
             title: "SAM 3 多人影片換角、17 款電影打光與一鍵換場",
-            body: "透過 SAM 3 RLE 像素級輪廓追蹤，在實拍或分鏡影片中實現 N 對 N 多人指定換角、換物換衫與 17 款電影級重新打光（Scro Swap），或鎖定原片人物動作與原聲嘴型一鍵搬入新場景（Teleport），並支援在 OpenCut 剪輯器內單鏡原地替換。",
+            body: "透過 SAM 3 RLE 像素級輪廓追蹤，在實拍或分鏡影片中實現 N 對 N 多人指定換角、換物換衫與 17 款電影級重新打光（Scro Swap），或鎖定原片人物動作與原聲嘴型一鍵搬入新場景（Teleport），並支援在時間軸剪輯器內單鏡原地替換。",
             chips: ["SAM 3 多人影片換角", "17 款電影級打光", "Teleport 鎖動作換場"],
           },
           {
@@ -63,7 +63,7 @@ export function StudioPowertoolsBand({
           {
             badge: "05 · IG 熱門 SFX 峰值對拍 & BGM 自動避人聲",
             title: "自動去頭尾靜音 + IG Viral SFX + BGM Auto-Ducking",
-            body: "OpenCut 載入片段自動裁除頭尾死白；AI 自動偵測轉場切點、字卡彈出與畫面動作，匹配內建 12 款 IG Reels 熱門 SFX 與 ElevenLabs AI Foley（20ms RMS 峰值對齊），並為 BGM 自動循環鋪底及寫入避開人聲的 Auto-Ducking 音量曲線。",
+            body: "時間軸載入片段自動裁除頭尾死白；AI 自動偵測轉場切點、字卡彈出與畫面動作，匹配內建 12 款 IG Reels 熱門 SFX 與 ElevenLabs AI Foley（20ms RMS 峰值對齊），並為 BGM 自動循環鋪底及寫入避開人聲的 Auto-Ducking 音量曲線。",
             chips: ["12 款 IG 熱門 SFX 對拍", "BGM Auto-Ducking 避人聲", "自動去頭尾死白 & B-Roll"],
           },
           {
@@ -89,7 +89,7 @@ export function StudioPowertoolsBand({
           {
             badge: "02 · Scro Swap & Teleport",
             title: "SAM 3 multi-person motion swap, 17-look relight & scene teleport",
-            body: "Use SAM 3 RLE pixel masks for N-to-N multi-person character swap, object/wardrobe replacement, and 17-look cinematic relighting (Scro Swap), or relocate your speaker into any new scene while preserving motion and lip-sync (Teleport) — standalone or right inside the OpenCut timeline.",
+            body: "Use SAM 3 RLE pixel masks for N-to-N multi-person character swap, object/wardrobe replacement, and 17-look cinematic relighting (Scro Swap), or relocate your speaker into any new scene while preserving motion and lip-sync (Teleport) — standalone or right inside the studio timeline.",
             chips: ["SAM 3 Multi-Person Swap", "17 Cinematic Light Looks", "Teleport Scene Relocation"],
           },
           {
@@ -107,7 +107,7 @@ export function StudioPowertoolsBand({
           {
             badge: "05 · IG Viral SFX & BGM Auto-Ducking",
             title: "Auto silence trim + peak-aligned IG Viral SFX + BGM ducking",
-            body: "OpenCut trims leading/trailing dead air on load, aligns 12 curated IG Reels Viral SFX and ElevenLabs AI Foley peaks (20ms RMS) directly onto cuts and text pops, and loops BGM with automated volume ducking keyframes under spoken VO.",
+            body: "Scro Studio trims leading/trailing dead air on load, aligns 12 curated IG Reels Viral SFX and ElevenLabs AI Foley peaks (20ms RMS) directly onto cuts and text pops, and loops BGM with automated volume ducking keyframes under spoken VO.",
             chips: ["12 IG Viral SFX Pack", "BGM Auto-Ducking Keyframes", "Auto Silence Trim & B-Roll"],
           },
           {

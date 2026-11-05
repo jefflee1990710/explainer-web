@@ -63,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "AI Video Character Swap",
       "AI Video Teleport",
       "SAM 3 Poster Studio",
-      "OpenCut AI Video Editor",
+      "Scro AI Video Editor",
       "Custom Wardrobe AI",
     ],
     authors: [{ name: "Scro", url: siteUrl }],

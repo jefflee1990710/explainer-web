@@ -22,7 +22,7 @@ export const zhHant: Messages = {
   meta: {
     title: "AI 網紅、Explainer 解說片、口播、Scro Swap 換角與自動剪輯工作台 | Scro",
     description:
-      "用同一個鎖定臉、衣櫃同 21 語聲線的 AI 網紅拍白板/剪紙 Explainer、120 秒 1080p 口播、產品帶貨 UGC，並內建 Scro Swap 影片換角、Teleport 換場、SAM 3 海報局部重繪與 OpenCut AI 自動對拍剪輯台。",
+      "用同一個鎖定臉、衣櫃同 21 語聲線的 AI 網紅拍白板/剪紙 Explainer、120 秒 1080p 口播、產品帶貨 UGC，並內建 Scro Swap 影片換角、Teleport 換場、SAM 3 海報局部重繪與 AI 自動對拍多軌剪輯台。",
   },
   nav: {
     projects: "影片",

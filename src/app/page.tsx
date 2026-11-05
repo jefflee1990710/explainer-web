@@ -88,7 +88,7 @@ export default async function HomePage() {
           "Scro Swap: SAM 3 Multi-Person Video Character Motion Swap & 17-Look Cinematic Relight",
           "Teleport: AI Video Scene & Background Relocation",
           "Poster Studio: 2K Social Posters with SAM 3 Person/Object/Text Inpainting",
-          "OpenCut Multi-Track Video Editor with IG Viral SFX Peak Alignment & BGM Auto-Ducking",
+          "Multi-Track AI Video Editor with IG Viral SFX Peak Alignment & BGM Auto-Ducking",
         ],
       },
     ],

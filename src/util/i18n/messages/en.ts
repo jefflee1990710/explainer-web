@@ -22,7 +22,7 @@ export const en: Messages = {
   meta: {
     title: "AI Influencer, Explainer Videos, 120s Talking-Head, Scro Swap & AI Video Editor | Scro",
     description:
-      "Build a virtual KOL with a locked face, custom wardrobe, and 21-language cloned voice. Ship whiteboard & paper-cutout explainers, 120s 1080p talking-head reels, product UGC, SAM 3 Scro Swap, Teleport scene relocation, 2K posters, and peak-aligned edits in OpenCut.",
+      "Build a virtual KOL with a locked face, custom wardrobe, and 21-language cloned voice. Ship whiteboard & paper-cutout explainers, 120s 1080p talking-head reels, product UGC, SAM 3 Scro Swap, Teleport scene relocation, 2K posters, and peak-aligned timeline edits.",
   },
   nav: {
     projects: "Video",

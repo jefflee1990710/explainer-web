@@ -160,7 +160,7 @@ export function OpenCutExportButton({
             <button
               type="button"
               onClick={onOpenTutorial}
-              aria-label="OpenCut Editor Tour"
+              aria-label="Editor Tour"
               className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--studio-line)] bg-[var(--studio-fill)] font-display text-xs font-bold text-[var(--studio-muted)] transition hover:border-[var(--studio-ink)] hover:text-[var(--studio-ink)]"
             >
               ?

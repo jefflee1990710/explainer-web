@@ -112,7 +112,7 @@ export default function OpenGraphImage() {
               color: "rgba(255, 255, 255, 0.76)",
             }}
           >
-            Locked face &amp; wardrobe, 120s 1080p lip-sync, Whiteboard &amp; Paper Cutout explainers, SAM 3 Scro Swap, Teleport &amp; OpenCut AI Editor.
+            Locked face &amp; wardrobe, 120s 1080p lip-sync, Whiteboard &amp; Paper Cutout explainers, SAM 3 Scro Swap, Teleport &amp; AI Studio Editor.
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export default function OpenGraphImage() {
             <span>·</span>
             <span>Teleport</span>
             <span>·</span>
-            <span>OpenCut AI</span>
+            <span>AI Studio</span>
           </div>
           <span style={{ color: "#ffffff", fontWeight: 600 }}>scro.io</span>
         </div>

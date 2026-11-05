@@ -194,7 +194,7 @@ export function classifyUserStuckStage(
     stageId: "activated_producing",
     title: "已成功產出內容 (Activated Producer)",
     reason: `已完成 ${snapshot.clipVideoReadyCount} 支影片片段、${snapshot.reelReadyCount} 支合成短片、${snapshot.lifeShotCount} 張日常照。`,
-    recommendation: "持續追蹤留存與多軌剪輯器 (OpenCut) 匯出使用率。",
+    recommendation: "持續追蹤留存與多軌剪輯器匯出使用率。",
     severity: "healthy",
   };
 }
