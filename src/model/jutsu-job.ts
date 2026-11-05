@@ -138,6 +138,8 @@ export type JutsuJob = {
   targetVideoId?: ObjectId;
   targetClipNumber?: number;
   previousClipVideoUrl?: string;
+  creditsCharged?: number;
+  creditsRefunded?: boolean;
   error?: string;
   createdAt: Date;
   updatedAt: Date;

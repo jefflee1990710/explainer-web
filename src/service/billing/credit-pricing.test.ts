@@ -9,6 +9,8 @@ import {
   FRAMES_COST,
   MIN_VIDEO_COST,
   needsVideoUpgrade,
+  scroSwapCost,
+  teleportCost,
   videoCost,
 } from "@/service/production-plan";
 
@@ -73,6 +75,15 @@ test("cinematic realistic video costs 15 credits per second", () => {
   assert.equal(videoCost(5, "realistic"), 75);
   assert.equal(videoCost(8, "realistic"), 120);
   assert.equal(videoCost(3, "doodle"), 45);
+});
+
+test("scroSwapCost and teleportCost charge 4 credits for static image swap and 4 + 15 credits/s for video/gif", () => {
+  assert.equal(scroSwapCost({ mediaKind: "image", durationSeconds: 6 }), 4);
+  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 6 }), 94);
+  assert.equal(scroSwapCost({ mediaKind: "gif", durationSeconds: 5 }), 79);
+  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 2 }), 34);
+  assert.equal(teleportCost({ durationSeconds: 6 }), 94);
+  assert.equal(teleportCost({ durationSeconds: 10 }), 154);
 });
 
 test("a new account can draw a 10-clip board and one realistic preview, but not a second clip", () => {

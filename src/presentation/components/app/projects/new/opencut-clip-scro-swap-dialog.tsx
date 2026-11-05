@@ -13,6 +13,7 @@ import type {
   PublicCharacterVersion,
   PublicVideo,
 } from "@/presentation/serialize";
+import { scroSwapCost } from "@/service/credit-costs";
 
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
@@ -325,7 +326,10 @@ export function OpenCutClipScroSwapDialog({
             className="inline-flex items-center gap-2 rounded-xl border-2 border-accent-ink bg-lime px-5 py-2 font-display text-xs font-bold text-accent-ink shadow-[3px_3px_0_0_#12141c] disabled:opacity-40"
           >
             {submitting ? <Spinner className="h-3.5 w-3.5" /> : null}
-            {isEn ? "Apply Scro Swap" : "套用 Scro Swap 換角"}
+            <span>
+              {isEn ? "Apply Scro Swap" : "套用 Scro Swap 換角"} ·{" "}
+              {scroSwapCost({ durationSeconds, mediaKind: "video" })}
+            </span>
           </button>
         </div>
       </div>

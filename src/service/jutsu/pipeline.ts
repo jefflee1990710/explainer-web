@@ -22,6 +22,12 @@ import type { Character } from "@/model/character";
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import {
+  assertCanSpendCredits,
+  consumeCredits,
+  refundCredits,
+} from "@/service/billing/credits";
+import { scroSwapCost } from "@/service/credit-costs";
+import {
   detectPeopleWithFalSam3ImageRle,
   type DetectedSourcePerson,
 } from "@/service/fal/sam3-image";
@@ -1252,6 +1258,13 @@ export async function startScroSwapJob(
     const colorSettings = input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS;
 
     const sourceMediaKind = inferJutsuSourceMediaKind(sourceUrl, input.sourceMediaKind);
+    const cost = scroSwapCost({
+      durationSeconds: sectionLength,
+      mediaKind: sourceMediaKind,
+    });
+    await assertCanSpendCredits(user, cost);
+    const spendKey = await consumeCredits(user.clerkUserId, cost);
+
     const now = new Date();
     const jobId = new ObjectId();
     let resolvedTargetVideoId =
@@ -1260,18 +1273,23 @@ export async function startScroSwapJob(
         : undefined;
     let resolvedTargetClipNumber = input.targetClipNumber;
     if (!resolvedTargetVideoId && sourceMediaKind !== "image") {
-      resolvedTargetVideoId = await createStandaloneEngineProject({
-        userId: user._id,
-        clerkUserId: user.clerkUserId,
-        kind: "scroswap",
-        title: characterName ? `Scro Swap · ${characterName}` : "Scro Swap",
-        sourceVideoUrl: sourceUrl,
-        aspectRatio: "9:16",
-        durationSeconds: sectionLength,
-        status: "rendering",
-        now,
-      });
-      resolvedTargetClipNumber = 1;
+      try {
+        resolvedTargetVideoId = await createStandaloneEngineProject({
+          userId: user._id,
+          clerkUserId: user.clerkUserId,
+          kind: "scroswap",
+          title: characterName ? `Scro Swap · ${characterName}` : "Scro Swap",
+          sourceVideoUrl: sourceUrl,
+          aspectRatio: "9:16",
+          durationSeconds: sectionLength,
+          status: "rendering",
+          now,
+        });
+        resolvedTargetClipNumber = 1;
+      } catch (err) {
+        await refundCredits(user.clerkUserId, cost, spendKey);
+        throw err;
+      }
     }
 
     const doc: JutsuJob & { _id: ObjectId } = {
@@ -1304,6 +1322,7 @@ export async function startScroSwapJob(
       keepSourceAudio,
       applyColorFix,
       colorSettings,
+      creditsCharged: cost,
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(input.previousClipVideoUrl ? { previousClipVideoUrl: input.previousClipVideoUrl } : {}),
@@ -1312,7 +1331,12 @@ export async function startScroSwapJob(
     };
 
     const col = await jutsuJobsCollection();
-    await col.insertOne(doc);
+    try {
+      await col.insertOne(doc);
+    } catch (err) {
+      await refundCredits(user.clerkUserId, cost, spendKey);
+      throw err;
+    }
 
     after(() =>
       runScroSwapJobInBackground(jobId).catch((error) => {
@@ -1787,18 +1811,48 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Scro Swap 渲染失敗";
-    await col.updateOne(
-      { _id: jobId },
-      { $set: { status: "failed", error: msg, updatedAt: new Date() } },
-    );
-    await settleTargetClipFromEngineJob({
-      targetVideoId: job.targetVideoId,
-      targetClipNumber: job.targetClipNumber,
-      previousClipVideoUrl: job.previousClipVideoUrl,
-      status: "failed",
-      error: msg,
+    await failJutsuJobAndRefund(job, msg);
+  }
+}
+
+async function failJutsuJobAndRefund(
+  job: JutsuJob & { _id: ObjectId },
+  error: string,
+): Promise<Date> {
+  const col = await jutsuJobsCollection();
+  const now = new Date();
+  const updateRes = await col.updateOne(
+    { _id: job._id, status: { $ne: "failed" } },
+    {
+      $set: {
+        status: "failed",
+        error,
+        creditsRefunded: true,
+        updatedAt: now,
+      },
+    },
+  );
+  if (
+    updateRes.modifiedCount > 0 &&
+    !job.creditsRefunded &&
+    job.creditsCharged &&
+    job.creditsCharged > 0
+  ) {
+    await refundCredits(job.clerkUserId, job.creditsCharged).catch((err) => {
+      console.error("[scro-swap] credit refund failed", {
+        jobId: job._id.toHexString(),
+        err,
+      });
     });
   }
+  await settleTargetClipFromEngineJob({
+    targetVideoId: job.targetVideoId,
+    targetClipNumber: job.targetClipNumber,
+    previousClipVideoUrl: job.previousClipVideoUrl,
+    status: "failed",
+    error,
+  });
+  return now;
 }
 
 /** Advance any in-flight `jutsu_jobs` in parallel (called by task polling and the refresh cron). */
@@ -1824,17 +1878,7 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
         if (!job.openRouterStatusUrl) {
           if (job.createdAt.getTime() < staleCutoff) {
             const timeoutErr = "Scro Swap 處理逾時，請重試";
-            await col.updateOne(
-              { _id: job._id },
-              { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
-            );
-            await settleTargetClipFromEngineJob({
-              targetVideoId: job.targetVideoId,
-              targetClipNumber: job.targetClipNumber,
-              previousClipVideoUrl: job.previousClipVideoUrl,
-              status: "failed",
-              error: timeoutErr,
-            });
+            await failJutsuJobAndRefund(job, timeoutErr);
             return 1;
           }
           if (job.updatedAt.getTime() < stuckPrepCutoff) {
@@ -1859,32 +1903,12 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
         }
         if (polled.status === "failed" || polled.status === "nsfw") {
           const err = polled.error || "影片渲染失敗";
-          await col.updateOne(
-            { _id: job._id },
-            { $set: { status: "failed", error: err, updatedAt: new Date() } },
-          );
-          await settleTargetClipFromEngineJob({
-            targetVideoId: job.targetVideoId,
-            targetClipNumber: job.targetClipNumber,
-            previousClipVideoUrl: job.previousClipVideoUrl,
-            status: "failed",
-            error: err,
-          });
+          await failJutsuJobAndRefund(job, err);
           return 1;
         }
         if (job.createdAt.getTime() < nowMs - comfyRenderStaleMs(job.openRouterStatusUrl)) {
           const timeoutErr = "Scro Swap 渲染逾時，請重試";
-          await col.updateOne(
-            { _id: job._id },
-            { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
-          );
-          await settleTargetClipFromEngineJob({
-            targetVideoId: job.targetVideoId,
-            targetClipNumber: job.targetClipNumber,
-            previousClipVideoUrl: job.previousClipVideoUrl,
-            status: "failed",
-            error: timeoutErr,
-          });
+          await failJutsuJobAndRefund(job, timeoutErr);
           return 1;
         }
         return 0;
@@ -1927,18 +1951,7 @@ export async function pollJutsuJobStatus(
     }
     if (polled.status === "failed" || polled.status === "nsfw") {
       const err = polled.error || "影片渲染失敗";
-      const now = new Date();
-      await col.updateOne(
-        { _id: job._id },
-        { $set: { status: "failed", error: err, updatedAt: now } },
-      );
-      await settleTargetClipFromEngineJob({
-        targetVideoId: job.targetVideoId,
-        targetClipNumber: job.targetClipNumber,
-        previousClipVideoUrl: job.previousClipVideoUrl,
-        status: "failed",
-        error: err,
-      });
+      const now = await failJutsuJobAndRefund(job, err);
       return {
         ok: true,
         job: toPublicJutsuJob({ ...job, status: "failed", error: err, updatedAt: now }),

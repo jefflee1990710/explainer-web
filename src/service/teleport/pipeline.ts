@@ -10,6 +10,12 @@ import {
 } from "@/model/teleport-job";
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
+import {
+  assertCanSpendCredits,
+  consumeCredits,
+  refundCredits,
+} from "@/service/billing/credits";
+import { teleportCost } from "@/service/credit-costs";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
@@ -132,6 +138,10 @@ export async function startTeleportJob(
       return { ok: false, error: "場景照網址無效" };
     }
 
+    const cost = teleportCost({ durationSeconds: normalized.sectionLength });
+    await assertCanSpendCredits(user, cost);
+    const spendKey = await consumeCredits(user.clerkUserId, cost);
+
     const now = new Date();
     const jobId = new ObjectId();
     let resolvedTargetVideoId =
@@ -140,20 +150,25 @@ export async function startTeleportJob(
         : undefined;
     let resolvedTargetClipNumber = normalized.targetClipNumber;
     if (!resolvedTargetVideoId) {
-      resolvedTargetVideoId = await createStandaloneEngineProject({
-        userId: user._id,
-        clerkUserId: user.clerkUserId,
-        kind: "teleport",
-        title: normalized.scenePrompt
-          ? `Teleport · ${normalized.scenePrompt.slice(0, 48)}`
-          : "Teleport",
-        sourceVideoUrl: normalized.sourceVideoUrl,
-        aspectRatio: normalized.aspectRatio,
-        durationSeconds: normalized.sectionLength,
-        status: "rendering",
-        now,
-      });
-      resolvedTargetClipNumber = 1;
+      try {
+        resolvedTargetVideoId = await createStandaloneEngineProject({
+          userId: user._id,
+          clerkUserId: user.clerkUserId,
+          kind: "teleport",
+          title: normalized.scenePrompt
+            ? `Teleport · ${normalized.scenePrompt.slice(0, 48)}`
+            : "Teleport",
+          sourceVideoUrl: normalized.sourceVideoUrl,
+          aspectRatio: normalized.aspectRatio,
+          durationSeconds: normalized.sectionLength,
+          status: "rendering",
+          now,
+        });
+        resolvedTargetClipNumber = 1;
+      } catch (err) {
+        await refundCredits(user.clerkUserId, cost, spendKey);
+        throw err;
+      }
     }
 
     const doc: TeleportJobDoc = {
@@ -170,6 +185,7 @@ export async function startTeleportJob(
       scenePlateGenerated: false,
       keepSourceAudio: normalized.keepSourceAudio,
       applyColorFix: normalized.applyColorFix,
+      creditsCharged: cost,
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(normalized.previousClipVideoUrl
@@ -180,7 +196,12 @@ export async function startTeleportJob(
     };
 
     const col = await teleportJobsCollection();
-    await col.insertOne(doc);
+    try {
+      await col.insertOne(doc);
+    } catch (err) {
+      await refundCredits(user.clerkUserId, cost, spendKey);
+      throw err;
+    }
 
     after(() =>
       runTeleportJobInBackground(jobId).catch((error) => {
@@ -445,18 +466,48 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Teleport 渲染失敗";
-    await col.updateOne(
-      { _id: jobId },
-      { $set: { status: "failed", error: msg, updatedAt: new Date() } },
-    );
-    await settleTargetClipFromEngineJob({
-      targetVideoId: job.targetVideoId,
-      targetClipNumber: job.targetClipNumber,
-      previousClipVideoUrl: job.previousClipVideoUrl,
-      status: "failed",
-      error: msg,
+    await failTeleportJobAndRefund(job, msg);
+  }
+}
+
+async function failTeleportJobAndRefund(
+  job: TeleportJobDoc,
+  error: string,
+): Promise<Date> {
+  const col = await teleportJobsCollection();
+  const now = new Date();
+  const updateRes = await col.updateOne(
+    { _id: job._id, status: { $ne: "failed" } },
+    {
+      $set: {
+        status: "failed",
+        error,
+        creditsRefunded: true,
+        updatedAt: now,
+      },
+    },
+  );
+  if (
+    updateRes.modifiedCount > 0 &&
+    !job.creditsRefunded &&
+    job.creditsCharged &&
+    job.creditsCharged > 0
+  ) {
+    await refundCredits(job.clerkUserId, job.creditsCharged).catch((err) => {
+      console.error("[teleport] credit refund failed", {
+        jobId: job._id.toHexString(),
+        err,
+      });
     });
   }
+  await settleTargetClipFromEngineJob({
+    targetVideoId: job.targetVideoId,
+    targetClipNumber: job.targetClipNumber,
+    previousClipVideoUrl: job.previousClipVideoUrl,
+    status: "failed",
+    error,
+  });
+  return now;
 }
 
 /** Download the provider video, optionally grade + mux source audio, persist, and complete the job. */
@@ -544,17 +595,7 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
         if (!job.openRouterStatusUrl) {
           if (job.createdAt.getTime() < staleCutoff) {
             const timeoutErr = "Teleport 處理逾時，請重試";
-            await col.updateOne(
-              { _id: job._id },
-              { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
-            );
-            await settleTargetClipFromEngineJob({
-              targetVideoId: job.targetVideoId,
-              targetClipNumber: job.targetClipNumber,
-              previousClipVideoUrl: job.previousClipVideoUrl,
-              status: "failed",
-              error: timeoutErr,
-            });
+            await failTeleportJobAndRefund(job, timeoutErr);
             return 1;
           }
           if (job.updatedAt.getTime() < stuckPrepCutoff) {
@@ -576,48 +617,18 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
           } catch (error) {
             console.error("[teleport] finalize failed", { jobId: job._id.toHexString(), error });
             const msg = error instanceof Error ? error.message : "Teleport 渲染失敗";
-            await col.updateOne(
-              { _id: job._id },
-              { $set: { status: "failed", error: msg, updatedAt: new Date() } },
-            );
-            await settleTargetClipFromEngineJob({
-              targetVideoId: job.targetVideoId,
-              targetClipNumber: job.targetClipNumber,
-              previousClipVideoUrl: job.previousClipVideoUrl,
-              status: "failed",
-              error: msg,
-            });
+            await failTeleportJobAndRefund(job, msg);
           }
           return 1;
         }
         if (polled.status === "failed" || polled.status === "nsfw") {
           const err = polled.error || "影片渲染失敗";
-          await col.updateOne(
-            { _id: job._id },
-            { $set: { status: "failed", error: err, updatedAt: new Date() } },
-          );
-          await settleTargetClipFromEngineJob({
-            targetVideoId: job.targetVideoId,
-            targetClipNumber: job.targetClipNumber,
-            previousClipVideoUrl: job.previousClipVideoUrl,
-            status: "failed",
-            error: err,
-          });
+          await failTeleportJobAndRefund(job, err);
           return 1;
         }
         if (job.createdAt.getTime() < nowMs - comfyRenderStaleMs(job.openRouterStatusUrl)) {
           const timeoutErr = "Teleport 渲染逾時，請重試";
-          await col.updateOne(
-            { _id: job._id },
-            { $set: { status: "failed", error: timeoutErr, updatedAt: new Date() } },
-          );
-          await settleTargetClipFromEngineJob({
-            targetVideoId: job.targetVideoId,
-            targetClipNumber: job.targetClipNumber,
-            previousClipVideoUrl: job.previousClipVideoUrl,
-            status: "failed",
-            error: timeoutErr,
-          });
+          await failTeleportJobAndRefund(job, timeoutErr);
           return 1;
         }
         return 0;
@@ -660,18 +671,7 @@ export async function pollTeleportJobStatus(
     }
     if (polled.status === "failed" || polled.status === "nsfw") {
       const err = polled.error || "影片渲染失敗";
-      const now = new Date();
-      await col.updateOne(
-        { _id: job._id },
-        { $set: { status: "failed", error: err, updatedAt: now } },
-      );
-      await settleTargetClipFromEngineJob({
-        targetVideoId: job.targetVideoId,
-        targetClipNumber: job.targetClipNumber,
-        previousClipVideoUrl: job.previousClipVideoUrl,
-        status: "failed",
-        error: err,
-      });
+      const now = await failTeleportJobAndRefund(job, err);
       return {
         ok: true,
         job: toPublicTeleportJob({ ...job, status: "failed", error: err, updatedAt: now }),

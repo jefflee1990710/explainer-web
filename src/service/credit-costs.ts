@@ -44,6 +44,31 @@ export function talkingHeadVideoCost(seconds: number) {
   return TALKING_HEAD_CREDITS_PER_SECOND * billedVideoSeconds(seconds, TALKING_HEAD_MAX_VIDEO_SECONDS);
 }
 
+/**
+ * Credits for one Scro Swap job:
+ * - Static image swap: `FRAME_COST` (`4` credits)
+ * - Video / GIF swap (`2s..15s`): `FRAME_COST` (`4` credits for keyframe prepare) + `15 credits/s` (`CINEMATIC_VIDEO_CREDITS_PER_SECOND`).
+ */
+export function scroSwapCost(input?: {
+  durationSeconds?: number;
+  mediaKind?: "video" | "gif" | "image";
+}): number {
+  if (input?.mediaKind === "image") return FRAME_COST;
+  const raw = Number(input?.durationSeconds);
+  const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
+  return FRAME_COST + CINEMATIC_VIDEO_CREDITS_PER_SECOND * clamped;
+}
+
+/**
+ * Credits for one Teleport job (`2s..15s`):
+ * `FRAME_COST` (`4` credits for relocated keyframe prepare) + `15 credits/s` (`CINEMATIC_VIDEO_CREDITS_PER_SECOND`).
+ */
+export function teleportCost(input?: { durationSeconds?: number }): number {
+  const raw = Number(input?.durationSeconds);
+  const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
+  return FRAME_COST + CINEMATIC_VIDEO_CREDITS_PER_SECOND * clamped;
+}
+
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.
 export function chargedVideoCredits(clip?: { creditsCharged?: number; durationSeconds?: number }) {
   return clip?.creditsCharged ?? videoCost(clip?.durationSeconds ?? MIN_VIDEO_SECONDS);
