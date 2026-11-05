@@ -36,6 +36,7 @@ export const STYLE_IDS = [
   "proof-poster",
   "data-ring",
   "wireframe-breakdown",
+  "japanese-anime",
 ] as const;
 
 export const styleIdSchema = z.enum(STYLE_IDS);

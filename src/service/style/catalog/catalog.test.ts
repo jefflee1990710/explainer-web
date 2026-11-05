@@ -3,7 +3,7 @@ import test from "node:test";
 import { STYLE_IDS } from "@/model/style-id";
 import { STYLES, STYLES_BY_ID, getStyleById, resolveCatalogStyle } from "@/service/style/catalog";
 
-test("all 35 STYLE_IDS exist in hardcoded catalog and satisfy IStyle", () => {
+test("all 36 STYLE_IDS exist in hardcoded catalog and satisfy IStyle", () => {
   assert.equal(STYLES.length, STYLE_IDS.length);
   for (const id of STYLE_IDS) {
     const style = STYLES_BY_ID[id];

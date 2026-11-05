@@ -1405,7 +1405,8 @@ export type Messages = {
     | "grid-icons"
     | "proof-poster"
     | "data-ring"
-    | "wireframe-breakdown",
+    | "wireframe-breakdown"
+    | "japanese-anime",
     string
   >;
   plans: {

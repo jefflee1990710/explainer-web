@@ -53,6 +53,7 @@ test("STYLE_IDS lists every allowed style id", () => {
     "proof-poster",
     "data-ring",
     "wireframe-breakdown",
+    "japanese-anime",
   ]);
 });
 

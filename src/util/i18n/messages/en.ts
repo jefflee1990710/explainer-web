@@ -2024,6 +2024,7 @@ export const en: Messages = {
     "proof-poster": "A black field, a torn chart, and a huge white headline.",
     "data-ring": "Digits on concentric rings and one translucent phrase.",
     "wireframe-breakdown": "A cyan wireframe figure on a desaturated court, with a stacked title.",
+    "japanese-anime": "Theatrical 2D Japanese anime with cel-shaded characters, starlight eyes, and painted night skies.",
   },
   plans: {
     starter: {

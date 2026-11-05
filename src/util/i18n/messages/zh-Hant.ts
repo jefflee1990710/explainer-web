@@ -2009,6 +2009,7 @@ export const zhHant: Messages = {
     "proof-poster": "黑底、撕邊數據圖與超大白字。",
     "data-ring": "同心圓上的數字，中央一道半透明大字。",
     "wireframe-breakdown": "去飽和場地上的青色線框人與分解標題。",
+    "japanese-anime": "新海誠式劇院級日本動畫：細膩賽璐珞角色線條、星光眼神與唯美夜空光影。",
   },
   plans: {
     starter: {

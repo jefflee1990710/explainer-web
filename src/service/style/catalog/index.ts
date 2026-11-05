@@ -35,6 +35,7 @@ import { gridIconsStyle } from "@/service/style/catalog/grid-icons";
 import { proofPosterStyle } from "@/service/style/catalog/proof-poster";
 import { dataRingStyle } from "@/service/style/catalog/data-ring";
 import { wireframeBreakdownStyle } from "@/service/style/catalog/wireframe-breakdown";
+import { japaneseAnimeStyle } from "@/service/style/catalog/japanese-anime";
 
 export const STYLES: readonly IStyle[] = [
   doodleStyle,
@@ -72,6 +73,7 @@ export const STYLES: readonly IStyle[] = [
   proofPosterStyle,
   dataRingStyle,
   wireframeBreakdownStyle,
+  japaneseAnimeStyle,
 ];
 
 export const STYLES_BY_ID: Record<StyleId, IStyle> = Object.fromEntries(

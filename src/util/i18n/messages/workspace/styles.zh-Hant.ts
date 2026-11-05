@@ -37,6 +37,7 @@ export const stylesZhHant = {
   "proof-poster": "黑底證據海報",
   "data-ring": "同心圓數據",
   "wireframe-breakdown": "線框分解",
+  "japanese-anime": "日本動畫風",
   title: "風格",
   subtitle: "風格決定影片的畫面。從系統風格開始，改成你自己的。",
   systemSection: "系統風格",
