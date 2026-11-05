@@ -30,6 +30,7 @@ import {
   JutsuPersonTabsBar,
   type JutsuPersonSlotAssignment,
 } from "@/presentation/components/app/jutsu/jutsu-person-rle-mapper";
+import { ClipRangeTimelineSelector } from "@/presentation/components/app/jutsu/clip-range-timeline-selector";
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
 import { AddCharacterStyleDialog } from "@/presentation/components/app/characters/[id]/add-character-style-dialog";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
@@ -1535,122 +1536,22 @@ export function JutsuStudio({
             ) : null}
 
             {/* Interactive Timeline Bar */}
-            {(() => {
-              const maxDur = Math.max(sourceDuration, sectionStart + sectionLength, 15);
-              const startPct = Math.min(100, (sectionStart / maxDur) * 100);
-              const widthPct = Math.min(100 - startPct, (sectionLength / maxDur) * 100);
-              return (
-                <div className="space-y-3 rounded-2xl border border-zinc-200 bg-[#f4f4f5] p-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#12141c]">
-                    <span>
-                      {isEn ? "Start" : "起點"}: {sectionStart.toFixed(1)}s
-                    </span>
-                    <span className="rounded-2xl bg-[#12141c] px-2.5 py-0.5 text-[#c6f24b]">
-                      {sectionLength}s ({sectionStart.toFixed(1)}s – {(sectionStart + sectionLength).toFixed(1)}s)
-                    </span>
-                    <span>
-                      {isEn ? "End" : "終點"}: {(sectionStart + sectionLength).toFixed(1)}s
-                    </span>
-                  </div>
-
-                  {/* Visual draggable timeline range track */}
-                  <div
-                    onPointerDown={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const updateFromClientX = (clientX: number) => {
-                        const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / Math.max(1, rect.width)));
-                        const tSec = Math.round(ratio * maxDur * 2) / 2;
-                        const currentEnd = sectionStart + sectionLength;
-                        const distStart = Math.abs(tSec - sectionStart);
-                        const distEnd = Math.abs(tSec - currentEnd);
-                        if (distStart <= distEnd) {
-                          const nextStart = Math.max(0, Math.min(currentEnd - 2, tSec));
-                          const nextLen = Math.min(15, Math.max(2, Math.round(currentEnd - nextStart)));
-                          setSectionStart(nextStart);
-                          setSectionLength(nextLen);
-                          if (trimVideoRef.current) trimVideoRef.current.currentTime = nextStart;
-                        } else {
-                          const nextLen = Math.min(15, Math.max(2, Math.round(tSec - sectionStart)));
-                          setSectionLength(nextLen);
-                          if (trimVideoRef.current) trimVideoRef.current.currentTime = sectionStart + nextLen;
-                        }
-                      };
-                      e.currentTarget.setPointerCapture(e.pointerId);
-                      updateFromClientX(e.clientX);
-                      const el = e.currentTarget;
-                      const onMove = (ev: PointerEvent) => updateFromClientX(ev.clientX);
-                      const onUp = () => {
-                        el.removeEventListener("pointermove", onMove);
-                        el.removeEventListener("pointerup", onUp);
-                      };
-                      el.addEventListener("pointermove", onMove);
-                      el.addEventListener("pointerup", onUp);
-                    }}
-                    className="relative h-10 w-full cursor-ew-resize touch-none overflow-hidden rounded-2xl bg-zinc-200 select-none"
-                  >
-                    <div
-                      className="absolute inset-y-0 flex items-center justify-between rounded-2xl border-2 border-[#12141c] bg-[#c6f24b]/90 px-1.5"
-                      style={{
-                        left: `${startPct}%`,
-                        width: `${Math.max(6, widthPct)}%`,
-                      }}
-                    >
-                      <span className="h-5 w-1.5 rounded-full bg-[#12141c]" />
-                      <span className="h-5 w-1.5 rounded-full bg-[#12141c]" />
-                    </div>
-                  </div>
-
-                  {/* Interactive Start & Duration Sliders */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="flex items-center justify-between text-[11px] font-semibold text-zinc-600">
-                        <span>{isEn ? "Start Time" : "起始位置 (Start)"}</span>
-                        <span>{sectionStart.toFixed(1)}s</span>
-                      </span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={Math.max(0, maxDur - 2)}
-                        step={0.5}
-                        disabled={submitting}
-                        value={sectionStart}
-                        onChange={(e) => {
-                          const nextStart = Math.max(0, Number(e.target.value));
-                          setSectionStart(nextStart);
-                          if (trimVideoRef.current) {
-                            trimVideoRef.current.currentTime = nextStart;
-                          }
-                        }}
-                        className="mt-1.5 w-full cursor-pointer accent-[#12141c]"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="flex items-center justify-between text-[11px] font-semibold text-zinc-600">
-                        <span>{isEn ? "Duration (2s–15s)" : "片段長度 (2–15秒)"}</span>
-                        <span>{sectionLength}s</span>
-                      </span>
-                      <input
-                        type="range"
-                        min={2}
-                        max={15}
-                        step={1}
-                        disabled={submitting}
-                        value={sectionLength}
-                        onChange={(e) => {
-                          const nextLen = Math.min(15, Math.max(2, Number(e.target.value)));
-                          setSectionLength(nextLen);
-                          if (trimVideoRef.current) {
-                            trimVideoRef.current.currentTime = sectionStart + nextLen;
-                          }
-                        }}
-                        className="mt-1.5 w-full cursor-pointer accent-[#12141c]"
-                      />
-                    </label>
-                  </div>
-                </div>
-              );
-            })()}
+            <ClipRangeTimelineSelector
+              sourceDuration={sourceDuration}
+              sectionStart={sectionStart}
+              sectionLength={sectionLength}
+              disabled={submitting}
+              isEn={isEn}
+              onChange={({ sectionStart: nextStart, sectionLength: nextLen }) => {
+                setSectionStart(nextStart);
+                setSectionLength(nextLen);
+              }}
+              onPreviewTime={(sec) => {
+                if (trimVideoRef.current) {
+                  trimVideoRef.current.currentTime = sec;
+                }
+              }}
+            />
 
             <div className="flex items-center justify-end gap-2">
               <button

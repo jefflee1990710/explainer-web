@@ -260,7 +260,6 @@ export function JutsuPersonTabsBar({
   activePersonIndex,
   assignments,
   onSelectPerson,
-  onRedetect,
   disabled,
   isEn,
 }: {
@@ -269,38 +268,29 @@ export function JutsuPersonTabsBar({
   activePersonIndex: number;
   assignments: Record<number, JutsuPersonSlotAssignment>;
   onSelectPerson: (personIndex: number) => void;
-  onRedetect: () => void;
+  onRedetect?: () => void;
   disabled?: boolean;
   isEn: boolean;
 }) {
+  if (!detecting && people.length === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-2 rounded-xl border border-accent-ink/12 bg-white/85 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
+          {detecting ? <Spinner className="h-3.5 w-3.5 shrink-0" /> : null}
           <span className="font-bold text-foreground">
             {detecting
               ? isEn
                 ? "Detecting people in opening frame…"
                 : "正在偵測首幀人物輪廓…"
-              : people.length > 0
-                ? isEn
-                  ? `Detected ${people.length} ${people.length === 1 ? "person" : "people"} — click a person tab to assign character & outfit`
-                  : `已偵測到 ${people.length} 位人物（點擊人物標籤，喺下方指定替換角色與穿搭）`
-                : isEn
-                  ? "Single-person mode (click Redetect to scan frame for multiple people)"
-                  : "預設單人模式（可按「重新偵測人物」掃描多人輪廓）"}
+              : isEn
+                ? `Detected ${people.length} ${people.length === 1 ? "person" : "people"} — click a person tab to assign character & outfit`
+                : `已偵測到 ${people.length} 位人物（點擊人物標籤，喺下方指定替換角色與穿搭）`}
           </span>
         </div>
-
-        <button
-          type="button"
-          disabled={disabled || detecting}
-          onClick={onRedetect}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/20 bg-paper px-3 py-1 text-[11px] font-bold text-foreground transition hover:border-accent-ink disabled:opacity-50"
-        >
-          {detecting ? <Spinner className="h-3 w-3" /> : <span>↻</span>}
-          <span>{isEn ? "Redetect People" : "重新偵測人物"}</span>
-        </button>
       </div>
 
       {people.length > 0 ? (
