@@ -121,7 +121,12 @@ function resolveEffectPassGroups({
 			const definition = effectsRegistry.get(effect.type);
 			return resolveEffectPasses({
 				definition,
-				effectParams: resolvedParams,
+				effectParams: {
+					...resolvedParams,
+					__time: mediaTimeToSeconds({
+						time: roundMediaTime({ time: localTime }),
+					}),
+				},
 				width,
 				height,
 			});
@@ -472,7 +477,11 @@ function resolveEffectLayerNode({
 			: 0;
 	const passes = resolveEffectPasses({
 		definition,
-		effectParams: { ...node.params.effectParams, progress },
+		effectParams: {
+			...node.params.effectParams,
+			progress,
+			__time: mediaTimeToSeconds({ time: roundMediaTime({ time }) }),
+		},
 		width: context.renderer.width,
 		height: context.renderer.height,
 	});

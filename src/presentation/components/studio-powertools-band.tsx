@@ -11,11 +11,13 @@ type PowertoolCard = {
   chips: string[];
 };
 
-// Highlights the 4 newly added studio capabilities across Landing & Feature pages:
-// 1. Built-in Mic Voice Recorder + 21 Voiceover Languages
-// 2. Storyboard Draft Sketchpad + AI Co-Director Chat
-// 3. Auto Silence Trimming + Free Stock B-Roll Auto-Insert
-// 4. Native Artistic Subtitles + Bilingual Google Fonts + Root-Locked Wardrobe
+// Highlights the 6 flagship studio capabilities across Landing & Feature pages:
+// 1. 120s 1-Pass Lip-Sync + Direct Mic/Audio VO Upload + 21 Languages + Dialogue Q&A
+// 2. Scro Swap (SAM 3 Multi-Person Motion Swap / 17-Look Relight) & Teleport Scene Relocation
+// 3. Poster SAM 3 Studio (2K Social Posters + Person/Object/Text Element Inpainting)
+// 4. Storyboard Sketchpad + Whiteboard & Paper Cutout 6-Diagram Explainers
+// 5. OpenCut AI Audio (IG Viral SFX Peak-Aligned + BGM Loop & Auto-Ducking + Silence Trim)
+// 6. 13 Artistic Captions + AI On-Screen Text Stickers + Drift-Free Root Wardrobe
 export function StudioPowertoolsBand({
   signedIn = false,
   tone = "light",
@@ -29,66 +31,90 @@ export function StudioPowertoolsBand({
 
   const copy = isZh
     ? {
-        eyebrow: "全新升級 · Studio 創作引擎",
-        title: "由麥克風錄音、手繪分鏡草稿到 AI 自動剪輯，一站完成。",
+        eyebrow: "全新升級 · 6 大 AI Studio 創作引擎",
+        title: "由 120 秒一鏡到底口播、Scro Swap 換角換場、SAM 3 海報重繪到 AI 自動對拍剪輯，一站完成。",
         subtitle:
-          "我們將專業創作者最常卡關的 4 個環節全部內建進 Scro 工作台，讓你不用切換多個工具就能產出高留存短片。",
+          "我們將虛擬 IP 經營、實拍影片改造與專業後期剪接全面整合進 Scro 工作台，讓你不用切換多個工具就能穩定日更爆款短片與海報。",
         cards: [
           {
-            badge: "01 · 聲線複製 & 21 種語言",
-            title: "瀏覽器麥克風直錄 + 21 國語言同步發聲",
-            body: "免外接錄音軟體，直接跟著內建母語提詞稿（Teleprompter）用麥克風錄製 15 秒示範聲音，或上傳音訊檔；支援廣東話、國語、英、日、韓及歐美東南亞共 21 種語言同步建立角色聲線與生成短片。",
-            chips: ["麥克風即時錄音", "內建 21 語提詞稿", "21 種語言配音同步"],
+            badge: "01 · 120s 對嘴口播 & 21 語原聲直出",
+            title: "單段 120 秒 1080p 對嘴 + 雙人 Q&A + 原聲直傳",
+            body: "支援單段最長 120 秒一鏡到底 1080p 自然對嘴（每秒僅 4 credits，已含語音），內建雙人對談 Q&A、雜誌人物專訪及口播穿插 B-Roll 導演；可跟著提詞稿用麥克風直錄或上傳原聲免 TTS 直出，支援廣東話等 21 國語言。",
+            chips: ["120s 一鏡到底 (4 credits/s)", "雙人對談 Q&A & 專訪", "原聲直錄 / 21 國語言"],
           },
           {
-            badge: "02 · 分鏡草稿畫板 & AI 導演對話",
-            title: "手繪構圖草稿 + AI 對話室逐段規劃",
-            body: "在正式生成前，可在 Step 03 分鏡草稿自由新增 Clip、用畫筆手繪構圖位置並寫下畫面解說，或直接在右側 AI 對話室讓 AI 根據講稿自動拆解每段畫面與對白；留空則由 AI 導演全自動編排。",
-            chips: ["手繪分鏡畫板", "AI 分鏡對話室", "支援留空全自動"],
+            badge: "02 · Scro Swap 換角 & Teleport 換場",
+            title: "SAM 3 多人影片換角、17 款電影打光與一鍵換場",
+            body: "透過 SAM 3 RLE 像素級輪廓追蹤，在實拍或分鏡影片中實現 N 對 N 多人指定換角、換物換衫與 17 款電影級重新打光（Scro Swap），或鎖定原片人物動作與原聲嘴型一鍵搬入新場景（Teleport），並支援在 OpenCut 剪輯器內單鏡原地替換。",
+            chips: ["SAM 3 多人影片換角", "17 款電影級打光", "Teleport 鎖動作換場"],
           },
           {
-            badge: "03 · 智能順暢剪接 & 免費 B-Roll",
-            title: "自動切除句首句尾死白 + 一鍵穿插免費 B-Roll",
-            body: "OpenCut 剪輯台載入片段時自動偵測音訊波形（RMS），精準裁走句首與句尾多餘空白並加上微淡入淡出，讓段與段之間零冷場；同時內建免費圖庫與影片搜尋，支援 AI 一鍵自動穿插 B-Roll 空鏡。",
-            chips: ["自動去頭尾靜音", "零冷場順暢銜接", "免費 B-Roll 自動穿插"],
+            badge: "03 · Poster Studio & SAM 3 局部重繪",
+            title: "2K 社群海報生成 + 人物／物件／文字獨立重繪",
+            body: "結合 Scro 角色穿搭與真實商品藍圖生成 2K 社群海報，並由 SAM 3 自動分離畫面中的「人物（Person）」、「物件（Object）」與「文字（Text）」三層輪廓，點選任意元素即可原位換人、換產品、改字或無縫移除。",
+            chips: ["2K 品牌海報生成", "SAM 3 三層元素分離", "點選局部重繪 & 改字"],
           },
           {
-            badge: "04 · 藝術字體字幕 & 零走樣換裝",
-            title: "13 款藝術字幕 + 中英雙語 Google Fonts + 換裝鎖臉",
-            body: "直接將分鏡旁白轉為可編輯原生字幕軌，內建 13 款藝術字Preset（描邊、3D 陰影、霓虹發光、撕紙底條）與多款繁中／粵語 + 英文 Google Fonts；搭配原始五官錨定技術，連續換裝 10 代依然 100% 鎖定同一張臉。",
-            chips: ["13 款藝術字幕", "中英雙語 Google Fonts", "v1–v10 換裝零走樣"],
+            badge: "04 · 手繪分鏡畫板 & 結構化 Explainer",
+            title: "白板塗鴉 + 剪紙拼貼 6 大圖表模型 + 先審畫格",
+            body: "支援 Step 03 手繪分鏡草稿與 AI 對話室預先規劃，先審核 2K 關鍵畫格（4 credits/張）再渲染影片；內建白板手繪、Paper Cutout 剪紙拼貼（6 大結構化圖表模型）、清單盤點、對比卡與流程宣傳導演。",
+            chips: ["白板 & 剪紙拼貼圖表", "手繪分鏡 & AI 對話室", "先審畫格省重試成本"],
+          },
+          {
+            badge: "05 · IG 熱門 SFX 峰值對拍 & BGM 自動避人聲",
+            title: "自動去頭尾靜音 + IG Viral SFX + BGM Auto-Ducking",
+            body: "OpenCut 載入片段自動裁除頭尾死白；AI 自動偵測轉場切點、字卡彈出與畫面動作，匹配內建 12 款 IG Reels 熱門 SFX 與 ElevenLabs AI Foley（20ms RMS 峰值對齊），並為 BGM 自動循環鋪底及寫入避開人聲的 Auto-Ducking 音量曲線。",
+            chips: ["12 款 IG 熱門 SFX 對拍", "BGM Auto-Ducking 避人聲", "自動去頭尾死白 & B-Roll"],
+          },
+          {
+            badge: "06 · 13 款藝術字幕 + AI 字卡 + 換裝鎖臉",
+            title: "原生藝術字幕、AI 透明底視覺字卡與 v1–v10 鎖臉",
+            body: "一鍵生成 13 款可編輯藝術字幕（中英雙語 Google Fonts）及 AI 去背貼紙字卡（撕紙、霓虹、立體字），轉場自動置於字幕層之下絕不遮字；搭配原始五官錨定技術，連續換裝 10 代依然 100% 鎖定同一張臉。",
+            chips: ["13 款藝術字幕 & AI 字卡", "字幕獨立特效 & 防遮擋轉場", "v1–v10 換裝零走樣"],
           },
         ] satisfies PowertoolCard[],
       }
     : {
-        eyebrow: "New in Scro Studio · Creator Engine",
-        title: "From live mic voice cloning & sketchboards to AI auto-editing.",
+        eyebrow: "New in Scro Studio · 6-in-1 Creator Engine",
+        title: "120s lip-sync, Scro Swap, Teleport, SAM 3 Poster Studio, and AI peak-aligned editing in one workspace.",
         subtitle:
-          "Four built-in studio upgrades remove the friction between your raw idea and a retention-ready vertical reel — all inside one workspace.",
+          "Six integrated studio engines take you from virtual IP creation and live-video character/scene swapping to viral post-production without switching tools.",
         cards: [
           {
-            badge: "01 · Mic Recording & 21 Languages",
-            title: "In-browser mic recorder + 21 voiceover languages",
-            body: "Record a 15-second voice sample right in your browser with built-in teleprompter scripts, or upload audio files. Clone your voice and generate videos across 21 matched languages including English, Cantonese, Mandarin, Japanese, Korean, Spanish, Indonesian, and more.",
-            chips: ["Live Mic Recorder", "Built-in Teleprompter", "21 Matched Languages"],
+            badge: "01 · 120s Lip-Sync & 21 Languages",
+            title: "Up to 120s 1-pass 1080p talking-head + Dialogue Q&A",
+            body: "Render up to 120-second continuous 1080p talking-head clips in one pass (just 4 credits/s, voice included). Includes Dialogue Q&A, Editorial Interview, and Talking B-Roll directors, plus direct mic/audio VO upload and 21 matched languages.",
+            chips: ["120s 1-Pass (4 credits/s)", "Dialogue Q&A & Interview", "Direct VO Upload & 21 Languages"],
           },
           {
-            badge: "02 · Storyboard Sketchpad & AI Chat",
-            title: "Draw rough layout sketches + co-write clips with AI",
-            body: "In Step 03 Storyboard Drafts, add custom clips, sketch where characters and diagrams sit on a canvas, or chat with the AI assistant on the right to draft visual explanations and VO lines from your script — or leave it blank for full AI auto-planning.",
-            chips: ["Interactive Sketchpad", "AI Draft Chatroom", "Optional Auto-Plan"],
+            badge: "02 · Scro Swap & Teleport",
+            title: "SAM 3 multi-person motion swap, 17-look relight & scene teleport",
+            body: "Use SAM 3 RLE pixel masks for N-to-N multi-person character swap, object/wardrobe replacement, and 17-look cinematic relighting (Scro Swap), or relocate your speaker into any new scene while preserving motion and lip-sync (Teleport) — standalone or right inside the OpenCut timeline.",
+            chips: ["SAM 3 Multi-Person Swap", "17 Cinematic Light Looks", "Teleport Scene Relocation"],
           },
           {
-            badge: "03 · Silence Trim & Free Stock B-Roll",
-            title: "Auto dead-air removal + 1-click Stock B-Roll cutaways",
-            body: "OpenCut analyzes audio RMS on load to trim leading and trailing dead air with smooth 15ms micro-fades so clips flow without awkward pauses. Search free stock photos & videos in-panel or click Auto Insert B-Roll to overlay cutaways automatically.",
-            chips: ["Auto Silence Trim", "Seamless Clip Flow", "1-Click Stock B-Roll"],
+            badge: "03 · Poster Studio & SAM 3 Inpainting",
+            title: "2K social posters + Person / Object / Text element inpainting",
+            body: "Generate 2K social posters with your AI Influencer and product blueprints, then let SAM 3 automatically segment every Person, Object, and Text layer so you can click any element to swap characters, replace products, edit copy, or erase cleanly.",
+            chips: ["2K Poster Generation", "SAM 3 3-Layer Segmentation", "Click-to-Inpaint Elements"],
           },
           {
-            badge: "04 · Artistic Subtitles & Root Face Lock",
-            title: "13 artistic caption styles, Google Fonts & drift-free wardrobe",
-            body: "Generate editable native subtitle tracks from your VO in one click with 13 artistic presets (stroke, 3D shadow, neon glow, pill strips) and bilingual Google Fonts — while root-anchored wardrobe edits keep facial geometry 100% identical from v1 to v10.",
-            chips: ["13 Artistic Captions", "Bilingual Google Fonts", "Drift-Free Wardrobe Lock"],
+            badge: "04 · Storyboard Sketchpad & Explainers",
+            title: "Whiteboard & Paper Cutout 6-diagram explainers + keyframe approval",
+            body: "Sketch rough layouts or co-write scenes in AI chat and approve 2K keyframes (4 credits/image) before rendering video. Includes Whiteboard Doodle, Paper Cutout (6 structured diagram models), Listicle, Comparison Card, and Workflow Promo directors.",
+            chips: ["Whiteboard & Paper Cutout", "Interactive Sketchpad", "Approve Keyframes First"],
+          },
+          {
+            badge: "05 · IG Viral SFX & BGM Auto-Ducking",
+            title: "Auto silence trim + peak-aligned IG Viral SFX + BGM ducking",
+            body: "OpenCut trims leading/trailing dead air on load, aligns 12 curated IG Reels Viral SFX and ElevenLabs AI Foley peaks (20ms RMS) directly onto cuts and text pops, and loops BGM with automated volume ducking keyframes under spoken VO.",
+            chips: ["12 IG Viral SFX Pack", "BGM Auto-Ducking Keyframes", "Auto Silence Trim & B-Roll"],
+          },
+          {
+            badge: "06 · Artistic Captions, AI Cards & Face Lock",
+            title: "13 caption styles, AI On-Screen Text stickers & drift-free wardrobe",
+            body: "Generate editable subtitle tracks with 13 artistic presets, bilingual Google Fonts, and transparent AI On-Screen Text sticker plates (torn paper, neon, 3D) while root-anchored wardrobe edits keep facial identity 100% locked from v1 to v10.",
+            chips: ["13 Captions & AI Text Cards", "Clip-Level Effects & Smart Transitions", "v1–v10 Face Lock"],
           },
         ] satisfies PowertoolCard[],
       };
@@ -129,7 +155,7 @@ export function StudioPowertoolsBand({
           </p>
         </div>
 
-        <MotionStagger className="mt-14 grid gap-6 md:grid-cols-2">
+        <MotionStagger className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {copy.cards.map((card) => (
             <MotionItem key={card.badge}>
               <article

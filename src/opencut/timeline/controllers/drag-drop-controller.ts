@@ -24,9 +24,14 @@ import {
 	buildElementFromMedia,
 	buildEffectElement,
 } from "@/opencut/timeline/element-utils";
-import { InsertElementCommand } from "@/opencut/commands/timeline";
+import { InsertElementCommand, TracksSnapshotCommand } from "@/opencut/commands/timeline";
 import type { Command } from "@/opencut/commands/base-command";
-import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
+import { upsertTransitionElementInTracks } from "@/opencut/effects/apply-all-transitions";
+import {
+	canPlaceTransitionOnTracks,
+	effectTimingAt,
+	transitionTimingAt,
+} from "@/opencut/effects/effect-timing";
 import { isTransitionEffectType } from "@/opencut/effects/transition-layout";
 import { computeDropTarget } from "@/opencut/timeline/components/drop-target";
 import type { TimelineDragSource } from "@/opencut/timeline/drag-source";
@@ -304,6 +309,12 @@ export class DragDropController {
 		let startTimeOverride: MediaTime | undefined;
 
 		if (dragData.type === "effect") {
+			const isTransition = isTransitionEffectType(dragData.effectType);
+			if (isTransition && !canPlaceTransitionOnTracks({ tracks: sceneTracks })) {
+				this.setOver({ dropTarget: null, elementType: null });
+				event.dataTransfer.dropEffect = "none";
+				return;
+			}
 			const pointerTime = isExternal
 				? this.config.getCurrentPlayheadTime()
 				: mediaTime({
@@ -315,12 +326,14 @@ export class DragDropController {
 							) * TICKS_PER_SECOND,
 						),
 					});
-			const timing = isTransitionEffectType(dragData.effectType)
+			const timing = isTransition
 				? transitionTimingAt({ time: pointerTime, tracks: sceneTracks })
 				: effectTimingAt({ time: pointerTime, tracks: sceneTracks });
 			duration = timing.duration;
 			startTimeOverride = timing.startTime;
-			targetElementTypes = [];
+			targetElementTypes = isTransition
+				? []
+				: getTargetElementTypesForDrag({ dragData });
 		}
 
 		const target = computeDropTarget({
@@ -337,7 +350,11 @@ export class DragDropController {
 			startTimeOverride,
 		});
 		const fps = this.config.getActiveProjectFps();
-		if (dragData.type === "effect" && startTimeOverride !== undefined) {
+		if (
+			dragData.type === "effect" &&
+			startTimeOverride !== undefined &&
+			!target.targetElement
+		) {
 			// Keep the block on the clip edge if track placement moves x.
 			target.xPosition = startTimeOverride;
 			target.anchoredDuration = duration;
@@ -674,18 +691,33 @@ export class DragDropController {
 		target: DropTarget;
 		dragData: Extract<TimelineDragData, { type: "effect" }>;
 	}): void {
+		// Dropping a non-transition effect directly onto a visual element (video, image, text, sticker, graphic) attaches it to that clip.
+		if (!isTransitionEffectType(dragData.effectType) && target.targetElement) {
+			this.config.addClipEffect({
+				trackId: target.targetElement.trackId,
+				elementId: target.targetElement.elementId,
+				effectType: dragData.effectType,
+			});
+			return;
+		}
+
 		// The drag preview already snapped this to a clip head, tail, or cut.
 		const element = buildEffectElement({
 			effectType: dragData.effectType,
 			startTime: target.xPosition,
 			duration: target.anchoredDuration,
 		});
-		// Transitions reuse one effect track and are painted on the video row.
+		// Transitions reuse one effect track, replace any overlapping transition, and are painted on the video row.
 		if (isTransitionEffectType(dragData.effectType)) {
-			this.config.insertElement({
-				placement: { mode: "auto", trackType: "effect" },
+			const before = this.config.getSceneTracks();
+			const after = upsertTransitionElementInTracks({
+				tracks: before,
 				element,
 			});
+			if (!after) return;
+			this.config.executeCommand(
+				new TracksSnapshotCommand({ before, after }),
+			);
 			return;
 		}
 		this.insertAtTarget({ element, target, trackType: "effect" });

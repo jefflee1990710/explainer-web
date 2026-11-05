@@ -261,6 +261,17 @@ function isIdentityAmount({ spec, value }: { spec: SliderSpec; value: number }):
 	return Math.abs(value - spec.identity) < 0.001;
 }
 
+function deterministicGrainSeed(params: ParamValues): number {
+	const rawTime =
+		typeof params.__time === "number"
+			? params.__time
+			: typeof params.progress === "number"
+				? params.progress * 100
+				: 0;
+	const frameIndex = Math.round(Math.max(0, rawTime) * 24) + 1;
+	return (((frameIndex * 2654435761) >>> 0) % 999_999) + 1;
+}
+
 function passesFor({
 	spec,
 	effectParams,
@@ -276,7 +287,7 @@ function passesFor({
 			uniforms: {
 				u_amount: amount,
 				...(spec.shader === "canvas:grain"
-					? { u_seed: Math.floor(Math.random() * 1_000_000) }
+					? { u_seed: deterministicGrainSeed(effectParams) }
 					: {}),
 			},
 		},

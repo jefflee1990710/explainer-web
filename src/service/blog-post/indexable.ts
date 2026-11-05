@@ -1,23 +1,17 @@
 import type { Filter } from "mongodb";
 import type { BlogPost } from "@/model/blog-post";
 
-// Partner roundups are published for old links, and kept out of the index.
+// Kept for backward-compatible imports across guide test suites; all published posts are indexable.
 export const PARTNER_INTRO_TAG_PATTERN = /^partner intro$/i;
 export const PARTNER_INTRO_TITLE_PATTERN = /^Introducing\s/i;
 
-export function isPartnerIntroPost(post: { title?: string; tags?: string[] }): boolean {
-  const tags = post.tags ?? [];
-  if (tags.some((tag) => PARTNER_INTRO_TAG_PATTERN.test(tag.trim()))) return true;
-  return PARTNER_INTRO_TITLE_PATTERN.test((post.title ?? "").trim());
+export function isPartnerIntroPost(_post: { title?: string; tags?: string[] }): boolean {
+  return false;
 }
 
-// Public lists, the sitemap, and llms.txt use this. Admin views do not.
+// Public lists, the sitemap, and llms.txt include all published posts (including partner/tool introductions).
 export function indexablePublishedFilter(): Filter<BlogPost> {
   return {
     published: true,
-    $nor: [
-      { tags: { $regex: PARTNER_INTRO_TAG_PATTERN } },
-      { title: { $regex: PARTNER_INTRO_TITLE_PATTERN } },
-    ],
   };
 }

@@ -286,6 +286,7 @@ export interface ComputeDropTargetParams {
 	startTimeOverride?: MediaTime;
 	excludeElementId?: string;
 	targetElementTypes?: string[];
+	expandedElementIds?: Set<string>;
 }
 
 export interface ClipboardItem {

@@ -1,5 +1,6 @@
-import type { SceneTracks, TimelineTrack } from "@/opencut/timeline";
+import type { EffectElement, SceneTracks, TimelineTrack } from "@/opencut/timeline";
 import type { MediaAsset } from "@/opencut/media/types";
+import { isTransitionElement } from "@/opencut/effects/transition-layout";
 import { RootNode } from "./nodes/root-node";
 import { VideoNode } from "./nodes/video-node";
 import { ImageNode } from "./nodes/image-node";
@@ -234,11 +235,55 @@ export function buildScene({
 	const rootNode = new RootNode({ duration });
 	const mediaMap = new Map(mediaAssets.map((m) => [m.id, m]));
 
-	const visibleTracks = [
-		...tracks.overlay.filter((track) => !("hidden" in track && track.hidden)),
-		...(!tracks.main.hidden ? [tracks.main] : []),
+	const visibleOverlayTracks = tracks.overlay.filter(
+		(track) => !("hidden" in track && track.hidden),
+	);
+	const visibleMainTracks = !tracks.main.hidden ? [tracks.main] : [];
+
+	// Separate transition elements from regular track elements so scene transitions
+	// apply directly over the video tracks (main + video overlays) without wiping or
+	// blacking out text/subtitle and sticker/graphic overlay tracks above them.
+	const videoOverlayTracks: TimelineTrack[] = [];
+	const nonVideoOverlayTracks: TimelineTrack[] = [];
+	const transitionElements: EffectElement[] = [];
+
+	for (const track of visibleOverlayTracks) {
+		if (track.type === "effect") {
+			const nonTransitions = track.elements.filter(
+				(el) => !isTransitionElement(el),
+			);
+			for (const el of track.elements) {
+				if (isTransitionElement(el)) transitionElements.push(el);
+			}
+			if (nonTransitions.length > 0) {
+				nonVideoOverlayTracks.push({ ...track, elements: nonTransitions });
+			}
+		} else if (track.type === "video") {
+			videoOverlayTracks.push(track);
+		} else {
+			nonVideoOverlayTracks.push(track);
+		}
+	}
+
+	const syntheticTransitionTrack: TimelineTrack[] =
+		transitionElements.length > 0
+			? [
+					{
+						id: "__transitions__",
+						name: "Transitions",
+						type: "effect",
+						hidden: false,
+						elements: transitionElements,
+					},
+				]
+			: [];
+
+	const orderedTracksBottomToTop = [
+		...visibleMainTracks,
+		...videoOverlayTracks.slice().reverse(),
+		...syntheticTransitionTrack,
+		...nonVideoOverlayTracks.slice().reverse(),
 	];
-	const orderedTracksBottomToTop = visibleTracks.slice().reverse();
 	const mainTrack = tracks.main.hidden ? undefined : tracks.main;
 
 	const allNodes = buildTrackNodes({

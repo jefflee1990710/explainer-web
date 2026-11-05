@@ -20,9 +20,9 @@ import { wardrobeZhHant } from "@/util/i18n/messages/workspace/wardrobe.zh-Hant"
 
 export const zhHant: Messages = {
   meta: {
-    title: "Explainer 解說片同 AI 網紅 | Scro",
+    title: "AI 網紅、Explainer 解說片、口播、Scro Swap 換角與自動剪輯工作台 | Scro",
     description:
-      "用同一個鎖定臉、衣櫃同把聲的 AI 網紅拍白板 Explainer。由分鏡到發佈，概念片同網紅短片都係同一個人出鏡。",
+      "用同一個鎖定臉、衣櫃同 21 語聲線的 AI 網紅拍白板/剪紙 Explainer、120 秒 1080p 口播、產品帶貨 UGC，並內建 Scro Swap 影片換角、Teleport 換場、SAM 3 海報局部重繪與 OpenCut AI 自動對拍剪輯台。",
   },
   nav: {
     projects: "影片",
@@ -1142,7 +1142,7 @@ export const zhHant: Messages = {
     voiceFillNeedsBlueprint: "請先完成一張藍圖。",
     voiceSampleTitle: "示範聲音",
     voiceSampleHint:
-      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內）。只有這個角色的影片，每段都會換成這把聲音，每秒多收 1 credit。坐定對嘴的語音已包含在每秒扣點裡，不再另加。只套用在上傳之後建立的影片。",
+      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內），或直接用內建麥克風錄音。之後用這個角色建立的影片都會自動套用這把專屬聲線（坐定對嘴口播已包含語音於每秒 4 credits 內，不另加收費）。",
     voiceSampleUpload: "上傳示範聲音",
     voiceSampleReplace: "更換",
     voiceSampleRemove: "移除",
@@ -1228,7 +1228,8 @@ export const zhHant: Messages = {
     monthlyAllowance: " · 每月額度 {monthly}",
     bonusUnused: " · 加購未用 {bonus}",
     periodEnds: " · 週期至 {date}",
-    clipCostNote: "每張圖扣 4 credits，影片每秒扣 9 credits（最少 5 秒）。寫實電影感影片每秒扣 47 credits。",
+    clipCostNote:
+      "每張 2K 畫格或海報扣 4 credits；1080p 對嘴口播每秒扣 4 credits（已含語音）；非寫實影片每秒扣 9 credits；2K 寫實電影感影片每秒扣 15 credits（最少 5 秒）。",
     videoUpgradeTitle: "credits 不夠產生影片",
     videoUpgradeBody: "一支影片需要 {credits} credits。升級方案後就能繼續製作。",
     videoUpgradeCta: "升級方案",
@@ -1334,15 +1335,15 @@ export const zhHant: Messages = {
       f3Body: "同一靈魂拍口播、UGC 同教學短片。",
     },
     edit: {
-      eyebrow: "生成 → 剪輯 → 匯出",
-      title: "唔係淨係生成——成片喺同一個位繼續改。",
-      body: "Clip 落到 timeline 時自動偵測並裁走句首句尾死白，支援 13 款藝術字幕與中英雙語 Google Fonts、免費 Stock B-Roll 一鍵自動穿插，由構思到發佈一條龍。",
-      p1Title: "自動去頭尾靜音 · 零冷場銜接",
-      p1Body: "自動分析音訊波形裁走頭尾空白並加上 15ms 微淡入淡出，令片段之間順暢緊湊。",
-      p2Title: "13 款藝術字幕 & 免費 B-Roll",
-      p2Body: "一鍵將旁白變成可編輯藝術字幕（支援中英 Google Fonts），並自動搜尋穿插免費 B-Roll 空鏡。",
-      p3Title: "匯出最終 Reel",
-      p3Body: "同一張工作台出 9:16，直接上 Reels、Shorts、TikTok。",
+      eyebrow: "生成 → 換角換場 → 剪輯 → 匯出",
+      title: "唔係淨係生成——Scro Swap、AI 聲效對拍與字幕喺同一個位一次搞掂。",
+      body: "Clip 落到 timeline 時自動偵測並裁走句首句尾死白，支援 13 款藝術字幕、AI 去背字卡、12 款 IG 熱門 SFX 峰值對拍、BGM Auto-Ducking 自動避人聲，更可對單段分鏡直接做 Scro Swap 換角或 Teleport 換場。",
+      p1Title: "自動去頭尾靜音 · IG 熱門 SFX 對拍",
+      p1Body: "自動分析波形裁走頭尾空白，並依轉場、字卡與動作自動對齊 12 款 IG 熱門 SFX 及 BGM Auto-Ducking 避人聲曲線。",
+      p2Title: "13 款藝術字幕、AI 字卡 & 免費 B-Roll",
+      p2Body: "一鍵將旁白變成可編輯藝術字幕與 AI 透明底視覺字卡，並自動搜尋穿插免費 B-Roll 空鏡。",
+      p3Title: "剪輯台內 Scro Swap 換角 & Teleport 換場",
+      p3Body: "在時間軸點選任意分鏡即可原地換角、換衫、17 款電影打光或換背景，直接匯出 9:16 Reel。",
       deskLabel: "影片編輯工作台——預覽、clips 同調整面板",
       timelineLabel: "生成後嘅多軌 timeline",
     },
@@ -1376,8 +1377,8 @@ export const zhHant: Messages = {
       body: "唔使攝影機班底，亦唔使上 prompting 堂。鎖定造型，寫低要講嘅嘢，就有連字幕、適合 Reels 嘅口播。",
       s1Title: "揀角色同造型",
       s1Body: "鎖臉、衣櫃同一個簡單場景，觀眾一眼認得。",
-      s2Title: "打出要讀嘅對白",
-      s2Body: "貼上講稿。Scro 拆成短 clip，對嘴讀出嚟。",
+      s2Title: "打出講稿或直接錄音上傳",
+      s2Body: "貼上講稿或直接上傳／麥克風錄製原聲。支援單段最長 120 秒 1080p 一鏡到底對嘴、雙人 Q&A 對談及口播穿插 B-Roll（每秒僅 4 credits）。",
       s3Title: "生成連埋字幕",
       s3Body: "出一條有畫面字嘅口播，靜音都睇得明。",
     },

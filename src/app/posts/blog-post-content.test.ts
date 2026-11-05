@@ -49,6 +49,17 @@ Keep every frame focused on one visual point.
   assert.match(html, /Bottom Register CTA/);
 });
 
+test("BlogPostContent renders external links as dofollow without nofollow or noreferrer", () => {
+  const html = renderToStaticMarkup(
+    createElement(BlogPostContent, {
+      content: "Check out [FlexClip](https://www.flexclip.com) and [Scro](/explainer).",
+    }),
+  );
+  assert.match(html, /href="https:\/\/www\.flexclip\.com"/);
+  assert.doesNotMatch(html, /nofollow/);
+  assert.doesNotMatch(html, /noreferrer/);
+});
+
 test("sanitizeBlogPostTags strips NOVAX tags case-insensitively", () => {
   assert.deepEqual(
     sanitizeBlogPostTags(["SEO Guide", "How-To", "NOVAX", "novax", "AI Video"]),

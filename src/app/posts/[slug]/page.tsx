@@ -11,12 +11,11 @@ import { BlogPostContent } from "@/app/posts/[slug]/blog-post-content";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 import { BlogPostSidebar } from "@/app/posts/[slug]/blog-post-sidebar";
 import { BlogPostLinks } from "@/app/posts/[slug]/blog-post-links";
-import { isPartnerIntroPost } from "@/service/blog-post/indexable";
 import { blogPostLanguageAlternates } from "@/service/blog-post/translations";
 import { getSiteUrl } from "@/util/app-url";
 import { getMessages } from "@/util/i18n";
 import { getRequestLocale } from "@/util/i18n/request-locale";
-import { openGraphLocale, postDocumentTitle } from "@/util/seo/public-metadata";
+import { openGraphLocale, postDocumentTitle, socialImage } from "@/util/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +44,6 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
   const canonicalPath = `/posts/${encodeURIComponent(post.slug)}`;
   const title = postDocumentTitle(post.title);
   const languages = blogPostLanguageAlternates(post);
-  const indexable = !isPartnerIntroPost(post);
   return {
     title,
     description: post.excerpt,
@@ -53,31 +51,36 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
       canonical: canonicalPath,
       ...(languages ? { languages } : {}),
     },
-    ...(indexable
-      ? {}
-      : {
-          robots: {
-            index: false,
-            follow: true,
-            googleBot: { index: false, follow: true },
-          },
-        }),
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,
       type: "article",
+      siteName: "Scro",
       url: canonicalPath,
       locale: openGraphLocale(locale),
       publishedTime: post.createdAt,
       modifiedTime: post.updatedAt,
       tags: post.tags,
-      images: post.featureImage ? [{ url: post.featureImage, alt: post.title }] : undefined,
+      images: post.featureImage
+        ? [{ url: post.featureImage, alt: post.title }]
+        : socialImage(post.title),
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt,
-      images: post.featureImage ? [post.featureImage] : undefined,
+      images: post.featureImage ? [post.featureImage] : ["/opengraph-image"],
     },
   };
 }
@@ -113,32 +116,45 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": postUrl,
-    },
-    headline: post.title,
-    description: post.excerpt,
-    image: post.featureImage ? [post.featureImage] : undefined,
-    datePublished: post.createdAt,
-    dateModified: post.updatedAt,
-    author: {
-      "@type": "Organization",
-      name: "Scro",
-      url: siteUrl,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "Scro",
-      url: siteUrl,
-      logo: {
-        "@type": "ImageObject",
-        url: `${siteUrl}/icon.svg`,
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": `${postUrl}#article`,
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": postUrl,
+        },
+        headline: post.title,
+        description: post.excerpt,
+        image: post.featureImage ? [post.featureImage] : [`${siteUrl}/opengraph-image`],
+        datePublished: post.createdAt,
+        dateModified: post.updatedAt,
+        author: {
+          "@type": "Organization",
+          name: "Scro",
+          url: siteUrl,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Scro",
+          url: siteUrl,
+          logo: {
+            "@type": "ImageObject",
+            url: `${siteUrl}/icon.svg`,
+          },
+        },
+        keywords: post.tags.join(", "),
+        inLanguage: post.locale,
       },
-    },
-    keywords: post.tags.join(", "),
-    inLanguage: post.locale,
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Scro", item: siteUrl },
+          { "@type": "ListItem", position: 2, name: copy.title, item: `${siteUrl}/posts` },
+          { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
+        ],
+      },
+    ],
   };
 
   return (

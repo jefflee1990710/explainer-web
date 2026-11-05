@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isPartnerIntroPost } from "@/service/blog-post/indexable";
+import { indexablePublishedFilter, isPartnerIntroPost } from "@/service/blog-post/indexable";
 import {
   blogPostLanguageAlternates,
   resolveBlogLandingPath,
 } from "@/service/blog-post/translations";
 
-test("partner intros are the Partner Intro tag or an Introducing title", () => {
-  assert.equal(isPartnerIntroPost({ title: "Introducing FlexClip", tags: [] }), true);
-  assert.equal(isPartnerIntroPost({ title: "A real guide", tags: ["Partner Intro"] }), true);
+test("all published posts including partner intros are indexable and included in public filter", () => {
+  assert.equal(isPartnerIntroPost({ title: "Introducing FlexClip", tags: [] }), false);
+  assert.equal(isPartnerIntroPost({ title: "A real guide", tags: ["Partner Intro"] }), false);
   assert.equal(isPartnerIntroPost({ title: "How to storyboard a reel", tags: ["Explainer"] }), false);
   assert.equal(isPartnerIntroPost({ title: "Your introduction to hooks", tags: ["SEO Guide"] }), false);
+  assert.deepEqual(indexablePublishedFilter(), { published: true });
 });
 
 test("hreflang is omitted until a real translation sibling exists", () => {

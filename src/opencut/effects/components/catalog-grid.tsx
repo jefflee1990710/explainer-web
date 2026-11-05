@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback } from "react";
+import { TracksSnapshotCommand } from "@/opencut/commands/timeline";
 import { PanelView } from "@/opencut/components/editor/panels/assets/views/base-panel";
 import { DraggableItem } from "@/opencut/components/editor/panels/assets/draggable-item";
+import { upsertTransitionElementInTracks } from "@/opencut/effects/apply-all-transitions";
 import { CatalogThumb } from "@/opencut/effects/components/catalog-thumb";
 import { TransitionCatalogMenu } from "@/opencut/effects/components/transition-catalog-menu";
 import { effectsRegistry, registerDefaultEffects } from "@/opencut/effects";
-import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
+import {
+	canPlaceTransitionOnTracks,
+	effectTimingAt,
+	transitionTimingAt,
+} from "@/opencut/effects/effect-timing";
 import type { EffectCategory, EffectDefinition } from "@/opencut/effects/types";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { isVisualElement, VISUAL_ELEMENT_TYPES } from "@/opencut/timeline";
 import { buildEffectElement } from "@/opencut/timeline/element-utils";
 
 export function EffectCatalog({
@@ -49,11 +56,42 @@ function CatalogItem({
 	const handleAddToTimeline = useCallback(() => {
 		const tracks = editor.scenes.getActiveScene().tracks;
 		const time = editor.playback.getCurrentTime();
-		// Transitions stick to a video head, tail, or cut. Other effects keep the wider snap.
-		const timing =
-			category === "transition"
-				? transitionTimingAt({ time, tracks })
-				: effectTimingAt({ time, tracks });
+
+		if (category === "transition") {
+			if (!canPlaceTransitionOnTracks({ tracks })) return;
+			const timing = transitionTimingAt({ time, tracks });
+			const element = buildEffectElement({
+				effectType: effect.type,
+				startTime: timing.startTime,
+				duration: timing.duration,
+			});
+			const updated = upsertTransitionElementInTracks({ tracks, element });
+			if (!updated) return;
+			editor.command.execute({
+				command: new TracksSnapshotCommand({ before: tracks, after: updated }),
+			});
+			return;
+		}
+
+		// If the user has visual element(s) selected, attach the effect directly to those clip(s).
+		const selectedRefs = editor.selection.getSelectedElements();
+		if (selectedRefs.length > 0) {
+			const selectedVisuals = editor.timeline
+				.getElementsWithTracks({ elements: [...selectedRefs] })
+				.filter(({ element }) => isVisualElement(element));
+			if (selectedVisuals.length > 0) {
+				for (const { track, element } of selectedVisuals) {
+					editor.timeline.addClipEffect({
+						trackId: track.id,
+						elementId: element.id,
+						effectType: effect.type,
+					});
+				}
+				return;
+			}
+		}
+
+		const timing = effectTimingAt({ time, tracks });
 		const element = buildEffectElement({
 			effectType: effect.type,
 			startTime: timing.startTime,
@@ -63,7 +101,7 @@ function CatalogItem({
 			placement: { mode: "auto", trackType: "effect" },
 			element,
 		});
-	}, [editor, effect.type]);
+	}, [category, editor, effect.type]);
 
 	const card = (
 		<DraggableItem
@@ -75,7 +113,8 @@ function CatalogItem({
 				type: "effect",
 				effectType: effect.type,
 				placement: category === "transition" ? "edge" : "anywhere",
-				targetElementTypes: [],
+				targetElementTypes:
+					category === "transition" ? [] : [...VISUAL_ELEMENT_TYPES],
 			}}
 			onAddToTimeline={handleAddToTimeline}
 			aspectRatio={1}

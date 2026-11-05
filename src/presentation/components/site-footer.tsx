@@ -73,7 +73,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
                 key={href}
                 href={href}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 className="hover:text-[#12141c]"
               >
                 {label}
@@ -102,7 +102,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
             <a
               href="https://turbo0.com/item/scro"
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener"
             >
               <img
                 src="https://img.turbo0.com/badge-listed-light.svg"
@@ -110,7 +110,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
                 style={{ height: 54, width: "auto" }}
               />
             </a>
-            <a href="https://tooldisk.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://tooldisk.com" target="_blank" rel="noopener">
               <img
                 src="https://tooldisk.com/badge/badge_light.svg"
                 alt="Featured on ToolDisk.com"

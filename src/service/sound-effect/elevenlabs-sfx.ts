@@ -64,23 +64,31 @@ export async function generateElevenLabsSoundBytes(
 
 export async function createAndPersistElevenLabsSound(input: {
   text: string;
+  name?: string;
+  slug?: string;
   category?: SoundEffectCategoryId;
   durationSeconds?: number;
+  extraTags?: string[];
 }): Promise<LibrarySound> {
   const prompt = input.text.trim();
+  const displayName = (input.name?.trim() || prompt).slice(0, 80);
   const audioBuffer = await generateElevenLabsSoundBytes({
     text: prompt,
     durationSeconds: input.durationSeconds,
   });
   const probed = await probeAudioSeconds(audioBuffer, "mp3").catch(() => null);
   const duration = probed ?? input.durationSeconds ?? 2;
-  const id = `el-sfx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id =
+    input.slug?.trim() ||
+    `el-sfx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const pathname = `explainer/sound-effects/${id}.mp3`;
   const blobUrl = await persistBuffer(audioBuffer, pathname, "audio/mpeg");
 
   const tags = [
     "elevenlabs",
+    "ig-viral",
     ...(input.category && input.category !== "all" ? [input.category] : []),
+    ...(input.extraTags ?? []),
     ...prompt
       .toLowerCase()
       .split(/[^a-z0-9\u4e00-\u9fa5]+/)
@@ -90,33 +98,41 @@ export async function createAndPersistElevenLabsSound(input: {
 
   const collection = await soundEffectsCollection();
   const now = new Date();
-  await collection.insertOne({
-    _id: new ObjectId(),
-    source: "elevenlabs" as unknown as "kenney",
-    sourceId: id,
-    pack: input.category || "elevenlabs",
-    name: prompt.slice(0, 80),
-    filename: `${id}.mp3`,
-    blobPath: pathname,
-    blobUrl,
-    contentType: "audio/mpeg",
-    bytes: audioBuffer.length,
-    durationSec: Number(duration.toFixed(2)),
-    license: "CC0-1.0",
-    licenseUrl: "https://elevenlabs.io/sound-effects",
-    credit: "ElevenLabs AI",
-    description: prompt,
-    tags,
-    descriptionEmbedding: [],
-    embeddingModel: "gemini-embedding-001",
-    embeddingDimensions: 768,
-    createdAt: now,
-    updatedAt: now,
-  });
+  await collection.updateOne(
+    { source: "elevenlabs" as unknown as "kenney", sourceId: id },
+    {
+      $set: {
+        source: "elevenlabs" as unknown as "kenney",
+        sourceId: id,
+        pack: input.category || "elevenlabs",
+        name: displayName,
+        filename: `${id}.mp3`,
+        blobPath: pathname,
+        blobUrl,
+        contentType: "audio/mpeg",
+        bytes: audioBuffer.length,
+        durationSec: Number(duration.toFixed(2)),
+        license: "CC0-1.0",
+        licenseUrl: "https://elevenlabs.io/sound-effects",
+        credit: "ElevenLabs AI",
+        description: prompt,
+        tags,
+        descriptionEmbedding: [],
+        embeddingModel: "gemini-embedding-001",
+        embeddingDimensions: 768,
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        _id: new ObjectId(),
+        createdAt: now,
+      },
+    },
+    { upsert: true },
+  );
 
   return {
     id,
-    name: prompt.slice(0, 80),
+    name: displayName,
     description: `ElevenLabs AI · ${prompt}`,
     previewUrl: blobUrl,
     duration: Number(duration.toFixed(2)),

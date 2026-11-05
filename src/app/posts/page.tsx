@@ -36,7 +36,7 @@ export async function generateMetadata({ searchParams }: PostsPageProps): Promis
   const tag = typeof sp.tag === "string" ? sp.tag.trim() : "";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const isFilter = Boolean(tag || q || (sp.limit && limit !== PUBLIC_BLOG_PAGE_SIZE));
-  const path = isFilter ? postsIndexPath(page, tag, q, limit) : page > 1 ? `/posts?page=${page}` : "/posts";
+  const path = isFilter ? "/posts" : page > 1 ? `/posts?page=${page}` : "/posts";
   const title = !isFilter && page > 1 ? `${copy.seoTitle} (${page})` : copy.seoTitle;
 
   return publicPageMetadata({

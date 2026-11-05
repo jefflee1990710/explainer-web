@@ -20,9 +20,9 @@ import { wardrobeEn } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 export const en: Messages = {
   meta: {
-    title: "Explainer Videos and AI Influencers | Scro",
+    title: "AI Influencer, Explainer Videos, 120s Talking-Head, Scro Swap & AI Video Editor | Scro",
     description:
-      "Make whiteboard explainer videos with one locked AI Influencer — the same face, wardrobe, and voice on every short, from storyboard to publish.",
+      "Build a virtual KOL with a locked face, custom wardrobe, and 21-language cloned voice. Ship whiteboard & paper-cutout explainers, 120s 1080p talking-head reels, product UGC, SAM 3 Scro Swap, Teleport scene relocation, 2K posters, and peak-aligned edits in OpenCut.",
   },
   nav: {
     projects: "Video",
@@ -1152,7 +1152,7 @@ export const en: Messages = {
     voiceFillNeedsBlueprint: "Finish a blueprint first.",
     voiceSampleTitle: "Demo voice",
     voiceSampleHint:
-      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB). Videos with only this character re-voice every clip to match it, for +1 credit per second. Sitting talking-head already includes the voice in its per-second price. Applies to videos created after the upload.",
+      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB) or record directly with the built-in mic. Videos with this character automatically use your cloned voice (1080p talking-head includes voice in its 4 credits/s rate).",
     voiceSampleUpload: "Upload demo voice",
     voiceSampleReplace: "Replace",
     voiceSampleRemove: "Remove",
@@ -1239,7 +1239,8 @@ export const en: Messages = {
     monthlyAllowance: " · monthly allowance {monthly}",
     bonusUnused: " · unused top-up {bonus}",
     periodEnds: " · period ends {date}",
-    clipCostNote: "Each image costs 4 credits. Video costs 9 credits per second (5-second minimum). Cinematic realistic video costs 47 credits per second.",
+    clipCostNote:
+      "Each 2K image or poster costs 4 credits. 1080p talking-head video (voice included) costs 4 credits per second. Stylized video costs 9 credits per second. 2K cinematic realistic video costs 15 credits per second (5-second minimum).",
     videoUpgradeTitle: "Not enough credits for a video",
     videoUpgradeBody: "A video costs {credits} credits. Upgrade your plan to keep generating.",
     videoUpgradeCta: "Upgrade plan",
@@ -1346,15 +1347,15 @@ export const en: Messages = {
       f3Body: "Reuse the same soul for talking-head, UGC, and tutorials.",
     },
     edit: {
-      eyebrow: "Generate → edit → export",
-      title: "Not just generation — finish the cut in the same place.",
-      body: "Clips land on a timeline you can keep shaping: auto silence trimming, 13 artistic subtitle presets with Google Fonts, 1-click Stock B-Roll cutaways, and music — one pipeline from idea to published video.",
-      p1Title: "Auto silence trim & smooth flow",
-      p1Body: "Automatically trims leading/trailing dead air with 15ms micro-fades so clip transitions play without awkward pauses.",
-      p2Title: "Artistic captions & Stock B-Roll",
-      p2Body: "Style VO into 13 editable caption presets with bilingual Google Fonts, and overlay free Stock B-Roll in one click.",
-      p3Title: "Export the final Reel",
-      p3Body: "Ship 9:16 ready for Reels, Shorts, and TikTok from the same desk.",
+      eyebrow: "Generate → Swap & Teleport → Edit → Export",
+      title: "Not just generation — Scro Swap, IG Viral SFX & Auto-Ducking in one desk.",
+      body: "Clips land on a timeline with auto silence trimming, 13 artistic subtitle presets, AI On-Screen Text sticker cards, 12 peak-aligned IG Viral SFX, BGM auto-ducking, and in-timeline Scro Swap & Teleport.",
+      p1Title: "Auto silence trim & IG Viral SFX",
+      p1Body: "Trims dead air with 15ms micro-fades and aligns 12 IG Viral SFX & BGM auto-ducking curves directly to cuts and text pops.",
+      p2Title: "Artistic captions, AI Text Cards & B-Roll",
+      p2Body: "Style VO into 13 editable caption presets, transparent AI On-Screen Text stickers, and 1-click free Stock B-Roll.",
+      p3Title: "In-Timeline Scro Swap & Teleport",
+      p3Body: "Swap characters, relight in 17 cinema looks, or teleport backgrounds on any clip in place and export 9:16 Reels.",
       deskLabel: "Video edit desk — preview, clips, and inspector",
       timelineLabel: "Multi-track timeline after generation",
     },
@@ -1388,8 +1389,8 @@ export const en: Messages = {
       body: "No camera crew. No prompting bootcamp. Lock the look, write what they say, generate a captioned talking-head ready for Reels.",
       s1Title: "Choose character & outfit",
       s1Body: "Lock face, wardrobe, and a simple set your audience will recognize.",
-      s2Title: "Type the dialogue",
-      s2Body: "Paste the lines to read. Scro splits them into short clips that lip-sync.",
+      s2Title: "Type the script or upload your voice",
+      s2Body: "Paste the lines or record/upload your own voice. Render up to 120s continuous 1080p talking-head clips, Dialogue Q&A, or B-Roll cutaways at just 4 credits/s.",
       s3Title: "Generate with captions",
       s3Body: "Get a talking-head cut with on-screen captions — scroll-stop ready.",
     },

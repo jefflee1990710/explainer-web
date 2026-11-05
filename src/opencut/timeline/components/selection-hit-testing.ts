@@ -8,7 +8,9 @@ import {
 	TIMELINE_CONTENT_TOP_PADDING_PX,
 	TIMELINE_TRACK_GAP_PX,
 } from "./layout";
+import { computeTrackExpansionHeight } from "./expanded-layout";
 import { getTrackHeight } from "./track-layout";
+import { useTimelineStore } from "@/opencut/timeline/timeline-store";
 
 type TimelineElementRef = { trackId: string; elementId: string };
 
@@ -115,7 +117,12 @@ export function resolveTimelineElementIntersections({
 			continue;
 		}
 
-		const trackHeight = getTrackHeight({ type: track.type });
+		const baseHeight = getTrackHeight({ type: track.type });
+		const expansionHeight = computeTrackExpansionHeight({
+			track,
+			expandedElementIds: useTimelineStore.getState().expandedElementIds,
+		});
+		const trackHeight = baseHeight + expansionHeight;
 		const elementTop = TIMELINE_CONTENT_TOP_PADDING_PX + cursor;
 		if (track.type === "video") mainBandTop = elementTop;
 
@@ -130,7 +137,7 @@ export function resolveTimelineElementIntersections({
 				trackId: track.id,
 				element,
 				top: elementTop,
-				bottom: elementTop + trackHeight,
+				bottom: elementTop + baseHeight,
 				zoomLevel,
 			});
 		}

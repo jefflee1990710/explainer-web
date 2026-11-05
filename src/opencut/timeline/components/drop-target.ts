@@ -3,7 +3,9 @@ import type { ComputeDropTargetParams, DropTarget } from "@/opencut/timeline";
 import { isTransitionOnlyTrack } from "@/opencut/effects/transition-layout";
 import { resolveTrackPlacement } from "@/opencut/timeline/placement";
 import { TIMELINE_TRACK_GAP_PX } from "./layout";
+import { computeTrackExpansionHeight } from "./expanded-layout";
 import { getTrackHeight } from "./track-layout";
+import { useTimelineStore } from "@/opencut/timeline/timeline-store";
 import {
 	mediaTime,
 	type MediaTime,
@@ -48,10 +50,12 @@ function getTrackAtY({
 	mouseY,
 	tracks,
 	verticalDragDirection,
+	expandedElementIds,
 }: {
 	mouseY: number;
 	tracks: TimelineTrack[];
 	verticalDragDirection?: "up" | "down" | null;
+	expandedElementIds: Set<string>;
 }): { trackIndex: number; relativeY: number } | null {
 	let cumulativeHeight = 0;
 
@@ -59,7 +63,12 @@ function getTrackAtY({
 		// Transition-only rows are not drawn, so they take no vertical space.
 		if (isTransitionOnlyTrack(tracks[i])) continue;
 
-		const trackHeight = getTrackHeight({ type: tracks[i].type });
+		const trackHeight =
+			getTrackHeight({ type: tracks[i].type }) +
+			computeTrackExpansionHeight({
+				track: tracks[i],
+				expandedElementIds,
+			});
 		const trackTop = cumulativeHeight;
 		const trackBottom = trackTop + trackHeight;
 
@@ -120,7 +129,10 @@ export function computeDropTarget({
 	startTimeOverride,
 	excludeElementId,
 	targetElementTypes,
+	expandedElementIds,
 }: ComputeDropTargetParams): DropTarget {
+	const resolvedExpandedIds =
+		expandedElementIds ?? useTimelineStore.getState().expandedElementIds;
 	const orderedTracks = [...tracks.overlay, tracks.main, ...tracks.audio];
 	const mainTrackIndex = tracks.overlay.length;
 	const xPosition =
@@ -166,6 +178,7 @@ export function computeDropTarget({
 		mouseY,
 		tracks: orderedTracks,
 		verticalDragDirection,
+		expandedElementIds: resolvedExpandedIds,
 	});
 
 	if (!trackAtMouse) {
@@ -263,10 +276,14 @@ export function computeDropTarget({
 export function getDropLineY({
 	dropTarget,
 	tracks,
+	expandedElementIds,
 }: {
 	dropTarget: DropTarget;
 	tracks: TimelineTrack[];
+	expandedElementIds?: Set<string>;
 }): number {
+	const resolvedExpandedIds =
+		expandedElementIds ?? useTimelineStore.getState().expandedElementIds;
 	const safeTrackIndex = Math.min(
 		Math.max(dropTarget.trackIndex, 0),
 		tracks.length,
@@ -275,7 +292,13 @@ export function getDropLineY({
 
 	for (let i = 0; i < safeTrackIndex; i++) {
 		if (isTransitionOnlyTrack(tracks[i])) continue;
-		y += getTrackHeight({ type: tracks[i].type }) + TIMELINE_TRACK_GAP_PX;
+		y +=
+			getTrackHeight({ type: tracks[i].type }) +
+			computeTrackExpansionHeight({
+				track: tracks[i],
+				expandedElementIds: resolvedExpandedIds,
+			}) +
+			TIMELINE_TRACK_GAP_PX;
 	}
 
 	return y;

@@ -10,6 +10,7 @@ import type {
 } from "@/opencut/timeline";
 import { calculateTotalDuration } from "@/opencut/timeline";
 import { TimelineDragSource } from "@/opencut/timeline/drag-source";
+import { reconcileTransitionsWithVideoTracks } from "@/opencut/effects/apply-all-transitions";
 import { findTrackInSceneTracks } from "@/opencut/timeline/track-element-update";
 import { lastFrameMediaTime, type MediaTime, ZERO_MEDIA_TIME } from "@/opencut/wasm";
 import {
@@ -929,7 +930,10 @@ export class TimelineManager {
 	updateTracks(newTracks: SceneTracks): void {
 		this.previewOverlay.clear();
 		this.previewTracks = null;
-		this.editor.scenes.updateSceneTracks({ tracks: newTracks });
+		const reconciledTracks = reconcileTransitionsWithVideoTracks({
+			tracks: newTracks,
+		});
+		this.editor.scenes.updateSceneTracks({ tracks: reconciledTracks });
 		this.notify();
 	}
 }

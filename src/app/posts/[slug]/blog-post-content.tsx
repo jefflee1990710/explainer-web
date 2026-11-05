@@ -41,7 +41,7 @@ function renderInline(text: string): ReactNode[] {
           key={index}
           href={href}
           target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noopener noreferrer" : undefined}
+          rel={isExternal ? "noopener" : undefined}
           className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600"
         >
           {renderInline(label)}

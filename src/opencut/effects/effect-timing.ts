@@ -3,6 +3,7 @@ import {
 	placeTransitionWithDuration,
 	type ClipSpan,
 } from "@/opencut/effects/clip-anchor";
+import { pictureRows } from "@/opencut/effects/apply-all-transitions";
 import { registerDefaultEffects } from "@/opencut/effects/definitions";
 import { effectsRegistry } from "@/opencut/effects/registry";
 import type { SceneTracks } from "@/opencut/timeline";
@@ -15,6 +16,15 @@ export type EffectPlacement = {
 	startTime: MediaTime;
 	duration: MediaTime;
 };
+
+/** True when at least one video clip exists on the timeline for transitions to attach to. */
+export function canPlaceTransitionOnTracks({
+	tracks,
+}: {
+	tracks: SceneTracks;
+}): boolean {
+	return pictureRows({ tracks }).length > 0;
+}
 
 /**
  * Start and duration for an effect placed at `time`.
@@ -37,7 +47,7 @@ export function effectTimingAt({
 }
 
 /**
- * Where a transition rests: the head, tail, or cut of a video on the main track.
+ * Where a transition rests: the head, tail, or cut of a video clip.
  * A time in the middle of a clip snaps to the nearer edge, so it cannot sit mid-clip.
  */
 export function transitionTimingAt({
@@ -78,9 +88,26 @@ export function fixedTransitionStart({
 	const definition = effectsRegistry.get(effectType);
 	if ((definition.category ?? "effect") !== "transition") return null;
 	if (duration == null) return transitionTimingAt({ time, tracks }).startTime;
+
+	const timeSec = mediaTimeToSeconds({ time });
+	const rows = videoClipTracks({ tracks });
+	const anchorSpan = anchorEffectToClips({ time: timeSec, tracks: rows });
+	const matchingRow =
+		rows.find((clips) => {
+			const s = anchorEffectToClips({ time: timeSec, tracks: [clips] });
+			return (
+				s &&
+				anchorSpan &&
+				Math.abs(s.start - anchorSpan.start) < 1e-4 &&
+				s.kind === anchorSpan.kind
+			);
+		}) ??
+		rows[0] ??
+		[];
+
 	const placed = placeTransitionWithDuration({
-		time: mediaTimeToSeconds({ time }),
-		clips: videoClipTracks({ tracks })[0] ?? [],
+		time: timeSec,
+		clips: matchingRow,
 		duration: mediaTimeToSeconds({ time: duration }),
 	});
 	if (!placed) return transitionTimingAt({ time, tracks }).startTime;
@@ -116,9 +143,10 @@ function visualClipTracks({ tracks }: { tracks: SceneTracks }): ClipSpan[][] {
 	return clipTracks;
 }
 
-/** Picture clips on the main track. Transitions ignore text and sticker rows. */
+/** Picture clips on the main track and any video overlay tracks. */
 function videoClipTracks({ tracks }: { tracks: SceneTracks }): ClipSpan[][] {
-	return [spansFrom({ elements: tracks.main.elements })];
+	const rows = pictureRows({ tracks });
+	return rows.length > 0 ? rows : [[]];
 }
 
 function spansFrom({

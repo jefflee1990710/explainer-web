@@ -905,9 +905,23 @@ function TimelineTrackRows({
 								}
 								overlayElements={
 									track.type === "video"
-										? overlays.filter(({ element }) =>
-												transitionOverlapsTrack({ element, track }),
-											)
+										? overlays.filter(({ element }) => {
+												if (!transitionOverlapsTrack({ element, track })) {
+													return false;
+												}
+												// Prefer drawing on the main track when a transition overlaps both main and an overlay video row
+												if (
+													track.id !== mainTrackId &&
+													scene?.tracks.main &&
+													transitionOverlapsTrack({
+														element,
+														track: scene.tracks.main,
+													})
+												) {
+													return false;
+												}
+												return true;
+											})
 										: []
 								}
 							/>

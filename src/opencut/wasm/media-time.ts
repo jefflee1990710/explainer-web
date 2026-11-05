@@ -1,14 +1,4 @@
-import {
-	lastFrameTime as _lastFrameTime,
-	parseTimecode as _parseTimecode,
-	roundToFrame as _roundToFrame,
-	snappedSeekTime as _snappedSeekTime,
-	TICKS_PER_SECOND as _TICKS_PER_SECOND,
-	mediaTimeFromSeconds as _mediaTimeFromSeconds,
-	mediaTimeToSeconds as _mediaTimeToSeconds,
-	type FrameRate,
-	type TimeCodeFormat,
-} from "opencut-wasm";
+import type { FrameRate, TimeCodeFormat } from "opencut-wasm";
 
 /**
  * Integer-tick time. Mirrors `MediaTime(i64)` in `rust/crates/time/src/media_time.rs`.
@@ -24,7 +14,7 @@ import {
  */
 export type MediaTime = number & { readonly __mediaTime: unique symbol };
 
-export const TICKS_PER_SECOND = _TICKS_PER_SECOND();
+export const TICKS_PER_SECOND = 120_000;
 
 function isMediaTime(value: number): value is MediaTime {
 	return Number.isInteger(value);
@@ -82,20 +72,16 @@ export function mediaTimeFromSeconds({
 }: {
 	seconds: number;
 }): MediaTime {
-	const result = _mediaTimeFromSeconds({ seconds });
-	if (result === undefined) {
+	if (!Number.isFinite(seconds)) {
 		throw new Error(
-			`mediaTimeFromSeconds: rust returned undefined for seconds=${seconds}`,
+			`mediaTimeFromSeconds: expected finite seconds, got ${seconds}`,
 		);
 	}
-	return requireMediaTime({
-		value: result,
-		context: "mediaTimeFromSeconds()",
-	});
+	return roundMediaTime({ time: seconds * TICKS_PER_SECOND });
 }
 
 export function mediaTimeToSeconds({ time }: { time: MediaTime }): number {
-	return _mediaTimeToSeconds({ time });
+	return time / TICKS_PER_SECOND;
 }
 
 /**
@@ -161,6 +147,11 @@ export function clampMediaTime({
 	return time;
 }
 
+function frameTicksStep(fps: FrameRate): number {
+	if (fps.numerator <= 0 || fps.denominator <= 0) return 1;
+	return (TICKS_PER_SECOND * fps.denominator) / fps.numerator;
+}
+
 export function roundFrameTime({
 	time,
 	fps,
@@ -168,9 +159,8 @@ export function roundFrameTime({
 	time: MediaTime;
 	fps: FrameRate;
 }): MediaTime {
-	return requireMediaTime({
-		value: _roundToFrame({ time, rate: fps }) ?? time,
-		context: "roundFrameTime()",
+	return roundMediaTime({
+		time: roundFrameTicks({ ticks: time, fps }),
 	});
 }
 
@@ -181,7 +171,8 @@ export function roundFrameTicks({
 	ticks: number;
 	fps: FrameRate;
 }): number {
-	return _roundToFrame({ time: ticks, rate: fps }) ?? ticks;
+	const step = frameTicksStep(fps);
+	return Math.round(Math.round(ticks / step) * step);
 }
 
 export function snapSeekMediaTime({
@@ -193,10 +184,11 @@ export function snapSeekMediaTime({
 	duration: MediaTime;
 	fps: FrameRate;
 }): MediaTime {
-	return requireMediaTime({
-		value: _snappedSeekTime({ time, duration, rate: fps }) ?? time,
-		context: "snapSeekMediaTime()",
-	});
+	const clamped = Math.max(0, Math.min(time, Math.max(0, duration)));
+	if (clamped >= duration && duration > 0) {
+		return duration;
+	}
+	return roundFrameTime({ time: roundMediaTime({ time: clamped }), fps });
 }
 
 export function lastFrameMediaTime({
@@ -206,10 +198,10 @@ export function lastFrameMediaTime({
 	duration: MediaTime;
 	fps: FrameRate;
 }): MediaTime {
-	return requireMediaTime({
-		value: _lastFrameTime({ duration, rate: fps }) ?? duration,
-		context: "lastFrameMediaTime()",
-	});
+	if (duration <= 0) return ZERO_MEDIA_TIME;
+	const step = frameTicksStep(fps);
+	const lastFrameIndex = Math.max(0, Math.floor((duration - 1) / step));
+	return roundMediaTime({ time: lastFrameIndex * step });
 }
 
 export function parseMediaTimecode({
@@ -221,12 +213,29 @@ export function parseMediaTimecode({
 	format: TimeCodeFormat;
 	fps: FrameRate;
 }): MediaTime | null {
-	const parsedTime = _parseTimecode({ timeCode, format, rate: fps });
-	if (parsedTime == null) {
-		return null;
+	const parts = timeCode.trim().split(":").map((p) => Number.parseInt(p, 10));
+	if (parts.some((n) => !Number.isFinite(n) || n < 0)) return null;
+	const rate = fps.numerator / Math.max(1, fps.denominator);
+
+	if (format === "MM:SS" && parts.length === 2) {
+		const [mm, ss] = parts;
+		return mediaTimeFromSeconds({ seconds: mm * 60 + ss });
 	}
-	return requireMediaTime({
-		value: parsedTime,
-		context: "parseMediaTimecode()",
-	});
+	if (format === "HH:MM:SS" && parts.length === 3) {
+		const [hh, mm, ss] = parts;
+		return mediaTimeFromSeconds({ seconds: hh * 3600 + mm * 60 + ss });
+	}
+	if (format === "HH:MM:SS:CS" && parts.length === 4) {
+		const [hh, mm, ss, cs] = parts;
+		return mediaTimeFromSeconds({
+			seconds: hh * 3600 + mm * 60 + ss + cs / 100,
+		});
+	}
+	if (format === "HH:MM:SS:FF" && parts.length === 4) {
+		const [hh, mm, ss, ff] = parts;
+		return mediaTimeFromSeconds({
+			seconds: hh * 3600 + mm * 60 + ss + ff / Math.max(1, rate),
+		});
+	}
+	return null;
 }
