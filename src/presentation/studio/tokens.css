@@ -265,6 +265,20 @@
   animation: studio-task-dot 1.2s ease-in-out infinite;
 }
 
+/* Unified rounded corners inside OpenCut Editor so all inner cards, thumbnails, and controls match Scro Studio */
+.opencut-direct-host .panel {
+  border-radius: 16px;
+  border-color: var(--studio-line, #e4e4e7);
+}
+
+.opencut-direct-host :is(div, button, a, label, span)[class*="rounded-md"] {
+  border-radius: 12px;
+}
+
+.opencut-direct-host :is(div, button, a, label, span)[class*="rounded-sm"] {
+  border-radius: 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .studio-app .studio-task-dot {
     animation: none;

@@ -32,7 +32,7 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 const selectItemVariants = cva(
-	"relative flex cursor-pointer select-none items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-[#12141c]/85 outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
+	"relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-[#12141c]/85 outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
 	{
 		variants: {
 			variant: {
@@ -47,7 +47,7 @@ const selectItemVariants = cva(
 );
 
 const selectTriggerVariants = cva(
-	"border-border ring-offset-background placeholder:text-muted-foreground flex h-7 w-auto cursor-pointer items-center justify-between gap-1 rounded-md border px-2.5 text-sm whitespace-nowrap transition-none focus:border-primary focus:ring-0 focus:ring-primary/10 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+	"border-border ring-offset-background placeholder:text-muted-foreground flex h-7 w-auto cursor-pointer items-center justify-between gap-1 rounded-xl border px-2.5 text-sm whitespace-nowrap transition-none focus:border-primary focus:ring-0 focus:ring-primary/10 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
 	{
 		variants: {
 			variant: {
@@ -56,7 +56,7 @@ const selectTriggerVariants = cva(
 			},
 			size: {
 				default: "",
-				sm: "rounded-sm",
+				sm: "rounded-lg",
 			},
 		},
 		defaultVariants: {
@@ -136,7 +136,7 @@ const SelectContent = React.forwardRef<
 		<SelectPrimitive.Content
 			ref={ref}
 			className={cn(
-				"z-50 max-h-(--radix-select-content-available-height) min-w-32 overflow-hidden rounded-md border border-[#e4e4e7] bg-white p-1 text-[#12141c] shadow-lg",
+				"z-50 max-h-(--radix-select-content-available-height) min-w-32 overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white p-1.5 text-[#12141c] shadow-lg",
 				className,
 			)}
 			position={position}

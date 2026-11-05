@@ -389,7 +389,7 @@ function ColorPickerContent({
 
 					<Input
 						className={cn(
-							"h-7 rounded-sm p-2.5",
+							"h-7 rounded-lg p-2.5",
 							colorFormat === "hex" && "uppercase",
 						)}
 						type="text"
@@ -488,14 +488,14 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 				<div
 					ref={ref}
 					className={cn(
-						"bg-white text-[#12141c] flex h-7 border flex-1 items-center gap-2 rounded-md px-[0.45rem]",
+						"bg-white text-[#12141c] flex h-7 border flex-1 items-center gap-2 rounded-xl px-[0.45rem]",
 						className,
 					)}
 					{...props}
 				>
 					<PopoverTrigger asChild>
 						<button
-							className="size-4.5 relative cursor-pointer overflow-hidden rounded-sm border hover:ring-1 hover:ring-foreground/20"
+							className="size-4.5 relative cursor-pointer overflow-hidden rounded-md border hover:ring-1 hover:ring-foreground/20"
 							type="button"
 						>
 							<span

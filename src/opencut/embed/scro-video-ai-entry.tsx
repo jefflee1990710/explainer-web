@@ -42,7 +42,7 @@ export function ScroVideoAiEntry({
 							position: "start",
 						})
 					}
-					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
+					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-xl border text-left"
 				>
 					<div
 						className="bg-muted relative w-full overflow-hidden"
@@ -72,7 +72,7 @@ export function ScroVideoAiEntry({
 							position: endPosition,
 						})
 					}
-					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
+					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-xl border text-left"
 				>
 					<div
 						className="bg-muted relative w-full overflow-hidden"

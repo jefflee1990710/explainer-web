@@ -1240,7 +1240,7 @@ function TiledMediaContent({
 					{element.name || mediaAsset?.name || "Clip"}
 				</span>
 				{isGenerating ? (
-					<span className="ml-auto shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+					<span className="ml-auto shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
 						{generatingBadgeText}
 					</span>
 				) : null}
@@ -1252,7 +1252,7 @@ function TiledMediaContent({
 
 	return (
 		<div className="relative flex size-full items-center gap-2.5 bg-[#2b303c] px-1.5">
-			<div className="relative h-[calc(100%-8px)] w-7 shrink-0 overflow-hidden rounded-[5px] bg-black/30">
+			<div className="relative h-[calc(100%-8px)] w-7 shrink-0 overflow-hidden rounded-md bg-black/30">
 				{imageReady ? (
 					// eslint-disable-next-line @next/next/no-img-element
 					<img
@@ -1275,7 +1275,7 @@ function TiledMediaContent({
 			</span>
 			{isGenerating ? (
 				<span
-					className="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300"
+					className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300"
 					role="status"
 				>
 					<Spinner className="size-2.5 shrink-0 text-amber-400" />

@@ -52,7 +52,7 @@ export function ScroStoryboardClipCard({
 				aspectRatio={aspectRatio}
 				variant={variant}
 				isDraggable={false}
-				isRounded={variant === "card" ? false : undefined}
+				isRounded
 				shouldShowPlusOnDrag={false}
 				dragData={{
 					id: `scro-clip-${clip.clipNumber}`,
@@ -74,7 +74,7 @@ export function ScroStoryboardClipCard({
 							reserveCorner={showDuration}
 						/>
 						{showDuration ? (
-							<div className="absolute right-1 bottom-1 z-20 rounded bg-black/70 px-1 text-xs text-white">
+							<div className="absolute right-1.5 bottom-1.5 z-20 rounded-md bg-black/70 px-1.5 py-0.5 text-xs text-white">
 								{formatDuration({ duration: clip.durationSeconds })}
 							</div>
 						) : null}

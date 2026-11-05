@@ -54,9 +54,9 @@ function AiToolCard({
 	onClick,
 }: AiToolCardProps) {
 	return (
-		<div className="border-border/70 bg-accent/20 flex flex-col gap-2 rounded-md border p-3">
+		<div className="border-border/70 bg-accent/20 flex flex-col gap-2 rounded-xl border p-3">
 			<div className="flex items-start gap-2.5">
-				<div className="bg-background text-foreground mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border">
+				<div className="bg-background text-foreground mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border">
 					<HugeiconsIcon icon={icon} size={16} />
 				</div>
 				<div className="min-w-0 flex-1">
@@ -199,7 +199,7 @@ export function AiToolsView() {
 					{!hasLines ? (
 						<p
 							className={cn(
-								"text-muted-foreground rounded-md border border-dashed px-3 py-2 text-center text-[11px]",
+								"text-muted-foreground rounded-xl border border-dashed px-3 py-2 text-center text-[11px]",
 							)}
 						>
 							載入分鏡對白後，B-Roll／聲效／背景音樂即可使用

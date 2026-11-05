@@ -84,9 +84,11 @@ export function TabBar() {
 											aria-label={label}
 											data-opencut-tour={`rail-${tabKey}`}
 											className={cn(
-												"shrink-0",
+												"shrink-0 rounded-xl",
 												"h-8 w-8",
-												!active && "text-muted-foreground",
+												active
+													? "bg-[#f4fcd4] text-[#12141c] border-[#c6f24b]/60"
+													: "text-muted-foreground",
 											)}
 											onClick={() => {
 												setScroSubtitleOpen(false);

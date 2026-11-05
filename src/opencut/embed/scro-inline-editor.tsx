@@ -49,7 +49,7 @@ export default function OpenCutInlineEditor({ projectId }: { projectId: string }
 				<ScroProjectSync />
 				<ScroSubtitleBridge />
 				<ScroVideoSync />
-				<div className="opencut-direct-host bg-background flex h-full min-h-0 w-full flex-col overflow-hidden">
+				<div className="opencut-direct-host bg-[#fafafa] flex h-full min-h-0 w-full flex-col overflow-hidden p-2">
 					<DegradedRendererBanner />
 					<div className="min-h-0 min-w-0 flex-1">
 						<EditorLayout />
@@ -148,7 +148,7 @@ function EditorLayout() {
 					>
 						<AssetsPanel />
 					</ResizablePanel>
-					<ResizableHandle withHandle className="bg-[#f3f3f5]" />
+					<ResizableHandle withHandle className="w-1.5 bg-transparent" />
 					<ResizablePanel
 						defaultSize={panels.preview}
 						minSize={30}
@@ -161,7 +161,7 @@ function EditorLayout() {
 							onOverlayVisibilityChange={setOverlayVisibility}
 						/>
 					</ResizablePanel>
-					<ResizableHandle withHandle className="bg-[#f3f3f5]" />
+					<ResizableHandle withHandle className="w-1.5 bg-transparent" />
 					<ResizablePanel
 						defaultSize={panels.properties}
 						minSize={15}
@@ -173,7 +173,7 @@ function EditorLayout() {
 					</ResizablePanel>
 				</ResizablePanelGroup>
 			</ResizablePanel>
-			<ResizableHandle withHandle className="bg-[#f3f3f5]" />
+			<ResizableHandle withHandle className="h-1.5 bg-transparent" />
 			<ResizablePanel
 				defaultSize={panels.timeline}
 				minSize={15}

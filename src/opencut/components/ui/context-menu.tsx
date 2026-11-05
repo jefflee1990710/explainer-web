@@ -35,7 +35,7 @@ const ContextMenuSub = ContextMenuPrimitive.Sub;
 const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup;
 
 const contextMenuItemVariants = cva(
-	"relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-sm text-foreground/85 outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:size-3.5 [&_svg]:shrink-0",
+	"relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-foreground/85 outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:size-3.5 [&_svg]:shrink-0",
 	{
 		variants: {
 			variant: {
@@ -90,7 +90,7 @@ const ContextMenuSubContent = React.forwardRef<
 	<ContextMenuPrimitive.SubContent
 		ref={ref}
 		className={cn(
-			"z-[80] min-w-48 overflow-hidden rounded-md border border-[#e4e4e7] bg-white p-1 text-[#12141c] shadow-xl",
+			"z-[80] min-w-48 overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white p-1.5 text-[#12141c] shadow-xl",
 			className,
 		)}
 		{...props}
@@ -108,7 +108,7 @@ const ContextMenuContent = React.forwardRef<
 		<ContextMenuPrimitive.Content
 			ref={ref}
 			className={cn(
-				"z-[80] min-w-48 overflow-hidden rounded-md border border-[#e4e4e7] bg-white p-1 text-[#12141c] shadow-xl",
+				"z-[80] min-w-48 overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white p-1.5 text-[#12141c] shadow-xl",
 				className,
 			)}
 			{...props}

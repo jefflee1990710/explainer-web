@@ -49,7 +49,7 @@ export const SelectableItem = forwardRef<HTMLDivElement, SelectableItemProps>(
 		const stateClassName = cn(
 			"relative",
 			isBoxSelecting && "pointer-events-none",
-			isItemSelected && "rounded-sm ring-1 ring-[#12141c]",
+			isItemSelected && "rounded-xl ring-2 ring-[#12141c]",
 		);
 
 		const handleRef = useCallback(

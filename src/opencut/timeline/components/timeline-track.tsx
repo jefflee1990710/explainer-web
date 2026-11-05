@@ -84,7 +84,7 @@ export function TimelineTrackContent({
 				}}
 			>
 				{rowElements.length === 0 && overlayElements.length === 0 ? (
-					<div className="text-muted-foreground border-muted/30 pointer-events-none flex size-full items-center justify-center rounded-sm border-2 border-dashed text-xs" />
+					<div className="text-muted-foreground border-muted/30 pointer-events-none flex size-full items-center justify-center rounded-lg border-2 border-dashed text-xs" />
 				) : (
 					<>
 						{rowElements.map((element) => {

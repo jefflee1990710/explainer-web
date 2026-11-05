@@ -109,7 +109,7 @@ export function DraggableItem({
 							ratio={aspectRatio}
 							className={cn(
 								"bg-accent relative overflow-hidden",
-								isRounded && "rounded-sm",
+								isRounded && "rounded-xl",
 								isDraggable && "[&::-webkit-drag-ghost]:opacity-0",
 							)}
 							draggable={isDraggable}
@@ -156,7 +156,7 @@ export function DraggableItem({
 						onDragStart={isDraggable ? handleDragStart : undefined}
 						onDragEnd={isDraggable ? handleDragEnd : undefined}
 					>
-						<div className="size-6 shrink-0 overflow-hidden rounded-sm">
+						<div className="size-6 shrink-0 overflow-hidden rounded-lg">
 							{preview}
 						</div>
 						<span className="w-full flex-1 truncate text-sm text-left">
@@ -186,9 +186,9 @@ export function DraggableItem({
 						<div className="w-[80px]">
 							<AspectRatio
 								ratio={aspectRatio}
-								className="ring-primary relative overflow-hidden rounded-md shadow-2xl ring-3"
+								className="ring-primary relative overflow-hidden rounded-xl shadow-2xl ring-3"
 							>
-								<div className="size-full [&_img]:size-full [&_img]:rounded-none [&_img]:object-cover">
+								<div className="size-full [&_img]:size-full [&_img]:rounded-xl [&_img]:object-cover">
 									{preview}
 								</div>
 								{shouldShowPlusOnDrag && (
