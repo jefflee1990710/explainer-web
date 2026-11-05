@@ -57,6 +57,7 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
   const [applyColorFix, setApplyColorFix] = useState(true);
 
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
   const [trimModalOpen, setTrimModalOpen] = useState(false);
   const [promptModalOpen, setPromptModalOpen] = useState(false);
@@ -155,7 +156,8 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
     (Boolean(sceneImageUrl) || Boolean(scenePrompt.trim()));
 
   async function onSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -169,6 +171,8 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
         applyColorFix,
       });
       if (!res.ok) {
+        submittingRef.current = false;
+        setSubmitting(false);
         setError(res.error);
         return;
       }
@@ -176,16 +180,17 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
       setJobs((prev) => [res.job, ...prev.filter((item) => item.id !== res.job.id)]);
       notifyTasksChanged();
       if (res.job.targetVideoId) {
+        // Keep submitting=true so the Generate button stays disabled & loading until the editor page loads.
         router.push(folderVideoPath(undefined, res.job.targetVideoId));
         return;
       }
-      if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
-        setHistoryOpen(true);
-      }
-    } catch {
-      setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
+      setHistoryOpen(true);
+    } catch {
+      submittingRef.current = false;
+      setSubmitting(false);
+      setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
     }
   }
 

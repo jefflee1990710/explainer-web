@@ -736,6 +736,7 @@ export function NewProjectForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || creatingNew) return;
     if (talkingHead && !spokenScript.trim() && !uploadedVoUrl) {
       setError(t("brief.error.spokenScriptRequired"));
       if (setupMode === "details" && wizardStep !== 1) goToWizardStep(1);
@@ -778,6 +779,7 @@ export function NewProjectForm({
   }
 
   async function submitFromFirstVideoModal(payload: FirstVideoQuickSubmitPayload) {
+    if (submitting) return;
     setSkillSlug(payload.skillSlug);
     setStyleId(payload.styleId);
     setCharacterIds(payload.characterIds);
@@ -811,8 +813,8 @@ export function NewProjectForm({
     setSubmitting(true);
     setError("");
     const result = await createVideoAction(formData);
-    setSubmitting(false);
     if (!result.ok) {
+      setSubmitting(false);
       setError(translateAppError(result.error, t));
       return;
     }
@@ -824,14 +826,15 @@ export function NewProjectForm({
   }
 
   async function submitBrief() {
+    if (submitting) return;
     setSubmitting(true);
     setError("");
     const result = project
       ? await updateVideoBriefAction(briefFormData())
       : await createVideoAction(briefFormData());
-    setSubmitting(false);
     setConfirmBrief(false);
     if (!result.ok) {
+      setSubmitting(false);
       setError(translateAppError(result.error, t));
       return;
     }
@@ -844,7 +847,7 @@ export function NewProjectForm({
 
   // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.
   async function submitRestart() {
-    if (!project) return;
+    if (!project || submitting) return;
     setSubmitting(true);
     setError("");
     const result = await restartVideoAction(briefFormData());
@@ -864,14 +867,14 @@ export function NewProjectForm({
 
   // Keep this video and start a separate one from the same start-over brief.
   async function submitCreateNew() {
-    if (!project) return;
+    if (!project || creatingNew) return;
     setCreatingNew(true);
     setError("");
     const formData = briefFormData();
     formData.delete("videoId");
     const result = await createVideoAction(formData);
-    setCreatingNew(false);
     if (!result.ok) {
+      setCreatingNew(false);
       setError(translateAppError(result.error, t));
       return;
     }
@@ -929,6 +932,8 @@ export function NewProjectForm({
       return;
     }
     resetBriefFromProject(project, skills);
+    setSubmitting(false);
+    setCreatingNew(false);
     setError("");
     setWizardStep(0);
     setRestarting(true);

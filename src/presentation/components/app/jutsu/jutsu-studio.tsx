@@ -192,6 +192,7 @@ export function JutsuStudio({
   const [keepSourceAudio, setKeepSourceAudio] = useState(true);
 
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
   const [charModalOpen, setCharModalOpen] = useState(false);
   const [createCharOpen, setCreateCharOpen] = useState(false);
@@ -563,7 +564,7 @@ export function JutsuStudio({
   }, [detectedPeople, personAssignments]);
 
   async function onSubmit() {
-    if (submitting || !sourceVideoUrl) return;
+    if (submitting || submittingRef.current || !sourceVideoUrl) return;
     if (detectedPeople.length > 0 && builtPersonMappings.length === 0) {
       setError(
         isEn
@@ -572,6 +573,7 @@ export function JutsuStudio({
       );
       return;
     }
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -613,6 +615,8 @@ export function JutsuStudio({
         applyColorFix: applyColorFixOnRender,
       });
       if (!res.ok) {
+        submittingRef.current = false;
+        setSubmitting(false);
         setError(res.error);
         return;
       }
@@ -623,16 +627,17 @@ export function JutsuStudio({
       ]);
       notifyTasksChanged();
       if (res.job.targetVideoId) {
+        // Keep submitting=true so the Generate button stays disabled & loading until the editor page loads.
         router.push(folderVideoPath(undefined, res.job.targetVideoId));
         return;
       }
-      if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
-        setHistoryOpen(true);
-      }
-    } catch {
-      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
+      setHistoryOpen(true);
+    } catch {
+      submittingRef.current = false;
+      setSubmitting(false);
+      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
     }
   }
 

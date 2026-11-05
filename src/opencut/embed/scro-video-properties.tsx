@@ -129,11 +129,6 @@ export function ScroVideoProperties({
 							<p className="text-muted-foreground text-xs leading-relaxed">
 								{isStandaloneSwap ? oc.inspector.reSwapDesc : oc.inspector.reTeleportDesc}
 							</p>
-							{clip.stage === "video_generating" ? (
-								<p className="text-muted-foreground text-xs font-medium">
-									{oc.inspector.renderingVideo}
-								</p>
-							) : null}
 							{clip.error ? (
 								<p role="alert" className="text-destructive text-xs">
 									{clip.error}
@@ -152,9 +147,11 @@ export function ScroVideoProperties({
 									})
 								}
 							>
-								{isStandaloneSwap
-									? oc.inspector.reSwapCharacter
-									: oc.inspector.reTeleportScene}
+								{clip.stage === "video_generating" || clip.stage === "frames_generating"
+									? oc.inspector.renderingVideo
+									: isStandaloneSwap
+										? oc.inspector.reSwapCharacter
+										: oc.inspector.reTeleportScene}
 							</Button>
 							<Button
 								type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { applyClipTeleportAction } from "@/presentation/actions/opencut-clip-jutsu";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
@@ -33,6 +33,7 @@ export function OpenCutClipTeleportDialog({
   const [sceneImageUrl, setSceneImageUrl] = useState("");
   const [scenePrompt, setScenePrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -47,7 +48,8 @@ export function OpenCutClipTeleportDialog({
     !submitting && (Boolean(sceneImageUrl) || Boolean(scenePrompt.trim()));
 
   async function onSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -58,6 +60,8 @@ export function OpenCutClipTeleportDialog({
         scenePrompt: scenePrompt.trim() || undefined,
       });
       if (!res.ok) {
+        submittingRef.current = false;
+        setSubmitting(false);
         setError(res.error);
         return;
       }
@@ -65,9 +69,9 @@ export function OpenCutClipTeleportDialog({
       onApplied(res.project);
       onClose();
     } catch {
-      setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
+      setError(isEn ? "Failed to start Teleport." : "啟動 Teleport 失敗，請重試");
     }
   }
 

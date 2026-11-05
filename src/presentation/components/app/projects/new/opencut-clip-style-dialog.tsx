@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { localizeBilingualLabel } from "@/opencut/i18n/use-opencut-i18n";
 import { applyClipStyleAction } from "@/presentation/actions/opencut-clip-style";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
@@ -51,6 +51,7 @@ export function OpenCutClipStyleDialog({
     currentStyleId || availableStyles[0]?.id || "realistic",
   );
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -64,7 +65,8 @@ export function OpenCutClipStyleDialog({
   const canSubmit = !submitting && Boolean(selectedStyleId);
 
   async function onSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -74,6 +76,8 @@ export function OpenCutClipStyleDialog({
         styleId: selectedStyleId,
       });
       if (!res.ok) {
+        submittingRef.current = false;
+        setSubmitting(false);
         setError(res.error);
         return;
       }
@@ -81,13 +85,13 @@ export function OpenCutClipStyleDialog({
       onApplied(res.project);
       onClose();
     } catch {
+      submittingRef.current = false;
+      setSubmitting(false);
       setError(
         isEn
           ? "Failed to change clip style. Please try again."
           : "更換分鏡風格失敗，請重試",
       );
-    } finally {
-      setSubmitting(false);
     }
   }
 

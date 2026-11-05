@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { applyClipScroSwapAction } from "@/presentation/actions/opencut-clip-jutsu";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
@@ -68,6 +68,7 @@ export function OpenCutClipScroSwapDialog({
   const [selectedLookKey, setSelectedLookKey] = useState<string>("default");
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -101,7 +102,8 @@ export function OpenCutClipScroSwapDialog({
   }
 
   async function onSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -112,6 +114,8 @@ export function OpenCutClipScroSwapDialog({
         referenceImageUrl: effectiveRefUrl,
       });
       if (!res.ok) {
+        submittingRef.current = false;
+        setSubmitting(false);
         setError(res.error);
         return;
       }
@@ -119,9 +123,9 @@ export function OpenCutClipScroSwapDialog({
       onApplied(res.project);
       onClose();
     } catch {
-      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
+      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
     }
   }
 

@@ -468,17 +468,19 @@ export function ScroSwapCreateDialog({
         applyColorFix: applyColorFixOnRender,
       });
       if (!res.ok) {
+        setSubmitting(false);
         setError(res.error);
         return;
       }
       onCreated(res.job);
       if (res.job.targetVideoId) {
         router.push(folderVideoPath(undefined, res.job.targetVideoId));
+        return;
       }
-    } catch {
-      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
-    } finally {
       setSubmitting(false);
+    } catch {
+      setSubmitting(false);
+      setError(isEn ? "Failed to start Scro Swap." : "啟動 Scro Swap 失敗，請重試");
     }
   }
 
