@@ -17,6 +17,7 @@ export const tasksPageZhHant = {
     characterBlueprint: "角色藍圖",
     characterProfile: "角色頭像",
     characterFullBody: "角色全身圖",
+    phaseA: "1/5 · AI 導演規劃分鏡腳本",
     stylePreview: "風格預覽",
     textStylePreview: "文字樣式樣本",
     directorPreview: "導演預覽",

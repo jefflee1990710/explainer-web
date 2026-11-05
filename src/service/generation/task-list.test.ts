@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { clipAppendTasks, isCurrentTask, jobListQuery, postTask, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
+import { clipAppendTasks, isCurrentTask, jobListQuery, phaseATask, postTask, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -147,4 +147,39 @@ test("postTask formats a Post Studio job for the global task banner", () => {
   assert.equal(task.stage, "done");
   assert.equal(task.title, "Matcha Drop Poster");
   assert.equal(task.href, `/app/posts?id=${id.toHexString()}`);
+});
+
+test("phaseATask surfaces an active phase_a video while the AI director is writing the storyboard", () => {
+  const now = Date.parse("2026-11-05T15:48:00.000Z");
+  const active = phaseATask(
+    {
+      videoId: "6aeca514c9b6cd6e8a851675",
+      projectId: "",
+      title: "剪紙解說測試",
+      status: "phase_a",
+      createdAt: new Date(now - 30_000).toISOString(),
+      updatedAt: new Date(now - 30_000).toISOString(),
+    },
+    now,
+  );
+  assert.ok(active);
+  assert.equal(active.id, "phase-a:6aeca514c9b6cd6e8a851675");
+  assert.equal(active.kind, "phaseA");
+  assert.equal(active.stage, "generating");
+  assert.equal(active.detailKey, "tasksPage.detail.phaseA");
+  assert.equal(active.videoId, "6aeca514c9b6cd6e8a851675");
+
+  // Once status leaves phase_a into production, phaseATask returns null (frame/video jobs take over)
+  const inProd = phaseATask(
+    {
+      videoId: "6aeca514c9b6cd6e8a851675",
+      projectId: "",
+      title: "剪紙解說測試",
+      status: "production",
+      createdAt: new Date(now - 60_000).toISOString(),
+      updatedAt: new Date(now).toISOString(),
+    },
+    now,
+  );
+  assert.equal(inProd, null);
 });

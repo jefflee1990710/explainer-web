@@ -254,6 +254,23 @@ export function optionsForLookPart(part: AnyCharacterLookPart): readonly Charact
   return CHARACTER_EXTRA_LOOKS[part as CharacterExtraPart];
 }
 
+/** True when `id` is a synthetic Cartesian-product silhouette item (`sgknit01`…) without a dedicated preview photo. */
+export function isSyntheticSilhouetteOptionId(id: string): boolean {
+  return /^sg[a-z]+\d{2}$/.test(id);
+}
+
+/**
+ * Options for a look part that have their own unique, dedicated studio preview image
+ * (excludes synthetic `sg*` Cartesian items that would otherwise repeat a shared family thumbnail).
+ */
+export function visualOptionsForLookPart(
+  part: AnyCharacterLookPart,
+): readonly CharacterLookOption[] {
+  return optionsForLookPart(part).filter(
+    (option) => !isSyntheticSilhouetteOptionId(option.id),
+  );
+}
+
 export function isCharacterLookId(part: AnyCharacterLookPart, id: string) {
   return optionsForLookPart(part).some((option) => option.id === id);
 }
@@ -553,7 +570,7 @@ export function randomizeCharacterLook(
   };
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     if (options.locked?.[part]) continue;
-    const all = optionsForLookPart(part).filter(
+    const all = visualOptionsForLookPart(part).filter(
       (item) => !(item.id === NO_PANTS_ID && (part === "hair" || part === "pants" || part === "shoes")),
     );
     const pool = options.extremeOnly

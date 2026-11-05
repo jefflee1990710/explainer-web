@@ -17,7 +17,7 @@ import { useCustomWardrobeItems } from "@/presentation/components/app/characters
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   CHARACTER_WARDROBE_PARTS,
-  optionsForLookPart,
+  visualOptionsForLookPart,
   type AnyCharacterLookPart,
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
@@ -88,7 +88,7 @@ export function CharacterLookDialog({
       tags: [item.part, item.category],
       silhouette: lookSilhouette(part, { id: item.optionId, prompt: item.prompt }),
     }));
-    const builtInMapped = optionsForLookPart(part).map((option) => ({
+    const builtInMapped = visualOptionsForLookPart(part).map((option) => ({
       id: option.id,
       name: t(`characters.look.options.${part}.${option.id}`),
       description: lookOptionDescription(option),
@@ -100,7 +100,7 @@ export function CharacterLookDialog({
 
   const tagChips = useMemo(() => {
     if (!isWardrobePart) return [];
-    return availableLookFilterTags(part as CharacterWardrobePart, optionsForLookPart(part));
+    return availableLookFilterTags(part as CharacterWardrobePart, visualOptionsForLookPart(part));
   }, [isWardrobePart, part]);
 
   const filtered = useMemo(

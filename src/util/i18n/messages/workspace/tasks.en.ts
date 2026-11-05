@@ -17,6 +17,7 @@ export const tasksPageEn = {
     characterBlueprint: "Character blueprint",
     characterProfile: "Character profile",
     characterFullBody: "Character full body",
+    phaseA: "1/5 · AI Director planning storyboard",
     stylePreview: "Style preview",
     textStylePreview: "Text style sample",
     directorPreview: "Director preview",

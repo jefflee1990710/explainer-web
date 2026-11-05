@@ -21,6 +21,7 @@ import {
   lookOptionCategory,
   optionsForLookPart,
   randomizeCharacterLook,
+  visualOptionsForLookPart,
 } from "@/service/character/character-look";
 import {
   SILHOUETTE_HAIR,
@@ -103,6 +104,30 @@ test("preview prompt isolates that one option with stylish editorial framing and
       const p = characterLookPreviewPrompt(part, option.id);
       assert.match(p, new RegExp(option.prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       assert.doesNotMatch(p, /physically impossible/i);
+    }
+  }
+});
+
+test("visualOptionsForLookPart returns only options with unique 1-to-1 preview images and zero repeated thumbnails", () => {
+  for (const part of ALL_CHARACTER_LOOK_PARTS) {
+    const visual = visualOptionsForLookPart(part);
+    assert.ok(visual.length > 0, `Expected visual options for ${part}`);
+    const seenUrls = new Set<string>();
+    for (const opt of visual) {
+      assert.equal(
+        /^sg[a-z]+\d{2}$/.test(opt.id),
+        false,
+        `Synthetic silhouette item ${opt.id} should not appear in visualOptionsForLookPart(${part})`,
+      );
+      if (opt.id === "none") continue;
+      const src = characterLookPreviewSrc(part, opt.id);
+      assert.ok(src, `Expected preview src for ${part}:${opt.id}`);
+      assert.equal(
+        seenUrls.has(src),
+        false,
+        `Duplicate preview URL ${src} found for ${part}:${opt.id}`,
+      );
+      seenUrls.add(src);
     }
   }
 });

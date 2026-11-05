@@ -27,7 +27,7 @@ export function isCurrentTask(stage: TaskStage, updatedAt: Date | string, now = 
 // One generation job shaped for the task list UI.
 export type PublicTask = {
   id: string;
-  kind: GenerationKind | "reel" | "clipAppend" | "scroSwap" | "teleport";
+  kind: GenerationKind | "phaseA" | "reel" | "clipAppend" | "scroSwap" | "teleport";
   stage: TaskStage;
   // Video title, character name, or custom style name.
   title: string;
@@ -117,14 +117,49 @@ export function taskDetailI18n(
 const REEL_PROJECTION = {
   _id: 1,
   projectId: 1,
+  status: 1,
+  source: 1,
+  error: 1,
   "phaseA.localizedTitle": 1,
   reelStatus: 1,
   reelUrl: 1,
   reelError: 1,
   reelStep: 1,
+  createdAt: 1,
   updatedAt: 1,
   clipAppends: 1,
 } as const;
+
+// Phase A (storyboard planning) lives on the video document before any generationJobs exist.
+export function phaseATask(
+  input: {
+    videoId: string;
+    projectId: string;
+    title: string;
+    status?: string;
+    error?: string;
+    createdAt: string;
+    updatedAt: string;
+  },
+  now = Date.now(),
+): PublicTask | null {
+  if (input.status !== "phase_a") return null;
+  if (!isCurrentTask("generating", input.updatedAt, now)) return null;
+  return {
+    id: `phase-a:${input.videoId}`,
+    kind: "phaseA",
+    stage: "generating",
+    videoId: input.videoId,
+    title: input.title,
+    detail: "1/5 · AI 導演規劃分鏡腳本",
+    detailKey: "tasksPage.detail.phaseA",
+    isVideo: false,
+    href: folderVideoPath(input.projectId, input.videoId),
+    attempts: 0,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  };
+}
 
 // 成片合成 lives on the video, not in generationJobs. Surface it as a task.
 export function reelTask(
@@ -476,6 +511,23 @@ export async function listTasks(
         .toArray()
     : [];
 
+  const phaseATasks = videoDocs.flatMap((video) => {
+    const fallbackTitle =
+      video.phaseA?.localizedTitle ||
+      (typeof video.source === "string" && video.source.trim()
+        ? video.source.trim().slice(0, 36)
+        : "未命名影片");
+    const task = phaseATask({
+      videoId: video._id.toHexString(),
+      projectId: video.projectId?.toHexString() ?? "",
+      title: fallbackTitle,
+      status: video.status,
+      error: video.error,
+      createdAt: (video.createdAt ?? video.updatedAt ?? new Date(0)).toISOString(),
+      updatedAt: (video.updatedAt ?? new Date(0)).toISOString(),
+    });
+    return task ? [task] : [];
+  });
   const reelTasks = videoDocs.flatMap((video) => {
     const task = reelTask({
       videoId: video._id.toHexString(),
@@ -498,7 +550,7 @@ export async function listTasks(
     }),
   );
 
-  const tasks = [...swapTasks, ...teleportTasks, ...postTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
+  const tasks = [...phaseATasks, ...swapTasks, ...teleportTasks, ...postTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;

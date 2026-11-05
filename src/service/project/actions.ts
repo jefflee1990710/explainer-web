@@ -1168,6 +1168,20 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
+    // Editor poll: if a phase_a background worker died without writing phaseA after 4 minutes, retry once.
+    if (
+      video.status === "phase_a" &&
+      Date.now() - (video.updatedAt ?? video.createdAt).getTime() > 4 * 60 * 1000
+    ) {
+      const claimed = await videos.updateOne(
+        { _id: video._id, status: "phase_a", updatedAt: video.updatedAt },
+        { $set: { updatedAt: new Date() } },
+      );
+      if (claimed.modifiedCount > 0) {
+        const phaseAVideoId = video._id;
+        after(() => runPhaseAJob(phaseAVideoId));
+      }
+    }
     // Editor poll: a clip write left queued after the worker died gets retried here.
     if (clipAppendNeedsKick(video)) {
       const appendVideoId = video._id;

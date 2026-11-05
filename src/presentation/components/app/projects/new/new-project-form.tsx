@@ -821,6 +821,7 @@ export function NewProjectForm({
     setFirstVideoModalOpen(false);
     setProject(result.project);
     onVideoCreated?.(result.project);
+    notifyTasksChanged();
     const nextFolder = result.project.projectId;
     router.replace(postCreateVideoPath(nextFolder, result.project.id));
   }
@@ -841,6 +842,7 @@ export function NewProjectForm({
     // After create or brief save, open the OpenCut video editor directly.
     setProject(result.project);
     onVideoCreated?.(result.project);
+    notifyTasksChanged();
     const nextFolder = result.project.projectId;
     router.replace(postCreateVideoPath(nextFolder, result.project.id));
   }
@@ -862,6 +864,7 @@ export function NewProjectForm({
     window.localStorage.removeItem(editorTabStorageKey(project.id));
     setProject(result.project);
     onVideoCreated?.(result.project);
+    notifyTasksChanged();
     router.refresh();
   }
 
@@ -879,6 +882,7 @@ export function NewProjectForm({
       return;
     }
     onVideoCreated?.(result.project);
+    notifyTasksChanged();
     router.replace(folderVideoPath(result.project.projectId, result.project.id));
   }
 
