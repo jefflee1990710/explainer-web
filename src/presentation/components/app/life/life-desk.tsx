@@ -92,19 +92,25 @@ const REMARK_PALETTE = [
 const SCENE_PLACE_SHORTCUTS = [
   {
     id: "candid-scene",
-    label: "讓角色自然融入此場景",
+    labelZhHant: "讓角色自然融入此場景",
+    labelZhHans: "让角色自然融入此场景",
+    labelEn: "Blend naturally into this scene",
     prompt:
       "Place the selected character naturally inside this scene with matching directional lighting, realistic shadows, and candid posture.",
   },
   {
     id: "selfie-view",
-    label: "讓角色在此場景自拍",
+    labelZhHant: "讓角色在此場景自拍",
+    labelZhHans: "让角色在此场景自拍",
+    labelEn: "Take a candid selfie here",
     prompt:
       "Make the selected character take a natural arm's-length phone selfie looking into the lens with this exact view and background behind them.",
   },
   {
     id: "foreground-look",
-    label: "站在場景前景看向鏡頭",
+    labelZhHant: "站在場景前景看向鏡頭",
+    labelZhHans: "站在场景前景看向镜头",
+    labelEn: "Stand in foreground facing camera",
     prompt:
       "Have the selected character stand naturally in the foreground facing the camera with a relaxed smile against this exact background.",
   },
@@ -688,7 +694,11 @@ export function LifeDesk({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] font-bold text-muted">
-            畫筆標註（選填：在圖上塗鴉標記位置）：
+            {locale === "en"
+              ? "Brush annotations (optional: draw on the image to mark spots):"
+              : locale === "zh-Hans"
+                ? "画笔标注（选填：在图上涂鸦标记位置）："
+                : "畫筆標註（選填：在圖上塗鴉標記位置）："}
           </span>
           {remarks.map((r) => {
             const isActive = r.number === activeRemarkNumber;
@@ -783,7 +793,13 @@ export function LifeDesk({
                     ),
                   );
                 }}
-                placeholder={`#${r.number} 修改說明（例：將此處人物換成角色 / 加上道具...）`}
+                placeholder={
+                  locale === "en"
+                    ? `#${r.number} Edit note (e.g. replace person here / add prop...)`
+                    : locale === "zh-Hans"
+                      ? `#${r.number} 修改说明（例：将此处人物换成角色 / 加上道具...）`
+                      : `#${r.number} 修改說明（例：將此處人物換成角色 / 加上道具...）`
+                }
                 className="h-8 flex-1 rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs text-foreground focus-visible:outline-1 focus-visible:outline-accent"
               />
               <button
@@ -849,7 +865,17 @@ export function LifeDesk({
       <DirectorDockStage
         alignTop
         topLeft={
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-2xl bg-[#12141c] px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-[#c6f24b]">
+              LIFE
+            </span>
+            <span className="mr-1 text-xs font-semibold text-zinc-600">
+              {locale === "en"
+                ? "AI Influencer Life Studio"
+                : locale === "zh-Hans"
+                  ? "AI 网红日常照工作室"
+                  : "AI 網紅日常照工作室"}
+            </span>
             <LifeCharacterMenu
               characters={people}
               selectedId={characterId}
@@ -887,11 +913,32 @@ export function LifeDesk({
             >
               <span>{locale === "en" ? "Surprise Me" : "隨機靈感一鍵拍"}</span>
             </button>
-            <LifeRecentOpenButton
-              count={visibleShots.length}
-              generatingCount={generatingCount}
+            <button
+              type="button"
               onClick={() => setRecentOpen(true)}
-            />
+              className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-100 px-3.5 text-xs font-bold text-[#12141c] transition hover:border-zinc-400"
+              aria-label={locale === "zh-Hant" ? "歷史紀錄" : locale === "zh-Hans" ? "历史记录" : "History"}
+            >
+              <svg
+                aria-hidden
+                className="h-3.5 w-3.5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span>
+                {locale === "zh-Hant" ? "歷史紀錄" : locale === "zh-Hans" ? "历史记录" : "History"}
+              </span>
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-2xl bg-zinc-200 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-700">
+                {generatingCount > 0 ? generatingCount : visibleShots.length}
+              </span>
+            </button>
           </div>
         }
         bottomContent={
@@ -1087,8 +1134,16 @@ export function LifeDesk({
           }}
           promptPlaceholder={
             createMode === "scene-place"
-              ? "描述希望角色如何出現在場景中（例：坐在窗邊看著窗外、手拿咖啡走在街頭）..."
-              : "描述你的生活照場景、光線或道具細節（例：傍晚暖陽逆光、桌上放著冰拿鐵與書本）..."
+              ? locale === "en"
+                ? "Describe how your character should appear in the scene (e.g. sitting by the window looking out, holding an iced latte on the street)..."
+                : locale === "zh-Hans"
+                  ? "描述希望角色如何出现在场景中（例：坐在窗边看着窗外、手拿咖啡走在街头）..."
+                  : "描述希望角色如何出現在場景中（例：坐在窗邊看著窗外、手拿咖啡走在街頭）..."
+              : locale === "en"
+                ? "Describe your life photo scene, lighting, or props (e.g. golden hour backlight, iced latte and book on the table)..."
+                : locale === "zh-Hans"
+                  ? "描述你的生活照场景、光线或道具细节（例：傍晚暖阳逆光、桌上放着冰拿铁与书本）..."
+                  : "描述你的生活照場景、光線或道具細節（例：傍晚暖陽逆光、桌上放著冰拿鐵與書本）..."
           }
           plusMenuOpen={plusMenuOpen}
           onPlusToggle={() => setPlusMenuOpen((prev) => !prev)}
@@ -1108,7 +1163,11 @@ export function LifeDesk({
                     }}
                     className="cursor-pointer rounded-2xl border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-[#12141c] hover:bg-zinc-200"
                   >
-                    {sc.label}
+                    {locale === "en"
+                      ? sc.labelEn
+                      : locale === "zh-Hans"
+                        ? sc.labelZhHans
+                        : sc.labelZhHant}
                   </button>
                 ))}
               </div>
@@ -1463,7 +1522,13 @@ export function LifeDesk({
                       void onRegenerateFromHistory();
                     }
                   }}
-                  placeholder="輸入修改指令，用 AI 修改此圖並重新生成..."
+                  placeholder={
+                    locale === "en"
+                      ? "Type an instruction to edit & regenerate this photo with AI..."
+                      : locale === "zh-Hans"
+                        ? "输入修改指令，用 AI 修改此图并重新生成..."
+                        : "輸入修改指令，用 AI 修改此圖並重新生成..."
+                  }
                   className="h-9 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent disabled:opacity-60"
                 />
                 <button
@@ -1490,7 +1555,11 @@ export function LifeDesk({
                   }}
                   className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
                 >
-                  載入至主畫布塗鴉標註修改
+                  {locale === "en"
+                    ? "Load onto main canvas to annotate & edit"
+                    : locale === "zh-Hans"
+                      ? "载入至主画布涂鸦标注修改"
+                      : "載入至主畫布塗鴉標註修改"}
                 </button>
                 <button
                   type="button"

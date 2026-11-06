@@ -314,9 +314,37 @@ html[data-studio-theme="light"] .studio-app .studio-card:hover {
 
 .studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-[#f4f4f5]"],
 .studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-50"],
-.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-100"] {
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-100"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-200"] {
   background-color: var(--studio-fill);
   color: var(--studio-ink);
+}
+
+/* Any element explicitly using bg-accent-ink or bg-[var(--accent-ink)] is a dark ink surface (#12141c) with light/lime text */
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, p)[class*="bg-accent-ink"]:not([class*="bg-accent-ink/"]),
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, p)[class*="bg-[var(--accent-ink)]"] {
+  background-color: #12141c;
+  color: #c6f24b;
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, p)[class*="bg-accent-ink/80"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, p)[class*="bg-accent-ink/85"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, p)[class*="bg-accent-ink/90"] {
+  background-color: rgba(18, 20, 28, 0.9);
+  color: #f4f4f6;
+}
+
+/* Solid lime badges & buttons always keep dark #12141c foreground text */
+.studio-app:not([data-studio-theme="light"]) :is(span, div, p, button, a).bg-lime {
+  background-color: #c6f24b;
+  color: #12141c;
+}
+
+/* Backdrop scrims in dark mode stay dark translucent instead of turning light */
+.studio-app:not([data-studio-theme="light"]) :is(div, button)[class*="bg-accent-ink/40"],
+.studio-app:not([data-studio-theme="light"]) :is(div, button)[class*="bg-accent-ink/45"],
+.studio-app:not([data-studio-theme="light"]) :is(div, button)[class*="bg-accent-ink/50"] {
+  background-color: rgba(0, 0, 0, 0.72);
 }
 
 .studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]) {
@@ -325,9 +353,9 @@ html[data-studio-theme="light"] .studio-app .studio-card:hover {
 }
 
 .studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-[#12141c]"]:not([class*="bg-[#c6f24b]"]):not([class*="bg-lime"]):not(.director-dock-generate):not(.director-dock-generate *),
-.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-900"]:not([class*="bg-[#c6f24b]"]),
-.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-800"]:not([class*="bg-[#c6f24b]"]),
-.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-700"]:not([class*="bg-[#c6f24b]"]) {
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-900"]:not([class*="bg-[#c6f24b]"]):not([class*="bg-lime"]),
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-800"]:not([class*="bg-[#c6f24b]"]):not([class*="bg-lime"]),
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-700"]:not([class*="bg-[#c6f24b]"]):not([class*="bg-lime"]) {
   color: var(--studio-ink);
 }
 

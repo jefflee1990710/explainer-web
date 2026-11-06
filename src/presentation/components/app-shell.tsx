@@ -56,26 +56,30 @@ export function AppShell({
     // TOOLS: existing 5 creation tools (+ Life) in a 2-column grid
     {
       href: "/app/explainers",
-      label: locale === "zh-Hant" ? "解說短片" : locale === "zh-Hans" ? "解说短片" : "Explainer",
+      label: locale === "zh-Hant" ? "解說" : locale === "zh-Hans" ? "解说" : "Explainer",
       icon: "projects",
+      imageUrl: "/nav-tools/explainer.png",
       section: "create",
     },
     {
       href: "/app/talking-heads",
-      label: locale === "zh-Hant" ? "對鏡口播" : locale === "zh-Hans" ? "对镜口播" : "Talking Head",
+      label: locale === "zh-Hant" ? "口播" : locale === "zh-Hans" ? "口播" : "Talking",
       icon: "directors",
+      imageUrl: "/nav-tools/talking.png",
       section: "create",
     },
     {
       href: "/app/scroswap",
-      label: "Scro Swap",
+      label: locale === "zh-Hant" ? "換角" : locale === "zh-Hans" ? "换角" : "Swap",
       icon: "styles",
+      imageUrl: "/nav-tools/swap.png",
       section: "create",
     },
     {
       href: "/app/teleport",
-      label: "Teleport",
+      label: locale === "zh-Hant" ? "換場" : locale === "zh-Hans" ? "换场" : "Teleport",
       icon: "room",
+      imageUrl: "/nav-tools/teleport.png",
       section: "create",
     },
     ...(POSTS_FEATURE_ENABLED
@@ -84,6 +88,7 @@ export function AppShell({
             href: "/app/posts",
             label: locale === "en" ? "Poster" : t("nav.posts"),
             icon: "posts" as const,
+            imageUrl: "/nav-tools/poster.png",
             section: "create" as const,
           },
         ]
@@ -92,6 +97,7 @@ export function AppShell({
       href: "/app/life",
       label: t("nav.life"),
       icon: "life",
+      imageUrl: "/nav-tools/life.png",
       section: "create",
     },
     // CHARACTER & ASSETS

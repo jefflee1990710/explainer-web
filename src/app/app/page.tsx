@@ -9,6 +9,7 @@ import {
 } from "@/presentation/serialize";
 import type { Character } from "@/model/character";
 import type { Project } from "@/model/project";
+import { isHotTopicsCacheFresh } from "@/service/home/hot-topics";
 import { listSelectableStyles } from "@/service/style/list";
 import { HomeView } from "@/presentation/components/app/home-view";
 
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
   const cards = (videoDocs as Project[]).map(toPublicVideoCard);
   const publicCharacters = charDocs.map(toPublicCharacter);
   const styles = [...selectableStyles.system, ...selectableStyles.mine];
+  const cacheFresh = isHotTopicsCacheFresh(user.hotTopicsCache);
 
   return (
     <Suspense fallback={null}>
@@ -46,6 +48,8 @@ export default async function DashboardPage() {
         styles={styles}
         credits={user.credits}
         subscribed={subscribed}
+        initialHotTopics={user.hotTopicsCache?.topics}
+        hotTopicsNeedRefresh={!cacheFresh}
       />
     </Suspense>
   );

@@ -39,6 +39,7 @@ export type StudioNavItem = {
     | "settings";
   badge?: number;
   tag?: string;
+  imageUrl?: string;
 };
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "scro:studio-sidebar-collapsed";

@@ -252,10 +252,14 @@ export function PostStudio({
   return (
     <DirectorDockStage
       topLeft={
-        <span className="inline-flex items-center gap-1.5 rounded-2xl border border-zinc-200/90 bg-white/90 px-3 py-1 text-xs font-bold text-[#12141c] shadow-xs">
-          <span className="h-2 w-2 rounded-full bg-[#c6f24b]" />
-          <span>{isEn ? "Poster Creator" : "海報製作 Poster Creator"}</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-2xl bg-[#12141c] px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-[#c6f24b]">
+            POSTER
+          </span>
+          <span className="text-xs font-semibold text-zinc-600">
+            {isEn ? "2K Poster Creator Studio" : locale === "zh-Hans" ? "2K 海报贴文工作室" : "2K 海報貼文工作室"}
+          </span>
+        </div>
       }
       topRight={
         <button
@@ -264,10 +268,24 @@ export function PostStudio({
             setEditingPostId(null);
             setHistoryOpen(true);
           }}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-[#12141c] shadow-xs transition hover:border-[#12141c]"
+          className="director-dock-cell inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-100 px-3.5 text-xs font-bold text-[#12141c] transition hover:border-zinc-400"
+          aria-label={historyLabel}
         >
+          <svg
+            aria-hidden
+            className="h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
           <span>{historyLabel}</span>
-          <span className="rounded-2xl bg-[#12141c] px-2 py-0.5 font-display text-[11px] font-bold text-[#c6f24b]">
+          <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-2xl bg-zinc-200 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-700">
             {posts.length}
           </span>
         </button>

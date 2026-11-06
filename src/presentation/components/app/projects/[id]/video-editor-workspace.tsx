@@ -131,6 +131,7 @@ export function VideoEditorWorkspace({
         folderName={folderName}
         title={editorTitle}
         videoId={video?.id}
+        useCase={useCase}
         objectSheetUrl={video?.objectSheetUrl}
         objectSheetItems={video?.objectSheetItems}
         backgroundPlates={video?.backgroundPlates}

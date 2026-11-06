@@ -54,10 +54,10 @@ export function TaskQueueBanner({ initialPending }: { initialPending: number }) 
         aria-haspopup="menu"
         aria-busy={refreshing}
         aria-label={`${t("nav.tasks")}, ${pending} ${t("common.pending")}`}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 bg-[var(--accent-ink)] px-4 py-2 text-sm font-semibold text-[var(--lime)]"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 border-b border-[var(--studio-line)] bg-[#12141c] px-4 py-2 text-sm font-semibold text-[#c6f24b]"
       >
-        {refreshing ? <Spinner className="h-3.5 w-3.5" /> : <span className="studio-task-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--lime)]" aria-hidden />}
-        <span className="min-w-0 truncate text-center">{message}</span>
+        {refreshing ? <Spinner className="h-3.5 w-3.5 text-[#c6f24b]" /> : <span className="studio-task-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[#c6f24b]" aria-hidden />}
+        <span className="min-w-0 truncate text-center text-[#c6f24b]">{message}</span>
       </button>
       {open ? (
         <div

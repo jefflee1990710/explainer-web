@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
+import { hotTopicItemSchema, type HotTopicItem } from "@/model/hot-topic";
 
 // App user mirrored from Firebase Auth into MongoDB.
 // clerkUserId holds the Firebase uid so older documents and queries stay valid.
@@ -31,6 +32,11 @@ export type AppUser = {
   };
   // Times this user ran “fill voice from blueprint”, used for the 5-minute cap.
   voiceFillAt?: Date[];
+  // 4-hour cached personalized Hot Topics generated from the user's recent creations.
+  hotTopicsCache?: {
+    generatedAt: Date;
+    topics: HotTopicItem[];
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -57,6 +63,12 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
     })
     .optional(),
   voiceFillAt: z.array(z.date()).optional(),
+  hotTopicsCache: z
+    .object({
+      generatedAt: z.date(),
+      topics: z.array(hotTopicItemSchema),
+    })
+    .optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

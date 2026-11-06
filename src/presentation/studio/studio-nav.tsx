@@ -202,13 +202,24 @@ function StudioToolTileLink({
           : "border-[var(--studio-line)] bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:border-[var(--studio-muted)]/50 hover:opacity-95"
       }`}
     >
-      <span
-        className={`grid h-5 w-5 shrink-0 place-items-center transition-colors ${
-          active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"
-        }`}
-      >
-        <RailIcon name={item.icon} />
-      </span>
+      {item.imageUrl ? (
+        <span className="h-6 w-6 shrink-0 overflow-hidden rounded-md border border-[var(--studio-line)] bg-[#12141c]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.imageUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </span>
+      ) : (
+        <span
+          className={`grid h-5 w-5 shrink-0 place-items-center transition-colors ${
+            active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"
+          }`}
+        >
+          <RailIcon name={item.icon} />
+        </span>
+      )}
       <span
         className={`min-w-0 flex-1 truncate group-hover/rail:inline group-focus-within/rail:inline ${
           forceExpanded ? "inline" : "hidden"
