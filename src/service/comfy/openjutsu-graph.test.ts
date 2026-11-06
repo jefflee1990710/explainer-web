@@ -3,6 +3,7 @@ import test from "node:test";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import { buildObjectGraph, buildSimpleGraph } from "@/service/comfy/openjutsu-graph";
+import { canSubmitJutsuComfy } from "@/service/comfy/submit-swap";
 
 const section = { start: 1.5, length: 8 };
 
@@ -143,5 +144,41 @@ test("ensureMp4HasAudioStream adds a silent AAC track to a video-only MP4 and le
     assert.equal(secondPass, withAudio);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("canSubmitJutsuComfy only enables ComfyUI fast-path for character/object video swaps when configured", () => {
+  const prevUrl = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  try {
+    process.env.COMFY_BASE_URL = "https://comfy.example.com";
+    process.env.COMFY_API_KEY = "secret";
+    assert.equal(
+      canSubmitJutsuComfy({ sourceMediaKind: "video", mode: "character_swap" }),
+      true,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({ sourceMediaKind: "gif", mode: "object_swap" }),
+      true,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({ sourceMediaKind: "image", mode: "character_swap" }),
+      false,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({ sourceMediaKind: "video", mode: "relight_video" }),
+      false,
+    );
+
+    delete process.env.COMFY_BASE_URL;
+    assert.equal(
+      canSubmitJutsuComfy({ sourceMediaKind: "video", mode: "character_swap" }),
+      false,
+    );
+  } finally {
+    if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevUrl;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
   }
 });

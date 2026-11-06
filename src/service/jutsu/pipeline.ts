@@ -73,7 +73,10 @@ import {
   comfyViewAuthHeaders,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
-import { trySubmitJutsuComfy } from "@/service/comfy/submit-swap";
+import {
+  canSubmitJutsuComfy,
+  trySubmitJutsuComfy,
+} from "@/service/comfy/submit-swap";
 
 export const JUTSU_MIN_SECTION_SECONDS = 2;
 export const JUTSU_MAX_SECTION_SECONDS = 15;
@@ -1486,6 +1489,8 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       return;
     }
 
+    let preloadedVideoBuffer: Buffer | undefined;
+
     if (!current.preparedStartFrameUrl) {
       const videoRes = await fetch(current.sourceVideoUrl);
       if (!videoRes.ok) {
@@ -1499,6 +1504,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         videoBuffer = converted.mp4Buffer;
         gifOriginalDuration = converted.originalDurationSeconds;
       }
+      preloadedVideoBuffer = videoBuffer;
 
       const extracted = await extractVideoSectionKeyframes(
         videoBuffer,
@@ -1510,199 +1516,244 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       const effectiveSectionLength = gifOriginalDuration ?? extracted.actualDuration;
 
       const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
-      const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
-        persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
-        persistBuffer(extracted.endFrameWebp, `${prefix}/raw-end.webp`, "image/webp"),
-      ]);
+      const useComfy = canSubmitJutsuComfy({
+        sourceMediaKind: mediaKind,
+        mode: current.mode,
+      });
 
-      const activeMappings =
-        current.personMappings && current.personMappings.length > 0
-          ? [...current.personMappings].sort(
-              (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
-            )
-          : [];
+      if (useComfy) {
+        // ComfyUI runs its own SAM 3.1 tracking, Qwen-VL description, and start-frame edit.
+        // Only persist the raw start still for UI thumbnail preview; skip redundant cloud VLM, Seedream, and fal SAM-3 calls.
+        const rawStartFrameUrl = await persistBuffer(
+          extracted.startFrameWebp,
+          `${prefix}/raw-start.webp`,
+          "image/webp",
+        );
+        const prepNow = new Date();
+        await col.updateOne(
+          { _id: current._id },
+          {
+            $set: {
+              sourceMediaKind: mediaKind,
+              aspectRatio: extracted.aspectRatio,
+              sectionLength: effectiveSectionLength,
+              rawStartFrameUrl,
+              preparedStartFrameUrl: rawStartFrameUrl,
+              updatedAt: prepNow,
+            },
+          },
+        );
+        current = {
+          ...current,
+          sourceMediaKind: mediaKind,
+          aspectRatio: extracted.aspectRatio,
+          sectionLength: effectiveSectionLength,
+          rawStartFrameUrl,
+          preparedStartFrameUrl: rawStartFrameUrl,
+          updatedAt: prepNow,
+        };
+        await syncStandaloneEngineFrame({
+          targetVideoId: current.targetVideoId,
+          targetClipNumber: current.targetClipNumber,
+          aspectRatio: extracted.aspectRatio,
+          durationSeconds: effectiveSectionLength,
+          posterUrl: rawStartFrameUrl,
+        });
+      } else {
+        const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
+          persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
+          persistBuffer(extracted.endFrameWebp, `${prefix}/raw-end.webp`, "image/webp"),
+        ]);
 
-      const donorUrls =
-        activeMappings.length > 0
-          ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
-          : current.referenceImageUrl
-            ? [current.referenceImageUrl]
+        const activeMappings =
+          current.personMappings && current.personMappings.length > 0
+            ? [...current.personMappings].sort(
+                (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+              )
             : [];
 
-      if (donorUrls.length === 0) {
-        throw new Error("缺少角色參考圖片");
-      }
+        const donorUrls =
+          activeMappings.length > 0
+            ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
+            : current.referenceImageUrl
+              ? [current.referenceImageUrl]
+              : [];
 
-      const useMultiPersonPrompt =
-        activeMappings.length > 1 ||
-        (activeMappings.length === 1 && (current.totalDetectedPeople ?? 1) > 1);
-
-      const baseEditRequest = useMultiPersonPrompt
-        ? buildMultiPersonJutsuEditPrompt({
-            mappings: activeMappings,
-            totalDetectedPeople: current.totalDetectedPeople,
-            relightId: current.relightId,
-            customLightPrompt: current.customLightPrompt,
-          })
-        : buildDefaultJutsuEditPrompt({
-            mode: "character_swap",
-            relightId: current.relightId,
-            customLightPrompt: current.customLightPrompt,
-            hasReferenceImage: true,
-            characterOutfitSpec: current.characterOutfitSpec,
-          });
-
-      const upsamplerBuffers: Buffer[] = [];
-      for (const dUrl of donorUrls) {
-        const donorBuf = await fetch(dUrl)
-          .then((r) => (r.ok ? r.arrayBuffer() : null))
-          .then((ab) => (ab ? Buffer.from(ab) : null))
-          .catch(() => null);
-        if (donorBuf) upsamplerBuffers.push(donorBuf);
-      }
-      upsamplerBuffers.push(extracted.startFrameWebp);
-
-      const upsampledStartPrompt = await upsampleJutsuFramePrompt({
-        baseRequest: baseEditRequest,
-        imageBuffers: upsamplerBuffers,
-      });
-
-      const startRefs = [...donorUrls, rawStartFrameUrl];
-      const h3Ready = hasMinimaxApiKey();
-      const preparedStartBuf = await generatePreparedKeyframeBuffer({
-        prompt: upsampledStartPrompt,
-        aspectRatio: extracted.aspectRatio,
-        referenceImageUrls: startRefs,
-      });
-      // H3 ref2va does not take a last frame. Hailuo fallback reuses the start still when this is skipped.
-      const preparedEndBuf = h3Ready
-        ? null
-        : await generatePreparedKeyframeBuffer({
-            prompt: upsampledStartPrompt,
-            aspectRatio: extracted.aspectRatio,
-            referenceImageUrls: [...donorUrls, rawEndFrameUrl],
-          });
-
-      const [
-        preparedStartFrameUrl,
-        preparedEndFrameUrl,
-        motionDescription,
-        samMannequinResult,
-      ] = await Promise.all([
-        persistBuffer(
-          preparedStartBuf,
-          `${prefix}/prepared-start-${Date.now()}.webp`,
-          "image/webp",
-        ),
-        preparedEndBuf
-          ? persistBuffer(
-              preparedEndBuf,
-              `${prefix}/prepared-end-${Date.now()}.webp`,
-              "image/webp",
-            )
-          : Promise.resolve(undefined),
-        describeJutsuVideoMotion({
-          sampledFrameBuffers: extracted.sampledFramesJpeg,
-          preparedFrameBuffer: preparedStartBuf,
-          characterName: current.characterName,
-          relightText: resolveJutsuLightText(
-            current.relightId,
-            current.customLightPrompt,
-          ),
-        }),
-        buildSam3MannequinAndMaskVideos({
-          sourceVideoBuffer: videoBuffer,
-          sectionStart: mediaKind === "gif" ? 0 : current.sectionStart,
-          sectionLength: extracted.actualDuration,
-          target: "person",
-          margin: current.maskMargin ?? "normal",
-          hatFix: Boolean(current.hatFix),
-          motionSize: current.motionSize ?? 512,
-          maskMode: current.objectEditMode === "background" ? "background" : "subject",
-          personMappings: activeMappings.length > 0 ? activeMappings : undefined,
-          allDetectedAnchors: current.allDetectedAnchors,
-        }).catch(() => null),
-      ]);
-
-      let mannequinVideoUrl: string | undefined;
-      let checkMaskVideoUrl: string | undefined;
-      if (samMannequinResult) {
-        [mannequinVideoUrl, checkMaskVideoUrl] = await Promise.all([
-          persistBuffer(
-            samMannequinResult.mannequinVideoBuffer,
-            `${prefix}/sam-mannequin-${Date.now()}.mp4`,
-            "video/mp4",
-          ),
-          persistBuffer(
-            samMannequinResult.checkMaskVideoBuffer,
-            `${prefix}/check-mask-${Date.now()}.mp4`,
-            "video/mp4",
-          ),
-        ]);
-      }
-
-      let sectionAudioUrl: string | undefined;
-      if (!current.noLipSync && current.keepSourceAudio !== false && mediaKind === "video") {
-        const audioMp3 = await extractVideoSectionAudioMp3(
-          videoBuffer,
-          current.sectionStart,
-          effectiveSectionLength,
-        );
-        if (audioMp3) {
-          sectionAudioUrl = await persistBuffer(
-            audioMp3,
-            `${prefix}/section-audio-${Date.now()}.mp3`,
-            "audio/mpeg",
-          );
+        if (donorUrls.length === 0) {
+          throw new Error("缺少角色參考圖片");
         }
-      }
 
-      const prepNow = new Date();
-      await col.updateOne(
-        { _id: current._id },
-        {
-          $set: {
-            sourceMediaKind: mediaKind,
-            aspectRatio: extracted.aspectRatio,
-            sectionLength: effectiveSectionLength,
-            rawStartFrameUrl,
-            rawEndFrameUrl,
-            preparedStartFrameUrl,
-            ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
-            mannequinVideoUrl,
-            checkMaskVideoUrl,
-            sectionAudioUrl,
-            editPrompt: upsampledStartPrompt,
-            motionDescription,
-            updatedAt: prepNow,
+        const useMultiPersonPrompt =
+          activeMappings.length > 1 ||
+          (activeMappings.length === 1 && (current.totalDetectedPeople ?? 1) > 1);
+
+        const baseEditRequest = useMultiPersonPrompt
+          ? buildMultiPersonJutsuEditPrompt({
+              mappings: activeMappings,
+              totalDetectedPeople: current.totalDetectedPeople,
+              relightId: current.relightId,
+              customLightPrompt: current.customLightPrompt,
+            })
+          : buildDefaultJutsuEditPrompt({
+              mode: "character_swap",
+              relightId: current.relightId,
+              customLightPrompt: current.customLightPrompt,
+              hasReferenceImage: true,
+              characterOutfitSpec: current.characterOutfitSpec,
+            });
+
+        const upsamplerBuffers: Buffer[] = [];
+        for (const dUrl of donorUrls) {
+          const donorBuf = await fetch(dUrl)
+            .then((r) => (r.ok ? r.arrayBuffer() : null))
+            .then((ab) => (ab ? Buffer.from(ab) : null))
+            .catch(() => null);
+          if (donorBuf) upsamplerBuffers.push(donorBuf);
+        }
+        upsamplerBuffers.push(extracted.startFrameWebp);
+
+        const upsampledStartPrompt = await upsampleJutsuFramePrompt({
+          baseRequest: baseEditRequest,
+          imageBuffers: upsamplerBuffers,
+        });
+
+        const startRefs = [...donorUrls, rawStartFrameUrl];
+        const h3Ready = hasMinimaxApiKey();
+        const preparedStartBuf = await generatePreparedKeyframeBuffer({
+          prompt: upsampledStartPrompt,
+          aspectRatio: extracted.aspectRatio,
+          referenceImageUrls: startRefs,
+        });
+        // H3 ref2va does not take a last frame. Hailuo fallback reuses the start still when this is skipped.
+        const preparedEndBuf = h3Ready
+          ? null
+          : await generatePreparedKeyframeBuffer({
+              prompt: upsampledStartPrompt,
+              aspectRatio: extracted.aspectRatio,
+              referenceImageUrls: [...donorUrls, rawEndFrameUrl],
+            });
+
+        const [
+          preparedStartFrameUrl,
+          preparedEndFrameUrl,
+          motionDescription,
+          samMannequinResult,
+        ] = await Promise.all([
+          persistBuffer(
+            preparedStartBuf,
+            `${prefix}/prepared-start-${Date.now()}.webp`,
+            "image/webp",
+          ),
+          preparedEndBuf
+            ? persistBuffer(
+                preparedEndBuf,
+                `${prefix}/prepared-end-${Date.now()}.webp`,
+                "image/webp",
+              )
+            : Promise.resolve(undefined),
+          describeJutsuVideoMotion({
+            sampledFrameBuffers: extracted.sampledFramesJpeg,
+            preparedFrameBuffer: preparedStartBuf,
+            characterName: current.characterName,
+            relightText: resolveJutsuLightText(
+              current.relightId,
+              current.customLightPrompt,
+            ),
+          }),
+          buildSam3MannequinAndMaskVideos({
+            sourceVideoBuffer: videoBuffer,
+            sectionStart: mediaKind === "gif" ? 0 : current.sectionStart,
+            sectionLength: extracted.actualDuration,
+            target: "person",
+            margin: current.maskMargin ?? "normal",
+            hatFix: Boolean(current.hatFix),
+            motionSize: current.motionSize ?? 512,
+            maskMode: current.objectEditMode === "background" ? "background" : "subject",
+            personMappings: activeMappings.length > 0 ? activeMappings : undefined,
+            allDetectedAnchors: current.allDetectedAnchors,
+          }).catch(() => null),
+        ]);
+
+        let mannequinVideoUrl: string | undefined;
+        let checkMaskVideoUrl: string | undefined;
+        if (samMannequinResult) {
+          [mannequinVideoUrl, checkMaskVideoUrl] = await Promise.all([
+            persistBuffer(
+              samMannequinResult.mannequinVideoBuffer,
+              `${prefix}/sam-mannequin-${Date.now()}.mp4`,
+              "video/mp4",
+            ),
+            persistBuffer(
+              samMannequinResult.checkMaskVideoBuffer,
+              `${prefix}/check-mask-${Date.now()}.mp4`,
+              "video/mp4",
+            ),
+          ]);
+        }
+
+        let sectionAudioUrl: string | undefined;
+        if (!current.noLipSync && current.keepSourceAudio !== false && mediaKind === "video") {
+          const audioMp3 = await extractVideoSectionAudioMp3(
+            videoBuffer,
+            current.sectionStart,
+            effectiveSectionLength,
+          );
+          if (audioMp3) {
+            sectionAudioUrl = await persistBuffer(
+              audioMp3,
+              `${prefix}/section-audio-${Date.now()}.mp3`,
+              "audio/mpeg",
+            );
+          }
+        }
+
+        const prepNow = new Date();
+        await col.updateOne(
+          { _id: current._id },
+          {
+            $set: {
+              sourceMediaKind: mediaKind,
+              aspectRatio: extracted.aspectRatio,
+              sectionLength: effectiveSectionLength,
+              rawStartFrameUrl,
+              rawEndFrameUrl,
+              preparedStartFrameUrl,
+              ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
+              mannequinVideoUrl,
+              checkMaskVideoUrl,
+              sectionAudioUrl,
+              editPrompt: upsampledStartPrompt,
+              motionDescription,
+              updatedAt: prepNow,
+            },
           },
-        },
-      );
+        );
 
-      current = {
-        ...current,
-        sourceMediaKind: mediaKind,
-        aspectRatio: extracted.aspectRatio,
-        sectionLength: effectiveSectionLength,
-        rawStartFrameUrl,
-        rawEndFrameUrl,
-        preparedStartFrameUrl,
-        ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
-        mannequinVideoUrl,
-        checkMaskVideoUrl,
-        sectionAudioUrl,
-        editPrompt: upsampledStartPrompt,
-        motionDescription,
-        updatedAt: prepNow,
-      };
+        current = {
+          ...current,
+          sourceMediaKind: mediaKind,
+          aspectRatio: extracted.aspectRatio,
+          sectionLength: effectiveSectionLength,
+          rawStartFrameUrl,
+          rawEndFrameUrl,
+          preparedStartFrameUrl,
+          ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
+          mannequinVideoUrl,
+          checkMaskVideoUrl,
+          sectionAudioUrl,
+          editPrompt: upsampledStartPrompt,
+          motionDescription,
+          updatedAt: prepNow,
+        };
 
-      await syncStandaloneEngineFrame({
-        targetVideoId: current.targetVideoId,
-        targetClipNumber: current.targetClipNumber,
-        aspectRatio: extracted.aspectRatio,
-        durationSeconds: effectiveSectionLength,
-        posterUrl: preparedStartFrameUrl,
-      });
+        await syncStandaloneEngineFrame({
+          targetVideoId: current.targetVideoId,
+          targetClipNumber: current.targetClipNumber,
+          aspectRatio: extracted.aspectRatio,
+          durationSeconds: effectiveSectionLength,
+          posterUrl: preparedStartFrameUrl,
+        });
+      }
     }
 
     if (!current.openRouterStatusUrl && current.preparedStartFrameUrl) {
@@ -1746,7 +1797,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             .filter(Boolean)
             .join(" ");
 
-      const comfySubmitted = await trySubmitJutsuComfy(current);
+      const comfySubmitted = await trySubmitJutsuComfy(current, preloadedVideoBuffer);
       const submitted = comfySubmitted
         ? comfySubmitted
         : useH3Ref2Va

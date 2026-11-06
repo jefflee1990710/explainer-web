@@ -9,19 +9,29 @@ import {
   type ComfySubmitResult,
 } from "@/service/comfy/openjutsu-client";
 
+export function canSubmitJutsuComfy(
+  job: Pick<JutsuJob, "sourceMediaKind" | "mode">,
+): boolean {
+  if (!hasComfyEndpoint()) return false;
+  if (job.sourceMediaKind === "image") return false;
+  return job.mode === "character_swap" || job.mode === "object_swap";
+}
+
 // Character swap uses OpenJutsu simple. Object swap uses the object workflow.
 // Still images, relight, and color fix stay on the cloud path.
 export async function trySubmitJutsuComfy(
   job: JutsuJob & { _id: { toHexString(): string } },
+  preloadedVideoBuffer?: Buffer,
 ): Promise<ComfySubmitResult | null> {
-  if (!hasComfyEndpoint()) return null;
-  if (job.sourceMediaKind === "image") return null;
-  if (job.mode !== "character_swap" && job.mode !== "object_swap") return null;
+  if (!canSubmitJutsuComfy(job)) return null;
 
-  const rawVideo = await fetchMedia(job.sourceVideoUrl);
+  const rawVideo = preloadedVideoBuffer ?? (await fetchMedia(job.sourceVideoUrl));
   const video = await ensureMp4HasAudioStream(rawVideo);
   const runId = job._id.toHexString();
-  const section = { start: job.sectionStart, length: job.sectionLength };
+  const section = {
+    start: job.sourceMediaKind === "gif" ? 0 : job.sectionStart,
+    length: job.sectionLength,
+  };
   const shared = {
     video,
     section,
@@ -66,11 +76,12 @@ export async function trySubmitJutsuComfy(
 // Teleport is OpenJutsu object mode "background": the person stays, the setting is replaced.
 export async function trySubmitTeleportComfy(
   job: TeleportJob & { _id: { toHexString(): string } },
+  preloadedVideoBuffer?: Buffer,
 ): Promise<ComfySubmitResult | null> {
   if (!hasComfyEndpoint()) return null;
   if (!job.sceneImageUrl) throw new Error("缺少場景圖片");
   const [rawVideo, image] = await Promise.all([
-    fetchMedia(job.sourceVideoUrl),
+    preloadedVideoBuffer ? Promise.resolve(preloadedVideoBuffer) : fetchMedia(job.sourceVideoUrl),
     fetchMedia(job.sceneImageUrl),
   ]);
   const video = await ensureMp4HasAudioStream(rawVideo);
