@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { SCENE_TEXT_CHOICES } from "@/service/director/scene-text";
+import { SCENE_TEXT_IDS } from "@/service/director/scene-text";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 import type { SceneTextChoice } from "@/model/project";
 
-// Languages, plus None when the still and the video should have no writing.
+// Switch on-screen text language (English, Traditional Chinese, Simplified Chinese).
 export function SceneTextPicker({
   language,
   onLanguageChange,
@@ -17,15 +17,16 @@ export function SceneTextPicker({
   disabled?: boolean;
 }) {
   const { t } = useI18n();
+  const effectiveLanguage = language === "none" ? "en" : language;
   return (
     <div
       role="radiogroup"
       aria-label={t("brief.sceneText.aria")}
-      className="grid grid-cols-2 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1 sm:grid-cols-4"
+      className="grid grid-cols-1 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1 sm:grid-cols-3"
     >
-      {SCENE_TEXT_CHOICES.map((id) => {
+      {SCENE_TEXT_IDS.map((id) => {
         const preset = sceneTextLangLabel(t, id);
-        const active = id === language;
+        const active = id === effectiveLanguage;
         return (
           <button
             key={id}

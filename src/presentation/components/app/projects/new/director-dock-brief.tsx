@@ -83,7 +83,6 @@ const SCENE_TEXT_OPTIONS: readonly SceneTextChoice[] = [
   "zh-Hant",
   "zh-Hans",
   "en",
-  "none",
 ];
 
 function characterPreviewForStyle(
@@ -401,7 +400,15 @@ export function DirectorDockBrief({
             ? "Auto Scene"
             : "預設場景";
 
-  const sceneTextLabel = sceneTextLangLabel(t, sceneTextLanguage).label;
+  const activeSceneTextLanguage: SceneTextChoice =
+    sceneTextLanguage === "none"
+      ? locale === "zh-Hans"
+        ? "zh-Hans"
+        : locale === "zh-Hant"
+          ? "zh-Hant"
+          : "en"
+      : sceneTextLanguage;
+  const sceneTextLabel = sceneTextLangLabel(t, activeSceneTextLanguage).label;
 
   const generateLabel = submitting
     ? t("brief.submit.submitting")
@@ -786,7 +793,7 @@ export function DirectorDockBrief({
                 disabled={briefBusy}
                 onClick={() =>
                   onSceneTextLanguageChange(
-                    cycleOption(SCENE_TEXT_OPTIONS, sceneTextLanguage, 1),
+                    cycleOption(SCENE_TEXT_OPTIONS, activeSceneTextLanguage, 1),
                   )
                 }
               />
@@ -1199,38 +1206,52 @@ export function DirectorDockBrief({
       {/* Storyboard Drafts Modal */}
       {draftsDialogOpen ? (
         <DialogBackdrop
-          className="flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+          className="flex items-center justify-center bg-black/70 p-3 backdrop-blur-xs sm:p-5"
           onClick={() => setDraftsDialogOpen(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-accent-ink/15 bg-white p-6 text-[#12141c] shadow-2xl"
+            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-accent-ink/15 bg-white text-[#12141c] shadow-2xl"
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-base font-bold">
-                {locale === "en" ? "Storyboard Drafts" : "手繪分鏡草稿"}
-              </h3>
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-accent-ink/10 bg-paper/60 px-5 py-3.5 sm:px-6">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-base font-bold text-[#12141c]">
+                    {locale === "en" ? "Storyboard Drafts" : "手繪分鏡草稿"}
+                  </h3>
+                  <span className="rounded-full border border-accent-ink/15 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-muted">
+                    {t("brief.drafts.optionalBadge")}
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate text-xs text-muted">
+                  {t("brief.drafts.hint")}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setDraftsDialogOpen(false)}
-                className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
+                className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 bg-white text-xs font-bold text-muted transition hover:border-accent-ink hover:text-foreground"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
-            <StoryboardDraftsStep
-              skillSlug={skillSlug}
-              styleId={styleId}
-              source={source}
-              spokenScript={talkingHead ? spokenScript : undefined}
-              language={language}
-              aspectRatio={aspectRatio || "16:9"}
-              drafts={clipDrafts}
-              disabled={briefBusy}
-              onChange={onClipDraftsChange}
-            />
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+              <StoryboardDraftsStep
+                skillSlug={skillSlug}
+                styleId={styleId}
+                source={source}
+                spokenScript={talkingHead ? spokenScript : undefined}
+                language={language}
+                aspectRatio={aspectRatio || "9:16"}
+                drafts={clipDrafts}
+                disabled={briefBusy}
+                hideHeader
+                onChange={onClipDraftsChange}
+              />
+            </div>
           </div>
         </DialogBackdrop>
       ) : null}

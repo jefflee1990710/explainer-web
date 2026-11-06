@@ -28,6 +28,7 @@ export function StoryboardDraftsStep({
   aspectRatio,
   drafts,
   disabled,
+  hideHeader = false,
   onChange,
 }: {
   skillSlug: string;
@@ -38,6 +39,7 @@ export function StoryboardDraftsStep({
   aspectRatio: AspectRatio;
   drafts: StoryboardClipDraft[];
   disabled?: boolean;
+  hideHeader?: boolean;
   onChange: (next: StoryboardClipDraft[]) => void;
 }) {
   const { t } = useI18n();
@@ -147,8 +149,8 @@ export function StoryboardDraftsStep({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px] lg:items-stretch">
-      <div className="flex min-w-0 flex-col space-y-4 rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+    <div className="space-y-4">
+      {!hideHeader ? (
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2.5">
@@ -165,8 +167,27 @@ export function StoryboardDraftsStep({
             <p className="mt-1 text-xs text-muted">{t("brief.drafts.hint")}</p>
           </div>
         </div>
+      ) : null}
 
-        {/* Clip tabs + Add Clip button */}
+      {/* Top AI Storyboard Draft Assistant Bar */}
+      <StoryboardDraftChatPanel
+        skillSlug={skillSlug}
+        styleId={styleId}
+        source={source}
+        spokenScript={spokenScript}
+        language={language}
+        drafts={drafts}
+        disabled={disabled}
+        onApplyDrafts={(nextDrafts) => {
+          onChange(nextDrafts);
+          if (nextDrafts.length > 0 && safeIndex >= nextDrafts.length) {
+            setActiveIndex(0);
+          }
+        }}
+      />
+
+      {/* Clip tabs + Add / Remove Clip */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           {drafts.map((item, idx) => {
             const active = idx === safeIndex;
@@ -206,29 +227,94 @@ export function StoryboardDraftsStep({
         </div>
 
         {currentDraft ? (
-          <div className="space-y-5 rounded-2xl border border-accent-ink/15 bg-paper/70 p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-display text-sm font-bold">
-                {t("brief.drafts.clipTab", { n: currentDraft.clipNumber })}
-              </span>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => removeClipDraft(safeIndex)}
-                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-semibold text-muted transition hover:bg-accent/10 hover:text-accent"
-              >
-                {t("brief.drafts.removeClip", { n: currentDraft.clipNumber })}
-              </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => removeClipDraft(safeIndex)}
+            className="cursor-pointer rounded-full border border-accent-ink/10 bg-paper px-3 py-1 text-xs font-semibold text-muted transition hover:border-accent/40 hover:bg-accent/10 hover:text-accent"
+          >
+            {t("brief.drafts.removeClip", { n: currentDraft.clipNumber })}
+          </button>
+        ) : null}
+      </div>
+
+      {currentDraft ? (
+        <div className="grid gap-5 lg:grid-cols-[310px_minmax(0,1fr)] lg:items-start">
+          {/* Left Column: Interactive Scene Sketchpad */}
+          <div className="rounded-2xl border border-accent-ink/12 bg-paper/60 p-4">
+            <StoryboardSketchPad
+              key={`sketch-clip-${currentDraft.clipNumber}-${aspectRatio}`}
+              clipNumber={currentDraft.clipNumber}
+              aspectRatio={aspectRatio}
+              sketchUrl={currentDraft.sketchUrl}
+              sketchElements={currentDraft.sketchElements}
+              disabled={disabled}
+              onSketchChange={(dataUrl) =>
+                updateCurrentDraft({ sketchUrl: dataUrl })
+              }
+              onAutoLayoutRequest={() => handleApplyAutoLayout()}
+            />
+          </div>
+
+          {/* Right Column: Script Notes + Structured Diagram & Character Controls */}
+          <div className="space-y-4 rounded-2xl border border-accent-ink/12 bg-paper/40 p-4 sm:p-5">
+            {/* Visual Explanation + Voiceover Draft side-by-side */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor={`clip-draft-explanation-${currentDraft.clipNumber}`}
+                  className="block text-xs font-bold text-foreground"
+                >
+                  {t("brief.drafts.explanationLabel", {
+                    n: currentDraft.clipNumber,
+                  })}
+                </label>
+                <textarea
+                  id={`clip-draft-explanation-${currentDraft.clipNumber}`}
+                  rows={3}
+                  value={currentDraft.explanation}
+                  disabled={disabled}
+                  onChange={(event) =>
+                    updateCurrentDraft({ explanation: event.target.value })
+                  }
+                  placeholder={t("brief.drafts.explanationPlaceholder", {
+                    n: currentDraft.clipNumber,
+                  })}
+                  className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor={`clip-draft-vo-${currentDraft.clipNumber}`}
+                  className="block text-xs font-bold text-foreground"
+                >
+                  {t("brief.drafts.voLabel")}
+                </label>
+                <textarea
+                  id={`clip-draft-vo-${currentDraft.clipNumber}`}
+                  rows={3}
+                  value={currentDraft.voDraft ?? ""}
+                  disabled={disabled}
+                  onChange={(event) =>
+                    updateCurrentDraft({ voDraft: event.target.value })
+                  }
+                  placeholder={t("brief.drafts.voPlaceholder", {
+                    n: currentDraft.clipNumber,
+                  })}
+                  className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-60"
+                />
+              </div>
             </div>
 
-            {/* Approach A: Structured Cartoon & Diagram Controls */}
-            <div className="grid gap-4 rounded-2xl border border-accent-ink/12 bg-white p-4 sm:grid-cols-2">
+            {/* Structured Cartoon & Diagram Controls */}
+            <div className="space-y-4 rounded-2xl border border-accent-ink/10 bg-white p-4">
               {/* 1. Diagram Layout Archetype */}
-              <div className="sm:col-span-2">
+              <div>
                 <p className="text-xs font-bold text-foreground">
                   {t("brief.drafts.diagramLayoutLabel")}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {diagramLayouts.map((opt) => {
                     const active = (currentDraft.diagramLayout ?? "auto") === opt.id;
                     return (
@@ -261,7 +347,7 @@ export function StoryboardDraftsStep({
                 <p className="text-xs font-bold text-foreground">
                   {t("brief.drafts.characterPositionLabel")}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {characterPositions.map((opt) => {
                     const active = (currentDraft.characterPosition ?? "auto") === opt.id;
                     return (
@@ -276,7 +362,7 @@ export function StoryboardDraftsStep({
                             handleApplyAutoLayout({ characterPosition: opt.id });
                           }
                         }}
-                        className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                        className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition ${
                           active
                             ? "border-accent-ink bg-accent-ink text-lime"
                             : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
@@ -306,9 +392,9 @@ export function StoryboardDraftsStep({
                     updateCurrentDraft({ characterAction: e.target.value })
                   }
                   placeholder={t("brief.drafts.characterActionPlaceholder")}
-                  className="mt-1.5 w-full rounded-xl border border-accent-ink/15 bg-paper/40 px-3 py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                  className="mt-1.5 w-full rounded-xl border border-accent-ink/15 bg-paper/40 px-3 py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-60"
                 />
-                <div className="mt-1.5 flex flex-wrap gap-1">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {actionPresets.map((preset) => {
                     const cleanPreset = preset.replace(/^[^\s]+\s+/, "");
                     const active = currentDraft.characterAction === cleanPreset;
@@ -320,9 +406,9 @@ export function StoryboardDraftsStep({
                         onClick={() =>
                           updateCurrentDraft({ characterAction: cleanPreset })
                         }
-                        className={`cursor-pointer rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
+                        className={`cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition ${
                           active
-                            ? "border-accent-ink bg-lime/40 text-accent-ink font-bold"
+                            ? "border-accent-ink bg-lime/40 font-bold text-accent-ink"
                             : "border-accent-ink/10 bg-paper text-muted hover:text-foreground"
                         }`}
                       >
@@ -334,7 +420,7 @@ export function StoryboardDraftsStep({
               </div>
 
               {/* 4. Step-by-Step Cartoon Objects & Labels on Board */}
-              <div className="sm:col-span-2">
+              <div>
                 <p className="text-xs font-bold text-foreground">
                   {t("brief.drafts.visualNodesLabel")}
                 </p>
@@ -383,7 +469,7 @@ export function StoryboardDraftsStep({
                       }
                     }}
                     placeholder={t("brief.drafts.visualNodesInputPlaceholder")}
-                    className="min-w-0 flex-1 rounded-xl border border-accent-ink/15 bg-paper/40 px-3 py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                    className="min-w-0 flex-1 rounded-xl border border-accent-ink/15 bg-paper/40 px-3 py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:opacity-60"
                   />
                   <button
                     type="button"
@@ -393,114 +479,33 @@ export function StoryboardDraftsStep({
                       (currentDraft.visualNodes?.length ?? 0) >= MAX_VISUAL_NODES
                     }
                     onClick={handleAddVisualNode}
-                    className="cursor-pointer rounded-xl bg-accent-ink px-3 py-1.5 text-xs font-bold text-lime transition hover:-translate-y-0.5 disabled:opacity-40"
+                    className="shrink-0 cursor-pointer rounded-xl bg-accent-ink px-3.5 py-1.5 text-xs font-bold text-lime transition hover:-translate-y-0.5 disabled:opacity-40"
                   >
                     {t("brief.drafts.visualNodesAddBtn")}
                   </button>
                 </div>
               </div>
             </div>
-
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:items-start">
-              {/* Remount sketchpad when switching clips or aspect ratio so each clip has its own clean canvas */}
-              <StoryboardSketchPad
-                key={`sketch-clip-${currentDraft.clipNumber}-${aspectRatio}`}
-                clipNumber={currentDraft.clipNumber}
-                aspectRatio={aspectRatio}
-                sketchUrl={currentDraft.sketchUrl}
-                sketchElements={currentDraft.sketchElements}
-                disabled={disabled}
-                onSketchChange={(dataUrl) =>
-                  updateCurrentDraft({ sketchUrl: dataUrl })
-                }
-                onAutoLayoutRequest={() => handleApplyAutoLayout()}
-              />
-
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor={`clip-draft-explanation-${currentDraft.clipNumber}`}
-                    className="block text-xs font-bold text-foreground"
-                  >
-                    {t("brief.drafts.explanationLabel", {
-                      n: currentDraft.clipNumber,
-                    })}
-                  </label>
-                  <textarea
-                    id={`clip-draft-explanation-${currentDraft.clipNumber}`}
-                    rows={5}
-                    value={currentDraft.explanation}
-                    disabled={disabled}
-                    onChange={(event) =>
-                      updateCurrentDraft({ explanation: event.target.value })
-                    }
-                    placeholder={t("brief.drafts.explanationPlaceholder", {
-                      n: currentDraft.clipNumber,
-                    })}
-                    className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={`clip-draft-vo-${currentDraft.clipNumber}`}
-                    className="block text-xs font-bold text-foreground"
-                  >
-                    {t("brief.drafts.voLabel")}
-                  </label>
-                  <textarea
-                    id={`clip-draft-vo-${currentDraft.clipNumber}`}
-                    rows={3}
-                    value={currentDraft.voDraft ?? ""}
-                    disabled={disabled}
-                    onChange={(event) =>
-                      updateCurrentDraft({ voDraft: event.target.value })
-                    }
-                    placeholder={t("brief.drafts.voPlaceholder", {
-                      n: currentDraft.clipNumber,
-                    })}
-                    className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
-        ) : (
-          <div className="flex min-h-[22rem] flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-accent-ink/15 bg-paper/50 p-6 text-center">
-            <p className="font-display text-sm font-bold text-foreground">
-              {t("brief.drafts.emptyStateTitle")}
-            </p>
-            <p className="mt-1.5 max-w-md text-xs leading-relaxed text-muted">
-              {t("brief.drafts.emptyStateBody")}
-            </p>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={addClipDraft}
-              className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-4 py-2 text-xs font-bold text-lime shadow-[3px_3px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 disabled:opacity-50"
-            >
-              {t("brief.drafts.addClip", { n: 1 })}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Right column: AI Storyboard Draft Chatroom */}
-      <StoryboardDraftChatPanel
-        skillSlug={skillSlug}
-        styleId={styleId}
-        source={source}
-        spokenScript={spokenScript}
-        language={language}
-        drafts={drafts}
-        disabled={disabled}
-        onApplyDrafts={(nextDrafts) => {
-          onChange(nextDrafts);
-          if (nextDrafts.length > 0 && safeIndex >= nextDrafts.length) {
-            setActiveIndex(0);
-          }
-        }}
-      />
+        </div>
+      ) : (
+        <div className="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-accent-ink/15 bg-paper/50 p-6 text-center">
+          <p className="font-display text-sm font-bold text-foreground">
+            {t("brief.drafts.emptyStateTitle")}
+          </p>
+          <p className="mt-1.5 max-w-md text-xs leading-relaxed text-muted">
+            {t("brief.drafts.emptyStateBody")}
+          </p>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={addClipDraft}
+            className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-4 py-2 text-xs font-bold text-lime shadow-[3px_3px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {t("brief.drafts.addClip", { n: 1 })}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
