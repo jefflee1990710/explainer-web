@@ -657,7 +657,12 @@ export function ScroVideoSync() {
 			if (!project) return;
 			const scene = editor.scenes.getActiveScene();
 			const assets = editor.media.getAssets();
-			if (!mainHasScroClip(scene.tracks.main.elements, assets, data.clips)) return;
+			if (
+				scene.tracks.main.elements.length > 0 &&
+				!mainHasScroClip(scene.tracks.main.elements, assets, data.clips)
+			) {
+				return;
+			}
 
 			const wantedList = data.clips.map((clip) => clip.clipNumber);
 			const presentList: number[] = [];
@@ -872,6 +877,23 @@ export function ScroVideoSync() {
 					? scene.tracks.main.elements.find((item) => item.id === preExisting.id)
 					: undefined);
 			if (!existing || (existing.type !== "video" && existing.type !== "image")) {
+				if (scene.tracks.main.elements.length === 0) {
+					editor.timeline.insertElement({
+						placement: { mode: "explicit", trackId: scene.tracks.main.id },
+						element: buildScroTimelineElement({
+							mediaId: created.id,
+							mediaType: created.type,
+							name: data.clip.name,
+							clip: data.clip,
+							fileSeconds: created.duration,
+							speechTrimStart: created.speechTrimStart,
+							speechTrimEnd: created.speechTrimEnd,
+							startTime: ZERO_MEDIA_TIME,
+						}),
+					});
+					fitStoryboardLengths(getScroVideos()?.clips ?? [data.clip]);
+					armScroSync();
+				}
 				return;
 			}
 			const startTime = existing.startTime;

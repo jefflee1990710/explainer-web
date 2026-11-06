@@ -67,8 +67,6 @@ function hasTimeline(project: TProject) {
 		const tracks = scene.tracks;
 		if (!tracks) continue;
 		if (tracks.main?.elements?.length) return true;
-		if (tracks.overlay?.some((track) => track.elements.length > 0)) return true;
-		if (tracks.audio?.some((track) => track.elements.length > 0)) return true;
 	}
 	return false;
 }
@@ -113,9 +111,15 @@ export function ScroProjectSync() {
 
 		const postSave = () => {
 			if (!armed.current || restoring.current) return;
-			const project = editor.project.getActiveOrNull();
-			const videoId = project ? videoIdFromProject(project.metadata.id) : "";
-			if (!project || !videoId || !hasTimeline(project)) return;
+			const active = editor.project.getActiveOrNull();
+			const videoId = active ? videoIdFromProject(active.metadata.id) : "";
+			if (!active || !videoId) return;
+			const scenes = editor.scenes.getScenes();
+			const project: TProject = {
+				...active,
+				scenes: scenes.length > 0 ? scenes : active.scenes,
+			};
+			if (!hasTimeline(project)) return;
 			let plain: Record<string, unknown>;
 			try {
 				plain = plainProject(project);

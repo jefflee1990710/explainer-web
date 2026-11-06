@@ -367,8 +367,8 @@ function fitFramePrompt(
 ) {
   // Realistic stills keep the render rule and the Scene's Light part; light is what removes the plastic look.
   const keepLight = options.keepLight === true;
-  // Concept explainers store their entire 4-element structured diagram inside `2) Set`, so preserve up to 900 chars.
-  const setBudget = options.preserveSetDetail ? 900 : 200;
+  // Concept explainers store their 4-element structured diagram inside `2) Set`, so preserve up to 600 chars.
+  const setBudget = options.preserveSetDetail ? 600 : 200;
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
     (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
@@ -386,13 +386,9 @@ function fitFramePrompt(
     // Camera motion stays whole until the prompt is still over the cap.
     (p) => ({ ...p, motion: clipAt(p.motion, 160) }),
     (p) => ({ ...p, motion: "" }),
-    // If preserving a 900-char diagram Set still pushes the prompt past budget, fall back to a 200-char Set with preserved 「」 labels before compacting realistic render rules.
-    ...(setBudget > 200
-      ? [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "set-short", 200) })]
-      : []),
-    // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching locks.
+    // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching Set or locks.
     (p) => ({ ...p, styleBody: clipAt(p.styleBody, 360) }),
-    // Compact verbose scene camera boilerplate and lock paragraphs BEFORE dropping realistic styleBody or renderDetail.
+    // Compact verbose scene camera boilerplate and lock paragraphs BEFORE dropping realistic styleBody, Set detail, or renderDetail.
     (p) => ({
       ...p,
       scene: p.scene
@@ -466,6 +462,10 @@ function fitFramePrompt(
           ),
       ),
     }),
+    // Step down diagram Set from 600 -> 450 chars before touching renderDetail.
+    ...(setBudget > 450
+      ? [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "set-short", 450) })]
+      : []),
     (p) => ({
       ...p,
       scene: p.scene
@@ -526,6 +526,9 @@ function fitFramePrompt(
             : line,
         ),
     }),
+    ...(setBudget > 200
+      ? [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "set-short", 200) })]
+      : []),
   ];
   let current = parts;
   let prompt = compose(current);
