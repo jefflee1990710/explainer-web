@@ -37,6 +37,7 @@ export function VideoEditorWorkspace({
   initialVideo,
   useCase,
   historyVideos,
+  initialPrompt,
 }: {
   folderId: string;
   folderName: string;
@@ -53,6 +54,7 @@ export function VideoEditorWorkspace({
   /** Create use-case: limit SkillPicker to matching system directors. */
   useCase?: VideoUseCase;
   historyVideos?: PublicVideoCard[];
+  initialPrompt?: string;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -142,7 +144,7 @@ export function VideoEditorWorkspace({
         }
       >
         <NewProjectForm
-          key={video?.id ?? `new-${useCase || "any"}`}
+          key={video?.id ?? `new-${useCase || "any"}-${initialPrompt || ""}`}
           projectId={folderId}
           folders={folders}
           skills={skills}
@@ -155,6 +157,7 @@ export function VideoEditorWorkspace({
           subscribed={subscribed}
           hasAnyVideo={hasAnyVideo || Boolean(video)}
           useCase={useCase}
+          initialPrompt={initialPrompt}
           onVideoCreated={setVideo}
           onStepNav={onStepNav}
         />

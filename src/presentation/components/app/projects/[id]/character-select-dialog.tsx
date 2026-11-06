@@ -309,7 +309,7 @@ export function CharacterSelectDialog({
       setRecentIds(recordRecentPresetId(option.presetId));
     }
 
-    if (isAlreadySelected && sameOption && (multiple || allowNone) && !closeWhenSingle) {
+    if (isAlreadySelected && sameOption && multiple && !closeWhenSingle) {
       onChange(value.filter((id) => id !== characterId));
       const nextSelections = { ...selections };
       delete nextSelections[characterId];
@@ -552,9 +552,9 @@ export function CharacterSelectDialog({
                       }
                     }}
                     className={`style-option group relative flex aspect-square w-full cursor-pointer flex-col justify-end overflow-hidden rounded-2xl border text-left transition ${
-                      isFocused
+                      isSelected
                         ? "border-2 border-[#12141c] ring-2 ring-[#c6f24b]"
-                        : isSelected
+                        : isFocused
                           ? "border-2 border-[#12141c]"
                           : "border-zinc-200 hover:border-zinc-400"
                     }`}

@@ -293,18 +293,23 @@ export function computeSkillSwitchState<
     return found ? matchesStyle(found) : false;
   });
 
-  if (nextCastNeed <= 0) {
+  if (targetStyleId === "papercraft-diorama") {
     return { styleId: targetStyleId, characterIds: [] };
   }
-  if (kept.length >= nextCastNeed) {
-    return { styleId: targetStyleId, characterIds: kept.slice(0, nextCastNeed) };
+  const targetCount =
+    nextCastNeed > 0 ? nextCastNeed : currentCharacterIds.length > 0 ? 1 : 0;
+  if (targetCount <= 0) {
+    return { styleId: targetStyleId, characterIds: [] };
+  }
+  if (kept.length >= targetCount) {
+    return { styleId: targetStyleId, characterIds: kept.slice(0, targetCount) };
   }
   const pool = characters.filter(matchesStyle);
   const aera = pool.find((c) => /aera/i.test(c.name));
   const ordered = aera ? [aera, ...pool.filter((c) => c.id !== aera.id)] : pool;
   const merged = [...kept];
   for (const c of ordered) {
-    if (merged.length >= nextCastNeed) break;
+    if (merged.length >= targetCount) break;
     if (!merged.includes(c.id)) merged.push(c.id);
   }
   return { styleId: targetStyleId, characterIds: merged };

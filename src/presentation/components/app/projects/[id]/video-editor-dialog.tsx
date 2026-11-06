@@ -13,6 +13,7 @@ import { Spinner } from "@/presentation/components/spinner";
 import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { StudioHint } from "@/presentation/studio/studio-hint";
+import { useStudioTheme } from "@/presentation/studio/studio-theme";
 import type { PublicVideo } from "@/presentation/serialize";
 
 // Full-page editor chrome over the studio shell.
@@ -52,6 +53,7 @@ export function VideoEditorDialog({
   children: React.ReactNode;
 }) {
   const { t, locale } = useI18n();
+  const { theme } = useStudioTheme();
   const historyLabel =
     locale === "zh-Hant" ? "歷史紀錄" : locale === "zh-Hans" ? "历史记录" : "History";
   const titleId = useId();
@@ -66,7 +68,10 @@ export function VideoEditorDialog({
 
   return (
     // Phone: cover the icon rail. md+: sit naturally inside the flex main column beside StudioRail so expanding the rail never covers the page.
-    <div className="studio-app fixed inset-0 z-[60] flex flex-col md:relative md:inset-auto md:z-auto md:h-full md:min-h-0 md:w-full md:flex-1">
+    <div
+      data-studio-theme={theme}
+      className="studio-app fixed inset-0 z-[60] flex flex-col md:relative md:inset-auto md:z-auto md:h-full md:min-h-0 md:w-full md:flex-1"
+    >
       <header className="relative z-30 shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
         <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">

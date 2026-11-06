@@ -1,7 +1,36 @@
-/* Logged-in portal. Logo black + lime, on a white desk.
+/* Logged-in portal. Dark mode by default; Light mode selectable in Settings.
    Unlayered rules here beat Tailwind utilities. */
-.studio-app {
+.studio-app,
+.studio-app[data-studio-theme="dark"],
+html[data-studio-theme="dark"] .studio-app {
+  --studio-canvas: #0d0e13;
+  --studio-sidebar: #111218;
+  --studio-panel: #161821;
+  --studio-line: #272a36;
+  --studio-ink: #f4f4f6;
+  --studio-muted: #9ca3af;
+  --studio-teal: #c6f24b;
+  --studio-teal-hover: #b6e23a;
+  --studio-fill: #1f222e;
+  --studio-cyan-soft: rgba(198, 242, 75, 0.14);
+  --paper: #161821;
+  --background: #0d0e13;
+  --foreground: #f4f4f6;
+  --card: #161821;
+  --muted: #9ca3af;
+  --accent-ink: #f4f4f6;
+  --accent: #c6f24b;
+  --lime: #c6f24b;
+  --line: #272a36;
+  background: var(--studio-canvas);
+  color: var(--studio-ink);
+  color-scheme: dark;
+}
+
+.studio-app[data-studio-theme="light"],
+html[data-studio-theme="light"] .studio-app {
   --studio-canvas: #fafafa;
+  --studio-sidebar: #ffffff;
   --studio-panel: #ffffff;
   --studio-line: #e4e4e7;
   --studio-ink: #12141c;
@@ -11,6 +40,9 @@
   --studio-fill: #f4f4f5;
   --studio-cyan-soft: #f4fcd4;
   --paper: #ffffff;
+  --background: #fafafa;
+  --foreground: #12141c;
+  --card: #ffffff;
   --muted: #5c6170;
   --accent-ink: #12141c;
   --accent: #12141c;
@@ -18,6 +50,7 @@
   --line: #e8e9ed;
   background: var(--studio-canvas);
   color: var(--studio-ink);
+  color-scheme: light;
 }
 
 .studio-app .font-display {
@@ -34,23 +67,28 @@
 /* Shared library card. */
 .studio-app .studio-card {
   border-radius: 16px;
-  background: #fff;
+  background: var(--studio-panel);
   box-shadow: none;
 }
 
 .studio-app .studio-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.studio-app[data-studio-theme="light"] .studio-card:hover,
+html[data-studio-theme="light"] .studio-app .studio-card:hover {
   box-shadow: 0 8px 24px rgba(22, 24, 35, 0.08);
 }
 
-/* Cards: flat white, 8px corners, soft lift on hover. */
+/* Cards: flat surface, 16px corners, soft lift on hover. */
 .studio-app article[class*="rounded-["]:not(.bg-accent-ink) {
   border-radius: 16px;
-  background-color: #fff;
+  background-color: var(--studio-panel);
   box-shadow: none;
 }
 
 .studio-app article[class*="rounded-["]:not(.bg-accent-ink):hover {
-  box-shadow: 0 8px 24px rgba(22, 24, 35, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 .studio-app article.bg-accent-ink {
@@ -74,17 +112,22 @@
 .studio-app [role="dialog"] {
   border-radius: 16px;
   border-color: var(--studio-line);
-  background: #fff;
-  box-shadow: 0 16px 48px rgba(22, 24, 35, 0.16);
+  background: var(--studio-panel);
+  color: var(--studio-ink);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
 /* Primary actions: logo black with lime label. Destructive confirms stay red.
-   OpenCut fields also use .bg-accent; leave those on the editor light theme. */
+   OpenCut fields also use .bg-accent; leave those on the editor theme. */
 .studio-app :is(button, a).bg-accent:not(.opencut-direct-host *) {
   border-radius: 16px;
   background-color: #12141c;
   color: #c6f24b;
   box-shadow: none;
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(button, a).bg-accent:not(.opencut-direct-host *) {
+  border: 1px solid rgba(198, 242, 75, 0.45);
 }
 
 .studio-app :is(button, a).bg-accent:hover:not(.opencut-direct-host *) {
@@ -94,19 +137,25 @@
 .studio-app :is(button, a)[data-intent="danger"].bg-accent,
 .studio-app :is(button, a)[data-intent="danger"].bg-accent:hover {
   background-color: #f04444;
+  border-color: #f04444;
+  color: #fff;
 }
 
 .studio-app :is(button, a).bg-accent-ink {
   border-radius: 16px;
-  background-color: var(--studio-ink);
-  color: #fff;
+  background-color: #12141c;
+  color: #c6f24b;
   box-shadow: none;
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(button, a).bg-accent-ink {
+  border: 1px solid rgba(198, 242, 75, 0.4);
 }
 
 .studio-app :is(button, a).bg-lime {
   border-radius: 16px;
-  background-color: #fff;
-  color: var(--studio-ink);
+  background-color: #c6f24b;
+  color: #12141c;
   box-shadow: none;
 }
 
@@ -144,9 +193,9 @@
 
 .studio-app button.studio-card-action:hover:not(:disabled),
 .studio-app button.studio-card-action:focus-visible:not(:disabled) {
-  background-color: var(--studio-ink);
-  border-color: var(--studio-ink);
-  color: #fff;
+  background-color: #12141c;
+  border-color: #c6f24b;
+  color: #c6f24b;
 }
 
 .studio-app button.studio-card-action:focus-visible:not(:disabled) {
@@ -163,13 +212,13 @@
 .studio-app button.studio-card-action-lime:hover:not(:disabled),
 .studio-app button.studio-card-action-lime:focus-visible:not(:disabled) {
   background-color: var(--studio-teal);
-  color: var(--studio-ink);
+  color: #12141c;
 }
 
 .studio-app button.studio-insert-clip:hover,
 .studio-app button.studio-insert-clip:focus-visible {
-  background-color: var(--studio-ink);
-  border-color: var(--studio-ink);
+  background-color: #12141c;
+  border-color: var(--studio-teal);
   color: var(--studio-teal);
   outline: 2px solid var(--studio-teal);
   outline-offset: 2px;
@@ -183,7 +232,7 @@
 
 .studio-app .character-split-control > button.character-split-create {
   border-radius: 0 16px 16px 0;
-  background-color: var(--studio-ink);
+  background-color: #12141c;
   color: var(--studio-teal);
 }
 
@@ -208,11 +257,12 @@
 .studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.director-dock-stage *) {
   border-radius: 16px;
   border-color: var(--studio-line);
-  background-color: #fff;
+  background-color: var(--studio-fill);
+  color: var(--studio-ink);
   box-shadow: none;
 }
 
-/* Cinema Studio / Director Dock light stage overrides */
+/* Cinema Studio / Director Dock stage overrides */
 .studio-app .director-dock-stage {
   background-color: var(--studio-canvas);
   color: var(--studio-ink);
@@ -248,6 +298,53 @@
 
 .studio-app [class*="bg-lime/"] {
   background-color: var(--studio-cyan-soft);
+}
+
+/* Dark-mode utility harmonization across all portal views */
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-white"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-paper"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside)[class*="bg-[#fafafa]"] {
+  background-color: var(--studio-panel);
+  color: var(--studio-ink);
+}
+
+.studio-app:not([data-studio-theme="light"]) .director-dock-stage {
+  background-color: var(--studio-canvas);
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-[#f4f4f5]"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-50"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, button, a, span, li, label)[class*="bg-zinc-100"] {
+  background-color: var(--studio-fill);
+  color: var(--studio-ink);
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]) {
+  background-color: var(--studio-fill);
+  color: var(--studio-ink);
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-[#12141c]"]:not([class*="bg-[#c6f24b]"]):not([class*="bg-lime"]):not(.director-dock-generate):not(.director-dock-generate *),
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-900"]:not([class*="bg-[#c6f24b]"]),
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-800"]:not([class*="bg-[#c6f24b]"]),
+.studio-app:not([data-studio-theme="light"]) :is(h1, h2, h3, h4, p, span, div, button, a, label)[class*="text-zinc-700"]:not([class*="bg-[#c6f24b]"]) {
+  color: var(--studio-ink);
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(p, span, div, button, a, label)[class*="text-zinc-600"],
+.studio-app:not([data-studio-theme="light"]) :is(p, span, div, button, a, label)[class*="text-zinc-500"] {
+  color: var(--studio-muted);
+}
+
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, button, a, input, textarea, select, span, ul, li)[class*="border-zinc-200"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, button, a, input, textarea, select, span, ul, li)[class*="border-zinc-300"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, button, a, input, textarea, select, span, ul, li)[class*="border-[#e4e4e7]"],
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, button, a, input, textarea, select, span, ul, li)[class*="border-accent-ink"] {
+  border-color: var(--studio-line);
+}
+
+.studio-app:not([data-studio-theme="light"]) [class*="divide-zinc-200"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--studio-line);
 }
 
 /* Pulse on the queue chip while jobs are still pending. */

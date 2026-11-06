@@ -47,23 +47,34 @@ export function AppShell({
   );
 
   const items: StudioNavItem[] = [
-    // Hide generic Video; Create is use-case first (Explainer / Talking Head).
-    { href: "/app/explainers", label: t("nav.explainerVideo"), icon: "projects", section: "create" },
+    {
+      href: "/app",
+      label: locale === "zh-Hant" ? "Home 首頁" : locale === "zh-Hans" ? "Home 首页" : "Home",
+      icon: "home",
+      section: "home",
+    },
+    // TOOLS: existing 5 creation tools (+ Life) in a 2-column grid
+    {
+      href: "/app/explainers",
+      label: locale === "zh-Hant" ? "解說短片" : locale === "zh-Hans" ? "解说短片" : "Explainer",
+      icon: "projects",
+      section: "create",
+    },
     {
       href: "/app/talking-heads",
-      label: t("nav.talkingHeadVideo"),
+      label: locale === "zh-Hant" ? "對鏡口播" : locale === "zh-Hans" ? "对镜口播" : "Talking Head",
       icon: "directors",
       section: "create",
     },
     {
       href: "/app/scroswap",
-      label: locale === "en" ? "Scro Swap" : "Scro Swap 換角",
+      label: "Scro Swap",
       icon: "styles",
       section: "create",
     },
     {
       href: "/app/teleport",
-      label: locale === "en" ? "Teleport" : "Teleport 換場",
+      label: "Teleport",
       icon: "room",
       section: "create",
     },
@@ -77,7 +88,13 @@ export function AppShell({
           },
         ]
       : []),
-    { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
+    {
+      href: "/app/life",
+      label: t("nav.life"),
+      icon: "life",
+      section: "create",
+    },
+    // CHARACTER & ASSETS
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
     { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },

@@ -6,7 +6,7 @@ export const maxDuration = 800;
 export default async function ExplainersPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ stay?: string; project?: string; projectId?: string }>;
+  searchParams?: Promise<{ stay?: string; project?: string; projectId?: string; prompt?: string }>;
 }) {
   return <UseCaseVideoListPage useCase="explainer" searchParams={searchParams} />;
 }

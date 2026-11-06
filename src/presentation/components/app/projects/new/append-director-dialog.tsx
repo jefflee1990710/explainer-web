@@ -237,6 +237,7 @@ export function AppendDirectorDialog({
     setStyleId(nextStyleId);
     setCharacterSelections({});
     setCharacterIds((ids) => {
+      if (nextStyleId === "papercraft-diorama") return [];
       const kept = ids.filter((cid) => {
         const character = characters.find((c) => c.id === cid);
         const charStyles = character?.styleIds?.length
@@ -244,8 +245,9 @@ export function AppendDirectorDialog({
           : [character?.styleId];
         return charStyles.includes(nextStyleId);
       });
-      if (kept.length >= castNeed) return kept;
-      return defaultCastIdsForStyle(characters, nextStyleId, castNeed);
+      const targetCount = Math.max(castNeed, ids.length > 0 ? 1 : 0);
+      if (kept.length >= targetCount) return kept.slice(0, Math.max(1, targetCount));
+      return defaultCastIdsForStyle(characters, nextStyleId, targetCount);
     });
   }
 

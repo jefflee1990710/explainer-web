@@ -3,7 +3,7 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isSceneTextChoice } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isSpeechPace } from "@/service/director/speech-pace";
-import { requiredCastCount } from "@/service/director/skill-rules";
+import { isPapercraftDioramaSkill, requiredCastCount } from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
 import { pickerDefaultStyleId } from "@/service/style";
 import type {
@@ -227,4 +227,41 @@ export function defaultCastIdsForStyle(
   });
   return ordered.slice(0, requiredCount).map((character) => character.id);
 }
+
+// Resolve initial characterIds for NewProjectForm, restoring lastBrief characters when compatible
+// or auto-picking 1 starter character for single-slot explainers (while keeping papercraft-diorama at 0).
+export function resolveInitialBriefCharacterIds(input: {
+  initialCastCharacterIds?: readonly string[];
+  lastBrief?: BriefDefaults;
+  ruleSlug: string;
+  styleId: string;
+  characters: ReadonlyArray<{
+    id: string;
+    name?: string;
+    styleId: string;
+    styleIds?: string[];
+    previewUrl?: string | null;
+  }>;
+}): string[] {
+  if (input.initialCastCharacterIds !== undefined) {
+    return [...input.initialCastCharacterIds];
+  }
+  if (isPapercraftDioramaSkill(input.ruleSlug)) {
+    return [];
+  }
+  const need = requiredCastCount(input.ruleSlug);
+  const slotCount = Math.max(1, need);
+  const remembered = (input.lastBrief?.characterIds ?? []).filter((id) =>
+    input.characters.some((character) => {
+      if ("previewUrl" in character && !character.previewUrl) return false;
+      const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
+      return character.id === id && styles.includes(input.styleId);
+    }),
+  );
+  if (remembered.length > 0 && remembered.length >= need) {
+    return remembered.slice(0, slotCount);
+  }
+  return defaultCastIdsForStyle(input.characters, input.styleId, slotCount);
+}
+
 

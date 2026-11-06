@@ -133,6 +133,7 @@ import {
   defaultCastIdsForStyle,
   pickerDefaultSkillSlug,
   readBriefDefaults,
+  resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
   writeBriefDefaults,
@@ -246,6 +247,7 @@ export function NewProjectForm({
   subscribed,
   hasAnyVideo = true,
   useCase,
+  initialPrompt,
   onVideoCreated,
   onStepNav,
 }: {
@@ -262,6 +264,7 @@ export function NewProjectForm({
   hasAnyVideo?: boolean;
   /** When set from Create use-case nav, only offer matching system directors. */
   useCase?: VideoUseCase;
+  initialPrompt?: string;
   onVideoCreated?: (video: PublicVideo) => void;
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
@@ -299,13 +302,18 @@ export function NewProjectForm({
     if (!initialVideo && isTalkingHeadSkill(ruleSlug)) {
       return defaultTalkingHeadDirectorInstruction(locale);
     }
+    if (!initialVideo && initialPrompt?.trim()) {
+      return initialPrompt.trim();
+    }
     return "";
   });
   const [spokenScript, setSpokenScript] = useState(
     initialVideo?.spokenScript ||
       (isTalkingHeadSkill(initialVideo?.skillSlug)
         ? talkingHeadScriptFromClips(initialVideo?.phaseA?.clips || [])
-        : ""),
+        : !initialVideo && isTalkingHeadSkill(ruleSlug) && initialPrompt?.trim()
+          ? initialPrompt.trim()
+          : ""),
   );
   const [languageExplicit, setLanguageExplicit] = useState<boolean>(
     () => Boolean(lastBrief?.languageExplicit),
@@ -357,16 +365,17 @@ export function NewProjectForm({
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
     initialVideo?.durationPreset || "auto",
   );
-  const [characterIds, setCharacterIds] = useState<string[]>(() => {
-    if (initialVideo) {
-      return initialVideo.cast.map((member) => member.characterId);
-    }
-    return defaultCastIdsForStyle(
+  const [characterIds, setCharacterIds] = useState<string[]>(() =>
+    resolveInitialBriefCharacterIds({
+      initialCastCharacterIds: initialVideo
+        ? initialVideo.cast.map((member) => member.characterId)
+        : undefined,
+      lastBrief,
+      ruleSlug,
+      styleId,
       characters,
-      pickerDefaultStyleId(styles),
-      requiredCastCount(ruleSlug),
-    );
-  });
+    }),
+  );
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>(() => {
     const initialMap: CharacterSelectionMap = {};
     for (const member of initialVideo?.cast || []) {
@@ -1258,8 +1267,9 @@ export function NewProjectForm({
         const styles = character?.styleIds?.length ? character.styleIds : [character?.styleId];
         return styles.includes(id);
       });
-      if (kept.length >= castNeed) return kept;
-      return defaultCastIdsForStyle(characters, id, castNeed);
+      const targetCount = id === "papercraft-diorama" ? 0 : Math.max(castNeed, ids.length > 0 ? 1 : 0);
+      if (kept.length >= targetCount) return kept.slice(0, Math.max(1, targetCount));
+      return defaultCastIdsForStyle(characters, id, targetCount);
     });
   }
 

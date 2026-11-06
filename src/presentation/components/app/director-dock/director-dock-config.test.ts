@@ -68,6 +68,26 @@ test("computeSkillSwitchState updates styleId and filters/fills characterIds aga
   assert.equal(next.styleId, "realistic");
   assert.deepEqual(next.characterIds, ["real-1"]);
 
+  const optionalExplainerKept = computeSkillSwitchState({
+    currentStyleId: "realistic",
+    preferredStyleId: "realistic",
+    nextCastNeed: 0,
+    characters,
+    currentCharacterIds: ["real-2"],
+  });
+  assert.equal(optionalExplainerKept.styleId, "realistic");
+  assert.deepEqual(optionalExplainerKept.characterIds, ["real-2"]);
+
+  const optionalExplainerSwitchedStyle = computeSkillSwitchState({
+    currentStyleId: "whiteboard",
+    preferredStyleId: "realistic",
+    nextCastNeed: 0,
+    characters,
+    currentCharacterIds: ["wb-1"],
+  });
+  assert.equal(optionalExplainerSwitchedStyle.styleId, "realistic");
+  assert.deepEqual(optionalExplainerSwitchedStyle.characterIds, ["real-1"]);
+
   const zeroCast = computeSkillSwitchState({
     currentStyleId: "realistic",
     preferredStyleId: "papercraft-diorama",

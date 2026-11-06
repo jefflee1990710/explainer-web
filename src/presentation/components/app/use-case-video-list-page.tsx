@@ -12,19 +12,21 @@ import { videoMatchesUseCase, type VideoUseCase } from "@/service/video/use-case
 /** Shared RSC loader for Explainer / Talking Head creation workspace. */
 export async function UseCaseVideoListPage({
   useCase,
+  searchParams,
 }: {
   useCase: VideoUseCase;
-  searchParams?: Promise<{ stay?: string; project?: string; projectId?: string }>;
+  searchParams?: Promise<{ stay?: string; project?: string; projectId?: string; prompt?: string }>;
 }) {
   const user = await requireAppUser();
   const videos = await videosCollection();
-  const [pickers, folderOptions, videoDocs] = await Promise.all([
+  const [pickers, folderOptions, videoDocs, query] = await Promise.all([
     loadStudioPickers(user),
     loadFolderOptions(user.clerkUserId),
     videos
       .find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION })
       .sort({ updatedAt: -1, createdAt: -1 })
       .toArray(),
+    searchParams ? searchParams : Promise.resolve(undefined),
   ]);
 
   const cards = (videoDocs as Project[]).map(toPublicVideoCard);
@@ -39,6 +41,7 @@ export async function UseCaseVideoListPage({
       credits={user.credits}
       useCase={useCase}
       historyVideos={matching}
+      initialPrompt={query?.prompt}
       {...pickers}
     />
   );

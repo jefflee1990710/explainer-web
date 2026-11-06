@@ -5,6 +5,7 @@ import {
   defaultSceneTextLanguageForLocale,
   defaultVoLanguageForLocale,
   pickerDefaultSkillSlug,
+  resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
   sanitizeBriefDefaults,
@@ -165,4 +166,44 @@ test("resolveInitialVoLanguage upgrades legacy unchosen 'en' defaults to 'yue' w
     "zh-Hant",
   );
 });
+
+test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-selects a default character for paper-cutout explainer while keeping papercraft-diorama empty", () => {
+  const readyChars = [
+    { id: "scro-id", name: "Scro", styleId: "realistic", styleIds: ["realistic", "paper-cutout"], previewUrl: "/scro.jpg" },
+    { id: "aera-id", name: "Aera", styleId: "realistic", styleIds: ["realistic"], previewUrl: "/aera.jpg" },
+  ];
+
+  // 1. Restores lastBrief characterIds when present and matching styleId
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "paper-cutout-explainer-video-director",
+      styleId: "realistic",
+      characters: readyChars,
+      lastBrief: raw({ skillSlug: "paper-cutout-explainer-video-director", styleId: "realistic", characterIds: ["scro-id"] }),
+    }),
+    ["scro-id"],
+  );
+
+  // 2. Auto-selects 1 default character for paper-cutout-explainer-video-director when no lastBrief exists
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "paper-cutout-explainer-video-director",
+      styleId: "realistic",
+      characters: readyChars,
+    }),
+    ["aera-id"],
+  );
+
+  // 3. Keeps papercraft-diorama-director at 0 characters
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "papercraft-diorama-director",
+      styleId: "papercraft-diorama",
+      characters: readyChars,
+      lastBrief: raw({ characterIds: ["scro-id"] }),
+    }),
+    [],
+  );
+});
+
 
