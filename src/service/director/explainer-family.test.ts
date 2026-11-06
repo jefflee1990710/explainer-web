@@ -79,7 +79,7 @@ test("paper-cutout board stays a full-bleed square-on background (no tilted boar
   assert.match(frame, /never a shadow cast by the board itself/);
 
   const director = DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"];
-  assert.match(director.systemPrompt, /Flat camera & light lock \(every clip/);
+  assert.match(director.systemPrompt, /Flat stationary camera & light lock \(every clip/);
 
   // Whiteboard keeps its per-clip angle rotation.
   const whiteboard = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas: "whiteboard" });

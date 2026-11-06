@@ -147,7 +147,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /First 3-Second Big Bold Hook Title/);
   assert.match(block, /BIG, BOLD HOOK TITLE/);
   assert.match(block, /MAX ONE ARROW PER CLIP/);
-  assert.match(block, /NO BLANK SLASH STRIPS OR TAPE STICKERS/);
+  assert.match(block, /NO BLANK SLASH STRIPS/);
   assert.match(block, /Scene prompt/);
   assert.match(block, /Camera motion prompt/);
   assert.match(block, /every topic/);
@@ -342,9 +342,9 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
     clipNumber: 2,
     smoothMotion: true,
   });
-  assert.match(smoothVideo, /accelerates through the change, then decelerates into the landing/);
+  assert.match(smoothVideo, /accelerates rapidly through the change, then decelerates into a crisp landing/);
   assert.match(smoothVideo, /middle of the move is sharp and quick/);
-  assert.match(smoothVideo, /rotates through its edge/);
+  assert.match(smoothVideo, /rotates briskly through its edge/);
   assert.match(smoothVideo, /This clip's action is a FLIP/);
   assert.doesNotMatch(smoothVideo, /snapping fast and sharp/);
   assert.doesNotMatch(smoothVideo, /never one constant slow glide/);
@@ -353,7 +353,7 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
     clipNumber: 1,
     smoothMotion: true,
   });
-  assert.match(smoothHook, /accelerates through the change, then decelerates into the landing/);
+  assert.match(smoothHook, /accelerating rapidly at 2x–3x speed/);
   assert.doesNotMatch(smoothHook, /no slow glide/);
   const doodle = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
     hasCharacter: true,
@@ -362,9 +362,9 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
   });
   assert.match(doodle, /snapping fast and sharp/);
   assert.match(doodle, /never one constant slow glide/);
-  assert.doesNotMatch(doodle, /accelerates through the change, then decelerates into the landing/);
+  assert.doesNotMatch(doodle, /accelerates rapidly through the change/);
   const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
-  assert.match(block, /accelerates through the change, then decelerates into the landing/);
+  assert.match(block, /SPEED-RAMPING/);
   assert.doesNotMatch(block, /three beats/);
   assert.doesNotMatch(block, /Never describe the body as moving smoothly/);
   assert.doesNotMatch(block, /no slow glide/);
@@ -372,12 +372,12 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
 });
 
 test("Cinematic realistic locks the camera and forbids spoken subtitles on stills", () => {
-  // Phase A: no angle change inside a clip, gentle hook only, no spoken subtitle.
+  // Phase A: no angle change inside a clip, locked stationary camera, no spoken subtitle.
   const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
   assert.match(block, /camera is locked inside a clip/);
   assert.match(block, /No orbit/);
   assert.match(block, /never write Subtitle:/);
-  assert.match(block, /at most one push-in or pull-out/);
+  assert.match(block, /NO zoom-in, NO push-in/);
   assert.doesNotMatch(block, /Camera angle changes every clip/);
   assert.doesNotMatch(block, /fast 360 orbit/);
   const doodle = cartoonExplainerDirectorBlock({ hasCharacter: true });
@@ -392,7 +392,7 @@ test("Cinematic realistic locks the camera and forbids spoken subtitles on still
     steadyStills: true,
   });
   assert.match(still, /match the other still of this clip/);
-  assert.match(still, /one push-in or pull-out at most/);
+  assert.match(still, /100% locked stationary square-on camera/);
   assert.doesNotMatch(still, /may differ from the other still/);
   assert.doesNotMatch(still, /exaggerated framing/);
   // Video: the lettering never changes and the camera stays put.
@@ -404,7 +404,7 @@ test("Cinematic realistic locks the camera and forbids spoken subtitles on still
   });
   assert.match(video, /lands on the described end scene/);
   assert.match(video, /There is no end image/);
-  assert.match(video, /lettering painted on the start still stays fixed/);
+  assert.match(video, /actively transit in and out across the beats/);
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {
