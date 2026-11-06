@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   // AI SDK downloads URL images via a runtime require("undici").
   serverExternalPackages: ["ffmpeg-static", "undici", "@ai-sdk/provider-utils"],
   experimental: {
+    webpackBuildWorker: true,
     serverActions: {
       // Frame annotations (data URL) and Video-tab brand uploads (videos up to 50MB).
       bodySizeLimit: "60mb",

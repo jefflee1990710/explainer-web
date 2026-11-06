@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "opencut/**",
     "src/opencut/**",
+    ".worktrees/**",
+    "experiments/**",
   ]),
 ]);
 
