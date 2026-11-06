@@ -1,6 +1,6 @@
 /** Fixed system director slugs for Create use-case lists (custom directors excluded). */
 
-export const VIDEO_USE_CASES = ["explainer", "talking-head"] as const;
+export const VIDEO_USE_CASES = ["explainer", "talking-head", "story"] as const;
 export type VideoUseCase = (typeof VIDEO_USE_CASES)[number];
 
 export const EXPLAINER_SYSTEM_SKILL_SLUGS = [
@@ -11,24 +11,28 @@ export const EXPLAINER_SYSTEM_SKILL_SLUGS = [
 
 export const TALKING_HEAD_SYSTEM_SKILL_SLUGS = ["talking-head-director"] as const;
 
+export const STORY_SYSTEM_SKILL_SLUGS = ["story-short-director"] as const;
+
 export const USE_CASE_DEFAULT_SKILL_SLUG: Record<VideoUseCase, string> = {
   explainer: "paper-cutout-explainer-video-director",
   "talking-head": "talking-head-director",
+  story: "story-short-director",
 };
 
 export const USE_CASE_LIST_PATH: Record<VideoUseCase, string> = {
   explainer: "/app/explainers",
   "talking-head": "/app/talking-heads",
+  story: "/app/stories",
 };
 
 export function isVideoUseCase(value: string | null | undefined): value is VideoUseCase {
-  return value === "explainer" || value === "talking-head";
+  return value === "explainer" || value === "talking-head" || value === "story";
 }
 
 export function skillSlugsForUseCase(useCase: VideoUseCase): readonly string[] {
-  return useCase === "explainer"
-    ? EXPLAINER_SYSTEM_SKILL_SLUGS
-    : TALKING_HEAD_SYSTEM_SKILL_SLUGS;
+  if (useCase === "explainer") return EXPLAINER_SYSTEM_SKILL_SLUGS;
+  if (useCase === "story") return STORY_SYSTEM_SKILL_SLUGS;
+  return TALKING_HEAD_SYSTEM_SKILL_SLUGS;
 }
 
 export function videoMatchesUseCase(

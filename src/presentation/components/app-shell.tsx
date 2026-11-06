@@ -69,6 +69,13 @@ export function AppShell({
       section: "create",
     },
     {
+      href: "/app/stories",
+      label: locale === "zh-Hant" ? "故事" : locale === "zh-Hans" ? "故事" : "Story",
+      icon: "directors",
+      imageUrl: "/nav-tools/story.png",
+      section: "create",
+    },
+    {
       href: "/app/scroswap",
       label: locale === "zh-Hant" ? "換角" : locale === "zh-Hans" ? "换角" : "Swap",
       icon: "styles",

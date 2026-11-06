@@ -342,10 +342,21 @@ export function DirectorDockBrief({
 
   const firstRefThumbUrl = referenceImages[0]?.url || "";
 
+  const isStory = ruleSlug === "story-short-director";
+
   function handleSelectMode(nextId: string) {
     if (error) onError("");
     if (nextId === "details") {
       onOpenDetails();
+      return;
+    }
+    if (nextId === "story" && !isStory) {
+      const stSlug = resolveModeSwitchSkillSlug("story", skills);
+      if (stSlug) {
+        onSkillChange(stSlug);
+      } else {
+        router.push("/app/stories");
+      }
       return;
     }
     if (nextId === "talking-head" && !talkingHead) {
@@ -357,7 +368,7 @@ export function DirectorDockBrief({
       }
       return;
     }
-    if (nextId === "explainer" && talkingHead) {
+    if (nextId === "explainer" && (talkingHead || isStory)) {
       const expSlug = resolveModeSwitchSkillSlug("explainer", skills);
       if (expSlug) {
         onSkillChange(expSlug);
@@ -425,7 +436,9 @@ export function DirectorDockBrief({
   return (
     <>
       <DirectorDockStage>
-        <DirectorDockHero kind={talkingHead ? "talking-head" : "explainer"} />
+        <DirectorDockHero
+          kind={talkingHead ? "talking-head" : isStory ? "story" : "explainer"}
+        />
 
         {/* Collapsible Director Panel */}
         <DirectorDockPanel>
@@ -612,8 +625,32 @@ export function DirectorDockBrief({
                 </svg>
               ),
             },
+            {
+              id: "story",
+              label:
+                locale === "zh-Hant"
+                  ? "故事"
+                  : locale === "zh-Hans"
+                    ? "故事"
+                    : "Story",
+              icon: (
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M4 10h16v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5V10Z" />
+                  <path d="m4 10-.6-2.9a1.5 1.5 0 0 1 1.2-1.8l12.7-2.4a1.5 1.5 0 0 1 1.8 1.2l.5 2.4L4 10Z" />
+                </svg>
+              ),
+            },
           ]}
-          activeModeId={talkingHead ? "talking-head" : "explainer"}
+          activeModeId={
+            talkingHead ? "talking-head" : isStory ? "story" : "explainer"
+          }
           onSelectMode={handleSelectMode}
           promptValue={talkingHead ? spokenScript : source}
           onPromptChange={(val) => {
@@ -631,11 +668,17 @@ export function DirectorDockBrief({
                 : locale === "zh-Hans"
                   ? "输入角色要朗读的讲稿，或点下方“配音”上传／录制音频..."
                   : "Enter the script for your character to read, or attach custom voice audio below..."
-              : locale === "zh-Hant"
-                ? "描述你的場景、貼上主題或文章，使用上方導演面板設定角色、風格與場景..."
-                : locale === "zh-Hans"
-                  ? "描述你的场景、贴上主题或文章，使用上方导演面板设置角色、风格与场景..."
-                  : "Describe your topic or paste your script, and configure characters, style & scene above..."
+              : isStory
+                ? locale === "zh-Hant"
+                  ? "輸入故事大綱、角色遭遇或劇本對白，由短片導演（Short Film Director）編排劇情分鏡..."
+                  : locale === "zh-Hans"
+                    ? "输入故事大纲、角色遭遇或剧本对白，由短片导演（Short Film Director）编排剧情分镜..."
+                    : "Describe your story, plot twist, or character dialogue for the Short Film Director to stage..."
+                : locale === "zh-Hant"
+                  ? "描述你的場景、貼上主題或文章，使用上方導演面板設定角色、風格與場景..."
+                  : locale === "zh-Hans"
+                    ? "描述你的场景、贴上主题或文章，使用上方导演面板设置角色、风格与场景..."
+                    : "Describe your topic or paste your script, and configure characters, style & scene above..."
           }
           topMediaSlot={
             uploadedVoUrl && talkingHead ? (

@@ -490,7 +490,9 @@ export function HomeView({
             const baseRoute =
               topic.useCase === "talking-head"
                 ? "/app/talking-heads"
-                : "/app/explainers";
+                : topic.useCase === "story"
+                  ? "/app/stories"
+                  : "/app/explainers";
             const href = `${baseRoute}?prompt=${encodeURIComponent(promptText)}`;
 
             return (
@@ -523,9 +525,13 @@ export function HomeView({
                       ? locale === "en"
                         ? "Talking"
                         : "對鏡口播"
-                      : locale === "en"
-                        ? "Explainer"
-                        : "解說短片"}
+                      : topic.useCase === "story"
+                        ? locale === "en"
+                          ? "Story"
+                          : "故事短劇"
+                        : locale === "en"
+                          ? "Explainer"
+                          : "解說短片"}
                   </span>
                   <span className="inline-flex items-center gap-1 group-hover:text-[#c6f24b]">
                     {copy.startTopicCta}

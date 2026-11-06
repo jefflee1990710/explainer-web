@@ -3,7 +3,7 @@ import { z } from "zod";
 export const hotTopicItemSchema = z.object({
   id: z.string().min(1),
   category: z.string().min(1),
-  useCase: z.enum(["explainer", "talking-head"]),
+  useCase: z.enum(["explainer", "talking-head", "story"]),
   badge: z.string().min(1),
   titleZhHant: z.string().min(1),
   titleZhHans: z.string().min(1),

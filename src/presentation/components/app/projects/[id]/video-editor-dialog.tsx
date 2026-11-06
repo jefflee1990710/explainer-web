@@ -72,7 +72,11 @@ export function VideoEditorDialog({
 
   const showToolPillHeader = !videoId && Boolean(useCase);
   const toolBadge =
-    useCase === "talking-head" ? "TALKING" : "EXPLAINER";
+    useCase === "talking-head"
+      ? "TALKING"
+      : useCase === "story"
+        ? "STORY"
+        : "EXPLAINER";
   const toolSubtitle =
     useCase === "talking-head"
       ? isEn
@@ -80,11 +84,17 @@ export function VideoEditorDialog({
         : locale === "zh-Hans"
           ? "AI 对镜口播工作室"
           : "AI 對鏡口播工作室"
-      : isEn
-        ? "AI Explainer Video Studio"
-        : locale === "zh-Hans"
-          ? "AI 解说短片工作室"
-          : "AI 解說短片工作室";
+      : useCase === "story"
+        ? isEn
+          ? "Short Film Storytelling Studio"
+          : locale === "zh-Hans"
+            ? "AI 短剧与故事短片工作室"
+            : "AI 短劇與故事短片工作室"
+        : isEn
+          ? "AI Explainer Video Studio"
+          : locale === "zh-Hans"
+            ? "AI 解说短片工作室"
+            : "AI 解說短片工作室";
 
   return (
     // Phone: cover the icon rail. md+: sit naturally inside the flex main column beside StudioRail so expanding the rail never covers the page.

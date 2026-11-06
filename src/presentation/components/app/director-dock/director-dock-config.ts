@@ -1,6 +1,7 @@
 export type DirectorStudioKind =
   | "explainer"
   | "talking-head"
+  | "story"
   | "life"
   | "scroswap"
   | "teleport"
@@ -84,6 +85,38 @@ export function getDirectorHeroCopy(
             imageUrl: "/talking-head-backgrounds/sunlit-cafe-window.webp",
             tag: "LIFESTYLE",
             title: "Warm Cafe Vlog",
+          },
+        ],
+      };
+    case "story":
+      return {
+        headline:
+          locale === "zh-Hant"
+            ? "把故事拍成電影感短劇"
+            : locale === "zh-Hans"
+              ? "把故事拍成电影感短剧"
+              : "Direct Your Short Film Story",
+        subtitle:
+          locale === "zh-Hant"
+            ? "由短片導演（Short Film Director）編排角色對白、情緒轉折與電影級運鏡"
+            : locale === "zh-Hans"
+              ? "由短片导演（Short Film Director）编排角色对白、情绪转折与电影级运镜"
+              : "Character-driven narrative short films with emotional beats and cinematic camera work",
+        cards: [
+          {
+            imageUrl: "/relight/sunset_window.webp",
+            tag: "DRAMA BEAT",
+            title: "Golden Hour Scene",
+          },
+          {
+            imageUrl: "/home/tool-story.png",
+            tag: "SHORT FILM",
+            title: "CINEMATIC STORY DIRECTOR",
+          },
+          {
+            imageUrl: "/relight/cyan_orb.webp",
+            tag: "NEON MOOD",
+            title: "Night Dialogue",
           },
         ],
       };
@@ -316,9 +349,19 @@ export function computeSkillSwitchState<
 }
 
 export function resolveModeSwitchSkillSlug(
-  targetMode: "explainer" | "talking-head",
+  targetMode: "explainer" | "talking-head" | "story",
   skills: readonly { slug: string; behaviorSlug?: string; isCustom?: boolean }[],
 ): string | null {
+  if (targetMode === "story") {
+    const exact = skills.find((s) => s.slug === "story-short-director");
+    if (exact) return exact.slug;
+    const anyStory = skills.find(
+      (s) =>
+        s.slug === "story-short-director" ||
+        s.behaviorSlug === "story-short-director",
+    );
+    return anyStory?.slug ?? null;
+  }
   if (targetMode === "talking-head") {
     const exact = skills.find((s) => s.slug === "talking-head-director");
     if (exact) return exact.slug;
@@ -349,7 +392,7 @@ export function resolveModeSwitchSkillSlug(
 
 export function isFullBleedStudioPath(pathname: string): boolean {
   return (
-    /^\/app\/(room|explainers|talking-heads|life|scroswap|teleport|posts)(\/|$)/.test(
+    /^\/app\/(room|explainers|talking-heads|stories|life|scroswap|teleport|posts)(\/|$)/.test(
       pathname,
     ) ||
     /^\/app\/videos\/.+/.test(pathname) ||

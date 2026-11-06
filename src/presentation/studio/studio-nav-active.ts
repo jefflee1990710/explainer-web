@@ -8,6 +8,9 @@ export function isStudioNavActive(pathname: string, href: string) {
   if (href === "/app/talking-heads") {
     return pathname === "/app/talking-heads" || pathname.startsWith("/app/talking-heads/");
   }
+  if (href === "/app/stories") {
+    return pathname === "/app/stories" || pathname.startsWith("/app/stories/");
+  }
   if (href === "/app") {
     return pathname === "/app";
   }

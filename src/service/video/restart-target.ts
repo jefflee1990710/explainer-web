@@ -17,6 +17,7 @@ export function inferVideoUseCaseFromSkillSlug(
 ): VideoUseCase | undefined {
   if (!skillSlug) return undefined;
   if (videoMatchesUseCase(skillSlug, "talking-head")) return "talking-head";
+  if (videoMatchesUseCase(skillSlug, "story")) return "story";
   if (videoMatchesUseCase(skillSlug, "explainer")) return "explainer";
   return undefined;
 }

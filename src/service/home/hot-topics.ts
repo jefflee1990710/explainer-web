@@ -59,11 +59,11 @@ export function buildHotTopicsPromptFromHistory(input: {
 
   return [
     "Generate exactly 6 high-retention, viral short-form video topic ideas ('Hot Topics to Start Generating') tailored to this creator's niche, themes, and style based on their recently generated content below.",
-    "Include a balanced mix of `explainer` (3 items) and `talking-head` (3 items) useCases.",
+    "Include a balanced mix of `explainer` (2 items), `talking-head` (2 items), and `story` (2 items) useCases.",
     "Each topic must include:",
     "- `id`: short kebab-case slug",
-    "- `category`: uppercase English + Traditional Chinese category tag (e.g. `FINANCE · 投資理財`, `AI & TECH · 科技創業`, `E-COMMERCE · 爆款帶貨`)",
-    "- `useCase`: either `explainer` or `talking-head`",
+    "- `category`: uppercase English + Traditional Chinese category tag (e.g. `FINANCE · 投資理財`, `AI & TECH · 科技創業`, `STORY · 品牌故事`)",
+    "- `useCase`: either `explainer`, `talking-head`, or `story`",
     "- `badge`: short punchy badge with an emoji (e.g. `🔥 Trending`, `⚡ Viral Hook`, `💡 High Save Rate`)",
     "- `titleZhHant`, `titleZhHans`, `titleEn`: scroll-stopping hook title in Traditional Chinese (Hong Kong colloquial style), Simplified Chinese, and English",
     "- `descZhHant`, `descZhHans`, `descEn`: 1-sentence summary of why this angle works",
