@@ -15,8 +15,9 @@ import type { PlanDefinition } from "@/service/billing/plans";
 
 /**
  * Dedicated Usage & Credits page (`/app/usage`):
- * - Top section shows exact breakdown of Top-up capacity, Monthly Plan capacity, Used credits, and Remaining credits.
- * - Bottom section renders One-Time Credit Top-up packs ($10–$1,000) and Monthly Subscription plans.
+ * - Top section shows current plan and a clean remaining credits progress bar.
+ * - Middle section renders One-Time Credit Top-up packs ($10–$1,000) localized by selected language.
+ * - Bottom section renders Monthly Subscription plans in a horizontal scrolling strip with Seedream 5.0 Pro artwork.
  */
 export function UsageView({
   checkoutSuccess,
@@ -71,8 +72,6 @@ export function UsageView({
   const { remaining, ratio } = creditProgress(credits, totalCapacity);
   const percent = Math.round(ratio * 100);
   const used = Math.max(0, totalCapacity - remaining);
-  const topUpIncluded = Math.max(0, bonusCredits);
-  const monthlyIncluded = subscribed ? Math.max(0, monthlyCredits) : 0;
 
   const planLabel =
     subscribed && activePlanId
@@ -82,138 +81,115 @@ export function UsageView({
         })
       : t("billing.payAsYouGoPlan");
 
+  const headerTitle =
+    locale === "zh-Hant"
+      ? "用量與儲值 Usage"
+      : locale === "zh-Hans"
+        ? "用量与充值 Usage"
+        : "Usage & Credits";
+
+  const headerSubtitle =
+    locale === "zh-Hant"
+      ? "查看你的剩餘可用 Credits，並在下方隨時單次儲值或訂閱每月方案。"
+      : locale === "zh-Hans"
+        ? "查看你的剩余可用 Credits，并在下方随时单次充值或订阅每月方案。"
+        : "View your remaining credits balance, and top up or subscribe to a monthly plan below.";
+
+  const billingBtnLabel =
+    locale === "zh-Hant"
+      ? "信用卡與付款設定 →"
+      : locale === "zh-Hans"
+        ? "信用卡与付款设置 →"
+        : "Billing & Card →";
+
+  const invoicesBtnLabel =
+    locale === "zh-Hant"
+      ? "帳單紀錄 Invoices →"
+      : locale === "zh-Hans"
+        ? "账单记录 Invoices →"
+        : "Invoices & Receipts →";
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header & Sub-navigation */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold">
-            {isEn ? "Usage & Credits" : "用量與儲值 Usage"}
-          </h1>
-          <p className="mt-1.5 max-w-2xl text-sm text-muted">
-            {isEn
-              ? "View your Top-up and Monthly Plan credit breakdown, used vs. remaining balance, and top up or subscribe below."
-              : "查看你嘅 Top-up 儲值與月費計劃容量明細、已使用同剩餘 Credits，並喺下方隨時單次儲值或訂閱方案。"}
-          </p>
+          <h1 className="font-display text-3xl font-bold">{headerTitle}</h1>
+          <p className="mt-1.5 max-w-2xl text-sm text-muted">{headerSubtitle}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/app/billing"
-            className="rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-xs font-bold text-foreground transition hover:border-accent-ink"
+            className="rounded-full border border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs font-bold text-foreground transition hover:border-[#c6f24b]"
           >
-            {isEn ? "Billing & Card →" : "信用卡與付款設定 →"}
+            {billingBtnLabel}
           </Link>
           <Link
             href="/app/invoices"
-            className="rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-xs font-bold text-foreground transition hover:border-accent-ink"
+            className="rounded-full border border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs font-bold text-foreground transition hover:border-[#c6f24b]"
           >
-            {isEn ? "Invoices & Receipts →" : "帳單紀錄 Invoices →"}
+            {invoicesBtnLabel}
           </Link>
         </div>
       </div>
 
       {checkoutSuccess ? (
-        <p className="rounded-[1rem] border border-accent-ink/10 bg-lime/50 px-4 py-3 text-sm font-medium">
+        <p className="rounded-[1rem] border border-[var(--studio-line)] bg-lime/50 px-4 py-3 text-sm font-medium">
           {t("billing.checkoutSuccess")}
         </p>
       ) : null}
 
-      {/* Top Capacity & Usage Breakdown Card */}
-      <section className="rounded-[1.5rem] border-2 border-accent-ink bg-white p-6 shadow-[4px_4px_0_0_#12141c]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent-ink/10 pb-4">
+      {/* Top Plan & Remaining Bar Card */}
+      <section className="rounded-[1.5rem] border border-[var(--studio-line)] bg-[var(--studio-panel)] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--studio-line)] pb-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               {t("billing.currentPlanLabel")}
             </p>
-            <p className="mt-1 font-display text-lg font-bold">{planLabel}</p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-2.5">
+              <p className="font-display text-lg font-bold">{planLabel}</p>
+              {periodEnd ? (
+                <span className="text-xs text-muted">
+                  ·{" "}
+                  {t("billing.periodEndsStandalone", {
+                    date: periodEnd.toLocaleDateString(dateLocale),
+                  })}
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <AddCreditButton />
             <a
               href="#monthly-plans"
-              className="inline-flex min-h-[44px] items-center rounded-full border border-accent-ink/15 bg-paper px-4 text-sm font-semibold text-accent-ink transition hover:border-accent-ink"
+              className="inline-flex min-h-[44px] items-center rounded-full border border-[var(--studio-line)] bg-[var(--studio-fill)] px-4 text-sm font-semibold text-foreground transition hover:border-[#c6f24b]"
             >
               {t("billing.seeCreditPlans")}
             </a>
           </div>
         </div>
 
-        {/* 4-Metric Breakdown Grid: Top-up Capacity | Monthly Plan Capacity | Used | Remaining */}
-        <div className="mt-5 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-          <div className="rounded-2xl border border-accent-ink/12 bg-paper/70 p-4">
-            <p className="text-xs font-semibold text-muted">
-              {isEn ? "Top-up Credits" : "Top-up 儲值容量"}
-            </p>
-            <p className="mt-1.5 font-display text-2xl font-bold text-foreground">
-              {topUpIncluded.toLocaleString()}
-            </p>
-            <p className="mt-1 text-[11px] text-muted">
-              {isEn ? "Never expires · rolls over" : "單次加購 · 未用完永久保留"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-accent-ink/12 bg-paper/70 p-4">
-            <p className="text-xs font-semibold text-muted">
-              {isEn ? "Monthly Plan Credits" : "月費計劃容量"}
-            </p>
-            <p className="mt-1.5 font-display text-2xl font-bold text-foreground">
-              {monthlyIncluded.toLocaleString()}
-            </p>
-            <p className="mt-1 text-[11px] text-muted">
-              {periodEnd
-                ? t("billing.periodEndsStandalone", {
-                    date: periodEnd.toLocaleDateString(dateLocale),
-                  })
-                : isEn
-                  ? "No active monthly plan"
-                  : "目前未訂閱月費計劃"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-accent-ink/12 bg-paper/70 p-4">
-            <p className="text-xs font-semibold text-muted">
-              {isEn ? "Used Credits" : "已使用 Credits"}
-            </p>
-            <p className="mt-1.5 font-display text-2xl font-bold text-foreground">
-              {used.toLocaleString()}
-            </p>
-            <p className="mt-1 text-[11px] text-muted">
-              {isEn
-                ? `Out of ${totalCapacity.toLocaleString()} total capacity`
-                : `總容量 ${totalCapacity.toLocaleString()} credits`}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border-2 border-accent-ink bg-lime/35 p-4">
-            <p className="text-xs font-bold text-accent-ink">
-              {isEn ? "Remaining Available" : "剩餘可用 Credits"}
-            </p>
-            <p className="mt-1.5 font-display text-2xl font-bold text-accent-ink">
-              {remaining.toLocaleString()}
-            </p>
-            <p className="mt-1 text-[11px] font-semibold text-accent-ink/80">
-              {percent}% {isEn ? "available" : "可用比例"}
-            </p>
-          </div>
-        </div>
-
-        {/* Visual Progress Bar */}
+        {/* Clean Remaining Progress Bar */}
         <div className="mt-5">
-          <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
-            <span>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+            <span className="text-sm font-bold text-foreground">
               {isEn
-                ? `Remaining: ${remaining.toLocaleString()} / ${totalCapacity.toLocaleString()} credits`
-                : `剩餘可用：${remaining.toLocaleString()} / 總容量 ${totalCapacity.toLocaleString()} credits`}
+                ? `Remaining: ${remaining.toLocaleString()} / ${totalCapacity.toLocaleString()} credits (${percent}%)`
+                : locale === "zh-Hans"
+                  ? `剩余可用：${remaining.toLocaleString()} / ${totalCapacity.toLocaleString()} credits (${percent}%)`
+                  : `剩餘可用：${remaining.toLocaleString()} / ${totalCapacity.toLocaleString()} credits (${percent}%)`}
             </span>
             <span className="text-muted">
               {isEn
                 ? `Used: ${used.toLocaleString()} credits`
-                : `已使用：${used.toLocaleString()} credits`}
+                : locale === "zh-Hans"
+                  ? `已使用：${used.toLocaleString()} credits`
+                  : `已使用：${used.toLocaleString()} credits`}
             </span>
           </div>
           <div
-            className="h-3.5 overflow-hidden rounded-full bg-accent-ink/10"
+            className="h-3.5 overflow-hidden rounded-full bg-[var(--studio-fill)]"
             role="progressbar"
             aria-label={t("billing.remainingAria")}
             aria-valuemin={0}
@@ -229,19 +205,33 @@ export function UsageView({
         </div>
       </section>
 
-      {/* Bottom 1: One-Time Top-Up Packs ($10 to $1,000) */}
+      {/* Middle: One-Time Top-Up Packs ($10 to $1,000) */}
       <BuyCreditsSection subscribed={subscribed} />
 
-      {/* Bottom 2: Subscribe to Monthly Plans */}
+      {/* Bottom: Subscribe to Monthly Plans (Horizontal Scrolling Strip with Seedream 5.0 Pro Art) */}
       <section id="monthly-plans" className="scroll-mt-8">
-        <h2 className="font-display text-2xl font-bold">{t("billing.monthlyPlansTitle")}</h2>
-        <p className="mt-1 text-sm text-muted">{t("billing.monthlyPlansSubtitle")}</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {!subscribed ? <PayAsYouGoCard /> : null}
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-2xl font-bold">{t("billing.monthlyPlansTitle")}</h2>
+            <p className="mt-1 text-sm text-muted">{t("billing.monthlyPlansSubtitle")}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pt-1">
+          {!subscribed ? (
+            <PayAsYouGoCard className="w-[290px] shrink-0 snap-start sm:w-[310px]" />
+          ) : null}
           {plans.map((plan) => (
-            <BillingPlanCard key={plan.id} plan={plan} />
+            <BillingPlanCard
+              key={plan.id}
+              plan={plan}
+              className="w-[290px] shrink-0 snap-start sm:w-[310px]"
+            />
           ))}
-          <EnterpriseCta compact />
+          <EnterpriseCta
+            compact
+            imageSrc="/pricing/enterprise-scro.png"
+            className="w-[290px] shrink-0 snap-start sm:w-[310px]"
+          />
         </div>
       </section>
     </div>

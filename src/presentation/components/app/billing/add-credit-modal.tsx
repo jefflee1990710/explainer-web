@@ -8,7 +8,11 @@ import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
 import { packCreditsWithBonus } from "@/service/billing/promo";
-import { CREDIT_PACKS } from "@/service/billing/packs";
+import {
+  CREDIT_PACKS,
+  localizedPackBlurb,
+  localizedPackName,
+} from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
 
@@ -16,6 +20,7 @@ const DEFAULT_PACK: PackId = "pack50";
 
 // Progress-bar trigger that opens the add-credit dialog.
 export function AddCreditButton({ disabled = false }: { disabled?: boolean }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,11 +30,11 @@ export function AddCreditButton({ disabled = false }: { disabled?: boolean }) {
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title={disabled ? "訂閱方案後才能加購" : undefined}
+        title={disabled ? t("billing.subscribeToTopUp") : undefined}
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        加購 credits
+        {t("billing.addCreditsHeading")}
       </button>
       {open ? <AddCreditModal onClose={() => setOpen(false)} /> : null}
     </>
@@ -38,7 +43,7 @@ export function AddCreditButton({ disabled = false }: { disabled?: boolean }) {
 
 // Pack picker; submitting hands off to Stripe one-time checkout.
 export function AddCreditModal({ onClose }: { onClose: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const titleId = useId();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");
@@ -69,7 +74,7 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
       currency: "USD",
       value: pack.amountUsd,
       item_id: pack.id,
-      item_name: pack.nameZh,
+      item_name: localizedPackName(pack, locale),
     });
     window.location.href = result.url;
   }
@@ -83,30 +88,34 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
+        className="w-full max-w-md rounded-[1.75rem] border border-[var(--studio-line)] bg-[var(--studio-panel)] p-6 shadow-2xl sm:p-7"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          加購 credits
+          {t("billing.addCreditsHeading")}
         </h2>
         <p className="mt-2 text-sm text-muted">
-          與每月重置分開計算。一次付清，未用完的加購會留到下個週期。
+          {t("billing.addCreditsBlurb")}
         </p>
         {/* Same per-image / per-second rates as the billing page. */}
         <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
         {bonusPercent > 0 ? (
-          <p className="mt-1 text-xs font-semibold text-[#3d4a12]">{t("signupPromo.packBonus", { bonus: bonusPercent })}</p>
+          <p className="mt-1 text-xs font-semibold text-[#c6f24b]">
+            {t("signupPromo.packBonus", { bonus: bonusPercent })}
+          </p>
         ) : null}
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <fieldset disabled={submitting} className="space-y-2">
-            <legend className="mb-1.5 text-sm font-semibold">選擇加購包</legend>
+            <legend className="mb-1.5 text-sm font-semibold">
+              {t("billing.choosePack")}
+            </legend>
             {packs.map((pack) => (
               <label
                 key={pack.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-[1.25rem] border px-4 py-3 transition ${
                   packId === pack.id
-                    ? "border-accent-ink bg-lime/40"
-                    : "border-accent-ink/15 bg-paper hover:border-accent-ink/30"
+                    ? "border-[#c6f24b] bg-[var(--studio-cyan-soft)]"
+                    : "border-[var(--studio-line)] bg-[var(--studio-fill)]/60 hover:border-[#c6f24b]/40"
                 }`}
               >
                 <input
@@ -115,11 +124,15 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
                   value={pack.id}
                   checked={packId === pack.id}
                   onChange={() => setPackId(pack.id)}
-                  className="h-4 w-4 accent-accent"
+                  className="h-4 w-4 accent-[#c6f24b]"
                 />
                 <span className="flex-1">
                   <span className="block text-sm font-semibold">
-                    {pack.nameZh} · {packCreditsWithBonus(pack.credits, bonusPercent)} credits
+                    {localizedPackName(pack, locale)} ·{" "}
+                    {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {localizedPackBlurb(pack, locale)}
                   </span>
                 </span>
                 <span className="font-display text-lg font-bold">
@@ -136,15 +149,17 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
               disabled={submitting}
               className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
             >
-              取消
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? <Spinner className="h-4 w-4" /> : null}
-              前往付款
+              {t("billing.continueCheckoutPack", {
+                amount: CREDIT_PACKS[packId].amountUsd,
+              })}
             </button>
           </div>
         </form>

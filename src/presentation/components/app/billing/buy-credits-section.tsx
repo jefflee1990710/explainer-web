@@ -6,7 +6,11 @@ import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
 import { packCreditsWithBonus } from "@/service/billing/promo";
-import { CREDIT_PACKS } from "@/service/billing/packs";
+import {
+  CREDIT_PACKS,
+  localizedPackBlurb,
+  localizedPackName,
+} from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
 
@@ -14,7 +18,7 @@ const DEFAULT_PACK: PackId = "pack50";
 
 /** Inline one-time credit pack picker (available to all accounts, with or without a subscription). */
 export function BuyCreditsSection(_?: { subscribed?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +39,7 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
       currency: "USD",
       value: selected.amountUsd,
       item_id: selected.id,
-      item_name: selected.nameZh,
+      item_name: localizedPackName(selected, locale),
     });
     window.location.href = result.url;
   }
@@ -45,7 +49,7 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
       <h2 className="font-display text-2xl font-bold">{t("billing.buyCreditsTitle")}</h2>
       <p className="mt-1 text-sm text-muted">{t("billing.buyCreditsSubtitle")}</p>
 
-      <div className="mt-4 rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]">
+      <div className="mt-4 rounded-[1.5rem] border border-[var(--studio-line)] bg-[var(--studio-panel)] p-6">
         <p className="text-sm font-semibold">{t("billing.addCreditsHeading")}</p>
         <p className="mt-1 text-sm text-muted">{t("billing.addCreditsBlurb")}</p>
 
@@ -56,8 +60,8 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
               key={pack.id}
               className={`flex cursor-pointer items-center gap-3 rounded-[1.25rem] border px-4 py-3 transition ${
                 packId === pack.id
-                  ? "border-accent-ink bg-lime/40"
-                  : "border-accent-ink/15 bg-paper hover:border-accent-ink/30"
+                  ? "border-[#c6f24b] bg-[var(--studio-cyan-soft)]"
+                  : "border-[var(--studio-line)] bg-[var(--studio-fill)]/60 hover:border-[#c6f24b]/40"
               }`}
             >
               <input
@@ -66,13 +70,16 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
                 value={pack.id}
                 checked={packId === pack.id}
                 onChange={() => setPackId(pack.id)}
-                className="h-4 w-4 accent-accent"
+                className="h-4 w-4 accent-[#c6f24b]"
               />
               <span className="flex-1">
                 <span className="block text-sm font-semibold">
-                  {pack.nameZh} · {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
+                  {localizedPackName(pack, locale)} ·{" "}
+                  {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
                 </span>
-                <span className="mt-0.5 block text-xs text-muted">{pack.blurb}</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {localizedPackBlurb(pack, locale)}
+                </span>
               </span>
               <span className="font-display text-lg font-bold">${pack.amountUsd}</span>
             </label>
@@ -80,7 +87,7 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
         </fieldset>
 
         {bonusPercent > 0 ? (
-          <p className="mt-2 text-xs font-semibold text-[#3d4a12]">
+          <p className="mt-2 text-xs font-semibold text-[#c6f24b]">
             {t("signupPromo.packBonus", { bonus: bonusPercent })}
           </p>
         ) : null}
@@ -91,7 +98,7 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
           type="button"
           disabled={submitting}
           onClick={() => void onCheckout()}
-          className="mt-5 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="mt-5 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {submitting ? <Spinner className="h-4 w-4" /> : null}
           {t("billing.continueCheckoutPack", { amount: selected.amountUsd })}

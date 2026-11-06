@@ -104,6 +104,16 @@ test("upgrade is offered only when the wallet cannot pay for the video", () => {
   assert.equal(needsVideoUpgrade(72, 72), false);
 });
 
+test("localizedPackName and localizedPackBlurb format packs according to selected locale", async () => {
+  const { localizedPackBlurb, localizedPackName } = await import("@/service/billing/packs");
+  const pack = CREDIT_PACKS.pack50;
+  assert.equal(localizedPackName(pack, "en"), "$50 Credit Pack");
+  assert.match(localizedPackBlurb(pack, "en"), /Adds 800 credits at once/);
+  assert.equal(localizedPackName(pack, "zh-Hant"), "$50 儲值包");
+  assert.match(localizedPackBlurb(pack, "zh-Hant"), /一次加上 800 credits/);
+  assert.equal(localizedPackName(pack, "zh-Hans"), "$50 充值包");
+});
+
 test("every plan stays profitable at 30% off plus the full affiliate stack", () => {
   for (const plan of Object.values(PLANS)) {
     const netUsd = plan.amountUsd * 0.7 * 0.75;

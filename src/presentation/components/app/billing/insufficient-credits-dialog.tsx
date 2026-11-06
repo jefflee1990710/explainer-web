@@ -24,7 +24,11 @@ import { Spinner } from "@/presentation/components/spinner";
 import { creditGrantLanded } from "@/service/billing/credit-gate";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
 import { packCreditsWithBonus } from "@/service/billing/promo";
-import { CREDIT_PACKS } from "@/service/billing/packs";
+import {
+  CREDIT_PACKS,
+  localizedPackBlurb,
+  localizedPackName,
+} from "@/service/billing/packs";
 import { isPlanId, PLANS, upgradeablePlans } from "@/service/billing/plans";
 import type { PackId } from "@/model/billing-settings";
 import type { PlanId } from "@/model/subscription";
@@ -56,7 +60,7 @@ export function InsufficientCreditsDialog({
   onClose: () => void;
   onPaid: (snapshot: CreditsChangedDetail) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const bonusPercent = useAdhocBonusPercent();
   const titleId = useId();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | null>(null);
@@ -128,7 +132,7 @@ export function InsufficientCreditsDialog({
         currency: "USD",
         value: pack.amountUsd,
         item_id: pack.id,
-        item_name: pack.nameZh,
+        item_name: localizedPackName(pack, locale),
       });
       return;
     }
@@ -247,7 +251,8 @@ export function InsufficientCreditsDialog({
             onChange={(id) => setOffer({ kind: "pack", id })}
             items={Object.values(CREDIT_PACKS).map((pack) => ({
               id: pack.id,
-              title: `${pack.nameZh} · ${packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits`,
+              title: `${localizedPackName(pack, locale)} · ${packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits`,
+              blurb: localizedPackBlurb(pack, locale),
               price: `$${pack.amountUsd}`,
             }))}
           />

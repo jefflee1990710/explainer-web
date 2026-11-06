@@ -14,32 +14,45 @@ export function EnterpriseCta({
   compact?: boolean;
   imageSrc?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const heading =
+    locale === "zh-Hant"
+      ? `${ENTERPRISE.nameZh} / ${ENTERPRISE.name}`
+      : locale === "zh-Hans"
+        ? `企业 / ${ENTERPRISE.name}`
+        : ENTERPRISE.name;
+
   return (
     <article
-      className={`flex h-full flex-col rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 ${className}`}
+      className={`flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-dashed border-[var(--studio-line)] bg-[var(--studio-panel)] text-[var(--studio-ink)] ${className}`}
     >
       {imageSrc ? (
-        <div className="-mx-8 -mt-8 mb-6 h-44 overflow-hidden rounded-t-2xl bg-white">
-          <img src={imageSrc} alt="" className="h-full w-full object-cover object-center" />
+        <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden border-b border-[var(--studio-line)] bg-[#12141c]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageSrc}
+            alt={heading}
+            loading="lazy"
+            className="h-full w-full object-cover object-center transition duration-300 hover:scale-105"
+          />
         </div>
       ) : null}
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-        {t("landing.enterprise.cardLabel")}
-      </p>
-      <h3 className="font-display mt-2 text-2xl font-bold">
-        {t("landing.enterprise.nameLine", { name: ENTERPRISE.name, nameLocal: ENTERPRISE.nameZh })}
-      </h3>
-      <p className="mt-3 font-display text-3xl font-bold">{t("landing.enterprise.quote")}</p>
-      <p className="mt-3 flex-1 text-sm leading-6 text-muted">{t("landing.enterprise.body")}</p>
-      <Link
-        href="/contact"
-        className={`mt-7 inline-flex min-h-[44px] w-fit items-center rounded-full border border-zinc-300 bg-white px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 ${
-          compact ? "py-2" : "py-2.5"
-        }`}
-      >
-        {t("landing.enterprise.cta")}
-      </Link>
+      <div className="flex flex-1 flex-col p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          {t("landing.enterprise.cardLabel")}
+        </p>
+        <h3 className="font-display mt-1 text-xl font-bold">{heading}</h3>
+        <p className="mt-2 font-display text-3xl font-bold">{t("landing.enterprise.quote")}</p>
+        <p className="mt-2 flex-1 text-sm leading-6 text-muted">{t("landing.enterprise.body")}</p>
+        <Link
+          href="/contact"
+          className={`mt-5 inline-flex min-h-[44px] w-fit items-center rounded-full border border-[var(--studio-line)] bg-[var(--studio-fill)] px-5 text-sm font-semibold text-[var(--studio-ink)] transition hover:border-[#c6f24b] ${
+            compact ? "py-2" : "py-2.5"
+          }`}
+        >
+          {t("landing.enterprise.cta")}
+        </Link>
+      </div>
     </article>
   );
 }

@@ -7,10 +7,10 @@ import type { PlanId } from "@/model/subscription";
 
 // Paper cut-out art per plan, in /public/pricing.
 const PLAN_ART: Record<PlanId, string> = {
-  starter: "/pricing/starter-scro.webp",
-  pro: "/pricing/pro-scro.webp",
-  studio: "/pricing/studio-scro.webp",
-  scale: "/pricing/scale-scro.webp",
+  starter: "/pricing/starter-scro.png",
+  pro: "/pricing/pro-scro.png",
+  studio: "/pricing/studio-scro.png",
+  scale: "/pricing/scale-scro.png",
 };
 
 // One plan. Studio is the ink card; the others stay white studio desks.

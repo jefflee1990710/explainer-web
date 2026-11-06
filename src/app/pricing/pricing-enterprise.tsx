@@ -11,7 +11,7 @@ export function PricingEnterprise() {
     <section className="border-t border-[#e4e4e7] bg-[#f4fcd4] px-4 py-16 md:px-8 md:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-10 rounded-2xl border border-[#e4e4e7] bg-white p-6 shadow-[0_8px_24px_rgba(22,24,35,0.06)] md:p-10 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#12141c]">
-          <img src="/pricing/enterprise-scro.webp" alt="" className="aspect-[4/3] w-full object-cover object-center lg:aspect-square" />
+          <img src="/pricing/enterprise-scro.png" alt="" className="aspect-[4/3] w-full object-cover object-center lg:aspect-square" />
         </div>
         <div>
           <p className="inline-flex items-center rounded-full bg-[#12141c] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">

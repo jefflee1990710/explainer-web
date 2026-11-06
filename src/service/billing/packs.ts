@@ -65,6 +65,30 @@ export const CREDIT_PACKS: Record<PackId, CreditPack> = {
   },
 };
 
+export function localizedPackName(pack: CreditPack, locale: string): string {
+  const usd = `$${pack.amountUsd.toLocaleString("en-US")}`;
+  if (locale === "zh-Hant") return pack.nameZh;
+  if (locale === "zh-Hans") return `${usd} 充值包`;
+  if (locale === "ja") return `${usd} チャージパック`;
+  if (locale === "ko") return `${usd} 충전 팩`;
+  return `${usd} Credit Pack`;
+}
+
+export function localizedPackBlurb(pack: CreditPack, locale: string): string {
+  const c = pack.credits.toLocaleString("en-US");
+  if (locale === "zh-Hant") return pack.blurb;
+  if (locale === "zh-Hans") {
+    return `一次加上 ${c} credits。无需订阅即可购买使用，未用完的 credits 永久保留。`;
+  }
+  if (locale === "ja") {
+    return `${c} credits を一括追加。サブスク不要で購入・利用でき、未使用の credits は無期限で繰り越されます。`;
+  }
+  if (locale === "ko") {
+    return `${c} credits 일회성 충전. 구독 없이 바로 구매하여 사용할 수 있으며, 남은 credits는 영구 보존됩니다.`;
+  }
+  return `Adds ${c} credits at once. No subscription required; unused credits never expire and roll over.`;
+}
+
 // Stripe product label; shown on the hosted checkout page.
 export function packProductName(pack: CreditPack) {
   return `Scro ${pack.nameZh} ${pack.credits} credits`;
