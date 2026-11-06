@@ -532,7 +532,7 @@ function MediaItemList({
 							item={item}
 							preview={<MediaPreview item={item} variant={variant} />}
 							variant={variant === "grid" ? "card" : "compact"}
-							isRounded={isGrid ? false : undefined}
+							isRounded
 						/>
 					</SelectableItem>
 				</MediaItemWithContextMenu>

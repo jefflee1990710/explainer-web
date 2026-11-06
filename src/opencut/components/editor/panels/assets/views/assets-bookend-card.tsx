@@ -86,7 +86,7 @@ export function BookendVideoCard({
 				});
 			}}
 			variant={variant}
-			isRounded={variant === "card" ? false : undefined}
+			isRounded
 			preview={
 				<div className="relative size-full bg-muted">
 					{video.posterUrl ? (

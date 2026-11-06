@@ -101,7 +101,7 @@ export function DraggableItem({
 				>
 					<div
 						className={cn(
-							"relative flex h-auto w-full cursor-default flex-col gap-1 p-",
+							"relative flex h-auto w-full cursor-default flex-col gap-1.5 p-1",
 							className,
 						)}
 					>
@@ -132,7 +132,7 @@ export function DraggableItem({
 						</AspectRatio>
 						{shouldShowLabel && (
 							<span
-								className="text-muted-foreground w-full truncate text-left text-[0.7rem]"
+								className="text-muted-foreground w-full truncate px-1 text-left text-[0.7rem]"
 								title={name}
 							>
 								{name}
