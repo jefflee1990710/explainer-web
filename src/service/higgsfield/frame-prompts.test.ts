@@ -1865,5 +1865,23 @@ test("explainer clipDraft structured controls and sketchUrl are wired into start
   assert.match(endPlan.prompt, /LAYOUT & CARTOON STAGING LOCK/);
 });
 
+test("trimmed Set does not duplicate a bracket label already held in 1) Character", () => {
+  const cutout = project("realistic");
+  cutout.skillSlug = "paper-cutout-explainer-video-director";
+  cutout.aspectRatio = "9:16";
+  cutout.sceneTextEnabled = true;
+  cutout.phaseA!.visualWorld = "Dark wooden craft board. ".repeat(140);
+  cutout.phaseA!.clips[0].startScene =
+    "1) Character: Scro in the lower-right presenter zone holding a royal-blue cutout block labeled 「TOP 10 TECH 35%」 poised just above a stack. " +
+    "2) Set: Diagram Archetype (5) Iceberg / Layered Stack occupying 75% of the middle canvas on the dark warm-brown vertically-grained wooden craft board. " +
+    "Four teaching cutouts: (1) a kraft US map outline header labeled 「100% US MARKET」 (" +
+    "explaining domestic geography, ".repeat(35) +
+    "), (2) a wide bottom foundation strip labeled 「S&P 500 INDEX」, (3) a middle tier cutout block labeled 「LARGE CAP GIANTS」, and (4) the royal-blue top block labeled 「TOP 10 TECH 35%」 held by Scro's left hand. " +
+    "3) Light: Even overhead daylight. 4) Camera: Medium-wide shot square-on perpendicular to the flat wooden board.";
+  const prompt = buildFramePrompt(cutout, 1, "start");
+  const matches = prompt.match(/「TOP 10 TECH 35%」/g) || [];
+  assert.equal(matches.length, 1);
+});
+
 
 

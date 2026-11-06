@@ -218,10 +218,15 @@ export function lockDialogueSpeech(
       .filter(Boolean);
     for (const name of new Set(names)) {
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      body = body.replace(
-        new RegExp(`\\b${escaped}:\\s*((?:young adult|adult|older)\\s+(?:male|female)\\b)`, "gi"),
-        "Off-screen narrator: $1",
-      );
+      body = body
+        .replace(
+          new RegExp(`\\b${escaped}:\\s*((?:young adult|adult|older)\\s+(?:male|female)\\b)`, "gi"),
+          "Off-screen narrator: $1",
+        )
+        .replace(
+          new RegExp(`\\b${escaped}'s\\s+locked\\s+voice\\s+timbre\\b`, "gi"),
+          "the locked narrator voice timbre",
+        );
     }
     const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
     if (lock) {

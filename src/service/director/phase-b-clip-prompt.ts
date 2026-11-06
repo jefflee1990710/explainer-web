@@ -152,7 +152,12 @@ export function clipPhaseBUserPrompt(input: {
               ? DUAL_KEYFRAME_GLIDE_RULES
               : DUAL_KEYFRAME_MOTION_RULES,
     opening,
-    row.clipNumber === 1 ? firstClipHookPerformanceVideoLine(Boolean(input.realistic)) : "",
+    row.clipNumber === 1
+      ? firstClipHookPerformanceVideoLine(
+          Boolean(input.realistic),
+          !input.bansNarration && !clipUsesTalkingPerformance(input.skillSlug),
+        )
+      : "",
     closing,
     input.bansNarration
       ? 'Mouth: only the character named in this clip\'s englishVo lip-syncs every syllable of their line with vivid, expressive facial acting. Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions. Paste each supplied voice lock verbatim. Do not invent a timbre.'

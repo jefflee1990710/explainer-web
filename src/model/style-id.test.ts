@@ -5,6 +5,7 @@ import {
   PICKER_DEFAULT_STYLE_ID,
   STYLE_IDS,
   isStyleId,
+  normalizeStyleId,
   pickerDefaultStyleId,
   resolveStyleId,
 } from "@/model/style-id";
@@ -66,8 +67,10 @@ test("isStyleId accepts only allowed ids", () => {
   assert.equal(isStyleId(undefined), false);
 });
 
-test("resolveStyleId falls back to doodle", () => {
+test("resolveStyleId falls back to doodle and normalizes cinematic-realistic to realistic", () => {
   assert.equal(resolveStyleId(undefined), DEFAULT_STYLE_ID);
   assert.equal(resolveStyleId("nope"), "doodle");
   assert.equal(resolveStyleId("pixel"), "pixel");
+  assert.equal(normalizeStyleId("cinematic-realistic"), "realistic");
+  assert.equal(resolveStyleId("cinematic-realistic"), "realistic");
 });

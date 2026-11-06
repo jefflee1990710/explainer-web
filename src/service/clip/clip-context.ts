@@ -1,5 +1,5 @@
 import type { ObjectId } from "mongodb";
-import { isStyleId } from "@/model/style-id";
+import { isStyleId, normalizeStyleId } from "@/model/style-id";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import type {
   ClipDirectorOverrides,
@@ -72,7 +72,7 @@ export function attachClipOverrides(
     ...row,
     ...(overrides.skillId !== undefined ? { skillId: overrides.skillId } : {}),
     ...(overrides.skillSlug !== undefined ? { skillSlug: overrides.skillSlug } : {}),
-    ...(overrides.styleId !== undefined ? { styleId: overrides.styleId } : {}),
+    ...(overrides.styleId !== undefined ? { styleId: normalizeStyleId(overrides.styleId) } : {}),
     ...(overrides.cast !== undefined ? { cast: overrides.cast } : {}),
     ...(overrides.products !== undefined ? { products: overrides.products } : {}),
     ...(overrides.language !== undefined ? { language: overrides.language } : {}),
@@ -150,11 +150,15 @@ export function resolveClipProject<T extends ClipContextSource>(
         : ""
       : base.phaseA?.characterLock;
 
+  const normalizedProjectStyleId = normalizeStyleId(base.styleId);
+  const normalizedRowStyleId = normalizeStyleId(row?.styleId);
+
   const resolved: T = {
     ...base,
+    ...(normalizedProjectStyleId !== undefined ? { styleId: normalizedProjectStyleId } : {}),
     ...(resolvedSkillId !== undefined ? { skillId: resolvedSkillId } : {}),
     ...(row?.skillSlug !== undefined ? { skillSlug: row.skillSlug } : {}),
-    ...(isValidClipStyleId(row?.styleId) ? { styleId: row.styleId } : {}),
+    ...(isValidClipStyleId(normalizedRowStyleId) ? { styleId: normalizedRowStyleId } : {}),
     ...(hasCastOverride ? { cast: row!.cast } : {}),
     ...(Array.isArray(row?.products) ? { products: row.products } : {}),
     ...(row?.language !== undefined ? { language: row.language } : {}),

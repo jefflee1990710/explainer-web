@@ -487,6 +487,7 @@ export function OpenCutDirectDesk({
 
   // Automatically open the OpenCut Feature Discovery tutorial once the editor finishes booting (unless user checked "Don't show again").
   useEffect(() => {
+    window.dispatchEvent(new Event("scro:close-nav-tour"));
     if (booting || planningStoryboard) return;
     if (!hasSeenOpenCutTutorial()) {
       const timer = window.setTimeout(() => setTutorialOpen(true), 450);

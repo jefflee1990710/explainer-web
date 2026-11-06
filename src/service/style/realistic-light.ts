@@ -8,7 +8,14 @@ export function isRealisticStyle(
   style?: { id?: string; baseStyleId?: string; behavior?: IStyleBehavior } | null,
 ) {
   if (!style) return false;
-  if (style.id === "realistic" || style.baseStyleId === "realistic") return true;
+  if (
+    style.id === "realistic" ||
+    style.id === "cinematic-realistic" ||
+    style.baseStyleId === "realistic" ||
+    style.baseStyleId === "cinematic-realistic"
+  ) {
+    return true;
+  }
   if (style.behavior) return style.behavior.realistic;
   return false;
 }

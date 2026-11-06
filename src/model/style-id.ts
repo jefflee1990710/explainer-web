@@ -61,7 +61,16 @@ export function isStyleId(value: string | undefined): value is StyleId {
   return Boolean(value && (STYLE_IDS as readonly string[]).includes(value));
 }
 
+// Normalize legacy/LLM alias "cinematic-realistic" to canonical "realistic".
+export function normalizeStyleId(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const trimmed = value.trim();
+  if (/^cinematic[-_\s]+realistic$/i.test(trimmed)) return "realistic";
+  return trimmed;
+}
+
 // Old videos have no styleId; anything unknown is the original doodle look.
 export function resolveStyleId(id: string | undefined): StyleId {
-  return isStyleId(id) ? id : DEFAULT_STYLE_ID;
+  const normalized = normalizeStyleId(id);
+  return isStyleId(normalized) ? normalized : DEFAULT_STYLE_ID;
 }

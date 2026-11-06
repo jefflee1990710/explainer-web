@@ -103,39 +103,57 @@ function StudioMainSlot({ children }: { children: React.ReactNode }) {
 
 // Icon rail. Hover or keyboard focus expands labels over 200ms.
 function StudioRail({ items, children }: { items: StudioNavItem[]; children: React.ReactNode }) {
+  const { activePathname } = useRouteTransition();
+  const isVideoEditorRoute = /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(activePathname);
   const [navTourOpen, setNavTourOpen] = useState(false);
+  const showNavTour = navTourOpen && !isVideoEditorRoute;
 
   useEffect(() => {
+    const closeNavTour = () => setNavTourOpen(false);
+    window.addEventListener("scro:close-nav-tour", closeNavTour);
+    return () => window.removeEventListener("scro:close-nav-tour", closeNavTour);
+  }, []);
+
+  useEffect(() => {
+    if (isVideoEditorRoute) return;
     if (!hasSeenStudioNavTutorial()) {
-      const timer = window.setTimeout(() => setNavTourOpen(true), 350);
+      const timer = window.setTimeout(() => {
+        if (
+          document.querySelector('[data-opencut-tour="top-right-bar"]') ||
+          document.querySelector('[role="dialog"]')
+        ) {
+          return;
+        }
+        setNavTourOpen(true);
+      }, 350);
       return () => window.clearTimeout(timer);
     }
-  }, []);
+  }, [isVideoEditorRoute]);
 
   return (
     <aside
       className={`group/rail relative z-50 flex h-full shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 transition-[width] duration-200 ease-out hover:w-[200px] focus-within:w-[200px] ${
-        navTourOpen ? "w-[200px]" : "w-[72px]"
+        showNavTour ? "w-[200px]" : "w-[72px]"
       }`}
     >
       <div
         className={`mb-2 flex shrink-0 border-b border-[var(--studio-line)] px-1 pb-3 pt-1 group-hover/rail:justify-start group-focus-within/rail:justify-start ${
-          navTourOpen ? "justify-start" : "justify-center"
+          showNavTour ? "justify-start" : "justify-center"
         }`}
       >
         <BrandMark
           href="/app"
           wordClassName={`text-xl font-bold tracking-tight group-hover/rail:inline group-focus-within/rail:inline ${
-            navTourOpen ? "inline" : "hidden"
+            showNavTour ? "inline" : "hidden"
           }`}
         />
       </div>
-      <StudioNav items={items} forceExpanded={navTourOpen} />
+      <StudioNav items={items} forceExpanded={showNavTour} />
       <div className="mt-auto flex flex-col items-center gap-2 border-t border-[var(--studio-line)] pt-3 text-sm group-hover/rail:items-stretch group-focus-within/rail:items-stretch">
         {children}
       </div>
       <StudioNavFeatureDiscovery
-        open={navTourOpen}
+        open={showNavTour}
         onClose={() => setNavTourOpen(false)}
       />
     </aside>

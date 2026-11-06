@@ -138,6 +138,7 @@ test("narrator-only explainer strips character name prefixes from voice locks so
   ];
   const rawPrompt = [
     "Character Lock: Alice stays identical to the attached first frame.",
+    "Unseen off-screen third-person narrator speaks aloud using Alice's locked voice timbre verbatim: young adult female, mid-high, bright, warm, light.",
     "Narrator Voice Lock: Unseen off-screen third-person narrator only. Alice: young adult female, mid-high, bright, warm, light, cheerful and clear articulation.",
     "Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume.",
     "Alice: young adult female, mid-high, bright, warm, light, cheerful and clear articulation.",
@@ -151,6 +152,8 @@ test("narrator-only explainer strips character name prefixes from voice locks so
     { voiceGender: "female", speakers },
   );
   assert.doesNotMatch(locked, /Alice:\s*young adult female/i);
+  assert.doesNotMatch(locked, /Alice's\s+locked\s+voice\s+timbre/i);
+  assert.match(locked, /the locked narrator voice timbre/i);
   assert.match(locked, /Off-screen narrator:\s*young adult female/i);
 });
 

@@ -105,7 +105,7 @@ import { frameRenderDetail, reconcileSightline, SIGHTLINE_RULE } from "@/service
 import { isRealisticStyle, isSelfShotCreatorSkill, styleForSelfShotSkill } from "@/service/style/realistic-light";
 import { styleLinesForFrame, type Style } from "@/service/style";
 import { resolveSubtitleLook } from "@/service/director/subtitle-look";
-import { isStyleId } from "@/model/style-id";
+import { isStyleId, normalizeStyleId } from "@/model/style-id";
 import { clipsShareContinuity, resolveClipProject } from "@/service/clip/clip-context";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
@@ -284,6 +284,11 @@ function trimSceneParts(
 ) {
   const parts = scene.split(/(?=(?<!\(\s*)[1-9]\)\s)/);
   if (parts.length < 2) return scene;
+  const nonSetLabels = new Set(
+    parts
+      .filter((part) => !/^2\)\s/.test(part))
+      .flatMap((part) => part.match(/「[^」]+」/g) || []),
+  );
   return parts
     .map((part) => {
       if (/^3\)\s/.test(part)) {
@@ -294,7 +299,9 @@ function trimSceneParts(
       if (mode !== "set-short" || !/^2\)\s/.test(part)) return part;
       const baseText = setBudget > 200 ? part.trim() : firstSentence(part);
       const short = clipAt(baseText, setBudget);
-      const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter((label) => !short.includes(label));
+      const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter(
+        (label) => !short.includes(label) && !nonSetLabels.has(label),
+      );
       return `${short}${lost.length ? ` Also labeled ${lost.join(" ")}.` : ""} `;
     })
     .join("")
@@ -542,18 +549,20 @@ export function resolveClipStyleId(
   clipNumber: number,
 ): string | undefined {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  const rowStyleId = normalizeStyleId(row?.styleId);
   // Only a real catalog or user style may override the project. An invented id
   // would otherwise collapse to doodle and leave the character blueprint.
-  if (chosenStyleId(row?.styleId)) return row.styleId;
+  if (chosenStyleId(rowStyleId)) return rowStyleId;
   if (project.styleIds && project.styleIds.length > 0) {
-    return project.styleIds[(clipNumber - 1) % project.styleIds.length];
+    return normalizeStyleId(project.styleIds[(clipNumber - 1) % project.styleIds.length]);
   }
-  return project.styleId;
+  return normalizeStyleId(project.styleId);
 }
 
 // Catalog styles only. A user id must be loaded and passed in; it must not become doodle.
 export function systemStyle(project: Pick<Project, "styleId" | "styleIds" | "phaseA">, clipNumber?: number): Style {
-  const id = clipNumber != null ? resolveClipStyleId(project, clipNumber) : project.styleId;
+  const rawId = clipNumber != null ? resolveClipStyleId(project, clipNumber) : project.styleId;
+  const id = normalizeStyleId(rawId);
   if (!id || isStyleId(id)) return resolvedStyle(id);
   throw new Error(`Style "${id}" must be loaded`);
 }

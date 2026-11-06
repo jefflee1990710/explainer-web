@@ -16,6 +16,7 @@ import { displayMediaSrc } from "@/util/media-src";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
+import { normalizeStyleId } from "@/model/style-id";
 import type { AppUser } from "@/model/user";
 import {
   resolveCharacterVoiceMode,
@@ -434,6 +435,7 @@ function serializePhaseA(phaseA: Project["phaseA"]): Project["phaseA"] {
     ...phaseA,
     clips: phaseA.clips.map((clip) => ({
       ...clip,
+      ...(clip.styleId !== undefined ? { styleId: normalizeStyleId(clip.styleId) } : {}),
       ...(clip.skillId !== undefined ? { skillId: toHexId(clip.skillId) } : {}),
       ...(clip.cast
         ? {
@@ -472,8 +474,10 @@ export function toPublicVideo(video: Project): PublicVideo {
     spokenScript: video.spokenScript,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
-    styleId: video.styleId || DEFAULT_STYLE_ID,
-    ...(video.styleIds && video.styleIds.length > 0 ? { styleIds: video.styleIds } : {}),
+    styleId: normalizeStyleId(video.styleId) || DEFAULT_STYLE_ID,
+    ...(video.styleIds && video.styleIds.length > 0
+      ? { styleIds: video.styleIds.map((id) => normalizeStyleId(id) || id) }
+      : {}),
     language: video.language || "en",
     narrationEnabled: video.narrationEnabled !== false,
     voiceGender: resolveVoiceGender(video.voiceGender),

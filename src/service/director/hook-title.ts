@@ -36,8 +36,11 @@ export function firstClipHookPerformanceFrameLine(realistic = false) {
 }
 
 // Phase B video prompt rule for Clip 1 so the first 0–2 seconds have extra facial acting, body animation, and camera/scene motion.
-export function firstClipHookPerformanceVideoLine(realistic = false) {
+export function firstClipHookPerformanceVideoLine(realistic = false, narratorOnly = false) {
+  const silentMouth = narratorOnly
+    ? " (upper-face eyebrows/eyes and body gesture only — keep lips and jaw 100% static and sealed shut with zero lip-sync)"
+    : "";
   return realistic
-    ? "HOOK RETENTION (Clip 1 — first 0–2s): open with immediate, scroll-stopping energy — extra-clear, animated facial expression shifts (active eyebrows, engaged eyes, vivid emotional reaction at natural real-person intensity), decisive hand/body movement, and immediate scene or camera motion from frame 1 so viewers stay on the video."
-    : "HOOK RETENTION (Clip 1 — first 0–2s): open with immediate, scroll-stopping energy — heightened, vivid facial expression changes (expressive eyebrows and eyes, strong emotional acting), energetic body/prop animation, and immediate camera or scene motion from frame 1 so viewers stay on the video.";
+    ? `HOOK RETENTION (Clip 1 — first 0–2s): open with immediate, scroll-stopping energy — extra-clear, animated facial expression shifts (active eyebrows, engaged eyes, vivid emotional reaction at natural real-person intensity)${silentMouth}, decisive hand/body movement, and immediate scene or camera motion from frame 1 so viewers stay on the video.`
+    : `HOOK RETENTION (Clip 1 — first 0–2s): open with immediate, scroll-stopping energy — heightened, vivid facial expression changes (expressive eyebrows and eyes, strong emotional acting)${silentMouth}, energetic body/prop animation, and immediate camera or scene motion from frame 1 so viewers stay on the video.`;
 }

@@ -637,9 +637,24 @@ Produce a complete Phase A director proposal now.`,
       ...next,
       clips: next.clips.map((clip, index) => {
         const fallbackId = allowedIds[index % allowedIds.length] || input.style.id;
+        const normalizedClipStyleId =
+          clip.styleId && /^cinematic[-_\s]+realistic$/i.test(clip.styleId.trim())
+            ? "realistic"
+            : clip.styleId;
         const validStyleId =
-          clip.styleId && allowedIds.includes(clip.styleId) ? clip.styleId : fallbackId;
+          normalizedClipStyleId && allowedIds.includes(normalizedClipStyleId)
+            ? normalizedClipStyleId
+            : fallbackId;
         return { ...clip, styleId: validStyleId };
+      }),
+    };
+  } else {
+    next = {
+      ...next,
+      clips: next.clips.map((clip) => {
+        const copy = { ...clip };
+        delete copy.styleId;
+        return copy;
       }),
     };
   }

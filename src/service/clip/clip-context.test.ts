@@ -133,9 +133,10 @@ describe("resolveClipProject", () => {
     assert.match(resolved2.phaseA?.characterLock ?? "", /Bella/);
   });
 
-  it("ignores LLM-invented styleId values like cinematic-realistic and keeps the project styleId", () => {
+  it("normalizes cinematic-realistic styleId values to canonical realistic", () => {
     const row1 = makeRow(1, { styleId: "cinematic-realistic" });
     const project = makeProject([row1]);
+    project.styleId = "doodle";
     const resolved = resolveClipProject(project, 1);
     assert.equal(resolved.styleId, "realistic");
   });

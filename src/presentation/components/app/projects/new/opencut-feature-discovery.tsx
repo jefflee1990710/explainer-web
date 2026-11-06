@@ -480,10 +480,12 @@ export function OpenCutFeatureDiscovery({
 
     measure();
     const timer = window.setTimeout(measure, 160);
+    const timer2 = window.setTimeout(measure, 320);
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
     return () => {
       window.clearTimeout(timer);
+      window.clearTimeout(timer2);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };

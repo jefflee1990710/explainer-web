@@ -438,7 +438,8 @@ const CARTOON_ACTIONS: CartoonActionSpec[] = [
     start:
       "This clip's one action is a STACK. In this still one hand holds a block just above the stack named in the Scene, which is one block short.",
     end: `This still is after the STACK: the same block sits on top, the stack is one block taller, and the hand is just letting go. ${NO_SWAP}`,
-    video: "This clip's action is a STACK: the block lowers onto the stack and stays there; the stack only grows.",
+    video:
+      "This clip's action is a STACK: the single block already held in the hand lowers onto the stack and settles there once (never duplicate or spawn a second copy of that block); the stack only grows by that one block.",
   },
   {
     action: "lift",
@@ -775,7 +776,7 @@ export function cartoonNarratorFrameLock(
       : "";
   // Face and body follow the emotion the Scene wrote from this clip's spoken line.
   const actingStill = realistic
-    ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face)."
+    ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face; never cartoon/illustration)."
     : " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line with a vivid, expressive facial expression, gaze and hands on the named teaching element; never the blueprint's default face.";
   const hook =
     options?.clipNumber === 1
@@ -841,7 +842,7 @@ const SNAP_MOTION =
   "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and clean whiteboard explainer visual beats (card flips, chart bars or trend lines animating, labeled shapes and objects popping in, and at most one directional arrow in the clip — no extra flying arrows and no blank grey slash/tape strips) while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. The move has a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between frame. The body, the hands, and any prop keep moving through that curve, accompanied by clean on-screen whiteboard explainer visual beats every 1.5–2 seconds: card flips, chart bars and trend lines animating briskly up or down, and rigid geometric shapes, icons, and conceptual objects sliding or popping into place to explain the concept (use at most one directional arrow in the entire clip; never spawn extra flying arrows and never slide blank grey slash strips or tape stickers over headers)—never leave the scene static for seconds. Whiteboard cardboard cutout physics: every prop, card, diagram piece, chart bar, shape, object, and label stays in one rigid flat cardboard piece—sliding cleanly and briskly in and out of the screen (from or to the frame edges) or snapping into place without morphing, warping, melting, or dissolving. Background and set planes stay rigid and never warp or transform; any camera push-in or zoom-out moves with a clean multi-plane parallax effect. A card flip rotates through its edge as a rigid card and does not pop from one face to the other. Do not stretch the action as one slow constant glide. Never skip a frame and never cut. The camera follows the motion already written, on the same accelerate-then-decelerate curve. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
+  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. The move has a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between frame. The body, the hands, and any prop keep moving through that curve, accompanied by clean on-screen whiteboard explainer visual beats every 1.5–2 seconds: card flips, chart bars and trend lines animating briskly up or down, and rigid geometric shapes, icons, and conceptual objects sliding or popping into place to explain the concept (use at most one directional arrow in the entire clip; never spawn extra flying arrows and never slide blank grey slash strips or tape stickers over headers)—never leave the scene static for seconds. Whiteboard cardboard cutout physics: every prop, card, diagram piece, chart bar, shape, object, and label stays in one rigid flat cardboard piece—sliding cleanly and briskly in and out of the screen (from or to the frame edges) or snapping into place without morphing, warping, melting, or dissolving. Background and set planes stay rigid and never warp or transform; any camera push-in or zoom-out moves with a clean multi-plane parallax effect. A card flip rotates through its edge as a rigid card and does not pop from one face to the other. Do not stretch the action as one slow constant glide. Never skip a frame and never cut. The camera follows the motion already written, on the same accelerate-then-decelerate curve. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words, and never duplicate an existing labeled cutout card twice.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
@@ -885,12 +886,12 @@ export function cartoonNarratorVideoLock(
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
-  // The narrator's words drive the face and the body, beat by beat.
+  // The narrator's words drive the upper-face eyebrows/eyes and body gestures while the mouth stays 100% static.
   const expVideo =
-    " Act the emotion of the spoken line: play the facial expression and body language written in motionCamera beat by beat in sync with the narrator's words — the face reaches each named emotion as the line says it, and the gaze, hands, and torso direct attention to the element being explained as each teaching element is mentioned.";
+    " Act the emotion of the spoken line through upper-face eyebrows, eyes, head tilt, and body language written in motionCamera while the lower face, jaw, and lips remain 100% static and sealed shut (zero mouth opening, zero jaw movement, zero lip-sync) — the gaze, hands, and torso direct attention to the element being explained as each teaching element is mentioned.";
   const hookFace = realistic
-    ? "the face acting the hook line's emotion at natural real-person intensity with lips closed"
-    : "the face acting the hook line's emotion with a vivid closed-lip expression";
+    ? "the character's upper-face eyebrows and eyes expressing the hook's emotion at natural real-person intensity while the lips and jaw stay 100% immobile and sealed shut (zero lip motion)"
+    : "the character's upper-face eyebrows and eyes expressing the hook's emotion with a vivid closed-lip expression while the lips and jaw stay 100% immobile and sealed shut (zero lip motion)";
   const hook =
     options?.clipNumber === 1
       ? smooth
