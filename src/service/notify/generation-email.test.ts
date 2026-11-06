@@ -44,3 +44,14 @@ test("html escapes title text", () => {
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /Joyce &lt;script&gt;/);
 });
+
+test("standalone Scro Swap / Teleport video mail omits Clip suffix when clipNumber is absent", () => {
+  const copy = {
+    kind: "video" as const,
+    title: "Scro Swap · Scro",
+    href: "https://www.scro.io/app/videos/6aede83ed29768a705921ba7",
+  };
+  assert.equal(generationEmailSubject(copy), "影片完成 · Scro Swap · Scro");
+  assert.equal(generationEmailBody(copy), "「Scro Swap · Scro」的影片已產出。");
+  assert.doesNotMatch(generationEmailBody(copy), /undefined/);
+});

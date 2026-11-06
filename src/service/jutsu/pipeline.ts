@@ -77,6 +77,7 @@ import {
   canSubmitJutsuComfy,
   trySubmitJutsuComfy,
 } from "@/service/comfy/submit-swap";
+import { scheduleJutsuFinishedEmail } from "@/service/notify/generation-email";
 
 export const JUTSU_MIN_SECTION_SECONDS = 2;
 export const JUTSU_MAX_SECTION_SECONDS = 15;
@@ -1064,6 +1065,7 @@ async function finalizeJutsuRenderedVideo(
     status: "completed",
     outputVideoUrl,
   });
+  scheduleJutsuFinishedEmail(job._id);
 
   try {
     revalidatePath("/app/scroswap");

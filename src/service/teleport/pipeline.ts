@@ -48,6 +48,7 @@ import {
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
 import { trySubmitTeleportComfy } from "@/service/comfy/submit-swap";
+import { scheduleTeleportFinishedEmail } from "@/service/notify/generation-email";
 import {
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
@@ -609,6 +610,7 @@ async function finalizeTeleportRenderedVideo(
     status: "completed",
     outputVideoUrl,
   });
+  scheduleTeleportFinishedEmail(job._id);
 
   safeRevalidate();
   return {

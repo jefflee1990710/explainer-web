@@ -34,6 +34,7 @@ export type TeleportJob = {
   previousClipVideoUrl?: string;
   creditsCharged?: number;
   creditsRefunded?: boolean;
+  notifiedAt?: Date;
   error?: string;
   createdAt: Date;
   updatedAt: Date;

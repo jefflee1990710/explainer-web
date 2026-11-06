@@ -3,6 +3,8 @@ import type { ObjectId } from "mongodb";
 import {
   charactersCollection,
   generationJobsCollection,
+  jutsuJobsCollection,
+  teleportJobsCollection,
   usersCollection,
   videosCollection,
 } from "@/dao";
@@ -16,6 +18,8 @@ import {
   type GenerationEmailCopy,
 } from "@/service/notify/generation-email-html";
 import type { GenerationJob } from "@/model/generation-job";
+import type { JutsuJob } from "@/model/jutsu-job";
+import type { TeleportJob } from "@/model/teleport-job";
 
 // Webhook / poller both settle the same job; after() keeps SMTP off the hot path.
 export function scheduleGenerationFinishedEmail(jobId: ObjectId) {
@@ -28,6 +32,140 @@ export function scheduleGenerationFinishedEmail(jobId: ObjectId) {
   } catch {
     void run();
   }
+}
+
+export function scheduleJutsuFinishedEmail(jobId: ObjectId) {
+  const run = () =>
+    notifyJutsuFinished(jobId).catch((error) => {
+      console.error("[notify] jutsu email failed", { jobId: jobId.toHexString(), error });
+    });
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
+}
+
+export function scheduleTeleportFinishedEmail(jobId: ObjectId) {
+  const run = () =>
+    notifyTeleportFinished(jobId).catch((error) => {
+      console.error("[notify] teleport email failed", { jobId: jobId.toHexString(), error });
+    });
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
+}
+
+export async function notifyJutsuFinished(jobId: ObjectId) {
+  if (!isSmtpConfigured()) return;
+  const jobs = await jutsuJobsCollection();
+  const job = await jobs.findOne({ _id: jobId });
+  if (!job || job.status !== "completed") return;
+
+  const copy = await jutsuEmailCopyFor(job);
+  if (!copy) return;
+
+  const claimed = await jobs.findOneAndUpdate(
+    { _id: jobId, status: "completed", notifiedAt: { $exists: false } },
+    { $set: { notifiedAt: new Date() } },
+  );
+  if (!claimed) return;
+
+  await sendMail({
+    to: copy.to,
+    subject: generationEmailSubject(copy),
+    text: generationEmailText(copy),
+    html: generationEmailHtml(copy),
+  });
+}
+
+export async function notifyTeleportFinished(jobId: ObjectId) {
+  if (!isSmtpConfigured()) return;
+  const jobs = await teleportJobsCollection();
+  const job = await jobs.findOne({ _id: jobId });
+  if (!job || job.status !== "completed") return;
+
+  const copy = await teleportEmailCopyFor(job);
+  if (!copy) return;
+
+  const claimed = await jobs.findOneAndUpdate(
+    { _id: jobId, status: "completed", notifiedAt: { $exists: false } },
+    { $set: { notifiedAt: new Date() } },
+  );
+  if (!claimed) return;
+
+  await sendMail({
+    to: copy.to,
+    subject: generationEmailSubject(copy),
+    text: generationEmailText(copy),
+    html: generationEmailHtml(copy),
+  });
+}
+
+async function jutsuEmailCopyFor(
+  job: JutsuJob,
+): Promise<(GenerationEmailCopy & { to: string }) | null> {
+  const users = await usersCollection();
+  const user = await users.findOne({ clerkUserId: job.clerkUserId });
+  if (!user?.email) return null;
+
+  if (job.targetVideoId) {
+    const videos = await videosCollection();
+    const video = await videos.findOne({ _id: job.targetVideoId });
+    if (video) {
+      const title =
+        video.phaseA?.localizedTitle ||
+        (job.characterName ? `Scro Swap · ${job.characterName}` : "Scro Swap");
+      const href = `${getAppUrl()}${folderVideoPath(
+        video.projectId?.toHexString(),
+        video._id.toHexString(),
+      )}`;
+      const clipNumber =
+        (video.clips?.length ?? 0) > 1 ? job.targetClipNumber : undefined;
+      return { to: user.email, kind: "video", title, href, clipNumber };
+    }
+  }
+
+  return {
+    to: user.email,
+    kind: "video",
+    title: job.characterName ? `Scro Swap · ${job.characterName}` : "Scro Swap",
+    href: `${getAppUrl()}/app/scroswap`,
+  };
+}
+
+async function teleportEmailCopyFor(
+  job: TeleportJob,
+): Promise<(GenerationEmailCopy & { to: string }) | null> {
+  const users = await usersCollection();
+  const user = await users.findOne({ clerkUserId: job.clerkUserId });
+  if (!user?.email) return null;
+
+  if (job.targetVideoId) {
+    const videos = await videosCollection();
+    const video = await videos.findOne({ _id: job.targetVideoId });
+    if (video) {
+      const title =
+        video.phaseA?.localizedTitle ||
+        (job.scenePrompt ? `Teleport · ${job.scenePrompt.slice(0, 36)}` : "Teleport");
+      const href = `${getAppUrl()}${folderVideoPath(
+        video.projectId?.toHexString(),
+        video._id.toHexString(),
+      )}`;
+      const clipNumber =
+        (video.clips?.length ?? 0) > 1 ? job.targetClipNumber : undefined;
+      return { to: user.email, kind: "video", title, href, clipNumber };
+    }
+  }
+
+  return {
+    to: user.email,
+    kind: "video",
+    title: job.scenePrompt ? `Teleport · ${job.scenePrompt.slice(0, 36)}` : "Teleport",
+    href: `${getAppUrl()}/app/teleport`,
+  };
 }
 
 export async function notifyGenerationFinished(jobId: ObjectId) {

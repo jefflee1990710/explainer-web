@@ -37,7 +37,9 @@ export function generationEmailBody(copy: GenerationEmailCopy) {
   if (copy.kind === "frames") {
     return `「${copy.title}」Clip ${copy.clipNumber} 的起始與結尾畫格都好了。`;
   }
-  return `「${copy.title}」Clip ${copy.clipNumber} 的影片已產出。`;
+  return copy.clipNumber
+    ? `「${copy.title}」Clip ${copy.clipNumber} 的影片已產出。`
+    : `「${copy.title}」的影片已產出。`;
 }
 
 // Studio palette inline: paper, ink, lime, coral. Table layout for email clients.
