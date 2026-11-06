@@ -127,6 +127,15 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.match(block, /Quantitative Chart \/ Annotated Curve/);
     assert.match(block, /70\/30 Diagram-First Spatial Hierarchy/);
     assert.match(block, /Complete Diagram Scaffold in `startScene`/);
+    assert.match(block, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
+    assert.match(block, /Concrete Visual Metaphors Over Plain Text Cards/);
+    assert.match(block, /1-2-3 Visual Reading Path & Single Hero Pop/);
+  }
+  for (const slug of ["paper-cutout-explainer-video-director", "cartoon-explainer-video-director"] as const) {
+    const director = DIRECTORS_BY_SLUG[slug];
+    assert.match(director.systemPrompt, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
+    assert.match(director.systemPrompt, /Concrete Visual Metaphors Over Plain Text Cards/);
+    assert.match(director.systemPrompt, /1-2-3 Visual Reading Path & Single Hero Pop/);
   }
 });
 

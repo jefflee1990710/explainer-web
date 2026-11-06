@@ -2025,6 +2025,7 @@ export const en: Messages = {
     "data-ring": "Digits on concentric rings and one translucent phrase.",
     "wireframe-breakdown": "A cyan wireframe figure on a desaturated court, with a stacked title.",
     "japanese-anime": "Theatrical 2D Japanese anime with cel-shaded characters, starlight eyes, and painted night skies.",
+    "papercraft-diorama": "3D miniature diorama crafted from 300gsm textured cardstock in cobalt blue, mustard yellow, terracotta red, and teal.",
   },
   plans: {
     starter: {

@@ -5,6 +5,7 @@ export type VideoUseCase = (typeof VIDEO_USE_CASES)[number];
 
 export const EXPLAINER_SYSTEM_SKILL_SLUGS = [
   "paper-cutout-explainer-video-director",
+  "papercraft-diorama-director",
   "cartoon-explainer-video-director",
 ] as const;
 

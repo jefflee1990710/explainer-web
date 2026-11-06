@@ -121,6 +121,7 @@ export function OpenCutDirectDesk({
     pending: null,
   });
   const seedClips = useMemo(() => buildSeedClips(project), [project]);
+  const planningStoryboard = seedClips.length === 0 && project.status === "phase_a";
   const seedClipsRef = useRef(seedClips);
   const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
   const autoPlannedClipsRef = useRef<Set<number>>(new Set());
@@ -486,12 +487,12 @@ export function OpenCutDirectDesk({
 
   // Automatically open the OpenCut Feature Discovery tutorial once the editor finishes booting (unless user checked "Don't show again").
   useEffect(() => {
-    if (booting) return;
+    if (booting || planningStoryboard) return;
     if (!hasSeenOpenCutTutorial()) {
       const timer = window.setTimeout(() => setTutorialOpen(true), 450);
       return () => window.clearTimeout(timer);
     }
-  }, [booting]);
+  }, [booting, planningStoryboard]);
 
   // Assets ⋮ menu reads this so Finish / All frames / All videos stay in sync.
   useEffect(() => {
@@ -585,21 +586,21 @@ export function OpenCutDirectDesk({
         />
       ) : null}
       <OpenCutLoadProgressBar progress={loadProgress} />
-      {seedClips.length === 0 ? (
-        project.status === "phase_a" ? (
-          <div className="flex shrink-0 items-center gap-2 border-b border-[var(--studio-line)] bg-[#f4fcd4]/60 px-4 py-2 text-xs font-semibold text-[#12141c]">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#12141c]" />
-            <span>{t("production.toolbar.pipeline.stage1Title")}</span>
-            <span className="text-muted">· {t("production.toolbar.pipeline.stage1Detail")}</span>
-          </div>
-        ) : (
-          <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>
-        )
+      {seedClips.length === 0 && !planningStoryboard ? (
+        <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>
       ) : null}
       <div className="min-h-0 flex-1">
         <OpenCutInlineEditor projectId={`scro-${project.id}`} />
       </div>
-      {booting ? <EditorLoadingOverlay placement="absolute" /> : null}
+      {planningStoryboard ? (
+        <EditorLoadingOverlay
+          placement="fixed"
+          label={t("production.toolbar.pipeline.stage1Title")}
+          detail={t("production.toolbar.pipeline.stage1Detail")}
+        />
+      ) : booting ? (
+        <EditorLoadingOverlay placement="absolute" />
+      ) : null}
       {production ? (
         <OpenCutScroAiShell
           project={project}
@@ -623,7 +624,7 @@ export function OpenCutDirectDesk({
         />
       ) : null}
       <OpenCutFeatureDiscovery
-        open={tutorialOpen && !booting}
+        open={tutorialOpen && !booting && !planningStoryboard}
         onClose={() => setTutorialOpen(false)}
       />
     </div>

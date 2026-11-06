@@ -298,6 +298,7 @@ export const briefZhHant = {
     "outfit-change-director": "換裝快切",
     "editorial-interview-director": "雜誌人物專訪",
     "street-lookbook-director": "街拍時裝 Lookbook（衣服 Demo）",
+    "papercraft-diorama-director": "3D 立體卡紙微縮解說",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
@@ -322,6 +323,8 @@ export const briefZhHant = {
       "模擬 Esquire / GQ 雜誌人物專訪：微側 15° 對畫外受訪 A-Roll 穿插生活態度與產品工藝體驗 B-Roll。",
     "street-lookbook-director":
       "模擬時裝週街拍 Lookbook（衣服 Demo）：角色換上你上傳的衣服參考圖，在城市街頭建築場景交替展示全身輪廓、半身領口布料細節與回眸剪裁。",
+    "papercraft-diorama-director":
+      "3D 立體厚卡紙微縮模型解說（Founder Notes 創辦人筆記風格，固定鎖定 3D 立體卡紙微縮風格、無人物出場）：以卡紙收銀機、信封金幣、等距連排店舖與卡紙天秤具象化拆解商業與概念邏輯。",
   },
   skillGuide: {
     labels: {
@@ -444,6 +447,12 @@ export const briefZhHant = {
         structure: "街頭多角度節奏快切：全身輪廓比例 ↔ 半身領口／扣具布料細節 ↔ 3/4 背影回眸剪裁",
         picture: "石階、運河鐵橋、街角建築與復古街燈。五官與髮型鎖定角色藍圖；服裝 100% 依上傳衣服參考圖",
         frames: "每段切換街頭角落與時裝姿態，全方位展示參考圖服裝的版型與垂墜質感",
+      },
+      "papercraft-diorama-director": {
+        voice: "畫外旁白唸 VO（每段兩拍推進），畫面零人物出場",
+        structure: "單店案例 → 資金與股權機制 → 多店複製擴張 → 天秤規模化結論",
+        picture: "固定鎖定 3D 立體卡紙微縮風格（300gsm 厚紋理卡紙、深鈷藍／芥末黃／赤陶紅／青綠／暖米白）",
+        frames: "交替切換微縮室內正視、90° 俯拍 Flat-lay、等距微縮街景與天秤特寫",
       },
     },
   },

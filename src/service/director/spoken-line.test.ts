@@ -120,6 +120,40 @@ test("cartoon explainer narratorSpeechLock locks the character's female voice ti
   assert.equal(locked.split("AUDIO REQUIRED").length - 1, 1);
 });
 
+test("narrator-only explainer strips character name prefixes from voice locks so video models never lip-sync the on-screen character", () => {
+  const line = "Most people think procrastination comes from laziness.";
+  const speakers = [
+    {
+      name: "Alice",
+      voice: {
+        gender: "female" as const,
+        age: "young-adult" as const,
+        pitch: "mid-high" as const,
+        resonance: "bright" as const,
+        texture: "warm" as const,
+        weight: "light" as const,
+        note: "cheerful and clear articulation",
+      },
+    },
+  ];
+  const rawPrompt = [
+    "Character Lock: Alice stays identical to the attached first frame.",
+    "Narrator Voice Lock: Unseen off-screen third-person narrator only. Alice: young adult female, mid-high, bright, warm, light, cheerful and clear articulation.",
+    "Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume.",
+    "Alice: young adult female, mid-high, bright, warm, light, cheerful and clear articulation.",
+  ].join("\n");
+  const locked = lockDialogueSpeech(
+    rawPrompt,
+    "paper-cutout-explainer-video-director",
+    line,
+    ["Alice"],
+    undefined,
+    { voiceGender: "female", speakers },
+  );
+  assert.doesNotMatch(locked, /Alice:\s*young adult female/i);
+  assert.match(locked, /Off-screen narrator:\s*young adult female/i);
+});
+
 test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", () => {
   const locked = lockDialogueSpeech("She reads the line.", "full-body-talking-head-director");
   assert.match(locked, /visible mouth/);

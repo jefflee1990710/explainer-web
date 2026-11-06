@@ -1406,7 +1406,8 @@ export type Messages = {
     | "proof-poster"
     | "data-ring"
     | "wireframe-breakdown"
-    | "japanese-anime",
+    | "japanese-anime"
+    | "papercraft-diorama",
     string
   >;
   plans: {

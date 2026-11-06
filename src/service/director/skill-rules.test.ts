@@ -33,6 +33,9 @@ import {
   skillUsesOnScreenLipSync,
   storyShortCameraLock,
   storyShortDirectorBlock,
+  isPapercraftDioramaSkill,
+  lockedStyleIdForSkill,
+  papercraftDioramaDirectorBlock,
 } from "@/service/director/skill-rules";
 
 test("opening and ending are bookend skills", () => {
@@ -473,11 +476,18 @@ test("Q&A director requires exactly two characters", () => {
   for (const slug of [
     "cartoon-explainer-video-director",
     "paper-cutout-explainer-video-director",
+    "papercraft-diorama-director",
   ]) {
     assert.equal(requiredCastCount(slug), 0);
     assert.equal(briefSkillError({ skillSlug: slug, characterIds: [] }), undefined);
     assert.equal(briefSkillError({ skillSlug: slug, characterIds: ["a"] }), undefined);
   }
+  assert.equal(isPapercraftDioramaSkill("papercraft-diorama-director"), true);
+  assert.equal(isPapercraftDioramaSkill("paper-cutout-explainer-video-director"), false);
+  assert.equal(lockedStyleIdForSkill("papercraft-diorama-director"), "papercraft-diorama");
+  assert.equal(lockedStyleIdForSkill("paper-cutout-explainer-video-director"), undefined);
+  assert.match(papercraftDioramaDirectorBlock(), /300gsm/i);
+  assert.match(papercraftDioramaDirectorBlock(), /ZERO human characters/i);
   assert.match(briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: [] }) || "", /2/);
   assert.equal(
     briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: ["a", "b"] }),

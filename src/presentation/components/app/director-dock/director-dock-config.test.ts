@@ -67,6 +67,16 @@ test("computeSkillSwitchState updates styleId and filters/fills characterIds aga
   });
   assert.equal(next.styleId, "realistic");
   assert.deepEqual(next.characterIds, ["real-1"]);
+
+  const zeroCast = computeSkillSwitchState({
+    currentStyleId: "realistic",
+    preferredStyleId: "papercraft-diorama",
+    nextCastNeed: 0,
+    characters,
+    currentCharacterIds: ["real-1"],
+  });
+  assert.equal(zeroCast.styleId, "papercraft-diorama");
+  assert.deepEqual(zeroCast.characterIds, []);
 });
 
 test("resolveModeSwitchSkillSlug picks talking-head-director for talking-head and paper-cutout/explainer for explainer", () => {

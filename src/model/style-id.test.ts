@@ -54,12 +54,14 @@ test("STYLE_IDS lists every allowed style id", () => {
     "data-ring",
     "wireframe-breakdown",
     "japanese-anime",
+    "papercraft-diorama",
   ]);
 });
 
 test("isStyleId accepts only allowed ids", () => {
   assert.equal(isStyleId("pixel"), true);
   assert.equal(isStyleId("chalkboard-color"), true);
+  assert.equal(isStyleId("papercraft-diorama"), true);
   assert.equal(isStyleId("nope"), false);
   assert.equal(isStyleId(undefined), false);
 });

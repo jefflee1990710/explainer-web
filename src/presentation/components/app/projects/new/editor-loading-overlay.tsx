@@ -6,8 +6,12 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 // Covers the editor while the video document or timeline media is still loading.
 export function EditorLoadingOverlay({
   placement = "fixed",
+  label,
+  detail,
 }: {
   placement?: "fixed" | "absolute";
+  label?: string;
+  detail?: string;
 }) {
   const { t } = useI18n();
   const frame =
@@ -16,8 +20,12 @@ export function EditorLoadingOverlay({
       : "absolute inset-0 z-40";
 
   return (
-    <div className={`${frame} grid place-items-center bg-[var(--studio-canvas)]`}>
-      <BrandLoadingIndicator label={t("video.workspace.loading")} size="lg" />
+    <div className={`${frame} grid place-items-center bg-[var(--studio-canvas)] px-6`}>
+      <BrandLoadingIndicator
+        label={label ?? t("video.workspace.loading")}
+        detail={detail}
+        size="lg"
+      />
     </div>
   );
 }

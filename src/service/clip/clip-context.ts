@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import { isStyleId } from "@/model/style-id";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import type {
   ClipDirectorOverrides,
@@ -8,6 +9,10 @@ import type {
 } from "@/model/project";
 
 const HEX_OBJECT_ID = /^[0-9a-fA-F]{24}$/;
+
+function isValidClipStyleId(id: string | undefined): id is string {
+  return Boolean(id && (isStyleId(id) || HEX_OBJECT_ID.test(id)));
+}
 
 function isObjectIdInstance(value: unknown): value is ObjectId {
   return (
@@ -149,7 +154,7 @@ export function resolveClipProject<T extends ClipContextSource>(
     ...base,
     ...(resolvedSkillId !== undefined ? { skillId: resolvedSkillId } : {}),
     ...(row?.skillSlug !== undefined ? { skillSlug: row.skillSlug } : {}),
-    ...(row?.styleId !== undefined ? { styleId: row.styleId } : {}),
+    ...(isValidClipStyleId(row?.styleId) ? { styleId: row.styleId } : {}),
     ...(hasCastOverride ? { cast: row!.cast } : {}),
     ...(Array.isArray(row?.products) ? { products: row.products } : {}),
     ...(row?.language !== undefined ? { language: row.language } : {}),

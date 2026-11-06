@@ -76,6 +76,7 @@ import {
   directorPresetBackgrounds,
   isBookendSkill,
   isValidDirectorBackgroundId,
+  lockedStyleIdForSkill,
   requiredCastCount,
   skillAllowsBackgroundUpload,
   skillBansNarration,
@@ -190,9 +191,13 @@ import {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function preferredStyleIdForSkill(
-  _slug: string,
+  slug: string,
   availableStyles: PublicStyle[],
 ): string | undefined {
+  const locked = lockedStyleIdForSkill(slug);
+  if (locked && availableStyles.some((s) => s.id === locked)) {
+    return locked;
+  }
   return pickerDefaultStyleId(availableStyles);
 }
 

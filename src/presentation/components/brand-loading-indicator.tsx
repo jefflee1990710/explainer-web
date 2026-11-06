@@ -15,11 +15,14 @@ function sizeClass(size: BrandLoadSize) {
  */
 export function BrandLoadingIndicator({
 	label,
+	detail,
 	size = "md",
 	className = "",
 }: {
 	/** Optional caption under the mark; omit for icon-only. */
 	label?: string;
+	/** Optional secondary description under the label. */
+	detail?: string;
 	size?: BrandLoadSize;
 	className?: string;
 }) {
@@ -51,7 +54,22 @@ export function BrandLoadingIndicator({
 				</span>
 			</div>
 			{label ? (
-				<p className="text-sm text-[var(--studio-muted,var(--muted))]">{label}</p>
+				<div className="flex max-w-md flex-col items-center gap-1.5 text-center">
+					<p
+						className={
+							detail
+								? "text-base font-semibold text-foreground"
+								: "text-sm text-[var(--studio-muted,var(--muted))]"
+						}
+					>
+						{label}
+					</p>
+					{detail ? (
+						<p className="text-sm leading-relaxed text-[var(--studio-muted,var(--muted))]">
+							{detail}
+						</p>
+					) : null}
+				</div>
 			) : null}
 		</div>
 	);

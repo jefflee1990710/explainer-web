@@ -210,6 +210,19 @@ export function lockDialogueSpeech(
     return body;
   }
   if (!isSilentOutfitSkill(skillSlug)) {
+    const names = [
+      ...(castNames ?? []),
+      ...(voiceOptions?.speakers?.map((s) => s.name) ?? []),
+    ]
+      .map((n) => n.trim())
+      .filter(Boolean);
+    for (const name of new Set(names)) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      body = body.replace(
+        new RegExp(`\\b${escaped}:\\s*((?:young adult|adult|older)\\s+(?:male|female)\\b)`, "gi"),
+        "Off-screen narrator: $1",
+      );
+    }
     const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
     if (lock) {
       // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.

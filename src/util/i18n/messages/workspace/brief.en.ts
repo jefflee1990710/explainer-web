@@ -302,6 +302,7 @@ export const briefEn = {
     "outfit-change-director": "Outfit change",
     "editorial-interview-director": "Editorial profile interview",
     "street-lookbook-director": "Street fashion lookbook",
+    "papercraft-diorama-director": "3D papercraft diorama explainer",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
@@ -327,6 +328,8 @@ export const briefEn = {
       "Magazine-style profile interview (Esquire / GQ style): alternates a seated 15° off-camera interview with lifestyle & product-in-hand B-roll.",
     "street-lookbook-director":
       "Editorial street-fashion clothing demo (Paris Fashion Week lookbook style): showcases uploaded outfits across architectural street spots in full-body, medium detail, and over-the-shoulder cuts.",
+    "papercraft-diorama-director":
+      "Tactile 3D cardstock miniature diorama explainer (Founder Notes style, locked to 3D Papercraft Diorama with zero human characters): unpacks business & startup concepts through folded cardstock terminals, envelopes, isometric shops, and balance scales.",
   },
   skillGuide: {
     labels: {
@@ -449,6 +452,12 @@ export const briefEn = {
         structure: "Multi-angle urban montage: Full-body silhouette ↔ Medium collar/fabric detail ↔ 3/4 back-over-shoulder",
         picture: "Architectural street spots (stone steps, canal bridge, lamppost). Face stays on blueprint; outfits match clothing reference photos 100%",
         frames: "Each clip stages a distinct street spot and editorial pose showcasing the assigned clothing reference",
+      },
+      "papercraft-diorama-director": {
+        voice: "Narrator reads the VO across two beats per clip; zero on-screen characters",
+        structure: "Unit example → capital/mechanism → multi-shop scale → balance-scale payoff",
+        picture: "Locked to 3D Papercraft Diorama (300gsm textured cardstock, cobalt/mustard/terracotta/teal/cream)",
+        frames: "Alternates interior diorama, 90° flat-lay, isometric street, and studio close-up",
       },
     },
   },

@@ -93,6 +93,7 @@ export const phaseBClipSchema = z.object({
 export const DIRECTOR_SLUGS = [
   "cartoon-explainer-video-director",
   "paper-cutout-explainer-video-director",
+  "papercraft-diorama-director",
   "story-short-director",
   "product-demo-director",
   "dialogue-qa-director",
@@ -178,6 +179,8 @@ export interface IDirectorBehavior {
   attachesTextStyleReference: boolean;
   /** Maximum number of visual styles selectable for a single video (1 for single-style directors, 4 for multi-style switching). */
   maxStyleCount: number;
+  /** When set, locks this director to a single fixed visual style id (e.g. "papercraft-diorama"). */
+  lockedStyleId?: string;
   /** Bookend role when the director is an opening or ending sting. */
   bookendRole?: "opening" | "ending";
   /** Brief form capabilities: spoken script input, room background upload, opening photo upload, brand logo upload, hidden in picker. */

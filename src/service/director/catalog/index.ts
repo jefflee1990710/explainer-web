@@ -6,6 +6,7 @@ import {
 } from "@/model/director";
 import { cartoonExplainerVideoDirector } from "@/service/director/catalog/cartoon-explainer-video-director";
 import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
+import { papercraftDioramaDirector } from "@/service/director/catalog/papercraft-diorama-director";
 import { storyShortDirector } from "@/service/director/catalog/story-short-director";
 import { productDemoDirector } from "@/service/director/catalog/product-demo-director";
 import { dialogueQaDirector } from "@/service/director/catalog/dialogue-qa-director";
@@ -29,6 +30,7 @@ import { streetLookbookDirector } from "@/service/director/catalog/street-lookbo
 export const DIRECTORS: readonly IDirector[] = [
   cartoonExplainerVideoDirector,
   paperCutoutExplainerVideoDirector,
+  papercraftDioramaDirector,
   storyShortDirector,
   productDemoDirector,
   dialogueQaDirector,

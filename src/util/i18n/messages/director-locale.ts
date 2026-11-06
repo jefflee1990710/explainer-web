@@ -35,6 +35,7 @@ const slugs = [
   "style-switch-director",
   "editorial-interview-director",
   "street-lookbook-director",
+  "papercraft-diorama-director",
 ] as const;
 
 function names(values: string[]): VideoNames {
@@ -89,6 +90,7 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "跨风格角色快切",
       "杂志人物专访",
       "街拍时装 Lookbook（衣服 Demo）",
+      "3D 立体卡纸微缩讲解",
     ]),
     blurbs: blurbs([
       "把概念做成白板涂鸦讲解。先确认分镜，再导出 clips。",
@@ -112,6 +114,7 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "同一个角色最多跨越 4 种视觉风格，在不同画风间硬切同时锁定同一张脸与穿搭。",
       "模拟 Esquire / GQ 杂志人物专访：微侧 15° 对画外受访 A-Roll 穿插生活态度与产品工艺体验 B-Roll。",
       "模拟时装周街拍 Lookbook（衣服 Demo）：角色换上你上传的衣服参考图，在城市街头建筑场景交替展示全身轮廓、半身领口布料细节与回眸剪裁。",
+      "3D 立体厚卡纸微缩模型讲解（固定锁定 3D 立体卡纸微缩风格、无人物出场）：用卡纸收银机、信封金币、等距连排店铺与卡纸天秤拆解商业与概念逻辑。",
     ]),
     directors: ui({
       title: "导演",

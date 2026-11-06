@@ -38,6 +38,7 @@ export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
 export const EDITORIAL_INTERVIEW_SKILL_SLUG = "editorial-interview-director";
 export const WORKFLOW_PROMO_SKILL_SLUG = "workflow-promo-director";
 export const STYLE_SWITCH_SKILL_SLUG = "style-switch-director";
+export const PAPERCRAFT_DIORAMA_SKILL_SLUG = "papercraft-diorama-director";
 export {
   FOLLOW_SHOT_SKILL_SLUG,
   OUTFIT_CHANGE_SKILL_SLUG,
@@ -227,6 +228,16 @@ export function isWorkflowPromoSkill(skillSlug?: string) {
 
 export function isStyleSwitchSkill(skillSlug?: string) {
   return skillSlug === STYLE_SWITCH_SKILL_SLUG;
+}
+
+export function isPapercraftDioramaSkill(skillSlug?: string) {
+  return skillSlug === PAPERCRAFT_DIORAMA_SKILL_SLUG;
+}
+
+export function lockedStyleIdForSkill(skillSlug?: string): string | undefined {
+  if (!skillSlug) return undefined;
+  const director = getDirectorBySlug(skillSlug);
+  return director?.behavior.lockedStyleId;
 }
 
 export function maxStyleCountForSkill(skillSlug?: string) {
@@ -599,12 +610,24 @@ export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
 export const EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE =
   "Arrow & Sticker Hygiene (STRICT): (1) MAX ONE ARROW PER CLIP — use at most 1 directional arrow in the entire clip (across both `startScene` and `motionCamera`), never stack 2–4 arrows in one frame or inside a phone/card, and if `startScene` already has an arrow, never spawn another arrow in `motionCamera`; (2) NO BLANK SLASH STRIPS OR TAPE STICKERS — never use a grey paper slash strip, blank masking tape, or unlabelled cross-out bar sliding over a header or card to cross out an old concept (to replace an old state, flip the card in place or slide the old card cleanly off-frame).";
 
+export const EXPLAINER_VISUAL_TRANSFORMATION_RULE =
+  "Visual Transformation Spine (Cause-and-Effect Clarity): every clip MUST visually demonstrate HOW and WHY the idea works through one clear state transformation (`State A: ❌ misconception / bottleneck / pain` → `physical mechanism / action` → `State B: ✅ truth / unlocked flow / solution`) so a muted viewer understands the logic at a glance — never stage a static collection of disconnected noun labels.";
+
+export const EXPLAINER_CONCRETE_METAPHOR_RULE =
+  "Concrete Visual Metaphors Over Plain Text Cards: NEVER represent a concept as a plain rectangular text card or PowerPoint box with words written on it. Every teaching element MUST be a recognizable everyday physical object or visual metaphor that visibly shows its state (e.g. a clogged funnel vs open filter, a 5% red battery vs 100% green battery, a heavy boulder blocking a path vs a 3-step staircase, a leaking bucket vs a sealed valve), paired with a short, plain-spoken 2–4 word / 2–6 character colloquial label in 「」 in the configured scene-text language (never academic jargon that requires mental translation).";
+
+export const EXPLAINER_FOCAL_CONTRAST_RULE =
+  "1-2-3 Visual Reading Path & Single Hero Pop: stage a clear 1 → 2 → 3 eye path (left-to-right or top-to-bottom). Keep 70–80% of supporting context nodes in calm neutral/monochrome/kraft tones, and highlight ONLY the single active takeaway node of that beat in 1 vibrant high-contrast accent colour at 1.5x–2x scale, with the character's gaze/hand or the clip's single directional arrow pointing directly at that active takeaway node.";
+
 // Concept explainers teach with several on-screen pieces, named in the still and in the camera move.
 function teachingElementsRule(pieceNoun: string, graphNoun: string) {
   return [
     DIAGRAM_ARCHETYPES_RULE,
     DIAGRAM_LAYOUT_HIERARCHY_RULE,
     COMPLETE_START_DIAGRAM_RULE,
+    EXPLAINER_VISUAL_TRANSFORMATION_RULE,
+    EXPLAINER_CONCRETE_METAPHOR_RULE,
+    EXPLAINER_FOCAL_CONTRAST_RULE,
     EXPLAINER_FIRST_3S_HOOK_TITLE_RULE,
     EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE,
     `Teaching elements: every clip explains its spoken line with at least four distinct ${pieceNoun}s on the ${graphNoun}, besides the character.`,
@@ -1008,4 +1031,14 @@ export function styleSwitchDirectorBlock(styles: Array<{ id: string; name: strin
     "Do not write contradicting style rendering rules inside startScene or endScene — let each clip's assigned styleId govern the rendering medium while your scene description defines the character pose, expression, environment, lighting, and camera.",
   ].join(" ");
 }
+
+export function papercraftDioramaDirectorBlock() {
+  return [
+    "This is a 3D PAPERCRAFT DIORAMA EXPLAINER (Founder Notes style), permanently locked to the `papercraft-diorama` visual style (300gsm heavy matte textured construction paper / cardstock, scored and folded geometric 3D miniature sets and props, visible paper fiber grain, crisp folded bevel edges, soft tabletop studio lighting with shallow macro depth-of-field, and a curated Wes Anderson craft palette of deep cobalt/navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory).",
+    "Strictly ZERO human characters (`characterLock` MUST be \"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets.\"). Never draw people, faces, or hands in any clip. Strictly NO 2D white scissor borders.",
+    "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged cream paper receipt and a yellow cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on solid mustard-yellow or teal cardstock, e.g. a folded navy cardstock envelope holding embossed gold paper coins beside a folded cream cardstock certificate with a blue-and-yellow pie chart and a scalloped red paper wax seal), (3) `isometric-street` (3/4 isometric miniature street of multiple side-by-side navy cardstock shopfronts with terracotta scalloped awnings linked by one continuous looping cream paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on a deep cobalt cardstock stage, e.g. a 3D folded gold cardstock balance scale weighing a stack of receipt tickets against a stack of gold paper coins).",
+    "Each clip has two spoken beats (`startVo` + `endVo`) spoken by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, continuous receipt ribbon looping across shops, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",
+  ].join(" ");
+}
+
 

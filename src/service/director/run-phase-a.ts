@@ -43,9 +43,11 @@ import {
   isEditorialInterviewSkill,
   isWorkflowPromoSkill,
   isStyleSwitchSkill,
+  isPapercraftDioramaSkill,
   listicleDirectorBlock,
   outfitChangeDirectorBlock,
   outfitReelDirectorBlock,
+  papercraftDioramaDirectorBlock,
   streetLookbookDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
@@ -414,6 +416,7 @@ ${
     isStreetLookbookSkill(input.skill.slug) ? streetLookbookDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
     isWorkflowPromoSkill(input.skill.slug) ? workflowPromoDirectorBlock() : "",
+    isPapercraftDioramaSkill(input.skill.slug) ? papercraftDioramaDirectorBlock() : "",
     isStyleSwitchSkill(input.skill.slug)
       ? styleSwitchDirectorBlock(
           (input.styles && input.styles.length > 0 ? input.styles : [input.style]).map((s) => ({

@@ -37,6 +37,7 @@ export const STYLE_IDS = [
   "data-ring",
   "wireframe-breakdown",
   "japanese-anime",
+  "papercraft-diorama",
 ] as const;
 
 export const styleIdSchema = z.enum(STYLE_IDS);

@@ -294,7 +294,7 @@ export function computeSkillSwitchState<
   });
 
   if (nextCastNeed <= 0) {
-    return { styleId: targetStyleId, characterIds: kept.slice(0, 1) };
+    return { styleId: targetStyleId, characterIds: [] };
   }
   if (kept.length >= nextCastNeed) {
     return { styleId: targetStyleId, characterIds: kept.slice(0, nextCastNeed) };

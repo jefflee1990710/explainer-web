@@ -7,7 +7,7 @@ describe("listHardcodedDirectorCatalog", () => {
   it("includes every hardcoded director prompt and setting", () => {
     const catalog = listHardcodedDirectorCatalog();
     assert.equal(catalog.directors.length, DIRECTORS.length);
-    assert.equal(catalog.storyboardModel, "gemini-4-argon");
+    assert.equal(catalog.storyboardModel, "gemini-3.8-flash");
     for (const director of catalog.directors) {
       assert.ok(director.systemPrompt.length > 40, director.slug);
       assert.ok(director.phaseAPrompt.includes(director.systemPrompt), director.slug);

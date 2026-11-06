@@ -88,6 +88,12 @@ function preferredStyleIdForSkill(
   availableStyles: PublicStyle[],
 ): string | undefined {
   if (
+    slug === "papercraft-diorama-director" &&
+    availableStyles.some((s) => s.id === "papercraft-diorama")
+  ) {
+    return "papercraft-diorama";
+  }
+  if (
     slug === "paper-cutout-explainer-video-director" &&
     availableStyles.some((s) => s.id === "paper-cutout")
   ) {

@@ -54,6 +54,10 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.maxStyleCount, 1);
   assert.equal(DIRECTORS_BY_SLUG["style-switch-director"].behavior.maxStyleCount, 4);
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.keyframeMode, "start-only");
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.dualBeat, true);
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.requiredCastCount, 0);
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.lockedStyleId, "papercraft-diorama");
 });
 
 test("listSelectableSkills excludes surprise-interview-director and full-body-talking-head-director while keeping talking-head-director", async () => {

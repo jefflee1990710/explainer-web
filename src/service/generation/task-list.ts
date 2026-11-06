@@ -130,6 +130,8 @@ const REEL_PROJECTION = {
   clipAppends: 1,
 } as const;
 
+const PHASE_A_ACTIVE_WINDOW_MS = 15 * 60 * 1000;
+
 // Phase A (storyboard planning) lives on the video document before any generationJobs exist.
 export function phaseATask(
   input: {
@@ -144,7 +146,9 @@ export function phaseATask(
   now = Date.now(),
 ): PublicTask | null {
   if (input.status !== "phase_a") return null;
-  if (!isCurrentTask("generating", input.updatedAt, now)) return null;
+  const startedAt = input.updatedAt || input.createdAt;
+  const elapsedMs = now - new Date(startedAt).getTime();
+  if (!Number.isFinite(elapsedMs) || elapsedMs > PHASE_A_ACTIVE_WINDOW_MS) return null;
   return {
     id: `phase-a:${input.videoId}`,
     kind: "phaseA",
@@ -156,8 +160,8 @@ export function phaseATask(
     isVideo: false,
     href: folderVideoPath(input.projectId, input.videoId),
     attempts: 0,
-    createdAt: input.createdAt,
-    updatedAt: input.updatedAt,
+    createdAt: startedAt,
+    updatedAt: startedAt,
   };
 }
 

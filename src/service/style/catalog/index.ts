@@ -36,6 +36,7 @@ import { proofPosterStyle } from "@/service/style/catalog/proof-poster";
 import { dataRingStyle } from "@/service/style/catalog/data-ring";
 import { wireframeBreakdownStyle } from "@/service/style/catalog/wireframe-breakdown";
 import { japaneseAnimeStyle } from "@/service/style/catalog/japanese-anime";
+import { papercraftDioramaStyle } from "@/service/style/catalog/papercraft-diorama";
 
 export const STYLES: readonly IStyle[] = [
   doodleStyle,
@@ -74,6 +75,7 @@ export const STYLES: readonly IStyle[] = [
   dataRingStyle,
   wireframeBreakdownStyle,
   japaneseAnimeStyle,
+  papercraftDioramaStyle,
 ];
 
 export const STYLES_BY_ID: Record<StyleId, IStyle> = Object.fromEntries(

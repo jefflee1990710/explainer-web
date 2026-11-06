@@ -46,7 +46,9 @@ import {
   briefSkillError,
   defaultDirectorBackgroundId,
   isBookendSkill,
+  isPapercraftDioramaSkill,
   isValidDirectorBackgroundId,
+  lockedStyleIdForSkill,
   maxStyleCountForSkill,
   skillAllowsBackgroundUpload,
   skillBansNarration,
@@ -177,16 +179,19 @@ async function readVideoBrief(
 ): Promise<{ ok: true; brief: BriefFields } | { ok: false; error: string }> {
   const skillSlug = String(formData.get("skillSlug") || "");
   const rawStyleId = String(formData.get("styleId") || "");
+  const lockedStyle = lockedStyleIdForSkill(ruleSlug);
   const maxStyles = maxStyleCountForSkill(ruleSlug);
-  const rawStyleIds = Array.from(
-    new Set(
-      [
-        ...formData.getAll("styleIds").map(String),
-        ...(rawStyleId ? [rawStyleId] : []),
-      ].filter(Boolean),
-    ),
-  ).slice(0, maxStyles);
-  const styleId = rawStyleIds[0] || rawStyleId;
+  const rawStyleIds = lockedStyle
+    ? [lockedStyle]
+    : Array.from(
+        new Set(
+          [
+            ...formData.getAll("styleIds").map(String),
+            ...(rawStyleId ? [rawStyleId] : []),
+          ].filter(Boolean),
+        ),
+      ).slice(0, maxStyles);
+  const styleId = lockedStyle || rawStyleIds[0] || rawStyleId;
   const source = String(formData.get("source") || "").trim();
   const spokenScript = String(formData.get("spokenScript") || "").trim();
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
@@ -201,14 +206,16 @@ async function readVideoBrief(
   const speechPace = String(formData.get("speechPace") || "medium");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
   const textStyleRaw = String(formData.get("textStyleId") || formData.get("subtitleLook") || "");
-  const characterIds = Array.from(
-    new Set(
-      formData
-        .getAll("characterIds")
-        .map(String)
-        .filter((id) => ObjectId.isValid(id)),
-    ),
-  );
+  const characterIds = isPapercraftDioramaSkill(ruleSlug)
+    ? []
+    : Array.from(
+        new Set(
+          formData
+            .getAll("characterIds")
+            .map(String)
+            .filter((id) => ObjectId.isValid(id)),
+        ),
+      );
   if (characterIds.length > CAST_MAX) {
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
   }

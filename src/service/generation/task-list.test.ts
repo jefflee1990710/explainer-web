@@ -182,4 +182,34 @@ test("phaseATask surfaces an active phase_a video while the AI director is writi
     now,
   );
   assert.equal(inProd, null);
+
+  // When a stale phase_a video is retried days later, createdAt on the task reflects updatedAt (not 182h ago)
+  const retriedAt = new Date(now - 15_000).toISOString();
+  const retried = phaseATask(
+    {
+      videoId: "6ae371a6a80430baa9a46611",
+      projectId: "6ab94350d482010afc6f50c8",
+      title: "未命名影片",
+      status: "phase_a",
+      createdAt: new Date(now - 182 * 3600_000).toISOString(),
+      updatedAt: retriedAt,
+    },
+    now,
+  );
+  assert.ok(retried);
+  assert.equal(retried.createdAt, retriedAt);
+
+  // An abandoned phase_a video whose updatedAt is older than 15 minutes is not surfaced as an active task
+  const abandoned = phaseATask(
+    {
+      videoId: "6ae371a6a80430baa9a46611",
+      projectId: "6ab94350d482010afc6f50c8",
+      title: "未命名影片",
+      status: "phase_a",
+      createdAt: new Date(now - 182 * 3600_000).toISOString(),
+      updatedAt: new Date(now - 20 * 60_000).toISOString(),
+    },
+    now,
+  );
+  assert.equal(abandoned, null);
 });

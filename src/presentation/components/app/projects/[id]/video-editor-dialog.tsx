@@ -66,7 +66,7 @@ export function VideoEditorDialog({
 
   return (
     // Phone: cover the icon rail. md+: sit naturally inside the flex main column beside StudioRail so expanding the rail never covers the page.
-    <div className="studio-app fixed inset-0 z-[60] flex flex-col md:relative md:inset-auto md:z-10 md:h-full md:min-h-0 md:w-full md:flex-1">
+    <div className="studio-app fixed inset-0 z-[60] flex flex-col md:relative md:inset-auto md:z-auto md:h-full md:min-h-0 md:w-full md:flex-1">
       <header className="relative z-30 shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
         <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">

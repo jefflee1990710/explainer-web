@@ -13,18 +13,24 @@ test("use-case helpers filter fixed system slugs and build create URLs", () => {
   assert.equal(parseUseCaseParam("nope"), undefined);
 
   assert.equal(videoMatchesUseCase("paper-cutout-explainer-video-director", "explainer"), true);
+  assert.equal(videoMatchesUseCase("papercraft-diorama-director", "explainer"), true);
   assert.equal(videoMatchesUseCase("talking-head-director", "explainer"), false);
   assert.equal(videoMatchesUseCase("talking-head-director", "talking-head"), true);
 
   const skills = [
     { slug: "paper-cutout-explainer-video-director", isCustom: false },
+    { slug: "papercraft-diorama-director", isCustom: false },
     { slug: "cartoon-explainer-video-director", isCustom: false },
     { slug: "talking-head-director", isCustom: false },
     { slug: "my-custom", isCustom: true },
   ];
   assert.deepEqual(
     filterSkillsForUseCase(skills, "explainer").map((s) => s.slug),
-    ["paper-cutout-explainer-video-director", "cartoon-explainer-video-director"],
+    [
+      "paper-cutout-explainer-video-director",
+      "papercraft-diorama-director",
+      "cartoon-explainer-video-director",
+    ],
   );
   assert.deepEqual(
     filterSkillsForUseCase(skills, "talking-head").map((s) => s.slug),

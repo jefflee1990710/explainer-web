@@ -38,6 +38,7 @@ export const stylesEn = {
   "data-ring": "Data ring",
   "wireframe-breakdown": "Wireframe breakdown",
   "japanese-anime": "Japanese anime",
+  "papercraft-diorama": "3D papercraft diorama",
   title: "Style",
   subtitle: "Styles decide how your video looks. Start from a system style and make it your own.",
   systemSection: "System styles",

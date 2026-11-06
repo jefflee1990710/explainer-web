@@ -73,6 +73,7 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
+  lockedStyleIdForSkill,
 } from "@/service/director/skill-rules";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 
@@ -427,20 +428,22 @@ export function DirectorDockBrief({
               tourId="visual-style-card"
               thumbUrl={activeStyle?.previewUrl}
               label={styleName}
-              disabled={briefBusy}
+              disabled={briefBusy || Boolean(lockedStyleIdForSkill(ruleSlug))}
               onClick={() => setStyleDialogOpen(true)}
             />
           ) : null}
 
-          {/* Left Icon 2: Cast Avatar Slots */}
-          <DirectorDockCastGroup
-            tourId="character-card"
-            slots={castSlots}
-            disabled={briefBusy}
-            badgeLabel={t("brief.cast.title")}
-            onOpenPicker={() => setCharDialogOpen(true)}
-            onManageActive={() => setCharDialogOpen(true)}
-          />
+          {/* Left Icon 2: Cast Avatar Slots (hidden for zero-character directors like papercraft-diorama-director) */}
+          {!lockedStyleIdForSkill(ruleSlug) || castNeed > 0 ? (
+            <DirectorDockCastGroup
+              tourId="character-card"
+              slots={castSlots}
+              disabled={briefBusy}
+              badgeLabel={t("brief.cast.title")}
+              onOpenPicker={() => setCharDialogOpen(true)}
+              onManageActive={() => setCharDialogOpen(true)}
+            />
+          ) : null}
 
           <DirectorDockDivider />
 
