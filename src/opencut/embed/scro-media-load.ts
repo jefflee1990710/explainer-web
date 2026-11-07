@@ -4,6 +4,7 @@ import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import { detectSpeechTrimBounds } from "@/opencut/media/silence-trim";
 import type { MediaAsset } from "@/opencut/media/types";
 import type { ProcessedMediaAsset } from "@/opencut/media/processing";
+import { shouldUseClipVideoMedia } from "@/service/scro-video/timeline-seed";
 
 export const DEFAULT_MEDIA_FETCH_TIMEOUT_MS = 20_000;
 export const DEFAULT_VIDEO_PROBE_TIMEOUT_MS = 4_500;
@@ -186,7 +187,7 @@ export function findReusableClipAsset({
 	assets: MediaAsset[];
 	clipSources: Record<string, string>;
 }): MediaAsset | null {
-	const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
+	const useVideo = shouldUseClipVideoMedia(clip);
 	const wantedUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
 	const wantedType = useVideo ? "video" : "image";
 

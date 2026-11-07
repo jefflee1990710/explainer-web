@@ -30,7 +30,10 @@ import {
 } from "@/opencut/subtitles/artistic-presets";
 import { insertCaptionChunksAsTextTrack, isSubtitleTrack } from "@/opencut/subtitles/insert";
 import type { SubtitleCue } from "@/opencut/subtitles/types";
-import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
+import {
+	shouldUseClipVideoMedia,
+	staleTimelineElementIds,
+} from "@/service/scro-video/timeline-seed";
 import {
 	createStreamingVideoAsset,
 	fetchMediaBlobWithTimeout,
@@ -793,7 +796,7 @@ export function ScroVideoSync() {
 				const clipSources = readClipSources(data.videoId);
 				const assets = editor.media.getAssets();
 				if (clip.videoUrl || clip.posterUrl) {
-					const wantedType = clip.videoUrl && !clip.staleVideo ? "video" : "image";
+					const wantedType = shouldUseClipVideoMedia(clip) ? "video" : "image";
 					const reusable = findReusableClipAsset({
 						clip,
 						assets,
@@ -1094,7 +1097,7 @@ export function ScroVideoSync() {
 			videoId: string;
 			clip: ScroVideoSeedClip;
 		}): Promise<MediaAsset | null> {
-			const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
+			const useVideo = shouldUseClipVideoMedia(clip);
 			const sourceUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
 			const flightKey = `${videoId}:${clip.clipNumber}:${sourceUrl ?? "placeholder"}`;
 			const activeFlight = inFlightMedia.current.get(flightKey);

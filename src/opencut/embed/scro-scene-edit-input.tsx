@@ -39,7 +39,11 @@ export function ScroSceneEditInput({
 			if (data.requestId !== pendingId.current) return;
 			pendingId.current = "";
 			setSending(false);
-			setNote(data.ok ? oc.inspector.updated : data.error || oc.inspector.updateFailed);
+			setNote(
+				data.ok
+					? data.summary?.trim() || oc.inspector.updated
+					: data.error || oc.inspector.updateFailed,
+			);
 		});
 	}, [oc.inspector.updateFailed, oc.inspector.updated]);
 

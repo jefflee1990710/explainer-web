@@ -29,7 +29,7 @@ import {
 } from "@/service/clip/scene-chat";
 
 type SceneChatResult =
-  | { ok: true; project: PublicVideo }
+  | { ok: true; project: PublicVideo; summary?: string }
   | { ok: false; error: string };
 
 const sceneChatSchema = z.object({
@@ -177,7 +177,7 @@ export async function sendClipSceneChatAction(input: {
     const updated = await projects.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
     revalidateVideo(videoId);
-    return { ok: true, project: toPublicVideo(updated) };
+    return { ok: true, project: toPublicVideo(updated), summary: assistantMsg.content };
   } catch (error) {
     return fail(error, "AI 修改失敗，請再試一次");
   }

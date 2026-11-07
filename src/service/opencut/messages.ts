@@ -159,6 +159,7 @@ export type ScroSceneEditResultMessage = {
   clipNumber: number;
   requestId: string;
   ok: boolean;
+  summary?: string;
   error?: string;
 };
 

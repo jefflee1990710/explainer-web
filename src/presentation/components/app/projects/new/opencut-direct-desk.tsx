@@ -330,17 +330,29 @@ export function OpenCutDirectDesk({
             videoId: project.id,
             clipNumber,
             message,
-          }).then((result) => {
-            if (result.ok) productionRef.current?.onProject(result.project);
-            channel.postToEditor({
-              type: "scro-scene-edit-result",
-              videoId: project.id,
-              clipNumber,
-              requestId,
-              ok: result.ok,
-              error: result.ok ? undefined : result.error,
+          })
+            .then((result) => {
+              if (result.ok) productionRef.current?.onProject(result.project);
+              channel.postToEditor({
+                type: "scro-scene-edit-result",
+                videoId: project.id,
+                clipNumber,
+                requestId,
+                ok: result.ok,
+                summary: result.ok ? result.summary : undefined,
+                error: result.ok ? undefined : result.error,
+              });
+            })
+            .catch((error) => {
+              channel.postToEditor({
+                type: "scro-scene-edit-result",
+                videoId: project.id,
+                clipNumber,
+                requestId,
+                ok: false,
+                error: error instanceof Error ? error.message : undefined,
+              });
             });
-          });
           return;
         }
         case "scro-open-ai": {

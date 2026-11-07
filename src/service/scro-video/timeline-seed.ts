@@ -159,7 +159,10 @@ export function diffScroSeedClips({
       before.durationSeconds !== clip.durationSeconds ||
       before.error !== clip.error ||
       before.englishVo !== clip.englishVo ||
+      before.startVo !== clip.startVo ||
+      before.endVo !== clip.endVo ||
       before.explainerScene !== clip.explainerScene ||
+      before.motionCamera !== clip.motionCamera ||
       before.staleFrames !== clip.staleFrames ||
       before.staleVideo !== clip.staleVideo ||
       before.retryVideo !== clip.retryVideo ||
@@ -170,6 +173,17 @@ export function diffScroSeedClips({
     }
   }
   return changed;
+}
+
+/**
+ * True when the timeline should keep/use the clip's video file.
+ * When only storyboard text was edited (`staleFrames && staleVideo`), no new start still exists yet,
+ * so keep the finished video mounted on the timeline instead of deleting the video element.
+ */
+export function shouldUseClipVideoMedia(
+  clip: Pick<ScroVideoSeedClip, "videoUrl" | "staleVideo" | "staleFrames">,
+): boolean {
+  return Boolean(clip.videoUrl && (!clip.staleVideo || clip.staleFrames));
 }
 
 /** Subtitles are never added by default on timeline seed; users add them manually from the Subtitles panel. */

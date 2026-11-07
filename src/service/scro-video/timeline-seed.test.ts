@@ -4,6 +4,7 @@ import {
   buildSeedClips,
   diffScroSeedClips,
   shouldAutoGenerateSubtitlesOnSeed,
+  shouldUseClipVideoMedia,
   staleTimelineElementIds,
   storyboardLayoutAction,
 } from "@/service/scro-video/timeline-seed";
@@ -199,6 +200,72 @@ describe("diffScroSeedClips", () => {
     const changed = diffScroSeedClips({ previous: seeded, next });
     assert.equal(changed.length, 1);
     assert.equal(changed[0]?.clipNumber, 1);
+  });
+
+  it("detects motionCamera, startVo, and endVo edits from AI scene chat", () => {
+    const previous = buildSeedClips({
+      ...sampleProject,
+      phaseA: {
+        clips: [
+          {
+            clipNumber: 1,
+            durationSeconds: 5,
+            explainerScene: "Runner on road",
+            motionCamera: "Static wide shot",
+            startVo: "Line A",
+            endVo: "Line B",
+          },
+        ],
+      },
+    });
+    const nextMotion = previous.map((c) => ({
+      ...c,
+      motionCamera: "Tracking dolly forward",
+    }));
+    assert.equal(diffScroSeedClips({ previous, next: nextMotion }).length, 1);
+
+    const nextVo = previous.map((c) => ({
+      ...c,
+      endVo: "Updated Line B",
+    }));
+    assert.equal(diffScroSeedClips({ previous, next: nextVo }).length, 1);
+  });
+});
+
+describe("shouldUseClipVideoMedia", () => {
+  it("keeps the finished video when only storyboard text was edited (staleFrames && staleVideo)", () => {
+    assert.equal(
+      shouldUseClipVideoMedia({
+        videoUrl: "https://cdn.example/c1.mp4",
+        staleVideo: true,
+        staleFrames: true,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldUseClipVideoMedia({
+        videoUrl: "https://cdn.example/c1.mp4",
+        staleVideo: false,
+        staleFrames: false,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldUseClipVideoMedia({
+        videoUrl: "https://cdn.example/c1.mp4",
+        staleVideo: true,
+        staleFrames: false,
+      }),
+      false,
+    );
+    assert.equal(
+      shouldUseClipVideoMedia({
+        videoUrl: undefined,
+        staleVideo: false,
+        staleFrames: false,
+      }),
+      false,
+    );
   });
 });
 
