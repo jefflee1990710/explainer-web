@@ -1,6 +1,7 @@
 import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { firstClipHookPerformanceVideoLine } from "@/service/director/hook-title";
 import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/service/director/skill-rules";
 import {
@@ -146,10 +147,10 @@ export function clipPhaseBUserPrompt(input: {
               row.clipNumber,
               surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place,
             )
-          : input.smoothMotion && input.realistic && !isDualBeatSkill(input.skillSlug)
-            ? REALISTIC_SINGLE_FRAME_MOTION_RULES
+          : input.smoothMotion && (!input.skillSlug || isDiagramExplainerSkill(input.skillSlug))
+            ? DUAL_KEYFRAME_GLIDE_RULES
             : input.smoothMotion
-              ? DUAL_KEYFRAME_GLIDE_RULES
+              ? REALISTIC_SINGLE_FRAME_MOTION_RULES
               : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     row.clipNumber === 1

@@ -346,6 +346,7 @@ export function dialogueOnlyDirectorBlock() {
 export function storyShortDirectorBlock() {
   return [
     "This is a SHORT FILM, not an explainer.",
+    "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact actions, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects (e.g., never add a paper airplane, notebook, letter, coffee cup, phone, or ruined building unless the user explicitly wrote it in the source). If the user asks for a young girl running down a hill, every clip stages ONLY that exact running action down the hillside.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
     "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak, NEVER move their mouths to talk, and NEVER lip-sync — their mouths stay closed while they act out the scene.",
     "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow and eye changes that convey the emotional beat with mouths closed—never a blank or wooden face, and never lip-sync).",

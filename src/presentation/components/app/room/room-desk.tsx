@@ -22,14 +22,6 @@ import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import { localizedStyleName } from "@/util/style-i18n";
-import { isStyleId, type StyleId } from "@/model/style-id";
-
-function styleLabel(styleId: string, styles: PublicStyle[]) {
-  const style = styles.find((item) => item.id === styleId);
-  if (style?.isCustom || !isStyleId(styleId)) return style?.name || styleId;
-  return localizedStyleName(styleId as StyleId);
-}
 
 // Fitting room for one character (/app/room/[characterId]).
 // Left: wardrobe pickers and Generate. Center: face + full-body preview. Right: presets and recent history.

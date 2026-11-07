@@ -78,14 +78,17 @@ export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
     : isPaperCutoutExplainer
       ? "Paper-cutout explainer"
       : "Whiteboard explainer";
+  const isExplainer = isWhiteboardExplainer || isPaperCutoutExplainer;
   return [
-    "You list the invented props and unique locations for one explainer video.",
+    isExplainer
+      ? "You list the invented props and unique locations for one explainer video."
+      : "You list only the explicit objects and unique locations named in the scenes.",
     isWhiteboardExplainer
       ? "objects: every distinct handheld or drawn prop the stills name (such as a marker or pointer). Because the entire video canvas IS a flat 2D whiteboard surface, NEVER list a physical Whiteboard, Board, Easel, or Chart stand as a prop."
       : isPaperCutoutExplainer
         ? "objects: every distinct handheld or pasted cutout prop the stills name (tags, arrows, product pieces, icons). Because the entire video canvas IS the craft collage board, NEVER list a Cutting Board, Cutting Mat, Craft Board, Easel, or Room as a prop."
-        : "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
-    ...(isWhiteboardExplainer || isPaperCutoutExplainer
+        : "objects: every distinct prop the stills explicitly name — tools, cups, dials, furniture, handheld items.",
+    ...(isExplainer
       ? []
       : [
           "A board, a whiteboard, and an easel are separate if the scenes name them separately. Call a writing surface Whiteboard when the scene writes on a board, chart, or easel.",

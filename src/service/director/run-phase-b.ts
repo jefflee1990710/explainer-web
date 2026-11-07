@@ -18,7 +18,7 @@ import {
   skillBansNarration,
   skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
-import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
@@ -98,10 +98,10 @@ ${
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
           ? SURPRISE_VARIETY_VIDEO_RULES
-          : steady && realistic && !isDualBeatSkill(input.skill.slug)
-            ? REALISTIC_SINGLE_FRAME_MOTION_RULES
+          : steady && isDiagramExplainerSkill(input.skill.slug)
+            ? DUAL_KEYFRAME_GLIDE_RULES
             : steady
-              ? DUAL_KEYFRAME_GLIDE_RULES
+              ? REALISTIC_SINGLE_FRAME_MOTION_RULES
               : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${phaseBDetailRules({

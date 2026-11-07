@@ -21,47 +21,21 @@ import {
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
-  bookendDirectorBlock,
   bookendLocksLength,
   isBookendSkill,
   normalizeBookendClips,
   phaseADurationHint,
-  cartoonExplainerDirectorBlock,
-  comparisonCardDirectorBlock,
-  DIALOGUE_QA_SKILL_SLUG,
-  dialogueOnlyDirectorBlock,
-  dialogueQaDirectorBlock,
   isComparisonCardSkill,
-  followShotDirectorBlock,
-  isFollowShotSkill,
   isOutfitChangeSkill,
   isOutfitReelSkill,
-  isStreetLookbookSkill,
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
-  isTalkingBrollSkill,
-  isEditorialInterviewSkill,
-  isWorkflowPromoSkill,
   isStyleSwitchSkill,
-  isPapercraftDioramaSkill,
-  listicleDirectorBlock,
-  outfitChangeDirectorBlock,
-  outfitReelDirectorBlock,
-  papercraftDioramaDirectorBlock,
-  streetLookbookDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
-  STORY_SHORT_SKILL_SLUG,
-  storyShortDirectorBlock,
-  styleSwitchDirectorBlock,
-  surpriseInterviewDirectorBlock,
-  talkingBrollDirectorBlock,
-  editorialInterviewDirectorBlock,
   verticalSafeAreaDirectorLine,
-  workflowPromoDirectorBlock,
 } from "@/service/director/skill-rules";
-import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
-import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
+import { getDirectorRuleModule } from "@/service/director/rules";
 import { sanitizeOutfitChangePhaseA } from "@/service/director/outfit-change";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
@@ -69,10 +43,6 @@ import {
   isDualBeatSkill,
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
-import {
-  explainerCanvasKind,
-  isDiagramExplainerSkill,
-} from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { withSpokenClipDurations } from "@/service/director/clip-seconds";
@@ -90,7 +60,6 @@ import {
   planTalkingHeadClips,
   TALKING_HEAD_SKILL_SLUG,
   spokenUnits,
-  talkingHeadDirectorBlock,
   talkingHeadShot,
   talkingHeadSpokenError,
   talkingHeadSourceError,
@@ -310,6 +279,11 @@ export async function runPhaseA(input: {
     styleId: input.style.id,
     baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
   });
+  const directorRules = getDirectorRuleModule(input.skill.slug);
+  const realisticFlag = isRealisticStyle({
+    id: input.style.id,
+    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+  });
 
   // content-filter throws on `.output` and stores "No output generated."
   // Talking-head clips are planned deterministically in `planTalkingHeadClips`, so keep the storyboard even if the LLM call times out or is filtered.
@@ -326,18 +300,10 @@ export async function runPhaseA(input: {
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${verticalSafeAreaDirectorLine(input.aspectRatio)}
-${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter, steadyStills })}
-${firstClipHookPerformanceDirectorRule(
-  isRealisticStyle({
-    id: input.style.id,
-    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
-  }),
-)}
-${sceneDetailDirectorBlock({
-  realistic: isRealisticStyle({
-    id: input.style.id,
-    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
-  }),
+${directorRules.phaseAKeyframeDeltaBlock({ language: input.language, hasCharacter, steadyStills })}
+${firstClipHookPerformanceDirectorRule(realisticFlag)}
+${directorRules.phaseASceneDetailBlock({
+  realistic: realisticFlag,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
 })}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
@@ -345,7 +311,9 @@ ${
   sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}, and a numbered item list must appear in item stills. Never write spoken subtitles.`
     : sceneText.enabled
-      ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): Clip 1's startScene (and explainerScene) MUST always open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s in motionCamera) of the Reel hook, ${HOOK_TITLE_PLACEMENT}; short in-scene labels, signs, or diagram elements are also allowed — never write Subtitle: or caption the spoken line on screen.`
+      ? directorRules.allowsInventedProps
+        ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): Clip 1's startScene (and explainerScene) MUST always open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s in motionCamera) of the Reel hook, ${HOOK_TITLE_PLACEMENT}; short in-scene labels, signs, or diagram elements are also allowed — never write Subtitle: or caption the spoken line on screen.`
+        : `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): Clip 1's startScene (and explainerScene) MUST always open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s in motionCamera) of the Reel hook, ${HOOK_TITLE_PLACEMENT} — never write Subtitle: or caption the spoken line on screen.`
       : sceneText.inWorldLabels
         ? `Motion is pose, props, and short in-world labels / tags popping or snapping in (including a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} in Clip 1's startScene for the first 3 seconds 0–3s, ${HOOK_TITLE_PLACEMENT}) — never a voiceover caption.`
         : "On-canvas text is OFF: motion is pose and props only — no written labels and no Clip 1 hook title."
@@ -366,69 +334,33 @@ ${
           ? `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, the room, and the garments copied from the clothing references. Do not invent a replacement hero, hair, or face, and do not copy the person in a clothing photo.`
           : clothingFromReference
             ? `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, props, and the garments the instruction copies from the reference. Do not invent a replacement hero, hair, or face, and do not copy the person in the reference photo.`
-            : `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.`,
+            : directorRules.allowsInventedProps
+              ? `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.`
+              : `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, action, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.`,
         ...directorBlueprintSceneRules(look),
       ].join(" ")
     : ""
 }
 ${phaseAReferenceImageRules(references.attached, { clothingOnly: wardrobeBuild, clothingFromInstruction: clothingFromReference })}
-${
-  [
-    dialogueOnly ? dialogueOnlyDirectorBlock() : "",
-    input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
-    isDiagramExplainerSkill(input.skill.slug)
-      ? cartoonExplainerDirectorBlock({
-          hasCharacter,
-          smoothMotion: steadyStills,
-          canvas: explainerCanvasKind(input.skill.slug) ?? "whiteboard",
-          backgroundId: input.directorBackgroundId,
-          customBackground: Boolean(input.backgroundImageUrls?.length),
-          realistic: isRealisticStyle({
-            id: input.style.id,
-            baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
-          }),
-        })
-      : "",
-    input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
-    sceneText.enabled && skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
-    sceneText.enabled && isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",
-    isTalkingBrollSkill(input.skill.slug) ? talkingBrollDirectorBlock() : "",
-    isEditorialInterviewSkill(input.skill.slug) ? editorialInterviewDirectorBlock() : "",
-    bookend
-      ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
-      : "",
-    talkingHead
-      ? talkingHeadDirectorBlock(
-          input.skill.slug,
-          input.aspectRatio,
-          resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
-          subtitleOverlay,
-          !sceneText.enabled,
-          isRealisticStyle({
-            id: input.style.id,
-            baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
-          }),
-        )
-      : "",
-    isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
-    isOutfitReelSkill(input.skill.slug) ? outfitReelDirectorBlock() : "",
-    isOutfitChangeSkill(input.skill.slug) ? outfitChangeDirectorBlock() : "",
-    isStreetLookbookSkill(input.skill.slug) ? streetLookbookDirectorBlock() : "",
-    isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
-    isWorkflowPromoSkill(input.skill.slug) ? workflowPromoDirectorBlock() : "",
-    isPapercraftDioramaSkill(input.skill.slug) ? papercraftDioramaDirectorBlock() : "",
-    isStyleSwitchSkill(input.skill.slug)
-      ? styleSwitchDirectorBlock(
-          (input.styles && input.styles.length > 0 ? input.styles : [input.style]).map((s) => ({
-            id: s.id,
-            name: s.name,
-          })),
-        )
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n")
-}
+${directorRules.phaseADirectorBlock({
+  aspectRatio: input.aspectRatio,
+  hasCharacter,
+  smoothMotion: steadyStills,
+  realistic: realisticFlag,
+  backgroundId: input.directorBackgroundId,
+  customBackground: Boolean(input.backgroundImageUrls?.length),
+  hasLogo: logoImages.length > 0,
+  lockBookendLength,
+  sceneTextEnabled: sceneText.enabled,
+  subtitleOverlay,
+  performance: talkingHead
+    ? resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en")
+    : undefined,
+  styles: (input.styles && input.styles.length > 0 ? input.styles : [input.style]).map((s) => ({
+    id: s.id,
+    name: s.name,
+  })),
+})}
 ${language.skillHint}
 ${
   talkingHead

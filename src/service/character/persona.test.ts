@@ -54,7 +54,7 @@ test("a life photo keeps the character face and only borrows the place", () => {
     interests: ["milk tea"],
   });
   assert.match(prompt, /first reference image is their identity/);
-  assert.match(prompt, /second reference image is only the place/);
+  assert.match(prompt, /second reference image is the base scene\/photograph/);
   assert.match(prompt, /Do not keep the other face/);
   assert.equal(lifeSceneQuery({ place: "Hong Kong", kind: "food" }), "Hong Kong local food dish");
   assert.equal(lifeSceneQuery({ place: "Taipei", kind: "hobby", interest: "bookstores" }), "Taipei bookstores");
