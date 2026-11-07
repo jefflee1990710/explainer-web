@@ -14,6 +14,7 @@ import { enqueueCharacterVersion, isBoardVersion } from "@/service/character/gen
 import {
   characterStyleIds,
   originalCharacterSource,
+  resolveBaseVersion,
   versionStyleId,
 } from "@/service/character/character-styles";
 import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
@@ -132,7 +133,8 @@ export async function createCharacterAction(
   try {
     const user = await requireAppUser();
     const name = String(formData.get("name") || "").trim().slice(0, NAME_MAX);
-    const styleId = String(formData.get("styleId") || "");
+    const rawStyleId = String(formData.get("styleId") || "").trim();
+    const styleId = rawStyleId ? rawStyleId : "realistic";
     const prompt = String(formData.get("prompt") || "").trim().slice(0, PROMPT_MAX);
     const referenceImageUrls = parseReferenceImageUrls(formData);
     const referenceImageUrl = referenceImageUrls[0];
@@ -252,11 +254,11 @@ export async function editCharacterVersionAction(
 
     const now = new Date();
     const newVersionId = new ObjectId();
-    // Board edits store only the root photos; the sender adds the root board images itself.
+    // Board edits store only the root photos (empty once v1 finishes); the sender adds the root board images itself.
     const refs = board
-      ? rootReferenceUrls(character.versions, parent)
+      ? rootReferenceUrls(character.versions, parent, character.baseVersionId)
       : editReferenceUrls(character.versions, parent);
-    const root = rootVersionOf(character.versions, parent);
+    const root = rootVersionOf(character.versions, parent, character.baseVersionId);
     const baseSpec = root.spec ?? parent.spec;
     const cumulativeEdit =
       cumulativeWardrobeEdit(character.versions, {
@@ -332,12 +334,16 @@ export async function addCharacterStyleAction(
       return { ok: false, error: "已達這個方案的風格上限" };
     }
 
-    const source = originalCharacterSource(character.versions);
+    const source = originalCharacterSource(character.versions, character.baseVersionId);
     if (!source.prompt && source.referenceImageUrls.length === 0) {
       return { ok: false, error: "沒有可用的原始參考" };
     }
-    // Reuse the spec an earlier board read from these same photos; otherwise read it now.
-    const root = character.versions.find((version) => !version.parentVersionId) ?? character.versions[0];
+    // Reuse the spec an earlier board read from the base version; otherwise read it now.
+    const baseVer = resolveBaseVersion(character);
+    const root =
+      baseVer ??
+      character.versions.find((version) => !version.parentVersionId) ??
+      character.versions[0];
     const spec =
       root?.spec ??
       (await extractCharacterSpec({
@@ -352,6 +358,7 @@ export async function addCharacterStyleAction(
     const version: CharacterVersion = {
       id: new ObjectId(),
       styleId,
+      ...(baseVer ? { sourceRealisticVersionId: baseVer.id } : {}),
       prompt: source.prompt,
       referenceImageUrl: source.referenceImageUrls[0],
       referenceImageUrls: source.referenceImageUrls.length ? source.referenceImageUrls : undefined,

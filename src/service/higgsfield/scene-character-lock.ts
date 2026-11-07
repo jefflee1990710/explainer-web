@@ -1,21 +1,11 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
-import type { CastMember } from "@/model/character";
+import type { CastMember, CharacterVersion } from "@/model/character";
 import { charactersCollection } from "@/dao";
 import { cropBlueprintFront } from "@/service/higgsfield/outfit-identity";
 import { persistBuffer } from "@/service/higgsfield/persist";
 
 const lockUrlCache = new Map<string, Promise<string>>();
-const origPhotoCache = new Map<string, Promise<string | undefined>>();
-
-async function resolveOriginalPhotoUrl(member: CastMember): Promise<string | undefined> {
-  const characters = await charactersCollection();
-  const character = await characters.findOne({ _id: member.characterId });
-  const version =
-    character?.versions.find((item) => item.id.equals(member.versionId)) ??
-    character?.versions[0];
-  return version?.referenceImageUrls?.[0] || version?.referenceImageUrl || undefined;
-}
 
 // A board (portrait + one standing figure) goes in whole: the close-up carries the face.
 // Legacy sheets use the standing preview when it exists, else the cropped front figure.
@@ -31,6 +21,23 @@ export function sceneLockPlan(input: {
   return { kind: "blueprint" as const };
 }
 
+export function resolveBoardLockUrlFromVersion(
+  fallbackUrl: string,
+  version: CharacterVersion | undefined,
+  options?: { preferPortrait?: boolean },
+): string {
+  if (options?.preferPortrait && version?.portraitUrl) {
+    return version.portraitUrl;
+  }
+  if (version?.blueprintKind === "board" && version.blueprintUrl) {
+    return version.blueprintUrl;
+  }
+  if (version?.profileUrl) {
+    return version.profileUrl;
+  }
+  return fallbackUrl;
+}
+
 async function download(url: string) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`無法下載角色圖（${response.status}）`);
@@ -39,29 +46,28 @@ async function download(url: string) {
 
 // One board, portrait close-up, or standing figure. A multi-pose sheet makes the scene draw that person again.
 async function resolveLockUrl(member: CastMember, options?: { preferPortrait?: boolean }) {
-  if (options?.preferPortrait) {
-    const characters = await charactersCollection();
-    const character = await characters.findOne({ _id: member.characterId });
-    const version = character?.versions.find((item) => item.id.equals(member.versionId));
-    if (version?.portraitUrl) return version.portraitUrl;
-  }
-  if (member.blueprintKind === "board") return member.blueprintUrl;
   const characters = await charactersCollection();
   const character = await characters.findOne({ _id: member.characterId });
   const version = character?.versions.find((item) => item.id.equals(member.versionId));
-  if (version?.blueprintKind === "board") return member.blueprintUrl;
+  if (options?.preferPortrait && version?.portraitUrl) {
+    return version.portraitUrl;
+  }
+  if (version?.blueprintKind === "board" || member.blueprintKind === "board") {
+    return resolveBoardLockUrlFromVersion(member.blueprintUrl, version, options);
+  }
   if (version?.profileUrl) return version.profileUrl;
 
-  const blueprint = await download(member.blueprintUrl);
+  const targetUrl = version?.blueprintUrl || member.blueprintUrl;
+  const blueprint = await download(targetUrl);
   const meta = await sharp(blueprint).metadata();
   const plan = sceneLockPlan({
     blueprintWidth: meta.width ?? 0,
     blueprintHeight: meta.height ?? 0,
   });
-  if (plan.kind !== "front") return member.blueprintUrl;
+  if (plan.kind !== "front") return targetUrl;
   const front = await cropBlueprintFront(blueprint);
   const hash = createHash("sha256")
-    .update(`scene-lock-v1:${member.blueprintUrl}`)
+    .update(`scene-lock-v1:${targetUrl}`)
     .digest("hex")
     .slice(0, 20);
   return persistBuffer(front, `explainer/scene-character-lock/${hash}.png`, "image/png");
@@ -69,8 +75,7 @@ async function resolveLockUrl(member: CastMember, options?: { preferPortrait?: b
 
 // Swap each blueprint sheet in the reference list for that character's single standing lock
 // (or their 1:1 close-up portrait when `preferPortrait: true` for seated talking-head).
-// When `includeOriginalPhoto: true`, also prepend the user's original uploaded reference photo
-// right before the blueprint so Seedream anchors 100% to the real person's facial likeness.
+// Scene locks anchor 100% to the character's Base Blueprint / style board without raw upload interference.
 export async function withSceneCharacterLocks(
   cast: CastMember[],
   refs: string[],
@@ -91,19 +96,6 @@ export async function withSceneCharacterLocks(
         lockUrlCache.set(key, pending);
       }
       const lockUrl = await pending;
-      if (options?.includeOriginalPhoto) {
-        const origKey = `${String(member.characterId)}:${String(member.versionId)}`;
-        let origPending = origPhotoCache.get(origKey);
-        if (!origPending) {
-          origPending = resolveOriginalPhotoUrl(member).catch(() => undefined);
-          origPhotoCache.set(origKey, origPending);
-        }
-        const origUrl = await origPending;
-        if (origUrl && origUrl !== lockUrl && !refs.includes(origUrl)) {
-          replacements.set(member.blueprintUrl, [origUrl, lockUrl]);
-          return;
-        }
-      }
       replacements.set(member.blueprintUrl, [lockUrl]);
     }),
   );

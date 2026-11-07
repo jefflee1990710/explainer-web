@@ -6,7 +6,9 @@ import {
   reframeBlueprintBuffer,
 } from "@/service/character/blueprint-framing";
 import { composeBlueprintBoard } from "@/service/character/blueprint-board";
+import { characterReferenceUrls } from "@/service/character/reference-urls";
 import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { hydrateStyles } from "@/service/style/load-style";
 import {
   enqueueCharacterFullBody,
@@ -131,11 +133,23 @@ async function syncCharacterProfile(
   }
 }
 
-// Always promote the latest completed blueprint of its style to default.
-function completionDefaults(character: Character, versionId: ObjectId, styleId: string) {
+// Always promote the latest completed non-candidate blueprint of its style to default,
+// and record the initial realistic v1 blueprint as baseVersionId.
+export function completionDefaults(
+  character: Character,
+  version: Pick<CharacterVersion, "id" | "parentVersionId" | "sourceRealisticVersionId" | "isBaseCandidate">,
+  styleId: string,
+) {
+  if (version.isBaseCandidate) return {};
   return {
-    [`styleDefaults.${styleId}`]: versionId,
-    ...(styleId !== character.styleId ? {} : { defaultVersionId: versionId }),
+    [`styleDefaults.${styleId}`]: version.id,
+    ...(styleId !== character.styleId ? {} : { defaultVersionId: version.id }),
+    ...(!character.baseVersionId &&
+    !version.parentVersionId &&
+    !version.sourceRealisticVersionId &&
+    styleId === "realistic"
+      ? { baseVersionId: version.id }
+      : {}),
   };
 }
 
@@ -227,6 +241,8 @@ async function completeBoardFullBody(
     return;
   }
   const styleId = versionStyleId(character, version);
+  const removeRawUploads = !version.parentVersionId && !version.sourceRealisticVersionId;
+  const rawRefsToRemove = removeRawUploads ? characterReferenceUrls(version) : [];
   await characters.updateOne(filter, {
     $set: {
       "versions.$.status": "completed",
@@ -234,10 +250,35 @@ async function completeBoardFullBody(
       "versions.$.blueprintUrl": blueprintUrl,
       "versions.$.error": undefined,
       updatedAt: new Date(),
-      ...completionDefaults(character, job.versionId!, styleId),
+      ...completionDefaults(character, version, styleId),
     },
-    $unset: { "versions.$.stage": "" },
+    $unset: {
+      "versions.$.stage": "",
+      ...(removeRawUploads
+        ? {
+            "versions.$.referenceImageUrl": "",
+            "versions.$.referenceImageUrls": "",
+          }
+        : {}),
+    },
   });
+  if (rawRefsToRemove.length > 0) {
+    const otherRefs = new Set(
+      character.versions
+        .filter((v) => !v.id.equals(version.id))
+        .flatMap((v) => [
+          ...characterReferenceUrls(v),
+          v.portraitUrl,
+          v.profileUrl,
+          v.blueprintUrl,
+        ])
+        .filter((u): u is string => Boolean(u)),
+    );
+    const safeToDelete = rawRefsToRemove.filter((u) => !otherRefs.has(u));
+    if (safeToDelete.length > 0) {
+      await deleteExplainerBlobUrls(safeToDelete).catch(() => {});
+    }
+  }
 }
 
 async function downloadBuffer(url: string) {
@@ -358,7 +399,7 @@ export async function syncCharacterJob(
         "versions.$.blueprintUrl": blueprintUrl,
         "versions.$.error": undefined,
         updatedAt: now,
-        ...completionDefaults(character, job.versionId, styleId),
+        ...completionDefaults(character, version, styleId),
       },
     });
     await enqueueCharacterProfile(job.characterId, job.versionId).catch((error) => {
