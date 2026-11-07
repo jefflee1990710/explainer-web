@@ -8,6 +8,7 @@ import { cartoonExplainerVideoDirector } from "@/service/director/catalog/cartoo
 import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
 import { papercraftDioramaDirector } from "@/service/director/catalog/papercraft-diorama-director";
 import { storyShortDirector } from "@/service/director/catalog/story-short-director";
+import { oneTakeDirector } from "@/service/director/catalog/one-take-director";
 import { productDemoDirector } from "@/service/director/catalog/product-demo-director";
 import { dialogueQaDirector } from "@/service/director/catalog/dialogue-qa-director";
 import { listicleDirector } from "@/service/director/catalog/listicle-director";
@@ -32,6 +33,7 @@ export const DIRECTORS: readonly IDirector[] = [
   paperCutoutExplainerVideoDirector,
   papercraftDioramaDirector,
   storyShortDirector,
+  oneTakeDirector,
   productDemoDirector,
   dialogueQaDirector,
   listicleDirector,

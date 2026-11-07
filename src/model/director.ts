@@ -83,6 +83,16 @@ export const talkingHeadPhaseASchema = phaseASchema.extend({
   clips: z.array(talkingHeadStoryboardRowSchema).min(1),
 });
 
+export const ONE_TAKE_MAX_SECONDS = 60;
+
+export const oneTakeStoryboardRowSchema = storyboardRowSchema.extend({
+  durationSeconds: z.number().min(5).max(ONE_TAKE_MAX_SECONDS),
+});
+
+export const oneTakePhaseASchema = phaseASchema.extend({
+  clips: z.array(oneTakeStoryboardRowSchema).min(1),
+});
+
 // One clip's video prompt (per-clip Phase B).
 export const phaseBClipSchema = z.object({
   clipNumber: z.number().int().min(1),
@@ -95,6 +105,7 @@ export const DIRECTOR_SLUGS = [
   "paper-cutout-explainer-video-director",
   "papercraft-diorama-director",
   "story-short-director",
+  "one-take-director",
   "product-demo-director",
   "dialogue-qa-director",
   "listicle-director",

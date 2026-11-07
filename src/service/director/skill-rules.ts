@@ -29,6 +29,7 @@ import {
 import { talkingHeadDurationHint, isTalkingHeadSkill } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
+export const ONE_TAKE_SKILL_SLUG = "one-take-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
 export const LISTICLE_SKILL_SLUG = "listicle-director";
 export const OPENING_SKILL_SLUG = "opening-director";
@@ -239,6 +240,10 @@ export function isPapercraftDioramaSkill(skillSlug?: string) {
   return skillSlug === PAPERCRAFT_DIORAMA_SKILL_SLUG;
 }
 
+export function isOneTakeSkill(skillSlug?: string) {
+  return skillSlug === ONE_TAKE_SKILL_SLUG;
+}
+
 export function lockedStyleIdForSkill(skillSlug?: string): string | undefined {
   if (!skillSlug) return undefined;
   const director = getDirectorBySlug(skillSlug);
@@ -285,6 +290,12 @@ export function briefSkillError(input: {
   skillSlug: string;
   characterIds: string[];
 }) {
+  if (input.skillSlug === STORY_SHORT_SKILL_SLUG) {
+    if (input.characterIds.length < 1) {
+      return "這個導演需要至少 1 個角色";
+    }
+    return undefined;
+  }
   const need = requiredCastCount(input.skillSlug);
   if (need > 0 && input.characterIds.length !== need) {
     return `這個導演需要正好 ${need} 個角色`;
@@ -350,11 +361,12 @@ export function dialogueOnlyDirectorBlock() {
 
 export function storyShortDirectorBlock() {
   return [
-    "This is a SHORT FILM, not an explainer.",
+    "This is a SHORT FILM driven by multi-character dialogue and movie-style scene cutting, not an explainer.",
     "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact actions, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects (e.g., never add a paper airplane, notebook, letter, coffee cup, phone, or ruined building unless the user explicitly wrote it in the source). If the user asks for a young girl running down a hill, every clip stages ONLY that exact running action down the hillside.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-    "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
-    'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, write englishVo as character dialogue in the format NAME: "line" spoken on screen by that character (with each supplied voice lock pasted verbatim).',
+    "SPEAKER-DRIVEN MOVIE EDITING (分鏡依說話者切換): Direct multi-character dialogue like a narrative film. Cut between clips based on WHO IS SPEAKING and WHO IS REACTING: alternate `Shot/Reverse-Shot` medium close-ups on the active speaker, `Over-the-Shoulder (OTS)` shots looking past the listener at the speaker, and `Two-Shots` when both characters share a physical action. Maintain strict 180-degree axis and eyeline continuity across cuts (if Character A is on the left looking frame-right at Character B in Clip 1, Character B is on the right looking frame-left at Character A in Clip 2).",
+    "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the dialogue lines, storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
+    'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, give ONE primary speaker per clip (or a tight exchange) written in englishVo as `NAME: "line"` spoken on screen by that character (with each supplied voice lock pasted verbatim), while any other on-screen character keeps their mouth closed and reacts visually.',
     "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
   ].join(" ");
 }

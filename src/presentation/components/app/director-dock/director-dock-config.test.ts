@@ -108,6 +108,12 @@ test("resolveModeSwitchSkillSlug picks talking-head-director, story-short-direct
   ];
   assert.equal(resolveModeSwitchSkillSlug("talking-head", skills), "talking-head-director");
   assert.equal(resolveModeSwitchSkillSlug("story", skills), "story-short-director");
+  assert.equal(
+    resolveModeSwitchSkillSlug("story", [
+      { slug: "one-take-director", behaviorSlug: "one-take-director", isCustom: false },
+    ]),
+    "one-take-director",
+  );
   assert.equal(resolveModeSwitchSkillSlug("explainer", skills), "paper-cutout-explainer-video-director");
 });
 

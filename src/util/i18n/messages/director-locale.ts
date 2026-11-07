@@ -36,6 +36,7 @@ const slugs = [
   "editorial-interview-director",
   "street-lookbook-director",
   "papercraft-diorama-director",
+  "one-take-director",
 ] as const;
 
 function names(values: string[]): VideoNames {
@@ -91,11 +92,12 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "杂志人物专访",
       "街拍时装 Lookbook（衣服 Demo）",
       "3D 立体卡纸微缩讲解",
+      "一镜到底（无旁白）",
     ]),
     blurbs: blurbs([
       "把概念做成白板涂鸦讲解。先确认分镜，再导出 clips。",
       "把概念或产品做成剪纸拼贴讲解——把剪下的物件贴上画板来解释。",
-      "由角色对白推动的短片，结构跟随题材，没有旁白。",
+      "多角色对白推动的电影短片，依说话者自动切换正反打与过肩分镜，没有旁白。",
       "痛点、开箱、功能演示、结果。产品外观全程锁定。",
       "正好两个角色，一问一答。",
       "每段一个项目，每张静帧都要看到清单文字。",
@@ -115,6 +117,7 @@ const packs: Partial<Record<LocaleId, DirectorPack>> = {
       "模拟 Esquire / GQ 杂志人物专访：微侧 15° 对画外受访 A-Roll 穿插生活态度与产品工艺体验 B-Roll。",
       "模拟时装周街拍 Lookbook（衣服 Demo）：角色换上你上传的衣服参考图，在城市街头建筑场景交替展示全身轮廓、半身领口布料细节与回眸剪裁。",
       "3D 立体厚卡纸微缩模型讲解（固定锁定 3D 立体卡纸微缩风格、无人物出场）：用卡纸收银机、信封金币、等距连排店铺与卡纸天秤拆解商业与概念逻辑。",
+      "单一长镜头一镜到底（1 个 Clip 最长可达 60 秒），无旁白、无对白，纯动作与连续跟拍运镜。",
     ]),
     directors: ui({
       title: "导演",

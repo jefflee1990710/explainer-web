@@ -460,7 +460,11 @@ test("Q&A director requires exactly two characters", () => {
     /1/,
   );
   assert.equal(briefSkillError({ skillSlug: "talking-head-director", characterIds: ["a"] }), undefined);
-  assert.equal(requiredCastCount("story-short-director"), 1);
+  assert.equal(requiredCastCount("story-short-director"), 2);
+  assert.equal(briefSkillError({ skillSlug: "story-short-director", characterIds: ["a"] }), undefined);
+  assert.equal(briefSkillError({ skillSlug: "story-short-director", characterIds: ["a", "b"] }), undefined);
+  assert.equal(requiredCastCount("one-take-director"), 1);
+  assert.equal(briefSkillError({ skillSlug: "one-take-director", characterIds: ["a"] }), undefined);
   for (const slug of [
     "product-demo-director",
     "listicle-director",

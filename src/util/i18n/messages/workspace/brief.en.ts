@@ -286,6 +286,7 @@ export const briefEn = {
     "cartoon-explainer-video-director": "Whiteboard concept explainer",
     "paper-cutout-explainer-video-director": "Paper-cutout concept explainer",
     "story-short-director": "Short film",
+    "one-take-director": "One-take motion",
     "product-demo-director": "Product demo / unboxing",
     "dialogue-qa-director": "Two-character Q&A",
     "listicle-director": "Listicle",
@@ -308,7 +309,10 @@ export const briefEn = {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
     "paper-cutout-explainer-video-director":
       "Turn a concept or product into a paper-cutout collage explainer — cutout objects paste onto a craft board. Approve the storyboard, then export the clips.",
-    "story-short-director": "A short film driven by character dialogue. Structure follows the source — no narrator.",
+    "story-short-director":
+      "A multi-character short film driven by dialogue. Cuts between speakers (Shot/Reverse-Shot, OTS) like a movie — no narrator.",
+    "one-take-director":
+      "A single uninterrupted one-take continuous motion shot (up to 60s in 1 clip) — no voiceover, pure physical movement and camera tracking.",
     "product-demo-director": "Pain, unbox, feature demo, result. The product look stays locked.",
     "dialogue-qa-director": "Exactly two characters ask and answer.",
     "listicle-director": "The hook text is the largest type. Then one item per clip, each with its own camera and composition. The last clip is a clean full list. Every clip also shows the spoken subtitle.",
@@ -352,10 +356,16 @@ export const briefEn = {
         frames: "Two beats per clip: one VO line on the start frame, one on the end",
       },
       "story-short-director": {
-        voice: "Character dialogue, no narrator; voices are matched per character when the clip renders",
-        structure: "Story order follows the source — no fixed four-beat arc",
-        picture: "Follows the visual style you picked; emotion through pose, little on-screen text",
-        frames: "One dialogue line per clip, or marked silent",
+        voice: "Multi-character dialogue, no narrator; voices are matched per character when the clip renders",
+        structure: "Movie-style speaker cuts (Shot/Reverse-Shot, Over-the-Shoulder, Two-Shot) following who is speaking",
+        picture: "Follows the visual style you picked; 180-degree eyeline continuity, emotion through pose",
+        frames: "One active speaker exchange per clip, or marked silent",
+      },
+      "one-take-director": {
+        voice: "No voiceover and no dialogue; natural ambient sound & movement Foley only",
+        structure: "1 single uninterrupted clip (up to 60s) staged in continuous 6-second movement beats",
+        picture: "Continuous tracking camera (follow, lead, or side-tracking shot) with zero cuts",
+        frames: "1 opening start frame; chained seamlessly via MiniMax H3 ref2va latent continuation",
       },
       "product-demo-director": {
         voice: "Narrator or host, speaking benefits to “you”",

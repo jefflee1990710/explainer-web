@@ -282,6 +282,7 @@ export const briefZhHant = {
     "cartoon-explainer-video-director": "白板概念解說",
     "paper-cutout-explainer-video-director": "剪紙拼貼概念解說",
     "story-short-director": "故事短片",
+    "one-take-director": "一鏡到底（無旁白）",
     "product-demo-director": "產品 Demo / 開箱",
     "dialogue-qa-director": "對話式 Q&A",
     "listicle-director": "清單式",
@@ -304,7 +305,8 @@ export const briefZhHant = {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
     "paper-cutout-explainer-video-director":
       "把概念或產品做成剪紙拼貼解說——把剪下的物件貼上畫板來解釋。先核准分鏡，再輸出 clips。",
-    "story-short-director": "以角色對白推動的短片，結構跟題材走，沒有旁白。",
+    "story-short-director": "多角色對白推動的電影短片，依說話者自動切換正反打與過肩分鏡，沒有旁白。",
+    "one-take-director": "單一長鏡頭一鏡到底（1 個 Clip 最長可達 60 秒），無旁白、無對白，純動作與連續跟拍運鏡。",
     "product-demo-director": "痛點、開箱、功能示範、結果。產品外觀全程鎖定。",
     "dialogue-qa-director": "正好兩個角色，一問一答。",
     "listicle-director": "開場文字最大。接著一項一段，每段換鏡頭和構圖。項目太多時，才把兩、三項併進同一段。最後一段是清楚的完整清單。每一段另有旁白字幕。",
@@ -347,10 +349,16 @@ export const briefZhHant = {
         frames: "每段兩拍，起始／結尾各一句旁白",
       },
       "story-short-director": {
-        voice: "角色對白，沒有旁白；產片時依角色自動配聲",
-        structure: "依題材自己排故事，不套固定四段弧",
-        picture: "跟所選視覺風格；情緒靠姿勢，少用字幕",
-        frames: "每段一條對白，或標成靜音",
+        voice: "多角色對白，沒有旁白；產片時依說話角色自動配聲與對嘴",
+        structure: "依說話者與對手戲反應切換電影分鏡（正反打、過肩鏡頭、雙人同框）",
+        picture: "跟所選視覺風格；維持 180 度視線軸線連貫，情緒靠表情與姿態",
+        frames: "每段由當前說話角色推進對白，或標成靜音反應鏡頭",
+      },
+      "one-take-director": {
+        voice: "無旁白、無對白；僅保留自然環境音與動作音效",
+        structure: "全片固定 1 個連續長鏡頭 Clip（最長 60 秒），以每 6 秒一段推進連續動作",
+        picture: "第三人稱連續跟拍運鏡（跟拍、前導、側拍），全程零剪接",
+        frames: "僅產出 1 張首幀圖，由 MiniMax H3 ref2va 自動無縫延展成單一長鏡頭",
       },
       "product-demo-director": {
         voice: "旁白／主持人，用「你」講效益",

@@ -5,6 +5,7 @@ import { cartoonExplainerVideoDirectorRules } from "@/service/director/rules/car
 import { paperCutoutExplainerVideoDirectorRules } from "@/service/director/rules/paper-cutout-explainer-video-director";
 import { papercraftDioramaDirectorRules } from "@/service/director/rules/papercraft-diorama-director";
 import { storyShortDirectorRules } from "@/service/director/rules/story-short-director";
+import { oneTakeDirectorRules } from "@/service/director/rules/one-take-director";
 import { productDemoDirectorRules } from "@/service/director/rules/product-demo-director";
 import { dialogueQaDirectorRules } from "@/service/director/rules/dialogue-qa-director";
 import { listicleDirectorRules } from "@/service/director/rules/listicle-director";
@@ -35,6 +36,7 @@ export const DIRECTOR_RULE_MODULES: Record<DirectorSlug, DirectorRuleModule> = {
   "paper-cutout-explainer-video-director": paperCutoutExplainerVideoDirectorRules,
   "papercraft-diorama-director": papercraftDioramaDirectorRules,
   "story-short-director": storyShortDirectorRules,
+  "one-take-director": oneTakeDirectorRules,
   "product-demo-director": productDemoDirectorRules,
   "dialogue-qa-director": dialogueQaDirectorRules,
   "listicle-director": listicleDirectorRules,

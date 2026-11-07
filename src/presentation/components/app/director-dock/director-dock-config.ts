@@ -355,10 +355,14 @@ export function resolveModeSwitchSkillSlug(
   if (targetMode === "story") {
     const exact = skills.find((s) => s.slug === "story-short-director");
     if (exact) return exact.slug;
+    const oneTake = skills.find((s) => s.slug === "one-take-director");
+    if (oneTake) return oneTake.slug;
     const anyStory = skills.find(
       (s) =>
         s.slug === "story-short-director" ||
-        s.behaviorSlug === "story-short-director",
+        s.behaviorSlug === "story-short-director" ||
+        s.slug === "one-take-director" ||
+        s.behaviorSlug === "one-take-director",
     );
     return anyStory?.slug ?? null;
   }

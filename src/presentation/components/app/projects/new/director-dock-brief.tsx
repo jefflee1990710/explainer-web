@@ -342,7 +342,8 @@ export function DirectorDockBrief({
 
   const firstRefThumbUrl = referenceImages[0]?.url || "";
 
-  const isStory = ruleSlug === "story-short-director";
+  const isStory =
+    ruleSlug === "story-short-director" || ruleSlug === "one-take-director";
 
   function handleSelectMode(nextId: string) {
     if (error) onError("");

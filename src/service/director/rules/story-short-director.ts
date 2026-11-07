@@ -40,27 +40,29 @@ export const storyShortDirectorRules: DirectorRuleModule = {
         : "1) Character: expression, pose, physical action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression matching the emotional beat (active eyebrows, expressive eyes; lips closed when silent, or speaking when delivering dialogue; never a blank or neutral face).",
       "2) Set: location, environment, foreground / midground / background from the user's source.",
       "3) Light: light direction, colour temperature, mood.",
-      "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
+      "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far) — cut between clips like a movie according to who is speaking (`Shot/Reverse-Shot` medium close-up on the active speaker, `Over-the-Shoulder (OTS)` past the listener's shoulder onto the speaker, `Two-Shot` when characters interact physically, or reaction close-up), maintaining strict 180-degree axis and eyeline continuity across cuts.",
       ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
       "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
       SIGHTLINE_RULE,
-      "motionCamera is the continuous live-action camera and body movement script across the clip, written as timed beats (e.g. 0–2s …; 2–5s …). Each beat states: time window → who moves and how (authentic physical locomotion, gesture, or posture change) → the natural facial expression shift → the camera movement (tracking shot, pan, push-in, or steady framing).",
+      "motionCamera is the continuous live-action camera and body movement script across the clip, written as timed beats (e.g. 0–2s …; 2–5s …). Each beat states: time window → who speaks or moves and how (authentic physical locomotion, gesture, or posture change; only the active speaker's mouth lip-syncs while listening characters keep their lips closed and react through eyes/brows) → the natural facial expression shift → the camera movement (tracking shot, pan, push-in, or steady framing).",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock() {
     return [
-      "explainerScene describes the opening still at t=0s of the clip: one clear moment of the story action in the user's setting.",
+      "explainerScene describes the opening still at t=0s of the clip: one clear moment of the story action in the user's setting, framed on the active speaker or character interaction for this cut.",
+      "SPEAKER-DRIVEN MOVIE CUTS: Cut to a new clip whenever the speaker changes or the dramatic beat shifts (`Shot/Reverse-Shot`, `Over-the-Shoulder`, or `Two-Shot`). Maintain the 180-degree camera axis so characters keep consistent left/right screen direction and opposing eyelines across cuts.",
       "Each still shows exactly ONE instance of each named character — never two bodies of the same character in one frame.",
-      "motionCamera describes the continuous physical action and camera movement that plays out from t=0s across durationSeconds. No jump cut or teleport inside a clip.",
+      "motionCamera describes the continuous physical action, speaker lip-sync, listener reaction, and camera movement that plays out from t=0s across durationSeconds. No jump cut or teleport inside a clip.",
     ].join("\n");
   },
   phaseADirectorBlock() {
     return [
-      "This is a SHORT FILM, not an explainer.",
+      "This is a SHORT FILM driven by multi-character dialogue and movie-style scene cutting, not an explainer.",
       "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact actions, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects (e.g., never add a paper airplane, notebook, letter, coffee cup, phone, or ruined building unless the user explicitly wrote it in the source). If the user asks for a young girl running down a hill, every clip stages ONLY that exact running action down the hillside.",
       "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-      "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
-      'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, write englishVo as character dialogue in the format NAME: "line" spoken on screen by that character (with each supplied voice lock pasted verbatim).',
+      "SPEAKER-DRIVEN MOVIE EDITING (分鏡依說話者切換): Direct multi-character dialogue like a narrative film. Cut between clips based on WHO IS SPEAKING and WHO IS REACTING: alternate `Shot/Reverse-Shot` medium close-ups on the active speaker, `Over-the-Shoulder (OTS)` shots looking past the listener at the speaker, and `Two-Shots` when both characters share a physical action. Maintain strict 180-degree axis and eyeline continuity across cuts (if Character A is on the left looking frame-right at Character B in Clip 1, Character B is on the right looking frame-left at Character A in Clip 2).",
+      "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the dialogue lines, storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
+      'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, give ONE primary speaker per clip (or a tight exchange) written in englishVo as `NAME: "line"` spoken on screen by that character (with each supplied voice lock pasted verbatim), while any other on-screen character keeps their mouth closed and reacts visually.',
       "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
     ].join(" ");
   },

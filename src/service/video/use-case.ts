@@ -11,7 +11,10 @@ export const EXPLAINER_SYSTEM_SKILL_SLUGS = [
 
 export const TALKING_HEAD_SYSTEM_SKILL_SLUGS = ["talking-head-director"] as const;
 
-export const STORY_SYSTEM_SKILL_SLUGS = ["story-short-director"] as const;
+export const STORY_SYSTEM_SKILL_SLUGS = [
+  "story-short-director",
+  "one-take-director",
+] as const;
 
 export const USE_CASE_DEFAULT_SKILL_SLUG: Record<VideoUseCase, string> = {
   explainer: "paper-cutout-explainer-video-director",

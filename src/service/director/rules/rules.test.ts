@@ -128,3 +128,22 @@ test("phase-b-clip-prompt.ts and run-phase-b.ts delegate motion and detail rules
   assert.match(runPhaseBSrc, /getDirectorRuleModule/);
 });
 
+test("story-short-director directs speaker-driven movie cuts and one-take-director directs a single silent long take", () => {
+  const storyBlock = getDirectorRuleModule("story-short-director").phaseADirectorBlock({
+    aspectRatio: "9:16",
+    hasCharacter: true,
+    realistic: true,
+  });
+  assert.match(storyBlock, /Shot\/Reverse-Shot|Over-the-Shoulder/i);
+  assert.match(storyBlock, /180-degree/i);
+
+  const oneTakeBlock = getDirectorRuleModule("one-take-director").phaseADirectorBlock({
+    aspectRatio: "9:16",
+    hasCharacter: true,
+    realistic: true,
+  });
+  assert.match(oneTakeBlock, /clipCount = 1|EXACTLY 1 CLIP/i);
+  assert.match(oneTakeBlock, /\(no dialogue\)/);
+  assert.match(oneTakeBlock, /ZERO INVENTED PROPS/i);
+});
+
