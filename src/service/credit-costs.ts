@@ -12,6 +12,7 @@ export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 15;
 export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
+export const ONE_TAKE_MAX_VIDEO_SECONDS = 60;
 export const TALKING_HEAD_MAX_VIDEO_SECONDS = 120;
 // HeyGen Avatar IV costs $0.05/s. 4 credits/s is about a 70% gross margin
 // at the Studio list price ($249 / 5,938 credits ≈ $0.042 per credit).

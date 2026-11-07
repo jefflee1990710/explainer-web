@@ -3,11 +3,13 @@ import { test } from "node:test";
 import {
   CLIP_MAX_SECONDS,
   CLIP_MIN_SECONDS,
+  normalizeOneTakePhaseA,
   spokenClipSeconds,
   withSpokenClipDuration,
   withSpokenClipDurations,
 } from "@/service/director/clip-seconds";
 import { storyboardModelForSkill } from "@/service/director/model";
+import type { PhaseAProposal } from "@/model/project";
 
 test("a short line stays at 5 seconds and a longer line follows the pace", () => {
   assert.equal(CLIP_MIN_SECONDS, 5);
@@ -85,9 +87,79 @@ test("preservePlannedDuration keeps director-planned duration for silent/short s
   assert.equal(single.timeRange, "0–9s");
 });
 
-test("storyboardModelForSkill routes story-short-director to gemini-4-argon and keeps gemini-3.8-flash for others", () => {
+test("storyboardModelForSkill routes story-short-director and one-take-director to gemini-4-argon and keeps gemini-3.8-flash for others", () => {
   assert.equal(storyboardModelForSkill("story-short-director"), "gemini-4-argon");
+  assert.equal(storyboardModelForSkill("one-take-director"), "gemini-4-argon");
   assert.equal(storyboardModelForSkill("cartoon-explainer-video-director"), "gemini-3.8-flash");
   assert.equal(storyboardModelForSkill(), "gemini-3.8-flash");
+});
+
+test("withSpokenClipDurations with maxSeconds=60 preserves 45s and 60s silent one-take durations", () => {
+  const [longTake] = withSpokenClipDurations(
+    [{ durationSeconds: 60, timeRange: "0–60s", englishVo: "(no dialogue)" }],
+    "medium",
+    { preservePlannedDuration: true, maxSeconds: 60 },
+  );
+  assert.equal(longTake?.durationSeconds, 60);
+  assert.equal(longTake?.timeRange, "0–60s");
+});
+
+test("normalizeOneTakePhaseA collapses multi-clip proposals into 1 silent clip up to 60s", () => {
+  const base: PhaseAProposal = {
+    englishTitle: "Mountain Velocity",
+    localizedTitle: "山坡疾馳",
+    targetDuration: "30s",
+    clipCount: 2,
+    loopMode: "linear",
+    coreMessage: "Pure downhill speed.",
+    hookStrategy: "Starts mid-sprint.",
+    aspectRatio: "9:16",
+    visualWorld: "Realistic sunlit mountain trail.",
+    narrator: "Someone talking",
+    englishWordCount: 10,
+    characterLock: "Scro",
+    palette: "Warm earth and sky.",
+    bgmDirection: "none",
+    narrativeArc: "Sprint and leap.",
+    clips: [
+      {
+        clipNumber: 1,
+        timeRange: "0–5s",
+        durationSeconds: 5,
+        narrativeJob: "start sprint",
+        explainerScene: "Scro sprinting down the steep trail.",
+        motionCamera: "0–5s sprints down the slope, camera tracks behind.",
+        englishVo: 'Scro: "Let us go!"',
+        bgmSfx: "none",
+      },
+      {
+        clipNumber: 2,
+        timeRange: "5–10s",
+        durationSeconds: 5,
+        narrativeJob: "leap ridge",
+        explainerScene: "Scro leaps over a rock.",
+        motionCamera: "0–5s leaps across the rocky ridge, gimbal follow.",
+        englishVo: "(no dialogue)",
+        bgmSfx: "none",
+      },
+    ],
+  };
+
+  const normalized = normalizeOneTakePhaseA(base, {
+    durationPreset: "full",
+    source: "running down hill 1 min",
+  });
+  assert.equal(normalized.clipCount, 1);
+  assert.equal(normalized.clips.length, 1);
+  assert.equal(normalized.clips[0]?.clipNumber, 1);
+  assert.equal(normalized.clips[0]?.durationSeconds, 60);
+  assert.equal(normalized.clips[0]?.timeRange, "0–60s");
+  assert.equal(normalized.clips[0]?.englishVo, "(no dialogue)");
+  assert.equal(
+    normalized.narrator,
+    "No narrator — pure continuous motion and ambient sound.",
+  );
+  assert.match(normalized.clips[0]?.motionCamera ?? "", /sprints down the slope/);
+  assert.match(normalized.clips[0]?.motionCamera ?? "", /leaps across the rocky ridge/);
 });
 

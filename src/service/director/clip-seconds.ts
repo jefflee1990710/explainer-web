@@ -1,4 +1,5 @@
-import type { SpeechPace } from "@/model/project";
+import type { DurationPreset, PhaseAProposal, SpeechPace } from "@/model/project";
+import { ONE_TAKE_MAX_SECONDS } from "@/model/director";
 import { spokenUnits } from "@/service/director/talking-head";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 
@@ -52,22 +53,23 @@ type TimedClip = SpokenClip & {
 function resolvedSeconds<T extends TimedClip>(
   clip: T,
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
 ) {
+  const cap = options?.maxSeconds ?? CLIP_MAX_SECONDS;
   const spoken = spokenClipSeconds(clipSpokenText(clip), pace);
   if (!options?.preservePlannedDuration) return spoken;
   const planned = Math.min(
-    CLIP_MAX_SECONDS,
+    cap,
     Math.max(CLIP_MIN_SECONDS, Math.round(clip.durationSeconds || CLIP_MIN_SECONDS)),
   );
-  return Math.min(CLIP_MAX_SECONDS, Math.max(planned, spoken));
+  return Math.min(cap, Math.max(planned, spoken));
 }
 
 // One clip. timeRange is this clip only; the storyboard pass assigns the timeline.
 export function withSpokenClipDuration<T extends TimedClip>(
   clip: T,
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
 ): T {
   const seconds = resolvedSeconds(clip, pace, options);
   return { ...clip, durationSeconds: seconds, timeRange: `0–${seconds}s` };
@@ -77,7 +79,7 @@ export function withSpokenClipDuration<T extends TimedClip>(
 export function withSpokenClipDurations<T extends TimedClip>(
   clips: T[],
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
 ): T[] {
   let cursor = 0;
   return clips.map((clip) => {
@@ -86,4 +88,95 @@ export function withSpokenClipDurations<T extends TimedClip>(
     cursor += seconds;
     return { ...clip, durationSeconds: seconds, timeRange: `${start}–${cursor}s` };
   });
+}
+
+function parseExplicitSecondsFromSource(source?: string): number | null {
+  if (!source?.trim()) return null;
+  const minMatch = source.match(/\b1\s*(?:min(?:ute)?|分鐘|分钟)\b/i);
+  if (minMatch) return 60;
+  const secMatch = source.match(/\b(\d{1,2})\s*(?:s|sec|seconds?|秒)\b/i);
+  if (secMatch?.[1]) {
+    const parsed = Number(secMatch[1]);
+    if (Number.isFinite(parsed) && parsed >= 5 && parsed <= 60) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function presetOneTakeSeconds(preset?: DurationPreset): number {
+  if (preset === "micro") return 6;
+  if (preset === "short") return 18;
+  if (preset === "punchy") return 36;
+  if (preset === "full") return 60;
+  return 18;
+}
+
+export function resolveOneTakeDurationSeconds(input: {
+  plannedSeconds?: number;
+  durationPreset?: DurationPreset;
+  source?: string;
+}): number {
+  const explicit = parseExplicitSecondsFromSource(input.source);
+  if (explicit) return explicit;
+  if (input.durationPreset && input.durationPreset !== "auto") {
+    const presetTarget = presetOneTakeSeconds(input.durationPreset);
+    const planned = Math.round(input.plannedSeconds || 0);
+    if (planned <= CLIP_MIN_SECONDS) return presetTarget;
+    return Math.min(ONE_TAKE_MAX_SECONDS, Math.max(CLIP_MIN_SECONDS, Math.max(planned, presetTarget)));
+  }
+  const planned = Math.round(input.plannedSeconds || 0);
+  if (planned > CLIP_MIN_SECONDS) {
+    return Math.min(ONE_TAKE_MAX_SECONDS, Math.max(CLIP_MIN_SECONDS, planned));
+  }
+  return presetOneTakeSeconds(input.durationPreset);
+}
+
+export function normalizeOneTakePhaseA(
+  proposal: PhaseAProposal,
+  options?: { durationPreset?: DurationPreset; source?: string },
+): PhaseAProposal {
+  const rows = proposal.clips || [];
+  const first = rows[0];
+  if (!first) return proposal;
+  const plannedSum = rows.reduce((sum, r) => sum + (Number(r.durationSeconds) || 0), 0);
+  const durationSeconds = resolveOneTakeDurationSeconds({
+    plannedSeconds: rows.length > 1 ? plannedSum : first.durationSeconds,
+    durationPreset: options?.durationPreset,
+    source: options?.source,
+  });
+
+  const mergedMotion =
+    rows.length > 1
+      ? rows
+          .map((row, idx) => {
+            const winStart = Math.round((idx * durationSeconds) / rows.length);
+            const winEnd = Math.round(((idx + 1) * durationSeconds) / rows.length);
+            const clean = row.motionCamera
+              .replace(/^\s*\d+\s*[–-]\s*\d+s\s*:?\s*/i, "")
+              .trim();
+            return `${winStart}–${winEnd}s ${clean}`;
+          })
+          .join("; ")
+      : first.motionCamera;
+
+  const singleClip = {
+    ...first,
+    clipNumber: 1,
+    durationSeconds,
+    timeRange: `0–${durationSeconds}s`,
+    motionCamera: mergedMotion,
+    englishVo: "(no dialogue)",
+    ...(first.startVo !== undefined ? { startVo: "" } : {}),
+    ...(first.endVo !== undefined ? { endVo: "" } : {}),
+  };
+
+  return {
+    ...proposal,
+    clipCount: 1,
+    targetDuration: `${durationSeconds}s`,
+    narrator: "No narrator — pure continuous motion and ambient sound.",
+    englishWordCount: 1,
+    clips: [singleClip],
+  };
 }

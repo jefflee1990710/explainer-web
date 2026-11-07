@@ -236,7 +236,9 @@ The user's note is what this clip shows and says. Do not replace that note with 
   });
   return [
     withSpokenClipDuration(rewritten ?? row, input.speechPace, {
-      preservePlannedDuration: skillSlug === "story-short-director",
+      preservePlannedDuration:
+        skillSlug === "story-short-director" || skillSlug === "one-take-director",
+      maxSeconds: skillSlug === "one-take-director" ? 60 : undefined,
     }),
   ];
 }

@@ -263,6 +263,18 @@ test("talking-head clip waits while the next start draws, and is not failed by i
   assert.equal(clipStateFor(failed, 2).stage, "frames_failed");
 });
 
+test("one-take-director 60s realistic clip bills for the full 60 seconds instead of clamping at 15s", async () => {
+  const { clipVideoCost } = await import("@/service/production-plan");
+  const p = project({
+    skillSlug: "one-take-director",
+    styleId: "realistic",
+    phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
+    frames: [frame(1, "start", "completed")],
+  });
+  assert.equal(clipStateFor(p, 1).videoCost, 60 * 15);
+  assert.equal(clipVideoCost(p, 1), 60 * 15);
+});
+
 test("redrawing the next talking-head start makes this video stale, not these frames", () => {
   const p = project({
     skillSlug: "talking-head-director",

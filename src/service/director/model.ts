@@ -30,7 +30,9 @@ export function directorModel() {
 }
 
 export function storyboardModelForSkill(skillSlug?: string): string {
-  if (skillSlug === "story-short-director") return ARGON_MODEL;
+  if (skillSlug === "story-short-director" || skillSlug === "one-take-director") {
+    return ARGON_MODEL;
+  }
   return STORYBOARD_MODEL;
 }
 

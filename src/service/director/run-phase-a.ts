@@ -31,6 +31,7 @@ import {
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   isStyleSwitchSkill,
+  isOneTakeSkill,
   skillBansNarration,
   skillForcesSceneText,
   verticalSafeAreaDirectorLine,
@@ -45,14 +46,20 @@ import {
 } from "@/service/director/dual-beat";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
-import { withSpokenClipDurations } from "@/service/director/clip-seconds";
+import { normalizeOneTakePhaseA, withSpokenClipDurations } from "@/service/director/clip-seconds";
 import { storyboardModel, storyboardProviderOptions } from "@/service/director/model";
 import {
   instructionFollowsReferenceClothes,
   phaseAReferenceImageRules,
   sanitizeClipReferenceIds,
 } from "@/service/project/reference-images";
-import { cartoonPhaseASchema, phaseASchema, talkingHeadPhaseASchema } from "@/model/director";
+import {
+  cartoonPhaseASchema,
+  ONE_TAKE_MAX_SECONDS,
+  oneTakePhaseASchema,
+  phaseASchema,
+  talkingHeadPhaseASchema,
+} from "@/model/director";
 import { resolvePerformance } from "@/service/director/performance";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
 import {
@@ -293,7 +300,13 @@ export async function runPhaseA(input: {
       model: storyboardModel(input.skill.slug),
       providerOptions: storyboardProviderOptions(),
       output: Output.object({
-        schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
+        schema: dualBeat
+          ? cartoonPhaseASchema
+          : talkingHead
+            ? talkingHeadPhaseASchema
+            : isOneTakeSkill(input.skill.slug)
+              ? oneTakePhaseASchema
+              : phaseASchema,
       }),
       system: `${skillPromptForPhaseA(input.skill, input.style)}
 
@@ -592,9 +605,15 @@ Produce a complete Phase A director proposal now.`,
   }
   // Talking-head seconds already follow the spoken script. Every other director
   // gets duration from the line and pace here, so a model that always writes 5 is corrected.
-  if (!talkingHead) {
+  if (isOneTakeSkill(input.skill.slug)) {
+    next = normalizeOneTakePhaseA(next, {
+      durationPreset: input.durationPreset,
+      source: input.source,
+    });
+  } else if (!talkingHead) {
     const clips = withSpokenClipDurations(next.clips, input.speechPace, {
       preservePlannedDuration: input.skill.slug === "story-short-director",
+      maxSeconds: isOneTakeSkill(input.skill.slug) ? ONE_TAKE_MAX_SECONDS : undefined,
     });
     const totalSeconds = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     next = { ...next, clips, targetDuration: `${totalSeconds}s` };

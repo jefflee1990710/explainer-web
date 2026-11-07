@@ -1,6 +1,11 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
-import { MIN_VIDEO_SECONDS, talkingHeadVideoCost, videoCost } from "@/service/credit-costs";
+import {
+  MIN_VIDEO_SECONDS,
+  ONE_TAKE_MAX_VIDEO_SECONDS,
+  talkingHeadVideoCost,
+  videoCost,
+} from "@/service/credit-costs";
 import { resolveClipProject } from "@/service/clip/clip-context";
 import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { TALKING_HEAD_SKILL_SLUG, talkingHeadFramesCost } from "@/service/director/talking-head";
@@ -176,6 +181,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
             row?.durationSeconds ?? MIN_VIDEO_SECONDS,
             clipProj.styleId,
             Boolean(resolveVoiceSwapId(clipProj)),
+            clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
           ),
     frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.

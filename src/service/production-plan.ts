@@ -7,6 +7,7 @@ import {
   FRAME_COST,
   MIN_VIDEO_COST,
   MIN_VIDEO_SECONDS,
+  ONE_TAKE_MAX_VIDEO_SECONDS,
   talkingHeadVideoCost,
   videoCost,
 } from "@/service/credit-costs";
@@ -23,7 +24,12 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const seconds = row?.durationSeconds ?? MIN_VIDEO_SECONDS;
   if (clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCost(seconds);
-  return videoCost(seconds, clipProj.styleId, Boolean(resolveVoiceSwapId(clipProj)));
+  return videoCost(
+    seconds,
+    clipProj.styleId,
+    Boolean(resolveVoiceSwapId(clipProj)),
+    clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
+  );
 }
 
 // Scene-image credits. Talking-head clips pay for their start; the last clip pays for its end too.
