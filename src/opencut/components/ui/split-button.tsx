@@ -18,7 +18,7 @@ const SplitButton = forwardRef<HTMLDivElement, SplitButtonProps>(
 			<div
 				ref={ref}
 				className={cn(
-					"border-input bg-white text-[#12141c] inline-flex h-7 overflow-hidden rounded-lg border",
+					"border-border bg-input text-foreground inline-flex h-7 overflow-hidden rounded-lg border",
 					className,
 				)}
 				{...props}
@@ -39,7 +39,7 @@ const SplitButtonSide = forwardRef<
 			ref={ref}
 			variant="text"
 			className={cn(
-				"bg-white text-[#12141c] disabled:text-muted-foreground h-full gap-0 rounded-none border-0 font-normal !opacity-100",
+				"bg-input text-foreground disabled:text-muted-foreground h-full gap-0 rounded-none border-0 font-normal !opacity-100",
 				onClick
 					? "hover:bg-foreground/10 cursor-pointer hover:opacity-100"
 					: "cursor-default select-text",

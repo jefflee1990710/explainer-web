@@ -31,12 +31,12 @@ export const SCRO_STAGE_LABEL: Record<ScroVideoUiStage, string> = {
 };
 
 export function scroStageTone(stage: ScroVideoUiStage) {
-	if (stage === "failed") return "bg-red-500/15 text-red-700";
-	if (stage === "video_ready") return "bg-emerald-500/15 text-emerald-800";
+	if (stage === "failed") return "bg-red-600/85 text-white";
+	if (stage === "video_ready") return "bg-emerald-600/85 text-white";
 	if (stage === "frames_generating" || stage === "video_generating") {
-		return "bg-amber-500/15 text-amber-900";
+		return "bg-amber-600/85 text-white";
 	}
-	return "bg-muted text-muted-foreground";
+	return "bg-black/65 text-white";
 }
 
 /** The new start still is not ready yet, so the previous picture must not stay up. */
@@ -361,10 +361,10 @@ export function ScroOnscreenTextOverlays({
 					: "Queued";
 	const badgeTone =
 		status === "failed"
-			? "bg-red-500/15 text-red-700"
+			? "bg-red-600/85 text-white"
 			: status === "completed"
-				? "bg-emerald-500/15 text-emerald-800"
-				: "bg-amber-500/15 text-amber-900";
+				? "bg-emerald-600/85 text-white"
+				: "bg-amber-600/85 text-white";
 
 	return (
 		<div className={cn("pointer-events-none absolute inset-0 z-10", className)}>

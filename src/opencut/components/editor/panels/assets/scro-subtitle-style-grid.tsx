@@ -155,8 +155,8 @@ export function ScroSubtitleStyleGrid({
 						className={cn(
 							"flex cursor-pointer flex-col gap-1 rounded-lg border p-1.5 text-left transition",
 							active
-								? "border-[#12141c] bg-[#f4f4f5] ring-2 ring-[#12141c]/15"
-								: "border-[#e4e4e7] bg-white hover:border-[#12141c]/40 hover:bg-[#fafafa]",
+								? "border-foreground bg-secondary ring-2 ring-foreground/15"
+								: "border-border bg-card hover:border-foreground/40 hover:bg-accent/50",
 						)}
 					>
 						{/* Wide, compact strip preview (not a tall 16:9 box) */}
@@ -178,10 +178,10 @@ export function ScroSubtitleStyleGrid({
 							))}
 						</div>
 						<div className="flex items-center justify-between gap-1.5 px-0.5">
-							<span className="truncate text-[11px] font-semibold text-[#12141c]">
+							<span className="truncate text-[11px] font-semibold text-foreground">
 								{localizeBilingualLabel(style.name, locale)}
 							</span>
-							<span className="shrink-0 rounded bg-[#f4f4f5] px-1.5 py-0.2 text-[9px] font-medium text-[#5c6170]">
+							<span className="shrink-0 rounded bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground">
 								{preview.isSingleLine
 									? oc.subtitleDialog.singleLineBadge
 									: oc.subtitleDialog.dualLineBadge}

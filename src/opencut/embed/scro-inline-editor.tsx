@@ -35,10 +35,12 @@ import { ScroVideoToolbarBridge } from "@/opencut/embed/scro-video-toolbar";
 import { ScroSubtitleBridge } from "@/opencut/embed/scro-subtitle-bridge";
 import { ScroExportBridge } from "@/opencut/embed/scro-export-bridge";
 import { ScroProjectSync } from "@/opencut/embed/scro-project-sync";
+import { useStudioTheme } from "@/presentation/studio/studio-theme";
 import { Toaster } from "sonner";
 
 // OpenCut editor mounted inside Scro's React tree. No iframe, no second origin.
 export default function OpenCutInlineEditor({ projectId }: { projectId: string }) {
+	const { theme } = useStudioTheme();
 	return (
 		// OpenCut's app layout supplies TooltipProvider. This mount skips that layout.
 		<TooltipProvider>
@@ -49,12 +51,12 @@ export default function OpenCutInlineEditor({ projectId }: { projectId: string }
 				<ScroProjectSync />
 				<ScroSubtitleBridge />
 				<ScroVideoSync />
-				<div className="opencut-direct-host bg-[#fafafa] flex h-full min-h-0 w-full flex-col overflow-hidden p-2">
+				<div className="opencut-direct-host bg-background flex h-full min-h-0 w-full flex-col overflow-hidden p-2">
 					<DegradedRendererBanner />
 					<div className="min-h-0 min-w-0 flex-1">
 						<EditorLayout />
 					</div>
-					<Toaster />
+					<Toaster theme={theme} />
 				</div>
 			</EditorProvider>
 		</TooltipProvider>

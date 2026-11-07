@@ -83,13 +83,13 @@ export function ScroSubtitleDesignDialog({
 					</DialogTitle>
 					<DialogDescription className="text-xs">
 						{oc.subtitleDialog.selectedFontPrefix}
-						<span className="font-semibold text-[#12141c]">{fontLabel}</span>
+						<span className="font-semibold text-foreground">{fontLabel}</span>
 						{oc.subtitleDialog.descriptionSuffix}
 					</DialogDescription>
 
 					{/* Filter Tabs + Search */}
 					<div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pt-1">
-						<div className="inline-flex rounded-lg border border-[#e4e4e7] bg-[#f4f4f5] p-0.5">
+						<div className="inline-flex rounded-lg border border-border bg-muted p-0.5">
 							{(
 								[
 									{ id: "all", label: oc.subtitleDialog.tabAll },
@@ -105,8 +105,8 @@ export function ScroSubtitleDesignDialog({
 										onClick={() => setTab(item.id)}
 										className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition ${
 											active
-												? "bg-[#12141c] text-white shadow-xs"
-												: "text-[#5c6170] hover:text-[#12141c]"
+												? "bg-foreground text-background shadow-xs"
+												: "text-muted-foreground hover:text-foreground"
 										}`}
 									>
 										{item.label}
@@ -130,7 +130,7 @@ export function ScroSubtitleDesignDialog({
 
 				<DialogBody className="max-h-[58vh] overflow-y-auto p-4 pt-2">
 					{filteredStyles.length === 0 ? (
-						<p className="py-8 text-center text-xs text-[#5c6170]">
+						<p className="py-8 text-center text-xs text-muted-foreground">
 							{oc.subtitleDialog.noMatch(query)}
 						</p>
 					) : (

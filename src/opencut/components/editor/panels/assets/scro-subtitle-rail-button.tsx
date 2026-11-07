@@ -35,7 +35,7 @@ export function ScroSubtitleRailButton() {
 					className={cn(
 						"h-8 w-8 shrink-0 rounded-lg",
 						open
-							? "bg-[#f4fcd4] text-[#12141c] border-[#c6f24b]/60"
+							? "bg-[#c6f24b] text-[#12141c] border-[#c6f24b]/60 hover:bg-[#b6e23a]"
 							: "text-muted-foreground",
 					)}
 					onClick={() => setScroSubtitleOpen(!open)}
@@ -44,7 +44,7 @@ export function ScroSubtitleRailButton() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="right" align="center" variant="sidebar" sideOffset={8}>
-				<div className="text-[#12141c] text-sm leading-none font-medium">{label}</div>
+				<div className="text-popover-foreground text-sm leading-none font-medium">{label}</div>
 			</TooltipContent>
 		</Tooltip>
 	);

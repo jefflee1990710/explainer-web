@@ -1,8 +1,28 @@
-const FILL = "#f4f4f5";
-const CARD = "#ffffff";
-const LINE = "#d4d4d8";
-const INK = "#12141c";
-const MUTED = "#5c6170";
+const LIGHT_PALETTE = {
+	fill: "#f4f4f5",
+	card: "#ffffff",
+	line: "#d4d4d8",
+	ink: "#12141c",
+	muted: "#5c6170",
+};
+
+const DARK_PALETTE = {
+	fill: "#1f222e",
+	card: "#161821",
+	line: "#272a36",
+	ink: "#f4f4f6",
+	muted: "#9ca3af",
+};
+
+function resolvePlaceholderPalette() {
+	if (
+		typeof document !== "undefined" &&
+		document.documentElement.getAttribute("data-studio-theme") === "light"
+	) {
+		return LIGHT_PALETTE;
+	}
+	return DARK_PALETTE;
+}
 
 export type StillPlaceholderSize = { width: number; height: number };
 
@@ -17,8 +37,9 @@ export function drawStillPlaceholder(
 		name: string;
 	},
 ) {
+	const palette = resolvePlaceholderPalette();
 	context.clearRect(0, 0, width, height);
-	context.fillStyle = FILL;
+	context.fillStyle = palette.fill;
 	context.fillRect(0, 0, width, height);
 
 	const short = Math.min(width, height);
@@ -31,9 +52,9 @@ export function drawStillPlaceholder(
 		height: height - margin * 2,
 		radius,
 	});
-	context.fillStyle = CARD;
+	context.fillStyle = palette.card;
 	context.fill();
-	context.strokeStyle = LINE;
+	context.strokeStyle = palette.line;
 	context.lineWidth = Math.max(2, Math.round(short * 0.004));
 	context.stroke();
 
@@ -44,17 +65,22 @@ export function drawStillPlaceholder(
 	const block = icon + gap + title + Math.round(gap * 0.7) + sub;
 	let top = (height - block) / 2;
 
-	drawFrameIcon(context, { cx: width / 2, cy: top + icon / 2, size: icon });
+	drawFrameIcon(context, {
+		cx: width / 2,
+		cy: top + icon / 2,
+		size: icon,
+		palette,
+	});
 	top += icon + gap;
 
 	context.textAlign = "center";
 	context.textBaseline = "top";
-	context.fillStyle = INK;
+	context.fillStyle = palette.ink;
 	context.font = `600 ${title}px ui-sans-serif, system-ui, sans-serif`;
 	context.fillText(name, width / 2, top);
 	top += title + Math.round(gap * 0.65);
 
-	context.fillStyle = MUTED;
+	context.fillStyle = palette.muted;
 	context.font = `500 ${sub}px ui-sans-serif, system-ui, sans-serif`;
 	context.fillText("Waiting for stills", width / 2, top);
 }
@@ -82,24 +108,34 @@ export async function stillPlaceholderFile({
 
 function drawFrameIcon(
 	context: CanvasRenderingContext2D,
-	{ cx, cy, size }: { cx: number; cy: number; size: number },
+	{
+		cx,
+		cy,
+		size,
+		palette,
+	}: {
+		cx: number;
+		cy: number;
+		size: number;
+		palette: typeof LIGHT_PALETTE;
+	},
 ) {
 	const x = cx - size / 2;
 	const y = cy - size / 2;
 	const radius = size * 0.16;
 	traceRoundRect(context, { x, y, width: size, height: size, radius });
-	context.fillStyle = FILL;
+	context.fillStyle = palette.fill;
 	context.fill();
-	context.strokeStyle = LINE;
+	context.strokeStyle = palette.line;
 	context.lineWidth = Math.max(2, size * 0.035);
 	context.stroke();
 
-	context.fillStyle = MUTED;
+	context.fillStyle = palette.muted;
 	context.beginPath();
 	context.arc(x + size * 0.32, y + size * 0.34, size * 0.08, 0, Math.PI * 2);
 	context.fill();
 
-	context.strokeStyle = MUTED;
+	context.strokeStyle = palette.muted;
 	context.lineWidth = Math.max(2, size * 0.04);
 	context.lineJoin = "round";
 	context.lineCap = "round";

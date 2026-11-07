@@ -63,14 +63,14 @@ export function ScroOnScreenTextDialog({
 					{selectedStyle ? (
 						<div className="min-w-0 space-y-2">
 							<div className="flex items-center justify-between gap-2 text-xs">
-								<span className="font-medium text-[#5c6170]">
+								<span className="font-medium text-muted-foreground">
 									{oc.onScreenText.selectedStyleLabel}
 								</span>
-								<span className="truncate font-semibold text-[#12141c]">
+								<span className="truncate font-semibold text-foreground">
 									{selectedStyle.name}
 								</span>
 							</div>
-							<div className="flex items-center justify-center overflow-hidden rounded-lg border border-[#e4e4e7] bg-[#f4f4f5]">
+							<div className="flex items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
 								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img
 									src={selectedStyle.previewUrl}
@@ -92,8 +92,8 @@ export function ScroOnScreenTextDialog({
 												className={cn(
 													"cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium transition",
 													active
-														? "border-[#12141c] bg-[#12141c] text-white"
-														: "border-[#e4e4e7] bg-[#f4f4f5] text-[#5c6170] hover:text-[#12141c]",
+														? "border-foreground bg-foreground text-background"
+														: "border-border bg-muted text-muted-foreground hover:text-foreground",
 												)}
 											>
 												{style.name}
@@ -108,7 +108,7 @@ export function ScroOnScreenTextDialog({
 					<div className="space-y-1.5">
 						<label
 							htmlFor="opencut-on-screen-text-input"
-							className="block text-xs font-semibold text-[#12141c]"
+							className="block text-xs font-semibold text-foreground"
 						>
 							{oc.onScreenText.textLabel}
 						</label>

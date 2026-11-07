@@ -37,11 +37,17 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
+  --color-secondary-border: var(--secondary-border);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-popover: var(--popover);
+  --color-popover-hover: var(--popover-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-constructive: var(--constructive);
+  --color-constructive-foreground: var(--constructive-foreground);
+  --color-caution: var(--caution);
+  --color-caution-foreground: var(--caution-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

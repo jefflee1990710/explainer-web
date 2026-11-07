@@ -32,12 +32,12 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 const selectItemVariants = cva(
-	"relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-[#12141c]/85 outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
+	"relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-popover-foreground/90 outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
 	{
 		variants: {
 			variant: {
 				default: "",
-				destructive: "text-destructive",
+				destructive: "text-destructive focus:text-destructive",
 			},
 		},
 		defaultVariants: {
@@ -51,8 +51,8 @@ const selectTriggerVariants = cva(
 	{
 		variants: {
 			variant: {
-				default: "bg-white text-[#12141c]",
-				outline: "bg-white text-[#12141c] hover:bg-[#f4f4f5]",
+				default: "bg-input text-foreground",
+				outline: "bg-input text-foreground hover:bg-accent",
 			},
 			size: {
 				default: "",
@@ -136,7 +136,7 @@ const SelectContent = React.forwardRef<
 		<SelectPrimitive.Content
 			ref={ref}
 			className={cn(
-				"z-50 max-h-(--radix-select-content-available-height) min-w-32 overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white p-1.5 text-[#12141c] shadow-lg",
+				"opencut-direct-host z-50 max-h-(--radix-select-content-available-height) min-w-32 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg",
 				className,
 			)}
 			position={position}

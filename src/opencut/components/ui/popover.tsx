@@ -39,7 +39,7 @@ const PopoverContent = React.forwardRef<
 			align={align}
 			sideOffset={sideOffset}
 			className={cn(
-				"opencut-direct-host bg-white text-[#12141c] z-50 w-72 rounded-2xl border border-[#e4e4e7] p-4 shadow-[0_8px_24px_rgba(22,24,35,0.12)] outline-hidden",
+				"opencut-direct-host bg-popover text-popover-foreground z-50 w-72 rounded-2xl border border-border p-4 shadow-[0_8px_24px_rgba(0,0,0,0.28)] outline-hidden",
 				className,
 			)}
 			{...props}

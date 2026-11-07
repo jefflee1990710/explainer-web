@@ -89,7 +89,7 @@ export function FontPicker({
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
 				className={cn(
-					"border-border bg-white text-[#12141c] flex h-7 w-full cursor-pointer items-center justify-between gap-1 rounded-xl border px-2.5 text-sm whitespace-nowrap focus-visible:border-primary focus-visible:ring-0 focus:outline-hidden",
+					"border-border bg-input text-foreground flex h-7 w-full cursor-pointer items-center justify-between gap-1 rounded-xl border px-2.5 text-sm whitespace-nowrap focus-visible:border-primary focus-visible:ring-0 focus:outline-hidden",
 					className,
 				)}
 			>

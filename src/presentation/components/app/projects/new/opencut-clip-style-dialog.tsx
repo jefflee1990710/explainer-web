@@ -156,7 +156,7 @@ export function OpenCutClipStyleDialog({
                   }}
                   className={`style-option group flex cursor-pointer flex-col overflow-hidden rounded-xl border-2 text-left transition ${
                     active
-                      ? "border-accent-ink bg-[#f4fcd4]/60 shadow-xs"
+                      ? "border-[var(--studio-teal)] bg-[var(--studio-cyan-soft)] shadow-xs"
                       : "border-accent-ink/15 bg-white hover:border-accent-ink/50"
                   }`}
                 >

@@ -264,7 +264,7 @@ export function PreviewPanel({
 	return (
 		<div
 			ref={handleContainerRef}
-			className="panel bg-background relative flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]"
+			className="panel bg-background relative flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border"
 		>
 			<PreviewCanvas
 				container={container}
@@ -632,7 +632,7 @@ function PreviewCanvas({
 									<MediaLoadingMark
 										className={
 											waitingForStill
-												? "z-20 bg-[#f4f4f5] text-muted-foreground"
+												? "z-20 bg-muted text-muted-foreground"
 												: "z-20 bg-black/45 text-white"
 										}
 										spinnerClassName="size-6"

@@ -38,7 +38,7 @@ export function AssetsPanel() {
 	};
 
 	return (
-		<div className="panel bg-background flex h-full overflow-hidden rounded-2xl border border-[#e4e4e7]">
+		<div className="panel bg-background flex h-full overflow-hidden rounded-2xl border border-border">
 			<TabBar />
 			<Separator orientation="vertical" />
 			<div className="flex-1 overflow-hidden">

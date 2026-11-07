@@ -1,14 +1,69 @@
 /* OpenCut tokens, scoped so they do not restyle the rest of Scro. */
 .opencut-direct-host {
+  --background: #0d0e13;
+  --foreground: #f4f4f6;
+  --card: #161821;
+  --card-foreground: #f4f4f6;
+  --popover: #161821;
+  --popover-hover: #1f222e;
+  --popover-foreground: #f4f4f6;
+  --primary: #c6f24b;
+  --primary-foreground: #12141c;
+  --secondary: #1f222e;
+  --secondary-border: #272a36;
+  --secondary-foreground: #f4f4f6;
+  --muted: #1f222e;
+  --muted-foreground: #9ca3af;
+  --accent: #1f222e;
+  --accent-foreground: #f4f4f6;
+  --destructive: #f04444;
+  --destructive-foreground: #ffffff;
+  --constructive: #22c55e;
+  --constructive-foreground: #ffffff;
+  --caution: #f59e0b;
+  --caution-foreground: #12141c;
+  --border: #272a36;
+  --input: #1f222e;
+  --ring: #c6f24b;
+  --sidebar: #161821;
+  --sidebar-background: #0d0e13;
+  --sidebar-foreground: #f4f4f6;
+  --sidebar-border: #272a36;
+  color: var(--foreground);
+  color-scheme: dark;
+}
+
+.opencut-direct-host .panel {
+  --background: #161821;
+  --foreground: #f4f4f6;
+  --card: #161821;
+  --card-foreground: #f4f4f6;
+  --border: #272a36;
+  --input: #1f222e;
+  --secondary: #1f222e;
+  --secondary-border: #272a36;
+  --secondary-foreground: #f4f4f6;
+  --muted: #1f222e;
+  --muted-foreground: #9ca3af;
+  --accent: #1f222e;
+  --accent-foreground: #f4f4f6;
+  border-radius: 16px;
+  border-color: var(--studio-line, #272a36);
+}
+
+.studio-app[data-studio-theme="light"] .opencut-direct-host,
+html[data-studio-theme="light"] .opencut-direct-host {
   --background: #fafafa;
   --foreground: #12141c;
   --card: #ffffff;
   --card-foreground: #12141c;
   --popover: #ffffff;
+  --popover-hover: #f4f4f5;
   --popover-foreground: #12141c;
   --primary: #12141c;
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
+  --secondary-border: #e4e4e7;
   --secondary-foreground: #12141c;
   --muted: #e4e4e7;
   --muted-foreground: #5c6170;
@@ -16,7 +71,11 @@
   --accent-foreground: #12141c;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #f3f3f5;
+  --constructive: #16a34a;
+  --constructive-foreground: #ffffff;
+  --caution: #d97706;
+  --caution-foreground: #12141c;
+  --border: #e4e4e7;
   --input: #ffffff;
   --ring: #71717a;
   --sidebar: #ffffff;
@@ -27,12 +86,21 @@
   color-scheme: light;
 }
 
-.opencut-direct-host .panel {
+.studio-app[data-studio-theme="light"] .opencut-direct-host .panel,
+html[data-studio-theme="light"] .opencut-direct-host .panel {
   --background: #ffffff;
   --foreground: #12141c;
   --card: #ffffff;
   --card-foreground: #12141c;
-  --border: #f3f3f5;
-  border-radius: 0;
-  border-color: #f3f3f5;
+  --border: #e4e4e7;
+  --input: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-border: #e4e4e7;
+  --secondary-foreground: #12141c;
+  --muted: #e4e4e7;
+  --muted-foreground: #5c6170;
+  --accent: #f4f4f5;
+  --accent-foreground: #12141c;
+  border-radius: 16px;
+  border-color: var(--studio-line, #e4e4e7);
 }

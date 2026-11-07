@@ -52,13 +52,13 @@ export function PropertiesPanel() {
 	if (selectedElements.length === 0) {
 		if (scroClipNumber != null) {
 			return (
-				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]">
+				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border">
 					<ScroVideoProperties clipNumber={scroClipNumber} showInspectorHeader />
 				</div>
 			);
 		}
 		return (
-			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]">
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-2xl border border-border">
 				<InspectorHeader />
 				<div className="flex flex-1 items-center justify-center">
 					<EmptyView />
@@ -86,7 +86,7 @@ export function PropertiesPanel() {
 
 		if (allSameSubtitleTrack && firstTrack) {
 			return (
-				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]">
+				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border">
 					<InspectorHeader />
 					<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
 						<SubtitleTrackStyleControls trackId={firstTrack.id} />
@@ -96,7 +96,7 @@ export function PropertiesPanel() {
 		}
 
 		return (
-			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]">
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-2xl border border-border">
 				<InspectorHeader />
 				<div className="flex flex-1 items-center justify-center p-4">
 					<p className="text-muted-foreground text-sm font-medium">
@@ -175,7 +175,7 @@ export function PropertiesPanel() {
 	if (!activeTab) return null;
 
 	return (
-		<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e4e4e7]">
+		<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border">
 			<InspectorHeader element={element} />
 
 			{/* Horizontal segmented pill tab bar */}

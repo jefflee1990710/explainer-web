@@ -87,7 +87,7 @@ export function TabBar() {
 												"shrink-0 rounded-lg",
 												"h-8 w-8",
 												active
-													? "bg-[#f4fcd4] text-[#12141c] border-[#c6f24b]/60"
+													? "bg-[#c6f24b] text-[#12141c] border-[#c6f24b]/60 hover:bg-[#b6e23a]"
 													: "text-muted-foreground",
 											)}
 											onClick={() => {
@@ -105,7 +105,7 @@ export function TabBar() {
 										variant="sidebar"
 										sideOffset={8}
 									>
-										<div className="text-[#12141c] text-sm leading-none font-medium">
+										<div className="text-popover-foreground text-sm leading-none font-medium">
 											{label}
 										</div>
 									</TooltipContent>

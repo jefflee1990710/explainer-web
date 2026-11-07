@@ -29,9 +29,9 @@ export function OpenCutLoadProgressBar({
         {t("common.loading")} {progress.label ? `${progress.label} ` : ""}(
         {progress.current}/{progress.total} · {percent}%)
       </span>
-      <div className="h-1.5 w-36 overflow-hidden rounded-full bg-zinc-200">
+      <div className="h-1.5 w-36 overflow-hidden rounded-full bg-[var(--studio-fill)]">
         <div
-          className="h-full rounded-full bg-[#12141c] transition-all duration-200"
+          className="h-full rounded-full bg-[var(--studio-teal)] transition-all duration-200"
           style={{ width: `${percent}%` }}
         />
       </div>

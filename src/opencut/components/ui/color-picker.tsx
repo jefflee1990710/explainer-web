@@ -488,7 +488,7 @@ const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(
 				<div
 					ref={ref}
 					className={cn(
-						"bg-white text-[#12141c] flex h-7 border flex-1 items-center gap-2 rounded-xl px-[0.45rem]",
+						"border-border bg-input text-foreground flex h-7 border flex-1 items-center gap-2 rounded-xl px-[0.45rem]",
 						className,
 					)}
 					{...props}
