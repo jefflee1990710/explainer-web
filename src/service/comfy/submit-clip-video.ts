@@ -15,10 +15,13 @@ import { OPENROUTER_HAILUO_3_VIDEO_MODEL } from "@/service/openrouter/generate";
 export function shouldUseComfyForClipVideo(input: {
   model: string;
   audioUrl?: string;
+  skillSlug?: string;
+  durationSeconds?: number;
 }): boolean {
-  if (process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() !== "true") return false;
   if (!hasComfyEndpoint()) return false;
   if (input.audioUrl?.trim()) return false;
+  if (input.skillSlug === "one-take-director") return true;
+  if (process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() !== "true") return false;
   return input.model === OPENROUTER_HAILUO_3_VIDEO_MODEL;
 }
 
@@ -26,6 +29,80 @@ function h3ValidFrameLength(durationSeconds: number): number {
   const clamped = Math.max(2.5, Math.min(10, Number(durationSeconds) || 6));
   const rawFrames = Math.max(5, Math.ceil(clamped * 24 - 1e-9));
   return rawFrames + ((5 - (rawFrames % 17) + 17) % 17);
+}
+
+const H3_CHAIN_SEGMENT_FRAMES = 192; // 39 protected prefix frames + 153 new frames (~6.375s at 24fps)
+const H3_CHAIN_SEGMENT_NET_SECONDS = 153 / 24; // 6.375s
+
+function splitOneTakeBeatClauses(prompt: string, shotCount: number): string[] {
+  const clean = prompt.replace(/\s+/g, " ").trim();
+  const rawClauses = clean
+    .split(/\s*;\s*|\s*(?=\b\d{1,2}\s*[–-]\s*\d{1,2}s\b)/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (rawClauses.length === 0) {
+    return Array.from({ length: shotCount }, () => clean);
+  }
+  return Array.from({ length: shotCount }, (_, idx) => {
+    const mappedIdx = Math.min(
+      rawClauses.length - 1,
+      Math.floor((idx * rawClauses.length) / shotCount),
+    );
+    return rawClauses[mappedIdx] || clean;
+  });
+}
+
+export function buildOneTakeChainShots(input: {
+  prompt: string;
+  durationSeconds: number;
+  hasEndFrame: boolean;
+}): Array<{
+  id: string;
+  prompt: string;
+  length: number;
+  steps: number;
+  seed: string;
+}> {
+  const seconds = Math.max(5, Math.min(60, Math.round(Number(input.durationSeconds) || 6)));
+  if (seconds <= 10) {
+    return [
+      {
+        id: "clip_01",
+        prompt: buildRef2VaClipPrompt({
+          prompt: input.prompt,
+          hasEndFrame: input.hasEndFrame,
+        }),
+        length: h3ValidFrameLength(seconds),
+        steps: 6,
+        seed: "0",
+      },
+    ];
+  }
+
+  const shotCount = Math.max(
+    2,
+    Math.min(10, Math.ceil(seconds / H3_CHAIN_SEGMENT_NET_SECONDS)),
+  );
+  const beatClauses = splitOneTakeBeatClauses(input.prompt, shotCount);
+
+  return beatClauses.map((clause, index) => {
+    const shotNumber = index + 1;
+    const id = `clip_${String(shotNumber).padStart(2, "0")}`;
+    const continuationNote =
+      index === 0
+        ? clause
+        : `Continue seamlessly from the protected 39-frame audiovisual prefix with zero cut, reset, or camera jump. ${clause}`;
+    return {
+      id,
+      prompt: buildRef2VaClipPrompt({
+        prompt: continuationNote,
+        hasEndFrame: index === shotCount - 1 && input.hasEndFrame,
+      }),
+      length: H3_CHAIN_SEGMENT_FRAMES,
+      steps: 6,
+      seed: String(index),
+    };
+  });
 }
 
 function buildRef2VaClipPrompt(input: {
@@ -103,6 +180,7 @@ export async function submitComfyStoryboardClipVideo(
     durationSeconds: number;
     startImageUrl: string;
     endImageUrl?: string;
+    skillSlug?: string;
   },
   options?: { fetch?: typeof fetch },
 ): Promise<ComfySubmitResult> {
@@ -145,28 +223,36 @@ export async function submitComfyStoryboardClipVideo(
     delete graph["3"];
   }
 
-  graph["25"].inputs.scene_continuity = "Independent scenes";
+  const shots =
+    input.skillSlug === "one-take-director"
+      ? buildOneTakeChainShots({
+          prompt: input.prompt,
+          durationSeconds: input.durationSeconds,
+          hasEndFrame: Boolean(endName),
+        })
+      : [
+          {
+            id: "clip_01",
+            prompt: buildRef2VaClipPrompt({
+              prompt: input.prompt,
+              hasEndFrame: Boolean(endName),
+            }),
+            length: h3ValidFrameLength(input.durationSeconds),
+            steps: 6,
+            seed: "0",
+          },
+        ];
+
+  graph["25"].inputs.scene_continuity =
+    shots.length > 1 ? "Hard picture + smooth audio" : "Independent scenes";
   const { width, height } = resolveH3ExtendDimensions(input.aspectRatio);
-  const length = h3ValidFrameLength(input.durationSeconds);
-  const promptText = buildRef2VaClipPrompt({
-    prompt: input.prompt,
-    hasEndFrame: Boolean(endName),
-  });
 
   graph["26"].inputs.width = width;
   graph["26"].inputs.height = height;
   graph["26"].inputs.run_name = `clip_${runId}`;
   graph["26"].inputs.plan_json = JSON.stringify(
     {
-      shots: [
-        {
-          id: "clip_01",
-          prompt: promptText,
-          length,
-          steps: 6,
-          seed: "0",
-        },
-      ],
+      shots,
     },
     null,
     2,

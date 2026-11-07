@@ -272,7 +272,14 @@ export async function submitClipVideo(
   const fallbackModel = isRealisticStyle(styleObj)
     ? OPENROUTER_HAILUO_3_VIDEO_MODEL
     : OPENROUTER_WAN_3_VIDEO_MODEL;
-  if (shouldUseComfyForClipVideo({ model, audioUrl: input.audioUrl })) {
+  if (
+    shouldUseComfyForClipVideo({
+      model,
+      audioUrl: input.audioUrl,
+      skillSlug: input.skillSlug,
+      durationSeconds: input.durationSeconds,
+    })
+  ) {
     return submitComfyStoryboardClipVideo(
       {
         prompt: input.prompt,
@@ -280,6 +287,7 @@ export async function submitClipVideo(
         durationSeconds: input.durationSeconds,
         startImageUrl: input.startImageUrl,
         endImageUrl: input.endImageUrl,
+        skillSlug: input.skillSlug,
       },
       options,
     );
