@@ -5,7 +5,7 @@ import {
   consumeCredits,
   refundCredits,
 } from "@/service/billing/credits";
-import { enqueueClipFrameJobs } from "@/service/higgsfield/pipeline";
+import { enqueueClipFrameJobs, stillBlocker } from "@/service/higgsfield/pipeline";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import {
   enqueueVideoLockJobs,
@@ -28,6 +28,8 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
     });
     return;
   }
+  // Wait if a background character style blueprint is still generating.
+  if (await stillBlocker(project)) return;
   const started = (project.frames || []).some(
     (frame) =>
       frame.submittedAt ||

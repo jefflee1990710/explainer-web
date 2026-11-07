@@ -279,6 +279,29 @@ async function completeBoardFullBody(
       await deleteExplainerBlobUrls(safeToDelete).catch(() => {});
     }
   }
+  // Wake any videos waiting on this background style blueprint version so their scene frames can start.
+  if (!version.isBaseCandidate) {
+    try {
+      const { videosCollection } = await import("@/dao");
+      const { enqueueSceneImagesForNewVideo } = await import(
+        "@/service/clip/enqueue-scene-images"
+      );
+      const videos = await videosCollection();
+      const waitingVideos = await videos
+        .find({
+          $or: [
+            { "cast.versionId": version.id },
+            { "phaseA.clips.cast.versionId": version.id },
+          ],
+        })
+        .toArray();
+      for (const video of waitingVideos) {
+        await enqueueSceneImagesForNewVideo(video._id).catch(() => {});
+      }
+    } catch {
+      // Ignore background wake errors.
+    }
+  }
 }
 
 async function downloadBuffer(url: string) {

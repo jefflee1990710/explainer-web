@@ -1,26 +1,15 @@
 import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { firstClipHookPerformanceVideoLine } from "@/service/director/hook-title";
+import { getDirectorRuleModule } from "@/service/director/rules";
 import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/service/director/skill-rules";
-import {
-  DUAL_KEYFRAME_GLIDE_RULES,
-  DUAL_KEYFRAME_MOTION_RULES,
-  REALISTIC_SINGLE_FRAME_MOTION_RULES,
-} from "@/service/director/dual-keyframe-motion";
-import { OUTFIT_CHANGE_VIDEO_MOTION_RULES } from "@/service/director/outfit-change";
-import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
-import { surpriseVarietyPlan, surpriseVideoMotionRules } from "@/service/director/surprise-interview";
+import { surpriseVarietyPlan } from "@/service/director/surprise-interview";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
-import {
-  clipUsesTalkingPerformance,
-  talkingShotForSkill,
-  talkingVideoMotionRules,
-} from "@/service/director/talking-performance";
+import { clipUsesTalkingPerformance } from "@/service/director/talking-performance";
 
 // Director-only note. Do not pass character sheet URLs — MiniMax H3 only
 // receives this clip's first and last frames.
@@ -136,22 +125,15 @@ export function clipPhaseBUserPrompt(input: {
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-    clipUsesTalkingPerformance(input.skillSlug)
-      ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face", input.performance)
-      : isOutfitChangeSkill(input.skillSlug)
-        ? OUTFIT_CHANGE_VIDEO_MOTION_RULES
-        : isOutfitReelSkill(input.skillSlug)
-        ? OUTFIT_VIDEO_MOTION_RULES
-        : isSurpriseInterviewSkill(input.skillSlug)
-          ? surpriseVideoMotionRules(
-              row.clipNumber,
-              surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place,
-            )
-          : input.smoothMotion && (!input.skillSlug || isDiagramExplainerSkill(input.skillSlug))
-            ? DUAL_KEYFRAME_GLIDE_RULES
-            : input.smoothMotion
-              ? REALISTIC_SINGLE_FRAME_MOTION_RULES
-              : DUAL_KEYFRAME_MOTION_RULES,
+    getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
+      smoothMotion: Boolean(input.smoothMotion),
+      realistic: Boolean(input.realistic),
+      clipNumber: row.clipNumber,
+      place: surprise
+        ? surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place
+        : undefined,
+      performance: input.performance,
+    }),
     opening,
     row.clipNumber === 1
       ? firstClipHookPerformanceVideoLine(

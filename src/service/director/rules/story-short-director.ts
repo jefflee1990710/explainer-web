@@ -10,6 +10,15 @@ import {
 const SIGHTLINE_RULE =
   "Sightline: show only what this camera can see. A working face (a person's face, a screen, a page, a sign, a dial, a label) stays aimed at whoever uses it. Draw that content only on that side. If this camera cannot see that side, draw the blank side it does see. Never turn a person or a prop around, and never move the content onto the blank side, just to make it visible.";
 
+const STORY_DUAL_KEYFRAME_MOTION_RULES = [
+  "The start and end storyboard images for this clip are the SAME SHOT, attached as first/last frames.",
+  "Never call those stills a reference image; MiniMax H3 receives them as first/last frames only.",
+  "They differ by a duration-scaled amount (see the clip's durationSeconds). Something moves through the FULL duration — do not hold the start pose then snap to the end in the last frames.",
+  "Give body motion real human timing, not one constant speed: a quick anticipation, then the main move snaps fast and decisive in well under a second, a small overshoot, then a clear settle and a short hold while props and the graph keep animating. When a character is on screen, animate vivid, expressive facial expression changes (active eyebrows, expressive eyes, and clear emotional reactions) through the beats—never a blank or deadpan face.",
+  "Put a timestamp on each beat and write the speed into the verbs (snaps, flicks, whips, pops, darts). Never call the body motion smooth, slow, gentle, gradual, steady, sustained, or seamless, and never stretch one move evenly across the whole clip.",
+  "Use the seconds: short clips (3–4s) are one beat; longer clips (5–8s) are two beats that finish on the end still.",
+  "Interpolate element-by-element: start elements leave one by one; end elements pop or slide in. The character keeps roughly the same screen position and scale.",
+].join(" ");
 const STORY_SINGLE_FRAME_MOTION_RULES = [
   "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
   "Never call that still a reference image.",
@@ -54,8 +63,10 @@ export const storyShortDirectorRules: DirectorRuleModule = {
       "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow and eye changes that convey the emotional beat with mouths closed—never a blank or wooden face, and never lip-sync).",
     ].join(" ");
   },
-  phaseBMotionRules() {
-    return STORY_SINGLE_FRAME_MOTION_RULES;
+  phaseBMotionRules(options) {
+    return options.smoothMotion === false
+      ? STORY_DUAL_KEYFRAME_MOTION_RULES
+      : STORY_SINGLE_FRAME_MOTION_RULES;
   },
   phaseBDetailRules(options) {
     const base = options.realistic

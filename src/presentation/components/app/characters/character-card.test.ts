@@ -114,3 +114,16 @@ test("defaultSheetForStyle, presetsForCharacterStyle, and historyVersionsForChar
   );
 });
 
+test("CharacterSelectDialog does not render AddCharacterStyleDialog or manual + Generate Style buttons", () => {
+  const dialogSrc = readFileSync(
+    path.join(
+      process.cwd(),
+      "src/presentation/components/app/projects/[id]/character-select-dialog.tsx",
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(dialogSrc, /AddCharacterStyleDialog/);
+  assert.doesNotMatch(dialogSrc, /handleQuickAddCurrentStyle/);
+});
+
+

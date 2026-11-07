@@ -1,12 +1,7 @@
 import { generateText, Output } from "ai";
-import {
-  DUAL_KEYFRAME_GLIDE_RULES,
-  DUAL_KEYFRAME_MOTION_RULES,
-  REALISTIC_SINGLE_FRAME_MOTION_RULES,
-} from "@/service/director/dual-keyframe-motion";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { phaseBDetailRules } from "@/service/director/scene-detail";
+import { getDirectorRuleModule } from "@/service/director/rules";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
   cartoonClipAction,
@@ -14,11 +9,9 @@ import {
   isOutfitChangeSkill,
   isOutfitReelSkill,
   isSilentOutfitSkill,
-  isSurpriseInterviewSkill,
   skillBansNarration,
   skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
@@ -38,20 +31,12 @@ import type { Skill } from "@/model/skill";
 import { resolvePerformance } from "@/service/director/performance";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
 import { NO_ONSCREEN_WRITING, storyboardAsksForSubtitle } from "@/service/director/scene-text";
-import {
-  OUTFIT_CHANGE_COVERED_SWAP,
-  OUTFIT_CHANGE_VIDEO_MOTION_RULES,
-} from "@/service/director/outfit-change";
+import { OUTFIT_CHANGE_COVERED_SWAP } from "@/service/director/outfit-change";
 import {
   OUTFIT_COVERED_SWAP,
-  OUTFIT_VIDEO_MOTION_RULES,
   rewriteOutfitSafetyText,
 } from "@/service/director/outfit-reel";
-import { SURPRISE_VARIETY_VIDEO_RULES } from "@/service/director/surprise-interview";
-import {
-  talkingShotForSkill,
-  talkingVideoMotionRules,
-} from "@/service/director/talking-performance";
+import { talkingShotForSkill } from "@/service/director/talking-performance";
 
 type PhaseBInput = {
   skill: Skill;
@@ -75,6 +60,7 @@ type PhaseBInput = {
 function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
   const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
   const realistic = isRealisticStyle(input.style);
+  const directorRules = getDirectorRuleModule(input.skill.slug);
   const silent =
     isSilentOutfitSkill(input.skill.slug) ||
     (input.narrationEnabled === false && !isTalkingHeadSkill(input.skill.slug) && !skillBansNarration(input.skill.slug));
@@ -86,25 +72,14 @@ ${
   steady
     ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
     : "Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image."
-} ${
-    isTalkingHeadSkill(input.skill.slug)
-      ? talkingVideoMotionRules(
-          talkingShotForSkill(input.skill.slug) ?? "face",
-          resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
-        )
-      : isOutfitChangeSkill(input.skill.slug)
-        ? OUTFIT_CHANGE_VIDEO_MOTION_RULES
-        : isOutfitReelSkill(input.skill.slug)
-        ? OUTFIT_VIDEO_MOTION_RULES
-        : isSurpriseInterviewSkill(input.skill.slug)
-          ? SURPRISE_VARIETY_VIDEO_RULES
-          : steady && isDiagramExplainerSkill(input.skill.slug)
-            ? DUAL_KEYFRAME_GLIDE_RULES
-            : steady
-              ? REALISTIC_SINGLE_FRAME_MOTION_RULES
-              : DUAL_KEYFRAME_MOTION_RULES
-  } Do not invent a different final pose, camera, or composition.
-${phaseBDetailRules({
+} ${directorRules.phaseBMotionRules({
+    smoothMotion: steady,
+    realistic,
+    performance: isTalkingHeadSkill(input.skill.slug)
+      ? resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en")
+      : undefined,
+  })} Do not invent a different final pose, camera, or composition.
+${directorRules.phaseBDetailRules({
   realistic,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
   narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !silent,

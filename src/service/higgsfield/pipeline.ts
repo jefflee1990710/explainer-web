@@ -95,7 +95,10 @@ import {
   isTalkingBrollSkill,
   skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
-import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
+import {
+  syncProjectCastFromCharacters,
+  withSceneCharacterLocks,
+} from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
@@ -201,35 +204,37 @@ export async function submitStillIfNeeded(project: Project) {
 // Frames need the character lock. Returns a user-facing reason to wait (and
 // kicks the still off) or null when frames may be submitted now.
 export async function stillBlocker(project: Project): Promise<string | null> {
-  if (project.cast && project.cast.length > 0) {
+  const clipCastMembers = (project.phaseA?.clips || []).flatMap((c) => c.cast || []);
+  const allCastMembers = [...(project.cast || []), ...clipCastMembers];
+  if (allCastMembers.length > 0) {
     const { charactersCollection } = await import("@/dao");
     const characters = await charactersCollection();
-    const docs = await characters
-      .find({ _id: { $in: project.cast.map((m) => m.characterId) } })
-      .toArray();
-    let castUpdated = false;
-    const nextCast = project.cast.map((member) => {
-      const doc = docs.find((d) => d._id.equals(member.characterId));
-      const ver = doc?.versions.find((v) => v.id.equals(member.versionId));
-      if (ver && ver.status === "completed" && ver.blueprintUrl && member.blueprintUrl !== ver.blueprintUrl) {
-        castUpdated = true;
-        return { ...member, blueprintUrl: ver.blueprintUrl };
+    const charIds = Array.from(
+      new Map(allCastMembers.map((m) => [m.characterId.toHexString(), m.characterId])).values(),
+    );
+    const docs = await characters.find({ _id: { $in: charIds } }).toArray();
+    const synced = syncProjectCastFromCharacters(project, docs);
+    if (synced.changed) {
+      if (synced.updatedCast) project.cast = synced.updatedCast;
+      if (project.phaseA && synced.updatedClips) {
+        project.phaseA = { ...project.phaseA, clips: synced.updatedClips };
       }
-      return member;
-    });
-    if (castUpdated) {
-      project.cast = nextCast;
       const projects = await videosCollection();
       await projects
-        .updateOne({ _id: project._id }, { $set: { cast: nextCast, updatedAt: new Date() } })
+        .updateOne(
+          { _id: project._id },
+          {
+            $set: {
+              ...(synced.updatedCast ? { cast: synced.updatedCast } : {}),
+              ...(synced.updatedClips ? { "phaseA.clips": synced.updatedClips } : {}),
+              updatedAt: new Date(),
+            },
+          },
+        )
         .catch(() => {});
     }
-    for (const member of project.cast) {
-      const doc = docs.find((d) => d._id.equals(member.characterId));
-      const ver = doc?.versions.find((v) => v.id.equals(member.versionId));
-      if (ver && (ver.status === "queued" || ver.status === "in_progress")) {
-        return "角色風格藍圖正在產生，請稍候再試";
-      }
+    if (synced.pending) {
+      return "角色風格藍圖正在產生，請稍候再試";
     }
   }
   if (!(project.cast && project.cast.length > 0) && !project.characterStillUrl) {

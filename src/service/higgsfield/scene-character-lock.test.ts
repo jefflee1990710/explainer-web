@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { resolveBoardLockUrlFromVersion, sceneLockPlan } from "@/service/higgsfield/scene-character-lock";
+import {
+  resolveBoardLockUrlFromVersion,
+  sceneLockPlan,
+  syncProjectCastFromCharacters,
+} from "@/service/higgsfield/scene-character-lock";
 import { rootBoardImages } from "@/service/character/generate";
 import { completionDefaults } from "@/service/character/sync";
 import type { Character, CharacterVersion } from "@/model/character";
@@ -146,4 +150,93 @@ test("completionDefaults skips isBaseCandidate versions and sets baseVersionId o
   );
   assert.deepEqual(candidateDefaults, {});
 });
+
+test("syncProjectCastFromCharacters detects in-flight top-level and per-clip cast versions and updates completed blueprintUrls", () => {
+  const charId = new ObjectId();
+  const vQueuedId = new ObjectId();
+  const vDoneId = new ObjectId();
+  const charDoc: Character = {
+    _id: charId,
+    userId: new ObjectId(),
+    clerkUserId: "u1",
+    name: "Aria",
+    styleId: "realistic",
+    versions: [
+      {
+        id: vQueuedId,
+        styleId: "doodle",
+        prompt: "p",
+        blueprintKind: "board",
+        status: "in_progress",
+        creditsCharged: false,
+        createdAt: new Date(),
+      },
+      {
+        id: vDoneId,
+        styleId: "pixel",
+        prompt: "p",
+        blueprintKind: "board",
+        blueprintUrl: "https://blob/pixel-done-board.png",
+        status: "completed",
+        creditsCharged: false,
+        createdAt: new Date(),
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Top-level cast still in_progress -> pending = true
+  const res1 = syncProjectCastFromCharacters(
+    {
+      cast: [
+        {
+          characterId: charId,
+          versionId: vQueuedId,
+          name: "Aria",
+          blueprintUrl: "https://blob/realistic-board.png",
+          prompt: "p",
+        },
+      ],
+    },
+    [charDoc],
+  );
+  assert.equal(res1.pending, true);
+
+  // Per-clip cast in_progress -> pending = true, and completed version updates blueprintUrl
+  const res2 = syncProjectCastFromCharacters(
+    {
+      cast: [
+        {
+          characterId: charId,
+          versionId: vDoneId,
+          name: "Aria",
+          blueprintUrl: "https://blob/realistic-board.png",
+          prompt: "p",
+        },
+      ],
+      phaseA: {
+        clips: [
+          {
+            clipNumber: 1,
+            cast: [
+              {
+                characterId: charId,
+                versionId: vQueuedId,
+                name: "Aria",
+                blueprintUrl: "https://blob/realistic-board.png",
+                prompt: "p",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    [charDoc],
+  );
+  assert.equal(res2.pending, true);
+  assert.equal(res2.changed, true);
+  assert.equal(res2.updatedCast?.[0]?.blueprintUrl, "https://blob/pixel-done-board.png");
+});
+
 

@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import {
-  addCharacterStyleAction,
-  refreshCharacterAction,
-} from "@/presentation/actions/characters";
-import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
-import { AddCharacterStyleDialog } from "@/presentation/components/app/characters/[id]/add-character-style-dialog";
+import { refreshCharacterAction } from "@/presentation/actions/characters";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
@@ -20,14 +15,11 @@ import type {
   PublicCharacterVersion,
   PublicStyle,
 } from "@/presentation/serialize";
-import { isCreditGateError } from "@/service/billing/credit-gate";
 import type {
   CharacterPresetSelection,
   CharacterSelectionMap,
 } from "@/service/character/character-presets";
-import { BLUEPRINT_COST } from "@/service/production-plan";
 import { STYLES } from "@/service/style/catalog";
-import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
 
 type LookMode = "presets" | "history";
@@ -231,10 +223,6 @@ export function CharacterSelectDialog({
   const [lookMode, setLookMode] = useState<LookMode>("presets");
   const [managingCharId, setManagingCharId] = useState<string | null>(null);
   const [createCharOpen, setCreateCharOpen] = useState(false);
-  const [addStyleCharId, setAddStyleCharId] = useState<string | null>(null);
-  const [addingQuickStyle, setAddingQuickStyle] = useState(false);
-  const [quickStyleError, setQuickStyleError] = useState("");
-  const [creditGate, setCreditGate] = useState(false);
   const [query, setQuery] = useState("");
   const [, setRecentIds] = useState<string[]>(() => readRecentPresetIds());
 
@@ -266,19 +254,13 @@ export function CharacterSelectDialog({
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (
-        event.key === "Escape" &&
-        !managingCharId &&
-        !createCharOpen &&
-        !addStyleCharId &&
-        !creditGate
-      ) {
+      if (event.key === "Escape" && !managingCharId && !createCharOpen) {
         onClose();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, managingCharId, createCharOpen, addStyleCharId, creditGate]);
+  }, [onClose, managingCharId, createCharOpen]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -307,11 +289,6 @@ export function CharacterSelectDialog({
   const managingCharacter = useMemo(
     () => characters.find((c) => c.id === managingCharId) || null,
     [characters, managingCharId],
-  );
-
-  const addStyleCharacter = useMemo(
-    () => characters.find((c) => c.id === addStyleCharId) || null,
-    [characters, addStyleCharId],
   );
 
   function selectCharacterWithOption(
@@ -362,27 +339,6 @@ export function CharacterSelectDialog({
     onSelectionsChange(nextSelections);
   }
 
-  async function handleQuickAddCurrentStyle(char: PublicCharacter, targetStyleId: string) {
-    if (addingQuickStyle) return;
-    setAddingQuickStyle(true);
-    setQuickStyleError("");
-    try {
-      const res = await addCharacterStyleAction(char.id, targetStyleId);
-      if (!res.ok) {
-        if (isCreditGateError(res.error)) {
-          setCreditGate(true);
-          return;
-        }
-        setQuickStyleError(translateAppError(res.error, t));
-        return;
-      }
-      setOverrides((prev) => ({ ...prev, [res.character.id]: res.character }));
-      onCharacterUpdated?.(res.character);
-    } finally {
-      setAddingQuickStyle(false);
-    }
-  }
-
   function handleOpenCreateCharacter() {
     if (onCreateCharacter) {
       onCreateCharacter();
@@ -409,11 +365,9 @@ export function CharacterSelectDialog({
   const activeCharGeneratingForStyle = useMemo(() => {
     if (!activeCharacter) return false;
     return activeCharacter.versions.some(
-      (v) =>
-        (!styleId || (v.styleId || activeCharacter.styleId) === styleId) &&
-        (v.status === "queued" || v.status === "in_progress"),
+      (v) => v.status === "queued" || v.status === "in_progress",
     );
-  }, [activeCharacter, styleId]);
+  }, [activeCharacter]);
 
   const activeCharSelected = activeCharacter ? value.includes(activeCharacter.id) : false;
   const activeSelection = activeCharacter ? selections[activeCharacter.id] : undefined;
@@ -561,7 +515,6 @@ export function CharacterSelectDialog({
                     onClick={() => {
                       setActiveCharId(char.id);
                       setLookMode("presets");
-                      setQuickStyleError("");
                       const sheet = defaultSheetForStyle(char);
                       if (sheet && !isSelected && (!multiple || value.length < max)) {
                         selectCharacterWithOption(
@@ -694,16 +647,16 @@ export function CharacterSelectDialog({
                 </div>
               </div>
 
-              {/* If character doesn't have a completed blueprint for the current video styleId yet */}
-              {styleId && !activeDefaultSheet ? (
+              {/* If character's realistic foundation blueprint is still generating */}
+              {!activeDefaultSheet ? (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center">
                   {activeCharGeneratingForStyle ? (
                     <>
                       <Spinner className="h-6 w-6 text-[#12141c]" />
                       <p className="text-sm font-bold text-[#12141c]">
                         {isEn
-                          ? `Generating ${localizedStyleName(styleId)} blueprint for ${activeCharacter.name}…`
-                          : `正在為「${activeCharacter.name}」生成「${localizedStyleName(styleId)}」風格藍圖…`}
+                          ? `Generating Realistic blueprint for ${activeCharacter.name}…`
+                          : `正在為「${activeCharacter.name}」生成寫實基底藍圖…`}
                       </p>
                       <p className="text-xs text-muted">
                         {isEn
@@ -712,42 +665,9 @@ export function CharacterSelectDialog({
                       </p>
                     </>
                   ) : (
-                    <>
-                      <p className="text-sm font-bold text-[#12141c]">
-                        {isEn
-                          ? `${activeCharacter.name} does not have a "${localizedStyleName(styleId)}" style blueprint yet.`
-                          : `「${activeCharacter.name}」尚未建立「${localizedStyleName(styleId)}」風格的藍圖。`}
-                      </p>
-                      {quickStyleError ? (
-                        <p className="text-xs font-semibold text-red-600">
-                          {quickStyleError}
-                        </p>
-                      ) : null}
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          disabled={addingQuickStyle}
-                          onClick={() =>
-                            void handleQuickAddCurrentStyle(activeCharacter, styleId)
-                          }
-                          className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-2xl bg-[#12141c] px-4 text-xs font-bold text-[#c6f24b] transition hover:bg-black disabled:opacity-50"
-                        >
-                          {addingQuickStyle ? <Spinner className="h-4 w-4" /> : null}
-                          <span>
-                            {isEn
-                              ? `+ Generate "${localizedStyleName(styleId)}" Style (${BLUEPRINT_COST} credits)`
-                              : `+ 立即新增「${localizedStyleName(styleId)}」風格 (${BLUEPRINT_COST} 點)`}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAddStyleCharId(activeCharacter.id)}
-                          className="inline-flex h-10 cursor-pointer items-center rounded-2xl border border-zinc-300 bg-white px-4 text-xs font-bold text-[#12141c] hover:border-[#12141c]"
-                        >
-                          {isEn ? "Browse All Styles…" : "選擇其他風格…"}
-                        </button>
-                      </div>
-                    </>
+                    <p className="text-sm font-bold text-[#12141c]">
+                      {t("characters.noVersions")}
+                    </p>
                   )}
                 </div>
               ) : lookMode === "presets" ? (
@@ -924,33 +844,6 @@ export function CharacterSelectDialog({
             }
           }}
           onClose={() => setCreateCharOpen(false)}
-        />
-      ) : null}
-
-      {/* Add Style to Character Modal */}
-      {addStyleCharacter ? (
-        <AddCharacterStyleDialog
-          character={addStyleCharacter}
-          styles={availableStyles}
-          onClose={() => setAddStyleCharId(null)}
-          onAdded={(updated) => {
-            setOverrides((prev) => ({ ...prev, [updated.id]: updated }));
-            onCharacterUpdated?.(updated);
-            setAddStyleCharId(null);
-          }}
-          onNeedCredits={() => {
-            setAddStyleCharId(null);
-            setCreditGate(true);
-          }}
-        />
-      ) : null}
-
-      {creditGate ? (
-        <InsufficientCreditsDialog
-          needed={BLUEPRINT_COST}
-          subscribed={subscribed}
-          onClose={() => setCreditGate(false)}
-          onPaid={() => setCreditGate(false)}
         />
       ) : null}
 

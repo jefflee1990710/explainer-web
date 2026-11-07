@@ -1,11 +1,56 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
-import type { CastMember, CharacterVersion } from "@/model/character";
+import type { CastMember, Character, CharacterVersion } from "@/model/character";
 import { charactersCollection } from "@/dao";
 import { cropBlueprintFront } from "@/service/higgsfield/outfit-identity";
 import { persistBuffer } from "@/service/higgsfield/persist";
 
 const lockUrlCache = new Map<string, Promise<string>>();
+
+export function syncProjectCastFromCharacters<
+  TClip extends { clipNumber: number; cast?: CastMember[] },
+>(
+  project: { cast?: CastMember[]; phaseA?: { clips: TClip[] } },
+  docs: Character[],
+): {
+  pending: boolean;
+  changed: boolean;
+  updatedCast?: CastMember[];
+  updatedClips?: TClip[];
+} {
+  let pending = false;
+  let changed = false;
+
+  const syncList = (list: CastMember[] | undefined): CastMember[] | undefined => {
+    if (!list || list.length === 0) return list;
+    return list.map((member) => {
+      const doc = docs.find((d) => d._id.equals(member.characterId));
+      const ver = doc?.versions.find((v) => v.id.equals(member.versionId));
+      if (ver && (ver.status === "queued" || ver.status === "in_progress")) {
+        pending = true;
+      }
+      if (
+        ver &&
+        ver.status === "completed" &&
+        ver.blueprintUrl &&
+        member.blueprintUrl !== ver.blueprintUrl
+      ) {
+        changed = true;
+        return { ...member, blueprintUrl: ver.blueprintUrl };
+      }
+      return member;
+    });
+  };
+
+  const updatedCast = syncList(project.cast);
+  const updatedClips = project.phaseA?.clips.map((clip) => {
+    if (!clip.cast || clip.cast.length === 0) return clip;
+    const nextClipCast = syncList(clip.cast);
+    return nextClipCast !== clip.cast ? { ...clip, cast: nextClipCast } : clip;
+  });
+
+  return { pending, changed, updatedCast, updatedClips };
+}
 
 // A board (portrait + one standing figure) goes in whole: the close-up carries the face.
 // Legacy sheets use the standing preview when it exists, else the cropped front figure.

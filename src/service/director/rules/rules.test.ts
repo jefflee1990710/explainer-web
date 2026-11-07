@@ -114,3 +114,17 @@ test("AGENTS.md documents the 1 Director = 1 File isolation rule", () => {
   assert.match(agents, /1 Director = 1 File/i);
   assert.match(agents, /src\/service\/director\/rules\//);
 });
+
+test("phase-b-clip-prompt.ts and run-phase-b.ts delegate motion and detail rules to getDirectorRuleModule", () => {
+  const clipPromptSrc = readFileSync(
+    path.join(process.cwd(), "src/service/director/phase-b-clip-prompt.ts"),
+    "utf8",
+  );
+  const runPhaseBSrc = readFileSync(
+    path.join(process.cwd(), "src/service/director/run-phase-b.ts"),
+    "utf8",
+  );
+  assert.match(clipPromptSrc, /getDirectorRuleModule/);
+  assert.match(runPhaseBSrc, /getDirectorRuleModule/);
+});
+
