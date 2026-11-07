@@ -324,14 +324,30 @@ export function JutsuStudio({
 
   const handleCharacterUpdated = useCallback((next: PublicCharacter) => {
     setCharacters((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+    const nextDefaultUrl = defaultCharacterLookUrl(next);
     // When the active character generates a new outfit version and `selectedLookKey === "default"`,
-    // sync `selectedLookUrl` to the updated default look so clicking Generate uses the new outfit.
+    // sync `selectedLookUrl` and any default-look person slots to the updated default look.
     setSelectedLookUrl((prevUrl) => {
       if (characterId === next.id && selectedLookKey === "default") {
-        return defaultCharacterLookUrl(next) || prevUrl;
+        return nextDefaultUrl || prevUrl;
       }
       return prevUrl;
     });
+    if (nextDefaultUrl) {
+      setPersonAssignments((prev) => {
+        let changed = false;
+        const updated: Record<number, JutsuPersonSlotAssignment> = {};
+        for (const [k, slot] of Object.entries(prev)) {
+          if (slot.characterId === next.id && slot.selectedLookKey === "default") {
+            updated[Number(k)] = { ...slot, selectedLookUrl: nextDefaultUrl };
+            changed = true;
+          } else {
+            updated[Number(k)] = slot;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    }
   }, [characterId, selectedLookKey]);
 
   // Poll any in-flight job automatically and keep history updated.
@@ -421,6 +437,23 @@ export function JutsuStudio({
     }
   }
 
+  const selectionStateRef = useRef({
+    characters,
+    characterId,
+    lookTab,
+    selectedLookKey,
+    selectedLookUrl,
+  });
+  useEffect(() => {
+    selectionStateRef.current = {
+      characters,
+      characterId,
+      lookTab,
+      selectedLookKey,
+      selectedLookUrl,
+    };
+  }, [characters, characterId, lookTab, selectedLookKey, selectedLookUrl]);
+
   const runFramePeopleDetection = useCallback(async () => {
     if (!sourceVideoUrl) return;
     setDetectingPeople(true);
@@ -474,8 +507,15 @@ export function JutsuStudio({
 
       setDetectedPeople(res.people);
       if (res.people.length > 0) {
+        const {
+          characters: curChars,
+          characterId: curCharId,
+          lookTab: curLookTab,
+          selectedLookKey: curLookKey,
+          selectedLookUrl: curLookUrl,
+        } = selectionStateRef.current;
         const firstChar =
-          characters.find((c) => c.id === characterId) ?? characters[0] ?? null;
+          curChars.find((c) => c.id === curCharId) ?? curChars[0] ?? null;
         const nextMap: Record<number, JutsuPersonSlotAssignment> = {};
         for (const p of res.people) {
           nextMap[p.personIndex] = buildInitialPersonSlotAssignment({
@@ -484,6 +524,9 @@ export function JutsuStudio({
             characterName: firstChar?.name ?? "",
             defaultLookUrl: defaultCharacterLookUrl(firstChar),
             defaultLookLabel: isEn ? "Default Look" : "預設造型",
+            lookTab: curLookTab,
+            selectedLookKey: curLookKey,
+            selectedLookUrl: curLookUrl,
             uploadedPhotoUrls: uploadedPhotoUrlsRef.current,
           });
         }
@@ -496,7 +539,7 @@ export function JutsuStudio({
     } finally {
       setDetectingPeople(false);
     }
-  }, [sourceVideoUrl, sourceMediaKind, sectionStart, characters, characterId, isEn]);
+  }, [sourceVideoUrl, sourceMediaKind, sectionStart, isEn]);
 
   // Debounced auto-detection 800ms after `sourceVideoUrl` loads or `sectionStart` changes.
   useEffect(() => {

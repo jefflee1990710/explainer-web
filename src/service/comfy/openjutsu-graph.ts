@@ -39,12 +39,21 @@ const SIMPLE_NODES = {
   target: "24",
   referenceConditioning: "30",
   peopleMask: "39",
+  mannequinMask: "40",
+  mannequin: "41",
   growMask: "42",
+  shotDescriber: "44",
+  fillShots: "45",
   hat: ["47", "48", "49", "50", "51", "52"],
 };
 
 const SIMPLE_DESCRIBE_PICTURE_PROMPT =
-  "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including footwear and accessories. No preamble, no background.";
+  "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including exact garment colors, neckline, footwear, and accessories. No preamble, no background.";
+
+// Strip source-person clothing, bags, and earphones that Node 44 (Qwen3-VL on unmasked source frames)
+// may mention and that H3FillShots's built-in ACCESSORIES regex misses.
+const SIMPLE_CLEAN_SHOTS_REGEX =
+  "(?:,?\\s*\\b(?:with|in|wearing|dressed in)\\s+|\\s+and\\s+)?(?:(?:a|an|the|her|his|their)\\s+)?(?:(?!with\\b|in\\b|and\\b)[\\w-]+\\s+){0,3}?(?:crop\\s+top|tank\\s+top|tube\\s+top|halter\\s+top|camisole|sports\\s+bra|bra|top|shoulder\\s+bag|crossbody\\s+bag|handbag|tote\\s+bag|bag|purse|backpack|earphones?|earbuds?|headphones?|headset|lanyard)(?:\\s+(?:slung|dangling|hanging|draped|worn)\\s+(?:from|over|across|around)\\s+(?:their|her|his|the)\\s+[\\w\\s]+?(?=[,.;]|\\s+and\\b|$))?";
 
 const MUTE = /^Mute the (clip|reference) audio H3 hears$/;
 const NO_LIP_SYNC =
@@ -58,6 +67,7 @@ export type SimpleGraphInput = {
   section: Section;
   role: string;
   target: string;
+  outfitSpec?: string;
   hatFix: boolean;
   noLipSync: boolean;
   margin: OpenJutsuMargin;
@@ -359,7 +369,65 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   }
   if (!input.noLipSync) dropNoLipSync(graph);
   setMotionSize(graph, input.motion);
+
+  // Soften dark/light clothing blocks inside the grey mannequin (Node 41) so a dark source top on bare skin
+  // does not bleed through as a black garment when the target character wears a light/pastel outfit.
+  graph[SIMPLE_NODES.mannequin].inputs.blur = 0.08;
+  graph.scro_mannequin_contrast = {
+    class_type: "AdjustContrast",
+    inputs: {
+      images: [SIMPLE_NODES.mannequin, 0],
+      factor: 0.45,
+    },
+    _meta: { title: "Flatten mannequin clothing contrast" },
+  };
+  graph.scro_mannequin_masked = {
+    class_type: "ImageCompositeMasked",
+    inputs: {
+      destination: [SIMPLE_NODES.mannequin, 0],
+      source: ["scro_mannequin_contrast", 0],
+      x: 0,
+      y: 0,
+      resize_source: false,
+      mask: [SIMPLE_NODES.mannequinMask, 0],
+    },
+    _meta: { title: "Softened grey mannequin (person only)" },
+  };
+  graph[SIMPLE_NODES.referenceConditioning].inputs["ref_videos.ref_video_0"] = [
+    "scro_mannequin_masked",
+    0,
+  ];
+
+  // Scrub source-person tops, bags, and earphones from Node 44's shot list before H3FillShots (Node 45).
+  graph.scro_clean_shots = {
+    class_type: "RegexReplace",
+    inputs: {
+      string: [SIMPLE_NODES.shotDescriber, 0],
+      regex_pattern: SIMPLE_CLEAN_SHOTS_REGEX,
+      replace: "",
+      case_insensitive: true,
+      multiline: true,
+      dotall: false,
+      count: 0,
+    },
+    _meta: { title: "Strip source outfit/bags/earphones from shots" },
+  };
+  graph[SIMPLE_NODES.fillShots].inputs.shots = ["scro_clean_shots", 0];
+
   const plan = graph[SIMPLE_NODES.plan].inputs;
+  const cleanOutfitSpec = input.outfitSpec?.replace(/\s+/g, " ").trim().replace(/\.+$/, "");
+  if (cleanOutfitSpec) {
+    graph.scro_picture_1_text = {
+      class_type: "StringConcatenate",
+      inputs: {
+        string_a: [SIMPLE_NODES.describePicture, 0],
+        string_b: `Complete outfit worn by <Subject 1> from <Picture 1>: ${cleanOutfitSpec} (keep the exact solid garment colors, neckline, and fabric from <Picture 1> across the entire body; completely replace the source person's clothing, bags, and earphones).`,
+        delimiter: " ",
+      },
+      _meta: { title: "Lock character outfit spec" },
+    };
+    plan.picture_1_text = ["scro_picture_1_text", 0];
+  }
   plan.resolution = OPENJUTSU_RESOLUTION;
   plan.seed = input.seed;
   plan.clip_seconds = input.clipSeconds;

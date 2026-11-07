@@ -52,7 +52,7 @@ export function removeJutsuReferenceUrl(
 
 /**
  * Build the initial per-person slot assignment when SAM 3 detects people in the opening frame.
- * Preserves any pre-uploaded custom character reference photos on Person #1.
+ * Preserves any pre-uploaded custom character reference photos and any pre-selected outfit look on Person #1.
  */
 export function buildInitialPersonSlotAssignment(input: {
   personIndex: number;
@@ -60,6 +60,10 @@ export function buildInitialPersonSlotAssignment(input: {
   characterName: string;
   defaultLookUrl: string;
   defaultLookLabel: string;
+  lookTab?: "presets" | "historical";
+  selectedLookKey?: string;
+  selectedLookUrl?: string;
+  lookLabel?: string;
   uploadedPhotoUrls?: readonly string[];
 }): {
   keepOriginal: boolean;
@@ -72,18 +76,27 @@ export function buildInitialPersonSlotAssignment(input: {
   uploadedPhotoUrl: string;
   uploadedPhotoUrls: string[];
 } {
-  const customUrls =
-    input.personIndex === 1
-      ? normalizeJutsuReferenceUrls(input.uploadedPhotoUrls)
-      : [];
+  const isPrimary = input.personIndex === 1;
+  const customUrls = isPrimary
+    ? normalizeJutsuReferenceUrls(input.uploadedPhotoUrls)
+    : [];
+  const lookTab = isPrimary && input.lookTab ? input.lookTab : "presets";
+  const selectedLookKey =
+    isPrimary && input.selectedLookKey?.trim() ? input.selectedLookKey.trim() : "default";
+  const selectedLookUrl =
+    isPrimary && input.selectedLookUrl?.trim()
+      ? input.selectedLookUrl.trim()
+      : input.defaultLookUrl;
+  const lookLabel =
+    isPrimary && input.lookLabel?.trim() ? input.lookLabel.trim() : input.defaultLookLabel;
   return {
-    keepOriginal: input.personIndex !== 1,
+    keepOriginal: !isPrimary,
     characterId: input.characterId,
     characterName: input.characterName,
-    lookTab: "presets",
-    selectedLookKey: "default",
-    selectedLookUrl: input.defaultLookUrl,
-    lookLabel: input.defaultLookLabel,
+    lookTab,
+    selectedLookKey,
+    selectedLookUrl,
+    lookLabel,
     uploadedPhotoUrl: customUrls[0] ?? "",
     uploadedPhotoUrls: customUrls,
   };

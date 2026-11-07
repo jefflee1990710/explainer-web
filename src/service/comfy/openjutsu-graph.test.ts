@@ -18,6 +18,7 @@ import {
   canSubmitJutsuComfy,
   composeJutsuCharacterReferenceSheet,
   resolveComfySwapMotionSize,
+  resolveJobCharacterOutfitSpec,
   resolveJobCharacterReferenceUrls,
   trySubmitJutsuComfy,
 } from "@/service/comfy/submit-swap";
@@ -400,6 +401,78 @@ test("trySubmitJutsuComfy leaves H3OneClickSwapPlan roles blank so Node 10 video
     else process.env.COMFY_API_KEY = prevKey;
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("buildSimpleGraph and trySubmitJutsuComfy lock characterOutfitSpec, suppress grey-mannequin clothing contrast, and strip source bags/earphones from shot lists", () => {
+  assert.equal(
+    resolveJobCharacterOutfitSpec({
+      characterOutfitSpec: "Pastel pink ribbed crop tank top, high-waisted medium-wash blue denim jeans",
+    }),
+    "Pastel pink ribbed crop tank top, high-waisted medium-wash blue denim jeans",
+  );
+  assert.equal(
+    resolveJobCharacterOutfitSpec({
+      characterOutfitSpec: "Fallback outfit",
+      personMappings: [
+        {
+          objectId: 0,
+          personIndex: 1,
+          anchorPoint: { x: 0.5, y: 0.5 },
+          box: { x: 0.2, y: 0.1, width: 0.5, height: 0.8 },
+          referenceImageUrl: "https://blob.test/p1.png",
+          characterOutfitSpec: "Mapped outfit spec",
+        },
+      ],
+    }),
+    "Mapped outfit spec",
+  );
+
+  const graph = buildSimpleGraph({
+    videoName: "source.mp4",
+    imageName: "scro-standing.jpg",
+    section,
+    role: "",
+    target: "person",
+    outfitSpec: "Pastel pink ribbed crop tank top, high-waisted medium-wash blue denim jeans",
+    hatFix: false,
+    noLipSync: false,
+    margin: "normal",
+    motion: 512,
+    seed: 0,
+    clipSeconds: 6,
+    runId: "job_outfit",
+  });
+
+  // 1. Explicit outfitSpec is appended onto Node 4 output and wired into Node 11 picture_1_text
+  assert.equal(graph.scro_picture_1_text?.class_type, "StringConcatenate");
+  assert.deepEqual(graph.scro_picture_1_text?.inputs.string_a, ["4", 0]);
+  assert.match(
+    String(graph.scro_picture_1_text?.inputs.string_b),
+    /Pastel pink ribbed crop tank top, high-waisted medium-wash blue denim jeans/,
+  );
+  assert.deepEqual(graph["11"].inputs.picture_1_text, ["scro_picture_1_text", 0]);
+
+  // 2. Grey mannequin (Node 41) softens source clothing contrast inside the person mask (Node 40)
+  assert.equal(graph["41"].inputs.blur, 0.08);
+  assert.equal(graph.scro_mannequin_contrast?.class_type, "AdjustContrast");
+  assert.deepEqual(graph.scro_mannequin_contrast?.inputs.images, ["41", 0]);
+  assert.equal(graph.scro_mannequin_contrast?.inputs.factor, 0.45);
+  assert.equal(graph.scro_mannequin_masked?.class_type, "ImageCompositeMasked");
+  assert.deepEqual(graph.scro_mannequin_masked?.inputs.destination, ["41", 0]);
+  assert.deepEqual(graph.scro_mannequin_masked?.inputs.source, ["scro_mannequin_contrast", 0]);
+  assert.deepEqual(graph.scro_mannequin_masked?.inputs.mask, ["40", 0]);
+  assert.deepEqual(graph["30"].inputs["ref_videos.ref_video_0"], ["scro_mannequin_masked", 0]);
+
+  // 3. Shot list output from Node 44 is scrubbed of source bags, earphones, and tops before Node 45 (H3FillShots)
+  assert.equal(graph.scro_clean_shots?.class_type, "RegexReplace");
+  assert.deepEqual(graph.scro_clean_shots?.inputs.string, ["44", 0]);
+  assert.deepEqual(graph["45"].inputs.shots, ["scro_clean_shots", 0]);
+  const pattern = new RegExp(String(graph.scro_clean_shots?.inputs.regex_pattern), "gi");
+  const sampleShot =
+    "[Shot 1] <Subject 1> is in the centre, holding a phone in their right hand and white earphones dangling from their ears, with a black bag slung over their left shoulder, wearing a dark crop top.";
+  const cleanedShot = sampleShot.replace(pattern, "");
+  assert.doesNotMatch(cleanedShot, /earphones|black bag|crop top/i);
+  assert.match(cleanedShot, /holding a phone/i);
 });
 
 test("resolveJobCharacterReferenceUrls and composeJutsuCharacterReferenceSheet support single and multiple character reference photos for ComfyUI", async () => {

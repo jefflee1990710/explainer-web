@@ -744,4 +744,21 @@ test("single-person and multi-person character swap prompts map multiple referen
   assert.equal(slot2.keepOriginal, true);
   assert.equal(slot2.uploadedPhotoUrl, "");
   assert.deepEqual(slot2.uploadedPhotoUrls, []);
+
+  // Pre-selected historical/preset outfit on Person #1 is preserved when auto people detection runs
+  const slotWithSelectedOutfit = buildInitialPersonSlotAssignment({
+    personIndex: 1,
+    characterId: "char-1",
+    characterName: "Scro",
+    defaultLookUrl: "https://blob.test/scro-default.png",
+    defaultLookLabel: "Default Look",
+    lookTab: "historical",
+    selectedLookKey: "ver:v2",
+    selectedLookUrl: "https://blob.test/scro-v2-standing.png",
+    lookLabel: "v2",
+  });
+  assert.equal(slotWithSelectedOutfit.lookTab, "historical");
+  assert.equal(slotWithSelectedOutfit.selectedLookKey, "ver:v2");
+  assert.equal(slotWithSelectedOutfit.selectedLookUrl, "https://blob.test/scro-v2-standing.png");
+  assert.equal(slotWithSelectedOutfit.lookLabel, "v2");
 });

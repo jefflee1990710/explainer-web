@@ -22,6 +22,16 @@ export function resolveJobCharacterReferenceUrls(
   return normalizeJutsuReferenceUrls(job.referenceImageUrls, job.referenceImageUrl);
 }
 
+export function resolveJobCharacterOutfitSpec(
+  job: Pick<JutsuJob, "characterOutfitSpec" | "personMappings">,
+): string | undefined {
+  const mappedOutfit = job.personMappings
+    ?.find((m) => m.characterOutfitSpec?.trim())
+    ?.characterOutfitSpec?.trim();
+  if (mappedOutfit) return mappedOutfit;
+  return job.characterOutfitSpec?.trim() || undefined;
+}
+
 /**
  * When a user uploads 2..6 reference photos of the same target character, stitch them into a
  * single clean multi-angle reference sheet so ComfyUI's `Picture 1` (`Describe picture 1`,
@@ -164,6 +174,7 @@ export async function trySubmitJutsuComfy(
         // strips the original person's clothing from the shot descriptions.
         role: "",
         target: "person",
+        outfitSpec: resolveJobCharacterOutfitSpec(job),
         hatFix: Boolean(job.hatFix),
         noLipSync: Boolean(job.noLipSync),
       },
