@@ -111,6 +111,7 @@ export function clipPhaseBUserPrompt(input: {
         : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 
+  const silent = isSilentOutfitSkill(input.skillSlug);
   return [
     `Approved Phase A JSON:\n${JSON.stringify(input.phaseA, null, 2)}`,
     `${input.bansNarration ? "Dialogue language" : "Voiceover language"}: ${input.languageLabel} (${input.languageSublabel})`,
@@ -120,7 +121,7 @@ export function clipPhaseBUserPrompt(input: {
       bansNarration: input.bansNarration,
       speechPace: input.speechPace,
       speakers: input.speakers,
-      silent: isSilentOutfitSkill(input.skillSlug),
+      silent,
       noSfx: true,
     }),
     input.characterLine,
@@ -142,7 +143,7 @@ export function clipPhaseBUserPrompt(input: {
         )
       : "",
     closing,
-    input.bansNarration
+    input.bansNarration && !silent
       ? 'Mouth: only the character named in this clip\'s englishVo lip-syncs every syllable of their line with vivid, expressive facial acting. Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions. Paste each supplied voice lock verbatim. Do not invent a timbre.'
       : "",
     "Return a single object { clipNumber, durationSeconds, prompt }.",

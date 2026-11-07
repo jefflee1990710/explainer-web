@@ -45,7 +45,8 @@ export function isSilentOutfitSkill(skillSlug?: string) {
   return (
     isOutfitReelSkill(skillSlug) ||
     isOutfitChangeSkill(skillSlug) ||
-    isStreetLookbookSkill(skillSlug)
+    isStreetLookbookSkill(skillSlug) ||
+    skillSlug === "one-take-director"
   );
 }
 

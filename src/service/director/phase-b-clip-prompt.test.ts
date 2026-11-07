@@ -270,6 +270,18 @@ test("dialogue Phase B names the speaking mouth and forbids an invented timbre",
   assert.match(prompt, /Do not invent a timbre/);
 });
 
+test("one-take-director Phase B prompt stays silent and never injects lip-sync or speaking mouth instructions", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal(),
+    clipNumber: 1,
+    bansNarration: true,
+    skillSlug: "one-take-director",
+  });
+  assert.doesNotMatch(prompt, /only the character named in this clip's englishVo lip-syncs/i);
+  assert.doesNotMatch(prompt, /MUST speak the dialogue aloud/i);
+});
+
 test("Phase B character line never hands Wan a reference-image URL", () => {
   assert.equal(phaseBCharacterLine({}), base.characterLine);
   assert.match(

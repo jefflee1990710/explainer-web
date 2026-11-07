@@ -30,6 +30,7 @@ import {
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
+  isSilentOutfitSkill,
   isStyleSwitchSkill,
   isOneTakeSkill,
   skillBansNarration,
@@ -383,7 +384,9 @@ ${
 ${phaseAAudioHint(input.voiceGender, {
   bansNarration: dialogueOnly,
   speakers: input.cast,
-  silent: input.narrationEnabled === false && !talkingHead && !dialogueOnly,
+  silent:
+    isSilentOutfitSkill(input.skill.slug) ||
+    (input.narrationEnabled === false && !talkingHead && !dialogueOnly),
 })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
@@ -419,7 +422,8 @@ ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} 
 ${sceneDescriptionLanguageLock(input.language)}
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
-  input.narrationEnabled === false && !talkingHead && !dialogueOnly
+  isSilentOutfitSkill(input.skill.slug) ||
+  (input.narrationEnabled === false && !talkingHead && !dialogueOnly)
     ? 'Voiceover / Narration: OFF — every clip englishVo MUST be "(no dialogue)" (leave startVo and endVo empty if present). No narrator and no spoken words.'
     : speakerLocks.length
       ? `Voice lock: copy these character locks verbatim into every spoken clip. Do not invent a timbre from the look:\n${speakerLocks.join("\n")}\nAny speaker without a lock uses: adult ${voice.en}, ${voice.fingerprint}`
