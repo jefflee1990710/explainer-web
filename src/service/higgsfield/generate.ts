@@ -3,6 +3,14 @@ import { isAlicloudStatusUrl } from "@/service/alicloud/dashscope";
 import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/generate";
 import { fetchMinimaxVideoStatus, isMinimaxVideoStatusUrl } from "@/service/minimax/talking-head-reference";
 import {
+  fetchComfyPromptStatus,
+  isComfyPromptStatusUrl,
+} from "@/service/comfy/openjutsu-client";
+import {
+  shouldUseComfyForClipVideo,
+  submitComfyStoryboardClipVideo,
+} from "@/service/comfy/submit-clip-video";
+import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
@@ -264,6 +272,18 @@ export async function submitClipVideo(
   const fallbackModel = isRealisticStyle(styleObj)
     ? OPENROUTER_HAILUO_3_VIDEO_MODEL
     : OPENROUTER_WAN_3_VIDEO_MODEL;
+  if (shouldUseComfyForClipVideo({ model, audioUrl: input.audioUrl })) {
+    return submitComfyStoryboardClipVideo(
+      {
+        prompt: input.prompt,
+        aspectRatio: input.aspectRatio,
+        durationSeconds: input.durationSeconds,
+        startImageUrl: input.startImageUrl,
+        endImageUrl: input.endImageUrl,
+      },
+      options,
+    );
+  }
   if (provider === "openrouter") {
     return submitOpenRouterClipVideo(
       {
@@ -299,6 +319,9 @@ export async function submitClipVideo(
 }
 
 export async function fetchHiggsfieldStatus(statusUrl: string) {
+  if (isComfyPromptStatusUrl(statusUrl)) {
+    return fetchComfyPromptStatus(statusUrl);
+  }
   if (isMinimaxVideoStatusUrl(statusUrl)) {
     return fetchMinimaxVideoStatus(statusUrl);
   }

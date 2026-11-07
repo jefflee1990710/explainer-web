@@ -1,7 +1,9 @@
 import {
+  buildExtendGraph,
   buildObjectGraph,
   buildSimpleGraph,
   OPENJUTSU_CLIP_SECONDS,
+  type ExtendGraphInput,
   type ObjectGraphInput,
   type OpenJutsuMargin,
   type SimpleGraphInput,
@@ -128,6 +130,45 @@ export async function submitOpenJutsuObject(
   return queueGraph(graph, fetchFn);
 }
 
+export async function submitOpenJutsuExtend(
+  input: Omit<
+    ExtendGraphInput,
+    "videoName" | "characterImageName" | "sceneImageName" | "propImageName"
+  > & {
+    video: Buffer;
+    characterImage?: Buffer | null;
+    sceneImage?: Buffer | null;
+    propImage?: Buffer | null;
+  },
+  fetchFn: typeof fetch = fetch,
+): Promise<ComfySubmitResult> {
+  const videoName = await uploadInput(
+    `scro-extend-${input.runId}.mp4`,
+    input.video,
+    "video/mp4",
+    fetchFn,
+  );
+  const [characterImageName, sceneImageName, propImageName] = await Promise.all([
+    input.characterImage
+      ? uploadInput(`char-${input.runId}.jpg`, input.characterImage, "image/jpeg", fetchFn)
+      : Promise.resolve(null),
+    input.sceneImage
+      ? uploadInput(`scene-${input.runId}.jpg`, input.sceneImage, "image/jpeg", fetchFn)
+      : Promise.resolve(null),
+    input.propImage
+      ? uploadInput(`prop-${input.runId}.jpg`, input.propImage, "image/jpeg", fetchFn)
+      : Promise.resolve(null),
+  ]);
+  const graph = buildExtendGraph({
+    ...input,
+    videoName,
+    characterImageName,
+    sceneImageName,
+    propImageName,
+  });
+  return queueGraph(graph, fetchFn);
+}
+
 async function queueGraph(graph: unknown, fetchFn: typeof fetch): Promise<ComfySubmitResult> {
   const response = await comfyFetch(
     "/prompt",
@@ -227,8 +268,8 @@ export function findOutputVideo(outputs: unknown): ComfyFile | null {
 
 function scoreVideo(file: ComfyFile) {
   const folder = file.subfolder.replaceAll("\\", "/");
-  // Swap copies to h3_oneclick_swap. Object and Teleport copy to h3_oneclick_edit.
-  if (/(^|\/)h3_oneclick_(swap|edit)$/.test(folder)) return 3;
+  // Swap copies to h3_oneclick_swap. Object and Teleport copy to h3_oneclick_edit. Extend copies to h3_oneclick_extend.
+  if (/(^|\/)h3_oneclick_(swap|edit|extend)$/.test(folder)) return 3;
   if (folder.includes("exports/videos")) return 2;
   // Assemble logs mention the mp4 path as plain text, with no subfolder. That view URL 404s.
   if (!folder || folder.includes("generation/clips")) return 0;

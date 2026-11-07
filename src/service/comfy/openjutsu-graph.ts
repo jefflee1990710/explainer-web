@@ -1,5 +1,7 @@
+import type { AspectRatio } from "@/model/project";
 import simpleWorkflowJson from "./workflows/simple.api.json";
 import objectWorkflowJson from "./workflows/object.api.json";
+import extendWorkflowJson from "./workflows/extend.api.json";
 
 // OpenJutsu graph edits, kept in step with experiments/openjutsu/lib/{simple,object,model}.ts.
 // Swap submits workflows/simple.api.json. Teleport and background object edits submit workflows/object.api.json.
@@ -81,6 +83,107 @@ export type ObjectGraphInput = {
   runId: string;
 };
 
+export type ExtendGraphInput = {
+  videoName: string;
+  clipDurationSeconds: number;
+  extensionPrompt: string;
+  characterImageName?: string | null;
+  sceneImageName?: string | null;
+  propImageName?: string | null;
+  aspectRatio: AspectRatio;
+  seed: number;
+  runId: string;
+};
+
+export function resolveH3ExtendDimensions(aspectRatio: AspectRatio): { width: number; height: number } {
+  if (aspectRatio === "16:9") return { width: 1312, height: 736 };
+  if (aspectRatio === "1:1") return { width: 736, height: 736 };
+  return { width: 736, height: 1312 };
+}
+
+export function buildH3ExtendPrompt(input: {
+  extensionPrompt: string;
+  hasCharacterImage: boolean;
+  hasSceneImage: boolean;
+  hasPropImage: boolean;
+  refVideoSeconds: number;
+}): string {
+  const cleanPrompt = input.extensionPrompt.replace(/\s+/g, " ").trim();
+  const refSeconds = Math.max(2, Math.min(6, Number(input.refVideoSeconds) || 6));
+
+  let picIndex = 1;
+  const charPic = input.hasCharacterImage ? `<Picture ${picIndex++}>` : null;
+  const scenePic = input.hasSceneImage ? `<Picture ${picIndex++}>` : null;
+  const propPic = input.hasPropImage ? `<Picture ${picIndex++}>` : null;
+
+  const subjectDefs: string[] = [];
+  if (charPic) {
+    subjectDefs.push(
+      `${charPic} is the identity and outfit reference for <Subject 1>, defining the exact facial features, hair, skin tone, build, and complete wardrobe.`,
+      `<Subject 1> is the same main subject continuing from the protected audiovisual prefix and <Video 1>, stabilized by ${charPic}.`,
+    );
+  } else {
+    subjectDefs.push(
+      `<Subject 1> is the main subject continuing directly from the protected audiovisual prefix and <Video 1>.`,
+    );
+  }
+  if (scenePic) {
+    subjectDefs.push(
+      `${scenePic} is the setting and environment reference, defining the surrounding architecture, background geometry, palette, and lighting.`,
+    );
+  }
+  if (propPic) {
+    subjectDefs.push(
+      `${propPic} is the prop and product reference, defining the exact shape, materials, colors, and surface details of the featured object.`,
+    );
+  }
+  subjectDefs.push(
+    `<Video 1> is the preceding ${refSeconds.toFixed(1)}-second video clip at 24 fps, supplying camera movement, motion rhythm, lighting continuity, and performance context.`,
+  );
+
+  const retentionLines: string[] = [
+    `<Subject 1> (appears in [Shot 1]): fully_preserved - retain exact facial identity, hair, proportions, and complete outfit across the continuation.`,
+  ];
+  if (charPic) {
+    retentionLines.push(
+      `${charPic}: fully_preserved - retain facial identity and wardrobe details without pulling the moving subject back to the static reference pose; the incoming protected 39-frame latent prefix controls current pose, motion phase, and camera framing.`,
+    );
+  }
+  if (scenePic) {
+    retentionLines.push(
+      `${scenePic}: fully_preserved - retain setting geometry, lighting, and atmosphere without resetting the camera viewpoint or pulling the moving subject back to the static frame.`,
+    );
+  }
+  if (propPic) {
+    retentionLines.push(
+      `${propPic}: fully_preserved - retain exact prop/product shape, packaging, colors, and details whenever visible, without pulling the moving subject back to the static reference pose.`,
+    );
+  }
+  retentionLines.push(
+    `<Video 1>: partially_preserved - continue seamlessly from its final 39-frame protected latent prefix while executing the new action.`,
+  );
+
+  return [
+    "subject_definitions:",
+    ...subjectDefs,
+    "",
+    "summary:",
+    "[video continuation + reference generation] The target video continues directly from the protected 39-frame audiovisual prefix of <Video 1> as one uninterrupted shot, following the continuation prompt while locking identity, setting, and prop details from the reference media.",
+    "",
+    "retention_analysis:",
+    ...retentionLines,
+    "",
+    "detailed_description:",
+    `[Shot 1] Continue immediately from the protected ending of the incoming footage with no cut, reset, repeated action, or camera jump. ${cleanPrompt}`,
+    "",
+    "overall_soundscape:",
+    "Continue the ambient soundscape and natural physical sound effects seamlessly from the protected audio prefix, synchronized with the visible actions.",
+    "",
+    "non_diegetic_music:",
+    "N/A",
+  ].join("\n");
+}
+
 function isLink(value: unknown): value is [string, number] {
   return (
     Array.isArray(value) &&
@@ -98,8 +201,13 @@ function nodeByTitle(graph: ApiGraph, title: string) {
   return ids[0];
 }
 
-function loadGraph(kind: "simple" | "object"): ApiGraph {
-  const source = kind === "simple" ? simpleWorkflowJson : objectWorkflowJson;
+function loadGraph(kind: "simple" | "object" | "extend"): ApiGraph {
+  const source =
+    kind === "simple"
+      ? simpleWorkflowJson
+      : kind === "object"
+        ? objectWorkflowJson
+        : extendWorkflowJson;
   return structuredClone(source) as unknown as ApiGraph;
 }
 
@@ -313,5 +421,81 @@ export function buildObjectGraph(input: ObjectGraphInput): ApiGraph {
   setSection(graph, id("Source video"), input.section);
   graph[id("Source video")].inputs.video = input.videoName;
   if (picture && input.imageName) graph[id("Picture 1")].inputs.image = input.imageName;
+  return graph;
+}
+
+export function buildExtendGraph(input: ExtendGraphInput): ApiGraph {
+  const graph = loadGraph("extend");
+  silenceWhenSoundless(graph);
+
+  const safeDuration = Math.max(2, Number(input.clipDurationSeconds) || 6);
+  const skipFirstFrames = Math.max(0, Math.round((safeDuration - 6) * 24));
+  graph["5"].inputs.video = input.videoName;
+  graph["5"].inputs.skip_first_frames = skipFirstFrames;
+  graph["5"].inputs.frame_load_cap = 144;
+
+  const refVideoSeconds = Math.min(6, safeDuration);
+  const prompt = buildH3ExtendPrompt({
+    extensionPrompt: input.extensionPrompt,
+    hasCharacterImage: Boolean(input.characterImageName),
+    hasSceneImage: Boolean(input.sceneImageName),
+    hasPropImage: Boolean(input.propImageName),
+    refVideoSeconds,
+  });
+
+  const { width, height } = resolveH3ExtendDimensions(input.aspectRatio);
+  const planNode = graph["26"].inputs;
+  planNode.width = width;
+  planNode.height = height;
+  planNode.run_name = `extend_${input.runId}`;
+  planNode.base_seed = input.seed;
+  planNode.default_steps = DEFAULT_MODEL.steps;
+  planNode.plan_json = JSON.stringify(
+    {
+      shots: [
+        {
+          id: "extend_01",
+          prompt,
+          // 39 frames protected latent prefix + 153 newly generated frames (6.375s at 24fps) = 192 (valid 17k+5 H3 length)
+          length: 192,
+          steps: DEFAULT_MODEL.steps,
+          seed: String(input.seed),
+        },
+      ],
+    },
+    null,
+    2,
+  );
+
+  // Wire only present reference images sequentially into ref_images.ref_image_0..2 and remove unused LoadImage nodes.
+  const refInputs = graph["30"].inputs;
+  refInputs.ref_image_size = "max";
+  const imageSlots: Array<{ nodeId: string; imageName?: string | null }> = [
+    { nodeId: "2", imageName: input.characterImageName },
+    { nodeId: "3", imageName: input.sceneImageName },
+    { nodeId: "4", imageName: input.propImageName },
+  ];
+  let refIdx = 0;
+  for (const slot of imageSlots) {
+    if (slot.imageName) {
+      graph[slot.nodeId].inputs.image = slot.imageName;
+      refInputs[`ref_images.ref_image_${refIdx}`] = [slot.nodeId, 0];
+      refIdx++;
+    } else {
+      delete graph[slot.nodeId];
+    }
+  }
+
+  graph["15"].inputs.unet_name = DEFAULT_MODEL.model;
+  graph["16"].inputs.lora_name = DEFAULT_MODEL.lora;
+  graph["16"].inputs.strength_model = 1;
+  graph["19"].inputs.clip_name = DEFAULT_MODEL.textEncoder;
+  graph["20"].inputs.vae_name = DEFAULT_MODEL.videoVae;
+  graph["21"].inputs.vae_name = DEFAULT_MODEL.audioVae;
+
+  const assemble = graph["67"].inputs;
+  assemble.output_subfolder = "h3_oneclick_extend";
+  assemble.filename = `${String(assemble.filename)}_${input.runId}`;
+
   return graph;
 }

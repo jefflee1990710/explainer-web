@@ -1,4 +1,5 @@
 import { put } from "@vercel/blob";
+import { comfyViewAuthHeaders } from "@/service/comfy/openjutsu-client";
 import { openRouterAuthHeaders } from "@/service/openrouter/generate";
 
 export type WaitForPublicUrlOptions = {
@@ -49,8 +50,11 @@ export async function persistMedia(
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error("尚未設定 BLOB_READ_WRITE_TOKEN，無法保存生成檔案");
   }
-  const headers = openRouterAuthHeaders(url);
-  const response = await fetch(url, headers ? { headers } : undefined);
+  const headers = {
+    ...openRouterAuthHeaders(url),
+    ...comfyViewAuthHeaders(url),
+  };
+  const response = await fetch(url, Object.keys(headers).length ? { headers } : undefined);
   if (!response.ok) {
     throw new Error("無法下載生成檔案");
   }

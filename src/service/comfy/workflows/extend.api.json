@@ -1,0 +1,564 @@
+{
+  "2": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Picture 1"
+    }
+  },
+  "3": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Picture 2"
+    }
+  },
+  "4": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Picture 3"
+    }
+  },
+  "5": {
+    "inputs": {
+      "video": "",
+      "force_rate": 24,
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 144,
+      "skip_first_frames": 0,
+      "select_every_nth": 1,
+      "format": "None"
+    },
+    "class_type": "VHS_LoadVideo",
+    "_meta": {
+      "title": "Source video"
+    }
+  },
+  "6": {
+    "inputs": {
+      "start_index": 0,
+      "duration": 2048,
+      "audio": [
+        "5",
+        2
+      ]
+    },
+    "class_type": "TrimAudioDuration",
+    "_meta": {
+      "title": "Soundtrack (last 6s)"
+    }
+  },
+  "15": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "H3 Diffusion Model"
+    }
+  },
+  "16": {
+    "inputs": {
+      "lora_name": "minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "DMAD LoRA"
+    }
+  },
+  "17": {
+    "inputs": {
+      "attention": "comfy kitchen attention",
+      "model": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "ModelAttentionBackend",
+    "_meta": {
+      "title": "Comfy Kitchen Attention"
+    }
+  },
+  "18": {
+    "inputs": {
+      "shift_video": 12,
+      "shift_audio": 2,
+      "model": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3SigmaShift",
+    "_meta": {
+      "title": "Sigma Shift"
+    }
+  },
+  "19": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_int4_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "H3 Text Encoder"
+    }
+  },
+  "20": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Video VAE"
+    }
+  },
+  "21": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Audio VAE"
+    }
+  },
+  "22": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "Sampler"
+    }
+  },
+  "25": {
+    "inputs": {
+      "scene_continuity": "Hard picture + smooth audio",
+      "audio_profile": "Generate audio"
+    },
+    "class_type": "MiniMaxH3GenerationProfile",
+    "_meta": {
+      "title": "Generation Profile"
+    }
+  },
+  "26": {
+    "inputs": {
+      "plan_json": "{\n  \"shots\": [\n    {\n      \"id\": \"extend_01\",\n      \"prompt\": \"Continue the shot.\",\n      \"length\": 192,\n      \"steps\": 6,\n      \"seed\": \"0\"\n    }\n  ]\n}",
+      "run_name": "extend_run",
+      "generation_fingerprint": "",
+      "width": 736,
+      "height": 1312,
+      "encode_mode": "video",
+      "crop": "center",
+      "default_duration_seconds": 8,
+      "default_steps": 6,
+      "base_seed": 0,
+      "segment_crf": 16,
+      "video_blend_frames": 0,
+      "chain_policy": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainPlanModern",
+    "_meta": {
+      "title": "Production Plan"
+    }
+  },
+  "27": {
+    "inputs": {
+      "plan": [
+        "26",
+        0
+      ],
+      "source_fps": 24,
+      "prepend_original": false,
+      "source_frames": [
+        "5",
+        0
+      ],
+      "source_audio": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainExternalVideo",
+    "_meta": {
+      "title": "Chain External Video"
+    }
+  },
+  "28": {
+    "inputs": {
+      "start_clip": 1,
+      "scene_range": "",
+      "verify_resume_history": true,
+      "plan": [
+        "26",
+        0
+      ],
+      "external_context": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainLoopStart",
+    "_meta": {
+      "title": "Loop Start"
+    }
+  },
+  "29": {
+    "inputs": {
+      "align_audio_reference": false,
+      "state": [
+        "28",
+        1
+      ]
+    },
+    "class_type": "MiniMaxH3ChainCurrent",
+    "_meta": {
+      "title": "Current Clip"
+    }
+  },
+  "30": {
+    "inputs": {
+      "prompt": [
+        "29",
+        4
+      ],
+      "width": [
+        "29",
+        8
+      ],
+      "height": [
+        "29",
+        9
+      ],
+      "length": [
+        "29",
+        6
+      ],
+      "ref_image_size": "max",
+      "clip": [
+        "19",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ],
+      "audio_vae": [
+        "21",
+        0
+      ],
+      "ref_videos.ref_video_0": [
+        "32",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_0": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "32": {
+    "inputs": {
+      "upscale_method": "area",
+      "largest_size": 512,
+      "image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToMaxDimension",
+    "_meta": {
+      "title": "Motion reference video (~512 px)"
+    }
+  },
+  "37": {
+    "inputs": {
+      "noise_seed": [
+        "29",
+        5
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "Clip Seed"
+    }
+  },
+  "57": {
+    "inputs": {
+      "state": [
+        "29",
+        0
+      ],
+      "conditioning": [
+        "30",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ],
+      "latent": [
+        "30",
+        1
+      ],
+      "audio_vae": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainContext",
+    "_meta": {
+      "title": "Apply Clip Context"
+    }
+  },
+  "58": {
+    "inputs": {
+      "model": [
+        "18",
+        0
+      ],
+      "conditioning": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Guider"
+    }
+  },
+  "59": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": [
+        "29",
+        7
+      ],
+      "denoise": 1,
+      "model": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "Schedule"
+    }
+  },
+  "60": {
+    "inputs": {
+      "noise": [
+        "37",
+        0
+      ],
+      "guider": [
+        "58",
+        0
+      ],
+      "sampler": [
+        "22",
+        0
+      ],
+      "sigmas": [
+        "59",
+        0
+      ],
+      "latent_image": [
+        "57",
+        3
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "Sample Video + Audio"
+    }
+  },
+  "61": {
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode Video"
+    }
+  },
+  "62": {
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "Decode Audio"
+    }
+  },
+  "63": {
+    "inputs": {
+      "trim_frames": [
+        "57",
+        1
+      ],
+      "fps": 24,
+      "match_tail": true,
+      "audio_trim_mode": "sync_with_video",
+      "images": [
+        "61",
+        0
+      ],
+      "audio": [
+        "62",
+        0
+      ],
+      "state": [
+        "29",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3LoopTrim",
+    "_meta": {
+      "title": "Trim Overlap"
+    }
+  },
+  "64": {
+    "inputs": {
+      "state": [
+        "29",
+        0
+      ],
+      "images": [
+        "63",
+        0
+      ],
+      "sampled_latent": [
+        "60",
+        0
+      ],
+      "audio": [
+        "63",
+        1
+      ],
+      "images_with_overlap": [
+        "63",
+        2
+      ]
+    },
+    "class_type": "MiniMaxH3ChainSegmentSave",
+    "_meta": {
+      "title": "Save Clip + Checkpoint"
+    }
+  },
+  "65": {
+    "inputs": {
+      "enabled": false,
+      "play_notification_sound": false,
+      "auto_continue_timeout_minutes": 0,
+      "unload_models_while_waiting": false,
+      "assemble_partial_on_stop": true,
+      "partial_audio_source": "checkpointed",
+      "candidate_count": 1,
+      "review_each_candidate": false,
+      "state": [
+        "29",
+        0
+      ],
+      "segment": [
+        "64",
+        0
+      ],
+      "audio": [
+        "63",
+        1
+      ]
+    },
+    "class_type": "MiniMaxH3ChainReview",
+    "_meta": {
+      "title": "Review (off = no pause)"
+    }
+  },
+  "66": {
+    "inputs": {
+      "between_scene_cleanup": "off",
+      "execution_mode": "recursive",
+      "flow": [
+        "28",
+        0
+      ],
+      "state": [
+        "29",
+        0
+      ],
+      "images": [
+        "63",
+        0
+      ],
+      "sampled_latent": [
+        "60",
+        0
+      ],
+      "segment": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainLoopEnd",
+    "_meta": {
+      "title": "Loop End"
+    }
+  },
+  "67": {
+    "inputs": {
+      "audio_source": "generated",
+      "filename": "extend_%date:yyyy-MM-dd%",
+      "audio_bitrate": 256,
+      "copy_to_output": true,
+      "output_subfolder": "h3_oneclick_extend",
+      "blend_schedule": "plan",
+      "boundary_tone_match": "off",
+      "color_stabilization": "off",
+      "delete_checkpoints_after_assembly": false,
+      "generated_audio_join": "av_overlap",
+      "manifest": [
+        "66",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ChainAssemble",
+    "_meta": {
+      "title": "Final Video"
+    }
+  }
+}

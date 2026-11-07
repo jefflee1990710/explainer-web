@@ -3,7 +3,17 @@ import test from "node:test";
 import sharp from "sharp";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
-import { buildObjectGraph, buildSimpleGraph } from "@/service/comfy/openjutsu-graph";
+import {
+  buildExtendGraph,
+  buildH3ExtendPrompt,
+  buildObjectGraph,
+  buildSimpleGraph,
+  resolveH3ExtendDimensions,
+} from "@/service/comfy/openjutsu-graph";
+import {
+  shouldUseComfyForClipVideo,
+  submitComfyStoryboardClipVideo,
+} from "@/service/comfy/submit-clip-video";
 import {
   canSubmitJutsuComfy,
   composeJutsuCharacterReferenceSheet,
@@ -533,5 +543,177 @@ test("resolveJobCharacterReferenceUrls and composeJutsuCharacterReferenceSheet s
     if (prevKey === undefined) delete process.env.COMFY_API_KEY;
     else process.env.COMFY_API_KEY = prevKey;
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("buildH3ExtendPrompt numbers reference pictures sequentially and prevents pulling moving subjects back to static poses", () => {
+  const promptAll = buildH3ExtendPrompt({
+    extensionPrompt: "She turns toward the camera and lifts the coffee cup.",
+    hasCharacterImage: true,
+    hasSceneImage: true,
+    hasPropImage: true,
+    refVideoSeconds: 6,
+  });
+  assert.match(promptAll, /<Video 1>/);
+  assert.match(promptAll, /<Picture 1>.*<Subject 1>/);
+  assert.match(promptAll, /<Picture 2>.*setting/i);
+  assert.match(promptAll, /<Picture 3>.*prop/i);
+  assert.match(promptAll, /\[video continuation \+ reference generation\]/);
+  assert.match(promptAll, /without pulling the moving subject back to the static/i);
+  assert.match(promptAll, /She turns toward the camera and lifts the coffee cup\./);
+
+  const promptPropOnly = buildH3ExtendPrompt({
+    extensionPrompt: "Camera pans right to reveal the mug on the table.",
+    hasCharacterImage: false,
+    hasSceneImage: false,
+    hasPropImage: true,
+    refVideoSeconds: 4.5,
+  });
+  assert.match(promptPropOnly, /<Picture 1>.*prop/i);
+  assert.doesNotMatch(promptPropOnly, /<Picture 2>/);
+});
+
+test("buildExtendGraph configures 39-frame latent prefix, last-6s reference video, dynamic ref_images, and h3_oneclick_extend output", () => {
+  assert.deepEqual(resolveH3ExtendDimensions("9:16"), { width: 736, height: 1312 });
+  assert.deepEqual(resolveH3ExtendDimensions("16:9"), { width: 1312, height: 736 });
+  assert.deepEqual(resolveH3ExtendDimensions("1:1"), { width: 736, height: 736 });
+
+  const graph = buildExtendGraph({
+    videoName: "clip2.mp4",
+    clipDurationSeconds: 8.5,
+    extensionPrompt: "Continue walking down the neon street as rain falls.",
+    characterImageName: "char_sheet.jpg",
+    sceneImageName: null,
+    propImageName: "umbrella.jpg",
+    aspectRatio: "9:16",
+    seed: 42,
+    runId: "ext1",
+  });
+
+  // VHS_LoadVideo skips to the last 6s: round((8.5 - 6) * 24) = 60, frame_load_cap = 144
+  assert.equal(graph["5"].inputs.video, "clip2.mp4");
+  assert.equal(graph["5"].inputs.skip_first_frames, 60);
+  assert.equal(graph["5"].inputs.frame_load_cap, 144);
+  assert.equal(graph["5_soundtrack"]?.class_type, "H3SoundtrackOrSilence");
+
+  // MiniMaxH3ChainExternalVideo encodes the last 39 frames into the target latent prefix without prepending the original clip
+  const extVideo = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ChainExternalVideo");
+  assert.ok(extVideo);
+  assert.equal(extVideo.inputs.prepend_original, false);
+
+  // Plan has 192 total frames (39 context prefix + 153 new frames = 6.375s) and 736x1312 dimensions
+  const plan = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ChainPlanModern");
+  assert.ok(plan);
+  assert.equal(plan.inputs.width, 736);
+  assert.equal(plan.inputs.height, 1312);
+  assert.equal(plan.inputs.run_name, "extend_ext1");
+  const planJson = JSON.parse(String(plan.inputs.plan_json)) as {
+    shots: Array<{ length: number; steps: number; prompt: string }>;
+  };
+  assert.equal(planJson.shots[0]?.length, 192);
+  assert.equal(planJson.shots[0]?.steps, 6);
+
+  // Reference Conditioning compacts characterImageName (ref_image_0) and propImageName (ref_image_1), deleting unused scene image loader
+  const refNode = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ReferenceToVideo");
+  assert.ok(refNode);
+  assert.equal(refNode.inputs.ref_image_size, "max");
+  assert.ok(refNode.inputs["ref_images.ref_image_0"]);
+  assert.ok(refNode.inputs["ref_images.ref_image_1"]);
+  assert.equal(refNode.inputs["ref_images.ref_image_2"], undefined);
+  assert.ok(refNode.inputs["ref_videos.ref_video_0"]);
+
+  // Short clips (<= 6s) clamp skip_first_frames to 0
+  const shortGraph = buildExtendGraph({
+    videoName: "short.mp4",
+    clipDurationSeconds: 4,
+    extensionPrompt: "Keep smiling.",
+    aspectRatio: "16:9",
+    seed: 0,
+    runId: "ext2",
+  });
+  assert.equal(shortGraph["5"].inputs.skip_first_frames, 0);
+  assert.equal(shortGraph["5"].inputs.frame_load_cap, 144);
+
+  // Assemble writes to h3_oneclick_extend and findOutputVideo ranks it at priority 3
+  const assemble = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ChainAssemble");
+  assert.equal(assemble?.inputs.output_subfolder, "h3_oneclick_extend");
+  assert.match(String(assemble?.inputs.filename), /_ext1$/);
+
+  const picked = findOutputVideo({
+    "67": {
+      videos: [{ filename: "extend_ext1.mp4", subfolder: "h3_oneclick_extend", type: "output" }],
+    },
+  });
+  assert.deepEqual(picked, {
+    filename: "extend_ext1.mp4",
+    subfolder: "h3_oneclick_extend",
+    type: "output",
+  });
+});
+
+test("shouldUseComfyForClipVideo is opt-in via COMFY_CLIP_VIDEO_ENABLED and submitComfyStoryboardClipVideo queues a ref2va graph", async () => {
+  const prevUrl = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
+  try {
+    process.env.COMFY_BASE_URL = "https://comfy.example.com";
+    process.env.COMFY_API_KEY = "secret";
+    delete process.env.COMFY_CLIP_VIDEO_ENABLED;
+
+    assert.equal(
+      shouldUseComfyForClipVideo({ model: "minimax/hailuo-3" }),
+      false,
+    );
+
+    process.env.COMFY_CLIP_VIDEO_ENABLED = "true";
+    assert.equal(
+      shouldUseComfyForClipVideo({ model: "minimax/hailuo-3" }),
+      true,
+    );
+    assert.equal(
+      shouldUseComfyForClipVideo({ model: "minimax/hailuo-3", audioUrl: "https://blob.test/vo.mp3" }),
+      false,
+    );
+    assert.equal(
+      shouldUseComfyForClipVideo({ model: "alibaba/wan-3.0" }),
+      false,
+    );
+
+    let queuedPrompt: Record<string, unknown> | undefined;
+    const fakeFetch: typeof fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.startsWith("https://blob.test/")) {
+        return new Response(new Uint8Array([255, 216, 255]), { status: 200 });
+      }
+      if (url.endsWith("/upload/image")) {
+        return Response.json({ name: "frame.jpg" }, { status: 200 });
+      }
+      if (url.endsWith("/prompt")) {
+        queuedPrompt = (JSON.parse(String(init?.body ?? "{}")) as { prompt?: Record<string, unknown> }).prompt;
+        return Response.json({ prompt_id: "clip-comfy-1" }, { status: 200 });
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    const submitted = await submitComfyStoryboardClipVideo(
+      {
+        prompt: "Camera dollies in as she opens the laptop.",
+        aspectRatio: "9:16",
+        durationSeconds: 6,
+        startImageUrl: "https://blob.test/start.webp",
+        endImageUrl: "https://blob.test/end.webp",
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(submitted.request_id, "clip-comfy-1");
+    assert.equal(submitted.status_url, "comfy://prompt/clip-comfy-1");
+    assert.ok(queuedPrompt);
+  } finally {
+    if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevUrl;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+    if (prevFlag === undefined) delete process.env.COMFY_CLIP_VIDEO_ENABLED;
+    else process.env.COMFY_CLIP_VIDEO_ENABLED = prevFlag;
   }
 });
