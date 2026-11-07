@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  applyClipExtend,
   applyClipScroSwap,
   applyClipTeleport,
 } from "@/service/opencut/clip-jutsu";
@@ -15,4 +16,10 @@ export async function applyClipTeleportAction(
   ...args: Parameters<typeof applyClipTeleport>
 ) {
   return applyClipTeleport(...args);
+}
+
+export async function applyClipExtendAction(
+  ...args: Parameters<typeof applyClipExtend>
+) {
+  return applyClipExtend(...args);
 }

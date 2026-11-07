@@ -1,9 +1,10 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection, jutsuJobsCollection, teleportJobsCollection } from "@/dao";
+import { charactersCollection, extendJobsCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection, jutsuJobsCollection, teleportJobsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { postHeadline, toPublicPost } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
+import type { ExtendJob } from "@/model/extend-job";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
 import type { JutsuJob } from "@/model/jutsu-job";
 import type { Post } from "@/model/post";
@@ -308,6 +309,33 @@ export function teleportTask(
   };
 }
 
+export function extendTask(
+  job: ExtendJob & { _id: ObjectId },
+  now = Date.now(),
+): PublicTask | null {
+  const stage: TaskStage =
+    job.status === "completed" ? "done" : job.status === "failed" ? "failed" : "generating";
+  const updatedAt = (job.updatedAt ?? job.createdAt).toISOString();
+  if (!isCurrentTask(stage, updatedAt, now)) return null;
+  return {
+    id: `extend:${job._id.toHexString()}`,
+    kind: "video",
+    stage,
+    title: job.prompt.slice(0, 36) || "Extend Video",
+    detail: `Clip ${job.targetClipNumber} · 延展影片`,
+    detailKey: "tasksPage.detail.clipVideo",
+    detailParams: { n: job.targetClipNumber },
+    previewUrl: stage === "done" ? job.outputVideoUrl : job.posterFrameUrl,
+    isVideo: true,
+    href: folderVideoPath(undefined, job.targetVideoId.toHexString()),
+    videoId: job.targetVideoId.toHexString(),
+    error: stage === "failed" ? job.error : undefined,
+    attempts: 0,
+    createdAt: job.createdAt.toISOString(),
+    updatedAt,
+  };
+}
+
 // Post Studio jobs live in `posts`; surface rendering/completed/failed rows in the global task list.
 export function postTask(
   doc: Record<string, unknown> & { _id: ObjectId },
@@ -473,6 +501,27 @@ export async function listTasks(
     const t = teleportTask(doc);
     return t ? [t] : [];
   });
+  const extendDocs =
+    targetVideoFilter === null
+      ? []
+      : ((await (
+          await extendJobsCollection()
+        )
+          .find({
+            clerkUserId,
+            ...targetVideoFilter,
+            $or: [
+              { status: "rendering" },
+              { status: { $in: ["completed", "failed"] }, updatedAt: { $gte: cutoff } },
+            ],
+          })
+          .sort({ updatedAt: -1 })
+          .limit(40)
+          .toArray()) as Array<ExtendJob & { _id: ObjectId }>);
+  const extendTasks = extendDocs.flatMap((doc) => {
+    const t = extendTask(doc);
+    return t ? [t] : [];
+  });
   const postTasks = options.videoId
     ? []
     : posts.flatMap((doc) => {
@@ -488,7 +537,7 @@ export async function listTasks(
     posts.length === 0 &&
     products.length === 0
   ) {
-    return [...swapTasks, ...teleportTasks, ...postTasks];
+    return [...swapTasks, ...teleportTasks, ...extendTasks, ...postTasks];
   }
   const videoById = new Map(videoDocs.map((doc) => [doc._id.toHexString(), doc]));
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
@@ -554,7 +603,7 @@ export async function listTasks(
     }),
   );
 
-  const tasks = [...phaseATasks, ...swapTasks, ...teleportTasks, ...postTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
+  const tasks = [...phaseATasks, ...swapTasks, ...teleportTasks, ...extendTasks, ...postTasks, ...reelTasks, ...appendTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;
