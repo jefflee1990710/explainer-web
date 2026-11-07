@@ -13,6 +13,7 @@ export type JutsuPersonSlotAssignment = {
   selectedLookUrl: string;
   lookLabel: string;
   uploadedPhotoUrl: string;
+  uploadedPhotoUrls?: string[];
 };
 
 const PERSON_PALETTE = [
@@ -213,12 +214,18 @@ export function JutsuPersonRleOverlay({
         const palette = PERSON_PALETTE[idx % PERSON_PALETTE.length]!;
         const isActive = person.personIndex === activePersonIndex;
         const slot = assignments[person.personIndex];
+        const customCount =
+          slot?.uploadedPhotoUrls?.length ?? (slot?.uploadedPhotoUrl ? 1 : 0);
         const summary =
           slot && !slot.keepOriginal
-            ? slot.uploadedPhotoUrl
-              ? isEn
-                ? "Custom Photo"
-                : "自訂相片"
+            ? customCount > 0
+              ? customCount > 1
+                ? isEn
+                  ? `Custom Photos (${customCount})`
+                  : `自訂相片 (${customCount})`
+                : isEn
+                  ? "Custom Photo"
+                  : "自訂相片"
               : slot.characterName || (isEn ? "Selected" : "已指定")
             : isEn
               ? "Keep Original"
@@ -299,12 +306,18 @@ export function JutsuPersonTabsBar({
             const palette = PERSON_PALETTE[idx % PERSON_PALETTE.length]!;
             const active = person.personIndex === activePersonIndex;
             const slot = assignments[person.personIndex];
+            const customCount =
+              slot?.uploadedPhotoUrls?.length ?? (slot?.uploadedPhotoUrl ? 1 : 0);
             const mappedText =
               slot && !slot.keepOriginal
-                ? slot.uploadedPhotoUrl
-                  ? isEn
-                    ? "Custom Photo"
-                    : "自訂上傳相片"
+                ? customCount > 0
+                  ? customCount > 1
+                    ? isEn
+                      ? `Custom Photos (${customCount})`
+                      : `自訂上傳相片 (${customCount} 張)`
+                    : isEn
+                      ? "Custom Photo"
+                      : "自訂上傳相片"
                   : `${slot.characterName || (isEn ? "Character" : "角色")}${slot.lookLabel ? ` · ${slot.lookLabel}` : ""}`
                 : isEn
                   ? "Keep Original (No Swap)"

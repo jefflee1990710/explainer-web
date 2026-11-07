@@ -194,7 +194,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
   // Cinematic realistic whiteboard: same camera and one subtitle on both stills.
   const steadyStills = usesSteadyStills(skillSlug, input.style);
   const generated = await generateText({
-    model: storyboardModel(),
+    model: storyboardModel(skillSlug),
     providerOptions: storyboardProviderOptions(),
     output: Output.object({ schema: dualBeat ? dualClipDraftSchema : clipDraftSchema }),
     system: `${skillPromptForPhaseA(input.skill, input.style)}
@@ -234,5 +234,9 @@ The user's note is what this clip shows and says. Do not replace that note with 
     skillSlug,
     lockedCamera: steadyStills,
   });
-  return [withSpokenClipDuration(rewritten ?? row, input.speechPace)];
+  return [
+    withSpokenClipDuration(rewritten ?? row, input.speechPace, {
+      preservePlannedDuration: skillSlug === "story-short-director",
+    }),
+  ];
 }

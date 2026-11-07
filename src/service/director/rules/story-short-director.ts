@@ -36,8 +36,8 @@ export const storyShortDirectorRules: DirectorRuleModule = {
     return [
       "Scene detail: write every explainerScene as four concrete parts, in this order:",
       options.realistic
-        ? "1) Character: expression, pose, physical action, and eyeline of each on-screen character — whenever a character is present, give them a calm, relaxed, unforced real-person facial expression matching the emotional beat (attentive focused eyes and softly closed lips; never a blank or deadpan stare; never exaggerated cartoon grimaces)."
-        : "1) Character: expression, pose, physical action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression matching the emotional beat (active eyebrows, expressive eyes, lips closed; never a blank or neutral face).",
+        ? "1) Character: expression, pose, physical action, and eyeline of each on-screen character — whenever a character is present, give them a calm, relaxed, unforced real-person facial expression matching the emotional beat (attentive focused eyes; lips softly closed when silent, or natural restrained lip-sync only when speaking dialogue; never a blank or deadpan stare; never exaggerated cartoon grimaces)."
+        : "1) Character: expression, pose, physical action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression matching the emotional beat (active eyebrows, expressive eyes; lips closed when silent, or speaking when delivering dialogue; never a blank or neutral face).",
       "2) Set: location, environment, foreground / midground / background from the user's source.",
       "3) Light: light direction, colour temperature, mood.",
       "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
@@ -59,8 +59,9 @@ export const storyShortDirectorRules: DirectorRuleModule = {
       "This is a SHORT FILM, not an explainer.",
       "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact actions, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects (e.g., never add a paper airplane, notebook, letter, coffee cup, phone, or ruined building unless the user explicitly wrote it in the source). If the user asks for a young girl running down a hill, every clip stages ONLY that exact running action down the hillside.",
       "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-      "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak, NEVER move their mouths to talk, and NEVER lip-sync — their mouths stay closed while they act out the scene.",
-      "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow and eye changes that convey the emotional beat with mouths closed—never a blank or wooden face, and never lip-sync).",
+      "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
+      'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, write englishVo as character dialogue in the format NAME: "line" spoken on screen by that character (with each supplied voice lock pasted verbatim).',
+      "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
     ].join(" ");
   },
   phaseBMotionRules(options) {
@@ -70,8 +71,8 @@ export const storyShortDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base = options.realistic
-      ? "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the physical action, a calm, relaxed, unforced real-person facial expression (lips softly closed at natural rest with zero mouth or jaw speech articulation, natural blinks, and attentive eye focus; never write a forced closed-lip smile or tight smirk; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera movement. The lighting stays constant. Never re-describe a character's appearance or outfit; it follows the keyframe."
-      : "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the physical action, the facial expression change (lips closed, expressive brows and eyes), and the camera movement. The lighting stays constant. Never re-describe a character's appearance or outfit; it follows the keyframe.";
+      ? "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the physical action, a calm, relaxed, unforced real-person facial expression (natural blinks and attentive eye focus; lips softly closed on silent '(no dialogue)' beats, or restrained natural lip-sync when the character speaks dialogue; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera movement. The lighting stays constant. Never re-describe a character's appearance or outfit; it follows the keyframe."
+      : "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the physical action, the facial expression change (expressive brows and eyes; lips closed when silent, or speaking on dialogue beats), and the camera movement. The lighting stays constant. Never re-describe a character's appearance or outfit; it follows the keyframe.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

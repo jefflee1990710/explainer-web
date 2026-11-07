@@ -172,10 +172,19 @@ export function lockDialogueSpeech(
       ". Clean spoken voice only — no sound effects (no dings, chimes, whooshes, pops, or Foley SFX).",
     );
   if (skillBansNarration(skillSlug)) {
+    const trimmedLine = spokenLine?.trim() ?? "";
+    const silentLine = Boolean(spokenLine !== undefined && (!trimmedLine || isSilentSpokenLine(trimmedLine)));
+    if (silentLine) {
+      const cameraLock = storyShortCameraLock(skillSlug);
+      if (cameraLock && !body.includes(cameraLock)) {
+        body = `${body}\n\n${cameraLock}`;
+      }
+      return body;
+    }
     // A second pass must not quote the whole prompt, including an earlier mouth lock.
     const mouth = /(?:^|\n)Mouth: /.test(body)
       ? ""
-      : speakingMouthLock(spokenLine?.trim() || body, castNames);
+      : speakingMouthLock(trimmedLine || body, castNames);
     for (const lock of [DIALOGUE_SPEAK_LOCK, mouth, storyShortCameraLock(skillSlug)]) {
       if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
     }

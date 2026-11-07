@@ -99,14 +99,44 @@ test("computeSkillSwitchState updates styleId and filters/fills characterIds aga
   assert.deepEqual(zeroCast.characterIds, []);
 });
 
-test("resolveModeSwitchSkillSlug picks talking-head-director for talking-head and paper-cutout/explainer for explainer", () => {
+test("resolveModeSwitchSkillSlug picks talking-head-director, story-short-director, and paper-cutout/explainer across all modes", () => {
   const skills = [
     { slug: "dialogue-qa-director", behaviorSlug: "dialogue-qa-director", isCustom: false },
     { slug: "paper-cutout-explainer-video-director", behaviorSlug: "paper-cutout-explainer-video-director", isCustom: false },
     { slug: "talking-head-director", behaviorSlug: "talking-head-director", isCustom: false },
+    { slug: "story-short-director", behaviorSlug: "story-short-director", isCustom: false },
   ];
   assert.equal(resolveModeSwitchSkillSlug("talking-head", skills), "talking-head-director");
+  assert.equal(resolveModeSwitchSkillSlug("story", skills), "story-short-director");
   assert.equal(resolveModeSwitchSkillSlug("explainer", skills), "paper-cutout-explainer-video-director");
+});
+
+test("OpenCut dark mode preserves white scaling anchors and uses white selection border on clip assets", () => {
+  const css = fs.readFileSync(
+    path.join(process.cwd(), "src/presentation/studio/tokens.css"),
+    "utf8",
+  );
+  assert.match(css, /\[class\*="bg-white"\]:not\(\.opencut-direct-host \*\)/);
+
+  const selectableItemSource = fs.readFileSync(
+    path.join(process.cwd(), "src/opencut/selection/selectable-item.tsx"),
+    "utf8",
+  );
+  assert.match(selectableItemSource, /ring-white/);
+});
+
+test("StudioNav renders tools in 1-column list and StudioShell avoids conflicting inline-flex + hidden on collapse button", () => {
+  const navSource = fs.readFileSync(
+    path.join(process.cwd(), "src/presentation/studio/studio-nav.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(navSource, /grid-cols-2/);
+
+  const shellSource = fs.readFileSync(
+    path.join(process.cwd(), "src/presentation/studio/studio-shell.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(shellSource, /inline-flex[^`]*\$\{\s*expanded \? "inline-flex" : "hidden/);
 });
 
 test("LIFE_REMARK_STAGE_CLASS includes w-fit and tokens.css preserves rounded-full on director-dock-cell pills", () => {

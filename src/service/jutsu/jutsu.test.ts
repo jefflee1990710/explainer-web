@@ -8,7 +8,14 @@ import {
   buildDefaultJutsuEditPrompt,
   buildJutsuObjectSwapPrompt,
   buildMultiPersonJutsuEditPrompt,
+  flattenPersonMappingDonorUrls,
 } from "@/service/jutsu/describer";
+import {
+  appendJutsuReferenceUrls,
+  buildInitialPersonSlotAssignment,
+  normalizeJutsuReferenceUrls,
+  removeJutsuReferenceUrl,
+} from "@/model/jutsu-job";
 import {
   findJutsuLightLook,
   JUTSU_LIGHT_LOOKS,
@@ -565,4 +572,176 @@ test("inferJutsuSourceMediaKind and FFmpeg GIF<->MP4 round-trip support animated
   });
   // GIF89a magic header
   assert.equal(gifOut.subarray(0, 3).toString("ascii"), "GIF");
+});
+
+test("normalizeJutsuReferenceUrls deduplicates, trims, falls back to single URL, and caps at 6 character reference images", () => {
+  assert.deepEqual(
+    normalizeJutsuReferenceUrls(
+      [
+        " https://blob.test/r1.jpg ",
+        "",
+        "javascript:alert(1)",
+        "relative/path.jpg",
+        "https://blob.test/r2.jpg",
+        "https://blob.test/r1.jpg",
+        "https://blob.test/r3.jpg",
+        "https://blob.test/r4.jpg",
+        "https://blob.test/r5.jpg",
+        "https://blob.test/r6.jpg",
+        "https://blob.test/r7.jpg",
+      ],
+      "https://blob.test/fallback.jpg",
+    ),
+    [
+      "https://blob.test/r1.jpg",
+      "https://blob.test/r2.jpg",
+      "https://blob.test/r3.jpg",
+      "https://blob.test/r4.jpg",
+      "https://blob.test/r5.jpg",
+      "https://blob.test/r6.jpg",
+    ],
+  );
+  assert.deepEqual(
+    normalizeJutsuReferenceUrls([], " https://blob.test/single.jpg "),
+    ["https://blob.test/single.jpg"],
+  );
+  assert.deepEqual(normalizeJutsuReferenceUrls(undefined, undefined), []);
+
+  const afterAdd = appendJutsuReferenceUrls(
+    ["https://blob.test/r1.jpg", "https://blob.test/r2.jpg"],
+    ["https://blob.test/r2.jpg", "https://blob.test/r3.jpg"],
+  );
+  assert.deepEqual(afterAdd, [
+    "https://blob.test/r1.jpg",
+    "https://blob.test/r2.jpg",
+    "https://blob.test/r3.jpg",
+  ]);
+  assert.deepEqual(
+    removeJutsuReferenceUrl(afterAdd, "https://blob.test/r2.jpg"),
+    ["https://blob.test/r1.jpg", "https://blob.test/r3.jpg"],
+  );
+});
+
+test("single-person and multi-person character swap prompts map multiple reference images per character to accurate attached image ordinals", () => {
+  const multiRefSingle = buildDefaultJutsuEditPrompt({
+    mode: "character_swap",
+    referenceImageCount: 3,
+    characterOutfitSpec: "Black leather jacket and denim jeans",
+  });
+  assert.match(multiRefSingle, /attached images 1 to 3/i);
+  assert.match(multiRefSingle, /attached image 4/i);
+  assert.doesNotMatch(multiRefSingle, /person in attached image 2/i);
+
+  const mappings = [
+    {
+      objectId: 1,
+      personIndex: 1,
+      anchorPoint: { x: 0.22, y: 0.48 },
+      box: { x: 0.1, y: 0.15, width: 0.24, height: 0.75 },
+      referenceImageUrl: "https://blob.test/p1-front.jpg",
+      referenceImageUrls: [
+        "https://blob.test/p1-front.jpg",
+        "https://blob.test/p1-fullbody.jpg",
+      ],
+    },
+    {
+      objectId: 0,
+      personIndex: 2,
+      anchorPoint: { x: 0.76, y: 0.5 },
+      box: { x: 0.62, y: 0.14, width: 0.26, height: 0.78 },
+      characterId: "char-alice",
+      characterName: "Alice",
+      referenceImageUrl: "https://blob.test/alice-standing.png",
+      characterOutfitSpec: "Top: Navy tailored blazer",
+    },
+  ];
+
+  assert.deepEqual(flattenPersonMappingDonorUrls(mappings), [
+    "https://blob.test/p1-front.jpg",
+    "https://blob.test/p1-fullbody.jpg",
+    "https://blob.test/alice-standing.png",
+  ]);
+
+  const multiPersonPrompt = buildMultiPersonJutsuEditPrompt({
+    mappings,
+    totalDetectedPeople: 2,
+  });
+  assert.match(multiPersonPrompt, /attached images 1 to 2/i);
+  assert.match(multiPersonPrompt, /attached image 3/i);
+  assert.match(multiPersonPrompt, /Using attached image 4 as the base scene frame/i);
+
+  const ref2vaMultiSingle = buildJutsuRef2VaPrompt({
+    motionText: "He walks forward.",
+    hasIdentityImage: true,
+    identityImageCount: 3,
+  });
+  assert.match(ref2vaMultiSingle, /Reference images 2 to 4/i);
+
+  // When multiple people have 5 photos each (10 total + 1 prepared = 11 > 9 H3 limit),
+  // buildJutsuRef2VaPrompt caps Reference image numbers at 9 to match buildMinimaxH3Ref2VaBody.
+  const cappedMultiPersonPrompt = buildJutsuRef2VaPrompt({
+    motionText: "Two people dance.",
+    hasIdentityImage: true,
+    personMappings: [
+      {
+        objectId: 1,
+        personIndex: 1,
+        anchorPoint: { x: 0.25, y: 0.5 },
+        box: { x: 0.1, y: 0.1, width: 0.3, height: 0.8 },
+        referenceImageUrl: "https://blob.test/p1-1.jpg",
+        referenceImageUrls: [
+          "https://blob.test/p1-1.jpg",
+          "https://blob.test/p1-2.jpg",
+          "https://blob.test/p1-3.jpg",
+          "https://blob.test/p1-4.jpg",
+          "https://blob.test/p1-5.jpg",
+        ],
+      },
+      {
+        objectId: 2,
+        personIndex: 2,
+        anchorPoint: { x: 0.75, y: 0.5 },
+        box: { x: 0.6, y: 0.1, width: 0.3, height: 0.8 },
+        referenceImageUrl: "https://blob.test/p2-1.jpg",
+        referenceImageUrls: [
+          "https://blob.test/p2-1.jpg",
+          "https://blob.test/p2-2.jpg",
+          "https://blob.test/p2-3.jpg",
+          "https://blob.test/p2-4.jpg",
+          "https://blob.test/p2-5.jpg",
+        ],
+      },
+    ],
+  });
+  assert.match(cappedMultiPersonPrompt, /Reference images 2 to 6/i);
+  assert.match(cappedMultiPersonPrompt, /Reference images 7 to 9/i);
+  assert.doesNotMatch(cappedMultiPersonPrompt, /Reference images? 10|Picture 10/i);
+
+  // Pre-uploaded custom photos are preserved on Person #1 when auto people detection runs afterwards
+  const slot1 = buildInitialPersonSlotAssignment({
+    personIndex: 1,
+    characterId: "char-1",
+    characterName: "Scro",
+    defaultLookUrl: "https://blob.test/scro.png",
+    defaultLookLabel: "Default Look",
+    uploadedPhotoUrls: ["https://blob.test/custom-1.jpg", "https://blob.test/custom-2.jpg"],
+  });
+  assert.equal(slot1.keepOriginal, false);
+  assert.equal(slot1.uploadedPhotoUrl, "https://blob.test/custom-1.jpg");
+  assert.deepEqual(slot1.uploadedPhotoUrls, [
+    "https://blob.test/custom-1.jpg",
+    "https://blob.test/custom-2.jpg",
+  ]);
+
+  const slot2 = buildInitialPersonSlotAssignment({
+    personIndex: 2,
+    characterId: "char-1",
+    characterName: "Scro",
+    defaultLookUrl: "https://blob.test/scro.png",
+    defaultLookLabel: "Default Look",
+    uploadedPhotoUrls: ["https://blob.test/custom-1.jpg", "https://blob.test/custom-2.jpg"],
+  });
+  assert.equal(slot2.keepOriginal, true);
+  assert.equal(slot2.uploadedPhotoUrl, "");
+  assert.deepEqual(slot2.uploadedPhotoUrls, []);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
@@ -19,7 +19,11 @@ import type {
 } from "@/presentation/serialize";
 import type { ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderPath } from "@/service/folder-video-path";
-import { USE_CASE_LIST_PATH, type VideoUseCase } from "@/service/video/use-case";
+import {
+  USE_CASE_LIST_PATH,
+  videoMatchesUseCase,
+  type VideoUseCase,
+} from "@/service/video/use-case";
 
 // Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
@@ -37,6 +41,7 @@ export function VideoEditorWorkspace({
   initialVideo,
   useCase,
   historyVideos,
+  allHistoryVideos,
   initialPrompt,
 }: {
   folderId: string;
@@ -54,18 +59,41 @@ export function VideoEditorWorkspace({
   /** Create use-case: limit SkillPicker to matching system directors. */
   useCase?: VideoUseCase;
   historyVideos?: PublicVideoCard[];
+  allHistoryVideos?: PublicVideoCard[];
   initialPrompt?: string;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [video, setVideo] = useState(initialVideo);
+  const [useCaseOverride, setUseCaseOverride] = useState<{
+    base: VideoUseCase | undefined;
+    next: VideoUseCase;
+  } | null>(null);
+  const activeUseCase =
+    useCaseOverride && useCaseOverride.base === useCase
+      ? useCaseOverride.next
+      : useCase;
+  const handleUseCaseChange = useCallback(
+    (next: VideoUseCase) => {
+      setUseCaseOverride({ base: useCase, next });
+    },
+    [useCase],
+  );
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stepNav, setStepNav] = useState<EditorStepNav | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVideo(initialVideo);
   }, [initialVideo]);
+
+  const displayedHistoryVideos = useMemo(() => {
+    if (allHistoryVideos && activeUseCase) {
+      return allHistoryVideos.filter((v) => videoMatchesUseCase(v.skillSlug, activeUseCase));
+    }
+    return historyVideos;
+  }, [allHistoryVideos, historyVideos, activeUseCase]);
 
   // Latest step handlers. Stored aside so a new function identity does not
   // set state and retrigger the form effect.
@@ -113,8 +141,8 @@ export function VideoEditorWorkspace({
       router.push(folderPath(folderId));
       return;
     }
-    if (useCase) {
-      router.push(`${USE_CASE_LIST_PATH[useCase]}?stay=1`);
+    if (activeUseCase) {
+      router.push(`${USE_CASE_LIST_PATH[activeUseCase]}?stay=1`);
       return;
     }
     router.push(folderPath());
@@ -131,7 +159,7 @@ export function VideoEditorWorkspace({
         folderName={folderName}
         title={editorTitle}
         videoId={video?.id}
-        useCase={useCase}
+        useCase={activeUseCase}
         objectSheetUrl={video?.objectSheetUrl}
         objectSheetItems={video?.objectSheetItems}
         backgroundPlates={video?.backgroundPlates}
@@ -139,13 +167,13 @@ export function VideoEditorWorkspace({
         onExport={undefined}
         onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
         onDelete={() => setDeleteOpen(true)}
-        historyCount={historyVideos?.length}
+        historyCount={displayedHistoryVideos?.length}
         onOpenHistory={
-          historyVideos !== undefined ? () => setHistoryOpen(true) : undefined
+          displayedHistoryVideos !== undefined ? () => setHistoryOpen(true) : undefined
         }
       >
         <NewProjectForm
-          key={video?.id ?? `new-${useCase || "any"}-${initialPrompt || ""}`}
+          key={video?.id ?? `new-${initialPrompt || ""}`}
           projectId={folderId}
           folders={folders}
           skills={skills}
@@ -157,7 +185,8 @@ export function VideoEditorWorkspace({
           credits={credits}
           subscribed={subscribed}
           hasAnyVideo={hasAnyVideo || Boolean(video)}
-          useCase={useCase}
+          useCase={activeUseCase}
+          onUseCaseChange={handleUseCaseChange}
           initialPrompt={initialPrompt}
           onVideoCreated={setVideo}
           onStepNav={onStepNav}
@@ -173,12 +202,12 @@ export function VideoEditorWorkspace({
           }}
         />
       ) : null}
-      {historyVideos !== undefined ? (
+      {displayedHistoryVideos !== undefined ? (
         <UseCaseHistoryDialog
           open={historyOpen}
           onClose={() => setHistoryOpen(false)}
-          useCase={useCase}
-          videos={historyVideos ?? []}
+          useCase={activeUseCase}
+          videos={displayedHistoryVideos ?? []}
           folders={folders}
         />
       ) : null}

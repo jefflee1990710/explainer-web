@@ -290,9 +290,12 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
   );
 });
 
-test("clipVideoModel uses MiniMax Hailuo 3 on OpenRouter for realistic and Alibaba Wan 3.0 for non-realistic styles", () => {
+test("clipVideoModel uses bytedance/seedance-2.0 for story-short-director, MiniMax Hailuo 3 for other realistic directors, and Alibaba Wan 3.0 for non-realistic styles", () => {
   assert.equal(SEEDANCE_2_VIDEO_MODEL, "minimax/hailuo-3");
   assert.equal(SEEDANCE_2_FAST_VIDEO_MODEL, "alibaba/wan-3.0");
+  assert.equal(clipVideoModel("realistic", "story-short-director"), "bytedance/seedance-2.0");
+  assert.equal(clipVideoModel("doodle", "story-short-director"), "bytedance/seedance-2.0");
+  assert.equal(clipVideoModel("realistic", "follow-shot-director"), "minimax/hailuo-3");
   assert.equal(clipVideoModel("realistic"), "minimax/hailuo-3");
   assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), "minimax/hailuo-3");
   assert.equal(clipVideoModel("doodle"), SEEDANCE_2_FAST_VIDEO_MODEL);

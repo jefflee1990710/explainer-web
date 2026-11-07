@@ -29,13 +29,19 @@ export function directorModel() {
   return client(modelId);
 }
 
+export function storyboardModelForSkill(skillSlug?: string): string {
+  if (skillSlug === "story-short-director") return ARGON_MODEL;
+  return STORYBOARD_MODEL;
+}
+
 // Phase A, added clips, and the draft chat.
-export function storyboardModel() {
+export function storyboardModel(skillSlug?: string) {
   const client = googleClient();
-  if (STORYBOARD_MODEL === ARGON_MODEL) {
-    return client.interactions(STORYBOARD_MODEL);
+  const modelId = storyboardModelForSkill(skillSlug);
+  if (modelId === ARGON_MODEL) {
+    return client.interactions(modelId);
   }
-  return client(STORYBOARD_MODEL);
+  return client(modelId);
 }
 
 export function storyboardProviderOptions() {

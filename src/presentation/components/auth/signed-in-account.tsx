@@ -88,12 +88,12 @@ export function SignedInAccount({
         aria-haspopup="menu"
         title={email}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-data-[expanded=true]/rail:justify-start group-hover/rail:justify-start group-focus-within/rail:justify-start"
+        className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-data-[expanded=true]/rail:justify-start"
       >
         <AvatarCreditRing ratio={ratio} label={creditsLabel}>
           {avatar}
         </AvatarCreditRing>
-        <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-data-[expanded=true]/rail:block group-hover/rail:block group-focus-within/rail:block">
+        <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-data-[expanded=true]/rail:block">
           {email}
         </span>
       </button>

@@ -120,6 +120,7 @@ export async function applyClipScroSwap(input: {
   clipNumber: number;
   characterId?: string;
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
 }): Promise<ApplyClipEngineResult> {
   const user = await requireAppUser();
   const loaded = await loadReadyClip(input.videoId, input.clipNumber, user.clerkUserId);
@@ -131,6 +132,7 @@ export async function applyClipScroSwap(input: {
     sectionLength: loaded.sectionLength,
     characterId: input.characterId,
     referenceImageUrl: input.referenceImageUrl,
+    referenceImageUrls: input.referenceImageUrls,
     keepSourceAudio: true,
     applyColorFix: true,
     targetVideoId: loaded.project._id.toHexString(),

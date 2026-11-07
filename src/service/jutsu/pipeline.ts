@@ -7,6 +7,7 @@ import { after } from "next/server";
 import sharp from "sharp";
 import { charactersCollection, jutsuJobsCollection } from "@/dao";
 import {
+  normalizeJutsuReferenceUrls,
   toPublicJutsuJob,
   type JutsuColorSettings,
   type JutsuJob,
@@ -46,6 +47,7 @@ import {
   buildDefaultJutsuEditPrompt,
   buildMultiPersonJutsuEditPrompt,
   describeJutsuVideoMotion,
+  flattenPersonMappingDonorUrls,
   upsampleJutsuFramePrompt,
 } from "@/service/jutsu/describer";
 import { resolveJutsuLightText } from "@/service/jutsu/light-looks";
@@ -497,6 +499,7 @@ export type PrepareJutsuJobInput = {
   sectionLength?: number;
   characterId?: string;
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
   relightId?: string;
   customLightPrompt?: string;
   objectEditMode?: JutsuObjectEditMode;
@@ -539,7 +542,11 @@ export async function prepareJutsuJob(
     // Resolve Scro Character blueprint if `characterId` is chosen
     let characterName: string | undefined;
     let characterOutfitSpec: string | undefined;
-    let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
+    let donorImageUrls = normalizeJutsuReferenceUrls(
+      input.referenceImageUrls,
+      input.referenceImageUrl,
+    );
+    let donorImageUrl: string | undefined = donorImageUrls[0];
     if (input.characterId && ObjectId.isValid(input.characterId)) {
       const charCol = await charactersCollection();
       const charDoc = (await charCol.findOne({
@@ -550,6 +557,9 @@ export async function prepareJutsuJob(
         const resolved = resolveCharacterDonorForSwap(charDoc, donorImageUrl);
         characterName = resolved.characterName;
         donorImageUrl = resolved.donorImageUrl;
+        if (resolved.donorImageUrl) {
+          donorImageUrls = [resolved.donorImageUrl];
+        }
         characterOutfitSpec = resolved.characterOutfitSpec;
       }
     }
@@ -639,18 +649,21 @@ export async function prepareJutsuJob(
         objectTarget: input.objectTarget,
         objectChangeTo: input.objectChangeTo,
         hasReferenceImage: Boolean(donorImageUrl),
+        referenceImageCount: Math.max(1, donorImageUrls.length),
         placementBox: input.placementBox,
         characterOutfitSpec,
       });
 
-    // Load donor image buffer if present for the VLM prompt upsampler
+    // Load donor image buffer(s) if present for the VLM prompt upsampler
     const upsamplerBuffers: Buffer[] = [];
-    if (input.mode === "character_swap" && donorImageUrl) {
-      const donorBuf = await fetch(donorImageUrl)
-        .then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((ab) => (ab ? Buffer.from(ab) : null))
-        .catch(() => null);
-      if (donorBuf) upsamplerBuffers.push(donorBuf);
+    if (input.mode === "character_swap" && donorImageUrls.length > 0) {
+      for (const dUrl of donorImageUrls) {
+        const donorBuf = await fetch(dUrl)
+          .then((r) => (r.ok ? r.arrayBuffer() : null))
+          .then((ab) => (ab ? Buffer.from(ab) : null))
+          .catch(() => null);
+        if (donorBuf) upsamplerBuffers.push(donorBuf);
+      }
       upsamplerBuffers.push(extracted.startFrameWebp);
     } else {
       upsamplerBuffers.push(extracted.startFrameWebp);
@@ -669,12 +682,12 @@ export async function prepareJutsuJob(
     });
 
     // Reference order:
-    // - character_swap: [donorImageUrl, rawFrameUrl]
+    // - character_swap: [...donorImageUrls, rawFrameUrl]
     // - object_swap: [rawFrameUrl, donorImageUrl?]
     // - relight_video: [rawFrameUrl]
     const startRefs =
-      input.mode === "character_swap" && donorImageUrl
-        ? [donorImageUrl, rawStartFrameUrl]
+      input.mode === "character_swap" && donorImageUrls.length > 0
+        ? [...donorImageUrls, rawStartFrameUrl]
         : donorImageUrl
           ? [rawStartFrameUrl, donorImageUrl]
           : [rawStartFrameUrl];
@@ -683,8 +696,8 @@ export async function prepareJutsuJob(
     const h3Ready = hasMinimaxApiKey();
     const endRefs = h3Ready
       ? []
-      : input.mode === "character_swap" && donorImageUrl
-        ? [donorImageUrl, rawEndFrameUrl]
+      : input.mode === "character_swap" && donorImageUrls.length > 0
+        ? [...donorImageUrls, rawEndFrameUrl]
         : donorImageUrl
           ? [rawEndFrameUrl, donorImageUrl]
           : [rawEndFrameUrl];
@@ -803,6 +816,7 @@ export async function prepareJutsuJob(
       characterName,
       characterOutfitSpec,
       referenceImageUrl: donorImageUrl,
+      ...(donorImageUrls.length > 0 ? { referenceImageUrls: donorImageUrls } : {}),
       relightId: input.relightId,
       customLightPrompt: input.customLightPrompt,
       objectEditMode: input.objectEditMode,
@@ -871,9 +885,12 @@ export async function renderJutsuVideo(input: {
     const lightText = resolveJutsuLightText(job.relightId, job.customLightPrompt);
     // MiniMax H3 reference-to-video cannot also take first/last frames (error 2013).
     const useH3Ref2Va = Boolean(job.mannequinVideoUrl && hasMinimaxApiKey());
-    // Character swap: pass the original character photo so H3 does not drift from the redrawn still.
-    const identityImageUrl =
-      job.mode === "character_swap" ? job.referenceImageUrl : undefined;
+    // Character swap: pass the original character photo(s) so H3 does not drift from the redrawn still.
+    const identityImageUrls =
+      job.mode === "character_swap"
+        ? normalizeJutsuReferenceUrls(job.referenceImageUrls, job.referenceImageUrl)
+        : [];
+    const identityImageUrl = identityImageUrls[0];
     const referenceAudioUrl =
       !job.noLipSync && input.keepSourceAudio !== false ? job.sectionAudioUrl : undefined;
     const fullVideoPrompt = useH3Ref2Va
@@ -881,8 +898,10 @@ export async function renderJutsuVideo(input: {
           motionText,
           lightText,
           hasIdentityImage: Boolean(
-            identityImageUrl && identityImageUrl !== job.preparedStartFrameUrl,
+            identityImageUrls.length > 0 &&
+              identityImageUrls[0] !== job.preparedStartFrameUrl,
           ),
+          identityImageCount: identityImageUrls.length,
           hasReferenceAudio: Boolean(referenceAudioUrl),
           characterOutfitSpec: job.characterOutfitSpec,
         })
@@ -916,6 +935,7 @@ export async function renderJutsuVideo(input: {
           prompt: fullVideoPrompt,
           preparedImageUrl: job.preparedStartFrameUrl,
           identityImageUrl,
+          identityImageUrls,
           mannequinVideoUrl: job.mannequinVideoUrl!,
           audioUrl: referenceAudioUrl,
           noLipSync: job.noLipSync,
@@ -1102,6 +1122,7 @@ export type StartScroSwapInput = {
   sectionLength?: number;
   characterId?: string;
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
   personMappings?: JutsuPersonMapping[];
   allDetectedAnchors?: JutsuPersonAnchor[];
   totalDetectedPeople?: number;
@@ -1184,7 +1205,11 @@ export async function startScroSwapJob(
     const resolvedMappings: JutsuPersonMapping[] = [];
     if (Array.isArray(input.personMappings) && input.personMappings.length > 0) {
       for (const m of input.personMappings) {
-        let mDonorUrl = m.referenceImageUrl?.trim() || undefined;
+        let mDonorUrls = normalizeJutsuReferenceUrls(
+          m.referenceImageUrls,
+          m.referenceImageUrl,
+        );
+        let mDonorUrl: string | undefined = mDonorUrls[0];
         let mCharName = m.characterName;
         let mOutfitSpec = m.characterOutfitSpec;
         if (m.characterId && ObjectId.isValid(m.characterId)) {
@@ -1196,6 +1221,9 @@ export async function startScroSwapJob(
             const resolved = resolveCharacterDonorForSwap(charDoc, mDonorUrl);
             mCharName = resolved.characterName;
             mDonorUrl = resolved.donorImageUrl;
+            if (resolved.donorImageUrl) {
+              mDonorUrls = [resolved.donorImageUrl];
+            }
             mOutfitSpec = resolved.characterOutfitSpec;
           }
         }
@@ -1216,6 +1244,7 @@ export async function startScroSwapJob(
             characterId: m.characterId,
             characterName: mCharName,
             referenceImageUrl: mDonorUrl,
+            ...(mDonorUrls.length > 0 ? { referenceImageUrls: mDonorUrls } : {}),
             characterOutfitSpec: mOutfitSpec,
           });
         }
@@ -1229,7 +1258,11 @@ export async function startScroSwapJob(
     let characterId = input.characterId;
     let characterName: string | undefined;
     let characterOutfitSpec: string | undefined;
-    let donorImageUrl = input.referenceImageUrl?.trim() || undefined;
+    let donorImageUrls = normalizeJutsuReferenceUrls(
+      input.referenceImageUrls,
+      input.referenceImageUrl,
+    );
+    let donorImageUrl: string | undefined = donorImageUrls[0];
 
     if (resolvedMappings.length > 0) {
       const primary = resolvedMappings[0]!;
@@ -1239,6 +1272,7 @@ export async function startScroSwapJob(
           ? resolvedMappings.map((m) => m.characterName || `#${m.personIndex}`).join(" + ")
           : primary.characterName;
       donorImageUrl = primary.referenceImageUrl;
+      donorImageUrls = flattenPersonMappingDonorUrls(resolvedMappings);
       characterOutfitSpec = primary.characterOutfitSpec;
     } else if (input.characterId && ObjectId.isValid(input.characterId)) {
       const charDoc = (await charCol.findOne({
@@ -1249,6 +1283,9 @@ export async function startScroSwapJob(
         const resolved = resolveCharacterDonorForSwap(charDoc, donorImageUrl);
         characterName = resolved.characterName;
         donorImageUrl = resolved.donorImageUrl;
+        if (resolved.donorImageUrl) {
+          donorImageUrls = [resolved.donorImageUrl];
+        }
         characterOutfitSpec = resolved.characterOutfitSpec;
       }
     }
@@ -1323,6 +1360,7 @@ export async function startScroSwapJob(
       characterName,
       characterOutfitSpec,
       referenceImageUrl: donorImageUrl,
+      ...(donorImageUrls.length > 0 ? { referenceImageUrls: donorImageUrls } : {}),
       personMappings: resolvedMappings.length > 0 ? resolvedMappings : undefined,
       allDetectedAnchors:
         input.allDetectedAnchors && input.allDetectedAnchors.length > 0
@@ -1421,10 +1459,11 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
       const donorUrls =
         activeMappings.length > 0
-          ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
-          : current.referenceImageUrl
-            ? [current.referenceImageUrl]
-            : [];
+          ? flattenPersonMappingDonorUrls(activeMappings)
+          : normalizeJutsuReferenceUrls(
+              current.referenceImageUrls,
+              current.referenceImageUrl,
+            );
 
       if (donorUrls.length === 0) {
         throw new Error("缺少角色參考圖片");
@@ -1446,6 +1485,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
             relightId: current.relightId,
             customLightPrompt: current.customLightPrompt,
             hasReferenceImage: true,
+            referenceImageCount: donorUrls.length,
             characterOutfitSpec: current.characterOutfitSpec,
           });
 
@@ -1587,10 +1627,11 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
         const donorUrls =
           activeMappings.length > 0
-            ? activeMappings.map((m) => m.referenceImageUrl).filter(Boolean)
-            : current.referenceImageUrl
-              ? [current.referenceImageUrl]
-              : [];
+            ? flattenPersonMappingDonorUrls(activeMappings)
+            : normalizeJutsuReferenceUrls(
+                current.referenceImageUrls,
+                current.referenceImageUrl,
+              );
 
         if (donorUrls.length === 0) {
           throw new Error("缺少角色參考圖片");
@@ -1612,6 +1653,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
               relightId: current.relightId,
               customLightPrompt: current.customLightPrompt,
               hasReferenceImage: true,
+              referenceImageCount: donorUrls.length,
               characterOutfitSpec: current.characterOutfitSpec,
             });
 
@@ -1778,13 +1820,14 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         current.customLightPrompt,
       );
       const useH3Ref2Va = Boolean(current.mannequinVideoUrl && hasMinimaxApiKey());
-      const identityImageUrl = current.referenceImageUrl;
       const identityImageUrls =
         current.personMappings && current.personMappings.length > 0
-          ? current.personMappings.map((m) => m.referenceImageUrl).filter(Boolean)
-          : identityImageUrl
-            ? [identityImageUrl]
-            : [];
+          ? flattenPersonMappingDonorUrls(current.personMappings)
+          : normalizeJutsuReferenceUrls(
+              current.referenceImageUrls,
+              current.referenceImageUrl,
+            );
+      const identityImageUrl = identityImageUrls[0] ?? current.referenceImageUrl;
       const referenceAudioUrl =
         !current.noLipSync && current.keepSourceAudio !== false
           ? current.sectionAudioUrl
@@ -1797,6 +1840,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
               identityImageUrls.length > 0 &&
                 identityImageUrls[0] !== current.preparedStartFrameUrl,
             ),
+            identityImageCount: identityImageUrls.length,
             hasReferenceAudio: Boolean(referenceAudioUrl),
             characterOutfitSpec: current.characterOutfitSpec,
             personMappings: current.personMappings,

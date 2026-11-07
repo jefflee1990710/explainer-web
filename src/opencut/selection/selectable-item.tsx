@@ -47,9 +47,9 @@ export const SelectableItem = forwardRef<HTMLDivElement, SelectableItemProps>(
 		} = useSelectionContext();
 		const isItemSelected = isSelected(id);
 		const stateClassName = cn(
-			"relative rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12141c]",
+			"relative rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white [[data-studio-theme=light]_&]:focus-visible:ring-[#12141c]",
 			isBoxSelecting && "pointer-events-none",
-			isItemSelected && "ring-2 ring-[#12141c]",
+			isItemSelected && "ring-2 ring-white [[data-studio-theme=light]_&]:ring-[#12141c]",
 		);
 
 		const handleRef = useCallback(

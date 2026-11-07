@@ -8,14 +8,14 @@ import {
   subtitleText,
 } from "@/service/director/spoken-line";
 
-test("surprise-interview field copy says 對白; story-short and explainer say 旁白", () => {
+test("surprise-interview and story-short field copy say 對白; explainer says 旁白", () => {
   const surpriseCopy = spokenLineCopy("surprise-interview-director");
   assert.equal(surpriseCopy.section, "對白");
   assert.equal(surpriseCopy.field("English"), "對白（English）");
 
   const storyCopy = spokenLineCopy("story-short-director");
-  assert.equal(storyCopy.section, "旁白");
-  assert.equal(storyCopy.field("English"), "旁白（English）");
+  assert.equal(storyCopy.section, "對白");
+  assert.equal(storyCopy.field("English"), "對白（English）");
 });
 
 test("explainer field copy stays 旁白", () => {
@@ -25,17 +25,21 @@ test("explainer field copy stays 旁白", () => {
   assert.match(copy.emptyError, /旁白/);
 });
 
-test("lockDialogueSpeech makes surprise-interview require on-screen lip-sync, while story-short and other directors use off-screen narration with mouths closed", () => {
+test("lockDialogueSpeech makes surprise-interview and voiced story-short require on-screen lip-sync, while silent story-short keeps mouths closed with third-person camera lock", () => {
   const surpriseLocked = lockDialogueSpeech(" Camera drops.", "surprise-interview-director", "Wait what?!");
   assert.match(surpriseLocked, /visible mouth/);
   assert.match(surpriseLocked, /lip-syncs every syllable/);
 
-  const storyLocked = lockDialogueSpeech("Walk toward the box.", "story-short-director", "He found the secret.");
-  assert.match(storyLocked, /^AUDIO REQUIRED, spoken once by an unseen off-screen narrator/);
-  assert.match(storyLocked, /mouth stays closed/);
-  assert.match(storyLocked, /never lip-syncs/);
+  const storyLocked = lockDialogueSpeech("Walk toward the box.", "story-short-director", 'Scro: "He found the secret."');
+  assert.match(storyLocked, /On-screen characters MUST speak the dialogue aloud with visible mouth movement/);
+  assert.match(storyLocked, /lip-syncs every syllable/);
   assert.match(storyLocked, /third-person observer camera/);
-  assert.equal(lockDialogueSpeech(storyLocked, "story-short-director", "He found the secret."), storyLocked);
+  assert.equal(lockDialogueSpeech(storyLocked, "story-short-director", 'Scro: "He found the secret."'), storyLocked);
+
+  const storySilent = lockDialogueSpeech("Scro sprints downhill.", "story-short-director", "(no dialogue)");
+  assert.doesNotMatch(storySilent, /On-screen characters MUST speak the dialogue aloud/);
+  assert.doesNotMatch(storySilent, /lip-syncs every syllable/);
+  assert.match(storySilent, /third-person observer camera/);
 });
 
 test("story-short video prompts keep third-person camera lock, while Q&A uses on-screen lip-sync", () => {

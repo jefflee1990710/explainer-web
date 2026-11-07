@@ -603,7 +603,7 @@ export async function draftStoryboardClipsWithAi(input: {
       : "(none)";
 
   const generated = await generateText({
-    model: storyboardModel(),
+    model: storyboardModel(input.skillSlug),
     providerOptions: storyboardProviderOptions(),
     output: Output.object({ schema: draftChatOutputSchema }),
     system: `You are an expert AI Storyboard Draft Assistant helping a creator plan step-by-step cartoon and diagram explainers before full storyboard generation.

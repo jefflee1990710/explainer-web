@@ -141,6 +141,7 @@ import {
 import {
   defaultSkillSlugForUseCase,
   filterSkillsForUseCase,
+  USE_CASE_LIST_PATH,
   type VideoUseCase,
 } from "@/service/video/use-case";
 import {
@@ -149,7 +150,11 @@ import {
 } from "@/service/video/restart-target";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { DirectorDockBrief } from "@/presentation/components/app/projects/new/director-dock-brief";
-import { computeSkillSwitchState } from "@/presentation/components/app/director-dock";
+import {
+  computeSkillSwitchState,
+  resolveModeSwitchSkillSlug,
+} from "@/presentation/components/app/director-dock";
+import { useRouteTransition } from "@/presentation/studio/route-transition";
 import { DEFAULT_SPEECH_PACE } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
@@ -247,6 +252,7 @@ export function NewProjectForm({
   subscribed,
   hasAnyVideo = true,
   useCase,
+  onUseCaseChange,
   initialPrompt,
   onVideoCreated,
   onStepNav,
@@ -264,34 +270,48 @@ export function NewProjectForm({
   hasAnyVideo?: boolean;
   /** When set from Create use-case nav, only offer matching system directors. */
   useCase?: VideoUseCase;
+  onUseCaseChange?: (next: VideoUseCase) => void;
   initialPrompt?: string;
   onVideoCreated?: (video: PublicVideo) => void;
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
   const router = useRouter();
+  const { syncClientPathname, registerInstantRouteHandler } = useRouteTransition();
   const { t, locale } = useI18n();
-  const effectiveUseCase =
+  const initialUseCase =
     useCase ?? inferVideoUseCaseFromSkillSlug(initialVideo?.skillSlug);
-  const skills = effectiveUseCase
-    ? filterSkillsForUseCase(allSkills, effectiveUseCase)
+  const initialFilteredSkills = initialUseCase
+    ? filterSkillsForUseCase(allSkills, initialUseCase)
     : allSkills;
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
-    : readBriefDefaults(projectId || "loose", { skills, styles, characters, textStyles });
+    : readBriefDefaults(projectId || "loose", {
+        skills: initialFilteredSkills,
+        styles,
+        characters,
+        textStyles,
+      });
 
   // Form fields
   const rememberedSkill = lastBrief?.skillSlug;
   const initialSkillSlug = initialSkillSlugForForm(
     initialVideo,
     rememberedSkill,
-    skills,
-    effectiveUseCase,
+    initialFilteredSkills,
+    initialUseCase,
   );
   const [skillSlug, setSkillSlug] = useState(initialSkillSlug);
-  // Picked director; form rules follow its behaviour (template) slug.
-  const selectedSkill = skills.find((item) => item.slug === skillSlug);
-  const ruleSlug = ruleSlugFor(skillSlug, skills);
+  // Picked director; form rules follow its behaviour (template) slug across all system/custom directors.
+  const selectedSkill = allSkills.find((item) => item.slug === skillSlug);
+  const ruleSlug = ruleSlugFor(skillSlug, allSkills);
+  const effectiveUseCase =
+    inferVideoUseCaseFromSkillSlug(ruleSlug) ??
+    useCase ??
+    inferVideoUseCaseFromSkillSlug(initialVideo?.skillSlug);
+  const skills = effectiveUseCase
+    ? filterSkillsForUseCase(allSkills, effectiveUseCase)
+    : allSkills;
   // Visual style; defaults to Cinematic realistic (`pickerDefaultStyleId`).
   const [styleId, setStyleId] = useState<string>(() => {
     if (initialVideo?.styleId) return initialVideo.styleId;
@@ -1169,7 +1189,16 @@ export function NewProjectForm({
   function onSkillChange(nextSlug: string) {
     setError("");
     setSkillSlug(nextSlug);
-    const nextRuleSlug = ruleSlugFor(nextSlug, skills);
+    const nextRuleSlug = ruleSlugFor(nextSlug, allSkills);
+    if (!initialVideo && !project) {
+      const nextUseCase = inferVideoUseCaseFromSkillSlug(nextRuleSlug);
+      if (nextUseCase) {
+        onUseCaseChange?.(nextUseCase);
+        if (useCase) {
+          syncClientPathname(USE_CASE_LIST_PATH[nextUseCase]);
+        }
+      }
+    }
     if (!initialVideo) {
       if (isTalkingHeadSkill(nextRuleSlug) && !source.trim()) {
         setSource(defaultTalkingHeadDirectorInstruction(locale));
@@ -1369,6 +1398,34 @@ export function NewProjectForm({
     return () => onStepNav?.(null);
   }, [onStepNav]);
 
+  const onSkillChangeRef = useRef(onSkillChange);
+  useEffect(() => {
+    onSkillChangeRef.current = onSkillChange;
+  });
+
+  useEffect(() => {
+    if (viewing !== 0 || project || !useCase) {
+      registerInstantRouteHandler(null);
+      return;
+    }
+    registerInstantRouteHandler((nextPath) => {
+      const targetMode =
+        nextPath === "/app/explainers"
+          ? "explainer"
+          : nextPath === "/app/talking-heads"
+            ? "talking-head"
+            : nextPath === "/app/stories"
+              ? "story"
+              : null;
+      if (!targetMode) return false;
+      const slug = resolveModeSwitchSkillSlug(targetMode, allSkills);
+      if (!slug) return false;
+      onSkillChangeRef.current(slug);
+      return true;
+    });
+    return () => registerInstantRouteHandler(null);
+  }, [viewing, project, useCase, allSkills, registerInstantRouteHandler]);
+
   const wizardValidationState: BriefWizardValidationState = {
     skillSlug,
     castNeed,
@@ -1440,6 +1497,7 @@ export function NewProjectForm({
               {setupMode === "quick" ? (
                 <DirectorDockBrief
                   skills={skills}
+                  modeSkills={allSkills}
                   skillSlug={skillSlug}
                   skillTitle={skillTitle}
                   ruleSlug={ruleSlug}

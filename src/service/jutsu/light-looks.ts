@@ -156,10 +156,40 @@ const JUTSU_CHARACTER_IDENTITY_LOCK =
 const JUTSU_CHARACTER_SCENE_LOCK =
   "Keep the exact room, furniture, props, on-screen text, and background of attached image 2 — never replace them with the backdrop from attached image 1.";
 
-export function withCharacterOutfitLock(basePrompt: string, outfitSpec?: string | null): string {
+export function withCharacterOutfitLock(
+  basePrompt: string,
+  outfitSpec?: string | null,
+  donorLabel = "attached image 1",
+): string {
   const cleanOutfit = (outfitSpec || "").trim();
   if (!cleanOutfit) return basePrompt;
-  return `${basePrompt} Exact character outfit to wear (from attached image 1): ${cleanOutfit}.`;
+  return `${basePrompt} Exact character outfit to wear (from ${donorLabel}): ${cleanOutfit}.`;
+}
+
+export function buildCharacterPreparePromptWithRefs(
+  referenceImageCount = 1,
+  relightLook?: string | null,
+): { prompt: string; donorLabel: string } {
+  const count = Math.max(1, Math.floor(referenceImageCount));
+  const donorLabel =
+    count === 1 ? "attached image 1" : `attached images 1 to ${count}`;
+  const sourceLabel = `attached image ${count + 1}`;
+  const identityLock =
+    count === 1
+      ? `The face must be the same person as ${donorLabel}: keep the face shape, jawline, eye shape, nose, lips, skin tone, and all facial features of ${donorLabel} exactly, plus its hair and clothing. Wardrobe lock: copy the exact outfit from ${donorLabel} (every garment, neckline, sleeve length, fabric texture, color, pattern, and chest graphic/logo if present) — never copy or blend any clothing from the person in ${sourceLabel}. From ${sourceLabel} take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in ${sourceLabel}.`
+      : `All of ${donorLabel} show the same target character from multiple angles/views: keep the exact face shape, jawline, eye shape, nose, lips, skin tone, facial features, hair, and clothing shown across ${donorLabel}. Wardrobe lock: copy the exact outfit from ${donorLabel} (every garment, neckline, sleeve length, fabric texture, color, pattern, and chest graphic/logo if present) — never copy or blend any clothing from the person in ${sourceLabel}. From ${sourceLabel} take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in ${sourceLabel}.`;
+  const sceneLock = `Keep the exact room, furniture, props, on-screen text, and background of ${sourceLabel} — never replace them with the backdrop from ${donorLabel}.`;
+
+  if (relightLook?.trim()) {
+    return {
+      donorLabel,
+      prompt: `Create a photograph of the person from ${donorLabel} in exactly the pose, head angle, hand and arm positions, camera angle, framing and body cut of the person in ${sourceLabel}; describe that pose fully. ${identityLock} ${sceneLock} ${relightLook.trim()}`,
+    };
+  }
+  return {
+    donorLabel,
+    prompt: `Create a photograph of the person from ${donorLabel} in the exact pose, head angle, hand and arm positions, camera angle, and body cut of the person in ${sourceLabel}. ${identityLock} ${sceneLock}`,
+  };
 }
 
 export const JUTSU_CHARACTER_RELIGHT_PROMPT = `Create a photograph of the person from attached image 1 in exactly the pose, head angle, hand and arm positions, camera angle, framing and body cut of the person in attached image 2; describe that pose fully. ${JUTSU_CHARACTER_IDENTITY_LOCK} ${JUTSU_CHARACTER_SCENE_LOCK} {look}`;

@@ -1,13 +1,13 @@
 import sharp from "sharp";
-import type {
-  JutsuMode,
-  JutsuObjectEditMode,
-  JutsuPersonMapping,
-  JutsuPlacementBox,
+import {
+  normalizeJutsuReferenceUrls,
+  type JutsuMode,
+  type JutsuObjectEditMode,
+  type JutsuPersonMapping,
+  type JutsuPlacementBox,
 } from "@/model/jutsu-job";
 import {
-  JUTSU_CHARACTER_PREPARE_PROMPT,
-  JUTSU_CHARACTER_RELIGHT_PROMPT,
+  buildCharacterPreparePromptWithRefs,
   JUTSU_FRAME_RELIGHT_PROMPT,
   resolveJutsuLightText,
   withCharacterOutfitLock,
@@ -117,6 +117,7 @@ export function buildDefaultJutsuEditPrompt(input: {
   objectTarget?: string;
   objectChangeTo?: string;
   hasReferenceImage?: boolean;
+  referenceImageCount?: number;
   placementBox?: JutsuPlacementBox;
   characterOutfitSpec?: string;
 }): string {
@@ -139,16 +140,14 @@ export function buildDefaultJutsuEditPrompt(input: {
     });
   }
 
-  if (light) {
-    return withCharacterOutfitLock(
-      JUTSU_CHARACTER_RELIGHT_PROMPT.replace("{look}", light),
-      input.characterOutfitSpec,
-    );
-  }
-
+  const built = buildCharacterPreparePromptWithRefs(
+    input.referenceImageCount ?? 1,
+    light || undefined,
+  );
   return withCharacterOutfitLock(
-    JUTSU_CHARACTER_PREPARE_PROMPT,
+    built.prompt,
     input.characterOutfitSpec,
+    built.donorLabel,
   );
 }
 
@@ -160,8 +159,25 @@ function horizontalZoneLabel(box: JutsuPlacementBox): string {
 }
 
 /**
+ * Return all donor reference URLs in left-to-right person order for `mappings`.
+ */
+export function flattenPersonMappingDonorUrls(
+  mappings: readonly JutsuPersonMapping[],
+): string[] {
+  const sorted = [...mappings].sort(
+    (a, b) => a.box.x + a.box.width / 2 - (b.box.x + b.box.width / 2),
+  );
+  const urls: string[] = [];
+  for (const m of sorted) {
+    const mUrls = normalizeJutsuReferenceUrls(m.referenceImageUrls, m.referenceImageUrl);
+    urls.push(...mUrls);
+  }
+  return urls;
+}
+
+/**
  * Build the keyframe edit instruction when 1 or more detected people are mapped to specific
- * character donors. Reference images are attached in order: `[donor_1, ..., donor_K, sourceFrame]`.
+ * character donors. Reference images are attached in order: `[...donorUrlsForAllMappings, sourceFrame]`.
  */
 export function buildMultiPersonJutsuEditPrompt(input: {
   mappings: readonly JutsuPersonMapping[];
@@ -181,14 +197,27 @@ export function buildMultiPersonJutsuEditPrompt(input: {
     });
   }
 
-  const sourceImgIndex = sorted.length + 1;
-  const assignments = sorted.map((m, i) => {
-    const donorImgIndex = i + 1;
+  let nextImgIndex = 1;
+  const spans = sorted.map((m) => {
+    const urls = normalizeJutsuReferenceUrls(m.referenceImageUrls, m.referenceImageUrl);
+    const count = Math.max(1, urls.length);
+    const startIdx = nextImgIndex;
+    const endIdx = nextImgIndex + count - 1;
+    nextImgIndex = endIdx + 1;
+    return { m, startIdx, endIdx, count };
+  });
+
+  const sourceImgIndex = nextImgIndex;
+  const assignments = spans.map(({ m, startIdx, endIdx, count }) => {
+    const donorLabel =
+      count === 1
+        ? `attached image ${startIdx}`
+        : `attached images ${startIdx} to ${endIdx}`;
     const zone = horizontalZoneLabel(m.box);
     const outfitLock = m.characterOutfitSpec?.trim()
-      ? ` wearing the exact full-body outfit from attached image ${donorImgIndex} (${m.characterOutfitSpec.trim()})`
-      : ` wearing the exact full-body outfit and shoes from attached image ${donorImgIndex}`;
-    return `replace Person #${m.personIndex} located ${zone} in attached image ${sourceImgIndex} with the person from attached image ${donorImgIndex}${outfitLock}, matching Person #${m.personIndex}'s exact body pose, limb placement, hand gesture, and camera angle`;
+      ? ` wearing the exact full-body outfit from ${donorLabel} (${m.characterOutfitSpec.trim()})`
+      : ` wearing the exact full-body outfit and shoes from ${donorLabel}`;
+    return `replace Person #${m.personIndex} located ${zone} in attached image ${sourceImgIndex} with the person from ${donorLabel}${outfitLock}, matching Person #${m.personIndex}'s exact body pose, limb placement, hand gesture, and camera angle`;
   });
 
   const keepOthers =

@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import sharp from "sharp";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import { buildObjectGraph, buildSimpleGraph } from "@/service/comfy/openjutsu-graph";
 import {
   canSubmitJutsuComfy,
+  composeJutsuCharacterReferenceSheet,
   resolveComfySwapMotionSize,
+  resolveJobCharacterReferenceUrls,
   trySubmitJutsuComfy,
 } from "@/service/comfy/submit-swap";
 
@@ -380,6 +383,150 @@ test("trySubmitJutsuComfy leaves H3OneClickSwapPlan roles blank so Node 10 video
     assert.equal(submittedPromptGraph["32"]?.inputs.largest_size, 768);
     // Node 30 (MiniMaxH3ReferenceToVideo) uses ref_image_size = "max"
     assert.equal(submittedPromptGraph["30"]?.inputs.ref_image_size, "max");
+  } finally {
+    if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevUrl;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveJobCharacterReferenceUrls and composeJutsuCharacterReferenceSheet support single and multiple character reference photos for ComfyUI", async () => {
+  const { mkdtemp, readFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { runFfmpeg } = await import("@/service/reel/concat");
+  const { ObjectId } = await import("mongodb");
+
+  assert.deepEqual(
+    resolveJobCharacterReferenceUrls({
+      referenceImageUrl: "https://blob.test/fallback.jpg",
+      referenceImageUrls: ["https://blob.test/a.jpg", "https://blob.test/b.jpg"],
+    }),
+    ["https://blob.test/a.jpg", "https://blob.test/b.jpg"],
+  );
+  assert.deepEqual(
+    resolveJobCharacterReferenceUrls({
+      referenceImageUrl: "https://blob.test/fallback.jpg",
+      personMappings: [
+        {
+          objectId: 0,
+          personIndex: 1,
+          anchorPoint: { x: 0.5, y: 0.5 },
+          box: { x: 0.2, y: 0.2, width: 0.4, height: 0.6 },
+          referenceImageUrl: "https://blob.test/p1-a.jpg",
+          referenceImageUrls: ["https://blob.test/p1-a.jpg", "https://blob.test/p1-b.jpg"],
+        },
+      ],
+    }),
+    ["https://blob.test/p1-a.jpg", "https://blob.test/p1-b.jpg"],
+  );
+
+  const img1 = await sharp({
+    create: { width: 200, height: 300, channels: 3, background: { r: 220, g: 40, b: 40 } },
+  })
+    .png()
+    .toBuffer();
+  const img2 = await sharp({
+    create: { width: 300, height: 200, channels: 4, background: { r: 40, g: 220, b: 80, alpha: 0.9 } },
+  })
+    .png()
+    .toBuffer();
+  const img3 = await sharp({
+    create: { width: 240, height: 360, channels: 3, background: { r: 40, g: 80, b: 220 } },
+  })
+    .jpeg()
+    .toBuffer();
+
+  // Single image returns the exact same buffer without re-encoding
+  const singleOut = await composeJutsuCharacterReferenceSheet([img1]);
+  assert.equal(singleOut, img1);
+
+  // Multiple images (2..6) stitch into a composite JPEG reference sheet
+  const multiOut = await composeJutsuCharacterReferenceSheet([img1, img2, img3]);
+  const multiMeta = await sharp(multiOut).metadata();
+  assert.equal(multiMeta.format, "jpeg");
+  assert.ok((multiMeta.width ?? 0) >= 1200);
+  assert.ok((multiMeta.height ?? 0) >= 600);
+
+  // Verify trySubmitJutsuComfy fetches all character reference URLs and uploads the composite sheet
+  const prevUrl = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  const dir = await mkdtemp(join(tmpdir(), "comfy-multiref-test-"));
+  try {
+    process.env.COMFY_BASE_URL = "https://comfy.example.com";
+    process.env.COMFY_API_KEY = "secret";
+
+    await runFfmpeg(dir, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=black:s=64x64:d=1",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=44100:cl=stereo",
+      "-t",
+      "1",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "voiced.mp4",
+    ]);
+    const voicedMp4 = await readFile(join(dir, "voiced.mp4"));
+
+    const fetchedImageUrls: string[] = [];
+    const fakeFetch: typeof fetch = async (input) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://blob.test/front.png") {
+        fetchedImageUrls.push(url);
+        return new Response(new Uint8Array(img1), { status: 200 });
+      }
+      if (url === "https://blob.test/fullbody.png") {
+        fetchedImageUrls.push(url);
+        return new Response(new Uint8Array(img2), { status: 200 });
+      }
+      if (url.endsWith("/upload/image")) {
+        return Response.json({ name: "uploaded-composite.jpg" }, { status: 200 });
+      }
+      if (url.endsWith("/prompt")) {
+        return Response.json({ prompt_id: "prompt-multiref" }, { status: 200 });
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    const res = await trySubmitJutsuComfy(
+      {
+        _id: new ObjectId("6aee3fece8f79939352b1888"),
+        userId: new ObjectId("6abcc45aebdb844ee2cd8413"),
+        clerkUserId: "u1",
+        mode: "character_swap",
+        status: "rendering",
+        sourceVideoUrl: "https://blob.test/source.mp4",
+        sourceMediaKind: "video",
+        aspectRatio: "9:16",
+        sectionStart: 0,
+        sectionLength: 6,
+        referenceImageUrl: "https://blob.test/front.png",
+        referenceImageUrls: ["https://blob.test/front.png", "https://blob.test/fullbody.png"],
+        motionSize: 512,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      voicedMp4,
+      fakeFetch,
+    );
+
+    assert.equal(res?.request_id, "prompt-multiref");
+    assert.deepEqual(fetchedImageUrls, [
+      "https://blob.test/front.png",
+      "https://blob.test/fullbody.png",
+    ]);
   } finally {
     if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
     else process.env.COMFY_BASE_URL = prevUrl;

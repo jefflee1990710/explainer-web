@@ -301,9 +301,9 @@ html[data-studio-theme="light"] .studio-app .studio-card:hover {
 }
 
 /* Dark-mode utility harmonization across all portal views */
-.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-white"],
-.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-paper"],
-.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside)[class*="bg-[#fafafa]"] {
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-white"]:not(.opencut-direct-host *),
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside, ul, li, table, thead, tbody, tr, form, fieldset, label)[class*="bg-paper"]:not(.opencut-direct-host *),
+.studio-app:not([data-studio-theme="light"]) :is(div, section, article, header, aside)[class*="bg-[#fafafa]"]:not(.opencut-direct-host *) {
   background-color: var(--studio-panel);
   color: var(--studio-ink);
 }
@@ -347,7 +347,7 @@ html[data-studio-theme="light"] .studio-app .studio-card:hover {
   background-color: rgba(0, 0, 0, 0.72);
 }
 
-.studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]):not([role="checkbox"]) {
+.studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]):not([role="checkbox"]):not(.opencut-direct-host *) {
   background-color: var(--studio-fill);
   color: var(--studio-ink);
 }

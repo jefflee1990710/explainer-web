@@ -198,18 +198,20 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
     <aside
       data-expanded={expanded ? "true" : "false"}
       className={`group/rail relative z-50 flex h-full shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-sidebar,var(--studio-panel))] p-3 transition-[width] duration-200 ease-out ${
-        expanded ? "w-[252px]" : "w-[72px] hover:w-[252px] focus-within:w-[252px]"
+        expanded ? "w-[252px]" : "w-[72px]"
       }`}
     >
       <div
-        className={`mb-3 flex shrink-0 items-center justify-between px-1 pb-2 pt-0.5 ${
-          expanded ? "" : "justify-center group-hover/rail:justify-between group-focus-within/rail:justify-between"
+        className={`mb-3 flex shrink-0 pb-2 pt-0.5 ${
+          expanded
+            ? "flex-row items-center justify-between px-1"
+            : "flex-col items-center justify-center gap-1.5"
         }`}
       >
         <BrandMark
           href="/app"
           wordClassName={`text-xl font-bold tracking-tight text-[var(--studio-ink)] ${
-            expanded ? "inline" : "hidden group-hover/rail:inline group-focus-within/rail:inline"
+            expanded ? "inline" : "hidden"
           }`}
         />
         <button
@@ -217,9 +219,7 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
           onClick={toggleCollapsed}
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
           title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--studio-muted)] transition hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)] ${
-            expanded ? "inline-flex" : "hidden group-hover/rail:inline-flex group-focus-within/rail:inline-flex"
-          }`}
+          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--studio-muted)] transition hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -239,9 +239,7 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
       <StudioNav items={items} forceExpanded={expanded} />
       <div
         className={`mt-auto flex flex-col gap-2 border-t border-[var(--studio-line)] pt-3 text-sm ${
-          expanded
-            ? "items-stretch"
-            : "items-center group-hover/rail:items-stretch group-focus-within/rail:items-stretch"
+          expanded ? "items-stretch" : "items-center"
         }`}
       >
         {children}

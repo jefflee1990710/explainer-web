@@ -49,17 +49,39 @@ type TimedClip = SpokenClip & {
   timeRange: string;
 };
 
+function resolvedSeconds<T extends TimedClip>(
+  clip: T,
+  pace?: SpeechPace,
+  options?: { preservePlannedDuration?: boolean },
+) {
+  const spoken = spokenClipSeconds(clipSpokenText(clip), pace);
+  if (!options?.preservePlannedDuration) return spoken;
+  const planned = Math.min(
+    CLIP_MAX_SECONDS,
+    Math.max(CLIP_MIN_SECONDS, Math.round(clip.durationSeconds || CLIP_MIN_SECONDS)),
+  );
+  return Math.min(CLIP_MAX_SECONDS, Math.max(planned, spoken));
+}
+
 // One clip. timeRange is this clip only; the storyboard pass assigns the timeline.
-export function withSpokenClipDuration<T extends TimedClip>(clip: T, pace?: SpeechPace): T {
-  const seconds = spokenClipSeconds(clipSpokenText(clip), pace);
+export function withSpokenClipDuration<T extends TimedClip>(
+  clip: T,
+  pace?: SpeechPace,
+  options?: { preservePlannedDuration?: boolean },
+): T {
+  const seconds = resolvedSeconds(clip, pace, options);
   return { ...clip, durationSeconds: seconds, timeRange: `0–${seconds}s` };
 }
 
 // Whole storyboard. Duration follows the line; ranges run in order.
-export function withSpokenClipDurations<T extends TimedClip>(clips: T[], pace?: SpeechPace): T[] {
+export function withSpokenClipDurations<T extends TimedClip>(
+  clips: T[],
+  pace?: SpeechPace,
+  options?: { preservePlannedDuration?: boolean },
+): T[] {
   let cursor = 0;
   return clips.map((clip) => {
-    const seconds = spokenClipSeconds(clipSpokenText(clip), pace);
+    const seconds = resolvedSeconds(clip, pace, options);
     const start = cursor;
     cursor += seconds;
     return { ...clip, durationSeconds: seconds, timeRange: `${start}–${cursor}s` };

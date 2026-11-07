@@ -799,7 +799,10 @@ export async function sendClipVideo(
         CANTONESE_VOICE_ID
       : null;
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
-  const expandVideoToVo = isDualBeatSkill(project.skillSlug) || editorialInterviewBroll;
+  const expandVideoToVo =
+    isDualBeatSkill(project.skillSlug) ||
+    editorialInterviewBroll ||
+    project.skillSlug === "story-short-director";
   let durationSeconds = prompt.durationSeconds;
 
   if (directUploadedVoUrl && audioFirstTalkingHead) {
@@ -918,9 +921,10 @@ export async function sendClipVideo(
     return toSent(OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL, submitted);
   }
 
-  const targetModel = clipVideoModel(style ?? clipStyleId);
+  const targetModel = clipVideoModel(style ?? clipStyleId, project.skillSlug);
   const submitted = await submitClipVideo({
     model: targetModel,
+    skillSlug: project.skillSlug,
     prompt: videoPrompt,
     aspectRatio: project.aspectRatio,
     durationSeconds,
@@ -1231,7 +1235,10 @@ export async function applyJobStatus(input: {
             onsetSeconds: storedClip?.voOnsetSeconds,
             lipSync: usesLipSync,
             expandVideoToVo: Boolean(
-              clipProject && (isDualBeatSkill(clipProject.skillSlug) || editorialInterviewBrollJob),
+              clipProject &&
+                (isDualBeatSkill(clipProject.skillSlug) ||
+                  editorialInterviewBrollJob ||
+                  clipProject.skillSlug === "story-short-director"),
             ),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {

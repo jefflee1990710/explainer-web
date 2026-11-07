@@ -62,6 +62,7 @@ import { TalkingHeadScriptField } from "@/presentation/components/app/projects/n
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
+import { useRouteTransition } from "@/presentation/studio/route-transition";
 import type {
   PublicCharacter,
   PublicProduct,
@@ -128,6 +129,7 @@ function characterPreviewForStyle(
 
 export function DirectorDockBrief({
   skills,
+  modeSkills,
   skillSlug,
   skillTitle,
   ruleSlug,
@@ -190,6 +192,7 @@ export function DirectorDockBrief({
   hasExistingProject,
 }: {
   skills: PublicSkill[];
+  modeSkills?: PublicSkill[];
   skillSlug: string;
   skillTitle: string;
   ruleSlug: string;
@@ -265,6 +268,7 @@ export function DirectorDockBrief({
   hasExistingProject: boolean;
 }) {
   const router = useRouter();
+  const { startRouteTransition } = useRouteTransition();
   const { t, locale } = useI18n();
 
   const [skillDialogOpen, setSkillDialogOpen] = useState(false);
@@ -346,29 +350,33 @@ export function DirectorDockBrief({
       onOpenDetails();
       return;
     }
+    const pool = modeSkills && modeSkills.length > 0 ? modeSkills : skills;
     if (nextId === "story" && !isStory) {
-      const stSlug = resolveModeSwitchSkillSlug("story", skills);
+      const stSlug = resolveModeSwitchSkillSlug("story", pool);
       if (stSlug) {
         onSkillChange(stSlug);
       } else {
+        startRouteTransition("/app/stories");
         router.push("/app/stories");
       }
       return;
     }
     if (nextId === "talking-head" && !talkingHead) {
-      const thSlug = resolveModeSwitchSkillSlug("talking-head", skills);
+      const thSlug = resolveModeSwitchSkillSlug("talking-head", pool);
       if (thSlug) {
         onSkillChange(thSlug);
       } else {
+        startRouteTransition("/app/talking-heads");
         router.push("/app/talking-heads");
       }
       return;
     }
     if (nextId === "explainer" && (talkingHead || isStory)) {
-      const expSlug = resolveModeSwitchSkillSlug("explainer", skills);
+      const expSlug = resolveModeSwitchSkillSlug("explainer", pool);
       if (expSlug) {
         onSkillChange(expSlug);
       } else {
+        startRouteTransition("/app/explainers");
         router.push("/app/explainers");
       }
     }

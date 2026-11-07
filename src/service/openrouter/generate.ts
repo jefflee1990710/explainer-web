@@ -512,6 +512,7 @@ function resultFromVideoJob(
 export async function submitOpenRouterClipVideo(
   input: {
     model?: string;
+    fallbackModel?: string;
     prompt: string;
     motionPrompt?: string;
     expressiveness?: "low" | "medium" | "high";
@@ -557,19 +558,20 @@ export async function submitOpenRouterClipVideo(
   });
 
   let body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  let fallbackUsed = false;
+  let fallbackUsed: string | undefined;
   if (
     !response.ok &&
     !useHeyGenAudio &&
     /^bytedance\/seedance/i.test(reqBody.model) &&
     isSeedanceRealPersonRejection(openRouterError(body))
   ) {
+    const targetFallbackModel = input.fallbackModel || OPENROUTER_WAN_3_VIDEO_MODEL;
     const fallbackBody = openRouterClipVideoBody({
       ...input,
-      model: OPENROUTER_WAN_3_VIDEO_MODEL,
+      model: targetFallbackModel,
       callbackUrl,
     });
-    fallbackUsed = true;
+    fallbackUsed = targetFallbackModel;
     response = await fetchFn(OPENROUTER_VIDEOS_URL, {
       method: "POST",
       headers: {
@@ -589,7 +591,7 @@ export async function submitOpenRouterClipVideo(
   return resultFromVideoJob(
     body,
     undefined,
-    fallbackUsed ? OPENROUTER_WAN_3_VIDEO_MODEL : undefined,
+    fallbackUsed,
   );
 }
 

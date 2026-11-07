@@ -41,6 +41,7 @@ export async function UseCaseVideoListPage({
       credits={user.credits}
       useCase={useCase}
       historyVideos={matching}
+      allHistoryVideos={cards}
       initialPrompt={query?.prompt}
       {...pickers}
     />

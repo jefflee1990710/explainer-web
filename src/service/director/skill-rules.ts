@@ -177,8 +177,12 @@ export function bookendLogoFrameLines(imageIndex: number) {
   ];
 }
 
-// Talking-head, surprise-interview, and two-character Q&A use on-screen character lip-sync.
-const DIALOGUE_ONLY_SKILLS = new Set([SURPRISE_INTERVIEW_SKILL_SLUG, DIALOGUE_QA_SKILL_SLUG]);
+// Talking-head, surprise-interview, story-short, and two-character Q&A use on-screen character lip-sync.
+const DIALOGUE_ONLY_SKILLS = new Set([
+  SURPRISE_INTERVIEW_SKILL_SLUG,
+  DIALOGUE_QA_SKILL_SLUG,
+  STORY_SHORT_SKILL_SLUG,
+]);
 
 export function skillBansNarration(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
@@ -192,7 +196,8 @@ export function skillUsesOnScreenLipSync(skillSlug?: string) {
   return (
     isTalkingHeadSkill(skillSlug) ||
     isSurpriseInterviewSkill(skillSlug) ||
-    skillSlug === DIALOGUE_QA_SKILL_SLUG
+    skillSlug === DIALOGUE_QA_SKILL_SLUG ||
+    skillSlug === STORY_SHORT_SKILL_SLUG
   );
 }
 
@@ -348,8 +353,9 @@ export function storyShortDirectorBlock() {
     "This is a SHORT FILM, not an explainer.",
     "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact actions, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects (e.g., never add a paper airplane, notebook, letter, coffee cup, phone, or ruined building unless the user explicitly wrote it in the source). If the user asks for a young girl running down a hill, every clip stages ONLY that exact running action down the hillside.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-    "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak, NEVER move their mouths to talk, and NEVER lip-sync — their mouths stay closed while they act out the scene.",
-    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow and eye changes that convey the emotional beat with mouths closed—never a blank or wooden face, and never lip-sync).",
+    "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
+    'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips closed. When the story or user prompt includes spoken lines, write englishVo as character dialogue in the format NAME: "line" spoken on screen by that character (with each supplied voice lock pasted verbatim).',
+    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
   ].join(" ");
 }
 

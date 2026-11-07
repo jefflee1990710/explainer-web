@@ -1,5 +1,6 @@
 import {
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
+  OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
   OPENROUTER_WAN_3_VIDEO_MODEL,
   clipVideoResolution,
 } from "@/service/openrouter/generate";
@@ -18,7 +19,11 @@ export const WAN_3_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;
 
 export function clipVideoModel(
   styleOrId?: string | { id?: string; baseStyleId?: string } | null,
+  skillSlug?: string,
 ) {
+  if (skillSlug === "story-short-director") {
+    return OPENROUTER_SEEDANCE_2_VIDEO_MODEL;
+  }
   const style = typeof styleOrId === "string" ? { id: styleOrId } : styleOrId;
   return isRealisticStyle(style) ? SEEDANCE_2_VIDEO_MODEL : SEEDANCE_2_FAST_VIDEO_MODEL;
 }

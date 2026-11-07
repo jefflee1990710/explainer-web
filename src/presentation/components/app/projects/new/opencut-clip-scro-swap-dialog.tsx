@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { put } from "@vercel/blob/client";
+import {
+  appendJutsuReferenceUrls,
+  removeJutsuReferenceUrl,
+} from "@/model/jutsu-job";
+import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import { applyClipScroSwapAction } from "@/presentation/actions/opencut-clip-jutsu";
-import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -13,7 +18,10 @@ import type {
   PublicCharacterVersion,
   PublicVideo,
 } from "@/presentation/serialize";
+import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
 import { scroSwapCost } from "@/service/credit-costs";
+import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
@@ -57,7 +65,7 @@ export function OpenCutClipScroSwapDialog({
   onApplied: (project: PublicVideo) => void;
   onClose: () => void;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const isEn = locale === "en";
   const titleId = useId();
 
@@ -66,7 +74,10 @@ export function OpenCutClipScroSwapDialog({
     defaultCharacterLookUrl(characters[0]),
   );
   const [selectedLookKey, setSelectedLookKey] = useState<string>("default");
-  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [error, setError] = useState("");
@@ -91,12 +102,64 @@ export function OpenCutClipScroSwapDialog({
     );
   }, [activeCharacter]);
 
-  const effectiveRefUrl = uploadedPhotoUrl || selectedLookUrl || "";
-  const canSubmit = !submitting && Boolean(effectiveRefUrl);
+  const effectiveRefUrls =
+    uploadedPhotoUrls.length > 0
+      ? uploadedPhotoUrls
+      : selectedLookUrl
+        ? [selectedLookUrl]
+        : [];
+  const effectiveRefUrl = effectiveRefUrls[0] || "";
+  const canSubmit = !submitting && !uploadingPhotos && Boolean(effectiveRefUrl);
+
+  async function handleUploadFiles(fileList: FileList | File[] | undefined | null) {
+    if (!fileList || submitting || uploadingPhotos) return;
+    const files = Array.from(fileList).filter((f) =>
+      resolveBrandContentType(f).startsWith("image/"),
+    );
+    if (files.length === 0) return;
+    const remaining = Math.max(0, MAX_CHARACTER_REFERENCES - uploadedPhotoUrls.length);
+    const toUpload = files.slice(0, remaining > 0 ? remaining : MAX_CHARACTER_REFERENCES);
+    const baseUrls = remaining > 0 ? uploadedPhotoUrls : [];
+    setError("");
+    setUploadingPhotos(true);
+    try {
+      const added: string[] = [];
+      for (const file of toUpload) {
+        const contentType = resolveBrandContentType(file);
+        const checked = checkBrandUpload({ type: contentType, size: file.size });
+        if (!checked.ok) {
+          setError(translateAppError(checked.error, t));
+          break;
+        }
+        const prepared = await prepareBrandUploadAction({
+          contentType,
+          size: file.size,
+        });
+        if (!prepared.ok) {
+          setError(translateAppError(prepared.error, t));
+          break;
+        }
+        const blob = await put(prepared.pathname, file, {
+          access: "public",
+          token: prepared.token,
+          contentType: prepared.contentType,
+          multipart: file.size > 8 * 1024 * 1024,
+        });
+        added.push(blob.url);
+      }
+      if (added.length > 0) {
+        setUploadedPhotoUrls(appendJutsuReferenceUrls(baseUrls, added));
+      }
+    } catch {
+      setError(t("errors.uploadFailed"));
+    } finally {
+      setUploadingPhotos(false);
+    }
+  }
 
   function selectCharacter(char: PublicCharacter) {
     setCharacterId(char.id);
-    setUploadedPhotoUrl("");
+    setUploadedPhotoUrls([]);
     setSelectedLookKey("default");
     setSelectedLookUrl(defaultCharacterLookUrl(char));
   }
@@ -110,8 +173,9 @@ export function OpenCutClipScroSwapDialog({
       const res = await applyClipScroSwapAction({
         videoId,
         clipNumber,
-        characterId: uploadedPhotoUrl ? undefined : characterId || undefined,
+        characterId: uploadedPhotoUrls.length > 0 ? undefined : characterId || undefined,
         referenceImageUrl: effectiveRefUrl,
+        referenceImageUrls: effectiveRefUrls,
       });
       if (!res.ok) {
         submittingRef.current = false;
@@ -180,60 +244,138 @@ export function OpenCutClipScroSwapDialog({
             </div>
 
             <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                className="hidden"
+                disabled={submitting || uploadingPhotos}
+                onChange={(e) => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  e.target.value = "";
+                  void handleUploadFiles(files);
+                }}
+              />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-display text-sm font-bold">
-                  {isEn ? "Choose Character or Upload Photo" : "選擇角色或上傳參考照"}
+                  {isEn
+                    ? "Choose Character or Upload 1–6 Photos"
+                    : "選擇角色或上傳 1–6 張參考照"}
                 </span>
-                <BrandUploadButton
-                  label={
-                    uploadedPhotoUrl
-                      ? isEn
-                        ? "Replace Photo"
-                        : "更換照片"
-                      : isEn
-                        ? "Upload Custom Photo"
-                        : "上傳自訂角色照"
+                <button
+                  type="button"
+                  disabled={
+                    submitting ||
+                    uploadingPhotos ||
+                    uploadedPhotoUrls.length >= MAX_CHARACTER_REFERENCES
                   }
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={submitting}
-                  onUploaded={(asset) => {
-                    if (asset.kind === "image") {
-                      setUploadedPhotoUrl(asset.url);
-                      setError("");
-                    }
-                  }}
-                  onError={setError}
-                />
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-accent-ink/20 bg-paper px-3 py-1.5 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {uploadingPhotos ? <Spinner className="h-3.5 w-3.5" /> : <span>+</span>}
+                  <span>
+                    {uploadingPhotos
+                      ? isEn
+                        ? "Uploading..."
+                        : "上傳中..."
+                      : uploadedPhotoUrls.length > 0
+                        ? isEn
+                          ? `Add Photo (${uploadedPhotoUrls.length}/${MAX_CHARACTER_REFERENCES})`
+                          : `繼續加圖 (${uploadedPhotoUrls.length}/${MAX_CHARACTER_REFERENCES})`
+                        : isEn
+                          ? "Upload Custom Photo(s)"
+                          : "上傳自訂角色照（可多張）"}
+                  </span>
+                </button>
               </div>
 
-              {uploadedPhotoUrl ? (
-                <div className="flex items-center gap-3 rounded-xl border border-accent-ink/20 bg-surface-hi/40 p-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={uploadedPhotoUrl}
-                    alt=""
-                    className="h-14 w-14 rounded-lg object-cover"
-                  />
-                  <div className="min-w-0 flex-1 text-xs">
-                    <p className="font-semibold">
-                      {isEn ? "Using uploaded character photo" : "使用已上傳嘅自訂角色照"}
-                    </p>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!submitting && !uploadingPhotos) setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  void handleUploadFiles(e.dataTransfer.files);
+                }}
+                className={`rounded-xl border border-dashed p-2.5 transition ${
+                  uploadedPhotoUrls.length > 0
+                    ? "border-accent-ink bg-lime/15"
+                    : dragOver
+                      ? "border-accent-ink bg-lime/10"
+                      : "border-accent-ink/20 bg-surface-hi/30"
+                }`}
+              >
+                {uploadedPhotoUrls.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold">
+                        {isEn
+                          ? `Using ${uploadedPhotoUrls.length} uploaded character ${uploadedPhotoUrls.length === 1 ? "photo" : "photos"}`
+                          : `使用已上傳嘅 ${uploadedPhotoUrls.length} 張自訂角色參考照`}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={submitting || uploadingPhotos}
+                        onClick={() => setUploadedPhotoUrls([])}
+                        className="cursor-pointer rounded-lg border border-accent-ink/20 bg-white px-2.5 py-1 text-xs font-semibold hover:border-accent-ink"
+                      >
+                        {isEn ? "Clear" : "清除"}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {uploadedPhotoUrls.map((url, idx) => (
+                        <div key={url} className="relative h-14 w-14 overflow-hidden rounded-lg border border-accent-ink/20 bg-white">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt=""
+                            className="h-full w-full object-cover object-top"
+                          />
+                          <button
+                            type="button"
+                            disabled={submitting || uploadingPhotos}
+                            onClick={() =>
+                              setUploadedPhotoUrls((prev) =>
+                                removeJutsuReferenceUrl(prev, url),
+                              )
+                            }
+                            aria-label={isEn ? `Remove photo ${idx + 1}` : `移除第 ${idx + 1} 張照片`}
+                            className="absolute right-0.5 top-0.5 grid h-4 w-4 cursor-pointer place-items-center rounded-full bg-accent-ink/85 text-[10px] font-bold text-white hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setUploadedPhotoUrl("")}
-                    className="rounded-lg border border-accent-ink/20 px-2.5 py-1 text-xs font-semibold hover:border-accent-ink"
+                    disabled={submitting || uploadingPhotos}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 text-left text-xs text-muted hover:text-foreground"
                   >
-                    {isEn ? "Clear" : "清除"}
+                    <span>
+                      {isEn
+                        ? "Drop 1–6 character photos here (front, side, full-body) or click to browse"
+                        : "拖放 1–6 張角色照片至此（正面、側面、全身穿搭）或點擊上傳"}
+                    </span>
+                    <span className="shrink-0 rounded-lg border border-accent-ink/15 bg-white px-2 py-0.5 font-semibold text-foreground">
+                      {isEn ? "Browse" : "選擇檔案"}
+                    </span>
                   </button>
-                </div>
-              ) : null}
+                )}
+              </div>
 
               {characters.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {characters.map((char) => {
                     const thumb = defaultCharacterLookUrl(char);
-                    const active = !uploadedPhotoUrl && char.id === characterId;
+                    const active = uploadedPhotoUrls.length === 0 && char.id === characterId;
                     return (
                       <button
                         key={char.id}
@@ -260,7 +402,7 @@ export function OpenCutClipScroSwapDialog({
                 </div>
               ) : null}
 
-              {activeCharacter && !uploadedPhotoUrl && savedPresets.length > 0 ? (
+              {activeCharacter && uploadedPhotoUrls.length === 0 && savedPresets.length > 0 ? (
                 <div className="space-y-1.5 pt-1">
                   <span className="text-xs font-semibold text-muted">
                     {isEn ? "Look / Outfit Preset" : "造型預設"}

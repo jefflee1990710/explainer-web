@@ -290,7 +290,7 @@ export async function runPhaseA(input: {
   let output: PhaseAProposal | undefined;
   try {
     const generated = await generateText({
-      model: storyboardModel(),
+      model: storyboardModel(input.skill.slug),
       providerOptions: storyboardProviderOptions(),
       output: Output.object({
         schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
@@ -593,7 +593,9 @@ Produce a complete Phase A director proposal now.`,
   // Talking-head seconds already follow the spoken script. Every other director
   // gets duration from the line and pace here, so a model that always writes 5 is corrected.
   if (!talkingHead) {
-    const clips = withSpokenClipDurations(next.clips, input.speechPace);
+    const clips = withSpokenClipDurations(next.clips, input.speechPace, {
+      preservePlannedDuration: input.skill.slug === "story-short-director",
+    });
     const totalSeconds = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     next = { ...next, clips, targetDuration: `${totalSeconds}s` };
   }

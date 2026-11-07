@@ -2,11 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import { isFullBleedStudioPath } from "@/presentation/components/app/director-dock/director-dock-config";
+import { useRouteTransition } from "@/presentation/studio/route-transition";
 
 // Shared instant skeleton shown while an /app route streams its server data.
 export function StudioRouteSkeleton() {
   const pathname = usePathname() || "";
-  const isCreateStudio = isFullBleedStudioPath(pathname);
+  const { activePathname } = useRouteTransition();
+  const isCreateStudio = isFullBleedStudioPath(activePathname || pathname);
 
   if (isCreateStudio) {
     return (

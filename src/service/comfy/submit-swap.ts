@@ -1,4 +1,5 @@
-import type { JutsuJob } from "@/model/jutsu-job";
+import sharp from "sharp";
+import { normalizeJutsuReferenceUrls, type JutsuJob } from "@/model/jutsu-job";
 import type { TeleportJob } from "@/model/teleport-job";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import {
@@ -8,6 +9,79 @@ import {
   submitOpenJutsuSimple,
   type ComfySubmitResult,
 } from "@/service/comfy/openjutsu-client";
+
+export function resolveJobCharacterReferenceUrls(
+  job: Pick<JutsuJob, "referenceImageUrl" | "referenceImageUrls" | "personMappings">,
+): string[] {
+  const mapped = job.personMappings?.find(
+    (m) => (m.referenceImageUrls && m.referenceImageUrls.length > 0) || m.referenceImageUrl,
+  );
+  if (mapped) {
+    return normalizeJutsuReferenceUrls(mapped.referenceImageUrls, mapped.referenceImageUrl);
+  }
+  return normalizeJutsuReferenceUrls(job.referenceImageUrls, job.referenceImageUrl);
+}
+
+/**
+ * When a user uploads 2..6 reference photos of the same target character, stitch them into a
+ * single clean multi-angle reference sheet so ComfyUI's `Picture 1` (`Describe picture 1`,
+ * `H3OneClickSwapPlan`, and `MiniMaxH3ReferenceToVideo`) sees all angles and clothing details
+ * without mistaking them for multiple people in the video.
+ */
+export async function composeJutsuCharacterReferenceSheet(
+  imageBuffers: readonly Buffer[],
+): Promise<Buffer> {
+  if (imageBuffers.length === 0) {
+    throw new Error("缺少角色參考圖片");
+  }
+  if (imageBuffers.length === 1) {
+    return imageBuffers[0]!;
+  }
+
+  const slices = imageBuffers.slice(0, 6);
+  const count = slices.length;
+  const cols = count <= 3 ? count : Math.ceil(count / 2);
+  const rows = Math.ceil(count / cols);
+  const tileW = 640;
+  const tileH = 960;
+  const gap = 16;
+  const canvasW = cols * tileW + (cols + 1) * gap;
+  const canvasH = rows * tileH + (rows + 1) * gap;
+  const bg = { r: 24, g: 24, b: 27 };
+
+  const composites = await Promise.all(
+    slices.map(async (buf, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const tileBuf = await sharp(buf)
+        .rotate()
+        .resize(tileW, tileH, {
+          fit: "contain",
+          background: { ...bg, alpha: 1 },
+        })
+        .flatten({ background: bg })
+        .png()
+        .toBuffer();
+      return {
+        input: tileBuf,
+        left: gap + col * (tileW + gap),
+        top: gap + row * (tileH + gap),
+      };
+    }),
+  );
+
+  return sharp({
+    create: {
+      width: canvasW,
+      height: canvasH,
+      channels: 3,
+      background: bg,
+    },
+  })
+    .composite(composites)
+    .jpeg({ quality: 92 })
+    .toBuffer();
+}
 
 export function canSubmitJutsuComfy(
   job: Pick<
@@ -72,16 +146,19 @@ export async function trySubmitJutsuComfy(
   } as const;
 
   if (job.mode === "character_swap") {
-    const imageUrl =
-      job.personMappings?.find((mapping) => mapping.referenceImageUrl)?.referenceImageUrl ||
-      job.referenceImageUrl;
-    if (!imageUrl) throw new Error("缺少角色參考圖片");
-    const image = await fetchMedia(imageUrl, fetchFn);
+    const imageUrls = resolveJobCharacterReferenceUrls(job);
+    if (imageUrls.length === 0) throw new Error("缺少角色參考圖片");
+    const rawImages = await Promise.all(imageUrls.map((u) => fetchMedia(u, fetchFn)));
+    const image = await composeJutsuCharacterReferenceSheet(rawImages);
+    const imageName =
+      imageUrls.length > 1
+        ? `person_sheet_${runId}.jpg`
+        : fileName(imageUrls[0]!, "person.jpg");
     return submitOpenJutsuSimple(
       {
         ...shared,
         image,
-        imageName: fileName(imageUrl, "person.jpg"),
+        imageName,
         // Leave `role` blank so OpenJutsu Node 10 (`video_people`) auto-detects the original person's
         // role + clothes ("1. the walker - woman in dark jacket and black fringed scarf") and `H3FillShots`
         // strips the original person's clothing from the shot descriptions.

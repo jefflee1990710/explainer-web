@@ -11,7 +11,7 @@ const GROUP_SECTIONS: StudioNavSection[] = ["create", "character", "assets", "ac
 
 // OpenArt-inspired left side menu:
 // 1. Prominent Home pill at top
-// 2. TOOLS (2-column grid of creation tools)
+// 2. TOOLS (1-column list of creation tools)
 // 3. CHARACTER (indented tree items)
 // 4. ASSETS (indented tree items)
 export function StudioNav({
@@ -48,7 +48,9 @@ export function StudioNav({
   return (
     <nav
       aria-label={t("production.shell.mainNavAria")}
-      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-0.5"
+      className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${
+        forceExpanded ? "gap-4 pr-0.5" : "items-center gap-2"
+      }`}
     >
       {/* Top Home Pill Button */}
       {homeItems.map((item) => (
@@ -64,17 +66,22 @@ export function StudioNav({
         const group = items.filter((item) => item.section === section);
         if (group.length === 0) return null;
         const labelId = `studio-nav-${section}`;
-        const isOpen = openGroups[section] ?? true;
-        const isGridSection = section === "create";
+        const isOpen = !forceExpanded || (openGroups[section] ?? true);
+        const isToolsSection = section === "create";
 
         return (
-          <div key={section} role="group" aria-labelledby={labelId} className="flex flex-col gap-1.5">
+          <div
+            key={section}
+            role="group"
+            aria-labelledby={labelId}
+            className={`flex flex-col gap-1.5 ${forceExpanded ? "w-full" : "items-center"}`}
+          >
             <button
               type="button"
               id={labelId}
               onClick={() => toggleGroup(section)}
               aria-expanded={isOpen}
-              className={`flex cursor-pointer items-center gap-1.5 px-1.5 py-0.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--studio-muted)] transition hover:text-[var(--studio-ink)] group-hover/rail:flex group-focus-within/rail:flex ${
+              className={`cursor-pointer items-center gap-1.5 px-1.5 py-0.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--studio-muted)] transition hover:text-[var(--studio-ink)] ${
                 forceExpanded ? "flex" : "hidden"
               }`}
             >
@@ -92,14 +99,8 @@ export function StudioNav({
             </button>
 
             {isOpen ? (
-              isGridSection ? (
-                <div
-                  className={`grid gap-1.5 ${
-                    forceExpanded
-                      ? "grid-cols-2"
-                      : "grid-cols-1 group-hover/rail:grid-cols-2 group-focus-within/rail:grid-cols-2"
-                  }`}
-                >
+              isToolsSection ? (
+                <div className={`flex flex-col gap-1.5 ${forceExpanded ? "w-full" : "items-center"}`}>
                   {group.map((item) => (
                     <StudioToolTileLink
                       key={item.href}
@@ -114,7 +115,7 @@ export function StudioNav({
                   className={`flex flex-col gap-0.5 ${
                     forceExpanded
                       ? "ml-2 border-l border-[var(--studio-line)] pl-2.5"
-                      : "group-hover/rail:ml-2 group-hover/rail:border-l group-hover/rail:border-[var(--studio-line)] group-hover/rail:pl-2.5 group-focus-within/rail:ml-2 group-focus-within/rail:border-l group-focus-within/rail:border-[var(--studio-line)] group-focus-within/rail:pl-2.5"
+                      : "items-center"
                   }`}
                 >
                   {group.map((item) => (
@@ -151,8 +152,10 @@ function StudioHomePillLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`studio-home-pill group relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
-        forceExpanded ? "justify-start" : "justify-center"
+      className={`studio-home-pill group relative flex cursor-pointer items-center rounded-xl border text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+        forceExpanded
+          ? "min-h-11 w-full justify-start gap-2.5 px-3 py-2"
+          : "h-11 w-11 shrink-0 justify-center p-0"
       } ${
         active
           ? "border-[#c6f24b]/80 bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-[0_0_18px_rgba(198,242,75,0.22)]"
@@ -166,14 +169,10 @@ function StudioHomePillLink({
       >
         <RailIcon name={item.icon} />
       </span>
-      <span
-        className={`truncate group-hover/rail:inline group-focus-within/rail:inline ${
-          forceExpanded ? "inline" : "hidden"
-        }`}
-      >
+      <span className={`truncate ${forceExpanded ? "inline" : "hidden"}`}>
         {item.label}
       </span>
-      <NavPending />
+      {forceExpanded ? <NavPending /> : null}
     </Link>
   );
 }
@@ -194,8 +193,10 @@ function StudioToolTileLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`studio-tool-tile group relative flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-xs font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
-        forceExpanded ? "justify-start" : "justify-center"
+      className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-xl border text-xs font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+        forceExpanded
+          ? "min-h-10 w-full justify-start gap-2.5 px-2.5 py-2"
+          : "h-11 w-11 shrink-0 justify-center p-0"
       } ${
         active
           ? "border-[#c6f24b]/75 bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)] shadow-[0_0_12px_rgba(198,242,75,0.16)]"
@@ -220,16 +221,12 @@ function StudioToolTileLink({
           <RailIcon name={item.icon} />
         </span>
       )}
-      <span
-        className={`min-w-0 flex-1 truncate group-hover/rail:inline group-focus-within/rail:inline ${
-          forceExpanded ? "inline" : "hidden"
-        }`}
-      >
+      <span className={`min-w-0 flex-1 truncate ${forceExpanded ? "inline" : "hidden"}`}>
         {item.label}
       </span>
       {item.tag ? (
         <span
-          className={`absolute -top-1.5 right-1.5 rounded-full bg-[#c6f24b] px-1.5 py-0.2 text-[9px] font-extrabold leading-tight text-[#12141c] shadow-2xs group-hover/rail:inline-flex group-focus-within/rail:inline-flex ${
+          className={`absolute -top-1.5 right-1.5 rounded-full bg-[#c6f24b] px-1.5 py-0.2 text-[9px] font-extrabold leading-tight text-[#12141c] shadow-2xs ${
             forceExpanded ? "inline-flex" : "hidden"
           }`}
         >
@@ -256,8 +253,10 @@ function StudioNavLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`group flex min-h-9 cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
-        forceExpanded ? "justify-start" : "justify-center"
+      className={`group flex cursor-pointer items-center rounded-xl text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+        forceExpanded
+          ? "min-h-9 w-full justify-start gap-2.5 px-2 py-1.5"
+          : "h-10 w-10 shrink-0 justify-center p-0"
       } ${
         active
           ? "bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
@@ -272,24 +271,20 @@ function StudioNavLink({
         <RailIcon name={item.icon} />
         {item.badge !== undefined && item.badge > 0 ? (
           <span
-            className={`absolute -top-1 -right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[#c6f24b] px-1 text-[10px] font-extrabold leading-4 text-[#12141c] shadow-2xs group-hover/rail:hidden group-focus-within/rail:hidden ${
-              forceExpanded ? "hidden" : ""
+            className={`absolute -top-1 -right-1 min-w-[16px] items-center justify-center rounded-full bg-[#c6f24b] px-1 text-[10px] font-extrabold leading-4 text-[#12141c] shadow-2xs ${
+              forceExpanded ? "hidden" : "inline-flex"
             }`}
           >
             {item.badge}
           </span>
         ) : null}
       </span>
-      <span
-        className={`truncate group-hover/rail:inline group-focus-within/rail:inline ${
-          forceExpanded ? "inline" : "hidden"
-        }`}
-      >
+      <span className={`truncate ${forceExpanded ? "inline" : "hidden"}`}>
         {item.label}
       </span>
       {item.badge !== undefined ? (
         <span
-          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-extrabold tabular-nums group-hover/rail:inline-flex group-focus-within/rail:inline-flex ${
+          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-extrabold tabular-nums ${
             forceExpanded ? "inline-flex" : "hidden"
           } ${
             item.badge > 0
@@ -300,7 +295,7 @@ function StudioNavLink({
           {item.badge}
         </span>
       ) : null}
-      <NavPending />
+      {forceExpanded ? <NavPending /> : null}
     </Link>
   );
 }
@@ -310,7 +305,7 @@ function NavPending() {
   return (
     <span
       aria-hidden
-      className={`ml-auto hidden h-1.5 w-1.5 rounded-full bg-[var(--studio-teal)] group-hover/rail:inline-block group-focus-within/rail:inline-block ${
+      className={`ml-auto inline-block h-1.5 w-1.5 rounded-full bg-[var(--studio-teal)] ${
         pending ? "opacity-100" : "opacity-0"
       }`}
     />

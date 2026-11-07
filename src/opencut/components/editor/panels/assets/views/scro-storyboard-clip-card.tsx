@@ -25,6 +25,7 @@ export function ScroStoryboardClipCard({
 	onSelect,
 	onDuplicate,
 	duplicateDisabled = false,
+	isSelected = false,
 }: {
 	clip: ScroVideoSeedClip;
 	variant: "card" | "compact";
@@ -32,13 +33,27 @@ export function ScroStoryboardClipCard({
 	onSelect: () => void;
 	onDuplicate?: () => void;
 	duplicateDisabled?: boolean;
+	isSelected?: boolean;
 }) {
 	const showDuration = variant === "card" && clip.durationSeconds > 0;
 	const card = (
 		<div
 			role="button"
 			tabIndex={0}
-			className={variant === "card" ? "contents" : "w-full"}
+			aria-selected={isSelected}
+			className={
+				variant === "card"
+					? `relative rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white [[data-studio-theme=light]_&]:focus-visible:ring-[#12141c] ${
+							isSelected
+								? "ring-2 ring-white [[data-studio-theme=light]_&]:ring-[#12141c]"
+								: ""
+						}`
+					: `w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white [[data-studio-theme=light]_&]:focus-visible:ring-[#12141c] ${
+							isSelected
+								? "ring-2 ring-white [[data-studio-theme=light]_&]:ring-[#12141c]"
+								: ""
+						}`
+			}
 			onClick={onSelect}
 			onKeyDown={(event) => {
 				if (event.key === "Enter" || event.key === " ") {

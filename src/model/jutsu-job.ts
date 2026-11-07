@@ -1,5 +1,93 @@
 import { ObjectId } from "mongodb";
 import type { AspectRatio } from "@/model/project";
+import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
+
+/**
+ * Normalize 1..6 character reference image URLs (trimming, deduplicating, and falling back to `fallbackUrl`).
+ */
+export function normalizeJutsuReferenceUrls(
+  urls?: readonly (string | undefined | null)[] | null,
+  fallbackUrl?: string | null,
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw?: string | null) => {
+    const trimmed = (raw || "").trim();
+    if (
+      !trimmed ||
+      !/^https?:\/\//i.test(trimmed) ||
+      seen.has(trimmed) ||
+      result.length >= MAX_CHARACTER_REFERENCES
+    ) {
+      return;
+    }
+    seen.add(trimmed);
+    result.push(trimmed);
+  };
+  if (Array.isArray(urls)) {
+    for (const u of urls) push(u);
+  }
+  if (result.length === 0 && fallbackUrl) {
+    push(fallbackUrl);
+  }
+  return result;
+}
+
+/** Append new character reference image URLs onto an existing list (deduplicated, capped at 6). */
+export function appendJutsuReferenceUrls(
+  existing: readonly string[],
+  incoming: readonly string[],
+): string[] {
+  return normalizeJutsuReferenceUrls([...existing, ...incoming]);
+}
+
+/** Remove one character reference image URL from a list while preserving order. */
+export function removeJutsuReferenceUrl(
+  existing: readonly string[],
+  urlToRemove: string,
+): string[] {
+  const target = (urlToRemove || "").trim();
+  return normalizeJutsuReferenceUrls(existing.filter((u) => u.trim() !== target));
+}
+
+/**
+ * Build the initial per-person slot assignment when SAM 3 detects people in the opening frame.
+ * Preserves any pre-uploaded custom character reference photos on Person #1.
+ */
+export function buildInitialPersonSlotAssignment(input: {
+  personIndex: number;
+  characterId: string;
+  characterName: string;
+  defaultLookUrl: string;
+  defaultLookLabel: string;
+  uploadedPhotoUrls?: readonly string[];
+}): {
+  keepOriginal: boolean;
+  characterId: string;
+  characterName: string;
+  lookTab: "presets" | "historical";
+  selectedLookKey: string;
+  selectedLookUrl: string;
+  lookLabel: string;
+  uploadedPhotoUrl: string;
+  uploadedPhotoUrls: string[];
+} {
+  const customUrls =
+    input.personIndex === 1
+      ? normalizeJutsuReferenceUrls(input.uploadedPhotoUrls)
+      : [];
+  return {
+    keepOriginal: input.personIndex !== 1,
+    characterId: input.characterId,
+    characterName: input.characterName,
+    lookTab: "presets",
+    selectedLookKey: "default",
+    selectedLookUrl: input.defaultLookUrl,
+    lookLabel: input.defaultLookLabel,
+    uploadedPhotoUrl: customUrls[0] ?? "",
+    uploadedPhotoUrls: customUrls,
+  };
+}
 
 export const JUTSU_MODES = [
   "character_swap",
@@ -66,6 +154,7 @@ export type JutsuPersonMapping = {
   characterId?: string;
   characterName?: string;
   referenceImageUrl: string;
+  referenceImageUrls?: string[];
   characterOutfitSpec?: string;
 };
 
@@ -95,11 +184,12 @@ export type JutsuJob = {
   // Prepared (swapped / relit / object-edited) start and end keyframes via OpenRouter Seedream 5.0 Pro.
   preparedStartFrameUrl?: string;
   preparedEndFrameUrl?: string;
-  // Character / Donor reference image URL (from Scro Character blueprint or custom upload).
+  // Character / Donor reference image URL(s) (from Scro Character blueprint or 1..6 custom uploads).
   characterId?: string;
   characterName?: string;
   characterOutfitSpec?: string;
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
   // Multi-person SAM 3 RLE mappings (left-to-right person targets -> Scro characters).
   personMappings?: JutsuPersonMapping[];
   allDetectedAnchors?: JutsuPersonAnchor[];
@@ -162,6 +252,7 @@ export type PublicJutsuJob = {
   characterId?: string;
   characterName?: string;
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
   personMappings?: JutsuPersonMapping[];
   relightId?: string;
   customLightPrompt?: string;
@@ -207,6 +298,7 @@ export function toPublicJutsuJob(
     characterId: doc.characterId,
     characterName: doc.characterName,
     referenceImageUrl: doc.referenceImageUrl,
+    ...(doc.referenceImageUrls?.length ? { referenceImageUrls: doc.referenceImageUrls } : {}),
     personMappings: doc.personMappings,
     relightId: doc.relightId,
     customLightPrompt: doc.customLightPrompt,

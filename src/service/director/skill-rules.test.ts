@@ -95,11 +95,11 @@ test("bookend director block uses the logo only when one is attached", () => {
   assert.match(bookendDirectorBlock("ending-director", true), /ENDING bookend/);
 });
 
-test("only talking-head and surprise-interview use on-screen lip-sync; story short and Q&A use off-screen narration with mouths closed", () => {
+test("talking-head, surprise-interview, story-short, and Q&A use on-screen lip-sync with no narrator", () => {
   assert.equal(skillUsesOnScreenLipSync("talking-head-director"), true);
   assert.equal(skillUsesOnScreenLipSync("full-body-talking-head-director"), true);
   assert.equal(skillUsesOnScreenLipSync("surprise-interview-director"), true);
-  assert.equal(skillUsesOnScreenLipSync("story-short-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("story-short-director"), true);
   assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), true);
   assert.equal(skillUsesOnScreenLipSync("cartoon-explainer-video-director"), false);
   assert.equal(skillUsesOnScreenLipSync("listicle-director"), false);
@@ -107,12 +107,12 @@ test("only talking-head and surprise-interview use on-screen lip-sync; story sho
   assert.equal(skillUsesOnScreenLipSync("editorial-interview-director"), true);
 
   assert.equal(skillBansNarration("surprise-interview-director"), true);
-  assert.equal(skillBansNarration("story-short-director"), false);
+  assert.equal(skillBansNarration("story-short-director"), true);
   assert.equal(skillBansNarration("dialogue-qa-director"), true);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
   assert.match(storyShortDirectorBlock(), /Do not force want/);
-  assert.match(storyShortDirectorBlock(), /mouths stay closed/i);
-  assert.match(storyShortDirectorBlock(), /never lip-sync/i);
+  assert.match(storyShortDirectorBlock(), /NO narrator/i);
+  assert.match(storyShortDirectorBlock(), /\(no dialogue\)/i);
 });
 
 test("story short is filmed third-person: characters never address the camera", () => {

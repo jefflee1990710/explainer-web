@@ -1,4 +1,4 @@
-import type { JutsuPersonMapping } from "@/model/jutsu-job";
+import { normalizeJutsuReferenceUrls, type JutsuPersonMapping } from "@/model/jutsu-job";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import {
@@ -106,6 +106,7 @@ export function buildJutsuRef2VaPrompt(input: {
   motionText: string;
   lightText?: string;
   hasIdentityImage: boolean;
+  identityImageCount?: number;
   hasReferenceAudio?: boolean;
   characterOutfitSpec?: string;
   personMappings?: readonly JutsuPersonMapping[];
@@ -126,20 +127,50 @@ export function buildJutsuRef2VaPrompt(input: {
     "<Picture 1> (Reference image 1) defines the character, outfit, background, colors, materials and lighting throughout the output.",
   ];
   if (mappings.length > 1) {
-    for (const [idx, mapping] of mappings.entries()) {
-      const refNum = idx + 2;
+    let nextRefNum = 2;
+    for (const mapping of mappings) {
+      if (nextRefNum > 9) break;
+      const urls = normalizeJutsuReferenceUrls(
+        mapping.referenceImageUrls,
+        mapping.referenceImageUrl,
+      );
+      const count = Math.max(1, urls.length);
+      const startRef = nextRefNum;
+      const endRef = Math.min(9, nextRefNum + count - 1);
+      nextRefNum = endRef + 1;
       const cx = Math.round((mapping.box.x + mapping.box.width / 2) * 100);
       const spec = mapping.characterOutfitSpec?.trim()
         ? ` (${mapping.characterOutfitSpec.trim()})`
         : "";
+      const refLabel =
+        startRef === endRef
+          ? `<Picture ${startRef}> (Reference image ${startRef}) locks`
+          : `<Picture ${startRef}> to <Picture ${endRef}> (Reference images ${startRef} to ${endRef}) lock`;
       subjects.push(
-        `<Picture ${refNum}> (Reference image ${refNum}) locks the true face, identity, and exact full-body outfit${spec} for the swapped person at ~${cx}% horizontal position.`,
+        `${refLabel} the true face, identity, and exact full-body outfit${spec} for the swapped person at ~${cx}% horizontal position.`,
       );
     }
   } else if (input.hasIdentityImage) {
-    subjects.push(
-      "Reference image 2 locks the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face.",
+    const singlePersonUrls = mappings[0]
+      ? normalizeJutsuReferenceUrls(
+          mappings[0].referenceImageUrls,
+          mappings[0].referenceImageUrl,
+        )
+      : [];
+    const idCount = Math.max(
+      1,
+      input.identityImageCount ?? (singlePersonUrls.length || 1),
     );
+    if (idCount > 1) {
+      const endRef = Math.min(9, idCount + 1);
+      subjects.push(
+        `Reference images 2 to ${endRef} lock the true face, identity, and exact outfit of this character across multiple reference views: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face.`,
+      );
+    } else {
+      subjects.push(
+        "Reference image 2 locks the true face, identity, and exact outfit of this character: keep that exact face shape, eyes, nose, mouth, skin, and exact outfit (every garment, neckline, sleeve length, color, fabric texture, and graphic print) in every frame, including when hands move near the face.",
+      );
+    }
   } else {
     subjects.push(
       "Keep the exact outfit from Reference image 1 (every garment, neckline, sleeve length, color, fabric texture, and graphic print) unchanged in every frame.",

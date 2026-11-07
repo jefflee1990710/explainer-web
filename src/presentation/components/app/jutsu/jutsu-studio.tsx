@@ -4,10 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { put } from "@vercel/blob/client";
 import type { PublicCustomWardrobeItem } from "@/model/custom-wardrobe-item";
-import type {
-  JutsuPersonMapping,
-  JutsuSourceMediaKind,
-  PublicJutsuJob,
+import {
+  appendJutsuReferenceUrls,
+  buildInitialPersonSlotAssignment,
+  normalizeJutsuReferenceUrls,
+  removeJutsuReferenceUrl,
+  type JutsuPersonMapping,
+  type JutsuSourceMediaKind,
+  type PublicJutsuJob,
 } from "@/model/jutsu-job";
 import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import {
@@ -37,7 +41,6 @@ import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-ima
 import { ScroSwapHistoryDialog } from "@/presentation/components/app/jutsu/scro-swap-history-dialog";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
-import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -48,6 +51,7 @@ import type {
   PublicStyle,
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
+import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
 import { scroSwapCost } from "@/service/credit-costs";
 import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
 import { folderVideoPath } from "@/service/folder-video-path";
@@ -167,8 +171,15 @@ export function JutsuStudio({
     defaultCharacterLookUrl(initialCharacters[0]),
   );
   const [selectedLookKey, setSelectedLookKey] = useState<string>("default");
-  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const uploadedPhotoUrlsRef = useRef<string[]>([]);
+  const uploadedPhotoUrl = uploadedPhotoUrls[0] ?? "";
   const [managingCharacter, setManagingCharacter] = useState(false);
+
+  function setSyncedUploadedPhotoUrls(nextUrls: string[]) {
+    uploadedPhotoUrlsRef.current = nextUrls;
+    setUploadedPhotoUrls(nextUrls);
+  }
 
   // SAM 3 RLE multi-person detection & per-person character assignment state
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -203,6 +214,7 @@ export function JutsuStudio({
   const [charDragOver, setCharDragOver] = useState(false);
   const [charUploading, setCharUploading] = useState(false);
   const sourceInputRef = useRef<HTMLInputElement>(null);
+  const charPhotoInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadDirectBlob(
     file: File,
@@ -258,22 +270,56 @@ export function JutsuStudio({
     }
   }
 
-  async function handleCharacterFile(file: File | undefined) {
-    if (!file || submitting) return;
+  async function handleCharacterFiles(fileList: FileList | File[] | undefined | null) {
+    if (!fileList || submitting) return;
+    const files = Array.from(fileList).filter((f) =>
+      resolveBrandContentType(f).startsWith("image/"),
+    );
+    if (files.length === 0) return;
+    const remaining = Math.max(0, MAX_CHARACTER_REFERENCES - uploadedPhotoUrls.length);
+    const toUpload = files.slice(0, remaining > 0 ? remaining : MAX_CHARACTER_REFERENCES);
+    const baseUrls = remaining > 0 ? uploadedPhotoUrls : [];
     setError("");
     setCharUploading(true);
     try {
-      const uploaded = await uploadDirectBlob(file, false);
-      if (uploaded && uploaded.kind === "image") {
-        setUploadedPhotoUrl(uploaded.url);
+      const newlyUploaded: string[] = [];
+      for (const file of toUpload) {
+        const uploaded = await uploadDirectBlob(file, false);
+        if (uploaded && uploaded.kind === "image") {
+          newlyUploaded.push(uploaded.url);
+        }
+      }
+      if (newlyUploaded.length > 0) {
+        const nextUrls = appendJutsuReferenceUrls(baseUrls, newlyUploaded);
+        setSyncedUploadedPhotoUrls(nextUrls);
         updateActivePersonSlot({
           keepOriginal: false,
-          uploadedPhotoUrl: uploaded.url,
+          uploadedPhotoUrl: nextUrls[0] ?? "",
+          uploadedPhotoUrls: nextUrls,
         });
       }
     } finally {
       setCharUploading(false);
     }
+  }
+
+  function removeUploadedCharacterPhoto(urlToRemove: string) {
+    const nextUrls = removeJutsuReferenceUrl(uploadedPhotoUrls, urlToRemove);
+    setUploadedPhotoUrls(nextUrls);
+    updateActivePersonSlot({
+      keepOriginal: false,
+      uploadedPhotoUrl: nextUrls[0] ?? "",
+      uploadedPhotoUrls: nextUrls,
+    });
+  }
+
+  function clearUploadedCharacterPhotos() {
+    setSyncedUploadedPhotoUrls([]);
+    updateActivePersonSlot({
+      keepOriginal: false,
+      uploadedPhotoUrl: "",
+      uploadedPhotoUrls: [],
+    });
   }
 
   const handleCharacterUpdated = useCallback((next: PublicCharacter) => {
@@ -342,6 +388,7 @@ export function JutsuStudio({
         selectedLookUrl,
         lookLabel: isEn ? "Default Look" : "預設造型",
         uploadedPhotoUrl,
+        uploadedPhotoUrls,
       };
       return {
         ...prev,
@@ -353,14 +400,21 @@ export function JutsuStudio({
   function switchActivePerson(personIndex: number) {
     setActivePersonIndex(personIndex);
     const slot = personAssignments[personIndex];
-    if (!slot || slot.keepOriginal) return;
-    if (slot.uploadedPhotoUrl) {
-      setUploadedPhotoUrl(slot.uploadedPhotoUrl);
+    if (!slot || slot.keepOriginal) {
+      setSyncedUploadedPhotoUrls([]);
+      return;
+    }
+    const slotUrls = normalizeJutsuReferenceUrls(
+      slot.uploadedPhotoUrls,
+      slot.uploadedPhotoUrl,
+    );
+    if (slotUrls.length > 0) {
+      setSyncedUploadedPhotoUrls(slotUrls);
       return;
     }
     if (slot.characterId) {
       setCharacterId(slot.characterId);
-      setUploadedPhotoUrl("");
+      setSyncedUploadedPhotoUrls([]);
       setLookTab(slot.lookTab || "presets");
       setSelectedLookKey(slot.selectedLookKey || "default");
       setSelectedLookUrl(slot.selectedLookUrl);
@@ -424,29 +478,14 @@ export function JutsuStudio({
           characters.find((c) => c.id === characterId) ?? characters[0] ?? null;
         const nextMap: Record<number, JutsuPersonSlotAssignment> = {};
         for (const p of res.people) {
-          if (p.personIndex === 1) {
-            nextMap[p.personIndex] = {
-              keepOriginal: false,
-              characterId: firstChar?.id ?? "",
-              characterName: firstChar?.name ?? "",
-              lookTab: "presets",
-              selectedLookKey: "default",
-              selectedLookUrl: defaultCharacterLookUrl(firstChar),
-              lookLabel: isEn ? "Default Look" : "預設造型",
-              uploadedPhotoUrl: "",
-            };
-          } else {
-            nextMap[p.personIndex] = {
-              keepOriginal: true,
-              characterId: firstChar?.id ?? "",
-              characterName: firstChar?.name ?? "",
-              lookTab: "presets",
-              selectedLookKey: "default",
-              selectedLookUrl: defaultCharacterLookUrl(firstChar),
-              lookLabel: isEn ? "Default Look" : "預設造型",
-              uploadedPhotoUrl: "",
-            };
-          }
+          nextMap[p.personIndex] = buildInitialPersonSlotAssignment({
+            personIndex: p.personIndex,
+            characterId: firstChar?.id ?? "",
+            characterName: firstChar?.name ?? "",
+            defaultLookUrl: defaultCharacterLookUrl(firstChar),
+            defaultLookLabel: isEn ? "Default Look" : "預設造型",
+            uploadedPhotoUrls: uploadedPhotoUrlsRef.current,
+          });
         }
         setPersonAssignments(nextMap);
         setActivePersonIndex(1);
@@ -475,7 +514,7 @@ export function JutsuStudio({
   function selectCharacter(char: PublicCharacter) {
     const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
-    setUploadedPhotoUrl("");
+    setSyncedUploadedPhotoUrls([]);
     setLookTab("presets");
     setSelectedLookKey("default");
     setSelectedLookUrl(defUrl);
@@ -488,6 +527,7 @@ export function JutsuStudio({
       selectedLookUrl: defUrl,
       lookLabel: isEn ? "Default Look" : "預設造型",
       uploadedPhotoUrl: "",
+      uploadedPhotoUrls: [],
     });
   }
 
@@ -505,6 +545,7 @@ export function JutsuStudio({
         setLookTab("presets");
         setSelectedLookKey(`preset:${preset!.id}`);
         setSelectedLookUrl(url);
+        setSyncedUploadedPhotoUrls([]);
         updateActivePersonSlot({
           keepOriginal: false,
           characterId: char.id,
@@ -514,6 +555,7 @@ export function JutsuStudio({
           selectedLookUrl: url,
           lookLabel: preset!.name,
           uploadedPhotoUrl: "",
+          uploadedPhotoUrls: [],
         });
         return;
       }
@@ -525,6 +567,7 @@ export function JutsuStudio({
         setLookTab("historical");
         setSelectedLookKey(`ver:${ver!.id}`);
         setSelectedLookUrl(url);
+        setSyncedUploadedPhotoUrls([]);
         updateActivePersonSlot({
           keepOriginal: false,
           characterId: char.id,
@@ -534,6 +577,7 @@ export function JutsuStudio({
           selectedLookUrl: url,
           lookLabel: `v${ver!.number}`,
           uploadedPhotoUrl: "",
+          uploadedPhotoUrls: [],
         });
       }
     }
@@ -548,16 +592,28 @@ export function JutsuStudio({
     for (const person of detectedPeople) {
       const slot = personAssignments[person.personIndex];
       if (!slot || slot.keepOriginal) continue;
-      const refUrl = slot.uploadedPhotoUrl || slot.selectedLookUrl;
+      const customUrls = normalizeJutsuReferenceUrls(
+        slot.uploadedPhotoUrls,
+        slot.uploadedPhotoUrl,
+      );
+      const refUrls =
+        customUrls.length > 0
+          ? customUrls
+          : slot.selectedLookUrl
+            ? [slot.selectedLookUrl]
+            : [];
+      const refUrl = refUrls[0];
       if (!refUrl) continue;
+      const isCustom = customUrls.length > 0;
       list.push({
         objectId: person.objectId,
         personIndex: person.personIndex,
         anchorPoint: person.anchorPoint,
         box: person.box,
-        characterId: slot.uploadedPhotoUrl ? undefined : slot.characterId || undefined,
-        characterName: slot.uploadedPhotoUrl ? undefined : slot.characterName || undefined,
+        characterId: isCustom ? undefined : slot.characterId || undefined,
+        characterName: isCustom ? undefined : slot.characterName || undefined,
         referenceImageUrl: refUrl,
+        referenceImageUrls: refUrls,
       });
     }
     return list;
@@ -577,15 +633,22 @@ export function JutsuStudio({
     setError("");
     setSubmitting(true);
     try {
-      const effectiveRefUrl =
-        builtPersonMappings[0]?.referenceImageUrl ||
-        uploadedPhotoUrl ||
-        selectedLookUrl ||
-        undefined;
+      const effectiveRefUrls =
+        builtPersonMappings.length > 0
+          ? normalizeJutsuReferenceUrls(
+              builtPersonMappings[0]?.referenceImageUrls,
+              builtPersonMappings[0]?.referenceImageUrl,
+            )
+          : uploadedPhotoUrls.length > 0
+            ? uploadedPhotoUrls
+            : selectedLookUrl
+              ? [selectedLookUrl]
+              : [];
+      const effectiveRefUrl = effectiveRefUrls[0] || undefined;
       const effectiveCharId =
         builtPersonMappings.length > 0
           ? builtPersonMappings[0]?.characterId
-          : uploadedPhotoUrl
+          : uploadedPhotoUrls.length > 0
             ? undefined
             : characterId || undefined;
 
@@ -596,6 +659,7 @@ export function JutsuStudio({
         sectionLength,
         characterId: effectiveCharId,
         referenceImageUrl: effectiveRefUrl,
+        referenceImageUrls: effectiveRefUrls.length > 0 ? effectiveRefUrls : undefined,
         personMappings: builtPersonMappings.length > 0 ? builtPersonMappings : undefined,
         allDetectedAnchors:
           detectedPeople.length > 0
@@ -669,6 +733,19 @@ export function JutsuStudio({
           const file = e.target.files?.[0];
           e.target.value = "";
           void handleSourceFile(file);
+        }}
+      />
+      <input
+        ref={charPhotoInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        disabled={submitting || charUploading}
+        onChange={(e) => {
+          const files = e.target.files ? Array.from(e.target.files) : [];
+          e.target.value = "";
+          void handleCharacterFiles(files);
         }}
       />
 
@@ -1009,7 +1086,7 @@ export function JutsuStudio({
               )}
             </div>
 
-            {/* 2. Target Character Card (Click to choose AI Influencer or Drag & Drop custom character photo) */}
+            {/* 2. Target Character Card (Click to choose AI Influencer or Drag & Drop 1..6 custom character photos) */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1019,8 +1096,7 @@ export function JutsuStudio({
               onDrop={(e) => {
                 e.preventDefault();
                 setCharDragOver(false);
-                const file = e.dataTransfer.files?.[0];
-                void handleCharacterFile(file);
+                void handleCharacterFiles(e.dataTransfer.files);
               }}
               className={`relative flex min-h-[180px] w-full flex-col justify-between overflow-hidden rounded-2xl border-2 p-3 transition md:w-56 ${
                 charDragOver
@@ -1043,15 +1119,32 @@ export function JutsuStudio({
                       ? isEn
                         ? "Uploading..."
                         : "上傳中..."
-                      : uploadedPhotoUrl
+                      : uploadedPhotoUrls.length > 1
                         ? isEn
-                          ? "Custom"
-                          : "自訂照片"
-                        : activeCharacter?.name || (isEn ? "Pick" : "選擇")}
+                          ? `${uploadedPhotoUrls.length} Photos`
+                          : `${uploadedPhotoUrls.length} 張參考照`
+                        : uploadedPhotoUrls.length === 1
+                          ? isEn
+                            ? "Custom"
+                            : "自訂照片"
+                          : activeCharacter?.name || (isEn ? "Pick" : "選擇")}
                   </span>
                 </div>
 
-                {activeLookPreviewUrl ? (
+                {uploadedPhotoUrls.length > 1 ? (
+                  <div className="my-2 grid h-28 w-full grid-cols-3 gap-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1">
+                    {uploadedPhotoUrls.slice(0, 6).map((url, idx) => (
+                      <div key={url} className="relative h-full w-full overflow-hidden rounded-lg bg-zinc-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Ref ${idx + 1}`}
+                          className="h-full w-full object-cover object-top"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : activeLookPreviewUrl ? (
                   <div className="relative my-2 h-28 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1062,14 +1155,14 @@ export function JutsuStudio({
                   </div>
                 ) : (
                   <div className="my-2 flex h-28 w-full items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-xs text-zinc-400">
-                    {isEn ? "Select or drop photo" : "點擊選擇或拖放照片"}
+                    {isEn ? "Select or drop 1–6 photos" : "點擊選擇或拖放 1–6 張照片"}
                   </div>
                 )}
 
                 <span className="block truncate text-[11px] font-semibold text-zinc-500">
                   {isEn
-                    ? "Click to change or drop photo"
-                    : "點擊切換角色造型或拖放照片"}
+                    ? "Pick character or drop 1–6 photos"
+                    : "選擇角色或拖放 1–6 張參考照"}
                 </span>
               </button>
             </div>
@@ -1168,21 +1261,27 @@ export function JutsuStudio({
                   <span>+</span>
                   <span>{isEn ? "New Character" : "新增角色"}</span>
                 </button>
-                <BrandUploadButton
-                  label={isEn ? "Upload Custom Photo" : "上傳自訂人物相"}
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={submitting}
-                  onUploaded={(asset) => {
-                    if (asset.kind === "image") {
-                      setUploadedPhotoUrl(asset.url);
-                      updateActivePersonSlot({
-                        keepOriginal: false,
-                        uploadedPhotoUrl: asset.url,
-                      });
-                    }
-                  }}
-                  onError={setError}
-                />
+                <button
+                  type="button"
+                  disabled={submitting || charUploading || uploadedPhotoUrls.length >= MAX_CHARACTER_REFERENCES}
+                  onClick={() => charPhotoInputRef.current?.click()}
+                  className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-2xl border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {charUploading ? <Spinner className="h-3.5 w-3.5" /> : <span>+</span>}
+                  <span>
+                    {charUploading
+                      ? isEn
+                        ? "Uploading..."
+                        : "上傳中..."
+                      : uploadedPhotoUrls.length > 0
+                        ? isEn
+                          ? `Add Photos (${uploadedPhotoUrls.length}/${MAX_CHARACTER_REFERENCES})`
+                          : `新增參考照 (${uploadedPhotoUrls.length}/${MAX_CHARACTER_REFERENCES})`
+                        : isEn
+                          ? "Upload Custom Photo(s)"
+                          : "上傳自訂人物相（可多張）"}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setCharModalOpen(false)}
@@ -1191,6 +1290,103 @@ export function JutsuStudio({
                   ✕
                 </button>
               </div>
+            </div>
+
+            {/* Uploaded Custom Character Reference Photos Bar (supports 1..6 images) */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (!submitting) setCharDragOver(true);
+              }}
+              onDragLeave={() => setCharDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setCharDragOver(false);
+                void handleCharacterFiles(e.dataTransfer.files);
+              }}
+              className={`rounded-2xl border-2 border-dashed p-3 transition ${
+                uploadedPhotoUrls.length > 0
+                  ? "border-accent-ink bg-lime/15"
+                  : charDragOver
+                    ? "border-accent-ink bg-lime/10"
+                    : "border-accent-ink/15 bg-paper/50"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs">
+                  <span className="font-bold text-foreground">
+                    {uploadedPhotoUrls.length > 0
+                      ? isEn
+                        ? `Using ${uploadedPhotoUrls.length} Custom Reference ${uploadedPhotoUrls.length === 1 ? "Photo" : "Photos"}`
+                        : `已選用 ${uploadedPhotoUrls.length} 張自訂角色參考照`
+                      : isEn
+                        ? "Or upload 1–6 custom character photos (front, side, full-body outfit)"
+                        : "或上傳 1–6 張自訂角色參考照（支援單張或多張不同角度／全身穿搭照）"}
+                  </span>
+                </div>
+                {uploadedPhotoUrls.length > 0 ? (
+                  <div className="flex items-center gap-1.5">
+                    {uploadedPhotoUrls.length < MAX_CHARACTER_REFERENCES ? (
+                      <button
+                        type="button"
+                        disabled={submitting || charUploading}
+                        onClick={() => charPhotoInputRef.current?.click()}
+                        className="cursor-pointer rounded-xl border border-accent-ink/20 bg-white px-2.5 py-1 text-[11px] font-bold text-foreground hover:border-accent-ink"
+                      >
+                        {isEn ? "+ Add More" : "+ 繼續加圖"}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={submitting || charUploading}
+                      onClick={clearUploadedCharacterPhotos}
+                      className="cursor-pointer rounded-xl border border-accent-ink/20 bg-white px-2.5 py-1 text-[11px] font-bold text-muted hover:border-accent-ink hover:text-foreground"
+                    >
+                      {isEn ? "Clear All" : "全部清除"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCharModalOpen(false)}
+                      className="cursor-pointer rounded-xl bg-[#12141c] px-3 py-1 text-[11px] font-bold text-[#c6f24b] hover:bg-black"
+                    >
+                      {isEn ? "Use Custom Photos" : "確認使用"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={submitting || charUploading}
+                    onClick={() => charPhotoInputRef.current?.click()}
+                    className="cursor-pointer rounded-xl border border-accent-ink/20 bg-white px-3 py-1 text-[11px] font-bold text-foreground hover:border-accent-ink"
+                  >
+                    {isEn ? "Choose or Drop Photos" : "選擇或拖放圖片"}
+                  </button>
+                )}
+              </div>
+
+              {uploadedPhotoUrls.length > 0 ? (
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                  {uploadedPhotoUrls.map((url, idx) => (
+                    <div key={url} className="relative h-16 w-16 overflow-hidden rounded-xl border border-accent-ink/20 bg-white shadow-2xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={isEn ? `Character reference ${idx + 1}` : `角色參考圖 ${idx + 1}`}
+                        className="h-full w-full object-cover object-top"
+                      />
+                      <button
+                        type="button"
+                        disabled={submitting || charUploading}
+                        onClick={() => removeUploadedCharacterPhoto(url)}
+                        aria-label={isEn ? `Remove photo ${idx + 1}` : `移除第 ${idx + 1} 張照片`}
+                        className="absolute right-1 top-1 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-[#12141c]/85 text-[10px] font-bold text-white hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             {characters.length > 0 || detectedPeople.length > 0 ? (
@@ -1322,6 +1518,7 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey("default");
                             setSelectedLookUrl(defUrl);
+                            setSyncedUploadedPhotoUrls([]);
                             updateActivePersonSlot({
                               keepOriginal: false,
                               lookTab: "presets",
@@ -1329,6 +1526,7 @@ export function JutsuStudio({
                               selectedLookUrl: defUrl,
                               lookLabel: isEn ? "Default Look" : "預設造型",
                               uploadedPhotoUrl: "",
+                              uploadedPhotoUrls: [],
                             });
                             setCharModalOpen(false);
                           }}
@@ -1362,6 +1560,7 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey(key);
                             setSelectedLookUrl(url);
+                            setSyncedUploadedPhotoUrls([]);
                             updateActivePersonSlot({
                               keepOriginal: false,
                               lookTab: "presets",
@@ -1369,6 +1568,7 @@ export function JutsuStudio({
                               selectedLookUrl: url,
                               lookLabel: preset.name,
                               uploadedPhotoUrl: "",
+                              uploadedPhotoUrls: [],
                             });
                             setCharModalOpen(false);
                           }}
@@ -1409,6 +1609,7 @@ export function JutsuStudio({
                           onClick={() => {
                             setSelectedLookKey(key);
                             setSelectedLookUrl(url);
+                            setSyncedUploadedPhotoUrls([]);
                             updateActivePersonSlot({
                               keepOriginal: false,
                               lookTab: "historical",
@@ -1416,6 +1617,7 @@ export function JutsuStudio({
                               selectedLookUrl: url,
                               lookLabel: label,
                               uploadedPhotoUrl: "",
+                              uploadedPhotoUrls: [],
                             });
                             setCharModalOpen(false);
                           }}

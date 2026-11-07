@@ -557,6 +557,7 @@ function MediaItemList({
 								clip={clip}
 								variant={variant === "grid" ? "card" : "compact"}
 								aspectRatio={storyboardAspect}
+								isSelected={scroVideos?.selectedClipNumber === clip.clipNumber}
 								onSelect={() =>
 									selectScroMediaClip({
 										clipNumber: clip.clipNumber,

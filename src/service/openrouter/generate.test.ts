@@ -408,6 +408,58 @@ test("submitOpenRouterClipVideo falls back from Seedance to alibaba/wan-3.0 when
   }
 });
 
+test("submitOpenRouterClipVideo falls back from bytedance/seedance-2.0 to minimax/hailuo-3 (2K) when fallbackModel is minimax/hailuo-3 and ByteDance rejects a frame face", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  const postedModels: string[] = [];
+  const postedResolutions: string[] = [];
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    const payload = JSON.parse(String(init?.body)) as { model: string; resolution: string };
+    postedModels.push(payload.model);
+    postedResolutions.push(payload.resolution);
+    if (postedModels.length === 1) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              'HTTP 400: {"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation","message":"The request failed because the input image \'content[1]\' may contain real person."}}',
+          },
+        }),
+        { status: 400, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        id: "vid-hailuo-fallback",
+        polling_url: "/api/v1/videos/vid-hailuo-fallback",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  try {
+    const submitted = await submitOpenRouterClipVideo(
+      {
+        model: "bytedance/seedance-2.0",
+        fallbackModel: "minimax/hailuo-3",
+        prompt: "story short realistic clip",
+        aspectRatio: "9:16",
+        durationSeconds: 10,
+        startImageUrl: "https://blob/start.png",
+      },
+      { fetch: fakeFetch, callbackUrl: null },
+    );
+    assert.deepEqual(postedModels, ["bytedance/seedance-2.0", "minimax/hailuo-3"]);
+    assert.deepEqual(postedResolutions, ["720p", "2K"]);
+    assert.equal(submitted.request_id, "vid-hailuo-fallback");
+    assert.equal(submitted.model, "minimax/hailuo-3");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});
+
 test("submitClipVideo with audioUrl sends talking-head-director clips (up to 120s) to heygen/avatar-iv without clamping duration to 15s", async () => {
   const prevKey = process.env.OPENROUTER_API_KEY;
   process.env.OPENROUTER_API_KEY = "sk-or-test";

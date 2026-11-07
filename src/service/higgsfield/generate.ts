@@ -5,10 +5,13 @@ import { fetchMinimaxVideoStatus, isMinimaxVideoStatusUrl } from "@/service/mini
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+  OPENROUTER_WAN_3_VIDEO_MODEL,
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
   IDEOGRAM_PROMPT_MAX,
@@ -244,21 +247,28 @@ export async function submitClipVideo(
     endImageUrl?: string;
     audioUrl?: string;
     model?: string;
+    skillSlug?: string;
     styleId?: string;
     style?: { id?: string; baseStyleId?: string } | null;
   },
   options?: { fetch?: typeof fetch; callbackUrl?: string | null },
 ) {
   const provider = clipVideoProvider();
+  const styleRef = input.style ?? input.styleId;
+  const styleObj = typeof styleRef === "string" ? { id: styleRef } : styleRef;
   const model =
     input.model ||
     (input.audioUrl
       ? OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
-      : clipVideoModel(input.style ?? input.styleId));
+      : clipVideoModel(styleRef, input.skillSlug));
+  const fallbackModel = isRealisticStyle(styleObj)
+    ? OPENROUTER_HAILUO_3_VIDEO_MODEL
+    : OPENROUTER_WAN_3_VIDEO_MODEL;
   if (provider === "openrouter") {
     return submitOpenRouterClipVideo(
       {
         model,
+        fallbackModel,
         prompt: input.prompt,
         motionPrompt: input.motionPrompt,
         expressiveness: input.expressiveness,
