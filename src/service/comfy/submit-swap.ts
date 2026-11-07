@@ -10,22 +10,52 @@ import {
 } from "@/service/comfy/openjutsu-client";
 
 export function canSubmitJutsuComfy(
-  job: Pick<JutsuJob, "sourceMediaKind" | "mode">,
+  job: Pick<
+    JutsuJob,
+    | "sourceMediaKind"
+    | "mode"
+    | "relightId"
+    | "customLightPrompt"
+    | "personMappings"
+    | "totalDetectedPeople"
+  >,
 ): boolean {
   if (!hasComfyEndpoint()) return false;
   if (job.sourceMediaKind === "image") return false;
-  return job.mode === "character_swap" || job.mode === "object_swap";
+  if (job.mode !== "character_swap" && job.mode !== "object_swap") return false;
+  if (Boolean(job.relightId?.trim() || job.customLightPrompt?.trim())) return false;
+  const mappedCount = job.personMappings?.length ?? 0;
+  if (mappedCount > 1) return false;
+  if (mappedCount === 1 && (job.totalDetectedPeople ?? 1) > 1) return false;
+  return true;
+}
+
+/**
+ * Upgrade the 512px grey-mannequin motion reference to 768px when the subject occupies
+ * less than 45% of the frame height (distant/wide full-body shots like road walks).
+ */
+export function resolveComfySwapMotionSize(
+  job: Pick<JutsuJob, "motionSize" | "personMappings">,
+): 512 | 768 | 1376 {
+  const base = job.motionSize ?? 512;
+  if (base !== 512) return base;
+  const hasSmallSubject = (job.personMappings ?? []).some(
+    (m) => Number.isFinite(m.box?.height) && m.box.height > 0 && m.box.height < 0.45,
+  );
+  return hasSmallSubject ? 768 : 512;
 }
 
 // Character swap uses OpenJutsu simple. Object swap uses the object workflow.
-// Still images, relight, and color fix stay on the cloud path.
+// Still images, relight, multi-person scenes, and color fix stay on the cloud path.
 export async function trySubmitJutsuComfy(
   job: JutsuJob & { _id: { toHexString(): string } },
   preloadedVideoBuffer?: Buffer,
+  fetchFn: typeof fetch = fetch,
 ): Promise<ComfySubmitResult | null> {
   if (!canSubmitJutsuComfy(job)) return null;
 
-  const rawVideo = preloadedVideoBuffer ?? (await fetchMedia(job.sourceVideoUrl));
+  const rawVideo =
+    preloadedVideoBuffer ?? (await fetchMedia(job.sourceVideoUrl, fetchFn));
   const video = await ensureMp4HasAudioStream(rawVideo);
   const runId = job._id.toHexString();
   const section = {
@@ -36,7 +66,7 @@ export async function trySubmitJutsuComfy(
     video,
     section,
     margin: openJutsuMargin(job.maskMargin),
-    motion: job.motionSize ?? 512,
+    motion: resolveComfySwapMotionSize(job),
     seed: 0,
     runId,
   } as const;
@@ -46,31 +76,40 @@ export async function trySubmitJutsuComfy(
       job.personMappings?.find((mapping) => mapping.referenceImageUrl)?.referenceImageUrl ||
       job.referenceImageUrl;
     if (!imageUrl) throw new Error("缺少角色參考圖片");
-    const image = await fetchMedia(imageUrl);
-    return submitOpenJutsuSimple({
-      ...shared,
-      image,
-      imageName: fileName(imageUrl, "person.jpg"),
-      role: job.characterName ?? "",
-      target: "person",
-      hatFix: Boolean(job.hatFix),
-      noLipSync: Boolean(job.noLipSync),
-    });
+    const image = await fetchMedia(imageUrl, fetchFn);
+    return submitOpenJutsuSimple(
+      {
+        ...shared,
+        image,
+        imageName: fileName(imageUrl, "person.jpg"),
+        // Leave `role` blank so OpenJutsu Node 10 (`video_people`) auto-detects the original person's
+        // role + clothes ("1. the walker - woman in dark jacket and black fringed scarf") and `H3FillShots`
+        // strips the original person's clothing from the shot descriptions.
+        role: "",
+        target: "person",
+        hatFix: Boolean(job.hatFix),
+        noLipSync: Boolean(job.noLipSync),
+      },
+      fetchFn,
+    );
   }
 
   const mode = job.objectEditMode ?? "change";
   const imageUrl = mode === "remove" ? undefined : job.referenceImageUrl;
-  const image = imageUrl ? await fetchMedia(imageUrl) : null;
-  return submitOpenJutsuObject({
-    ...shared,
-    image,
-    imageName: imageUrl ? fileName(imageUrl, "object.jpg") : "object.jpg",
-    mode,
-    target: job.objectTarget?.trim() || "person",
-    changeTo: job.objectChangeTo?.trim() || "",
-    biggestOnly: false,
-    keepOutline: true,
-  });
+  const image = imageUrl ? await fetchMedia(imageUrl, fetchFn) : null;
+  return submitOpenJutsuObject(
+    {
+      ...shared,
+      image,
+      imageName: imageUrl ? fileName(imageUrl, "object.jpg") : "object.jpg",
+      mode,
+      target: job.objectTarget?.trim() || "person",
+      changeTo: job.objectChangeTo?.trim() || "",
+      biggestOnly: false,
+      keepOutline: true,
+    },
+    fetchFn,
+  );
 }
 
 // Teleport is OpenJutsu object mode "background": the person stays, the setting is replaced.
@@ -102,8 +141,8 @@ export async function trySubmitTeleportComfy(
   });
 }
 
-async function fetchMedia(url: string) {
-  const response = await fetch(url);
+async function fetchMedia(url: string, fetchFn: typeof fetch = fetch) {
+  const response = await fetchFn(url);
   if (!response.ok) throw new Error(`無法下載素材（HTTP ${response.status}）`);
   return Buffer.from(await response.arrayBuffer());
 }

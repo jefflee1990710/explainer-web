@@ -34,6 +34,8 @@ declare -a REPOS=(
   "https://github.com/ethanfel/ComfyUI-MiniMaxH3-Context-Loop"
   "https://github.com/kijai/ComfyUI-KJNodes"
   "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"
+  "https://github.com/Carasibana/ComfyUI-H3-FaceRefine"
+  "https://github.com/ltdrdata/ComfyUI-Impact-Pack"
   "https://github.com/D3voz/comfyui-websocket-reconnect-fix"
 )
 mkdir -p custom_nodes
@@ -63,6 +65,9 @@ jobs = [
     ("Comfy-Org/MiniMax-H3", "vae/minimax_h3_video_vae_int8_convrot.safetensors", "models/vae"),
     ("Comfy-Org/MiniMax-H3", "vae/minimax_h3_audio_vae_fp32.safetensors", "models/vae"),
     ("Comfy-Org/sam3.1", "checkpoints/sam3.1_multiplex_fp16.safetensors", "models/checkpoints"),
+    ("Bingsu/adetailer", "face_yolov8m.pt", "models/ultralytics/bbox"),
+    ("Bingsu/adetailer", "person_yolov8m-seg.pt", "models/ultralytics/segm"),
+    ("datasets/Gourieff/ReActor", "models/sams/sam_vit_b_01ec64.pth", "models/sams"),
 ]
 for repo, filename, dest in jobs:
     os.makedirs(dest, exist_ok=True)

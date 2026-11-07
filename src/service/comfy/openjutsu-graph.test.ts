@@ -3,7 +3,11 @@ import test from "node:test";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import { buildObjectGraph, buildSimpleGraph } from "@/service/comfy/openjutsu-graph";
-import { canSubmitJutsuComfy } from "@/service/comfy/submit-swap";
+import {
+  canSubmitJutsuComfy,
+  resolveComfySwapMotionSize,
+  trySubmitJutsuComfy,
+} from "@/service/comfy/submit-swap";
 
 const section = { start: 1.5, length: 8 };
 
@@ -36,6 +40,8 @@ test("simple graph matches OpenJutsu defaults and the selected section", () => {
   assert.equal(graph["68"], undefined);
   assert.equal(graph["15"].inputs.unet_name, "minimax_h3_ref2va_pruned_int8_convrot.safetensors");
   assert.equal(graph["16"].inputs.lora_name, "minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors");
+  assert.equal(graph["30"].inputs.ref_image_size, "max");
+  assert.match(String(graph["4"].inputs.prompt), /face shape/i);
   assert.equal(graph.scro_run_name.inputs.string_b, "_job1");
   assert.equal(graph["67"].inputs.filename, "swap_%date:yyyy-MM-dd%_job1");
   assert.equal(graph["5_soundtrack"].class_type, "H3SoundtrackOrSilence");
@@ -169,6 +175,62 @@ test("canSubmitJutsuComfy only enables ComfyUI fast-path for character/object vi
       canSubmitJutsuComfy({ sourceMediaKind: "video", mode: "relight_video" }),
       false,
     );
+    assert.equal(
+      canSubmitJutsuComfy({
+        sourceMediaKind: "video",
+        mode: "character_swap",
+        relightId: "golden_halo",
+      }),
+      false,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({
+        sourceMediaKind: "video",
+        mode: "character_swap",
+        customLightPrompt: "Neon cyber rim light",
+      }),
+      false,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({
+        sourceMediaKind: "video",
+        mode: "character_swap",
+        personMappings: [
+          {
+            objectId: 0,
+            personIndex: 1,
+            anchorPoint: { x: 0.3, y: 0.5 },
+            box: { x: 0.1, y: 0.2, width: 0.3, height: 0.6 },
+            referenceImageUrl: "https://blob.test/p1.png",
+          },
+          {
+            objectId: 1,
+            personIndex: 2,
+            anchorPoint: { x: 0.7, y: 0.5 },
+            box: { x: 0.5, y: 0.2, width: 0.3, height: 0.6 },
+            referenceImageUrl: "https://blob.test/p2.png",
+          },
+        ],
+      }),
+      false,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({
+        sourceMediaKind: "video",
+        mode: "character_swap",
+        totalDetectedPeople: 2,
+        personMappings: [
+          {
+            objectId: 0,
+            personIndex: 1,
+            anchorPoint: { x: 0.3, y: 0.5 },
+            box: { x: 0.1, y: 0.2, width: 0.3, height: 0.6 },
+            referenceImageUrl: "https://blob.test/p1.png",
+          },
+        ],
+      }),
+      false,
+    );
 
     delete process.env.COMFY_BASE_URL;
     assert.equal(
@@ -180,5 +242,149 @@ test("canSubmitJutsuComfy only enables ComfyUI fast-path for character/object vi
     else process.env.COMFY_BASE_URL = prevUrl;
     if (prevKey === undefined) delete process.env.COMFY_API_KEY;
     else process.env.COMFY_API_KEY = prevKey;
+  }
+});
+
+test("resolveComfySwapMotionSize upgrades 512 to 768 when the subject is small in the frame", () => {
+  assert.equal(
+    resolveComfySwapMotionSize({
+      motionSize: 512,
+      personMappings: [
+        {
+          objectId: 0,
+          personIndex: 1,
+          anchorPoint: { x: 0.55, y: 0.54 },
+          box: { x: 0.46, y: 0.41, width: 0.24, height: 0.27 },
+          referenceImageUrl: "https://blob.test/cathy-standing.png",
+        },
+      ],
+    }),
+    768,
+  );
+  assert.equal(
+    resolveComfySwapMotionSize({
+      motionSize: 512,
+      personMappings: [
+        {
+          objectId: 0,
+          personIndex: 1,
+          anchorPoint: { x: 0.5, y: 0.5 },
+          box: { x: 0.2, y: 0.1, width: 0.6, height: 0.75 },
+          referenceImageUrl: "https://blob.test/closeup.png",
+        },
+      ],
+    }),
+    512,
+  );
+  assert.equal(
+    resolveComfySwapMotionSize({
+      motionSize: 1376,
+    }),
+    1376,
+  );
+});
+
+test("trySubmitJutsuComfy leaves H3OneClickSwapPlan roles blank so Node 10 video_people strips original clothing", async () => {
+  const { mkdtemp, readFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { runFfmpeg } = await import("@/service/reel/concat");
+  const { ObjectId } = await import("mongodb");
+
+  const prevUrl = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  const dir = await mkdtemp(join(tmpdir(), "comfy-submit-test-"));
+
+  try {
+    process.env.COMFY_BASE_URL = "https://comfy.example.com";
+    process.env.COMFY_API_KEY = "secret";
+
+    await runFfmpeg(dir, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=black:s=64x64:d=1",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=44100:cl=stereo",
+      "-t",
+      "1",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "voiced.mp4",
+    ]);
+    const voicedMp4 = await readFile(join(dir, "voiced.mp4"));
+
+    let submittedPromptGraph: Record<string, { inputs: Record<string, unknown>; _meta?: { title?: string } }> | undefined;
+    const fakeFetch: typeof fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://blob.test/cathy-standing.png") {
+        return new Response(new Uint8Array([137, 80, 78, 71]), { status: 200 });
+      }
+      if (url.endsWith("/upload/image")) {
+        return Response.json({ name: "uploaded-asset" }, { status: 200 });
+      }
+      if (url.endsWith("/prompt")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as {
+          prompt?: Record<string, { inputs: Record<string, unknown>; _meta?: { title?: string } }>;
+        };
+        submittedPromptGraph = body.prompt;
+        return Response.json({ prompt_id: "prompt-123" }, { status: 200 });
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    const res = await trySubmitJutsuComfy(
+      {
+        _id: new ObjectId("6aee3fece8f79939352b1887"),
+        userId: new ObjectId("6abcc45aebdb844ee2cd8413"),
+        clerkUserId: "u1",
+        mode: "character_swap",
+        status: "rendering",
+        sourceVideoUrl: "https://blob.test/source.mp4",
+        sourceMediaKind: "video",
+        aspectRatio: "9:16",
+        sectionStart: 3,
+        sectionLength: 6,
+        characterName: "Cathy",
+        referenceImageUrl: "https://blob.test/cathy-standing.png",
+        personMappings: [
+          {
+            objectId: 0,
+            personIndex: 1,
+            anchorPoint: { x: 0.557, y: 0.546 },
+            box: { x: 0.464, y: 0.419, width: 0.239, height: 0.272 },
+            characterName: "Cathy",
+            referenceImageUrl: "https://blob.test/cathy-standing.png",
+          },
+        ],
+        motionSize: 512,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      voicedMp4,
+      fakeFetch,
+    );
+
+    assert.equal(res?.request_id, "prompt-123");
+    assert.ok(submittedPromptGraph);
+    // Node 11 (H3OneClickSwapPlan) roles MUST be empty string ("") rather than "Cathy"
+    assert.equal(submittedPromptGraph["11"]?.inputs.roles, "");
+    // Node 32 (Motion reference video) is auto-upgraded to 768 because box.height (0.272) < 0.45
+    assert.equal(submittedPromptGraph["32"]?.inputs.largest_size, 768);
+    // Node 30 (MiniMaxH3ReferenceToVideo) uses ref_image_size = "max"
+    assert.equal(submittedPromptGraph["30"]?.inputs.ref_image_size, "max");
+  } finally {
+    if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevUrl;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+    await rm(dir, { recursive: true, force: true });
   }
 });

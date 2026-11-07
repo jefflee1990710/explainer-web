@@ -43,15 +43,23 @@ type RemainingResult =
   | { ok: false; error: string };
 
 function revalidateProject(projectId: string) {
-  revalidatePath("/app");
-  revalidatePath(`/app/projects/${projectId}`);
-  revalidatePath("/app/billing");
+  try {
+    revalidatePath("/app");
+    revalidatePath(`/app/projects/${projectId}`);
+    revalidatePath("/app/billing");
+  } catch {
+    // Outside request scope
+  }
 }
 
 async function enqueuedVideo(project: Project): Promise<PublicVideo> {
   const projects = await videosCollection();
   const updated = await projects.findOne({ _id: project._id });
-  revalidatePath(folderVideoPath(project.projectId?.toHexString(), project._id.toHexString()));
+  try {
+    revalidatePath(folderVideoPath(project.projectId?.toHexString(), project._id.toHexString()));
+  } catch {
+    // Outside request scope
+  }
   return toPublicVideo(await markUnsentClipVideos(updated ?? project));
 }
 

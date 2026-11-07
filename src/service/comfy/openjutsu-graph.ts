@@ -31,13 +31,18 @@ export type OpenJutsuMargin = keyof typeof SIMPLE_MARGINS;
 
 const SIMPLE_NODES = {
   picture: "2",
+  describePicture: "4",
   video: "5",
   plan: "11",
   target: "24",
+  referenceConditioning: "30",
   peopleMask: "39",
   growMask: "42",
   hat: ["47", "48", "49", "50", "51", "52"],
 };
+
+const SIMPLE_DESCRIBE_PICTURE_PROMPT =
+  "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including footwear and accessories. No preamble, no background.";
 
 const MUTE = /^Mute the (clip|reference) audio H3 hears$/;
 const NO_LIP_SYNC =
@@ -234,6 +239,10 @@ function describerPrompt(input: ObjectGraphInput) {
 export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   const graph = loadGraph("simple");
   silenceWhenSoundless(graph);
+  graph[SIMPLE_NODES.describePicture].inputs.prompt = SIMPLE_DESCRIBE_PICTURE_PROMPT;
+  graph[SIMPLE_NODES.describePicture].inputs.max_length = 150;
+  // Use "max" (2048px short edge) so full-body standing character sheets retain full facial detail in H3 reference tokens.
+  graph[SIMPLE_NODES.referenceConditioning].inputs.ref_image_size = "max";
   graph[SIMPLE_NODES.target].inputs.text = input.target;
   graph[SIMPLE_NODES.growMask].inputs.expand = SIMPLE_MARGINS[input.margin];
   if (!input.hatFix) {

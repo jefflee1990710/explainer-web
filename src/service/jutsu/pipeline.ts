@@ -71,6 +71,7 @@ import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state"
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
+  isComfyPromptStatusUrl,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
 import {
@@ -1004,7 +1005,17 @@ async function finalizeJutsuRenderedVideo(
     );
   }
 
-  if (options?.keepSourceAudio !== false && job.keepSourceAudio !== false && job.sourceVideoUrl) {
+  // ComfyUI's MiniMaxH3ChainAssemble already slices and muxes the original section audio at 256k,
+  // and `applyJutsuColorGradeBuffer` preserves it with `-c:a copy`. Only re-mux for cloud providers.
+  const alreadyHasComfySourceAudio = Boolean(
+    job.openRouterStatusUrl && isComfyPromptStatusUrl(job.openRouterStatusUrl),
+  );
+  if (
+    !alreadyHasComfySourceAudio &&
+    options?.keepSourceAudio !== false &&
+    job.keepSourceAudio !== false &&
+    job.sourceVideoUrl
+  ) {
     const srcRes = await fetch(job.sourceVideoUrl).catch(() => null);
     if (srcRes?.ok) {
       const srcBuf = Buffer.from(await srcRes.arrayBuffer());
@@ -1519,8 +1530,8 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
       const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
       const useComfy = canSubmitJutsuComfy({
+        ...current,
         sourceMediaKind: mediaKind,
-        mode: current.mode,
       });
 
       if (useComfy) {

@@ -347,7 +347,7 @@ html[data-studio-theme="light"] .studio-app .studio-card:hover {
   background-color: rgba(0, 0, 0, 0.72);
 }
 
-.studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]) {
+.studio-app:not([data-studio-theme="light"]) :is(button, a)[class*="bg-white"]:not([class*="bg-[#c6f24b]"]):not([role="checkbox"]) {
   background-color: var(--studio-fill);
   color: var(--studio-ink);
 }
