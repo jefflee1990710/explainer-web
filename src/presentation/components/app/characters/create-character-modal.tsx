@@ -14,9 +14,7 @@ import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
 import type { CharacterVoice } from "@/model/character-voice";
 import { DEFAULT_CHARACTER_VOICE } from "@/service/director/character-voice";
 import type { PublicStyle } from "@/presentation/serialize";
-import { pickerDefaultStyleId } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
-import { StylePicker } from "@/presentation/components/style-picker";
 import { CreateCharacterMenu } from "@/presentation/components/app/characters/create-character-menu";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BLUEPRINT_COST } from "@/service/production-plan";
@@ -82,8 +80,9 @@ export function CreateCharacterModal({
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  void styles;
   const [name, setName] = useState("");
-  const [styleId, setStyleId] = useState<string>(() => pickerDefaultStyleId(styles));
+  const styleId = "realistic";
   const [prompt, setPrompt] = useState("");
   const [voiceOn, setVoiceOn] = useState(false);
   const [voice, setVoice] = useState<CharacterVoice>(DEFAULT_CHARACTER_VOICE);
@@ -174,18 +173,6 @@ export function CreateCharacterModal({
               className="min-h-[44px] w-full rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
-
-          {/* Shared style cards; the character is drawn and later cast in this style. */}
-          <fieldset>
-            <legend className="mb-1.5 text-sm font-semibold">{t("characters.styleLabel")}</legend>
-            <StylePicker
-              styles={styles}
-              value={styleId}
-              onChange={setStyleId}
-              disabled={submitting}
-              label={t("characters.styleLabel")}
-            />
-          </fieldset>
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">{t("characters.describeLabel")}</span>

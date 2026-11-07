@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
-  addCharacterStyleAction,
   deleteCharacterPresetAction,
   editCharacterVersionAction,
   getCharacterAction,
@@ -22,20 +21,12 @@ import { DeleteCharacterDialog } from "@/presentation/components/app/characters/
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
-import { isStyleId, type StyleId } from "@/model/style-id";
+import { CharacterBaseChatPanel } from "@/presentation/components/app/characters/[id]/character-base-chat-panel";
 import { CharacterPersonaPanel } from "@/presentation/components/app/characters/[id]/character-persona-panel";
-import { CharacterStyleColumn } from "@/presentation/components/app/characters/[id]/character-style-column";
 import { CharacterVoiceModeSwitcher } from "@/presentation/components/app/characters/[id]/character-voice-mode-switcher";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import type { PlanId } from "@/model/subscription";
-import { characterStyleLimit } from "@/service/character/style-limit";
 import { isPlanId } from "@/service/billing/plans";
-
-function styleLabel(styleId: string, styles: PublicStyle[]) {
-  const style = styles.find((item) => item.id === styleId);
-  if (style?.isCustom || !isStyleId(styleId)) return style?.name || styleId;
-  return localizedStyleName(styleId as StyleId);
-}
 
 // Single-screen Studio workspace: top bar with Look / Voice tabs, zero full-page scrolling.
 export function CharacterWorkspace({
@@ -53,16 +44,17 @@ export function CharacterWorkspace({
   unlimitedStyles?: boolean;
   styles: PublicStyle[];
 }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { t, locale } = useI18n();
   const searchParams = useSearchParams();
+  void unlimitedStyles;
+  void styles;
   const [character, setCharacter] = useState(initial);
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"look" | "voice" | "persona">(
     initialTab === "voice" || initialTab === "persona" ? initialTab : "look",
   );
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(true);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
@@ -79,7 +71,6 @@ export function CharacterWorkspace({
   const walletCredits = paidSnap?.credits ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
   const walletPlanId = paidSnap?.planId ?? planId;
-  const styleLimit = unlimitedStyles ? null : characterStyleLimit(walletPlanId);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,25 +91,17 @@ export function CharacterWorkspace({
   );
   useCharacterPoll(character, onPoll, onPollError);
 
-  const styleParam = searchParams.get("style");
-  const activeStyleId =
-    (styleParam && character.styleIds.includes(styleParam) && styleParam) ||
-    character.styleIds[0] ||
-    character.styleId;
-  const styleVersions = character.versions.filter((version) => version.styleId === activeStyleId);
+  // Realistic is always the foundation on the character page; legacy characters fall back to their original styleId.
+  const activeStyleId = character.styleIds.includes("realistic")
+    ? "realistic"
+    : character.styleIds[0] || character.styleId || "realistic";
+  const styleVersions = character.versions.filter(
+    (version) => version.styleId === activeStyleId && !version.isBaseCandidate,
+  );
   const selected =
-    styleVersions.find((version) => version.id === selectedVersionId) || styleVersions[0];
-
-  function selectStyle(styleId: string) {
-    setSelectedVersionId(null);
-    router.replace(`${pathname}?style=${styleId}`);
-  }
-
-  function showAdded(next: PublicCharacter, styleId: string) {
-    setCharacter(next);
-    setSelectedVersionId(null);
-    router.replace(`${pathname}?style=${styleId}`);
-  }
+    styleVersions.find((version) => version.id === selectedVersionId) ||
+    styleVersions.find((version) => version.id === character.baseVersionId) ||
+    styleVersions[0];
 
   async function run(key: string, action: () => Promise<CharacterResult>) {
     setPending(key);
@@ -203,13 +186,33 @@ export function CharacterWorkspace({
             className="font-display w-44 rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 text-xl font-bold hover:border-accent-ink/15 focus-visible:border-accent-ink/30 focus-visible:outline-none sm:w-60"
           />
           <span className="rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-medium text-muted">
-            {character.styleIds.length > 1
-              ? t("characters.styleCount", { n: character.styleIds.length })
-              : styleLabel(character.styleIds[0] || character.styleId, styles)}
+            {localizedStyleName("realistic")}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {activeTab === "look" ? (
+            <button
+              type="button"
+              onClick={() => setChatOpen((prev) => !prev)}
+              aria-pressed={chatOpen}
+              className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition ${
+                chatOpen
+                  ? "border-accent-ink bg-accent-ink text-lime"
+                  : "border-accent-ink/20 bg-paper text-foreground hover:border-accent-ink"
+              }`}
+            >
+              <span>✦</span>
+              <span>
+                {locale === "en"
+                  ? "Base Image AI Agent"
+                  : locale === "zh-Hans"
+                    ? "AI 修改基底图"
+                    : "AI 修改基底圖"}
+              </span>
+            </button>
+          ) : null}
+
           {/* Look vs Voice Studio Tab Switcher */}
           <div className="inline-flex rounded-full border border-accent-ink/15 bg-paper p-0.5" role="tablist">
             <button
@@ -300,26 +303,13 @@ export function CharacterWorkspace({
           aria-label={t("characters.outlookHeading")}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[10.5rem_minmax(0,1fr)] md:items-stretch">
-            <CharacterStyleColumn
-              character={character}
-              styles={styles}
-              styleLimit={styleLimit}
-              activeStyleId={activeStyleId}
-              onSelect={selectStyle}
-              onAdded={showAdded}
-              onNeedCredits={(styleId) => {
-                setCreditGate({
-                  needed: BLUEPRINT_COST,
-                  resume: () => {
-                    void addCharacterStyleAction(character.id, styleId).then((result) => {
-                      if (result.ok) showAdded(result.character, styleId);
-                      else setError(translateAppError(result.error, t));
-                    });
-                  },
-                });
-              }}
-            />
+          <div
+            className={`grid min-h-0 flex-1 gap-4 md:items-stretch ${
+              chatOpen
+                ? "lg:grid-cols-[minmax(0,1fr)_23rem]"
+                : "grid-cols-1"
+            }`}
+          >
             {selected ? (
               <VersionDetail
                 key={selected.id}
@@ -341,6 +331,16 @@ export function CharacterWorkspace({
             ) : (
               <p className="text-sm text-muted">{t("characters.noVersions")}</p>
             )}
+            {chatOpen ? (
+              <CharacterBaseChatPanel
+                character={character}
+                credits={walletCredits}
+                subscribed={walletSubscribed}
+                pending={pending}
+                run={run}
+                onClose={() => setChatOpen(false)}
+              />
+            ) : null}
           </div>
         </section>
       ) : (

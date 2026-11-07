@@ -10,6 +10,20 @@ import { localizedStyleName } from "@/util/style-i18n";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+export function characterCardCheckboxClass({
+  selected,
+  showCheckbox,
+}: {
+  selected: boolean;
+  showCheckbox: boolean;
+}): string {
+  return `absolute left-2 top-2 z-20 grid h-6 w-6 cursor-pointer place-items-center rounded-md border shadow-sm transition ${
+    selected
+      ? "border-[#12141c] bg-[#12141c] text-[#c6f24b] opacity-100"
+      : "border-[#12141c]/25 bg-white/95 text-transparent hover:border-[#12141c]/60"
+  } ${showCheckbox ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"}`;
+}
+
 // Library card. The preview is the current blueprint (portrait and full body on one board).
 export function CharacterCard({
   character,
@@ -83,9 +97,7 @@ export function CharacterCard({
       <span className="flex flex-1 flex-col gap-1 px-3 py-2.5 text-left">
         <h3 className="line-clamp-1 text-sm font-medium">{character.name}</h3>
         <p className="mt-auto text-xs text-muted">
-          {character.styleIds.length > 1
-            ? t("characters.styleCount", { n: character.styleIds.length })
-            : localizedStyleName(character.styleId)}
+          {localizedStyleName("realistic")}
         </p>
       </span>
     </>
@@ -116,15 +128,13 @@ export function CharacterCard({
             event.stopPropagation();
             onToggleSelect(character.id);
           }}
-          className={`absolute left-2 top-2 z-20 grid h-6 w-6 cursor-pointer place-items-center rounded-md border shadow-sm transition ${
-            selected
-              ? "border-[var(--studio-ink)] bg-[var(--studio-ink)] text-[var(--studio-teal)] opacity-100"
-              : "border-accent-ink/25 bg-white/95 text-transparent hover:border-accent-ink/60"
-          } ${showCheckbox ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"}`}
+          className={characterCardCheckboxClass({ selected, showCheckbox })}
         >
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
-            <path d="m3.5 8.2 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {selected ? (
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+              <path d="m3.5 8.2 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : null}
         </button>
       ) : null}
 

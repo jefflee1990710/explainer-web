@@ -84,14 +84,17 @@ export function CharacterManageDialog({
   );
   useCharacterPoll(character, syncCharacter, onPollError);
 
-  const activeStyleId =
-    (styleId && character.styleIds.includes(styleId) && styleId) ||
-    character.styleIds[0] ||
-    character.styleId;
+  // Always resolve the realistic foundation in CharacterManageDialog
+  void styleId;
+  const activeStyleId = character.styleIds.includes("realistic")
+    ? "realistic"
+    : character.styleIds[0] || character.styleId || "realistic";
 
   const styleVersions = useMemo(
     () =>
-      character.versions.filter((ver) => ver.styleId === activeStyleId),
+      character.versions.filter(
+        (ver) => ver.styleId === activeStyleId && !ver.isBaseCandidate,
+      ),
     [character.versions, activeStyleId],
   );
 

@@ -99,17 +99,9 @@ export function CharacterPicker({
 
   const anyReady = characters.some((character) => character.previewUrl);
   const ready = characters.filter((character) => {
-    const charStyles = character.styleIds?.length
-      ? character.styleIds
-      : [character.styleId];
-    const sheet = blueprintForStyle(character, styleId);
-    const isJustCreatedAndSelected =
-      value.includes(character.id) &&
-      (!styleId || charStyles.includes(styleId));
-    return (
-      (Boolean(sheet) || isJustCreatedAndSelected) &&
-      (!styleId || charStyles.includes(styleId))
-    );
+    const sheet = blueprintForStyle(character);
+    const isJustCreatedAndSelected = value.includes(character.id);
+    return Boolean(sheet) || isJustCreatedAndSelected;
   });
   const selected = ready.filter((character) => value.includes(character.id));
   const pick = castPickStatus(value.length, required, max, t);
@@ -125,9 +117,6 @@ export function CharacterPicker({
     setCreatedCharacters((prev) => [created, ...prev]);
     setOverrides((prev) => ({ ...prev, [created.id]: created }));
     onCharacterCreated?.(created);
-    if (styleId && created.styleId && created.styleId !== styleId && onSelectStyle) {
-      onSelectStyle(created.styleId);
-    }
     if (!multiple) {
       onChange([created.id]);
       setSelections({});

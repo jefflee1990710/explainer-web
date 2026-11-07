@@ -16,9 +16,10 @@ test("buildBaseChatSystemPrompt includes character name, current prompt, and spe
       identity: "East Asian woman, mid 20s",
       face: "oval face, warm eyes",
       hair: "long black hair",
+      skinTone: "warm ivory",
       body: "slim build",
+      marks: "none",
       outfit: "white cotton t-shirt, blue jeans",
-      accessories: "none",
       palette: ["white", "blue"],
     },
   });
@@ -36,9 +37,10 @@ test("fallbackBaseEditPlan constructs a clean edit plan when LLM is unavailable"
       identity: "East Asian woman, mid 20s",
       face: "oval face",
       hair: "long black hair",
+      skinTone: "warm ivory",
       body: "slim build",
+      marks: "none",
       outfit: "white tee",
-      accessories: "none",
       palette: ["white"],
     },
   });

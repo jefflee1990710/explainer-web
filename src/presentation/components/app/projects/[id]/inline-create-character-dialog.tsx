@@ -8,12 +8,10 @@ import { CreateCharacterReferences } from "@/presentation/components/app/charact
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { StylePicker } from "@/presentation/components/style-picker";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
 import { BLUEPRINT_COST } from "@/service/production-plan";
-import { pickerDefaultStyleId } from "@/service/style";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
@@ -42,11 +40,11 @@ export function InlineCreateCharacterDialog({
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  void styles;
+  void defaultStyleId;
   const [tab, setTab] = useState<CreateTab>("image");
   const [name, setName] = useState("");
-  const [styleId, setStyleId] = useState<string>(
-    () => defaultStyleId || pickerDefaultStyleId(styles),
-  );
+  const styleId = "realistic";
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -245,21 +243,6 @@ export function InlineCreateCharacterDialog({
               className="min-h-[44px] w-full rounded-full border border-accent-ink/15 bg-white px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
-
-          {styles.length > 0 ? (
-            <fieldset>
-              <legend className="mb-1.5 text-sm font-semibold">
-                {t("characters.styleLabel")}
-              </legend>
-              <StylePicker
-                styles={styles}
-                value={styleId}
-                onChange={setStyleId}
-                disabled={submitting}
-                label={t("characters.styleLabel")}
-              />
-            </fieldset>
-          ) : null}
 
           {tab === "image" ? (
             <div className="space-y-4">

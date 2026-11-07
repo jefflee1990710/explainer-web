@@ -198,12 +198,14 @@ function RoomStudio({
   const { t } = useI18n();
   useCharacterPoll(character, onPollUpdate, onPollError);
 
-  const currentStyleId =
-    activeStyleId && character.styleIds.includes(activeStyleId)
-      ? activeStyleId
-      : character.styleIds[0] || character.styleId;
+  const currentStyleId = character.styleIds.includes("realistic")
+    ? "realistic"
+    : character.styleIds[0] || character.styleId || "realistic";
   const styleVersions = useMemo(
-    () => character.versions.filter((ver) => ver.styleId === currentStyleId),
+    () =>
+      character.versions.filter(
+        (ver) => ver.styleId === currentStyleId && !ver.isBaseCandidate,
+      ),
     [character.versions, currentStyleId],
   );
   const version = styleVersions.find((ver) => ver.id === selectedVersionId) || styleVersions[0] || null;
@@ -215,28 +217,14 @@ function RoomStudio({
     if (next) onSelectVersion(null);
   }
 
+  void styles;
+  void activeStyleId;
+  void onStyleChange;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-b border-[var(--studio-line)] px-3 py-2">
         <RoomCharacterSwitcher characters={characters} current={character} />
-        {character.styleIds.length > 1 ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {character.styleIds.map((styleId) => (
-              <button
-                key={styleId}
-                type="button"
-                onClick={() => onStyleChange(styleId)}
-                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition ${
-                  styleId === currentStyleId
-                    ? "bg-accent-ink text-paper"
-                    : "border border-accent-ink/15 bg-paper text-muted hover:text-foreground"
-                }`}
-              >
-                {styleLabel(styleId, styles)}
-              </button>
-            ))}
-          </div>
-        ) : null}
       </header>
 
       {version ? (

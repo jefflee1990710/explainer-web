@@ -76,35 +76,54 @@ function recordRecentPresetId(presetId: string): string[] {
   return next;
 }
 
-// Completed default sheet for a character in the given style.
+export function foundationStyleForPublicCharacter(
+  character: Pick<PublicCharacter, "styleId" | "styleIds">,
+): string {
+  if (
+    character.styleId === "realistic" ||
+    character.styleIds?.includes("realistic")
+  ) {
+    return "realistic";
+  }
+  return character.styleIds?.[0] || character.styleId || "realistic";
+}
+
+// Completed default sheet for a character in its realistic foundation style (ignoring video styleId).
 export function defaultSheetForStyle(
   character: PublicCharacter,
-  styleId?: string,
+  _styleId?: string,
 ): PublicCharacterVersion | null {
+  void _styleId;
+  const targetStyle = foundationStyleForPublicCharacter(character);
   const versions = character.versions.filter((version) => {
     const id = version.styleId || character.styleId;
     return (
-      (!styleId || id === styleId) &&
+      !version.isBaseCandidate &&
+      id === targetStyle &&
       version.status === "completed" &&
       Boolean(version.blueprintUrl || version.portraitUrl || version.profileUrl)
     );
   });
-  const preferred = styleId
-    ? character.defaultByStyle[styleId]
-    : character.defaultVersionId;
+  const preferred =
+    character.defaultByStyle[targetStyle] ??
+    character.baseVersionId ??
+    character.defaultVersionId;
   return versions.find((version) => version.id === preferred) ?? versions[0] ?? null;
 }
 
-// Completed historical versions for a character in the given style, newest first.
+// Completed historical versions for a character in its realistic foundation style, newest first.
 export function historyVersionsForCharacterStyle(
   character: PublicCharacter,
-  styleId?: string,
+  _styleId?: string,
 ): PublicCharacterVersion[] {
+  void _styleId;
+  const targetStyle = foundationStyleForPublicCharacter(character);
   return [...character.versions]
     .filter((version) => {
       const id = version.styleId || character.styleId;
       return (
-        (!styleId || id === styleId) &&
+        !version.isBaseCandidate &&
+        id === targetStyle &&
         version.status === "completed" &&
         Boolean(version.blueprintUrl || version.portraitUrl || version.profileUrl)
       );
@@ -112,13 +131,15 @@ export function historyVersionsForCharacterStyle(
     .sort((a, b) => b.number - a.number);
 }
 
-// Presets belonging to a character for the current video style.
+// Presets belonging to a character for its realistic foundation style.
 export function presetsForCharacterStyle(
   character: PublicCharacter,
-  styleId?: string,
+  _styleId?: string,
 ): PublicCharacterPreset[] {
+  void _styleId;
+  const targetStyle = foundationStyleForPublicCharacter(character);
   return (character.presets || []).filter(
-    (preset) => !styleId || preset.styleId === styleId,
+    (preset) => preset.styleId === targetStyle,
   );
 }
 
@@ -532,8 +553,7 @@ export function CharacterSelectDialog({
               {filteredCharacters.map((char) => {
                 const isSelected = value.includes(char.id);
                 const isFocused = activeCharacter?.id === char.id;
-                const hasCurrentStyle = Boolean(defaultSheetForStyle(char, styleId));
-                const avatar = characterAvatarThumb(char, styleId);
+                const avatar = characterAvatarThumb(char);
                 return (
                   <button
                     key={char.id}
@@ -542,7 +562,7 @@ export function CharacterSelectDialog({
                       setActiveCharId(char.id);
                       setLookMode("presets");
                       setQuickStyleError("");
-                      const sheet = defaultSheetForStyle(char, styleId);
+                      const sheet = defaultSheetForStyle(char);
                       if (sheet && !isSelected && (!multiple || value.length < max)) {
                         selectCharacterWithOption(
                           char.id,
@@ -572,11 +592,7 @@ export function CharacterSelectDialog({
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-                    {!hasCurrentStyle && styleId ? (
-                      <span className="absolute top-1.5 right-1.5 rounded-xl bg-black/75 px-1.5 py-0.5 text-[9px] font-bold text-[#c6f24b]">
-                        {isEn ? "+Style" : "+風格"}
-                      </span>
-                    ) : isSelected ? (
+                    {isSelected ? (
                       <span className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#c6f24b] text-[10px] font-extrabold text-[#12141c]">
                         ✓
                       </span>
@@ -622,33 +638,10 @@ export function CharacterSelectDialog({
                     {activeCharacter.name}
                   </h3>
 
-                  {/* Character's existing style badges */}
-                  <div className="flex flex-wrap items-center gap-1">
-                    {(activeCharacter.styleIds?.length
-                      ? activeCharacter.styleIds
-                      : [activeCharacter.styleId]
-                    ).map((sid) => (
-                      <span
-                        key={sid}
-                        className={`rounded-2xl px-2.5 py-0.5 text-[10px] font-bold ${
-                          sid === styleId
-                            ? "bg-[#12141c] text-[#c6f24b]"
-                            : "bg-white text-zinc-600 border border-zinc-200"
-                        }`}
-                      >
-                        {localizedStyleName(sid)}
-                      </span>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={() => setAddStyleCharId(activeCharacter.id)}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded-2xl border border-zinc-300 bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#12141c] transition hover:border-[#12141c]"
-                    >
-                      <span>+</span>
-                      <span>{isEn ? "Add Style" : "新增風格"}</span>
-                    </button>
-                  </div>
+                  {/* Character's realistic foundation badge */}
+                  <span className="rounded-2xl bg-[#12141c] px-2.5 py-0.5 text-[10px] font-bold text-[#c6f24b]">
+                    {localizedStyleName("realistic")}
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

@@ -299,15 +299,11 @@ export function DirectorDockBrief({
   const readyCharacters = useMemo(
     () =>
       allCharacters.filter((c) => {
-        const charStyles = c.styleIds?.length ? c.styleIds : [c.styleId];
-        const sheet = defaultSheetForStyle(c, styleId);
+        const sheet = defaultSheetForStyle(c);
         const isSelected = characterIds.includes(c.id);
-        return (
-          (Boolean(sheet?.blueprintUrl || c.previewUrl) || isSelected) &&
-          (!styleId || charStyles.includes(styleId))
-        );
+        return Boolean(sheet?.blueprintUrl || c.previewUrl) || isSelected;
       }),
-    [allCharacters, styleId, characterIds],
+    [allCharacters, characterIds],
   );
 
   const castSlots = useMemo(() => {
@@ -1039,9 +1035,6 @@ export function DirectorDockBrief({
           onCreated={(created) => {
             setCreatedCharacters((prev) => [created, ...prev]);
             setCharOverrides((prev) => ({ ...prev, [created.id]: created }));
-            if (styleId && created.styleId && created.styleId !== styleId) {
-              onStyleChange(created.styleId);
-            }
             const maxCast = castNeed > 0 ? castNeed : 1;
             if (maxCast <= 1) {
               onCharacterIdsChange([created.id]);
