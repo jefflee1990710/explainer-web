@@ -5,6 +5,7 @@ import type { Character } from "@/model/character";
 import { toPublicCharacter } from "@/presentation/serialize";
 import {
   filterCharacterPresets,
+  findMatchingStyleVersion,
   parseCharacterSelections,
   resolveCastVersion,
 } from "@/service/character/character-presets";
@@ -144,5 +145,35 @@ describe("character presets", () => {
 
     const clamped = paginateHistoryVersions(items, 99, 4);
     assert.deepEqual(clamped, { items: ["h5", "h6"], page: 2, totalPages: 2 });
+  });
+
+  it("resolves realistic preset/version selection even when requested video styleId is doodle, and matches existing style version via sourceRealisticVersionId", () => {
+    const doc = sampleCharacter();
+    // Requesting video style "doodle" with a realistic preset selection should still resolve the realistic foundation version + preset
+    const chosenForDoodle = resolveCastVersion(doc, "doodle", {
+      presetId: "6ad447d920897d3c6771cca1",
+    });
+    assert.equal(chosenForDoodle.version?.id.toHexString(), "6ad447d920897d3c6771cc01");
+    assert.equal(chosenForDoodle.preset?.name, "Casual White Tee");
+
+    // When a doodle version derived from v1 already exists, findMatchingStyleVersion returns it
+    const doodleV1Id = new ObjectId();
+    doc.versions.push({
+      id: doodleV1Id,
+      styleId: "doodle",
+      sourceRealisticVersionId: new ObjectId("6ad447d920897d3c6771cc01"),
+      prompt: "Young founder in white tee",
+      blueprintKind: "board",
+      portraitUrl: "https://example.com/doodle-v1-portrait.png",
+      blueprintUrl: "https://example.com/doodle-v1-board.png",
+      status: "completed",
+      creditsCharged: false,
+      createdAt: new Date("2026-10-18T12:00:00.000Z"),
+    });
+    const matched = findMatchingStyleVersion(doc, "doodle", chosenForDoodle.version!);
+    assert.equal(matched?.id.toHexString(), doodleV1Id.toHexString());
+    // Different realistic version (v2) has no doodle match yet
+    const v2 = doc.versions.find((v) => v.id.toHexString() === "6ad447d920897d3c6771cc02")!;
+    assert.equal(findMatchingStyleVersion(doc, "doodle", v2), null);
   });
 });

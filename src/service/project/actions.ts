@@ -5,8 +5,10 @@ import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import { parseCharacterPersona } from "@/model/character-persona";
 import { isCharacterVoice } from "@/model/character-voice";
 import { inferFallbackCharacterVoice } from "@/service/director/character-voice";
-import { characterStyleIds } from "@/service/character/character-styles";
+import { versionStyleId } from "@/service/character/character-styles";
+import { enqueueCharacterVersion } from "@/service/character/generate";
 import {
+  findMatchingStyleVersion,
   parseCharacterSelections,
   resolveCastVersion,
   type CharacterSelectionMap,
@@ -381,53 +383,102 @@ export async function buildCast(
   if (docs.length !== characterIds.length) {
     return { ok: false, error: "有角色不存在" };
   }
-  if (docs.some((doc) => !characterStyleIds(doc).includes(styleId))) {
-    return { ok: false, error: "角色風格與影片風格不同" };
-  }
   const cast: CastMember[] = [];
   for (const id of characterIds) {
     const character = docs.find((doc) => doc._id.toHexString() === id)!;
-    const { version, preset } = resolveCastVersion(
+    const { version: selectedVersion, preset } = resolveCastVersion(
       character,
       styleId,
       characterSelections[id],
     );
     const pendingStyleVersion =
-      version ??
       character.versions
         .filter(
           (v) =>
+            !v.isBaseCandidate &&
             (v.styleId || character.styleId) === styleId &&
             (v.status === "queued" || v.status === "in_progress"),
         )
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ??
       null;
-    const activeVersion = version ?? pendingStyleVersion;
+
+    let activeVersion = selectedVersion
+      ? findMatchingStyleVersion(character, styleId, selectedVersion)
+      : pendingStyleVersion;
+
+    // Auto-add the video's style behind the scenes when the character only has its realistic foundation (or selected realistic look).
+    if (!activeVersion && selectedVersion && styleId && versionStyleId(character, selectedVersion) !== styleId) {
+      const now = new Date();
+      const refUrls = [selectedVersion.portraitUrl, selectedVersion.profileUrl].filter(
+        (u): u is string => Boolean(u),
+      );
+      const fallbackRefs =
+        refUrls.length > 0
+          ? refUrls
+          : selectedVersion.blueprintUrl
+            ? [selectedVersion.blueprintUrl]
+            : [];
+      const autoStyleVersion = {
+        id: new ObjectId(),
+        styleId,
+        sourceRealisticVersionId: selectedVersion.id,
+        prompt: selectedVersion.prompt,
+        ...(selectedVersion.editInstruction ? { editInstruction: selectedVersion.editInstruction } : {}),
+        ...(fallbackRefs[0] ? { referenceImageUrl: fallbackRefs[0] } : {}),
+        ...(fallbackRefs.length > 0 ? { referenceImageUrls: fallbackRefs } : {}),
+        blueprintKind: "board" as const,
+        stage: "portrait" as const,
+        ...(selectedVersion.spec ? { spec: selectedVersion.spec } : {}),
+        status: "queued" as const,
+        creditsCharged: false,
+        creditsCost: 0,
+        createdAt: now,
+        submittedAt: now,
+      };
+      character.versions.push(autoStyleVersion);
+      await characters.updateOne(
+        { _id: character._id },
+        { $push: { versions: autoStyleVersion }, $set: { updatedAt: now } },
+      );
+      await enqueueCharacterVersion(character, autoStyleVersion).catch((err) => {
+        console.error("[character] auto style enqueue failed", { characterId: character._id, styleId, err });
+      });
+      activeVersion = autoStyleVersion;
+    }
+
+    const effectiveVersion = activeVersion ?? selectedVersion ?? pendingStyleVersion;
     const blueprintOrRefUrl =
-      activeVersion?.blueprintUrl ||
-      activeVersion?.portraitUrl ||
-      activeVersion?.referenceImageUrl ||
+      effectiveVersion?.blueprintUrl ||
+      effectiveVersion?.portraitUrl ||
+      selectedVersion?.blueprintUrl ||
+      selectedVersion?.portraitUrl ||
+      effectiveVersion?.referenceImageUrl ||
       "";
-    if (!activeVersion || (!blueprintOrRefUrl && activeVersion.status !== "queued" && activeVersion.status !== "in_progress")) {
+    if (
+      !effectiveVersion ||
+      (!blueprintOrRefUrl &&
+        effectiveVersion.status !== "queued" &&
+        effectiveVersion.status !== "in_progress")
+    ) {
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
     const persona = parseCharacterPersona(character.persona);
     const resolvedVoice = isCharacterVoice(character.voice)
       ? character.voice
       : inferFallbackCharacterVoice(
-          [character.name, activeVersion.spec?.identity, activeVersion.prompt].filter(Boolean).join("\n"),
+          [character.name, effectiveVersion.spec?.identity, effectiveVersion.prompt].filter(Boolean).join("\n"),
         );
     const useDemoVoice = resolveCharacterVoiceMode(character) === "sample";
     cast.push({
       characterId: character._id,
-      versionId: activeVersion.id,
+      versionId: effectiveVersion.id,
       ...(preset ? { presetId: preset.id, presetName: preset.name } : {}),
       name: character.name,
       blueprintUrl: blueprintOrRefUrl,
-      blueprintKind: activeVersion.blueprintKind ?? "sheet",
-      prompt: activeVersion.prompt,
+      blueprintKind: effectiveVersion.blueprintKind ?? "sheet",
+      prompt: effectiveVersion.prompt,
       // Appearance notes travel with the video so prompts stay stable after later edits.
-      ...(activeVersion.spec ? { spec: activeVersion.spec } : {}),
+      ...(effectiveVersion.spec ? { spec: effectiveVersion.spec } : {}),
       voice: resolvedVoice,
       ...(persona ? { persona } : {}),
       // Snapshot so a later sample change does not re-voice this video.
@@ -495,15 +546,31 @@ type FolderResult =
   | { ok: true; folder: { id: string; name: string } }
   | { ok: false; error: string };
 
+function safeAfter(fn: () => void | Promise<unknown>) {
+  try {
+    after(fn);
+  } catch {
+    void Promise.resolve().then(fn);
+  }
+}
+
+function safeRevalidatePath(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    // Outside a Next.js request scope (e.g. CLI script).
+  }
+}
+
 function revalidateFolder(folderId?: string | null) {
-  revalidatePath("/app");
-  if (folderId) revalidatePath(`/app/projects/${folderId}`);
+  safeRevalidatePath("/app");
+  if (folderId) safeRevalidatePath(`/app/projects/${folderId}`);
 }
 
 function revalidateVideo(videoId: string, folderId?: string | null) {
-  revalidatePath("/app");
-  revalidatePath(folderVideoPath(folderId, videoId));
-  if (folderId) revalidatePath(`/app/projects/${folderId}`);
+  safeRevalidatePath("/app");
+  safeRevalidatePath(folderVideoPath(folderId, videoId));
+  if (folderId) safeRevalidatePath(`/app/projects/${folderId}`);
 }
 
 async function touchFolder(folderId?: ObjectId | null) {
@@ -717,7 +784,7 @@ export async function createVideoAction(
       updatedAt: now,
     });
 
-    after(() => runPhaseAJob(insert.insertedId));
+    safeAfter(() => runPhaseAJob(insert.insertedId));
     if (folder?._id) {
       await touchFolder(folder._id);
     }

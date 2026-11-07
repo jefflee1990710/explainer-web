@@ -201,6 +201,37 @@ export async function submitStillIfNeeded(project: Project) {
 // Frames need the character lock. Returns a user-facing reason to wait (and
 // kicks the still off) or null when frames may be submitted now.
 export async function stillBlocker(project: Project): Promise<string | null> {
+  if (project.cast && project.cast.length > 0) {
+    const { charactersCollection } = await import("@/dao");
+    const characters = await charactersCollection();
+    const docs = await characters
+      .find({ _id: { $in: project.cast.map((m) => m.characterId) } })
+      .toArray();
+    let castUpdated = false;
+    const nextCast = project.cast.map((member) => {
+      const doc = docs.find((d) => d._id.equals(member.characterId));
+      const ver = doc?.versions.find((v) => v.id.equals(member.versionId));
+      if (ver && ver.status === "completed" && ver.blueprintUrl && member.blueprintUrl !== ver.blueprintUrl) {
+        castUpdated = true;
+        return { ...member, blueprintUrl: ver.blueprintUrl };
+      }
+      return member;
+    });
+    if (castUpdated) {
+      project.cast = nextCast;
+      const projects = await videosCollection();
+      await projects
+        .updateOne({ _id: project._id }, { $set: { cast: nextCast, updatedAt: new Date() } })
+        .catch(() => {});
+    }
+    for (const member of project.cast) {
+      const doc = docs.find((d) => d._id.equals(member.characterId));
+      const ver = doc?.versions.find((v) => v.id.equals(member.versionId));
+      if (ver && (ver.status === "queued" || ver.status === "in_progress")) {
+        return "角色風格藍圖正在產生，請稍候再試";
+      }
+    }
+  }
   if (!(project.cast && project.cast.length > 0) && !project.characterStillUrl) {
     await submitStillIfNeeded(project);
     return "角色定裝圖正在產生，請稍候再試";

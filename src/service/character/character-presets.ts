@@ -1,7 +1,11 @@
 import { ObjectId } from "mongodb";
 import type { Character, CharacterPreset, CharacterVersion } from "@/model/character";
 import type { PublicCharacter, PublicCharacterPreset } from "@/presentation/serialize";
-import { resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
+import {
+  foundationStyleId,
+  resolveVersionForStyle,
+  versionStyleId,
+} from "@/service/character/character-styles";
 import { canSetDefault } from "@/service/character/versions";
 
 export type CharacterPresetSelection = {
@@ -50,7 +54,7 @@ export function parseCharacterSelections(raw: string): CharacterSelectionMap {
   }
 }
 
-// Resolve the chosen blueprint version (or style default) for a character in a video.
+// Resolve the chosen blueprint version (or realistic foundation default) for a character in a video.
 export function resolveCastVersion(
   character: Character,
   styleId: string,
@@ -59,12 +63,18 @@ export function resolveCastVersion(
   version: CharacterVersion | null;
   preset?: CharacterPreset;
 } {
+  const fStyle = foundationStyleId(character);
+  const matchesAllowedStyle = (target: CharacterVersion) => {
+    const vStyle = versionStyleId(character, target);
+    return vStyle === fStyle || vStyle === styleId;
+  };
+
   if (selection?.presetId && ObjectId.isValid(selection.presetId)) {
     const presetObjId = new ObjectId(selection.presetId);
     const preset = (character.presets || []).find((p) => p.id.equals(presetObjId));
     if (preset) {
       const target = character.versions.find((v) => v.id.equals(preset.versionId));
-      if (target && canSetDefault(target) && versionStyleId(character, target) === styleId) {
+      if (target && canSetDefault(target) && matchesAllowedStyle(target)) {
         return { version: target, preset };
       }
     }
@@ -73,13 +83,49 @@ export function resolveCastVersion(
   if (selection?.versionId && ObjectId.isValid(selection.versionId)) {
     const verObjId = new ObjectId(selection.versionId);
     const target = character.versions.find((v) => v.id.equals(verObjId));
-    if (target && canSetDefault(target) && versionStyleId(character, target) === styleId) {
+    if (target && canSetDefault(target) && matchesAllowedStyle(target)) {
       const matchingPreset = (character.presets || []).find((p) => p.versionId.equals(target.id));
       return { version: target, ...(matchingPreset ? { preset: matchingPreset } : {}) };
     }
   }
 
-  return { version: resolveVersionForStyle(character, styleId) };
+  return {
+    version:
+      resolveVersionForStyle(character, fStyle) ??
+      resolveVersionForStyle(character, styleId),
+  };
+}
+
+// Find an existing completed or in-flight version in targetStyleId that matches the chosen realistic version.
+export function findMatchingStyleVersion(
+  character: Character,
+  targetStyleId: string,
+  sourceVersion: CharacterVersion,
+): CharacterVersion | null {
+  if (!targetStyleId || versionStyleId(character, sourceVersion) === targetStyleId) {
+    return sourceVersion;
+  }
+  const candidates = character.versions
+    .filter(
+      (v) =>
+        !v.isBaseCandidate &&
+        versionStyleId(character, v) === targetStyleId &&
+        (v.status === "completed" || v.status === "queued" || v.status === "in_progress"),
+    )
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  const exactSourceMatch = candidates.find(
+    (v) => v.sourceRealisticVersionId && v.sourceRealisticVersionId.equals(sourceVersion.id),
+  );
+  if (exactSourceMatch) return exactSourceMatch;
+
+  if (!sourceVersion.editInstruction) {
+    const baseStyleMatch = candidates.find(
+      (v) => !v.sourceRealisticVersionId && !v.editInstruction,
+    );
+    if (baseStyleMatch) return baseStyleMatch;
+  }
+  return null;
 }
 
 export type SearchablePresetItem = {
