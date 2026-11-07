@@ -11,7 +11,7 @@ const GROUP_SECTIONS: StudioNavSection[] = ["create", "character", "assets", "ac
 
 // OpenArt-inspired left side menu:
 // 1. Prominent Home pill at top
-// 2. TOOLS (1-column list of creation tools)
+// 2. TOOLS (2-column grid of creation tools)
 // 3. CHARACTER (indented tree items)
 // 4. ASSETS (indented tree items)
 export function StudioNav({
@@ -100,7 +100,13 @@ export function StudioNav({
 
             {isOpen ? (
               isToolsSection ? (
-                <div className={`flex flex-col gap-1.5 ${forceExpanded ? "w-full" : "items-center"}`}>
+                <div
+                  className={
+                    forceExpanded
+                      ? "grid w-full grid-cols-2 gap-1.5"
+                      : "flex flex-col items-center gap-1.5"
+                  }
+                >
                   {group.map((item) => (
                     <StudioToolTileLink
                       key={item.href}
@@ -195,7 +201,7 @@ function StudioToolTileLink({
       aria-current={active ? "page" : undefined}
       className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-xl border text-xs font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "min-h-10 w-full justify-start gap-2.5 px-2.5 py-2"
+          ? "min-h-10 w-full justify-start gap-2 px-2.5 py-2"
           : "h-11 w-11 shrink-0 justify-center p-0"
       } ${
         active

@@ -33,6 +33,10 @@ import type { CharacterSelectionMap } from "@/service/character/character-preset
 import { requiredCastCount } from "@/service/director/skill-rules";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { pickerDefaultStyleId } from "@/service/style";
+import {
+  defaultSkillSlugForUseCase,
+  type VideoUseCase,
+} from "@/service/video/use-case";
 
 const FIRST_VIDEO_MODAL_DISMISSED_KEY = "scro:first-video-onboarding-dismissed:v1";
 const FIRST_VIDEO_DEFAULT_STYLE_ID = "realistic";
@@ -43,8 +47,9 @@ export type FirstVideoModalDefaults = {
   characterIds: string[];
 };
 
-// Pure helper: resolves the 4-option onboarding defaults (Paper-cutout explainer + Cinematic realistic + Aera).
+// Pure helper: resolves the 4-option onboarding defaults (honoring useCase when provided, otherwise Paper-cutout explainer + Cinematic realistic + Aera).
 export function resolveFirstVideoModalDefaults(input: {
+  useCase?: VideoUseCase;
   skills: ReadonlyArray<{ slug: string; behaviorSlug?: string }>;
   styles: ReadonlyArray<{ id: string }>;
   characters: ReadonlyArray<{
@@ -55,9 +60,12 @@ export function resolveFirstVideoModalDefaults(input: {
     previewUrl?: string | null;
   }>;
 }): FirstVideoModalDefaults {
-  const skillSlug = input.skills.some((s) => s.slug === PICKER_DEFAULT_SKILL_SLUG)
-    ? PICKER_DEFAULT_SKILL_SLUG
-    : input.skills[0]?.slug || PICKER_DEFAULT_SKILL_SLUG;
+  const preferredSkillSlug = input.useCase
+    ? defaultSkillSlugForUseCase(input.useCase, input.skills)
+    : PICKER_DEFAULT_SKILL_SLUG;
+  const skillSlug = input.skills.some((s) => s.slug === preferredSkillSlug)
+    ? preferredSkillSlug
+    : input.skills[0]?.slug || preferredSkillSlug;
 
   const styleId = input.styles.some((s) => s.id === FIRST_VIDEO_DEFAULT_STYLE_ID)
     ? FIRST_VIDEO_DEFAULT_STYLE_ID
@@ -87,10 +95,14 @@ export function shouldShowFirstVideoModal(input: {
   hasAnyVideo: boolean;
   hasInitialVideo: boolean;
   dismissedInSession: boolean;
+  useCase?: VideoUseCase;
+  hasInitialPrompt?: boolean;
 }): boolean {
   if (input.hasInitialVideo) return false;
   if (input.hasAnyVideo) return false;
   if (input.dismissedInSession) return false;
+  if (input.useCase) return false;
+  if (input.hasInitialPrompt) return false;
   return true;
 }
 
@@ -126,6 +138,7 @@ export type FirstVideoQuickSubmitPayload = {
 // Style (default Cinematic realistic), and Content (free-text textarea).
 export function FirstVideoOnboardingModal({
   open,
+  useCase,
   skills,
   styles,
   characters,
@@ -134,9 +147,11 @@ export function FirstVideoOnboardingModal({
   submitting,
   externalError,
   onSkip,
+  onStayInForm,
   onSubmitFirstVideo,
 }: {
   open: boolean;
+  useCase?: VideoUseCase;
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
@@ -145,6 +160,7 @@ export function FirstVideoOnboardingModal({
   submitting: boolean;
   externalError?: string;
   onSkip: () => void;
+  onStayInForm?: () => void;
   onSubmitFirstVideo: (payload: FirstVideoQuickSubmitPayload) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
@@ -152,8 +168,8 @@ export function FirstVideoOnboardingModal({
   const contentId = useId();
 
   const defaults = useMemo(
-    () => resolveFirstVideoModalDefaults({ skills, styles, characters }),
-    [skills, styles, characters],
+    () => resolveFirstVideoModalDefaults({ useCase, skills, styles, characters }),
+    [useCase, skills, styles, characters],
   );
 
   const [skillSlug, setSkillSlug] = useState<string>(defaults.skillSlug);
@@ -200,10 +216,15 @@ export function FirstVideoOnboardingModal({
         ? "我们已为你预设最受欢迎的组合（纸雕概念解说 ＋ 电影级写实 ＋ 角色 Aera）。只需确认这 4 个选项并输入你想讲的内容，AI 导演立即为你生成！"
         : "We pre-selected our best-performing setup (Paper-Cutout Explainer + Cinematic Realistic + Aera). Review the 4 options below, type your topic or script, and generate your first video.",
     skipBtn: isZhHant
-      ? "稍後再建，先睇工作台"
+      ? "返回工作台總覽 (Studio Home)"
       : isZhHans
-        ? "稍后再建，先看工作台"
-        : "Skip to Studio",
+        ? "返回工作台总览 (Studio Home)"
+        : "Back to Studio Home",
+    stayInFormBtn: isZhHant
+      ? "進階設定表單"
+      : isZhHans
+        ? "进阶设置表单"
+        : "Full Editor Form",
     opt1Title: isZhHant
       ? "1. 導演類型 (Director)"
       : isZhHans
@@ -303,9 +324,22 @@ export function FirstVideoOnboardingModal({
     track("onboarding_first_video_popup_skipped", {
       skill_slug: skillSlug,
       style_id: styleId,
+      destination: "studio_home",
     });
     void acceptCurrentPolicies({ terms: true, privacy: true }).catch(() => {});
     onSkip();
+  }
+
+  async function handleStayInForm() {
+    if (submitting) return;
+    markFirstVideoModalDismissedInSession();
+    track("onboarding_first_video_popup_skipped", {
+      skill_slug: skillSlug,
+      style_id: styleId,
+      destination: "editor_form",
+    });
+    void acceptCurrentPolicies({ terms: true, privacy: true }).catch(() => {});
+    (onStayInForm ?? onSkip)();
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -377,15 +411,27 @@ export function FirstVideoOnboardingModal({
               </p>
             </div>
 
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => void handleSkip()}
-              className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#12141c]/20 bg-white px-4 py-2 text-xs font-semibold text-[#5c6170] transition hover:border-[#12141c] hover:text-[#12141c] disabled:opacity-50"
-            >
-              <span>{copy.skipBtn}</span>
-              <CloseCrossIcon />
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {onStayInForm ? (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void handleStayInForm()}
+                  className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#12141c]/15 bg-[#f7f5f0] px-3.5 py-2 text-xs font-semibold text-[#5c6170] transition hover:border-[#12141c] hover:text-[#12141c] disabled:opacity-50"
+                >
+                  <span>{copy.stayInFormBtn}</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void handleSkip()}
+                className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#12141c]/20 bg-white px-4 py-2 text-xs font-semibold text-[#5c6170] transition hover:border-[#12141c] hover:text-[#12141c] disabled:opacity-50"
+              >
+                <span>{copy.skipBtn}</span>
+                <CloseCrossIcon />
+              </button>
+            </div>
           </div>
 
           {/* 4 Options Body */}

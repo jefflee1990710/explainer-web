@@ -40,7 +40,39 @@ test("resolveFirstVideoModalDefaults selects paper-cutout explainer, realistic s
   assert.deepEqual(defaults.characterIds, ["char_aera"]);
 });
 
-test("shouldShowFirstVideoModal opens only for 0-video users who have not dismissed in session", () => {
+test("resolveFirstVideoModalDefaults honors explicit useCase when provided", () => {
+  const talkingDefaults = resolveFirstVideoModalDefaults({
+    useCase: "talking-head",
+    skills: [
+      { slug: "talking-head-director" },
+      { slug: "paper-cutout-explainer-video-director" },
+    ],
+    styles: [{ id: "realistic" }],
+    characters: [
+      {
+        id: "char_aera",
+        name: "Aera",
+        styleId: "realistic",
+        styleIds: ["realistic"],
+        previewUrl: "https://blob/aera.webp",
+      },
+    ],
+  });
+  assert.equal(talkingDefaults.skillSlug, "talking-head-director");
+
+  const storyDefaults = resolveFirstVideoModalDefaults({
+    useCase: "story",
+    skills: [
+      { slug: "story-short-director" },
+      { slug: "paper-cutout-explainer-video-director" },
+    ],
+    styles: [{ id: "realistic" }],
+    characters: [],
+  });
+  assert.equal(storyDefaults.skillSlug, "story-short-director");
+});
+
+test("shouldShowFirstVideoModal opens only for 0-video users on generic new-video entry without useCase or initialPrompt", () => {
   assert.equal(
     shouldShowFirstVideoModal({
       hasAnyVideo: false,
@@ -48,6 +80,24 @@ test("shouldShowFirstVideoModal opens only for 0-video users who have not dismis
       dismissedInSession: false,
     }),
     true,
+  );
+  assert.equal(
+    shouldShowFirstVideoModal({
+      hasAnyVideo: false,
+      hasInitialVideo: false,
+      dismissedInSession: false,
+      useCase: "talking-head",
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowFirstVideoModal({
+      hasAnyVideo: false,
+      hasInitialVideo: false,
+      dismissedInSession: false,
+      hasInitialPrompt: true,
+    }),
+    false,
   );
   assert.equal(
     shouldShowFirstVideoModal({

@@ -6,10 +6,35 @@ import {
   consentCookieValue,
   consentMatchesCurrent,
   needsPolicyAcceptance,
+  shouldAutoRecordInitialPolicyAcceptance,
 } from "@/service/legal/versions";
 
 test("a user with no acceptance must accept", () => {
   assert.equal(needsPolicyAcceptance({}), true);
+});
+
+test("shouldAutoRecordInitialPolicyAcceptance is true only when legalAcceptance has never been recorded", () => {
+  assert.equal(shouldAutoRecordInitialPolicyAcceptance({}), true);
+  assert.equal(
+    shouldAutoRecordInitialPolicyAcceptance({
+      legalAcceptance: {
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
+        acceptedAt: new Date(),
+      },
+    }),
+    false,
+  );
+  assert.equal(
+    shouldAutoRecordInitialPolicyAcceptance({
+      legalAcceptance: {
+        termsVersion: "2020-01-01",
+        privacyVersion: PRIVACY_VERSION,
+        acceptedAt: new Date(),
+      },
+    }),
+    false,
+  );
 });
 
 test("current versions pass and a stale terms version does not", () => {

@@ -46,7 +46,7 @@ export function TaskQueueBanner({ initialPending }: { initialPending: number }) 
   if (!shouldShowQueueBanner(pending)) return null;
 
   return (
-    <div ref={rootRef} className="sticky top-0 z-30 shrink-0">
+    <div ref={rootRef} className="sticky top-0 z-[65] shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -62,7 +62,7 @@ export function TaskQueueBanner({ initialPending }: { initialPending: number }) 
       {open ? (
         <div
           role="menu"
-          className="absolute left-1/2 top-full z-40 mt-0 w-[min(32rem,calc(100vw-1.5rem))] -translate-x-1/2 overflow-y-auto rounded-b-xl border border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 shadow-lg"
+          className="absolute left-1/2 top-full z-[70] mt-0 w-[min(32rem,calc(100vw-1.5rem))] -translate-x-1/2 overflow-y-auto rounded-b-xl border border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 shadow-lg"
         >
           <p className="px-2 py-1.5 text-xs font-semibold text-[var(--studio-muted)]">
             {t("tasksMenu.title")}

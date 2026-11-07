@@ -30,3 +30,11 @@ export function needsPolicyAcceptance(user: Pick<AppUser, "legalAcceptance">) {
   if (!accepted) return true;
   return accepted.termsVersion !== TERMS_VERSION || accepted.privacyVersion !== PRIVACY_VERSION;
 }
+
+// True when a newly registered user enters /app for the first time without a recorded legalAcceptance yet.
+// Stale versions (where legalAcceptance exists with an older date) still require explicit re-consent via AcceptPoliciesDialog.
+export function shouldAutoRecordInitialPolicyAcceptance(
+  user: Pick<AppUser, "legalAcceptance">,
+): boolean {
+  return !user.legalAcceptance;
+}

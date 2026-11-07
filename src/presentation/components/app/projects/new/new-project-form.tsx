@@ -492,6 +492,8 @@ export function NewProjectForm({
       hasAnyVideo: Boolean(hasAnyVideo),
       hasInitialVideo: Boolean(initialVideo),
       dismissedInSession: isFirstVideoModalDismissedInSession(),
+      useCase,
+      hasInitialPrompt: Boolean(initialPrompt?.trim()),
     }),
   );
   const [tutorialOpen, setTutorialOpen] = useState(false);
@@ -2290,6 +2292,7 @@ export function NewProjectForm({
         />
         <FirstVideoOnboardingModal
           open={firstVideoModalOpen && !project}
+          useCase={useCase}
           skills={skills}
           styles={styles}
           characters={characters}
@@ -2297,7 +2300,11 @@ export function NewProjectForm({
           subscribed={walletSubscribed}
           submitting={submitting}
           externalError={error}
-          onSkip={() => setFirstVideoModalOpen(false)}
+          onSkip={() => {
+            setFirstVideoModalOpen(false);
+            router.push("/app");
+          }}
+          onStayInForm={() => setFirstVideoModalOpen(false)}
           onSubmitFirstVideo={submitFromFirstVideoModal}
         />
       </div>
