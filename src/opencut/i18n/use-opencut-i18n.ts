@@ -506,6 +506,13 @@ export function getOpencutMessages(locale?: string | null) {
 				ja: "Teleport",
 				ko: "Teleport",
 			}),
+			extendVideo: pick({
+				en: "Extend +6s",
+				zhHant: "Extend 延展 +6s",
+				zhHans: "Extend 延展 +6s",
+				ja: "Extend +6s",
+				ko: "Extend +6s",
+			}),
 			changeStyle: pick({
 				en: "Change Style",
 				zhHant: "更換風格",

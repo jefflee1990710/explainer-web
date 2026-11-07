@@ -91,8 +91,14 @@ describe("opencut bridge messages", () => {
       clipNumber: 2,
       kind: "clip-style",
     });
+    host.postToScro({
+      type: "scro-open-ai",
+      videoId: "vid-1",
+      clipNumber: 2,
+      kind: "extend-video",
+    });
 
-    assert.equal(received.length, 3);
+    assert.equal(received.length, 4);
     unsub();
   });
 });

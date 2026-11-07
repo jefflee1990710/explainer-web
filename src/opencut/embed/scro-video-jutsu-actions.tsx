@@ -61,6 +61,21 @@ export function ScroVideoJutsuActions({
 					{oc.inspector.teleport}
 				</Button>
 			</div>
+			<Button
+				type="button"
+				variant="secondary"
+				size="sm"
+				className="w-full text-xs"
+				onClick={() =>
+					requestScroOpenAi({
+						videoId,
+						clipNumber: clip.clipNumber,
+						kind: "extend-video",
+					})
+				}
+			>
+				{oc.inspector.extendVideo}
+			</Button>
 		</div>
 	);
 }

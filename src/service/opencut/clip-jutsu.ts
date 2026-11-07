@@ -9,8 +9,11 @@ import { insertClips, type ClipOrderProject } from "@/service/clip/clip-order";
 import { EXTEND_CLIP_DURATION_SECONDS, startExtendJob } from "@/service/extend/pipeline";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { startScroSwapJob } from "@/service/jutsu/pipeline";
+import { resolveClipExtendReferences } from "@/service/opencut/clip-extend-refs";
 import { startTeleportJob } from "@/service/teleport/pipeline";
 import { mediaSrc } from "@/util/media-src";
+
+export { resolveClipExtendReferences };
 
 export type ApplyClipEngineResult =
   | { ok: true; project: PublicVideo; jobId: string; newClipNumber?: number }
@@ -178,108 +181,15 @@ export async function applyClipTeleport(input: {
 }
 
 /**
- * Resolve default Character, Scene, and Props/Product reference image URLs
- * for a given storyboard clip from its per-clip overrides and project-level locks.
- */
-export function resolveClipExtendReferences(
-  project: Pick<
-    Project,
-    | "phaseA"
-    | "cast"
-    | "characterStillUrl"
-    | "characterImageUrl"
-    | "backgroundPlates"
-    | "backgroundImageUrls"
-    | "referenceImages"
-    | "products"
-    | "objectSheetUrl"
-  >,
-  clipNumber: number,
-): {
-  characterImageUrls: string[];
-  sceneImageUrl?: string;
-  propImageUrls: string[];
-} {
-  const row = project.phaseA?.clips.find((c) => c.clipNumber === clipNumber);
-
-  const castSource = row?.cast && row.cast.length > 0 ? row.cast : project.cast ?? [];
-  const characterImageUrls: string[] = [];
-  for (const member of castSource) {
-    const url = member.imageUrl?.trim();
-    if (url && url.startsWith("https://") && !characterImageUrls.includes(url)) {
-      characterImageUrls.push(url);
-      if (characterImageUrls.length >= 6) break;
-    }
-  }
-  if (characterImageUrls.length === 0) {
-    const fallbackChar = (project.characterStillUrl || project.characterImageUrl)?.trim();
-    if (fallbackChar && fallbackChar.startsWith("https://")) {
-      characterImageUrls.push(fallbackChar);
-    }
-  }
-
-  let sceneImageUrl: string | undefined;
-  if (row?.backgroundSetId) {
-    const plateUrl = project.backgroundPlates
-      ?.find((p) => p.setId === row.backgroundSetId)
-      ?.url?.trim();
-    if (plateUrl && plateUrl.startsWith("https://")) {
-      sceneImageUrl = plateUrl;
-    }
-  }
-  if (!sceneImageUrl) {
-    const bgUrl = (row?.backgroundImageUrls?.[0] || project.backgroundImageUrls?.[0])?.trim();
-    if (bgUrl && bgUrl.startsWith("https://")) {
-      sceneImageUrl = bgUrl;
-    }
-  }
-  if (!sceneImageUrl && row?.referenceImageIds?.length) {
-    for (const refId of row.referenceImageIds) {
-      const refUrl = project.referenceImages?.find((r) => r.id === refId)?.url?.trim();
-      if (refUrl && refUrl.startsWith("https://")) {
-        sceneImageUrl = refUrl;
-        break;
-      }
-    }
-  }
-
-  const productSource =
-    row?.products && row.products.length > 0 ? row.products : project.products ?? [];
-  const propImageUrls: string[] = [];
-  for (const prod of productSource) {
-    const url = prod.imageUrl?.trim();
-    if (url && url.startsWith("https://") && !propImageUrls.includes(url)) {
-      propImageUrls.push(url);
-      if (propImageUrls.length >= 4) break;
-    }
-  }
-  const sheetUrl = project.objectSheetUrl?.trim();
-  if (
-    sheetUrl &&
-    sheetUrl.startsWith("https://") &&
-    !propImageUrls.includes(sheetUrl) &&
-    propImageUrls.length < 4
-  ) {
-    propImageUrls.push(sheetUrl);
-  }
-
-  return {
-    characterImageUrls,
-    ...(sceneImageUrl ? { sceneImageUrl } : {}),
-    propImageUrls,
-  };
-}
-
-/**
  * Pure helper: insert a new extended `Clip N+1` right after `sourceClipNumber`,
  * seed its start frame from `Clip N`'s end/start frame, and mark `Clip N+1` `in_progress`.
  */
-export function buildExtendedClipInsertion<
-  T extends ClipOrderProject & {
-    clips: ProjectClip[];
-    frames?: ClipFrame[];
-  },
->(input: {
+export type ExtendableProject = Omit<ClipOrderProject, "clips" | "frames"> & {
+  clips: ProjectClip[];
+  frames?: ClipFrame[];
+};
+
+export function buildExtendedClipInsertion<T extends ExtendableProject>(input: {
   project: T;
   sourceClipNumber: number;
   extensionPrompt: string;
@@ -303,13 +213,14 @@ export function buildExtendedClipInsertion<
     return { ok: false, error: "找不到這段分鏡" };
   }
 
-  const endFrame = input.project.frames?.find(
+  const framesList: ClipFrame[] = input.project.frames ?? [];
+  const endFrame = framesList.find(
     (f) =>
       f.clipNumber === input.sourceClipNumber &&
       f.position === "end" &&
       f.status === "completed",
   );
-  const startFrame = input.project.frames?.find(
+  const startFrame = framesList.find(
     (f) =>
       f.clipNumber === input.sourceClipNumber &&
       f.position === "start" &&
@@ -338,31 +249,33 @@ export function buildExtendedClipInsertion<
   const inserted = insertClips(input.project, [newRow], newClipNumber);
   if (!inserted.ok) return inserted;
 
-  const nextClips: ProjectClip[] = [
-    ...inserted.project.clips,
-    {
-      clipNumber: newClipNumber,
-      durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
-      prompt: cleanPrompt,
-      status: "in_progress",
-      submittedAt: input.nowIso,
-      unsent: false,
-    },
-  ].sort((a, b) => a.clipNumber - b.clipNumber);
+  const newClipDoc: ProjectClip = {
+    clipNumber: newClipNumber,
+    durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
+    prompt: cleanPrompt,
+    status: "in_progress",
+    submittedAt: input.nowIso,
+    unsent: false,
+  };
+  const nextClips: ProjectClip[] = [...inserted.project.clips, newClipDoc].sort(
+    (a, b) => a.clipNumber - b.clipNumber,
+  );
 
-  const nextFrames: ClipFrame[] | undefined = posterUrl
-    ? [
-        ...(inserted.project.frames ?? []),
-        {
-          clipNumber: newClipNumber,
-          position: "start" as const,
-          prompt: cleanPrompt,
-          status: "completed" as const,
-          outputUrl: posterUrl,
-          blobUrl: posterUrl,
-          submittedAt: input.nowIso,
-        },
-      ].sort((a, b) => a.clipNumber - b.clipNumber)
+  const newStartFrame: ClipFrame | undefined = posterUrl
+    ? {
+        clipNumber: newClipNumber,
+        position: "start",
+        prompt: cleanPrompt,
+        status: "completed",
+        outputUrl: posterUrl,
+        blobUrl: posterUrl,
+        submittedAt: input.nowIso,
+      }
+    : undefined;
+  const nextFrames: ClipFrame[] | undefined = newStartFrame
+    ? [...(inserted.project.frames ?? []), newStartFrame].sort(
+        (a, b) => a.clipNumber - b.clipNumber,
+      )
     : inserted.project.frames;
 
   return {

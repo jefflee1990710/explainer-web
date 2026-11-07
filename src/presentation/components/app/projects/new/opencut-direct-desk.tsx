@@ -369,6 +369,10 @@ export function OpenCutDirectDesk({
             aiRef.current.setClipTeleportClip(payload.clipNumber);
             return;
           }
+          if (payload.kind === "extend-video") {
+            aiRef.current.setClipExtendClip(payload.clipNumber);
+            return;
+          }
           if (payload.kind === "clip-style") {
             aiRef.current.setClipStyleClip(payload.clipNumber);
             return;
@@ -626,11 +630,13 @@ export function OpenCutDirectDesk({
           editingFrame={ai.editingFrame}
           clipSwapClip={ai.clipSwapClip}
           clipTeleportClip={ai.clipTeleportClip}
+          clipExtendClip={ai.clipExtendClip}
           clipStyleClip={ai.clipStyleClip}
           onCloseSceneChat={() => ai.setSceneChatClip(null)}
           onCloseFrameEdit={() => ai.setEditingFrame(null)}
           onCloseClipSwap={() => ai.setClipSwapClip(null)}
           onCloseClipTeleport={() => ai.setClipTeleportClip(null)}
+          onCloseClipExtend={() => ai.setClipExtendClip(null)}
           onCloseClipStyle={() => ai.setClipStyleClip(null)}
           onProject={production.onProject}
           onRegenerateFrame={production.onRegenerateFrame}

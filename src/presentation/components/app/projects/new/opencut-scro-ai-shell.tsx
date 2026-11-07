@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { OpenCutClipExtendDialog } from "@/presentation/components/app/projects/new/opencut-clip-extend-dialog";
 import { OpenCutClipScroSwapDialog } from "@/presentation/components/app/projects/new/opencut-clip-scro-swap-dialog";
 import { OpenCutClipStyleDialog } from "@/presentation/components/app/projects/new/opencut-clip-style-dialog";
 import { OpenCutClipTeleportDialog } from "@/presentation/components/app/projects/new/opencut-clip-teleport-dialog";
@@ -8,6 +9,7 @@ import { FrameEditDialog } from "@/presentation/components/project/frame-edit-di
 import { SceneChatDialog } from "@/presentation/components/project/scene-chat-dialog";
 import { resolveClipProject } from "@/service/clip/clip-context";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { resolveClipExtendReferences } from "@/service/opencut/clip-extend-refs";
 import { mediaSrc } from "@/util/media-src";
 import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicCharacter, PublicStyle, PublicVideo } from "@/presentation/serialize";
@@ -24,11 +26,13 @@ export function OpenCutScroAiShell({
   editingFrame,
   clipSwapClip,
   clipTeleportClip,
+  clipExtendClip,
   clipStyleClip,
   onCloseSceneChat,
   onCloseFrameEdit,
   onCloseClipSwap,
   onCloseClipTeleport,
+  onCloseClipExtend,
   onCloseClipStyle,
   onProject,
   onRegenerateFrame,
@@ -43,11 +47,13 @@ export function OpenCutScroAiShell({
   editingFrame: { clipNumber: number; position: FramePosition } | null;
   clipSwapClip: number | null;
   clipTeleportClip: number | null;
+  clipExtendClip?: number | null;
   clipStyleClip: number | null;
   onCloseSceneChat: () => void;
   onCloseFrameEdit: () => void;
   onCloseClipSwap: () => void;
   onCloseClipTeleport: () => void;
+  onCloseClipExtend?: () => void;
   onCloseClipStyle: () => void;
   onProject: (project: PublicVideo) => void;
   onRegenerateFrame: (
@@ -87,6 +93,18 @@ export function OpenCutScroAiShell({
       ? project.phaseA?.clips.find((row) => row.clipNumber === clipTeleportClip)
       : undefined;
   const teleportVideoUrl = teleportClipDoc ? mediaSrc(teleportClipDoc) : undefined;
+
+  const extendClipDoc =
+    clipExtendClip != null
+      ? project.clips.find((item) => item.clipNumber === clipExtendClip)
+      : undefined;
+  const extendRow =
+    clipExtendClip != null
+      ? project.phaseA?.clips.find((row) => row.clipNumber === clipExtendClip)
+      : undefined;
+  const extendVideoUrl = extendClipDoc ? mediaSrc(extendClipDoc) : undefined;
+  const extendDefaultRefs =
+    clipExtendClip != null ? resolveClipExtendReferences(project, clipExtendClip) : undefined;
 
   const styleClipDoc =
     clipStyleClip != null
@@ -156,6 +174,20 @@ export function OpenCutScroAiShell({
           onClose={onCloseClipTeleport}
         />
       ) : null}
+      {clipExtendClip != null && extendVideoUrl && onCloseClipExtend ? (
+        <OpenCutClipExtendDialog
+          key={`extend:${clipExtendClip}`}
+          videoId={project.id}
+          clipNumber={clipExtendClip}
+          durationSeconds={extendRow?.durationSeconds ?? extendClipDoc?.durationSeconds ?? 6}
+          videoUrl={extendVideoUrl}
+          defaultCharacterImageUrls={extendDefaultRefs?.characterImageUrls ?? []}
+          defaultSceneImageUrl={extendDefaultRefs?.sceneImageUrl}
+          defaultPropImageUrls={extendDefaultRefs?.propImageUrls ?? []}
+          onApplied={onProject}
+          onClose={onCloseClipExtend}
+        />
+      ) : null}
       {clipStyleClip != null && styleRow ? (
         <OpenCutClipStyleDialog
           key={`style:${clipStyleClip}`}
@@ -181,6 +213,7 @@ export function useOpenCutScroAiState() {
   } | null>(null);
   const [clipSwapClip, setClipSwapClip] = useState<number | null>(null);
   const [clipTeleportClip, setClipTeleportClip] = useState<number | null>(null);
+  const [clipExtendClip, setClipExtendClip] = useState<number | null>(null);
   const [clipStyleClip, setClipStyleClip] = useState<number | null>(null);
   return {
     sceneChatClip,
@@ -191,6 +224,8 @@ export function useOpenCutScroAiState() {
     setClipSwapClip,
     clipTeleportClip,
     setClipTeleportClip,
+    clipExtendClip,
+    setClipExtendClip,
     clipStyleClip,
     setClipStyleClip,
   };

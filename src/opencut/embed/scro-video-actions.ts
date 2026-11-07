@@ -52,7 +52,7 @@ export function requestScroSceneEdit({
 	);
 }
 
-/** Ask the Scro host to open FrameEdit, SceneChat, Scro Swap, Teleport, or Clip Style. */
+/** Ask the Scro host to open FrameEdit, SceneChat, Scro Swap, Teleport, Extend Video, or Clip Style. */
 export function requestScroOpenAi({
 	videoId,
 	clipNumber,
@@ -61,7 +61,7 @@ export function requestScroOpenAi({
 }: {
 	videoId: string;
 	clipNumber: number;
-	kind: "scene-chat" | "frame-edit" | "scro-swap" | "teleport" | "clip-style";
+	kind: "scene-chat" | "frame-edit" | "scro-swap" | "teleport" | "extend-video" | "clip-style";
 	position?: FramePosition;
 }) {
 	const origin = scroEmbedParentOrigin() ?? window.location.origin;

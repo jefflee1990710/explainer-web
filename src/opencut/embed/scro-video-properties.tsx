@@ -169,6 +169,22 @@ export function ScroVideoProperties({
 							>
 								{isStandaloneSwap ? oc.inspector.teleport : oc.inspector.scroSwap}
 							</Button>
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								disabled={!canRunJutsu}
+								className="w-full rounded-lg text-xs"
+								onClick={() =>
+									requestScroOpenAi({
+										videoId: store.videoId,
+										clipNumber: clip.clipNumber,
+										kind: "extend-video",
+									})
+								}
+							>
+								{oc.inspector.extendVideo}
+							</Button>
 						</div>
 					) : (
 						<>
