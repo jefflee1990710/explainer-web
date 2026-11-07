@@ -2,15 +2,15 @@ import type { ObjectId } from "mongodb";
 import type { Character, CharacterVersion } from "@/model/character";
 
 export function canSetDefault(version: CharacterVersion) {
-  return version.status === "completed";
+  return version.status === "completed" && !version.isBaseCandidate;
 }
 
-// Always the newest completed version.
+// Always the newest completed non-candidate version.
 export function resolveDefaultVersion(
   character: Pick<Character, "defaultVersionId" | "versions">,
 ): CharacterVersion | null {
   const completed = character.versions
-    .filter((version) => version.status === "completed")
+    .filter((version) => version.status === "completed" && !version.isBaseCandidate)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return completed[0] || null;
 }

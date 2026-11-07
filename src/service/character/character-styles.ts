@@ -23,20 +23,90 @@ export function characterStyleIds(character: {
   return ids;
 }
 
-// Root upload: the first version that is not an edit. New styles reuse these photos, not a later sheet.
+// Realistic is always the foundation style; legacy characters without realistic fall back to their original styleId.
+export function foundationStyleId(character: {
+  styleId: string;
+  versions: Array<{ styleId?: string }>;
+}): string {
+  const ids = characterStyleIds(character);
+  if (ids.includes("realistic")) return "realistic";
+  return character.styleId || "realistic";
+}
+
+// Active realistic foundation blueprint version (prefers baseVersionId when completed, else root realistic version).
+export function resolveBaseVersion(
+  character: Pick<Character, "styleId" | "baseVersionId" | "versions">,
+): CharacterVersion | null {
+  if (character.baseVersionId) {
+    const explicit = character.versions.find(
+      (v) =>
+        v.id.equals(character.baseVersionId!) &&
+        v.status === "completed" &&
+        Boolean(v.blueprintUrl || v.portraitUrl || v.profileUrl),
+    );
+    if (explicit) return explicit;
+  }
+  const fStyle = foundationStyleId(character);
+  const rootMatch = character.versions.find(
+    (v) =>
+      !v.parentVersionId &&
+      !v.isBaseCandidate &&
+      versionStyleId(character, v) === fStyle &&
+      v.status === "completed" &&
+      Boolean(v.blueprintUrl || v.portraitUrl || v.profileUrl),
+  );
+  if (rootMatch) return rootMatch;
+  return (
+    character.versions.find(
+      (v) =>
+        !v.isBaseCandidate &&
+        v.status === "completed" &&
+        Boolean(v.blueprintUrl || v.portraitUrl || v.profileUrl),
+    ) ?? null
+  );
+}
+
+// Root upload or base blueprint: new styles reuse the base blueprint's portrait + fullBody once raw uploads are removed.
 export function originalCharacterSource(
   versions: Array<{
+    id?: { equals(other: unknown): boolean; toHexString?(): string };
     parentVersionId?: unknown;
+    isBaseCandidate?: boolean;
     prompt: string;
+    portraitUrl?: string;
+    profileUrl?: string;
+    blueprintUrl?: string;
     referenceImageUrl?: string;
     referenceImageUrls?: string[];
   }>,
+  baseVersionId?: unknown,
 ) {
-  const root = versions.find((version) => !version.parentVersionId) ?? versions[0];
+  const explicitBase =
+    baseVersionId != null
+      ? versions.find((v) => v.id && typeof v.id.equals === "function" && v.id.equals(baseVersionId))
+      : undefined;
+  const root =
+    explicitBase ??
+    versions.find((version) => !version.parentVersionId && !version.isBaseCandidate) ??
+    versions[0];
   if (!root) return { prompt: "", referenceImageUrls: [] as string[] };
+  const rawRefs = characterReferenceUrls(root);
+  if (rawRefs.length > 0) {
+    return {
+      prompt: root.prompt,
+      referenceImageUrls: rawRefs,
+    };
+  }
+  const boardRefs = [root.portraitUrl, root.profileUrl].filter((url): url is string => Boolean(url));
+  const fallbackRefs =
+    boardRefs.length > 0
+      ? boardRefs
+      : root.blueprintUrl
+        ? [root.blueprintUrl]
+        : [];
   return {
     prompt: root.prompt,
-    referenceImageUrls: characterReferenceUrls(root),
+    referenceImageUrls: fallbackRefs,
   };
 }
 
@@ -56,13 +126,14 @@ export function styleHasDefault(character: StyleDefaultCharacter, styleId: strin
   );
 }
 
-// Completed sheet for one style: always the newest completed sheet.
+// Completed sheet for one style: always the newest completed non-candidate sheet.
 export function resolveVersionForStyle(
   character: StyleDefaultCharacter,
   styleId: string,
 ): CharacterVersion | null {
   const matches = character.versions.filter(
     (version) =>
+      !version.isBaseCandidate &&
       versionStyleId(character, version) === styleId &&
       version.status === "completed" &&
       Boolean(version.blueprintUrl),

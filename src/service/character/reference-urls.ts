@@ -34,9 +34,17 @@ export function characterReferenceUrls(version: {
   return version.referenceImageUrl ? [version.referenceImageUrl] : [];
 }
 
-// Walk the parent chain to the version that holds the uploaded photos.
-export function rootVersionOf<T extends VersionRefs>(versions: T[], from: T): T {
+// Walk the parent chain to the version that holds the uploaded photos or the active base version.
+export function rootVersionOf<T extends VersionRefs>(
+  versions: T[],
+  from: T,
+  baseVersionId?: { toHexString(): string } | null,
+): T {
   const byId = new Map(versions.map((version) => [version.id.toHexString(), version]));
+  if (baseVersionId) {
+    const base = byId.get(baseVersionId.toHexString());
+    if (base) return base;
+  }
   let current: T | undefined = from;
   const guard = new Set<string>();
   while (current?.parentVersionId) {
@@ -49,8 +57,12 @@ export function rootVersionOf<T extends VersionRefs>(versions: T[], from: T): T 
 }
 
 // The original uploaded photos behind any version, however many edits deep.
-export function rootReferenceUrls(versions: VersionRefs[], from: VersionRefs) {
-  return characterReferenceUrls(rootVersionOf(versions, from));
+export function rootReferenceUrls(
+  versions: VersionRefs[],
+  from: VersionRefs,
+  baseVersionId?: { toHexString(): string } | null,
+) {
+  return characterReferenceUrls(rootVersionOf(versions, from, baseVersionId));
 }
 
 // Legacy sheet edit: the sheet being changed first, then the root version's uploaded photos.

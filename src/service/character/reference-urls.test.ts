@@ -6,6 +6,7 @@ import {
   editReferenceUrls,
   imageFilesFromList,
   parseReferenceImageUrls,
+  rootVersionOf,
 } from "@/service/character/reference-urls";
 
 test("parseReferenceImageUrls keeps unique non-empty urls up to the cap", () => {
@@ -81,3 +82,11 @@ test("imageFilesFromList keeps only images and the remaining slots", () => {
     ["a.png", "b.jpg"],
   );
 });
+
+test("rootVersionOf prefers baseVersionId when present", () => {
+  const v1 = { id: refId("v1"), blueprintUrl: "https://blob/v1.png" };
+  const v2 = { id: refId("v2"), parentVersionId: refId("v1"), blueprintUrl: "https://blob/v2.png" };
+  const v3 = { id: refId("v3"), blueprintUrl: "https://blob/v3-new-base.png" };
+  assert.equal(rootVersionOf([v1, v2, v3], v2, refId("v3")).id.toHexString(), "v3");
+});
+

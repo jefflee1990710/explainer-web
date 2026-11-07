@@ -1,4 +1,4 @@
-import { characterStyleIds, resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
+import { characterStyleIds, foundationStyleId, resolveBaseVersion, resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
 import { normalizeDirectorBehavior } from "@/service/director/compile-director-prompts";
@@ -745,6 +745,8 @@ export type PublicCharacterVersion = {
   number: number;
   parentVersionId?: string;
   parentNumber?: number;
+  sourceRealisticVersionId?: string;
+  isBaseCandidate?: boolean;
   prompt: string;
   editInstruction?: string;
   referenceImageUrl?: string;
@@ -758,6 +760,15 @@ export type PublicCharacterVersion = {
   spec?: CharacterSpec;
   status: CharacterVersionStatus;
   error?: string;
+  createdAt: string;
+};
+
+export type PublicCharacterBaseChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  imageUrl?: string;
+  candidateVersionId?: string;
   createdAt: string;
 };
 
@@ -805,6 +816,8 @@ export type PublicCharacter = {
     >
   >;
   defaultVersionId: string | null;
+  baseVersionId: string | null;
+  baseChat?: PublicCharacterBaseChatMessage[];
   // Chosen sheet for each style that has a completed blueprint.
   defaultByStyle: Record<string, string>;
   // Board versions show the composed blueprint. Older sheets still use the standing figure.
@@ -837,7 +850,9 @@ function characterPreview(version: Character["versions"][number] | null) {
 }
 
 export function toPublicCharacter(character: Character): PublicCharacter {
-  const resolved = resolveDefaultVersion(character);
+  const fStyle = foundationStyleId(character);
+  const resolved = resolveVersionForStyle(character, fStyle) ?? resolveDefaultVersion(character);
+  const baseResolved = resolveBaseVersion(character);
   const versions = character.versions
     .map((version) => ({
       id: version.id.toHexString(),
@@ -847,6 +862,8 @@ export function toPublicCharacter(character: Character): PublicCharacter {
       parentNumber: version.parentVersionId
         ? versionNumber(character, version.parentVersionId) || undefined
         : undefined,
+      sourceRealisticVersionId: version.sourceRealisticVersionId?.toHexString(),
+      isBaseCandidate: version.isBaseCandidate,
       prompt: version.prompt,
       editInstruction: version.editInstruction,
       referenceImageUrl: version.referenceImageUrl,
@@ -934,6 +951,15 @@ export function toPublicCharacter(character: Character): PublicCharacter {
       return Object.keys(out).length > 0 ? out : undefined;
     })(),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
+    baseVersionId: baseResolved ? baseResolved.id.toHexString() : null,
+    baseChat: (character.baseChat || []).map((msg) => ({
+      id: msg.id.toHexString(),
+      role: msg.role,
+      content: msg.content,
+      ...(msg.imageUrl ? { imageUrl: msg.imageUrl } : {}),
+      ...(msg.candidateVersionId ? { candidateVersionId: msg.candidateVersionId.toHexString() } : {}),
+      createdAt: msg.createdAt.toISOString(),
+    })),
     defaultByStyle,
     previewUrl: preview.url,
     previewIsProfile: preview.isProfile,
