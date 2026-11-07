@@ -162,6 +162,18 @@ export async function refreshCharacterAction(
   return service.refreshCharacterAction(...args);
 }
 
+export async function sendCharacterBaseChatAction(
+  ...args: Parameters<typeof service.sendCharacterBaseChatAction>
+) {
+  return service.sendCharacterBaseChatAction(...args);
+}
+
+export async function applyCharacterBaseVersionAction(
+  ...args: Parameters<typeof service.applyCharacterBaseVersionAction>
+) {
+  return service.applyCharacterBaseVersionAction(...args);
+}
+
 export async function generateCharacterPoseSheetAction(selection: CharacterLookSelection) {
   await requireAppUser();
   try {

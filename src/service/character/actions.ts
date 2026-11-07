@@ -13,10 +13,12 @@ import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion, isBoardVersion } from "@/service/character/generate";
 import {
   characterStyleIds,
+  foundationStyleId,
   originalCharacterSource,
   resolveBaseVersion,
   versionStyleId,
 } from "@/service/character/character-styles";
+import { planCharacterBaseEdit, promoteVersionToBase } from "@/service/character/base-chat";
 import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
 import { characterStyleAllowance, isCharacterStyleLimitUnlocked } from "@/service/character/style-limit";
@@ -1417,5 +1419,154 @@ export async function refreshCharacterAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "更新進度失敗");
+  }
+}
+
+// Send a message to the Base Image Chat Agent to generate a candidate realistic Base Blueprint preview.
+export async function sendCharacterBaseChatAction(input: {
+  characterId: string;
+  message: string;
+  imageUrl?: string;
+}): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const text = String(input.message || "").trim().slice(0, PROMPT_MAX);
+    const attachedUrl = input.imageUrl?.trim() || undefined;
+    if (!text && !attachedUrl) {
+      return { ok: false, error: "請輸入要修改的地方" };
+    }
+    const character = await ownedCharacter(input.characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const baseVersion = resolveBaseVersion(character);
+    if (!baseVersion || baseVersion.status !== "completed" || !baseVersion.blueprintUrl) {
+      return { ok: false, error: "請先等待目前的基礎藍圖完成" };
+    }
+
+    await assertCanSpendCredits(user, BLUEPRINT_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, BLUEPRINT_COST);
+
+    const history = (character.baseChat || []).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+    const plan = await planCharacterBaseEdit({
+      name: character.name,
+      currentPrompt: baseVersion.prompt,
+      currentSpec: baseVersion.spec,
+      history,
+      message: text || "Update base look according to attached reference image",
+      imageUrl: attachedUrl,
+    });
+
+    const now = new Date();
+    const candidateVersionId = new ObjectId();
+    const fStyle = foundationStyleId(character);
+    const candidateVersion: CharacterVersion = {
+      id: candidateVersionId,
+      styleId: fStyle,
+      parentVersionId: baseVersion.id,
+      isBaseCandidate: true,
+      prompt: plan.updatedPrompt,
+      editInstruction: plan.editInstruction,
+      ...(attachedUrl
+        ? {
+            referenceImageUrl: attachedUrl,
+            referenceImageUrls: [attachedUrl],
+          }
+        : {}),
+      blueprintKind: "board",
+      stage: "portrait",
+      ...(plan.updatedSpec ? { spec: plan.updatedSpec } : {}),
+      status: "queued",
+      creditsCharged: true,
+      creditsCost: BLUEPRINT_COST,
+      createdAt: now,
+      submittedAt: now,
+    };
+
+    const userMsg = {
+      id: new ObjectId(),
+      role: "user" as const,
+      content: text || "（已附上參考圖片）",
+      ...(attachedUrl ? { imageUrl: attachedUrl } : {}),
+      createdAt: now,
+    };
+    const assistantMsg = {
+      id: new ObjectId(),
+      role: "assistant" as const,
+      content: plan.reply,
+      candidateVersionId,
+      createdAt: new Date(now.getTime() + 1),
+    };
+
+    const characters = await charactersCollection();
+    try {
+      await characters.updateOne(
+        { _id: character._id },
+        {
+          $push: {
+            versions: candidateVersion,
+            baseChat: { $each: [userMsg, assistantMsg] },
+          },
+          $set: { updatedAt: now },
+        },
+      );
+    } catch (error) {
+      try {
+        await refundCredits(user.clerkUserId, BLUEPRINT_COST, spendKey);
+      } catch (refundError) {
+        throw refundError;
+      }
+      throw error;
+    }
+
+    await enqueueOrFail(character, candidateVersion);
+    revalidateCharacter(input.characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "產生基底預覽失敗");
+  }
+}
+
+// Promote a completed candidate version (or any completed realistic version) to be the character's active Base Image.
+export async function applyCharacterBaseVersionAction(
+  characterId: string,
+  versionId: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    if (!ObjectId.isValid(versionId)) return { ok: false, error: "版本不存在" };
+    const targetId = new ObjectId(versionId);
+    const promoted = promoteVersionToBase(character, targetId);
+    if (!promoted) {
+      return { ok: false, error: "只能將已完成的藍圖設為基底" };
+    }
+
+    const fStyle = foundationStyleId(character);
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id, "versions.id": targetId },
+      {
+        $set: {
+          baseVersionId: targetId,
+          defaultVersionId: targetId,
+          [`styleDefaults.${fStyle}`]: targetId,
+          "styleDefaults.realistic": targetId,
+          updatedAt: promoted.updatedAt,
+        },
+        $unset: {
+          "versions.$.isBaseCandidate": "",
+          "versions.$.parentVersionId": "",
+          "versions.$.referenceImageUrl": "",
+          "versions.$.referenceImageUrls": "",
+        },
+      },
+    );
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "套用基底藍圖失敗");
   }
 }
