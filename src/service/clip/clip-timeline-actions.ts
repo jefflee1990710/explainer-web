@@ -349,10 +349,8 @@ export async function appendDirectorClipAction(
       { returnDocument: "after" },
     );
     if (!updated) return { ok: false, error: "專案不存在" };
-    after(() => {
-      void runClipAppendQueue(project._id).catch((error: unknown) => {
-        console.error("[clip-append] queue failed", error);
-      });
+    void import("@/service/worker/schedule").then(({ scheduleClipAppendWorkerTask }) => {
+      scheduleClipAppendWorkerTask(project._id);
     });
     revalidateVideo(project.projectId?.toHexString());
     return { ok: true, project: toPublicVideo(updated) };

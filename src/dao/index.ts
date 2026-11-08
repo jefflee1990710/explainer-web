@@ -38,6 +38,8 @@ export { welcomeCreditGrantsCollection } from "@/dao/welcome-credit-grants";
 export { jutsuJobsCollection } from "@/dao/jutsu-jobs";
 export { teleportJobsCollection } from "@/dao/teleport-jobs";
 export { extendJobsCollection } from "@/dao/extend-jobs";
+export { workerTasksCollection } from "@/dao/worker-tasks";
+
 
 
 

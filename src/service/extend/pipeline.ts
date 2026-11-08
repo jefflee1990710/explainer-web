@@ -1,6 +1,10 @@
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import {
+  enqueueWorkerTask,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
 import { extendJobsCollection } from "@/dao";
 import {
   toPublicExtendJob,
@@ -134,14 +138,22 @@ export async function startExtendJob(input: {
       throw err;
     }
 
-    after(() =>
-      runExtendJobInBackground(jobId).catch((error) => {
-        console.error("[extend-video] background job failed", {
-          jobId: jobId.toHexString(),
-          error,
-        });
-      }),
-    );
+    await enqueueWorkerTask({
+      kind: "extend",
+      targetId: jobId,
+      lane: "gpu",
+    }).catch(() => {});
+
+    if (!shouldUseWorkerQueueOnly()) {
+      after(() =>
+        runExtendJobInBackground(jobId).catch((error) => {
+          console.error("[extend-video] background job failed", {
+            jobId: jobId.toHexString(),
+            error,
+          });
+        }),
+      );
+    }
 
     return { ok: true, job: toPublicExtendJob(doc) };
   } catch (error) {

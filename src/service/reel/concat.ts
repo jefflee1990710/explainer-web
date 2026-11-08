@@ -6,7 +6,12 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
-import ffmpegPath from "ffmpeg-static";
+import {
+  getVideoEncoderMode,
+  resolveFfmpegBinary,
+  rewriteArgsForNvenc,
+  setVideoEncoderModeForTests,
+} from "@/service/ffmpeg/video-encoder";
 import { joinPadArgs } from "@/service/reel/join-pad";
 import type { PairwiseStep } from "@/service/reel/pairwise-progress";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
@@ -115,11 +120,12 @@ async function downloadToFile(url: string, dest: string, label: string, timeoutM
 
 export function ffmpegStderr(cwd: string, args: string[], timeoutMs?: number) {
   return new Promise<string>((resolve, reject) => {
-    if (!ffmpegPath) {
+    const bin = resolveFfmpegBinary();
+    if (!bin) {
       reject(new Error("找不到 ffmpeg，無法合成成片"));
       return;
     }
-    const child = spawn(ffmpegPath, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(bin, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
     let settled = false;
     const finish = (fn: () => void) => {
@@ -147,13 +153,9 @@ export async function fetchBuffer(url: string, label: string, timeoutMs?: number
   }
 }
 
-export function runFfmpeg(cwd: string, args: string[], timeoutMs?: number) {
+function spawnFfmpegOnce(bin: string, cwd: string, args: string[], timeoutMs?: number) {
   return new Promise<void>((resolve, reject) => {
-    if (!ffmpegPath) {
-      reject(new Error("找不到 ffmpeg，無法合成成片"));
-      return;
-    }
-    const child = spawn(ffmpegPath, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(bin, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
     let settled = false;
     const finish = (fn: () => void) => {
@@ -162,7 +164,9 @@ export function runFfmpeg(cwd: string, args: string[], timeoutMs?: number) {
       if (timer) clearTimeout(timer);
       fn();
     };
-    const timer = armFfmpegTimeout(child, timeoutMs, () => finish(() => reject(new Error(REEL_TIMEOUT_MESSAGE))));
+    const timer = armFfmpegTimeout(child, timeoutMs, () =>
+      finish(() => reject(new Error(REEL_TIMEOUT_MESSAGE))),
+    );
     child.stderr.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
@@ -177,6 +181,29 @@ export function runFfmpeg(cwd: string, args: string[], timeoutMs?: number) {
       });
     });
   });
+}
+
+export async function runFfmpeg(cwd: string, args: string[], timeoutMs?: number) {
+  const bin = resolveFfmpegBinary();
+  if (!bin) {
+    throw new Error("找不到 ffmpeg，無法合成成片");
+  }
+  if (getVideoEncoderMode() === "nvenc") {
+    const nvencArgs = rewriteArgsForNvenc(args, "nvenc");
+    const changed = nvencArgs.some((v, idx) => v !== args[idx]);
+    if (changed) {
+      try {
+        await spawnFfmpegOnce(bin, cwd, nvencArgs, timeoutMs);
+        return;
+      } catch (err) {
+        // If NVENC fails mid-job (e.g. session limit or driver reset), downgrade to CPU libx264 and retry once.
+        if (err instanceof Error && err.message === REEL_TIMEOUT_MESSAGE) throw err;
+        setVideoEncoderModeForTests("cpu");
+      }
+    }
+  }
+  const fallbackBin = resolveFfmpegBinary() || bin;
+  await spawnFfmpegOnce(fallbackBin, cwd, args, timeoutMs);
 }
 
 // Kill a hung encode. The close handler no-ops once the timeout already rejected.

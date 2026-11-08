@@ -156,14 +156,14 @@ async function uploadComfyImage(
 ): Promise<string> {
   const key = process.env.COMFY_API_KEY?.trim();
   const base = comfyBaseUrl();
-  if (!base || !key) throw new Error("ComfyUI 尚未設定");
+  if (!base || (!key && !hasComfyEndpoint())) throw new Error("ComfyUI 尚未設定");
   const form = new FormData();
   form.append("image", new Blob([new Uint8Array(bytes)], { type: "image/jpeg" }), name);
   form.append("type", "input");
   form.append("overwrite", "true");
   const res = await fetchFn(`${base}/upload/image`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}` },
+    headers: key ? { Authorization: `Bearer ${key}` } : undefined,
     body: form,
   });
   const body = (await res.json().catch(() => ({}))) as { name?: string; error?: string };

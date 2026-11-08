@@ -25,7 +25,9 @@
     "seed:christmas-guides": "tsx scripts/seed-season-guides.ts christmas",
     "seed:new-year-guides": "tsx scripts/seed-season-guides.ts new-year",
     "seed:lunar-new-year-guides": "tsx scripts/seed-season-guides.ts lunar",
-    "migrate:folders": "tsx scripts/migrate-project-folders.ts"
+    "migrate:folders": "tsx scripts/migrate-project-folders.ts",
+    "worker:start": "tsx worker/src/index.ts",
+    "worker:deploy": "bash worker/scripts/deploy-vast.sh"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.74",

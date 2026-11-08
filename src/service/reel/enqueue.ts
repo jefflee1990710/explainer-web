@@ -5,6 +5,10 @@ import { isProjectReady, type ClipStageSource } from "@/service/clip-stage";
 import { isProductionLike } from "@/service/project-status";
 import { clipReelFingerprint, type ReelRecord } from "@/service/reel/fingerprint";
 import { REEL_TIMEOUT_MESSAGE, reelRecovery } from "@/service/reel/timeout";
+import {
+  enqueueWorkerTask,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
 import type { Project } from "@/model/project";
 
 // Concat happens in the browser on Export — never auto-queue after the last clip.
@@ -36,6 +40,16 @@ export async function markReelQueued(project: Project): Promise<string | null> {
 
 // Runs after the response. A cron/poller has no `after()`, so fall back to void.
 export function scheduleReel(projectId: ObjectId, fingerprint: string) {
+  void enqueueWorkerTask({
+    kind: "reel_concat",
+    targetId: projectId,
+    lane: "cpu",
+    dedupeKey: `reel_concat:${projectId.toHexString()}:${fingerprint}`,
+    payload: { fingerprint },
+  }).catch(() => {});
+
+  if (shouldUseWorkerQueueOnly()) return;
+
   const run = () =>
     import("@/service/director/jobs")
       .then(({ runReelJob }) => runReelJob(projectId, fingerprint))

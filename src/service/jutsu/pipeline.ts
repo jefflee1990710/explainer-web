@@ -7,6 +7,10 @@ import { after } from "next/server";
 import sharp from "sharp";
 import { charactersCollection, jutsuJobsCollection } from "@/dao";
 import {
+  enqueueWorkerTask,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
+import {
   normalizeJutsuReferenceUrls,
   toPublicJutsuJob,
   type JutsuColorSettings,
@@ -1392,11 +1396,19 @@ export async function startScroSwapJob(
       throw err;
     }
 
-    after(() =>
-      runScroSwapJobInBackground(jobId).catch((error) => {
-        console.error("[scro-swap] background job failed", { jobId: jobId.toHexString(), error });
-      }),
-    );
+    await enqueueWorkerTask({
+      kind: "jutsu_swap",
+      targetId: jobId,
+      lane: "gpu",
+    }).catch(() => {});
+
+    if (!shouldUseWorkerQueueOnly()) {
+      after(() =>
+        runScroSwapJobInBackground(jobId).catch((error) => {
+          console.error("[scro-swap] background job failed", { jobId: jobId.toHexString(), error });
+        }),
+      );
+    }
 
     try {
       revalidatePath("/app/scroswap");

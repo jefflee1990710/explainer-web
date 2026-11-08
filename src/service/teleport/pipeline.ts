@@ -2,6 +2,10 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import sharp from "sharp";
+import {
+  enqueueWorkerTask,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
 import { teleportJobsCollection } from "@/dao";
 import {
   toPublicTeleportJob,
@@ -205,11 +209,19 @@ export async function startTeleportJob(
       throw err;
     }
 
-    after(() =>
-      runTeleportJobInBackground(jobId).catch((error) => {
-        console.error("[teleport] background job failed", { jobId: jobId.toHexString(), error });
-      }),
-    );
+    await enqueueWorkerTask({
+      kind: "teleport",
+      targetId: jobId,
+      lane: "gpu",
+    }).catch(() => {});
+
+    if (!shouldUseWorkerQueueOnly()) {
+      after(() =>
+        runTeleportJobInBackground(jobId).catch((error) => {
+          console.error("[teleport] background job failed", { jobId: jobId.toHexString(), error });
+        }),
+      );
+    }
 
     safeRevalidate();
     return { ok: true, job: toPublicTeleportJob(doc) };

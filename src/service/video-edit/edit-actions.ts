@@ -210,7 +210,24 @@ export async function exportFinalVideoAction(videoId: string): Promise<ProjectRe
         $unset: { finalError: "" },
       },
     );
-    after(() => runFinalJob(video._id, fingerprint));
+    void import("@/service/worker/task-queue")
+      .then(({ enqueueWorkerTask, shouldUseWorkerQueueOnly }) => {
+        void enqueueWorkerTask({
+          kind: "final_render",
+          targetId: video._id,
+          lane: "cpu",
+          dedupeKey: `final_render:${video._id.toHexString()}:${fingerprint}`,
+          payload: { fingerprint },
+        }).catch(() => {});
+        if (!shouldUseWorkerQueueOnly()) {
+          try {
+            after(() => runFinalJob(video._id, fingerprint));
+          } catch {
+            void runFinalJob(video._id, fingerprint);
+          }
+        }
+      })
+      .catch(() => {});
     revalidatePath("/app");
     if (video.projectId) revalidatePath(`/app/projects/${video.projectId.toHexString()}`);
   }

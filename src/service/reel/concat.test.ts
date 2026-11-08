@@ -66,3 +66,37 @@ test("concatMp4Buffers joins many clips in one pass with a hold between each", a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("ffmpegStderr and runFfmpeg use resolveFfmpegBinary (FFMPEG_PATH) instead of raw ffmpeg-static", async () => {
+  const { ffmpegStderr, runFfmpeg } = await import("@/service/reel/concat");
+  const { chmod } = await import("node:fs/promises");
+  const dir = await mkdtemp(join(tmpdir(), "reel-bin-test-"));
+  const prevFfmpegPath = process.env.FFMPEG_PATH;
+  try {
+    const markerFile = join(dir, "invoked.log");
+    const wrapperBin = join(dir, "custom-ffmpeg.sh");
+    const realBin = ffmpegPath!;
+    await writeFile(
+      wrapperBin,
+      `#!/bin/sh\necho "called" >> "${markerFile}"\nexec "${realBin}" "$@"\n`,
+      "utf8",
+    );
+    await chmod(wrapperBin, 0o755);
+    process.env.FFMPEG_PATH = wrapperBin;
+
+    makeClip(dir, "in.mp4", "red");
+    const stderr = await ffmpegStderr(dir, ["-i", "in.mp4"]);
+    assert.match(stderr, /Video: h264/);
+
+    await runFfmpeg(dir, ["-y", "-i", "in.mp4", "-frames:v", "1", "out.webp"]);
+    const invocations = (await readFile(markerFile, "utf8")).trim().split("\n");
+    assert.equal(invocations.length, 2);
+  } finally {
+    if (prevFfmpegPath === undefined) {
+      delete process.env.FFMPEG_PATH;
+    } else {
+      process.env.FFMPEG_PATH = prevFfmpegPath;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});

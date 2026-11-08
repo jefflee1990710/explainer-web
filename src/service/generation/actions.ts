@@ -13,6 +13,10 @@ import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/c
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
 import { refreshVideoLocksAfterStoryboardEdit } from "@/service/higgsfield/video-locks-pipeline";
 import { spokenLineCopy } from "@/service/director/spoken-line";
+import {
+  scheduleClipAppendWorkerTask,
+  scheduleStillWorkerTask,
+} from "@/service/worker/schedule";
 import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
 import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
@@ -94,7 +98,7 @@ export async function approveStoryboardAction(
     );
     // Projects without a cast lock the character with a still; start it now so
     // it is usually ready before the first frame request.
-    after(() => runStillJob(project._id));
+    scheduleStillWorkerTask(project._id);
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
@@ -522,11 +526,7 @@ export async function refreshGenerationAction(
     // A queued clip write whose worker died is started again from this poll.
     if (clipAppendNeedsKick(project)) {
       const appendVideoId = project._id;
-      after(() =>
-        import("@/service/clip/clip-timeline-actions").then((mod) =>
-          mod.runClipAppendQueue(appendVideoId),
-        ),
-      );
+      scheduleClipAppendWorkerTask(appendVideoId);
     }
 
     // Pending jobs, plus completed ones that never stored a file.

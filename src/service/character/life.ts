@@ -548,20 +548,8 @@ export async function generateLifeShotAction(input: {
 
     // Kick off generation in the background so the user can queue multiple photos concurrently.
     const characterHexId = character._id.toHexString();
-    try {
-      after(async () => {
-        await runLifeShotJob({
-          shotId,
-          clerkUserId: user.clerkUserId,
-          characterHexId,
-          prompt,
-          refs,
-          spendKey,
-        });
-      });
-    } catch {
-      // Fallback when called outside a Next.js request context.
-      void runLifeShotJob({
+    void import("@/service/worker/schedule").then(({ scheduleLifeShotWorkerTask }) => {
+      scheduleLifeShotWorkerTask({
         shotId,
         clerkUserId: user.clerkUserId,
         characterHexId,
@@ -569,7 +557,7 @@ export async function generateLifeShotAction(input: {
         refs,
         spendKey,
       });
-    }
+    });
 
     return { ok: true as const, shot: toPublicShot(shot) };
   } catch (error) {

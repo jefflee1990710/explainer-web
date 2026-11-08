@@ -1,0 +1,12 @@
+{
+  "name": "explainer-vast-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-contained Vast.ai GPU + CPU background task worker for Explainer.io",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "test": "npx tsx --test src/runner.test.ts",
+    "setup:vast": "bash setup/vast-worker-setup.sh",
+    "deploy:vast": "bash scripts/deploy-vast.sh"
+  }
+}

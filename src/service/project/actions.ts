@@ -23,6 +23,11 @@ import {
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
+import {
+  scheduleClipAppendWorkerTask,
+  schedulePhaseAWorkerTask,
+  scheduleStillWorkerTask,
+} from "@/service/worker/schedule";
 import { clipAppendNeedsKick } from "@/service/clip/clip-append";
 import { behaviorSlug } from "@/service/director/behavior-slug";
 import { findBriefSkill, findSelectableSkill } from "@/service/director/selectable-skills";
@@ -784,7 +789,7 @@ export async function createVideoAction(
       updatedAt: now,
     });
 
-    safeAfter(() => runPhaseAJob(insert.insertedId));
+    schedulePhaseAWorkerTask(insert.insertedId);
     if (folder?._id) {
       await touchFolder(folder._id);
     }
@@ -996,7 +1001,7 @@ async function rewriteVideoBrief(
     // The previous cut must not come back over the new storyboard.
     if (options.restart) await deleteOpencutEdit(videoId);
 
-    after(() => runPhaseAJob(video._id));
+    schedulePhaseAWorkerTask(video._id);
 
     await touchFolder(video.projectId);
 
@@ -1097,9 +1102,7 @@ export async function reviseProjectAction(
       { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
     );
 
-    after(() =>
-      runPhaseAJob(video._id, note || undefined, { clipsOnly }),
-    );
+    schedulePhaseAWorkerTask(video._id, note || undefined, { clipsOnly });
 
     await touchFolder(video.projectId);
 
@@ -1144,7 +1147,7 @@ export async function retryProjectAction(
         { _id: video._id },
         { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
       );
-      after(() => runPhaseAJob(video._id));
+      schedulePhaseAWorkerTask(video._id);
     } else {
       // Legacy frame/video-stage failures: drop failed still jobs and reopen
       // per-clip production with whatever frames/clips already exist.
@@ -1253,17 +1256,13 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       );
       if (claimed.modifiedCount > 0) {
         const phaseAVideoId = video._id;
-        after(() => runPhaseAJob(phaseAVideoId));
+        schedulePhaseAWorkerTask(phaseAVideoId);
       }
     }
     // Editor poll: a clip write left queued after the worker died gets retried here.
     if (clipAppendNeedsKick(video)) {
       const appendVideoId = video._id;
-      after(() =>
-        import("@/service/clip/clip-timeline-actions").then((mod) =>
-          mod.runClipAppendQueue(appendVideoId),
-        ),
-      );
+      scheduleClipAppendWorkerTask(appendVideoId);
     }
     // Editor poll: a reel left in_progress after the worker died gets retried here.
     if (isReelBusy(video.reelStatus)) {
@@ -1282,7 +1281,7 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
           $unset: { stillError: "", error: "" },
         },
       );
-      after(() => runStillJob(video._id));
+      scheduleStillWorkerTask(video._id);
       const promoted = await videos.findOne({ _id: video._id });
       return { ok: true, project: toPublicVideo(await markUnsentClipVideos(promoted!)) };
     }

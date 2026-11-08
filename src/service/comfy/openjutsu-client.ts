@@ -26,8 +26,14 @@ type ComfyFile = { filename: string; subfolder: string; type: string };
 
 const PROMPT_PREFIX = "comfy://prompt/";
 
+function isLoopbackComfyUrl(url: string): boolean {
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(url);
+}
+
 export function hasComfyEndpoint() {
-  return Boolean(comfyBaseUrl() && process.env.COMFY_API_KEY?.trim());
+  const base = comfyBaseUrl();
+  if (!base) return false;
+  return Boolean(process.env.COMFY_API_KEY?.trim() || isLoopbackComfyUrl(base));
 }
 
 export function comfyBaseUrl() {
@@ -52,10 +58,13 @@ export function comfyViewAuthHeaders(url?: string | null): Record<string, string
   return { Authorization: `Bearer ${key}` };
 }
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
+  const base = comfyBaseUrl();
   const key = process.env.COMFY_API_KEY?.trim();
-  if (!comfyBaseUrl() || !key) throw new Error("ComfyUI 尚未設定");
-  return { Authorization: `Bearer ${key}` };
+  if (!base) throw new Error("ComfyUI 尚未設定");
+  if (key) return { Authorization: `Bearer ${key}` };
+  if (isLoopbackComfyUrl(base)) return {};
+  throw new Error("ComfyUI 尚未設定");
 }
 
 async function comfyFetch(path: string, init?: RequestInit, fetchFn: typeof fetch = fetch) {

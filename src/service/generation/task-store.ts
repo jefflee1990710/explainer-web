@@ -7,6 +7,11 @@ import {
   retryDelayMs,
   submittedJobStatus,
 } from "@/service/generation/task-policy";
+import {
+  enqueueWorkerTask,
+  enqueueWorkerTasks,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
 import type { GenerationJob } from "@/model/generation-job";
 
 export type NewJob = Omit<
@@ -52,6 +57,12 @@ export async function insertPendingJob(job: NewJob): Promise<ObjectId> {
     createdAt: now,
     updatedAt: now,
   } as GenerationJob);
+  void enqueueWorkerTask({
+    kind: "generation_submit",
+    targetId: insertedId,
+    generationKind: job.kind,
+    nextAttemptAt: job.nextAttemptAt ?? now,
+  }).catch(() => {});
   return insertedId;
 }
 
@@ -74,7 +85,16 @@ export async function insertPendingJobs(jobs: NewJob[]): Promise<ObjectId[]> {
         }) as GenerationJob,
     ),
   );
-  return Object.values(result.insertedIds);
+  const insertedIds = Object.values(result.insertedIds);
+  void enqueueWorkerTasks(
+    insertedIds.map((id, idx) => ({
+      kind: "generation_submit" as const,
+      targetId: id,
+      generationKind: jobs[idx]?.kind,
+      nextAttemptAt: jobs[idx]?.nextAttemptAt ?? now,
+    })),
+  ).catch(() => {});
+  return insertedIds;
 }
 
 // Due pending jobs, or submitting jobs whose runner died mid-send.
@@ -195,14 +215,20 @@ export async function claimFailure(
 }
 
 // Try to send right after the response. Outside a request scope (scripts)
-// `after` throws; the submit cron picks the job up within a minute instead.
+// `after` throws; the submit cron / Vast worker picks the job up instead.
 export function kickJob(id: ObjectId) {
+  void enqueueWorkerTask({
+    kind: "generation_submit",
+    targetId: id,
+    nextAttemptAt: new Date(),
+  }).catch(() => {});
+  if (shouldUseWorkerQueueOnly()) return;
   try {
     after(async () => {
       const { runJobById } = await import("@/service/generation/task-runner");
       await runJobById(id);
     });
   } catch {
-    // No request scope: leave it pending for the cron.
+    // No request scope: leave it pending for the cron / worker.
   }
 }
