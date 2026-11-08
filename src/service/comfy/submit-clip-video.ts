@@ -10,7 +10,7 @@ import {
   type ApiGraph,
 } from "@/service/comfy/openjutsu-graph";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
-import { OPENROUTER_HAILUO_3_VIDEO_MODEL } from "@/service/openrouter/generate";
+import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export function shouldUseComfyForClipVideo(input: {
   model: string;
@@ -20,9 +20,9 @@ export function shouldUseComfyForClipVideo(input: {
 }): boolean {
   if (!hasComfyEndpoint()) return false;
   if (input.audioUrl?.trim()) return false;
+  if (input.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) return false;
   if (input.skillSlug === "one-take-director") return true;
-  if (process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() !== "true") return false;
-  return input.model === OPENROUTER_HAILUO_3_VIDEO_MODEL;
+  return process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() === "true";
 }
 
 function h3ValidFrameLength(durationSeconds: number): number {

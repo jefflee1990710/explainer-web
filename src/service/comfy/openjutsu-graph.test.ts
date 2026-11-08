@@ -744,11 +744,21 @@ test("shouldUseComfyForClipVideo is opt-in via COMFY_CLIP_VIDEO_ENABLED and subm
       true,
     );
     assert.equal(
-      shouldUseComfyForClipVideo({ model: "minimax/hailuo-3", audioUrl: "https://blob.test/vo.mp3" }),
-      false,
+      shouldUseComfyForClipVideo({ model: "alibaba/wan-3.0" }),
+      true,
     );
     assert.equal(
-      shouldUseComfyForClipVideo({ model: "alibaba/wan-3.0" }),
+      shouldUseComfyForClipVideo({
+        model: "bytedance/seedance-2.0",
+        skillSlug: "story-short-director",
+      }),
+      true,
+    );
+    assert.equal(
+      shouldUseComfyForClipVideo({
+        model: "heygen/avatar-iv",
+        audioUrl: "https://blob.test/vo.mp3",
+      }),
       false,
     );
 
