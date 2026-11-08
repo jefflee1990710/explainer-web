@@ -1,18 +1,17 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  buildJutsuColorFilter,
+  DEFAULT_JUTSU_COLOR_SETTINGS,
+} from "@/service/jutsu/color-settings";
 import { runFfmpeg } from "@/service/reel/concat";
 
-// FFmpeg video filter for realistic clips (Hailuo 3 / Seedance):
-// - Preserves natural midtone brightness (0..180 stays ~1:1 with a near-true black floor at 5)
-//   so faces, skin, and indoor rooms never look darkened or faded
-// - Gently rolls off only highlights above 180 (180..255 -> 180..225, never > 235)
-// Highlight knee only. No film grain. Stills are saved as the model returned them.
-const VIDEO_KNEE_LUT_EXPR =
-  "clip(if(lte(val,180),5+val*0.975,180+(val-180)*0.6),4,228)";
-
-export const REALISTIC_VIDEO_GRADE_FILTER =
-  `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',setsar=1`;
+// Apply OpenJutsu's "Fix colours" (H3 Soft: detail_contrast -0.20 + Reinhard tone mapper
+// with gentle highlight rolloff, lifted shadows, and softened digital crunch) to all realistic videos.
+export const REALISTIC_VIDEO_GRADE_FILTER = buildJutsuColorFilter(
+  DEFAULT_JUTSU_COLOR_SETTINGS,
+);
 
 // Keep the clean native Avatar IV colour and skin fidelity from the character blueprint; only ensure yuv420p compatibility.
 export const TALKING_HEAD_SENSOR_GRAIN_FILTER = "setsar=1";

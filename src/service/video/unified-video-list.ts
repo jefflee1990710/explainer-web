@@ -100,6 +100,8 @@ function swapModeLabel(mode: JutsuMode, isEn: boolean): string {
   switch (mode) {
     case "character_swap":
       return isEn ? "Character Swap" : "角色換角";
+    case "montage_swap":
+      return isEn ? "Montage Swap" : "Montage 轉場換角";
     case "object_swap":
       return isEn ? "Object Swap" : "物件替換";
     case "relight_video":

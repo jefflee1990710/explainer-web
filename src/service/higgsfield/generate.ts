@@ -253,6 +253,8 @@ export async function submitClipVideo(
     durationSeconds: number;
     startImageUrl: string;
     endImageUrl?: string;
+    characterImageUrl?: string;
+    sceneImageUrl?: string;
     audioUrl?: string;
     model?: string;
     skillSlug?: string;
@@ -287,6 +289,8 @@ export async function submitClipVideo(
         durationSeconds: input.durationSeconds,
         startImageUrl: input.startImageUrl,
         endImageUrl: input.endImageUrl,
+        characterImageUrl: input.characterImageUrl,
+        sceneImageUrl: input.sceneImageUrl,
         skillSlug: input.skillSlug,
       },
       options,

@@ -53,6 +53,10 @@ type ExtendJobDoc = ExtendJob & { _id: ObjectId };
 
 export const EXTEND_CLIP_DURATION_SECONDS = 6;
 
+export function shouldUseComfyForExtend(): boolean {
+  return hasComfyEndpoint() && process.env.COMFY_EXTEND_ENABLED?.trim() === "true";
+}
+
 async function fetchBufferOrNull(url: string): Promise<Buffer | null> {
   return fetch(url)
     .then((r) => (r.ok ? r.arrayBuffer() : null))
@@ -144,10 +148,10 @@ export async function startExtendJob(input: {
     await enqueueWorkerTask({
       kind: "extend",
       targetId: jobId,
-      lane: "gpu",
+      lane: shouldUseComfyForExtend() ? "gpu" : "cpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly() && !hasComfyEndpoint()) {
+    if (!shouldUseWorkerQueueOnly() && !shouldUseComfyForExtend()) {
       after(() =>
         runExtendJobInBackground(jobId).catch((error) => {
           console.error("[extend-video] background job failed", {
@@ -184,7 +188,7 @@ export async function runExtendJobInBackground(jobId: ObjectId): Promise<void> {
       video?: { url: string };
     };
 
-    if (hasComfyEndpoint()) {
+    if (shouldUseComfyForExtend()) {
       const video = await ensureMp4HasAudioStream(rawVideoBuffer);
       const [charBufs, sceneBuf, propBufs] = await Promise.all([
         Promise.all((job.characterImageUrls ?? []).map((u) => fetchBufferOrNull(u))),
@@ -215,7 +219,7 @@ export async function runExtendJobInBackground(jobId: ObjectId): Promise<void> {
         runId: job._id.toHexString(),
       });
     } else {
-      // Cloud fallback when Vast ComfyUI is not configured
+      // Cloud 2K First-Frame I2V continuation: extract the last frame of Clip N and pass it as first_frame + prompt to minimax/hailuo-3 (2K)
       const sectionStart = Math.max(0, job.sourceDurationSeconds - 6);
       const sectionLen = Math.min(6, job.sourceDurationSeconds);
       const extracted = await extractVideoSectionKeyframes(
@@ -230,39 +234,13 @@ export async function runExtendJobInBackground(jobId: ObjectId): Promise<void> {
         "image/webp",
       );
 
-      const prompt = buildH3ExtendPrompt({
-        extensionPrompt: job.prompt,
-        hasCharacterImage: Boolean(job.characterImageUrls?.length),
-        hasSceneImage: Boolean(job.sceneImageUrl),
-        hasPropImage: Boolean(job.propImageUrls?.length),
-        refVideoSeconds: sectionLen,
+      submitted = await submitOpenRouterClipVideo({
+        model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
+        prompt: `Continue seamlessly from this exact frame in one unbroken camera movement without any cut or style change: ${job.prompt}`,
+        aspectRatio: job.aspectRatio,
+        durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
+        startImageUrl: tailFrameUrl,
       });
-
-      const identityUrls = [
-        ...(job.characterImageUrls ?? []),
-        ...(job.sceneImageUrl ? [job.sceneImageUrl] : []),
-        ...(job.propImageUrls ?? []),
-      ];
-
-      if (hasMinimaxApiKey()) {
-        submitted = await submitMinimaxH3Ref2VaVideo({
-          prompt,
-          preparedImageUrl: tailFrameUrl,
-          identityImageUrls: identityUrls,
-          mannequinVideoUrl: job.sourceVideoUrl,
-          noLipSync: true,
-          durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
-          aspectRatio: job.aspectRatio,
-        });
-      } else {
-        submitted = await submitOpenRouterClipVideo({
-          model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
-          prompt: `Continue seamlessly from this frame: ${job.prompt}`,
-          aspectRatio: job.aspectRatio,
-          durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
-          startImageUrl: tailFrameUrl,
-        });
-      }
     }
 
     await col.updateOne(

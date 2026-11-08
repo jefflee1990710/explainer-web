@@ -17,6 +17,14 @@ export type ExtendRefClipRow = {
   referenceImageIds?: readonly string[];
 };
 
+export type ExtendRefFrameItem = {
+  clipNumber: number;
+  position: "start" | "end";
+  status?: string;
+  blobUrl?: string;
+  outputUrl?: string;
+};
+
 export type ExtendRefProjectSource = {
   phaseA?: {
     clips: readonly ExtendRefClipRow[];
@@ -29,6 +37,7 @@ export type ExtendRefProjectSource = {
   referenceImages?: ReadonlyArray<{ id: string; url: string }>;
   products?: readonly ExtendRefProductItem[];
   objectSheetUrl?: string;
+  frames?: readonly ExtendRefFrameItem[];
 };
 
 /**
@@ -71,6 +80,14 @@ export function resolveClipExtendReferences(
     }
   }
   if (!sceneImageUrl) {
+    const anyPlateUrl = project.backgroundPlates
+      ?.find((p) => p.url?.trim().startsWith("https://"))
+      ?.url?.trim();
+    if (anyPlateUrl) {
+      sceneImageUrl = anyPlateUrl;
+    }
+  }
+  if (!sceneImageUrl) {
     const bgUrl = (row?.backgroundImageUrls?.[0] || project.backgroundImageUrls?.[0])?.trim();
     if (bgUrl && bgUrl.startsWith("https://")) {
       sceneImageUrl = bgUrl;
@@ -83,6 +100,19 @@ export function resolveClipExtendReferences(
         sceneImageUrl = refUrl;
         break;
       }
+    }
+  }
+  if (!sceneImageUrl && project.frames?.length) {
+    const clipStart =
+      project.frames.find(
+        (f) => f.clipNumber === clipNumber && f.position === "start" && (f.blobUrl || f.outputUrl),
+      ) ||
+      project.frames.find(
+        (f) => f.clipNumber === 1 && f.position === "start" && (f.blobUrl || f.outputUrl),
+      );
+    const frameUrl = (clipStart?.blobUrl || clipStart?.outputUrl)?.trim();
+    if (frameUrl && frameUrl.startsWith("https://")) {
+      sceneImageUrl = frameUrl;
     }
   }
 

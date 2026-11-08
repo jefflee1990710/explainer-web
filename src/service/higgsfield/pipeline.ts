@@ -99,6 +99,7 @@ import {
   syncProjectCastFromCharacters,
   withSceneCharacterLocks,
 } from "@/service/higgsfield/scene-character-lock";
+import { resolveClipExtendReferences } from "@/service/opencut/clip-extend-refs";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
@@ -922,6 +923,7 @@ export async function sendClipVideo(
   }
 
   const targetModel = clipVideoModel(style ?? clipStyleId, project.skillSlug);
+  const clipRefs = resolveClipExtendReferences(project, clipNumber);
   const submitted = await submitClipVideo({
     model: targetModel,
     skillSlug: project.skillSlug,
@@ -930,6 +932,8 @@ export async function sendClipVideo(
     durationSeconds,
     startImageUrl: start,
     endImageUrl: endUrlForVideo,
+    characterImageUrl: clipRefs.characterImageUrls[0],
+    sceneImageUrl: clipRefs.sceneImageUrl,
     styleId: clipStyleId,
     style,
   });

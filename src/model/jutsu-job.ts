@@ -104,12 +104,21 @@ export function buildInitialPersonSlotAssignment(input: {
 
 export const JUTSU_MODES = [
   "character_swap",
+  "montage_swap",
   "object_swap",
   "relight_video",
   "color_fix",
 ] as const;
 
 export type JutsuMode = (typeof JUTSU_MODES)[number];
+
+export const JUTSU_SWAP_SUB_MODES = [
+  "standard",
+  "advanced",
+  "montage",
+] as const;
+
+export type JutsuSwapSubMode = (typeof JUTSU_SWAP_SUB_MODES)[number];
 
 export const JUTSU_OBJECT_EDIT_MODES = [
   "change",
@@ -166,6 +175,7 @@ export type JutsuPersonMapping = {
   box: JutsuPlacementBox;
   characterId?: string;
   characterName?: string;
+  role?: string;
   referenceImageUrl: string;
   referenceImageUrls?: string[];
   characterOutfitSpec?: string;
@@ -207,6 +217,9 @@ export type JutsuJob = {
   personMappings?: JutsuPersonMapping[];
   allDetectedAnchors?: JutsuPersonAnchor[];
   totalDetectedPeople?: number;
+  swapSubMode?: JutsuSwapSubMode;
+  maxQuality?: boolean;
+  role?: string;
   // Relight preset id or custom light prompt.
   relightId?: string;
   customLightPrompt?: string;
@@ -267,6 +280,9 @@ export type PublicJutsuJob = {
   referenceImageUrl?: string;
   referenceImageUrls?: string[];
   personMappings?: JutsuPersonMapping[];
+  swapSubMode?: JutsuSwapSubMode;
+  maxQuality?: boolean;
+  role?: string;
   relightId?: string;
   customLightPrompt?: string;
   objectEditMode?: JutsuObjectEditMode;
@@ -313,6 +329,9 @@ export function toPublicJutsuJob(
     referenceImageUrl: doc.referenceImageUrl,
     ...(doc.referenceImageUrls?.length ? { referenceImageUrls: doc.referenceImageUrls } : {}),
     personMappings: doc.personMappings,
+    ...(doc.swapSubMode ? { swapSubMode: doc.swapSubMode } : {}),
+    ...(doc.maxQuality !== undefined ? { maxQuality: doc.maxQuality } : {}),
+    ...(doc.role ? { role: doc.role } : {}),
     relightId: doc.relightId,
     customLightPrompt: doc.customLightPrompt,
     objectEditMode: doc.objectEditMode,

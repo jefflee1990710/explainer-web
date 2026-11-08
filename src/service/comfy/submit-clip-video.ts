@@ -56,6 +56,8 @@ export function buildOneTakeChainShots(input: {
   prompt: string;
   durationSeconds: number;
   hasEndFrame: boolean;
+  hasCharacterImage?: boolean;
+  hasSceneImage?: boolean;
 }): Array<{
   id: string;
   prompt: string;
@@ -71,9 +73,11 @@ export function buildOneTakeChainShots(input: {
         prompt: buildRef2VaClipPrompt({
           prompt: input.prompt,
           hasEndFrame: input.hasEndFrame,
+          hasCharacterImage: input.hasCharacterImage,
+          hasSceneImage: input.hasSceneImage,
         }),
         length: h3ValidFrameLength(seconds),
-        steps: 4,
+        steps: 8,
         seed: "0",
       },
     ];
@@ -97,9 +101,11 @@ export function buildOneTakeChainShots(input: {
       prompt: buildRef2VaClipPrompt({
         prompt: continuationNote,
         hasEndFrame: index === shotCount - 1 && input.hasEndFrame,
+        hasCharacterImage: input.hasCharacterImage,
+        hasSceneImage: input.hasSceneImage,
       }),
       length: H3_CHAIN_SEGMENT_FRAMES,
-      steps: 4,
+      steps: 8,
       seed: String(index),
     };
   });
@@ -108,23 +114,43 @@ export function buildOneTakeChainShots(input: {
 function buildRef2VaClipPrompt(input: {
   prompt: string;
   hasEndFrame: boolean;
+  hasCharacterImage?: boolean;
+  hasSceneImage?: boolean;
 }): string {
   const clean = input.prompt.replace(/\s+/g, " ").trim();
   const defs = [
     "<Picture 1> is the opening keyframe and subject/scene reference for [Shot 1], defining the exact starting composition, character appearance, outfit, lighting, and setting.",
   ];
-  if (input.hasEndFrame) {
-    defs.push(
-      "<Picture 2> is the closing keyframe reference for [Shot 1], defining the target ending composition and pose.",
-    );
-  }
   const retention = [
     "<Picture 1>: fully_preserved - start directly from this frame and preserve subject identity, wardrobe, and environment.",
   ];
+  let nextPic = 2;
   if (input.hasEndFrame) {
-    retention.push(
-      "<Picture 2>: fully_preserved - transition smoothly into this closing composition by the end of the clip.",
+    defs.push(
+      `<Picture ${nextPic}> is the closing keyframe reference for [Shot 1], defining the target ending composition and pose.`,
     );
+    retention.push(
+      `<Picture ${nextPic}>: fully_preserved - transition smoothly into this closing composition by the end of the clip.`,
+    );
+    nextPic++;
+  }
+  if (input.hasCharacterImage) {
+    defs.push(
+      `<Picture ${nextPic}> is the Character Identity & Wardrobe Blueprint, locking the character's exact facial features, hairstyle, proportions, and clothing across the entire clip.`,
+    );
+    retention.push(
+      `<Picture ${nextPic}>: fully_preserved - strictly preserve the character's face identity, hair, and outfit without any facial drift.`,
+    );
+    nextPic++;
+  }
+  if (input.hasSceneImage) {
+    defs.push(
+      `<Picture ${nextPic}> is the Environment & Background Scene Reference, locking the surrounding architecture, lighting palette, and atmosphere.`,
+    );
+    retention.push(
+      `<Picture ${nextPic}>: style_and_environment_locked - maintain consistent background geometry, lighting, and colour palette.`,
+    );
+    nextPic++;
   }
   return [
     "subject_definitions:",
@@ -180,6 +206,8 @@ export async function submitComfyStoryboardClipVideo(
     durationSeconds: number;
     startImageUrl: string;
     endImageUrl?: string;
+    characterImageUrl?: string;
+    sceneImageUrl?: string;
     skillSlug?: string;
   },
   options?: { fetch?: typeof fetch },
@@ -193,16 +221,26 @@ export async function submitComfyStoryboardClipVideo(
     return Buffer.from(await r.arrayBuffer());
   };
 
-  const [startBuf, endBuf] = await Promise.all([
+  const [startBuf, endBuf, charBuf, sceneBuf] = await Promise.all([
     fetchBuf(input.startImageUrl),
     input.endImageUrl && input.endImageUrl !== input.startImageUrl
       ? fetchBuf(input.endImageUrl)
       : Promise.resolve(null),
+    input.characterImageUrl && input.characterImageUrl !== input.startImageUrl
+      ? fetchBuf(input.characterImageUrl).catch(() => null)
+      : Promise.resolve(null),
+    input.sceneImageUrl &&
+    input.sceneImageUrl !== input.startImageUrl &&
+    input.sceneImageUrl !== input.characterImageUrl
+      ? fetchBuf(input.sceneImageUrl).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
-  const [startName, endName] = await Promise.all([
+  const [startName, endName, charName, sceneName] = await Promise.all([
     uploadComfyImage(`clip-start-${runId}.jpg`, startBuf, fetchFn),
     endBuf ? uploadComfyImage(`clip-end-${runId}.jpg`, endBuf, fetchFn) : Promise.resolve(null),
+    charBuf ? uploadComfyImage(`clip-char-${runId}.jpg`, charBuf, fetchFn) : Promise.resolve(null),
+    sceneBuf ? uploadComfyImage(`clip-scene-${runId}.jpg`, sceneBuf, fetchFn) : Promise.resolve(null),
   ]);
 
   const graph = structuredClone(extendWorkflowJson) as unknown as ApiGraph;
@@ -216,11 +254,29 @@ export async function submitComfyStoryboardClipVideo(
 
   graph["2"].inputs.image = startName;
   graph["30"].inputs["ref_images.ref_image_0"] = ["2", 0];
+  let nextRefSlot = 1;
   if (endName) {
     graph["3"].inputs.image = endName;
-    graph["30"].inputs["ref_images.ref_image_1"] = ["3", 0];
+    graph["30"].inputs[`ref_images.ref_image_${nextRefSlot}`] = ["3", 0];
+    nextRefSlot++;
   } else {
     delete graph["3"];
+  }
+  if (charName) {
+    graph["70"] = {
+      class_type: "LoadImage",
+      inputs: { image: charName },
+    };
+    graph["30"].inputs[`ref_images.ref_image_${nextRefSlot}`] = ["70", 0];
+    nextRefSlot++;
+  }
+  if (sceneName) {
+    graph["71"] = {
+      class_type: "LoadImage",
+      inputs: { image: sceneName },
+    };
+    graph["30"].inputs[`ref_images.ref_image_${nextRefSlot}`] = ["71", 0];
+    nextRefSlot++;
   }
 
   const shots =
@@ -229,6 +285,8 @@ export async function submitComfyStoryboardClipVideo(
           prompt: input.prompt,
           durationSeconds: input.durationSeconds,
           hasEndFrame: Boolean(endName),
+          hasCharacterImage: Boolean(charName),
+          hasSceneImage: Boolean(sceneName),
         })
       : [
           {
@@ -236,9 +294,11 @@ export async function submitComfyStoryboardClipVideo(
             prompt: buildRef2VaClipPrompt({
               prompt: input.prompt,
               hasEndFrame: Boolean(endName),
+              hasCharacterImage: Boolean(charName),
+              hasSceneImage: Boolean(sceneName),
             }),
             length: h3ValidFrameLength(input.durationSeconds),
-            steps: 4,
+            steps: 8,
             seed: "0",
           },
         ];

@@ -4,8 +4,10 @@ import sharp from "sharp";
 import { findOutputVideo } from "@/service/comfy/openjutsu-client";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import {
+  buildAdvancedGraph,
   buildExtendGraph,
   buildH3ExtendPrompt,
+  buildMontageGraph,
   buildObjectGraph,
   buildSimpleGraph,
   resolveH3ExtendDimensions,
@@ -226,22 +228,26 @@ test("canSubmitJutsuComfy only enables ComfyUI fast-path for character/object vi
           },
         ],
       }),
-      false,
+      true,
+    );
+    assert.equal(
+      canSubmitJutsuComfy({
+        sourceMediaKind: "video",
+        mode: "montage_swap",
+      }),
+      true,
     );
     assert.equal(
       canSubmitJutsuComfy({
         sourceMediaKind: "video",
         mode: "character_swap",
-        totalDetectedPeople: 2,
-        personMappings: [
-          {
-            objectId: 0,
-            personIndex: 1,
-            anchorPoint: { x: 0.3, y: 0.5 },
-            box: { x: 0.1, y: 0.2, width: 0.3, height: 0.6 },
-            referenceImageUrl: "https://blob.test/p1.png",
-          },
-        ],
+        personMappings: Array.from({ length: 5 }, (_, idx) => ({
+          objectId: idx,
+          personIndex: idx + 1,
+          anchorPoint: { x: 0.1 * idx, y: 0.5 },
+          box: { x: 0.1 * idx, y: 0.2, width: 0.1, height: 0.6 },
+          referenceImageUrl: `https://blob.test/p${idx}.png`,
+        })),
       }),
       false,
     );
@@ -684,7 +690,7 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
     shots: Array<{ length: number; steps: number; prompt: string }>;
   };
   assert.equal(planJson.shots[0]?.length, 192);
-  assert.equal(planJson.shots[0]?.steps, 4);
+  assert.equal(planJson.shots[0]?.steps, 8);
 
   // Reference Conditioning compacts characterImageName (ref_image_0) and propImageName (ref_image_1), deleting unused scene image loader
   const refNode = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ReferenceToVideo");
@@ -840,4 +846,62 @@ test("ensureMp4HasAudioStream downscales high-res (>736p short edge) videos to 7
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("buildObjectGraph supports add mode with H3ObjectPlacementMask, buildAdvancedGraph supports 1-4 people and maxq, and buildMontageGraph configures montage tracking", () => {
+  const addGraph = buildObjectGraph({
+    videoName: "src.mp4",
+    imageName: "cake.jpg",
+    section: { start: 0, length: 6 },
+    mode: "add",
+    target: "table",
+    changeTo: "add a chocolate cake on a plate",
+    biggestOnly: false,
+    keepOutline: false,
+    margin: "normal",
+    motion: 512,
+    seed: 0,
+    clipSeconds: 6,
+    runId: "objadd1",
+    placement: [{ frame: 0, x: 0.2, y: 0.3, width: 0.4, height: 0.4 }],
+  });
+  assert.ok(addGraph.object_placement);
+  assert.equal(addGraph.object_placement.class_type, "H3ObjectPlacementMask");
+
+  const advGraph = buildAdvancedGraph({
+    videoName: "src.mp4",
+    imageNames: ["p1.jpg", "p2.jpg"],
+    roles: ["the dancer on the left", "the singer on the right"],
+    section: { start: 0, length: 6 },
+    hatFix: false,
+    noLipSync: false,
+    margin: "normal",
+    motion: 512,
+    seed: 0,
+    clipSeconds: 6,
+    runId: "adv1",
+    maxQuality: true,
+  });
+  const advPlan = Object.values(advGraph).find((n) => n.class_type === "H3AdvancedSwapPlan");
+  assert.ok(advPlan);
+  assert.equal(advPlan.inputs.roles, "the dancer on the left\nthe singer on the right");
+
+  const monGraph = buildMontageGraph({
+    videoName: "src.mp4",
+    imageNames: ["p1.jpg", "p2.jpg"],
+    roles: ["dancer - white top", "skater - blue hoodie"],
+    section: { start: 0, length: 8 },
+    hatFix: false,
+    noLipSync: false,
+    margin: "normal",
+    motion: 512,
+    seed: 0,
+    clipSeconds: 6,
+    runId: "mon1",
+  });
+  const monPlan = Object.values(monGraph).find((n) => n.class_type === "H3MontagePlan");
+  assert.ok(monPlan);
+  const cropsNode = Object.values(monGraph).find((n) => n._meta?.title === "Show each track per shot");
+  assert.ok(cropsNode);
+  assert.equal(cropsNode.inputs.people, "<Subject 1>: dancer - white top\n<Subject 2>: skater - blue hoodie");
 });

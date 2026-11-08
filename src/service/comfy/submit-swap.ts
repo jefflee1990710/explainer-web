@@ -5,6 +5,8 @@ import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import {
   hasComfyEndpoint,
   openJutsuMargin,
+  submitOpenJutsuAdvanced,
+  submitOpenJutsuMontage,
   submitOpenJutsuObject,
   submitOpenJutsuSimple,
   type ComfySubmitResult,
@@ -98,6 +100,7 @@ export function canSubmitJutsuComfy(
     JutsuJob,
     | "sourceMediaKind"
     | "mode"
+    | "swapSubMode"
     | "relightId"
     | "customLightPrompt"
     | "personMappings"
@@ -106,11 +109,16 @@ export function canSubmitJutsuComfy(
 ): boolean {
   if (!hasComfyEndpoint()) return false;
   if (job.sourceMediaKind === "image") return false;
-  if (job.mode !== "character_swap" && job.mode !== "object_swap") return false;
+  if (
+    job.mode !== "character_swap" &&
+    job.mode !== "montage_swap" &&
+    job.mode !== "object_swap"
+  ) {
+    return false;
+  }
   if (Boolean(job.relightId?.trim() || job.customLightPrompt?.trim())) return false;
   const mappedCount = job.personMappings?.length ?? 0;
-  if (mappedCount > 1) return false;
-  if (mappedCount === 1 && (job.totalDetectedPeople ?? 1) > 1) return false;
+  if (mappedCount > 4) return false;
   return true;
 }
 
@@ -157,7 +165,75 @@ export async function trySubmitJutsuComfy(
     return ensureMp4HasAudioStream(rawVideo);
   })();
 
-  if (job.mode === "character_swap") {
+  if (job.mode === "character_swap" || job.mode === "montage_swap") {
+    const isMontage = job.mode === "montage_swap" || job.swapSubMode === "montage";
+    const mapped = (job.personMappings ?? []).filter(
+      (m) => (m.referenceImageUrls && m.referenceImageUrls.length > 0) || m.referenceImageUrl,
+    );
+    const isAdvanced =
+      !isMontage &&
+      (job.swapSubMode === "advanced" ||
+        mapped.length > 1 ||
+        (mapped.length === 1 && (job.totalDetectedPeople ?? 1) > 1));
+
+    if (isMontage || isAdvanced) {
+      const slots =
+        mapped.length > 0
+          ? mapped.slice(0, 4).map((m, idx) => ({
+              urls: normalizeJutsuReferenceUrls(m.referenceImageUrls, m.referenceImageUrl),
+              role: (m.role || m.characterName || "").trim(),
+              index: idx + 1,
+            }))
+          : [
+              {
+                urls: resolveJobCharacterReferenceUrls(job),
+                role: (job.role || job.characterName || "").trim(),
+                index: 1,
+              },
+            ];
+      if (slots.some((s) => s.urls.length === 0)) {
+        throw new Error("缺少角色參考圖片");
+      }
+      const [video, ...slotBuffers] = await Promise.all([
+        prepareVideoPromise,
+        ...slots.map((s) =>
+          Promise.all(s.urls.map((u) => fetchMedia(u, fetchFn))).then((bufs) =>
+            composeJutsuCharacterReferenceSheet(bufs),
+          ),
+        ),
+      ]);
+      const images = slotBuffers.map((buffer, idx) => ({
+        buffer,
+        name: `person_${idx + 1}_${runId}.jpg`,
+      }));
+      const roles = slots.map((s) => s.role);
+      if (isMontage) {
+        return submitOpenJutsuMontage(
+          {
+            ...baseShared,
+            video,
+            images,
+            roles,
+            hatFix: Boolean(job.hatFix),
+            noLipSync: Boolean(job.noLipSync),
+          },
+          fetchFn,
+        );
+      }
+      return submitOpenJutsuAdvanced(
+        {
+          ...baseShared,
+          video,
+          images,
+          roles,
+          hatFix: Boolean(job.hatFix),
+          noLipSync: Boolean(job.noLipSync),
+          maxQuality: Boolean(job.maxQuality),
+        },
+        fetchFn,
+      );
+    }
+
     const imageUrls = resolveJobCharacterReferenceUrls(job);
     if (imageUrls.length === 0) throw new Error("缺少角色參考圖片");
     const [video, image] = await Promise.all([
@@ -176,9 +252,6 @@ export async function trySubmitJutsuComfy(
         video,
         image,
         imageName,
-        // Leave `role` blank so OpenJutsu Node 10 (`video_people`) auto-detects the original person's
-        // role + clothes ("1. the walker - woman in dark jacket and black fringed scarf") and `H3FillShots`
-        // strips the original person's clothing from the shot descriptions.
         role: "",
         target: "person",
         outfitSpec: resolveJobCharacterOutfitSpec(job),
@@ -195,6 +268,17 @@ export async function trySubmitJutsuComfy(
     prepareVideoPromise,
     imageUrl ? fetchMedia(imageUrl, fetchFn) : Promise.resolve(null),
   ]);
+  const placement = job.placementBox
+    ? [
+        {
+          frame: 0,
+          x: job.placementBox.x,
+          y: job.placementBox.y,
+          width: job.placementBox.width,
+          height: job.placementBox.height,
+        },
+      ]
+    : undefined;
   return submitOpenJutsuObject(
     {
       ...baseShared,
@@ -205,7 +289,9 @@ export async function trySubmitJutsuComfy(
       target: job.objectTarget?.trim() || "person",
       changeTo: job.objectChangeTo?.trim() || "",
       biggestOnly: false,
-      keepOutline: true,
+      keepOutline: mode !== "add",
+      ...(placement ? { placement } : {}),
+      ...(job.editPrompt?.trim() ? { action: job.editPrompt.trim() } : {}),
     },
     fetchFn,
   );

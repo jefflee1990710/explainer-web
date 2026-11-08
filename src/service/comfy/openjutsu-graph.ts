@@ -2,6 +2,9 @@ import type { AspectRatio } from "@/model/project";
 import simpleWorkflowJson from "./workflows/simple.api.json";
 import objectWorkflowJson from "./workflows/object.api.json";
 import extendWorkflowJson from "./workflows/extend.api.json";
+import advancedWorkflowJson from "./workflows/advanced.api.json";
+import advancedMaxqWorkflowJson from "./workflows/advanced_maxq.api.json";
+import montageWorkflowJson from "./workflows/montage.api.json";
 
 // OpenJutsu graph edits, kept in step with experiments/openjutsu/lib/{simple,object,model}.ts.
 // Swap submits workflows/simple.api.json. Teleport and background object edits submit workflows/object.api.json.
@@ -24,7 +27,7 @@ const DEFAULT_MODEL = {
   describer: "qwen3vl_8b_int8_convrot.safetensors",
   videoVae: "minimax_h3_video_vae_int8_convrot.safetensors",
   audioVae: "minimax_h3_audio_vae_fp32.safetensors",
-  steps: 4,
+  steps: 8,
 };
 
 const SIMPLE_MARGINS = { tight: 20, normal: 40, loose: 60 } as const;
@@ -77,6 +80,14 @@ export type SimpleGraphInput = {
   runId: string;
 };
 
+export type PlacementKeyframe = {
+  frame: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type ObjectGraphInput = {
   videoName: string;
   imageName: string | null;
@@ -86,6 +97,37 @@ export type ObjectGraphInput = {
   changeTo: string;
   biggestOnly: boolean;
   keepOutline: boolean;
+  margin: OpenJutsuMargin;
+  motion: 512 | 768 | 1376;
+  seed: number;
+  clipSeconds: number;
+  runId: string;
+  placement?: PlacementKeyframe[];
+  action?: string;
+};
+
+export type AdvancedGraphInput = {
+  videoName: string;
+  imageNames: string[];
+  roles: string[];
+  section: Section;
+  hatFix: boolean;
+  noLipSync: boolean;
+  margin: OpenJutsuMargin;
+  motion: 512 | 768 | 1376;
+  seed: number;
+  clipSeconds: number;
+  runId: string;
+  maxQuality?: boolean;
+};
+
+export type MontageGraphInput = {
+  videoName: string;
+  imageNames: string[];
+  roles: string[];
+  section: Section;
+  hatFix: boolean;
+  noLipSync: boolean;
   margin: OpenJutsuMargin;
   motion: 512 | 768 | 1376;
   seed: number;
@@ -211,13 +253,21 @@ function nodeByTitle(graph: ApiGraph, title: string) {
   return ids[0];
 }
 
-function loadGraph(kind: "simple" | "object" | "extend"): ApiGraph {
+function loadGraph(
+  kind: "simple" | "object" | "extend" | "advanced" | "advanced_maxq" | "montage",
+): ApiGraph {
   const source =
     kind === "simple"
       ? simpleWorkflowJson
       : kind === "object"
         ? objectWorkflowJson
-        : extendWorkflowJson;
+        : kind === "advanced"
+          ? advancedWorkflowJson
+          : kind === "advanced_maxq"
+            ? advancedMaxqWorkflowJson
+            : kind === "montage"
+              ? montageWorkflowJson
+              : extendWorkflowJson;
   return structuredClone(source) as unknown as ApiGraph;
 }
 
@@ -284,7 +334,9 @@ function applyDefaultModel(graph: ApiGraph) {
   graph[nodeByTitle(graph, "Audio VAE")].inputs.vae_name = DEFAULT_MODEL.audioVae;
   graph[nodeByTitle(graph, "H3 Diffusion Model")].inputs.unet_name = DEFAULT_MODEL.model;
   const plans = Object.values(graph).filter((node) =>
-    ["H3OneClickSwapPlan", "H3ObjectSwapPlan"].includes(node.class_type),
+    ["H3OneClickSwapPlan", "H3AdvancedSwapPlan", "H3ObjectSwapPlan", "H3MontagePlan"].includes(
+      node.class_type,
+    ),
   );
   if (plans.length !== 1) {
     throw new Error(`Expected one Swap Plan node in the workflow, found ${plans.length}.`);
@@ -297,7 +349,12 @@ function applyDefaultModel(graph: ApiGraph) {
 
 // Each Scro job gets its own chain folder so a second render does not resume the first job's clips.
 function uniquifyRunName(graph: ApiGraph, runId: string) {
-  const planTypes = new Set(["H3OneClickSwapPlan", "H3ObjectSwapPlan"]);
+  const planTypes = new Set([
+    "H3OneClickSwapPlan",
+    "H3AdvancedSwapPlan",
+    "H3ObjectSwapPlan",
+    "H3MontagePlan",
+  ]);
   let source: [string, number] | null = null;
   for (const node of Object.values(graph)) {
     for (const value of Object.values(node.inputs)) {
@@ -334,11 +391,17 @@ function objectTargets(target: string) {
   return target.split(",").map((part) => part.trim()).filter(Boolean);
 }
 
+function addedObject(changeTo: string) {
+  return changeTo.replace(/^(?:add|insert|put)\s+/i, "").trim();
+}
+
 function describerPrompt(input: ObjectGraphInput) {
   const background = input.mode === "background";
   const things = background
     ? ["place (the setting, its lighting and what is around)"]
-    : objectTargets(input.target);
+    : input.mode === "add"
+      ? [addedObject(input.changeTo).replace(/^(?:a|an|the)\s+/i, "") || "main object"]
+      : objectTargets(input.target);
   const named =
     things.length === 1 ? things[0] : `${things.slice(0, -1).join(", ")} and the ${things.at(-1)}`;
   const words = 30 + 20 * things.length;
@@ -346,7 +409,7 @@ function describerPrompt(input: ObjectGraphInput) {
     prompt:
       `Describe the ${named} in this picture in about ${words} words${things.length > 1 ? ", one sentence for each" : ""}: their shape, colours, ` +
       "materials, patterns and details. " +
-      (background
+      (background || input.mode === "add"
         ? ""
         : "Include every layer worn there, outer layer first: an open shirt or jacket over a top is part of the top. ") +
       "No preamble, and nothing about anything else in the picture.",
@@ -459,7 +522,11 @@ export function buildObjectGraph(input: ObjectGraphInput): ApiGraph {
     delete plan.picture_1_text;
     delete ref["ref_images.ref_image_0"];
   }
-  if (input.mode === "remove" || (input.mode === "change" && !input.keepOutline)) {
+  if (
+    input.mode === "remove" ||
+    input.mode === "add" ||
+    (input.mode === "change" && !input.keepOutline)
+  ) {
     delete ref["ref_videos.ref_video_0"];
     delete ref["ref_video_audios.ref_video_audio_0"];
   }
@@ -484,11 +551,161 @@ export function buildObjectGraph(input: ObjectGraphInput): ApiGraph {
     clip_seconds: input.clipSeconds,
     resolution: OPENJUTSU_RESOLUTION,
   });
+
+  if (input.mode === "add") {
+    const placementPoints =
+      input.placement && input.placement.length > 0
+        ? input.placement
+        : [{ frame: 0, x: 0.25, y: 0.25, width: 0.5, height: 0.5 }];
+    const placement = JSON.stringify(placementPoints);
+    plan.placement = placement;
+    plan.change_to = addedObject(input.changeTo);
+    plan.keep_outline = false;
+    plan.action = input.action ?? "";
+    const drop = [
+      "SAM frames for this clip",
+      "Tracked area",
+      "Tracked area, tight (for the grey shape)",
+      "Turn it grey (shape and movement only)",
+      "SAM 3.1",
+      "SAM: what to change",
+      "SAM video (1008 px, SAM's own size)",
+      "SAM 3.1 track it",
+    ];
+    graph.object_placement = {
+      class_type: "H3ObjectPlacementMask",
+      inputs: {
+        images: [id("Source clip (frames + audio)"), 0],
+        start_frame: [id("Clip start frame"), 1],
+        placement,
+      },
+      _meta: { title: "Object placement area" },
+    };
+    grow.mask = ["object_placement", 0];
+    grow.expand = { tight: 0, normal: 2, loose: 4 }[input.margin];
+    for (const title of drop) delete graph[id(title)];
+  }
+
   applyDefaultModel(graph);
   uniquifyRunName(graph, input.runId);
   setSection(graph, id("Source video"), input.section);
   graph[id("Source video")].inputs.video = input.videoName;
   if (picture && input.imageName) graph[id("Picture 1")].inputs.image = input.imageName;
+  return graph;
+}
+
+const HAT_TITLE_REGEX = /\bhats?\b/i;
+const ADVANCED_PLAN_TITLE = "Swap Plan (roles, seed, size)";
+const ADVANCED_VIDEO_TITLE = "Source video (people get replaced)";
+
+function advancedOrdinal(i: number, count: number) {
+  return count === 1
+    ? "the main person"
+    : `the person with the ${["", "second ", "third ", "fourth "][i] ?? ""}most screen time`;
+}
+
+function pruneAdvancedCore(
+  graph: ApiGraph,
+  imageNames: string[],
+  input: AdvancedGraphInput | MontageGraphInput,
+): ApiGraph {
+  const pictures = imageNames.length;
+  const available = Object.values(graph).filter(
+    (node) => node.class_type === "LoadImage" && /^Picture \d$/.test(node._meta?.title ?? ""),
+  ).length;
+  if (pictures < 1 || pictures > available) {
+    throw new Error(`This mode takes 1-${available} character photos.`);
+  }
+
+  const removed = new Set<string>();
+  for (let k = pictures + 1; k <= available; k++) {
+    const load = nodeByTitle(graph, `Picture ${k}`);
+    const shrink = Object.keys(graph).find(
+      (id) =>
+        isLink(graph[id].inputs.image) &&
+        graph[id].inputs.image[0] === load &&
+        graph[id].class_type === "ImageScaleToMaxDimension",
+    );
+    const describe = nodeByTitle(graph, `Describe picture ${k}`);
+    for (const id of [load, shrink, describe]) if (id) removed.add(id);
+  }
+
+  const bypass = new Map<string, unknown>();
+  if (!input.hatFix) {
+    for (const [id, node] of Object.entries(graph)) {
+      if (!HAT_TITLE_REGEX.test(node._meta?.title ?? "")) continue;
+      removed.add(id);
+      if (node.class_type === "MaskComposite" && node.inputs.operation === "add") {
+        bypass.set(id, node.inputs.destination);
+      }
+    }
+  }
+  for (const id of removed) delete graph[id];
+  for (const [id, node] of Object.entries(graph)) {
+    for (const [name, value] of Object.entries(node.inputs)) {
+      if (!isLink(value) || !removed.has(value[0])) continue;
+      if (bypass.has(value[0])) node.inputs[name] = bypass.get(value[0]);
+      else if (/^picture_\d/.test(name) || name.startsWith("ref_images.")) delete node.inputs[name];
+      else throw new Error(`Node ${id}.${name} still links to removed node ${value[0]}.`);
+    }
+  }
+
+  if (!input.noLipSync) dropNoLipSync(graph);
+  setMotionSize(graph, input.motion);
+
+  for (const node of Object.values(graph)) {
+    if (node.class_type === "GrowMaskWithBlur" && / grow mask /.test(node._meta?.title ?? "")) {
+      node.inputs.expand = SIMPLE_MARGINS[input.margin];
+    }
+    if (node.class_type === "MiniMaxH3ReferenceToVideo") {
+      node.inputs.ref_image_size = "max";
+    }
+  }
+
+  const planId = nodeByTitle(graph, ADVANCED_PLAN_TITLE);
+  const videoId = nodeByTitle(graph, ADVANCED_VIDEO_TITLE);
+  const plan = graph[planId].inputs;
+  const roles = input.roles.slice(0, pictures).map((r) => r.replace(/\s+/g, " ").trim());
+  plan.resolution = OPENJUTSU_RESOLUTION;
+  plan.seed = input.seed;
+  plan.clip_seconds = input.clipSeconds;
+  plan.roles = roles.some(Boolean)
+    ? roles.map((role, i) => role || advancedOrdinal(i, pictures)).join("\n")
+    : "";
+
+  for (let i = 0; i < pictures; i++) {
+    const picNodeId = nodeByTitle(graph, `Picture ${i + 1}`);
+    graph[picNodeId].inputs.image = imageNames[i]!;
+  }
+  setSection(graph, videoId, input.section);
+  graph[videoId].inputs.video = input.videoName;
+  return graph;
+}
+
+export function buildAdvancedGraph(input: AdvancedGraphInput): ApiGraph {
+  const useMaxQ = Boolean(input.maxQuality) && input.imageNames.length === 2;
+  const graph = loadGraph(useMaxQ ? "advanced_maxq" : "advanced");
+  silenceWhenSoundless(graph);
+  pruneAdvancedCore(graph, input.imageNames, input);
+  applyDefaultModel(graph);
+  uniquifyRunName(graph, input.runId);
+  return graph;
+}
+
+export function buildMontageGraph(input: MontageGraphInput): ApiGraph {
+  const graph = loadGraph("montage");
+  silenceWhenSoundless(graph);
+  pruneAdvancedCore(graph, input.imageNames, input);
+  const tracksId = nodeByTitle(graph, "Tracks from Find people");
+  delete graph[tracksId];
+  const cropsId = nodeByTitle(graph, "Show each track per shot");
+  const cleanRoles = input.roles
+    .slice(0, input.imageNames.length)
+    .map((role, i) => `<Subject ${i + 1}>: ${(role || advancedOrdinal(i, input.imageNames.length)).replace(/\s+/g, " ").trim()}`)
+    .join("\n");
+  graph[cropsId].inputs.people = cleanRoles;
+  applyDefaultModel(graph);
+  uniquifyRunName(graph, input.runId);
   return graph;
 }
 

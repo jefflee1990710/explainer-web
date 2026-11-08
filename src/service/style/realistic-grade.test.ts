@@ -7,13 +7,14 @@ import {
   talkingHeadSensorGrainArgs,
 } from "@/service/style/realistic-grade";
 
-test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=180 and rolling off highlights >180) and no film grain", () => {
+test("realisticVideoGradeArgs applies OpenJutsu Fix Colours (H3 Soft detail contrast softening + DCTL tone curve) instead of harsh sharpening", () => {
   const args = realisticVideoGradeArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(REALISTIC_VIDEO_GRADE_FILTER));
-  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lutrgb=/);
-  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lte\(val,180\)/);
-  assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /val\*0\.72/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /unsharp=3:3:-0\.17:3:3:0/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /eq=contrast=0\.968:brightness=0\.002:saturation=1\.01/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /curves=all=/);
+  assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /lutrgb=/);
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /noise=/);
 });
 

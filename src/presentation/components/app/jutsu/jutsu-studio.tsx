@@ -9,8 +9,11 @@ import {
   buildInitialPersonSlotAssignment,
   normalizeJutsuReferenceUrls,
   removeJutsuReferenceUrl,
+  type JutsuMode,
+  type JutsuObjectEditMode,
   type JutsuPersonMapping,
   type JutsuSourceMediaKind,
+  type JutsuSwapSubMode,
   type PublicJutsuJob,
 } from "@/model/jutsu-job";
 import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
@@ -190,6 +193,14 @@ export function JutsuStudio({
   const [personAssignments, setPersonAssignments] = useState<
     Record<number, JutsuPersonSlotAssignment>
   >({});
+
+  // Swap Engine Mode: "standard" (Single Swap) | "advanced" (Multi-Person 1-4) | "montage" (Montage Multi-Turn) | "object_swap" (Object Change/Remove/Add)
+  const [engineTab, setEngineTab] = useState<"standard" | "advanced" | "montage" | "object_swap">("standard");
+  const [maxQuality, setMaxQuality] = useState(false);
+  const [roleDescription, setRoleDescription] = useState("");
+  const [objectEditMode, setObjectEditMode] = useState<JutsuObjectEditMode>("change");
+  const [objectTarget, setObjectTarget] = useState("jacket");
+  const [objectChangeTo, setObjectChangeTo] = useState("");
 
   // Advanced options (default maskMargin="normal", noLipSync=false)
   const [relightEnabled, setRelightEnabled] = useState(false);
@@ -695,7 +706,23 @@ export function JutsuStudio({
             ? undefined
             : characterId || undefined;
 
+      const effectiveMode: JutsuMode =
+        engineTab === "object_swap"
+          ? "object_swap"
+          : engineTab === "montage"
+            ? "montage_swap"
+            : "character_swap";
+      const effectiveSwapSubMode: JutsuSwapSubMode | undefined =
+        engineTab === "object_swap" ? undefined : engineTab;
+
       const res = await startScroSwapJobAction({
+        mode: effectiveMode,
+        swapSubMode: effectiveSwapSubMode,
+        maxQuality: engineTab === "advanced" ? maxQuality : undefined,
+        role: roleDescription.trim() || undefined,
+        objectEditMode: engineTab === "object_swap" ? objectEditMode : undefined,
+        objectTarget: engineTab === "object_swap" ? objectTarget.trim() || "person" : undefined,
+        objectChangeTo: engineTab === "object_swap" ? objectChangeTo.trim() : undefined,
         sourceVideoUrl,
         sourceMediaKind,
         sectionStart,
@@ -962,6 +989,158 @@ export function JutsuStudio({
 
         {/* Main Drag & Drop Workbench: Source Video + Character + Generate Button */}
         <div className="mt-3 flex w-full max-w-4xl flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_12px_36px_rgba(18,20,28,0.07)]">
+          {/* OpenJutsu Mode Selector: Single Swap | Advanced Multi-Person | Montage | Object Swap */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/80 pb-3">
+            <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl bg-zinc-100 p-1">
+              {(
+                [
+                  { id: "standard", labelEn: "Single Swap", labelZh: "單人動作替換" },
+                  { id: "advanced", labelEn: "Multi-Person Swap", labelZh: "多人同時替換 (1–4人)" },
+                  { id: "montage", labelEn: "Montage", labelZh: "Montage 轉場追蹤" },
+                  { id: "object_swap", labelEn: "Object Swap", labelZh: "物件替換 / 移除 / 新增" },
+                ] as const
+              ).map((tab) => {
+                const active = engineTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setEngineTab(tab.id)}
+                    className={`cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                      active
+                        ? "bg-[#12141c] text-[#c6f24b] shadow-2xs"
+                        : "text-zinc-600 hover:text-[#12141c]"
+                    }`}
+                  >
+                    {isEn ? tab.labelEn : tab.labelZh}
+                  </button>
+                );
+              })}
+            </div>
+
+            {engineTab === "advanced" ? (
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={maxQuality}
+                  disabled={submitting}
+                  onChange={(e) => setMaxQuality(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-[#12141c]"
+                />
+                <span>
+                  {isEn ? "1 Pass Per Person (Max Quality)" : "逐人獨立渲染 (MaxQ 高畫質)"}
+                </span>
+              </label>
+            ) : null}
+          </div>
+
+          {/* Mode-Specific Controls for Advanced / Montage / Object Swap */}
+          {engineTab === "advanced" || engineTab === "montage" ? (
+            <div className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-[1fr_auto]">
+              <label className="block">
+                <span className="text-[11px] font-bold text-zinc-700">
+                  {engineTab === "montage"
+                    ? isEn
+                      ? "Montage Role Match (who - looks, e.g. 'the dancer - white polo, jeans')"
+                      : "Montage 人物特徵配對（例如：the dancer - white polo, jeans）"
+                    : isEn
+                      ? "Optional Role Filter (leave blank to auto-match by screen time / RLE)"
+                      : "角色位置／特徵描述（留空則自動依畫面人物配對）"}
+                </span>
+                <input
+                  type="text"
+                  disabled={submitting}
+                  value={roleDescription}
+                  onChange={(e) => setRoleDescription(e.target.value)}
+                  placeholder={
+                    engineTab === "montage"
+                      ? "e.g. the main dancer - black top, blue jeans"
+                      : "e.g. the person on the left"
+                  }
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-[#12141c] focus:border-[#12141c] focus:outline-none"
+                />
+              </label>
+            </div>
+          ) : null}
+
+          {engineTab === "object_swap" ? (
+            <div className="grid gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-3">
+              <div>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  {isEn ? "Object Action" : "物件操作模式"}
+                </span>
+                <div className="mt-1 grid grid-cols-3 gap-1 rounded-xl bg-zinc-200/70 p-1">
+                  {(
+                    [
+                      { id: "change", en: "Change", zh: "替換" },
+                      { id: "remove", en: "Remove", zh: "移除" },
+                      { id: "add", en: "Add", zh: "新增" },
+                    ] as const
+                  ).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => setObjectEditMode(m.id)}
+                      className={`cursor-pointer rounded-lg py-1 text-[11px] font-bold transition ${
+                        objectEditMode === m.id
+                          ? "bg-[#12141c] text-[#c6f24b]"
+                          : "text-zinc-600 hover:text-[#12141c]"
+                      }`}
+                    >
+                      {isEn ? m.en : m.zh}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {objectEditMode !== "add" ? (
+                <label className="block">
+                  <span className="text-[11px] font-bold text-zinc-700">
+                    {isEn ? "What SAM Tracks (Target)" : "要追蹤的目標物件 (Target)"}
+                  </span>
+                  <input
+                    type="text"
+                    disabled={submitting}
+                    value={objectTarget}
+                    onChange={(e) => setObjectTarget(e.target.value)}
+                    placeholder="e.g. jacket, sunglasses, hair, car"
+                    className="mt-1 h-9 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-[#12141c] focus:border-[#12141c] focus:outline-none"
+                  />
+                </label>
+              ) : null}
+
+              <label className={objectEditMode === "add" ? "block sm:col-span-2" : "block"}>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  {objectEditMode === "remove"
+                    ? isEn
+                      ? "What Shows Instead (Optional)"
+                      : "移除後補入背景描述（選填）"
+                    : objectEditMode === "add"
+                      ? isEn
+                        ? "What Object to Add"
+                        : "要新增的物件描述"
+                      : isEn
+                        ? "What It Becomes (or use Ref Photo)"
+                        : "替換成什麼（或使用右側參考圖）"}
+                </span>
+                <input
+                  type="text"
+                  disabled={submitting}
+                  value={objectChangeTo}
+                  onChange={(e) => setObjectChangeTo(e.target.value)}
+                  placeholder={
+                    objectEditMode === "add"
+                      ? "e.g. a glowing neon cyber katana in hand"
+                      : "e.g. red leather biker jacket"
+                  }
+                  className="mt-1 h-9 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-[#12141c] focus:border-[#12141c] focus:outline-none"
+                />
+              </label>
+            </div>
+          ) : null}
+
           <div className="flex flex-col items-stretch gap-3 md:flex-row">
             {/* 1. Source Video Drag & Drop Upload / Preview Zone */}
             <div

@@ -1,9 +1,13 @@
 import {
+  buildAdvancedGraph,
   buildExtendGraph,
+  buildMontageGraph,
   buildObjectGraph,
   buildSimpleGraph,
   OPENJUTSU_CLIP_SECONDS,
+  type AdvancedGraphInput,
   type ExtendGraphInput,
+  type MontageGraphInput,
   type ObjectGraphInput,
   type OpenJutsuMargin,
   type SimpleGraphInput,
@@ -138,6 +142,52 @@ export async function submitOpenJutsuObject(
     ...input,
     videoName,
     imageName,
+    clipSeconds: input.clipSeconds ?? clipSeconds(input.section.length),
+  });
+  return queueGraph(graph, fetchFn);
+}
+
+export async function submitOpenJutsuAdvanced(
+  input: Omit<AdvancedGraphInput, "videoName" | "imageNames" | "clipSeconds"> & {
+    video: Buffer;
+    images: Array<{ buffer: Buffer; name: string }>;
+    clipSeconds?: number;
+  },
+  fetchFn: typeof fetch = fetch,
+): Promise<ComfySubmitResult> {
+  const [videoName, ...imageNames] = await Promise.all([
+    uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn),
+    ...input.images.map((item) =>
+      uploadInput(item.name, item.buffer, "image/jpeg", fetchFn),
+    ),
+  ]);
+  const graph = buildAdvancedGraph({
+    ...input,
+    videoName,
+    imageNames,
+    clipSeconds: input.clipSeconds ?? clipSeconds(input.section.length),
+  });
+  return queueGraph(graph, fetchFn);
+}
+
+export async function submitOpenJutsuMontage(
+  input: Omit<MontageGraphInput, "videoName" | "imageNames" | "clipSeconds"> & {
+    video: Buffer;
+    images: Array<{ buffer: Buffer; name: string }>;
+    clipSeconds?: number;
+  },
+  fetchFn: typeof fetch = fetch,
+): Promise<ComfySubmitResult> {
+  const [videoName, ...imageNames] = await Promise.all([
+    uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn),
+    ...input.images.map((item) =>
+      uploadInput(item.name, item.buffer, "image/jpeg", fetchFn),
+    ),
+  ]);
+  const graph = buildMontageGraph({
+    ...input,
+    videoName,
+    imageNames,
     clipSeconds: input.clipSeconds ?? clipSeconds(input.section.length),
   });
   return queueGraph(graph, fetchFn);

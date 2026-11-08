@@ -21,6 +21,7 @@ import {
   type JutsuPersonMapping,
   type JutsuPlacementBox,
   type JutsuSourceMediaKind,
+  type JutsuSwapSubMode,
   type PublicJutsuJob,
 } from "@/model/jutsu-job";
 import type { Character } from "@/model/character";
@@ -1132,6 +1133,10 @@ async function finalizeJutsuRenderedVideo(
 }
 
 export type StartScroSwapInput = {
+  mode?: JutsuMode;
+  swapSubMode?: JutsuSwapSubMode;
+  maxQuality?: boolean;
+  role?: string;
   sourceVideoUrl: string;
   sourceMediaKind?: JutsuSourceMediaKind;
   sectionStart?: number;
@@ -1142,6 +1147,11 @@ export type StartScroSwapInput = {
   personMappings?: JutsuPersonMapping[];
   allDetectedAnchors?: JutsuPersonAnchor[];
   totalDetectedPeople?: number;
+  objectEditMode?: JutsuObjectEditMode;
+  objectTarget?: string;
+  objectChangeTo?: string;
+  placementBox?: JutsuPlacementBox;
+  customEditPrompt?: string;
   relightId?: string;
   customLightPrompt?: string;
   maskMargin?: JutsuMaskMargin;
@@ -1259,6 +1269,7 @@ export async function startScroSwapJob(
             },
             characterId: m.characterId,
             characterName: mCharName,
+            ...(m.role?.trim() ? { role: m.role.trim() } : {}),
             referenceImageUrl: mDonorUrl,
             ...(mDonorUrls.length > 0 ? { referenceImageUrls: mDonorUrls } : {}),
             characterOutfitSpec: mOutfitSpec,
@@ -1306,8 +1317,19 @@ export async function startScroSwapJob(
       }
     }
 
-    if (!donorImageUrl) {
-      return { ok: false, error: "請選擇一個 Scro 角色或上傳角色參考圖片" };
+    const effectiveMode: JutsuMode =
+      input.mode ??
+      (input.swapSubMode === "montage" ? "montage_swap" : "character_swap");
+    const isObjectMode = effectiveMode === "object_swap";
+    const objectEditMode: JutsuObjectEditMode = input.objectEditMode ?? "change";
+
+    if (!donorImageUrl && (!isObjectMode || (objectEditMode !== "remove" && !input.objectChangeTo?.trim()))) {
+      return {
+        ok: false,
+        error: isObjectMode
+          ? "請上傳參考圖片或輸入要替換／新增的物件描述"
+          : "請選擇一個 Scro 角色或上傳角色參考圖片",
+      };
     }
 
     const sectionStart = Math.max(0, Number(input.sectionStart) || 0);
@@ -1365,7 +1387,10 @@ export async function startScroSwapJob(
       _id: jobId,
       userId: user._id,
       clerkUserId: user.clerkUserId,
-      mode: "character_swap",
+      mode: effectiveMode,
+      ...(input.swapSubMode ? { swapSubMode: input.swapSubMode } : {}),
+      ...(input.maxQuality !== undefined ? { maxQuality: Boolean(input.maxQuality) } : {}),
+      ...(input.role?.trim() ? { role: input.role.trim() } : {}),
       status: "rendering",
       sourceVideoUrl: sourceUrl,
       sourceMediaKind,
@@ -1383,6 +1408,15 @@ export async function startScroSwapJob(
           ? input.allDetectedAnchors
           : undefined,
       totalDetectedPeople: input.totalDetectedPeople,
+      ...(isObjectMode
+        ? {
+            objectEditMode,
+            objectTarget: input.objectTarget?.trim() || "person",
+            objectChangeTo: input.objectChangeTo?.trim() || "",
+            ...(input.placementBox ? { placementBox: input.placementBox } : {}),
+          }
+        : {}),
+      ...(input.customEditPrompt?.trim() ? { editPrompt: input.customEditPrompt.trim() } : {}),
       relightId: input.relightId,
       customLightPrompt: input.customLightPrompt,
       maskMargin,
