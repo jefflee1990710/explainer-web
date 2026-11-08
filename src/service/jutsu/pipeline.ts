@@ -74,6 +74,11 @@ import {
 } from "@/service/openrouter/generate";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
+import {
+  collectJutsuJobAllBlobUrls,
+  collectJutsuJobTransientBlobUrls,
+} from "@/util/blob/engine-job-blobs";
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
@@ -661,11 +666,15 @@ export async function prepareJutsuJob(
     // Load donor image buffer(s) if present for the VLM prompt upsampler
     const upsamplerBuffers: Buffer[] = [];
     if (input.mode === "character_swap" && donorImageUrls.length > 0) {
-      for (const dUrl of donorImageUrls) {
-        const donorBuf = await fetch(dUrl)
-          .then((r) => (r.ok ? r.arrayBuffer() : null))
-          .then((ab) => (ab ? Buffer.from(ab) : null))
-          .catch(() => null);
+      const donorBufs = await Promise.all(
+        donorImageUrls.map((dUrl) =>
+          fetch(dUrl)
+            .then((r) => (r.ok ? r.arrayBuffer() : null))
+            .then((ab) => (ab ? Buffer.from(ab) : null))
+            .catch(() => null),
+        ),
+      );
+      for (const donorBuf of donorBufs) {
         if (donorBuf) upsamplerBuffers.push(donorBuf);
       }
       upsamplerBuffers.push(extracted.startFrameWebp);
@@ -706,18 +715,20 @@ export async function prepareJutsuJob(
           ? [rawEndFrameUrl, donorImageUrl]
           : [rawEndFrameUrl];
 
-    const preparedStartBuf = await generatePreparedKeyframeBuffer({
-      prompt: upsampledStartPrompt,
-      aspectRatio: extracted.aspectRatio,
-      referenceImageUrls: startRefs,
-    });
-    const preparedEndBuf = h3Ready
-      ? null
-      : await generatePreparedKeyframeBuffer({
-          prompt: upsampledStartPrompt,
-          aspectRatio: extracted.aspectRatio,
-          referenceImageUrls: endRefs,
-        });
+    const [preparedStartBuf, preparedEndBuf] = await Promise.all([
+      generatePreparedKeyframeBuffer({
+        prompt: upsampledStartPrompt,
+        aspectRatio: extracted.aspectRatio,
+        referenceImageUrls: startRefs,
+      }),
+      h3Ready
+        ? Promise.resolve(null)
+        : generatePreparedKeyframeBuffer({
+            prompt: upsampledStartPrompt,
+            aspectRatio: extracted.aspectRatio,
+            referenceImageUrls: endRefs,
+          }),
+    ]);
 
     const maskMargin: JutsuMaskMargin = input.maskMargin ?? "normal";
     const hatFix = Boolean(input.hatFix);
@@ -1100,6 +1111,7 @@ async function finalizeJutsuRenderedVideo(
     status: "completed",
     outputVideoUrl,
   });
+  void deleteExplainerBlobUrls(collectJutsuJobTransientBlobUrls(job)).catch(() => {});
   scheduleJutsuFinishedEmail(job._id);
 
   try {
@@ -1670,12 +1682,16 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
               characterOutfitSpec: current.characterOutfitSpec,
             });
 
+        const donorBufs = await Promise.all(
+          donorUrls.map((dUrl) =>
+            fetch(dUrl)
+              .then((r) => (r.ok ? r.arrayBuffer() : null))
+              .then((ab) => (ab ? Buffer.from(ab) : null))
+              .catch(() => null),
+          ),
+        );
         const upsamplerBuffers: Buffer[] = [];
-        for (const dUrl of donorUrls) {
-          const donorBuf = await fetch(dUrl)
-            .then((r) => (r.ok ? r.arrayBuffer() : null))
-            .then((ab) => (ab ? Buffer.from(ab) : null))
-            .catch(() => null);
+        for (const donorBuf of donorBufs) {
           if (donorBuf) upsamplerBuffers.push(donorBuf);
         }
         upsamplerBuffers.push(extracted.startFrameWebp);
@@ -1687,19 +1703,21 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
 
         const startRefs = [...donorUrls, rawStartFrameUrl];
         const h3Ready = hasMinimaxApiKey();
-        const preparedStartBuf = await generatePreparedKeyframeBuffer({
-          prompt: upsampledStartPrompt,
-          aspectRatio: extracted.aspectRatio,
-          referenceImageUrls: startRefs,
-        });
-        // H3 ref2va does not take a last frame. Hailuo fallback reuses the start still when this is skipped.
-        const preparedEndBuf = h3Ready
-          ? null
-          : await generatePreparedKeyframeBuffer({
-              prompt: upsampledStartPrompt,
-              aspectRatio: extracted.aspectRatio,
-              referenceImageUrls: [...donorUrls, rawEndFrameUrl],
-            });
+        const [preparedStartBuf, preparedEndBuf] = await Promise.all([
+          generatePreparedKeyframeBuffer({
+            prompt: upsampledStartPrompt,
+            aspectRatio: extracted.aspectRatio,
+            referenceImageUrls: startRefs,
+          }),
+          // H3 ref2va does not take a last frame. Hailuo fallback reuses the start still when this is skipped.
+          h3Ready
+            ? Promise.resolve(null)
+            : generatePreparedKeyframeBuffer({
+                prompt: upsampledStartPrompt,
+                aspectRatio: extracted.aspectRatio,
+                referenceImageUrls: [...donorUrls, rawEndFrameUrl],
+              }),
+        ]);
 
         const [
           preparedStartFrameUrl,
@@ -1982,6 +2000,7 @@ async function failJutsuJobAndRefund(
     status: "failed",
     error,
   });
+  void deleteExplainerBlobUrls(collectJutsuJobTransientBlobUrls(job)).catch(() => {});
   return now;
 }
 
@@ -2126,6 +2145,9 @@ export async function deleteJutsuJob(
       _id: new ObjectId(jobId),
       clerkUserId: user.clerkUserId,
     })) as (JutsuJob & { _id: ObjectId }) | null;
+    if (job) {
+      await deleteExplainerBlobUrls(collectJutsuJobAllBlobUrls(job)).catch(() => {});
+    }
     await col.deleteOne({
       _id: new ObjectId(jobId),
       clerkUserId: user.clerkUserId,

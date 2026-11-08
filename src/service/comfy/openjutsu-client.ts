@@ -106,8 +106,10 @@ export async function submitOpenJutsuSimple(
   },
   fetchFn: typeof fetch = fetch,
 ): Promise<ComfySubmitResult> {
-  const videoName = await uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn);
-  const imageName = await uploadInput(input.imageName, input.image, "image/jpeg", fetchFn);
+  const [videoName, imageName] = await Promise.all([
+    uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn),
+    uploadInput(input.imageName, input.image, "image/jpeg", fetchFn),
+  ]);
   const graph = buildSimpleGraph({
     ...input,
     videoName,
@@ -126,10 +128,12 @@ export async function submitOpenJutsuObject(
   },
   fetchFn: typeof fetch = fetch,
 ): Promise<ComfySubmitResult> {
-  const videoName = await uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn);
-  const imageName = input.image
-    ? await uploadInput(input.imageName, input.image, "image/jpeg", fetchFn)
-    : null;
+  const [videoName, imageName] = await Promise.all([
+    uploadInput(`scro-${input.runId}.mp4`, input.video, "video/mp4", fetchFn),
+    input.image
+      ? uploadInput(input.imageName, input.image, "image/jpeg", fetchFn)
+      : Promise.resolve(null),
+  ]);
   const graph = buildObjectGraph({
     ...input,
     videoName,
@@ -151,13 +155,8 @@ export async function submitOpenJutsuExtend(
   },
   fetchFn: typeof fetch = fetch,
 ): Promise<ComfySubmitResult> {
-  const videoName = await uploadInput(
-    `scro-extend-${input.runId}.mp4`,
-    input.video,
-    "video/mp4",
-    fetchFn,
-  );
-  const [characterImageName, sceneImageName, propImageName] = await Promise.all([
+  const [videoName, characterImageName, sceneImageName, propImageName] = await Promise.all([
+    uploadInput(`scro-extend-${input.runId}.mp4`, input.video, "video/mp4", fetchFn),
     input.characterImage
       ? uploadInput(`char-${input.runId}.jpg`, input.characterImage, "image/jpeg", fetchFn)
       : Promise.resolve(null),

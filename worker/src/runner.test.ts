@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { WorkerApiClient } from "./api-client";
-import { checkLocalComfyUi } from "./comfy-local";
+import { checkLocalComfyUi, cleanupComfyLocalJobFiles } from "./comfy-local";
 import { runTwoLaneWorkerLoop } from "./runner";
 
 test("WorkerApiClient sends Authorization Bearer header for claim, progress, and complete", async () => {
@@ -104,4 +104,43 @@ test("runTwoLaneWorkerLoop enforces 1 GPU task at a time while running CPU tasks
 
   assert.equal(maxActiveGpu, 1);
   assert.ok(maxActiveCpu >= 2);
+});
+
+test("cleanupComfyLocalJobFiles removes completed job inputs, h3_chains checkpoints, and exported mp4 while leaving other jobs intact", async () => {
+  const { existsSync } = await import("node:fs");
+  const { mkdir, mkdtemp, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+
+  const root = await mkdtemp(join(tmpdir(), "comfy-cleanup-test-"));
+  try {
+    const inputDir = join(root, "input");
+    const chainsDir = join(root, "output", "h3_chains");
+    const swapOutDir = join(root, "output", "h3_oneclick_swap");
+    await mkdir(inputDir, { recursive: true });
+    await mkdir(join(chainsDir, "swap_abc_job123", "generation"), { recursive: true });
+    await mkdir(join(chainsDir, "swap_def_job999", "generation"), { recursive: true });
+    await mkdir(swapOutDir, { recursive: true });
+
+    await writeFile(join(inputDir, "scro-job123.mp4"), "video");
+    await writeFile(join(inputDir, "person_sheet_job123.jpg"), "img");
+    await writeFile(join(inputDir, "scro-job999.mp4"), "keep");
+    await writeFile(join(chainsDir, "swap_abc_job123", "generation", "clip_0001.mp4"), "clip");
+    await writeFile(join(chainsDir, "swap_def_job999", "generation", "clip_0001.mp4"), "keep");
+    await writeFile(join(swapOutDir, "swap_2026-11-08_job123.mp4"), "out");
+    await writeFile(join(swapOutDir, "swap_2026-11-08_job999.mp4"), "keep");
+
+    await cleanupComfyLocalJobFiles("job123", root);
+
+    assert.equal(existsSync(join(inputDir, "scro-job123.mp4")), false);
+    assert.equal(existsSync(join(inputDir, "person_sheet_job123.jpg")), false);
+    assert.equal(existsSync(join(chainsDir, "swap_abc_job123")), false);
+    assert.equal(existsSync(join(swapOutDir, "swap_2026-11-08_job123.mp4")), false);
+
+    assert.equal(existsSync(join(inputDir, "scro-job999.mp4")), true);
+    assert.equal(existsSync(join(chainsDir, "swap_def_job999")), true);
+    assert.equal(existsSync(join(swapOutDir, "swap_2026-11-08_job999.mp4")), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

@@ -52,6 +52,11 @@ import {
   isComfyPromptStatusUrl,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
+import {
+  collectTeleportJobAllBlobUrls,
+  collectTeleportJobTransientBlobUrls,
+} from "@/util/blob/engine-job-blobs";
 import { trySubmitTeleportComfy } from "@/service/comfy/submit-swap";
 import { scheduleTeleportFinishedEmail } from "@/service/notify/generation-email";
 import {
@@ -579,6 +584,7 @@ async function failTeleportJobAndRefund(
     status: "failed",
     error,
   });
+  void deleteExplainerBlobUrls(collectTeleportJobTransientBlobUrls(job)).catch(() => {});
   return now;
 }
 
@@ -632,6 +638,7 @@ async function finalizeTeleportRenderedVideo(
     status: "completed",
     outputVideoUrl,
   });
+  void deleteExplainerBlobUrls(collectTeleportJobTransientBlobUrls(job)).catch(() => {});
   scheduleTeleportFinishedEmail(job._id);
 
   safeRevalidate();
@@ -791,6 +798,9 @@ export async function deleteTeleportJob(
       _id: new ObjectId(jobId),
       clerkUserId: user.clerkUserId,
     })) as TeleportJobDoc | null;
+    if (job) {
+      await deleteExplainerBlobUrls(collectTeleportJobAllBlobUrls(job)).catch(() => {});
+    }
     await col.deleteOne({ _id: new ObjectId(jobId), clerkUserId: user.clerkUserId });
     if (job?.targetVideoId) {
       await deleteStandaloneEngineProjectIfOwned(job.targetVideoId, user.clerkUserId);

@@ -15,10 +15,13 @@ import {
 } from "@/service/character/character-presets";
 import {
   charactersCollection,
+  extendJobsCollection,
   generationJobsCollection,
+  jutsuJobsCollection,
   opencutEditsCollection,
   productsCollection,
   projectsCollection,
+  teleportJobsCollection,
   textStylesCollection,
   videosCollection,
 } from "@/dao";
@@ -66,6 +69,11 @@ import type { Folder } from "@/model/folder";
 import { sanitizeFolderName } from "@/service/folder";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
+import {
+  collectExtendJobAllBlobUrls,
+  collectJutsuJobAllBlobUrls,
+  collectTeleportJobAllBlobUrls,
+} from "@/util/blob/engine-job-blobs";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
 import { resolveCharacterVoiceMode, type CastMember, type Character } from "@/model/character";
@@ -1197,18 +1205,35 @@ export async function deleteVideoAction(
     });
     if (!video) return { ok: false, error: "影片不存在" };
 
-    const [jobs, edits] = await Promise.all([
+    const [jobs, edits, jutsuCol, teleportCol, extendCol] = await Promise.all([
       generationJobsCollection(),
       opencutEditsCollection(),
+      jutsuJobsCollection(),
+      teleportJobsCollection(),
+      extendJobsCollection(),
     ]);
-    const [jobDocs, editDoc] = await Promise.all([
+    const [jobDocs, editDoc, jutsuDocs, teleportDocs, extendDocs] = await Promise.all([
       jobs.find({ projectId: video._id }).toArray(),
       edits.findOne({ _id: video._id }),
+      jutsuCol.find({ targetVideoId: video._id }).toArray(),
+      teleportCol.find({ targetVideoId: video._id }).toArray(),
+      extendCol.find({ targetVideoId: video._id }).toArray(),
     ]);
-    await deleteExplainerBlobUrls(collectVideoBlobUrls(video, jobDocs, editDoc?.media));
+    const engineBlobUrls = [
+      ...jutsuDocs.flatMap((j) => collectJutsuJobAllBlobUrls(j)),
+      ...teleportDocs.flatMap((t) => collectTeleportJobAllBlobUrls(t)),
+      ...extendDocs.flatMap((e) => collectExtendJobAllBlobUrls(e)),
+    ];
+    await deleteExplainerBlobUrls([
+      ...collectVideoBlobUrls(video, jobDocs, editDoc?.media),
+      ...engineBlobUrls,
+    ]).catch(() => {});
     await Promise.all([
       jobs.deleteMany({ projectId: video._id }),
       edits.deleteOne({ _id: video._id }),
+      jutsuCol.deleteMany({ targetVideoId: video._id }),
+      teleportCol.deleteMany({ targetVideoId: video._id }),
+      extendCol.deleteMany({ targetVideoId: video._id }),
     ]);
 
     const removed = await videos.deleteOne({

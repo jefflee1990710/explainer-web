@@ -684,7 +684,7 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
     shots: Array<{ length: number; steps: number; prompt: string }>;
   };
   assert.equal(planJson.shots[0]?.length, 192);
-  assert.equal(planJson.shots[0]?.steps, 6);
+  assert.equal(planJson.shots[0]?.steps, 4);
 
   // Reference Conditioning compacts characterImageName (ref_image_0) and propImageName (ref_image_1), deleting unused scene image loader
   const refNode = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ReferenceToVideo");

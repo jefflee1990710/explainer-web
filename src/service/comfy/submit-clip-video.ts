@@ -73,7 +73,7 @@ export function buildOneTakeChainShots(input: {
           hasEndFrame: input.hasEndFrame,
         }),
         length: h3ValidFrameLength(seconds),
-        steps: 6,
+        steps: 4,
         seed: "0",
       },
     ];
@@ -99,7 +99,7 @@ export function buildOneTakeChainShots(input: {
         hasEndFrame: index === shotCount - 1 && input.hasEndFrame,
       }),
       length: H3_CHAIN_SEGMENT_FRAMES,
-      steps: 6,
+      steps: 4,
       seed: String(index),
     };
   });
@@ -238,7 +238,7 @@ export async function submitComfyStoryboardClipVideo(
               hasEndFrame: Boolean(endName),
             }),
             length: h3ValidFrameLength(input.durationSeconds),
-            steps: 6,
+            steps: 4,
             seed: "0",
           },
         ];

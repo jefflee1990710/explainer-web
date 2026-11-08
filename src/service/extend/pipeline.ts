@@ -28,6 +28,8 @@ import {
   pollVideoProviderStatus,
   submitOpenJutsuExtend,
 } from "@/service/comfy/openjutsu-client";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
+import { collectExtendJobTransientBlobUrls } from "@/util/blob/engine-job-blobs";
 import { buildH3ExtendPrompt } from "@/service/comfy/openjutsu-graph";
 import { composeJutsuCharacterReferenceSheet } from "@/service/comfy/submit-swap";
 import { persistBuffer } from "@/service/higgsfield/persist";
@@ -341,6 +343,7 @@ async function failExtendJobAndRefund(job: ExtendJobDoc, error: string): Promise
     status: "failed",
     error,
   });
+  void deleteExplainerBlobUrls(collectExtendJobTransientBlobUrls(job)).catch(() => {});
   return now;
 }
 
@@ -383,6 +386,7 @@ async function finalizeExtendRenderedVideo(
     status: "completed",
     outputVideoUrl,
   });
+  void deleteExplainerBlobUrls(collectExtendJobTransientBlobUrls(job)).catch(() => {});
 
   try {
     revalidatePath("/app");

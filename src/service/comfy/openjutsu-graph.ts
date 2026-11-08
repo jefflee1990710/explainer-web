@@ -24,7 +24,7 @@ const DEFAULT_MODEL = {
   describer: "qwen3vl_8b_int8_convrot.safetensors",
   videoVae: "minimax_h3_video_vae_int8_convrot.safetensors",
   audioVae: "minimax_h3_audio_vae_fp32.safetensors",
-  steps: 6,
+  steps: 4,
 };
 
 const SIMPLE_MARGINS = { tight: 20, normal: 40, loose: 60 } as const;

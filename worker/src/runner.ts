@@ -7,6 +7,7 @@ import {
   updateWorkerTaskProgress,
 } from "@/service/worker/task-queue";
 import type { WorkerApiClient } from "./api-client";
+import { cleanupComfyLocalJobFiles, cleanupStaleComfyFiles } from "./comfy-local";
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.resolve();
@@ -83,6 +84,12 @@ export async function claimAndExecuteTask(input: {
         .completeTask(task._id.toHexString(), outcome)
         .catch(() => {});
     }
+    if (
+      lane === "gpu" &&
+      (outcome.outcome === "completed" || outcome.outcome === "failed")
+    ) {
+      await cleanupComfyLocalJobFiles(task.targetId).catch(() => {});
+    }
     const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
     console.log(
       `[worker:${workerId}] finished ${lane.toUpperCase()} task ${task._id.toHexString()} (${task.kind}) -> ${outcome.outcome} in ${elapsedSec}s`,
@@ -126,12 +133,15 @@ export async function runTwoLaneWorkerLoop(options: {
     }
   };
 
-  // Periodic background sweep of any orphaned domain jobs into `workerTasks`
+  // Periodic background sweep of any orphaned domain jobs into `workerTasks` + stale ComfyUI files
   const sweepLoop = async () => {
     if (options.claimAndRunOne) return;
     while (!signal?.aborted) {
       try {
-        await syncPendingDomainJobsToWorkerQueue(40);
+        await Promise.all([
+          syncPendingDomainJobsToWorkerQueue(40),
+          cleanupStaleComfyFiles(),
+        ]);
       } catch (error) {
         console.error(`[worker:${workerId}] domain sweep error`, error);
       }

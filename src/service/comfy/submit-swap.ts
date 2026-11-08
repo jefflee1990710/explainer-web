@@ -138,16 +138,12 @@ export async function trySubmitJutsuComfy(
 ): Promise<ComfySubmitResult | null> {
   if (!canSubmitJutsuComfy(job)) return null;
 
-  const rawVideo =
-    preloadedVideoBuffer ?? (await fetchMedia(job.sourceVideoUrl, fetchFn));
-  const video = await ensureMp4HasAudioStream(rawVideo);
   const runId = job._id.toHexString();
   const section = {
     start: job.sourceMediaKind === "gif" ? 0 : job.sectionStart,
     length: job.sectionLength,
   };
-  const shared = {
-    video,
+  const baseShared = {
     section,
     margin: openJutsuMargin(job.maskMargin),
     motion: resolveComfySwapMotionSize(job),
@@ -155,18 +151,29 @@ export async function trySubmitJutsuComfy(
     runId,
   } as const;
 
+  const prepareVideoPromise = (async () => {
+    const rawVideo =
+      preloadedVideoBuffer ?? (await fetchMedia(job.sourceVideoUrl, fetchFn));
+    return ensureMp4HasAudioStream(rawVideo);
+  })();
+
   if (job.mode === "character_swap") {
     const imageUrls = resolveJobCharacterReferenceUrls(job);
     if (imageUrls.length === 0) throw new Error("缺少角色參考圖片");
-    const rawImages = await Promise.all(imageUrls.map((u) => fetchMedia(u, fetchFn)));
-    const image = await composeJutsuCharacterReferenceSheet(rawImages);
+    const [video, image] = await Promise.all([
+      prepareVideoPromise,
+      Promise.all(imageUrls.map((u) => fetchMedia(u, fetchFn))).then((rawImages) =>
+        composeJutsuCharacterReferenceSheet(rawImages),
+      ),
+    ]);
     const imageName =
       imageUrls.length > 1
         ? `person_sheet_${runId}.jpg`
         : fileName(imageUrls[0]!, "person.jpg");
     return submitOpenJutsuSimple(
       {
-        ...shared,
+        ...baseShared,
+        video,
         image,
         imageName,
         // Leave `role` blank so OpenJutsu Node 10 (`video_people`) auto-detects the original person's
@@ -184,10 +191,14 @@ export async function trySubmitJutsuComfy(
 
   const mode = job.objectEditMode ?? "change";
   const imageUrl = mode === "remove" ? undefined : job.referenceImageUrl;
-  const image = imageUrl ? await fetchMedia(imageUrl, fetchFn) : null;
+  const [video, image] = await Promise.all([
+    prepareVideoPromise,
+    imageUrl ? fetchMedia(imageUrl, fetchFn) : Promise.resolve(null),
+  ]);
   return submitOpenJutsuObject(
     {
-      ...shared,
+      ...baseShared,
+      video,
       image,
       imageName: imageUrl ? fileName(imageUrl, "object.jpg") : "object.jpg",
       mode,
@@ -207,11 +218,13 @@ export async function trySubmitTeleportComfy(
 ): Promise<ComfySubmitResult | null> {
   if (!hasComfyEndpoint()) return null;
   if (!job.sceneImageUrl) throw new Error("缺少場景圖片");
-  const [rawVideo, image] = await Promise.all([
-    preloadedVideoBuffer ? Promise.resolve(preloadedVideoBuffer) : fetchMedia(job.sourceVideoUrl),
+  const [video, image] = await Promise.all([
+    (preloadedVideoBuffer
+      ? Promise.resolve(preloadedVideoBuffer)
+      : fetchMedia(job.sourceVideoUrl)
+    ).then((rawVideo) => ensureMp4HasAudioStream(rawVideo)),
     fetchMedia(job.sceneImageUrl),
   ]);
-  const video = await ensureMp4HasAudioStream(rawVideo);
   return submitOpenJutsuObject({
     video,
     image,
