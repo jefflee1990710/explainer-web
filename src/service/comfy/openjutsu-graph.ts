@@ -48,7 +48,7 @@ const SIMPLE_NODES = {
 };
 
 const SIMPLE_DESCRIBE_PICTURE_PROMPT =
-  "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including exact garment colors, neckline, footwear, and accessories. No preamble, no background.";
+  "Describe the person in this picture for a casting sheet, in one sentence of about 55 words: apparent age and gender, face shape, eye and nose shape, glasses, exact hair length and hairstyle (if short or bob, explicitly state 'short chin-length hair that never hangs past the shoulders'; if long, state exact length), facial hair, skin tone, build, and their complete outfit including exact garment colors, neckline, footwear, and accessories. No preamble, no background.";
 
 // Strip source-person clothing, bags, earphones, and hair descriptions that Node 44 (Qwen3-VL on unmasked source frames)
 // may mention and that H3FillShots's built-in ACCESSORIES regex misses.
@@ -56,8 +56,7 @@ const SIMPLE_CLEAN_SHOTS_REGEX =
   "(?:,?\\s*\\b(?:with|in|wearing|dressed in|sporting)\\s+|\\s+and\\s+)?(?:(?:a|an|the|her|his|their)\\s+)?(?:(?!with\\b|in\\b|and\\b)[\\w-]+\\s+){0,3}?(?:crop\\s+top|tank\\s+top|tube\\s+top|halter\\s+top|camisole|sports\\s+bra|bra|top|shoulder\\s+bag|crossbody\\s+bag|handbag|tote\\s+bag|bag|purse|backpack|earphones?|earbuds?|headphones?|headset|lanyard|hair(?:style|cut)?|bangs|fringe|ponytail|braids?|pigtails?|bun|locks|tresses|strands?)(?:\\s+(?:slung|dangling|hanging|falling|flowing|cascading|draped|worn|loose|down)(?:\\s+down|\\s+forward|\\s+loosely)?(?:\\s+(?:from|over|across|around|past|below)\\s+(?:their|her|his|the)\\s+[\\w\\s]+?)?(?=[,.;]|\\s+and\\b|$))?";
 
 const MUTE = /^Mute the (clip|reference) audio H3 hears$/;
-const NO_LIP_SYNC =
-  /^(No lip-sync in the prompt|SAM: faces|SAM 3\.1 track faces|Faces \(shown on the mannequins?\))$/;
+const NO_LIP_SYNC = /^(No lip-sync in the prompt)$/;
 
 type Section = { start: number; length: number };
 
@@ -370,6 +369,40 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   if (!input.noLipSync) dropNoLipSync(graph);
   setMotionSize(graph, input.motion);
 
+  // Track source person's hair with SAM 3.1 so H3GreyMannequins can erase hanging source hair from
+  // the motion reference (<Video 1>) while keeping the body, arms, hands, and face untouched.
+  graph.scro_sam_hair_prompt = {
+    class_type: "CLIPTextEncode",
+    inputs: {
+      text: "hair",
+      clip: ["23", 1],
+    },
+    _meta: { title: "SAM: hair" },
+  };
+  graph.scro_sam_hair_track = {
+    class_type: "SAM3_VideoTrack",
+    inputs: {
+      detection_threshold: 0.25,
+      max_objects: 0,
+      detect_interval: 1,
+      images: ["36", 0],
+      model: ["23", 0],
+      conditioning: ["scro_sam_hair_prompt", 0],
+    },
+    _meta: { title: "SAM 3.1 track hair" },
+  };
+  graph.scro_sam_hair_mask = {
+    class_type: "H3PeopleMask",
+    inputs: {
+      headroom: 0,
+      hold_frames: 0,
+      max_people: 0,
+      track_data: ["scro_sam_hair_track", 0],
+    },
+    _meta: { title: "Hair (erased from mannequin)" },
+  };
+  graph[SIMPLE_NODES.mannequin].inputs.hair = ["scro_sam_hair_mask", 0];
+
   // Soften dark/light clothing blocks inside the grey mannequin (Node 41) so a dark source top on bare skin
   // does not bleed through as a black garment when the target character wears a light/pastel outfit.
   graph[SIMPLE_NODES.mannequin].inputs.blur = 0.08;
@@ -416,18 +449,20 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
 
   const plan = graph[SIMPLE_NODES.plan].inputs;
   const cleanOutfitSpec = input.outfitSpec?.replace(/\s+/g, " ").trim().replace(/\.+$/, "");
-  if (cleanOutfitSpec) {
-    graph.scro_picture_1_text = {
-      class_type: "StringConcatenate",
-      inputs: {
-        string_a: [SIMPLE_NODES.describePicture, 0],
-        string_b: `Complete outfit worn by <Subject 1> from <Picture 1>: ${cleanOutfitSpec} (keep the exact solid garment colors, neckline, and fabric from <Picture 1> across the entire body; completely replace the source person's clothing, bags, and earphones).`,
-        delimiter: " ",
-      },
-      _meta: { title: "Lock character outfit spec" },
-    };
-    plan.picture_1_text = ["scro_picture_1_text", 0];
-  }
+  const hairLockClause =
+    "Strictly preserve the exact hair length and hairstyle from <Picture 1> in every pose (never add long or hanging hair from <Video 1> when <Picture 1> has short hair).";
+  graph.scro_picture_1_text = {
+    class_type: "StringConcatenate",
+    inputs: {
+      string_a: [SIMPLE_NODES.describePicture, 0],
+      string_b: cleanOutfitSpec
+        ? `Complete outfit worn by <Subject 1> from <Picture 1>: ${cleanOutfitSpec} (keep the exact solid garment colors, neckline, and fabric from <Picture 1> across the entire body; completely replace the source person's clothing, bags, and earphones). ${hairLockClause}`
+        : hairLockClause,
+      delimiter: " ",
+    },
+    _meta: { title: "Lock character outfit and hairstyle spec" },
+  };
+  plan.picture_1_text = ["scro_picture_1_text", 0];
   plan.resolution = OPENJUTSU_RESOLUTION;
   plan.seed = input.seed;
   plan.clip_seconds = input.clipSeconds;
