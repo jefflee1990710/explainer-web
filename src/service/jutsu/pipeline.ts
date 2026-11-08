@@ -1402,7 +1402,7 @@ export async function startScroSwapJob(
       lane: "gpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly()) {
+    if (!shouldUseWorkerQueueOnly() && !canSubmitJutsuComfy(doc)) {
       after(() =>
         runScroSwapJobInBackground(jobId).catch((error) => {
           console.error("[scro-swap] background job failed", { jobId: jobId.toHexString(), error });
@@ -1429,6 +1429,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
   const col = await jutsuJobsCollection();
   const job = (await col.findOne({ _id: jobId })) as (JutsuJob & { _id: ObjectId }) | null;
   if (!job || job.status !== "rendering") return;
+  if (job.openRouterStatusUrl) return;
 
   try {
     let current = job;
@@ -1908,10 +1909,19 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       );
 
       let rawVideoUrl = submitted.video?.url;
-      if (!rawVideoUrl && submitted.status_url) {
+      if (
+        !rawVideoUrl &&
+        submitted.status_url &&
+        !isComfyPromptStatusUrl(submitted.status_url)
+      ) {
         for (let attempt = 0; attempt < 24; attempt++) {
           await new Promise((r) => setTimeout(r, 3500));
-          const polled = await pollVideoProviderStatus(submitted.status_url);
+          let polled;
+          try {
+            polled = await pollVideoProviderStatus(submitted.status_url);
+          } catch {
+            break;
+          }
           if (polled.status === "completed" && polled.video?.url) {
             rawVideoUrl = polled.video.url;
             break;
@@ -2065,7 +2075,12 @@ export async function pollJutsuJobStatus(
       return { ok: true, job: toPublicJutsuJob(job) };
     }
 
-    const polled = await pollVideoProviderStatus(job.openRouterStatusUrl);
+    let polled;
+    try {
+      polled = await pollVideoProviderStatus(job.openRouterStatusUrl);
+    } catch {
+      return { ok: true, job: toPublicJutsuJob(job) };
+    }
     if (polled.status === "completed" && polled.video?.url) {
       return await finalizeJutsuRenderedVideo(job, polled.video.url);
     }

@@ -22,15 +22,19 @@ async function main() {
   );
 
   // Point ComfyUI client directly at local loopback ComfyUI if running on the Vast GPU box
-  const localComfyUrl =
-    process.env.COMFY_LOCAL_URL?.trim() || "http://127.0.0.1:8188";
-  const comfyCheck = await checkLocalComfyUi(localComfyUrl);
-  if (comfyCheck.ok) {
+  const explicitLocalComfyUrl = process.env.COMFY_LOCAL_URL?.trim();
+  const localComfyUrl = explicitLocalComfyUrl || "http://127.0.0.1:8188";
+  let comfyCheck = await checkLocalComfyUi(localComfyUrl);
+  for (let i = 0; i < 6 && !comfyCheck.ok && explicitLocalComfyUrl; i += 1) {
+    await new Promise((r) => setTimeout(r, 2000));
+    comfyCheck = await checkLocalComfyUi(localComfyUrl);
+  }
+  if (comfyCheck.ok || explicitLocalComfyUrl) {
     process.env.COMFY_BASE_URL = localComfyUrl;
     process.env.COMFY_CLIP_VIDEO_ENABLED =
       process.env.COMFY_CLIP_VIDEO_ENABLED || "true";
     console.log(
-      `[worker:${workerId}] Local ComfyUI online at ${localComfyUrl} (${comfyCheck.deviceName ?? "GPU"})`,
+      `[worker:${workerId}] Local ComfyUI ${comfyCheck.ok ? "online" : "configured"} at ${localComfyUrl} (${comfyCheck.deviceName ?? "GPU"})`,
     );
   } else {
     console.log(

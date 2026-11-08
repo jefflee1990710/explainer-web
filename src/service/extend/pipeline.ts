@@ -24,6 +24,7 @@ import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
   hasComfyEndpoint,
+  isComfyPromptStatusUrl,
   pollVideoProviderStatus,
   submitOpenJutsuExtend,
 } from "@/service/comfy/openjutsu-client";
@@ -144,7 +145,7 @@ export async function startExtendJob(input: {
       lane: "gpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly()) {
+    if (!shouldUseWorkerQueueOnly() && !hasComfyEndpoint()) {
       after(() =>
         runExtendJobInBackground(jobId).catch((error) => {
           console.error("[extend-video] background job failed", {
@@ -274,10 +275,19 @@ export async function runExtendJobInBackground(jobId: ObjectId): Promise<void> {
     );
 
     let rawVideoUrl = submitted.video?.url;
-    if (!rawVideoUrl && submitted.status_url) {
+    if (
+      !rawVideoUrl &&
+      submitted.status_url &&
+      !isComfyPromptStatusUrl(submitted.status_url)
+    ) {
       for (let attempt = 0; attempt < 24; attempt++) {
         await new Promise((r) => setTimeout(r, 3500));
-        const polled = await pollVideoProviderStatus(submitted.status_url);
+        let polled;
+        try {
+          polled = await pollVideoProviderStatus(submitted.status_url);
+        } catch {
+          break;
+        }
         if (polled.status === "completed" && polled.video?.url) {
           rawVideoUrl = polled.video.url;
           break;

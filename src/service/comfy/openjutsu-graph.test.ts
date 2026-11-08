@@ -790,3 +790,44 @@ test("shouldUseComfyForClipVideo is opt-in via COMFY_CLIP_VIDEO_ENABLED and subm
     else process.env.COMFY_CLIP_VIDEO_ENABLED = prevFlag;
   }
 });
+
+test("ensureMp4HasAudioStream downscales high-res (>736p short edge) videos to 736p so VHS_LoadVideo does not OOM", async () => {
+  const { mkdtemp, readFile, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { ffmpegStderr, runFfmpeg } = await import("@/service/reel/concat");
+
+  const dir = await mkdtemp(join(tmpdir(), "comfy-scale-test-"));
+  try {
+    await runFfmpeg(dir, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=blue:s=1440x2560:d=0.5:r=60",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=44100:cl=stereo",
+      "-t",
+      "0.5",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "highres.mp4",
+    ]);
+    const highRes = await readFile(join(dir, "highres.mp4"));
+    const normalized = await ensureMp4HasAudioStream(highRes);
+    await writeFile(join(dir, "normalized.mp4"), normalized);
+    const probe = await ffmpegStderr(dir, ["-i", "normalized.mp4"]);
+    assert.match(probe, /736x1310|736x1308|736x1312/);
+    assert.match(probe, /Audio:/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

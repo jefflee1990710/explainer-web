@@ -49,6 +49,7 @@ import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
   hasComfyEndpoint,
+  isComfyPromptStatusUrl,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
 import { trySubmitTeleportComfy } from "@/service/comfy/submit-swap";
@@ -215,7 +216,7 @@ export async function startTeleportJob(
       lane: "gpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly()) {
+    if (!shouldUseWorkerQueueOnly() && !hasComfyEndpoint()) {
       after(() =>
         runTeleportJobInBackground(jobId).catch((error) => {
           console.error("[teleport] background job failed", { jobId: jobId.toHexString(), error });
@@ -507,10 +508,19 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
     );
 
     let rawVideoUrl = submitted.video?.url;
-    if (!rawVideoUrl && submitted.status_url) {
+    if (
+      !rawVideoUrl &&
+      submitted.status_url &&
+      !isComfyPromptStatusUrl(submitted.status_url)
+    ) {
       for (let attempt = 0; attempt < 24; attempt++) {
         await new Promise((r) => setTimeout(r, 3500));
-        const polled = await pollStatusOnce(submitted.status_url);
+        let polled;
+        try {
+          polled = await pollStatusOnce(submitted.status_url);
+        } catch {
+          break;
+        }
         if (polled.status === "completed" && polled.video?.url) {
           rawVideoUrl = polled.video.url;
           break;
@@ -728,7 +738,12 @@ export async function pollTeleportJobStatus(
       return { ok: true, job: toPublicTeleportJob(job) };
     }
 
-    const polled = await pollStatusOnce(job.openRouterStatusUrl);
+    let polled;
+    try {
+      polled = await pollStatusOnce(job.openRouterStatusUrl);
+    } catch {
+      return { ok: true, job: toPublicTeleportJob(job) };
+    }
     if (polled.status === "completed" && polled.video?.url) {
       return await finalizeTeleportRenderedVideo(job, polled.video.url);
     }
