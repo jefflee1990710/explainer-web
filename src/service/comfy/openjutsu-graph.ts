@@ -50,10 +50,10 @@ const SIMPLE_NODES = {
 const SIMPLE_DESCRIBE_PICTURE_PROMPT =
   "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including exact garment colors, neckline, footwear, and accessories. No preamble, no background.";
 
-// Strip source-person clothing, bags, and earphones that Node 44 (Qwen3-VL on unmasked source frames)
+// Strip source-person clothing, bags, earphones, and hair descriptions that Node 44 (Qwen3-VL on unmasked source frames)
 // may mention and that H3FillShots's built-in ACCESSORIES regex misses.
 const SIMPLE_CLEAN_SHOTS_REGEX =
-  "(?:,?\\s*\\b(?:with|in|wearing|dressed in)\\s+|\\s+and\\s+)?(?:(?:a|an|the|her|his|their)\\s+)?(?:(?!with\\b|in\\b|and\\b)[\\w-]+\\s+){0,3}?(?:crop\\s+top|tank\\s+top|tube\\s+top|halter\\s+top|camisole|sports\\s+bra|bra|top|shoulder\\s+bag|crossbody\\s+bag|handbag|tote\\s+bag|bag|purse|backpack|earphones?|earbuds?|headphones?|headset|lanyard)(?:\\s+(?:slung|dangling|hanging|draped|worn)\\s+(?:from|over|across|around)\\s+(?:their|her|his|the)\\s+[\\w\\s]+?(?=[,.;]|\\s+and\\b|$))?";
+  "(?:,?\\s*\\b(?:with|in|wearing|dressed in|sporting)\\s+|\\s+and\\s+)?(?:(?:a|an|the|her|his|their)\\s+)?(?:(?!with\\b|in\\b|and\\b)[\\w-]+\\s+){0,3}?(?:crop\\s+top|tank\\s+top|tube\\s+top|halter\\s+top|camisole|sports\\s+bra|bra|top|shoulder\\s+bag|crossbody\\s+bag|handbag|tote\\s+bag|bag|purse|backpack|earphones?|earbuds?|headphones?|headset|lanyard|hair(?:style|cut)?|bangs|fringe|ponytail|braids?|pigtails?|bun|locks|tresses|strands?)(?:\\s+(?:slung|dangling|hanging|falling|flowing|cascading|draped|worn|loose|down)(?:\\s+down|\\s+forward|\\s+loosely)?(?:\\s+(?:from|over|across|around|past|below)\\s+(?:their|her|his|the)\\s+[\\w\\s]+?)?(?=[,.;]|\\s+and\\b|$))?";
 
 const MUTE = /^Mute the (clip|reference) audio H3 hears$/;
 const NO_LIP_SYNC =

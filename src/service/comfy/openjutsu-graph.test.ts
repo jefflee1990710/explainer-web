@@ -469,9 +469,9 @@ test("buildSimpleGraph and trySubmitJutsuComfy lock characterOutfitSpec, suppres
   assert.deepEqual(graph["45"].inputs.shots, ["scro_clean_shots", 0]);
   const pattern = new RegExp(String(graph.scro_clean_shots?.inputs.regex_pattern), "gi");
   const sampleShot =
-    "[Shot 1] <Subject 1> is in the centre, holding a phone in their right hand and white earphones dangling from their ears, with a black bag slung over their left shoulder, wearing a dark crop top.";
+    "[Shot 1] <Subject 1> is in the centre, holding a phone in their right hand and white earphones dangling from their ears, with a black bag slung over their left shoulder, wearing a dark crop top, with their long dark hair hanging down over their shoulders.";
   const cleanedShot = sampleShot.replace(pattern, "");
-  assert.doesNotMatch(cleanedShot, /earphones|black bag|crop top/i);
+  assert.doesNotMatch(cleanedShot, /earphones|black bag|crop top|long dark hair|hair hanging/i);
   assert.match(cleanedShot, /holding a phone/i);
 });
 
