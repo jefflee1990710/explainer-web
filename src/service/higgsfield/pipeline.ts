@@ -1901,7 +1901,7 @@ export async function refreshProjectJobs(projectId: ObjectId) {
   const candidates = await jobs
     .find({
       projectId,
-      status: { $in: ["queued", "in_progress", "completed"] },
+      status: { $in: ["queued", "in_progress", "processing" as GenerationStatus, "completed"] },
     })
     .toArray();
   const pending = candidates.filter(jobNeedsRefresh);

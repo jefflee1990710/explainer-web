@@ -16,6 +16,7 @@ test("settleProviderStatus keeps completed-without-file in flight, but NSFW is t
   assert.equal(settleProviderStatus("completed", "https://cdn.example/out.png"), "completed");
   assert.equal(settleProviderStatus("failed"), "failed");
   assert.equal(settleProviderStatus("in_progress"), "in_progress");
+  assert.equal(settleProviderStatus("processing"), "in_progress");
 });
 
 test("jobNeedsRefresh includes completed jobs that never stored a file, not NSFW", () => {

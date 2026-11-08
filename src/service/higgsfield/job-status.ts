@@ -6,9 +6,12 @@ import { mediaSrc } from "@/util/media-src";
 // still in flight so the poller keeps asking until a URL exists.
 // NSFW is a terminal safety rejection — never rewrite it to in_progress.
 export function settleProviderStatus(
-  status: GenerationStatus,
+  status: GenerationStatus | "processing",
   outputUrl?: string,
 ): GenerationStatus {
+  if (status === "processing") {
+    return "in_progress";
+  }
   if (status === "completed" && !outputUrl) {
     return "in_progress";
   }
@@ -24,7 +27,13 @@ export function jobNeedsRefresh(job: {
   blobUrl?: string;
 }) {
   if (!job.statusUrl) return false;
-  if (job.status === "queued" || job.status === "in_progress") return true;
+  if (
+    job.status === "queued" ||
+    job.status === "in_progress" ||
+    job.status === "processing"
+  ) {
+    return true;
+  }
   return job.status === "completed" && !mediaSrc(job);
 }
 
@@ -36,7 +45,7 @@ export function jobNeedsRefreshFilter(): Filter<GenerationJob> {
   return {
     statusUrl: { $nin: [null, ""] },
     $or: [
-      { status: { $in: ["queued", "in_progress"] } },
+      { status: { $in: ["queued", "in_progress", "processing" as GenerationStatus] } },
       { status: "completed", blobUrl: noValue, outputUrl: noValue },
     ],
   } as Filter<GenerationJob>;
