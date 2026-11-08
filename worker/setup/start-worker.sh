@@ -11,12 +11,14 @@ if [ -z "${COMFY_PROXY_TOKEN:-}" ] && [ -f /workspace/.comfy-token ]; then
   export COMFY_PROXY_TOKEN="$(cat /workspace/.comfy-token)"
 fi
 
-# 1. Ensure ComfyUI is supervised on 127.0.0.1:8188 with --cache-none so intermediate tensors are freed immediately
-if ! pgrep -f "main.py --listen 127.0.0.1 --port 8188" >/dev/null 2>&1; then
+# 1. Ensure ComfyUI is supervised on 127.0.0.1:8188 with --fast-disk so NVMe disk-backed mmap is used inside Docker
+if ! pgrep -f "main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch --fast-disk" >/dev/null 2>&1; then
   pkill -9 -f "comfy-supervisor" >/dev/null 2>&1 || true
-  echo "[start-worker] starting ComfyUI supervisor on 127.0.0.1:8188..."
+  pkill -9 -f "main.py --listen 127.0.0.1 --port 8188" >/dev/null 2>&1 || true
+  sleep 1
+  echo "[start-worker] starting ComfyUI supervisor on 127.0.0.1:8188 (--fast-disk)..."
   cd /workspace/ComfyUI
-  nohup bash -c "exec -a comfy-supervisor bash -c 'while true; do $PYTHON main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch --cache-none >> /workspace/comfy.log 2>&1; echo \"[comfy-supervisor] exited with \$?, restarting in 3s...\" >> /workspace/comfy.log; sleep 3; done'" >/dev/null 2>&1 &
+  nohup bash -c "exec -a comfy-supervisor bash -c 'while true; do $PYTHON main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch --fast-disk >> /workspace/comfy.log 2>&1; echo \"[comfy-supervisor] exited with \$?, restarting in 3s...\" >> /workspace/comfy.log; sleep 3; done'" >/dev/null 2>&1 &
   sleep 4
 fi
 
