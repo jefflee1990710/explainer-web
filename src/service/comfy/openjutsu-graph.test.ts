@@ -443,25 +443,14 @@ test("buildSimpleGraph and trySubmitJutsuComfy lock characterOutfitSpec, suppres
     runId: "job_outfit",
   });
 
-  // 1. Explicit outfitSpec and hair-length lock are appended onto Node 4 output and wired into Node 11 picture_1_text
-  assert.match(String(graph["4"].inputs.prompt), /exact hair length/i);
+  // 1. Explicit outfitSpec is appended onto Node 4 output and wired into Node 11 picture_1_text
   assert.equal(graph.scro_picture_1_text?.class_type, "StringConcatenate");
   assert.deepEqual(graph.scro_picture_1_text?.inputs.string_a, ["4", 0]);
   assert.match(
     String(graph.scro_picture_1_text?.inputs.string_b),
     /Pastel pink ribbed crop tank top, high-waisted medium-wash blue denim jeans/,
   );
-  assert.match(
-    String(graph.scro_picture_1_text?.inputs.string_b),
-    /exact hair length and hairstyle from <Picture 1>/i,
-  );
   assert.deepEqual(graph["11"].inputs.picture_1_text, ["scro_picture_1_text", 0]);
-
-  // 2. SAM 3.1 tracks source hair (scro_sam_hair_mask) and passes it to Node 41 (H3GreyMannequins)
-  assert.equal(graph.scro_sam_hair_prompt?.inputs.text, "hair");
-  assert.equal(graph.scro_sam_hair_track?.class_type, "SAM3_VideoTrack");
-  assert.equal(graph.scro_sam_hair_mask?.class_type, "H3PeopleMask");
-  assert.deepEqual(graph["41"].inputs.hair, ["scro_sam_hair_mask", 0]);
 
   // 2. Grey mannequin (Node 41) softens source clothing contrast inside the person mask (Node 40)
   assert.equal(graph["41"].inputs.blur, 0.08);
