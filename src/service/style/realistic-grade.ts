@@ -13,8 +13,8 @@ export const REALISTIC_VIDEO_GRADE_FILTER = buildJutsuColorFilter(
   DEFAULT_JUTSU_COLOR_SETTINGS,
 );
 
-// Keep the clean native Avatar IV colour and skin fidelity from the character blueprint; only ensure yuv420p compatibility.
-export const TALKING_HEAD_SENSOR_GRAIN_FILTER = "setsar=1";
+// Apply OpenJutsu's "Fix colours" (H3 Soft) to Talking-Head videos as well.
+export const TALKING_HEAD_SENSOR_GRAIN_FILTER = REALISTIC_VIDEO_GRADE_FILTER;
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [

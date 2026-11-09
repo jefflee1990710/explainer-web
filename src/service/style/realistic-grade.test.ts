@@ -18,12 +18,12 @@ test("realisticVideoGradeArgs applies OpenJutsu Fix Colours (H3 Soft detail cont
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /noise=/);
 });
 
-test("talkingHeadSensorGrainArgs keeps clean blueprint skin fidelity and yuv420p without artificial noise or darkening LUTs", () => {
+test("talkingHeadSensorGrainArgs also applies OpenJutsu Fix Colours (H3 Soft) and yuv420p", () => {
   const args = talkingHeadSensorGrainArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(TALKING_HEAD_SENSOR_GRAIN_FILTER));
   assert.ok(args.includes("-pix_fmt"));
   assert.equal(args[args.indexOf("-pix_fmt") + 1], "yuv420p");
-  assert.equal(TALKING_HEAD_SENSOR_GRAIN_FILTER, "setsar=1");
+  assert.equal(TALKING_HEAD_SENSOR_GRAIN_FILTER, REALISTIC_VIDEO_GRADE_FILTER);
   assert.doesNotMatch(TALKING_HEAD_SENSOR_GRAIN_FILTER, /lutrgb=|noise=/);
 });

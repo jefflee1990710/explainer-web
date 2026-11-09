@@ -1186,9 +1186,8 @@ export async function applyJobStatus(input: {
           ownerClerkUserId: clipProject.clerkUserId,
         })
       : undefined;
-    const realistic = isRealisticStyle(renderableStyle);
-    // Realistic clips still get the highlight roll-off. Stills are stored as returned.
-    const applyFilmGrade = realistic;
+    // Every generated video clip across all directors/styles gets OpenJutsu Fix Colours (H3 Soft). Stills are stored as returned.
+    const applyFilmGrade = true;
     const canvasColor =
       renderableStyle && (job.kind === "still" || job.kind === "frame")
         ? renderableStyle.canvasColor

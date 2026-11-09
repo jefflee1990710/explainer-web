@@ -160,13 +160,15 @@ export type SplitReelHarnessConfig = {
   hookPrefix: string;
   /** Neon-lime (#A3FF47) highlighted part of the middle hook title (e.g. "Infinite Length") */
   hookHighlight: string;
-  /** Top pill badge text on the 9:16 cover (e.g. "#SCRO EXPLAINER") */
+  /** Top pill badge text on the 9:16 cover (e.g. "#SCRO TALKING") */
   coverBadge: string;
-  /** Upper-middle headline on the 9:16 cover (e.g. "THE 2-MINUTE\nRULE") */
+  /** Centered Torn-Paper (撕紙 style) headline on the 9:16 cover (e.g. "THE ADHD\nDOPAMINE RULE") */
   coverHeadline: string;
-  /** Center visual description for the Seedream 5.0 Pro 9:16 cover */
+  /** Unique dramatic poster scene, lighting, and camera direction for the Seedream 5.0 Pro 9:16 cover */
   coverCenterPrompt: string;
-  /** Reference scene images (paths) for Seedream 5.0 Pro cover */
+  /** Optional dramatic lighting & lens override for the cover poster */
+  coverDramaticStylePrompt?: string;
+  /** Reference scene/character images (paths) for Seedream 5.0 Pro cover */
   coverSceneImagePaths?: string[];
   /** Bottom card line 1 (neon-lime) on the 9:16 cover */
   coverFooterLine1: string;
@@ -1111,16 +1113,24 @@ export async function generateSeedreamReelCover(
     }
   }
 
+  const headlineLines = config.coverHeadline
+    .split("\n")
+    .map((line) => `"${line.trim()}"`)
+    .join(" / ");
+
+  const dramaticDirection =
+    config.coverDramaticStylePrompt ||
+    "High-impact cinematic movie-poster lighting and camera work: dramatic chiaroscuro split lighting with glowing colored rim light and warm key spotlight cutting through subtle volumetric haze, dynamic low-angle 24mm/35mm wide-angle hero perspective with shallow depth-of-field bokeh and rich atmospheric contrast.";
+
   const prompt = [
-    "Vertical 9:16 Instagram Reel cover following the exact layout, typography, badge placement, and brand styling of Reference Image 1.",
-    `TOP BRAND HEADER (exact match to Reference Image 1): Centered at the top is the dark rounded-square app icon with the glowing neon-lime S logo mark, and directly underneath it is a bright neon-lime pill badge reading "${config.coverBadge}" in bold black condensed sans-serif.`,
-    "UPPER-MIDDLE HEADLINE BANNER: Below the pill badge, mounted against the textured background wall, is a tactile layered cream-and-charcoal cut-paper banner sign reading in bold uppercase block letters:",
-    ...config.coverHeadline.split("\n").map((line) => `"${line.trim()}"`),
-    `CENTER SUBJECT: ${config.coverCenterPrompt}`,
-    "BOTTOM CALLOUT CARD (exact match to Reference Image 1): Near the bottom, a dark translucent frosted-glass rounded rectangle banner with a subtle glowing neon-lime border reading:",
+    "Vertical 9:16 dramatic cinematic movie-poster Instagram Reel cover with consistent Scro brand styling and a unique, high-drama visual composition.",
+    `1) TOP BRAND HEADER (exact match to Reference Image 1): Centered at the top is the dark rounded-square app icon with the glowing neon-lime S logo mark, and directly underneath it is a bright neon-lime pill badge reading "${config.coverBadge}" in bold black condensed sans-serif.`,
+    `2) DRAMATIC POSTER SCENE, LIGHTING & CAMERA: ${config.coverCenterPrompt}\n${dramaticDirection}`,
+    `3) CENTER TORN-PAPER (撕紙 STYLE) TITLE BANNER (placed dead-center across the middle of the 9:16 poster): Right across the center of the composition, render a tactile hand-torn paper collage title banner (撕紙毛邊效果: layered charcoal-black and warm cream/neon-lime torn cardstock strips with rough white fibrous deckle edges and deep drop shadow) reading in giant ultra-bold condensed uppercase letters: ${headlineLines}.`,
+    "4) BOTTOM CALLOUT CARD (exact match to Reference Image 1): Near the bottom, a dark translucent frosted-glass rounded rectangle banner with a subtle glowing neon-lime border reading:",
     `Line 1 (bold neon-lime condensed uppercase): "${config.coverFooterLine1}"`,
     `Line 2 (bold pure-white condensed uppercase): "${config.coverFooterLine2}"`,
-    "Ultra-crisp studio photography, clean sharp typography.",
+    "Ultra-crisp theatrical poster photography, tactile torn-paper collage edges in the center title, razor-sharp typography.",
   ].join("\n\n");
 
   const res = await submitOpenRouterImage({
