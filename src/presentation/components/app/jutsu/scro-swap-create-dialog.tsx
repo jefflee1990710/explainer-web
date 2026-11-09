@@ -327,6 +327,19 @@ export function ScroSwapCreateDialog({
   }
 
   function selectCharacter(char: PublicCharacter) {
+    if (!activePersonKeepOriginal && characterId === char.id && !uploadedPhotoUrl) {
+      setCharacterId("");
+      setSelectedLookUrl("");
+      setSelectedLookKey("");
+      updateActivePersonSlot({
+        keepOriginal: true,
+        characterId: "",
+        characterName: "",
+        selectedLookKey: "",
+        selectedLookUrl: "",
+      });
+      return;
+    }
     const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
     setUploadedPhotoUrl("");

@@ -157,6 +157,69 @@ function characterAvatarThumb(character: PublicCharacter, styleId?: string): str
   );
 }
 
+export function toggleCharacterDialogSelection(input: {
+  value: string[];
+  selections: CharacterSelectionMap;
+  characterId: string;
+  option?: CharacterPresetSelection;
+  max: number;
+  isStripClick?: boolean;
+}): {
+  value: string[];
+  selections: CharacterSelectionMap;
+  unselected: boolean;
+} {
+  const { value, selections, characterId, option, max, isStripClick } = input;
+  const multiple = max > 1;
+  const isAlreadySelected = value.includes(characterId);
+  const currentSelection = selections[characterId];
+  const sameOption =
+    (option?.presetId || "") === (currentSelection?.presetId || "") &&
+    (option?.versionId || "") === (currentSelection?.versionId || "");
+
+  if (isAlreadySelected && (isStripClick || sameOption)) {
+    const nextSelections = { ...selections };
+    delete nextSelections[characterId];
+    return {
+      value: value.filter((id) => id !== characterId),
+      selections: nextSelections,
+      unselected: true,
+    };
+  }
+
+  if (isAlreadySelected) {
+    const nextSelections = { ...selections };
+    if (option) nextSelections[characterId] = option;
+    else delete nextSelections[characterId];
+    return {
+      value,
+      selections: nextSelections,
+      unselected: false,
+    };
+  }
+
+  if (!multiple) {
+    return {
+      value: [characterId],
+      selections: option ? { [characterId]: option } : {},
+      unselected: false,
+    };
+  }
+
+  if (value.length >= max) {
+    return { value, selections, unselected: false };
+  }
+
+  const nextSelections = { ...selections };
+  if (option) nextSelections[characterId] = option;
+  else delete nextSelections[characterId];
+  return {
+    value: [...value, characterId],
+    selections: nextSelections,
+    unselected: false,
+  };
+}
+
 /**
  * Unified Character & Preset Selection Dialog across the platform:
  * - Select a character from the top avatar strip, and show its presets below
@@ -295,48 +358,26 @@ export function CharacterSelectDialog({
     characterId: string,
     option?: CharacterPresetSelection,
     closeWhenSingle = true,
+    isStripClick = false,
   ) {
     setActiveCharId(characterId);
-    const isAlreadySelected = value.includes(characterId);
-    const currentSelection = selections[characterId];
-    const sameOption =
-      (option?.presetId || "") === (currentSelection?.presetId || "") &&
-      (option?.versionId || "") === (currentSelection?.versionId || "");
-
     if (option?.presetId) {
       setRecentIds(recordRecentPresetId(option.presetId));
     }
 
-    if (isAlreadySelected && sameOption && multiple && !closeWhenSingle) {
-      onChange(value.filter((id) => id !== characterId));
-      const nextSelections = { ...selections };
-      delete nextSelections[characterId];
-      onSelectionsChange(nextSelections);
-      return;
+    const next = toggleCharacterDialogSelection({
+      value,
+      selections,
+      characterId,
+      option,
+      max,
+      isStripClick,
+    });
+    onChange(next.value);
+    onSelectionsChange(next.selections);
+    if (!next.unselected && !multiple && closeWhenSingle) {
+      onClose();
     }
-
-    if (isAlreadySelected) {
-      const nextSelections = { ...selections };
-      if (option) nextSelections[characterId] = option;
-      else delete nextSelections[characterId];
-      onSelectionsChange(nextSelections);
-      if (!multiple && closeWhenSingle) onClose();
-      return;
-    }
-
-    if (!multiple) {
-      onChange([characterId]);
-      onSelectionsChange(option ? { [characterId]: option } : {});
-      if (closeWhenSingle) onClose();
-      return;
-    }
-
-    if (value.length >= max) return;
-    onChange([...value, characterId]);
-    const nextSelections = { ...selections };
-    if (option) nextSelections[characterId] = option;
-    else delete nextSelections[characterId];
-    onSelectionsChange(nextSelections);
   }
 
   function handleOpenCreateCharacter() {
@@ -516,11 +557,12 @@ export function CharacterSelectDialog({
                       setActiveCharId(char.id);
                       setLookMode("presets");
                       const sheet = defaultSheetForStyle(char);
-                      if (sheet && !isSelected && (!multiple || value.length < max)) {
+                      if (isSelected || (sheet && (!multiple || value.length < max))) {
                         selectCharacterWithOption(
                           char.id,
-                          { versionId: sheet.id },
+                          sheet ? { versionId: sheet.id } : undefined,
                           false,
+                          true,
                         );
                       }
                     }}

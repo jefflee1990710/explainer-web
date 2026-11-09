@@ -566,6 +566,23 @@ export function JutsuStudio({
   }
 
   function selectCharacter(char: PublicCharacter) {
+    if (
+      !activePersonKeepOriginal &&
+      characterId === char.id &&
+      uploadedPhotoUrls.length === 0
+    ) {
+      setCharacterId("");
+      setSelectedLookUrl("");
+      setSelectedLookKey("");
+      updateActivePersonSlot({
+        keepOriginal: true,
+        characterId: "",
+        characterName: "",
+        selectedLookKey: "",
+        selectedLookUrl: "",
+      });
+      return;
+    }
     const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
     setSyncedUploadedPhotoUrls([]);

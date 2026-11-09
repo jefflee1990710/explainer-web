@@ -179,6 +179,7 @@ export type SplitReelHarnessConfig = {
 };
 
 const CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const FFMPEG_BIN = ffmpegPath && existsSync(ffmpegPath) ? ffmpegPath : "ffmpeg";
 const SCREEN_STUDIO_PROJECTS_DIR = "/Users/jefflee/Screen Studio Projects";
 const SCREEN_STUDIO_TEMPLATE_BUNDLE = path.join(
   SCREEN_STUDIO_PROJECTS_DIR,
@@ -188,7 +189,7 @@ const SCREEN_STUDIO_CLIPBOARD_DIR =
   "/var/folders/8b/ldwp8b7x7klbv50l9qpz0jw40000gn/T/Screen Studio/Clipboard Exports";
 
 export function probeVideoDurationSeconds(filePath: string): number {
-  const res = spawnSync(ffmpegPath!, ["-i", filePath], { encoding: "utf8" });
+  const res = spawnSync(FFMPEG_BIN, ["-i", filePath], { encoding: "utf8" });
   const m = (res.stderr || "").match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
   if (!m) return 15.0;
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
@@ -473,12 +474,40 @@ export async function recordLiveChromeAndExportScreenStudio(
       await new Promise((r) => setTimeout(r, 2500));
       await dismissTourIfPresent(page);
 
-      // Inject our finished topVideoPath into the OpenCut preview container AND a moving green timeline playhead!
+      // Inject our finished topVideoPath into the OpenCut preview container (covering any transform/selection guideline overlay)
       const videoB64 = readFileSync(config.topVideoPath).toString("base64");
       await page.evaluate((b64: string) => {
+        // Hide OpenCut's TransformHandles (BoundingBoxOutline + CornerHandles + Rotate01Icon) and SnapGuides siblings next to [aria-label="Preview canvas"]
+        const style = document.createElement("style");
+        style.textContent = `
+          [aria-label="Preview canvas"] ~ *,
+          [data-testid*="transform"],
+          [class*="transform-box"],
+          [class*="selection-box"] {
+            display: none !important;
+            opacity: 0 !important;
+          }
+        `;
+        document.head.appendChild(style);
+
         const target =
           document.querySelector("canvas") || document.querySelector("video");
         if (target && target.parentElement) {
+          const parent = target.parentElement;
+          parent.style.position = "relative";
+          // Hide any sibling overlay divs (like the white bounding box + rotation handle) inside the preview stage
+          Array.from(parent.children).forEach((child) => {
+            if (child !== target && child instanceof HTMLElement) {
+              child.style.display = "none";
+            }
+          });
+          if (parent.parentElement) {
+            Array.from(parent.parentElement.children).forEach((sibling) => {
+              if (sibling !== parent && sibling instanceof HTMLElement && sibling.querySelector("svg, [style*='cursor']")) {
+                sibling.style.display = "none";
+              }
+            });
+          }
           const vid = document.createElement("video");
           vid.id = "__scro_live_preview";
           vid.src = `data:video/mp4;base64,${b64}`;
@@ -489,23 +518,11 @@ export async function recordLiveChromeAndExportScreenStudio(
           vid.style.width = "100%";
           vid.style.height = "100%";
           vid.style.objectFit = "contain";
+          vid.style.background = "#090a0f";
           vid.style.pointerEvents = "none";
-          vid.style.zIndex = "5";
-          target.parentElement.style.position = "relative";
-          target.parentElement.appendChild(vid);
+          vid.style.zIndex = "999";
+          parent.appendChild(vid);
         }
-        const ph = document.createElement("div");
-        ph.id = "__scro_live_playhead";
-        ph.style.position = "fixed";
-        ph.style.left = "390px";
-        ph.style.top = "830px";
-        ph.style.width = "2px";
-        ph.style.height = "155px";
-        ph.style.background = "#A3FF47";
-        ph.style.boxShadow = "0 0 8px rgba(163,255,71,0.8)";
-        ph.style.pointerEvents = "none";
-        ph.style.zIndex = "40";
-        document.body.appendChild(ph);
       }, videoB64);
 
       let videoTime = 0;
@@ -523,10 +540,6 @@ export async function recordLiveChromeAndExportScreenStudio(
             ) as HTMLVideoElement | null;
             if (v && Number.isFinite(v.duration) && v.duration > 0) {
               v.currentTime = t % Math.max(1, v.duration - 0.1);
-            }
-            const ph = document.getElementById("__scro_live_playhead");
-            if (ph) {
-              ph.style.left = `${Math.round(390 + (t * 22) % 340)}px`;
             }
           }, videoTime);
           await captureFrames(
@@ -624,7 +637,7 @@ export async function recordLiveChromeAndExportScreenStudio(
         if (mediaRail) mediaRail.click();
       });
 
-      // Click timeline clip / play controls only — NEVER click right-panel modal buttons — so the video plays cleanly inside OpenCut!
+      // Hover and record visual click ripple without DOM-clicking timeline clips so OpenCut never draws the white canvas transform guideline!
       const postActions = [
         { x: 460, y: 920, cursor: "pointingHand" as const, click: true, zoom: true },
         { x: 965, y: 675, cursor: "pointingHand" as const, click: false, zoom: false },
@@ -639,7 +652,6 @@ export async function recordLiveChromeAndExportScreenStudio(
         await stepVideoFrames(moveLen, { x: act.x, y: act.y, cursor: act.cursor });
         if (act.click) {
           recordClick();
-          await page.mouse.click(act.x, act.y);
         }
         const holdLen = Math.min(28, Math.max(0, totalTargetFrames - frameIndex));
         if (holdLen > 0) await stepVideoFrames(holdLen);

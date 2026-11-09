@@ -158,6 +158,12 @@ export function OpenCutClipScroSwapDialog({
   }
 
   function selectCharacter(char: PublicCharacter) {
+    if (characterId === char.id && uploadedPhotoUrls.length === 0) {
+      setCharacterId("");
+      setSelectedLookKey("");
+      setSelectedLookUrl("");
+      return;
+    }
     setCharacterId(char.id);
     setUploadedPhotoUrls([]);
     setSelectedLookKey("default");

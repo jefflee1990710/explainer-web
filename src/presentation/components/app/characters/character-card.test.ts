@@ -8,6 +8,7 @@ import {
   foundationStyleForPublicCharacter,
   historyVersionsForCharacterStyle,
   presetsForCharacterStyle,
+  toggleCharacterDialogSelection,
 } from "@/presentation/components/app/projects/[id]/character-select-dialog";
 import type { PublicCharacter } from "@/presentation/serialize";
 
@@ -124,6 +125,70 @@ test("CharacterSelectDialog does not render AddCharacterStyleDialog or manual + 
   );
   assert.doesNotMatch(dialogSrc, /AddCharacterStyleDialog/);
   assert.doesNotMatch(dialogSrc, /handleQuickAddCurrentStyle/);
+});
+
+test("toggleCharacterDialogSelection unselects an already-selected character when clicked again in both single and multi-select modes", () => {
+  // 1. Clicking an unselected character in single-select mode selects it
+  const step1 = toggleCharacterDialogSelection({
+    value: [],
+    selections: {},
+    characterId: "c1",
+    option: { versionId: "v1" },
+    max: 1,
+    isStripClick: true,
+  });
+  assert.deepEqual(step1.value, ["c1"]);
+  assert.deepEqual(step1.selections, { c1: { versionId: "v1" } });
+
+  // 2. Clicking the same selected character again in the strip unselects it
+  const step2 = toggleCharacterDialogSelection({
+    value: step1.value,
+    selections: step1.selections,
+    characterId: "c1",
+    option: { versionId: "v1" },
+    max: 1,
+    isStripClick: true,
+  });
+  assert.deepEqual(step2.value, []);
+  assert.deepEqual(step2.selections, {});
+
+  // 3. Clicking a different preset on an already-selected character switches preset without unselecting
+  const step3 = toggleCharacterDialogSelection({
+    value: ["c1"],
+    selections: { c1: { versionId: "v1" } },
+    characterId: "c1",
+    option: { versionId: "v2", presetId: "p2", presetName: "Suit" },
+    max: 1,
+    isStripClick: false,
+  });
+  assert.deepEqual(step3.value, ["c1"]);
+  assert.deepEqual(step3.selections, {
+    c1: { versionId: "v2", presetId: "p2", presetName: "Suit" },
+  });
+
+  // 4. Clicking the exact same active preset card again unselects the character
+  const step4 = toggleCharacterDialogSelection({
+    value: step3.value,
+    selections: step3.selections,
+    characterId: "c1",
+    option: { versionId: "v2", presetId: "p2", presetName: "Suit" },
+    max: 1,
+    isStripClick: false,
+  });
+  assert.deepEqual(step4.value, []);
+  assert.deepEqual(step4.selections, {});
+
+  // 5. Multi-select mode: clicking an already-selected character in the strip removes only that character
+  const multi = toggleCharacterDialogSelection({
+    value: ["c1", "c2"],
+    selections: { c1: { versionId: "v1" }, c2: { versionId: "v2" } },
+    characterId: "c1",
+    option: { versionId: "v1" },
+    max: 3,
+    isStripClick: true,
+  });
+  assert.deepEqual(multi.value, ["c2"]);
+  assert.deepEqual(multi.selections, { c2: { versionId: "v2" } });
 });
 
 

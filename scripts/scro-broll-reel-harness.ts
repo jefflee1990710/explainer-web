@@ -30,14 +30,15 @@ import {
 loadEnvConfig(process.cwd());
 
 const CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const FFMPEG_BIN = ffmpegPath && existsSync(ffmpegPath) ? ffmpegPath : "ffmpeg";
 
 export type BRollSegment = {
   /** Start time in seconds along the A-Roll timeline (e.g. 2.8s after the opening A-Roll face hook) */
   start: number;
   /** End time in seconds along the A-Roll timeline */
   end: number;
-  /** Which B-Roll source to show: "screen-studio" (Chrome UI recording), "result-1", or "result-2" */
-  source: "screen-studio" | "result-1" | "result-2";
+  /** Which B-Roll source to show: "screen-studio" (Chrome UI recording), "result-1", "result-2", or "result-3" */
+  source: "screen-studio" | "result-1" | "result-2" | "result-3";
   /** Step badge label shown above the B-Roll card (e.g. "STEP 1 · TYPE PROMPT & CLICK GENERATE") */
   stepBadge: string;
 };
@@ -77,6 +78,8 @@ export type BRollReelHarnessConfig = {
   resultVideo1Path: string;
   /** Path to Result Video 2 (16:9 MP4) shown as B-Roll */
   resultVideo2Path: string;
+  /** Optional Path to Result Video 3 (16:9 MP4) shown as B-Roll */
+  resultVideo3Path?: string;
   /** Timeline windows where B-Roll ("screen-studio", "result-1", "result-2") cuts in while A-Roll VO keeps talking */
   bRollSegments?: BRollSegment[];
   /** Subtitle cues synced to the A-Roll speech */
@@ -118,12 +121,10 @@ export async function ensureARollTalkingHeadVideo(
 
   const language = config.aRollLanguage || "en";
   const voiceId = config.aRollVoiceId || "fE3jtPUA7zZ3vjTekQhI";
-  const blueprintUrl =
-    config.aRollCharacterBlueprintUrl ||
-    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/6aeeb4f14bfa47590f1a2e35/6aeeb4f14bfa47590f1a2e34";
+  const blueprintUrl = config.aRollCharacterBlueprintUrl?.trim() || "";
   const startPrompt =
     config.aRollStartFramePrompt ||
-    "Vertical 9:16 medium close-up chest-up selfie-reel portrait of the exact young East Asian woman from Reference Image 1 (chin-length dark bob hair with wispy see-through bangs, wearing a sleek charcoal creator blazer over a crisp white crew-neck tee) seated in a warm modern creator studio with subtle glowing neon-lime and warm tungsten bokeh lights behind her. She faces the camera lens directly at eye level with focused, engaging eyes and a neutral, relaxed, un-smiled conversational mouth posture (lips softly resting in a neutral speaking position, zero smile, no teeth showing). Soft diffused key light, matte-natural porous skin texture, zero text.";
+    "Vertical 9:16 medium close-up collarbone-up selfie-reel portrait of a gorgeous 24-year-old creator woman with luminous fair porcelain-white skin, soft wavy chestnut-brown shoulder-length hair, and bright expressive dark-brown eyes, wearing a chic cream-white ribbed knit top under a tailored light-taupe blazer, seated in a warm sunlit modern creator studio with subtle glowing neon-lime and warm tungsten bokeh lights behind her. One hand lightly holds a compact matte-black rectangular wireless lavalier microphone between thumb and index finger near her collarbone. She faces the camera lens directly at eye level with focused, engaging eyes and a neutral, relaxed, un-smiled conversational mouth posture (lips softly resting in a neutral speaking position, zero smile, no teeth showing). Soft diffused key light, matte-natural porous fair skin texture, zero text.";
 
   const voPath = path.join(workDir, "aroll_vo.mp3");
   let voBuf: Buffer;
@@ -151,7 +152,7 @@ export async function ensureARollTalkingHeadVideo(
     prompt: startPrompt,
     aspectRatio: "9:16",
     resolution: "2k",
-    referenceImageUrls: [blueprintUrl],
+    referenceImageUrls: blueprintUrl ? [blueprintUrl] : [],
   });
   const dataUrl = imgRes.images?.[0]?.url;
   if (!dataUrl) throw new Error("Seedream 5.0 Pro returned no 9:16 A-Roll start image");
@@ -258,7 +259,7 @@ export async function compositeBRollReel(
   // 1. Normalize full-screen 9:16 A-Roll (1440x2560, 24fps) with master VO audio
   const normARollFull = path.join(workDir, "norm_aroll_full_1440x2560.mp4");
   spawnSync(
-    ffmpegPath!,
+    FFMPEG_BIN,
     [
       "-y", "-i", aRollMp4Path,
       "-vf", "scale=1440:2560:force_original_aspect_ratio=increase,crop=1440:2560,fps=24",
@@ -275,13 +276,14 @@ export async function compositeBRollReel(
   const normSSBottom = path.join(workDir, "norm_ss_bottom.mp4");
   const normR1 = path.join(workDir, "norm_r1.mp4");
   const normR2 = path.join(workDir, "norm_r2.mp4");
+  const normR3 = path.join(workDir, "norm_r3.mp4");
 
   spawnSync(
-    ffmpegPath!,
+    FFMPEG_BIN,
     [
       "-y", "-stream_loop", "-1", "-i", screenStudioMp4Path,
       "-t", durSeconds.toFixed(2),
-      "-vf", `scale=1356:814:force_original_aspect_ratio=decrease,pad=1356:814:(ow-iw)/2:(oh-ih)/2,fps=24,tpad=start_duration=${bRollStart.toFixed(2)}:start_mode=clone,trim=duration=${durSeconds.toFixed(2)},setpts=PTS-STARTPTS`,
+      "-vf", `scale=1356:784:force_original_aspect_ratio=decrease,pad=1356:784:(ow-iw)/2:(oh-ih)/2,fps=24,tpad=start_duration=${bRollStart.toFixed(2)}:start_mode=clone,trim=duration=${durSeconds.toFixed(2)},setpts=PTS-STARTPTS`,
       "-an",
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p",
       normSSBottom,
@@ -292,6 +294,7 @@ export async function compositeBRollReel(
   for (const [src, dst] of [
     [config.resultVideo1Path, normR1],
     [config.resultVideo2Path, normR2],
+    ...(config.resultVideo3Path ? [[config.resultVideo3Path, normR3] as const] : []),
   ] as const) {
     spawnSync(
       ffmpegPath!,
@@ -341,18 +344,26 @@ export async function compositeBRollReel(
     await page.screenshot({ path: openingOverlayPath, omitBackground: true });
 
     // 2. B-Roll Canvas (shown from t = bRollStart..bRollEnd while A-Roll VO continues speaking):
-    // Black 1440x2560 backdrop + top S logo + enlarged middle Torn-Paper Hook Title
+    // Black 1440x2560 backdrop + top S logo + enlarged middle Torn-Paper Hook Title (auto-wraps to 2 bold lines if combined title > 38 chars)
+    const combinedLen = (config.hookPrefix.length + 1 + config.hookHighlight.length);
+    const isTwoLineTitle = combinedLen > 38;
+    const titleHtml = isTwoLineTitle
+      ? `<div style="color:#FFFFFF;font-size:44px;line-height:1.14;font-weight:900;letter-spacing:0.5px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.85);text-align:center;">
+           ${config.hookPrefix}<br/><span style="color:#A3FF47;font-size:46px;text-shadow:0 0 20px rgba(163,255,71,0.55);">${config.hookHighlight}</span>
+         </div>`
+      : `<div style="color:#FFFFFF;font-size:64px;line-height:1.08;font-weight:900;letter-spacing:0.5px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.85);white-space:nowrap;">
+           ${config.hookPrefix} <span style="color:#A3FF47;text-shadow:0 0 20px rgba(163,255,71,0.55);">${config.hookHighlight}</span>
+         </div>`;
+
     await page.setContent(`
       <!DOCTYPE html>
       <html>
         <body style="margin:0;width:1440px;height:2560px;background:#000000;position:relative;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
-          <img src="data:image/png;base64,${logoB64}" style="position:absolute;left:632px;top:170px;width:176px;height:176px;object-fit:contain;" />
-          <div style="position:absolute;left:0;top:1248px;width:1440px;height:170px;display:flex;align-items:center;justify-content:center;">
+          <img src="data:image/png;base64,${logoB64}" style="position:absolute;left:632px;top:155px;width:176px;height:176px;object-fit:contain;" />
+          <div style="position:absolute;left:0;top:1224px;width:1440px;height:168px;display:flex;align-items:center;justify-content:center;">
             <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;padding:7px 9px;background:#F5F7FA;clip-path:polygon(0% 10%, 3% 0%, 9% 7%, 16% 0%, 24% 6%, 33% 0%, 42% 6%, 51% 0%, 60% 6%, 69% 0%, 78% 6%, 87% 0%, 94% 6%, 100% 2%, 99% 35%, 100% 68%, 98% 94%, 93% 100%, 84% 94%, 75% 100%, 65% 93%, 54% 100%, 44% 94%, 35% 100%, 25% 93%, 15% 100%, 7% 94%, 1% 98%, 2% 62%, 0% 32%);filter:drop-shadow(0 0 24px rgba(163,255,71,0.42)) drop-shadow(0 10px 24px rgba(0,0,0,0.9));">
-              <div style="padding:18px 46px;background:linear-gradient(180deg,#1B1F2E 0%,#10131C 100%);border:3px solid #A3FF47;clip-path:polygon(0% 8%, 4% 1%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 5%, 55% 1%, 64% 5%, 73% 0%, 82% 5%, 91% 1%, 97% 5%, 100% 2%, 99% 36%, 100% 70%, 98% 95%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);">
-                <div style="color:#FFFFFF;font-size:64px;line-height:1.08;font-weight:900;letter-spacing:0.5px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.85);white-space:nowrap;">
-                  ${config.hookPrefix} <span style="color:#A3FF47;text-shadow:0 0 20px rgba(163,255,71,0.55);">${config.hookHighlight}</span>
-                </div>
+              <div style="padding:${isTwoLineTitle ? "12px 42px" : "16px 46px"};background:linear-gradient(180deg,#1B1F2E 0%,#10131C 100%);border:3px solid #A3FF47;clip-path:polygon(0% 8%, 4% 1%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 5%, 55% 1%, 64% 5%, 73% 0%, 82% 5%, 91% 1%, 97% 5%, 100% 2%, 99% 36%, 100% 70%, 98% 95%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);">
+                ${titleHtml}
               </div>
             </div>
           </div>
@@ -361,7 +372,7 @@ export async function compositeBRollReel(
     `);
     await page.screenshot({ path: brollBgCanvasPath, type: "png" });
 
-    // 3. Step Badges during B-Roll segments (y=385)
+    // 3. Step Badges during B-Roll segments (y=365)
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i]!;
       const p = path.join(workDir, `broll_badge_${i}.png`);
@@ -369,7 +380,7 @@ export async function compositeBRollReel(
         <!DOCTYPE html>
         <html>
           <body style="margin:0;width:1440px;height:2560px;background:transparent;position:relative;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
-            <div style="position:absolute;left:0;top:385px;width:1440px;display:flex;justify-content:center;">
+            <div style="position:absolute;left:0;top:365px;width:1440px;display:flex;justify-content:center;">
               <div style="padding:10px 30px;background:#A3FF47;color:#0B0D13;font-size:32px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;border-radius:999px;box-shadow:0 6px 20px rgba(163,255,71,0.45);">
                 ${seg.stepBadge}
               </div>
@@ -381,7 +392,7 @@ export async function compositeBRollReel(
       badgePaths.push(p);
     }
 
-    // 4. Torn-Paper Subtitles across the entire reel (y=2250 so they sit cleanly over both the 9:16 A-Roll opening and the B-Roll layout)
+    // 4. Torn-Paper Subtitles across the entire reel (y=2220 so they sit cleanly below the 1404..2188 Screen Studio recording)
     for (let i = 0; i < config.subtitleCues.length; i++) {
       const cue = config.subtitleCues[i]!;
       const p = path.join(workDir, `broll_sub_${i}.png`);
@@ -398,7 +409,7 @@ export async function compositeBRollReel(
         <!DOCTYPE html>
         <html>
           <body style="margin:0;width:1440px;height:2560px;background:transparent;position:relative;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;text-align:center;">
-            <div style="position:absolute;left:0;top:2240px;width:1440px;display:flex;flex-direction:column;align-items:center;">
+            <div style="position:absolute;left:0;top:2220px;width:1440px;display:flex;flex-direction:column;align-items:center;">
               <div>${linesHtml}</div>
             </div>
           </body>
@@ -415,11 +426,12 @@ export async function compositeBRollReel(
   // Input 0: normARollFull (9:16 1440x2560 vertical Talking Head + continuous VO audio!)
   // Input 1: openingOverlayPath (shown 0 .. bRollStart)
   // Input 2: brollBgCanvasPath (shown bRollStart .. bRollEnd)
-  // Input 3: normSSBottom (1356x814 Screen Studio UI recording at bottom (42, 1422) from bRollStart .. bRollEnd)
-  // Input 4: normR1 (1318x744 Result Video 1 at top (61, 500) during result-1 segment)
-  // Input 5: normR2 (1318x744 Result Video 2 at top (61, 500) during result-2 segment)
+  // Input 3: normSSBottom (1356x784 Screen Studio UI recording at bottom (42, 1404) from bRollStart .. bRollEnd)
+  // Input 4: normR1 (1318x744 Result Video 1 at top (61, 466) during result-1 segment)
+  // Input 5: normR2 (1318x744 Result Video 2 at top (61, 466) during result-2 segment)
   // Input 6..6+segments.length-1: badge PNGs
   // Input 6+segments.length..: subtitle PNGs
+  const hasR3 = Boolean(config.resultVideo3Path && existsSync(config.resultVideo3Path));
   const inputs: string[] = [
     "-i", normARollFull,
     "-loop", "1", "-i", openingOverlayPath,
@@ -427,7 +439,9 @@ export async function compositeBRollReel(
     "-i", normSSBottom,
     "-i", normR1,
     "-i", normR2,
+    ...(hasR3 ? ["-i", normR3] : []),
   ];
+  const baseBadgeOffset = hasR3 ? 7 : 6;
   for (const bp of badgePaths) {
     inputs.push("-loop", "1", "-i", bp);
   }
@@ -440,15 +454,15 @@ export async function compositeBRollReel(
   filters.push(
     `[0:v][1:v]overlay=0:0:enable='between(t,0,${bRollStart})'[v_open]`,
   );
-  // 2. From bRollStart..bRollEnd: overlay B-Roll canvas + Bottom Screen Studio UI (42, 1422) + Top Result 1 default (61, 500)
+  // 2. From bRollStart..bRollEnd: overlay B-Roll canvas + Bottom Screen Studio UI (42, 1404) + Top Result 1 default (61, 466)
   filters.push(
     `[v_open][2:v]overlay=0:0:enable='between(t,${bRollStart},${bRollEnd})'[v_bg]`,
   );
   filters.push(
-    `[v_bg][3:v]overlay=42:1422:enable='between(t,${bRollStart},${bRollEnd})'[v_ss_bot]`,
+    `[v_bg][3:v]overlay=42:1404:enable='between(t,${bRollStart},${bRollEnd})'[v_ss_bot]`,
   );
   filters.push(
-    `[v_ss_bot][4:v]overlay=61:500:enable='between(t,${bRollStart},${bRollEnd})'[v_r1_top]`,
+    `[v_ss_bot][4:v]overlay=61:466:enable='between(t,${bRollStart},${bRollEnd})'[v_r1_top]`,
   );
 
   let prev = "[v_r1_top]";
@@ -459,7 +473,13 @@ export async function compositeBRollReel(
     if (seg.source === "result-2") {
       const next = `[bseg_${stepCounter++}]`;
       filters.push(
-        `${prev}[5:v]overlay=61:500:enable='between(t,${seg.start},${seg.end})'${next}`,
+        `${prev}[5:v]overlay=61:466:enable='between(t,${seg.start},${seg.end})'${next}`,
+      );
+      prev = next;
+    } else if (seg.source === "result-3" && hasR3) {
+      const next = `[bseg_${stepCounter++}]`;
+      filters.push(
+        `${prev}[6:v]overlay=61:466:enable='between(t,${seg.start},${seg.end})'${next}`,
       );
       prev = next;
     }
@@ -467,7 +487,7 @@ export async function compositeBRollReel(
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i]!;
-    const badgeInputIdx = 6 + i;
+    const badgeInputIdx = baseBadgeOffset + i;
     const next = `[bbadge_${stepCounter++}]`;
     filters.push(
       `${prev}[${badgeInputIdx}:v]overlay=0:0:enable='between(t,${seg.start},${seg.end})'${next}`,
@@ -477,7 +497,7 @@ export async function compositeBRollReel(
 
   for (let i = 0; i < config.subtitleCues.length; i++) {
     const cue = config.subtitleCues[i]!;
-    const subInputIdx = 6 + segments.length + i;
+    const subInputIdx = baseBadgeOffset + segments.length + i;
     const isLast = i === config.subtitleCues.length - 1;
     const next = isLast ? "[vout]" : `[bsub_${stepCounter++}]`;
     filters.push(
@@ -491,7 +511,7 @@ export async function compositeBRollReel(
   const outReelPath = path.join(outDir, `${config.name} - Reel.mp4`);
 
   const comp = spawnSync(
-    ffmpegPath!,
+    FFMPEG_BIN,
     [
       "-y",
       ...inputs,
@@ -584,6 +604,14 @@ export async function runBRollReelHarness(config: BRollReelHarnessConfig) {
     puppeteer,
   );
 
+  const startJpgPath = path.join(workDir, "aroll_start_9x16.jpg");
+  const coverSceneImagePaths =
+    config.coverSceneImagePaths && config.coverSceneImagePaths.length > 0
+      ? config.coverSceneImagePaths
+      : existsSync(startJpgPath)
+        ? [startJpgPath]
+        : undefined;
+
   console.log("[4/4] Generating 9:16 2K Reel Cover via Seedream 5.0 Pro...");
   const coverPath = await generateSeedreamReelCover({
     name: config.name,
@@ -597,7 +625,7 @@ export async function runBRollReelHarness(config: BRollReelHarnessConfig) {
     coverHeadline: config.coverHeadline,
     coverCenterPrompt: config.coverCenterPrompt,
     coverDramaticStylePrompt: config.coverDramaticStylePrompt,
-    coverSceneImagePaths: config.coverSceneImagePaths,
+    coverSceneImagePaths,
     coverFooterLine1: "",
     coverFooterLine2: "",
     outDir: config.outDir,
