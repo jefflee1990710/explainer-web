@@ -16,6 +16,10 @@ export const REALISTIC_VIDEO_GRADE_FILTER = buildJutsuColorFilter(
 // Apply OpenJutsu's "Fix colours" (H3 Soft) to Talking-Head videos as well.
 export const TALKING_HEAD_SENSOR_GRAIN_FILTER = REALISTIC_VIDEO_GRADE_FILTER;
 
+// Organic one-handed smartphone selfie drift + occasional subtle wrist shake (4.5% overscan with multi-sine crop motion).
+export const HANDHELD_SELFIE_SHAKE_FILTER =
+  "scale=trunc(iw*1.045/2)*2:trunc(ih*1.045/2)*2:flags=lanczos,crop=trunc(iw/1.045/2)*2:trunc(ih/1.045/2)*2:x='(iw-ow)/2+((iw-ow)*0.36)*(0.55*sin(t*1.7)+0.30*sin(t*3.9+0.8)+0.15*sin(t*9.3)*max(0,sin(t*1.1-0.4)))':y='(ih-oh)/2+((ih-oh)*0.36)*(0.55*cos(t*1.4+0.5)+0.30*sin(t*3.3)+0.15*cos(t*8.7)*max(0,sin(t*1.1-0.4)))'";
+
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [
     "-y",
@@ -39,13 +43,20 @@ export function realisticVideoGradeArgs(inPath: string, outPath: string): string
   ];
 }
 
-export function talkingHeadSensorGrainArgs(inPath: string, outPath: string): string[] {
+export function talkingHeadSensorGrainArgs(
+  inPath: string,
+  outPath: string,
+  options?: { handheldSelfie?: boolean },
+): string[] {
+  const vf = options?.handheldSelfie
+    ? `${HANDHELD_SELFIE_SHAKE_FILTER},${TALKING_HEAD_SENSOR_GRAIN_FILTER}`
+    : TALKING_HEAD_SENSOR_GRAIN_FILTER;
   return [
     "-y",
     "-i",
     inPath,
     "-vf",
-    TALKING_HEAD_SENSOR_GRAIN_FILTER,
+    vf,
     "-c:v",
     "libx264",
     "-pix_fmt",
@@ -74,12 +85,15 @@ export async function gradeRealisticVideoBuffer(buffer: Buffer): Promise<Buffer>
   }
 }
 
-// Apply subtle iPhone CMOS sensor micro-grain to a finished Talking-Head MP4 buffer without darkening highlights.
-export async function gradeTalkingHeadSensorTextureBuffer(buffer: Buffer): Promise<Buffer> {
+// Apply OpenJutsu H3 Soft colour grade (and optional handheld selfie shake) to a finished Talking-Head MP4 buffer.
+export async function gradeTalkingHeadSensorTextureBuffer(
+  buffer: Buffer,
+  options?: { handheldSelfie?: boolean },
+): Promise<Buffer> {
   const dir = await mkdtemp(join(tmpdir(), "th-sensor-grain-"));
   try {
     await writeFile(join(dir, "in.mp4"), buffer);
-    await runFfmpeg(dir, talkingHeadSensorGrainArgs("in.mp4", "out.mp4"));
+    await runFfmpeg(dir, talkingHeadSensorGrainArgs("in.mp4", "out.mp4", options));
     return await readFile(join(dir, "out.mp4"));
   } finally {
     await rm(dir, { recursive: true, force: true });

@@ -1280,7 +1280,9 @@ export async function applyJobStatus(input: {
             const silenced = await smoothSilence(voiced);
             if (!applyFilmGrade) return silenced;
             if (audioFirstTalkingHead) {
-              return gradeTalkingHeadSensorTextureBuffer(silenced).catch((error: unknown) => {
+              return gradeTalkingHeadSensorTextureBuffer(silenced, {
+                handheldSelfie: project?.talkingHeadPoseId === "handheld-selfie",
+              }).catch((error: unknown) => {
                 console.error(
                   "[higgsfield] talking-head sensor grain failed; keeping clip bytes",
                   { requestId: job.requestId, error },

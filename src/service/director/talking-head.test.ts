@@ -256,7 +256,7 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.ok(clips[0].durationSeconds >= 5 && clips[0].durationSeconds <= 120);
 });
 
-test("a talking-head script under 120s stays in one clip, and the selfie crop hides hands", () => {
+test("a talking-head script under 120s stays in one clip, and the default collarbone-close framing holds a compact wireless lavalier mic", () => {
   const source = [
     "What if you have zero budget for marketing?",
     "Stop overthinking ads.",
@@ -274,15 +274,15 @@ test("a talking-head script under 120s stays in one clip, and the selfie crop hi
   assert.equal(clips.length, 1);
   assert.ok(clips[0].durationSeconds >= 15 && clips[0].durationSeconds <= 120);
   assert.doesNotMatch(clips[0].motionCamera, /left then right hand|right then left hand/);
-  assert.doesNotMatch(clips[0].motionCamera, /hand holding/);
   assert.match(clips[0].endScene, /No zoom, no reframe, no jump/);
   assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
   assert.doesNotMatch(clips[0].motionCamera, /fades and slides/);
   for (const clip of clips) {
     assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
     assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
-    assert.match(clip.startScene, /NO hands visible|no hands/i);
-    assert.match(clip.endScene, /No hands|no hands/i);
+    assert.match(clip.startScene, /wireless lavalier microphone/i);
+    assert.match(clip.endScene, /wireless lavalier microphone|wireless mic/i);
+    assert.doesNotMatch(clip.startScene, /No microphone/i);
     assert.doesNotMatch(clip.startScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
     assert.doesNotMatch(clip.endScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
   }
@@ -424,7 +424,7 @@ test("every talking-head clip endScene explicitly closes the mouth so next-clip 
   }
 });
 
-test("talking-head pose framing zooms from full-body to collarbone-close", () => {
+test("talking-head pose framing covers full-body, waist-up (with little mic), collarbone-close (with little mic), and handheld-selfie (with arm holding phone & shake)", () => {
   const full = planTalkingHeadClips({
     source: SCRIPT,
     language: "en",
@@ -447,16 +447,54 @@ test("talking-head pose framing zooms from full-body to collarbone-close", () =>
   assert.match(waist[0].startScene, /framed from the waist up/);
   assert.match(waist[0].startScene, /SEATED comfortably upright in an olive-green velvet armchair/);
   assert.match(waist[0].startScene, /wireless lavalier microphone/);
+  assert.match(waist[0].endScene, /wireless lavalier microphone/);
+  assert.match(waist[0].motionCamera, /wireless lavalier mic/);
 
-  const close = planTalkingHeadClips({
+  const closeEn = planTalkingHeadClips({
     source: SCRIPT,
     language: "en",
     aspectRatio: "9:16",
     talkingHeadPoseId: "collarbone-close",
     realistic: true,
   });
-  assert.match(close[0].startScene, /collarbone-up selfie close-up/);
-  assert.match(close[0].startScene, /face fills 60–65%/);
+  assert.match(closeEn[0].startScene, /collarbone-up selfie close-up/);
+  assert.match(closeEn[0].startScene, /face fills 60–65%/);
+  assert.match(closeEn[0].startScene, /wireless lavalier microphone/);
+  assert.match(closeEn[0].endScene, /wireless lavalier microphone|wireless mic/);
+  assert.match(closeEn[0].motionCamera, /wireless lavalier mic/);
+  assert.doesNotMatch(closeEn[0].startScene, /No microphone/i);
+
+  const closeYue = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "yue",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "collarbone-close",
+    realistic: true,
+  });
+  assert.match(closeYue[0].startScene, /無線領夾收音咪/);
+  assert.match(closeYue[0].endScene, /無線收音咪|無線領夾收音咪/);
+  assert.doesNotMatch(closeYue[0].startScene, /冇咪/);
+
+  const selfieEn = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "en",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "handheld-selfie",
+    realistic: true,
+  });
+  assert.match(selfieEn[0].startScene, /one arm extended forward holding the smartphone/i);
+  assert.match(selfieEn[0].startScene, /occasional slight handheld camera shake/i);
+  assert.match(selfieEn[0].motionCamera, /occasional slight handheld camera shake/i);
+
+  const selfieYue = planTalkingHeadClips({
+    source: SCRIPT,
+    language: "yue",
+    aspectRatio: "9:16",
+    talkingHeadPoseId: "handheld-selfie",
+    realistic: true,
+  });
+  assert.match(selfieYue[0].startScene, /手拎住手機自拍/);
+  assert.match(selfieYue[0].startScene, /偶爾有少少真實手震微晃/);
 });
 
 test("talking-head uploaded VO audio locks clip 1 durationSeconds and attaches uploadedVoUrl", () => {

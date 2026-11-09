@@ -161,12 +161,13 @@ export const TALKING_HEAD_BACKGROUNDS: readonly TalkingHeadBackgroundOption[] = 
   },
 ] as const;
 
-/** Framing zoom ladder for talking-head: full body → waist → chest → collarbone close-up. */
+/** Framing zoom ladder for talking-head: full body → waist → chest → collarbone close-up → handheld phone selfie. */
 export const TALKING_HEAD_POSE_FRAMINGS = [
   "full-body",
   "waist-up",
   "chest-up",
   "collarbone-close",
+  "handheld-selfie",
 ] as const;
 
 export type TalkingHeadPoseFraming = (typeof TALKING_HEAD_POSE_FRAMINGS)[number];
@@ -176,6 +177,7 @@ export const TALKING_HEAD_POSE_IDS = [
   "waist-up",
   "chest-up",
   "collarbone-close",
+  "handheld-selfie",
 ] as const;
 
 export type TalkingHeadPoseId = (typeof TALKING_HEAD_POSE_IDS)[number];
@@ -258,7 +260,7 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     startPoseYue:
       "角色：畫面只有呢一個人，腰部以上半身中景，舒適端正坐喺橄欖綠絲絨扶手椅上面（絕對唔好企起身），正面向住鏡頭置中，頭同上身喺畫面，雙眼平穩直望鏡頭中心，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度。右手拇指與食指輕捏住一個細小啞光黑色方形無線領夾收音咪（compact matte-black wireless lavalier mic）舉喺上胸／下巴下方位置，左手自然放鬆放喺大髀。",
     endPoseYue:
-      "角色：畫面仍然只有呢一個人，腰部以上半身中景，仍然端正坐喺同一張橄欖綠絲絨扶手椅上面，正面直望鏡頭，雙唇自然輕合保持平靜神情，右手仍然輕捏住迷你黑色無線收音咪停喺上胸前、左手放喺大髀，雙肩保持穩定。",
+      "角色：畫面仍然只有呢一個人，腰部以上半身中景，仍然端正坐喺同一張橄欖綠絲絨扶手椅上面，正面直望鏡頭，口部合上、雙唇自然輕合保持平靜神情，右手仍然輕捏住迷你黑色無線收音咪停喺上胸前、左手放喺大髀，雙肩保持穩定。",
     cameraEn:
       "Camera: locked 35mm f/1.8 lens at seated eye level, waist-up medium portrait (subject fills ~55–60% of frame), face tack-sharp and background softly blurred with creamy optical bokeh. Head, seated torso in the armchair, and the hand holding the compact wireless mic stay in frame. Do not stand up.",
     cameraYue:
@@ -268,7 +270,7 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     gestureYue:
       "端正坐喺扶手椅上；右手穩定輕捏住迷你黑色無線收音咪停喺上胸口前做支點，左手自然放鬆放喺大髀",
     geminiPreviewPrompt:
-      "Vertical 9:16 waist-up medium portrait of a friendly young East Asian creator sitting upright on a sofa, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), both hands resting on the lap, soft lived-in room bokeh behind, 24mm f/1.8, photorealistic phone camera look.",
+      "Vertical 9:16 waist-up medium portrait of a friendly young East Asian creator sitting upright in an olive-green velvet armchair, looking directly into the camera with a calm warm half-smile (lips gently closed, no toothy grin), right hand lightly holding a compact matte-black rectangular wireless lavalier microphone near her upper chest while left hand rests on her lap, soft lived-in room bokeh behind, 35mm f/1.8, photorealistic camera look.",
     previewUrl: "/talking-head-poses/waist-up.webp",
   },
   {
@@ -305,27 +307,55 @@ export const TALKING_HEAD_POSES: readonly TalkingHeadPoseOption[] = [
     nameEn: "Collarbone Close-Up",
     nameZhHant: "鎖骨特寫",
     nameZhHans: "锁骨特写",
-    descriptionEn: "Intimate collarbone-up selfie — face fills 60–65% of vertical 9:16 (tightest zoom).",
-    descriptionZhHant: "鎖骨以上自拍大特寫，臉佔直式畫面約 60–65%，最近距離取景。",
+    descriptionEn: "Intimate collarbone-up close-up holding a compact wireless lavalier mic — face fills 60–65% of vertical 9:16.",
+    descriptionZhHant: "鎖骨以上特寫，單手輕捏迷你無線領夾收音咪，臉佔直式畫面約 60–65%。",
     startPoseEn:
-      "Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression.",
+      "Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs visible), eyes locked into the lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 1–2 degrees, a live unposed expression. One hand lightly holds a compact matte-black rectangular handheld wireless lavalier microphone between thumb and index finger near the collarbone just below the chin.",
     endPoseEn:
-      "Character: still an intimate collarbone-up selfie close-up, facing the camera with eyes on the lens, lips gently closed in a calm neutral expression, same collarbone-up crop with face still filling 60–65% of frame.",
+      "Character: still an intimate collarbone-up selfie close-up, facing the camera with eyes on the lens, lips gently closed in a calm neutral expression, same collarbone-up crop with face still filling 60–65% of frame, one hand still holding the compact matte-black wireless lavalier microphone near the collarbone.",
     startPoseYue:
-      "角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），直望鏡頭好似用手持手機自拍，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，神情自然唔擺拍。",
+      "角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰或大髀），直望鏡頭，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 1–2 度，神情自然唔擺拍。一隻手拇指與食指輕捏住一個細小啞光黑色方形無線領夾收音咪（compact matte-black wireless lavalier mic）舉喺鎖骨／下巴下方位置。",
     endPoseYue:
-      "角色：仍然係鎖骨以上自拍大特寫，正面直望鏡頭，雙唇自然輕合保持平靜神情，裁切同開頭一樣、塊臉仍然佔畫面 60–65%，雙手唔入鏡。",
+      "角色：仍然係鎖骨以上自拍大特寫，正面直望鏡頭，口部合上、雙唇自然輕合保持平靜神情，裁切同開頭一樣、塊臉仍然佔畫面 60–65%，一隻手仍然輕捏住迷你黑色無線領夾收音咪停喺鎖骨前。",
     cameraEn:
-      "Camera: handheld iPhone front-camera selfie at 30–40cm, 24mm f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16 (subtle 10° high-angle; no waist, lap, thighs, or hands). Organic 1–2° handheld micro-sway. No microphone.",
+      "Camera: handheld iPhone front-camera selfie at 30–40cm, 24mm f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16 (subtle 10° high-angle; no waist, lap, or thighs) with the hand holding the compact matte-black wireless lavalier microphone in frame near the collarbone. Organic 1–2° handheld micro-sway.",
     cameraYue:
-      "鏡頭：手持 iPhone 前置自拍 30–40cm，24mm f/1.8，由鎖骨／上胸口裁切，塊臉佔 9:16 直式畫面 60–65%（微高角度 10 度；唔好拍腰、大髀或雙手）。有機手持微晃 1–2 度。冇咪。",
+      "鏡頭：手持 iPhone 前置自拍 30–40cm，24mm f/1.8，由鎖骨／上胸口裁切，塊臉佔 9:16 直式畫面 60–65%（微高角度 10 度；唔好拍腰或大髀），單手拎住嘅細小啞光黑色無線領夾收音咪留喺鎖骨前畫面入面。有機手持微晃 1–2 度。",
     gestureEn:
-      "no hands in frame; speech energy shows in mouth, brows, and cheeks only",
+      "one hand holds the compact matte-black wireless lavalier mic steadily near the collarbone/chin as a fixed anchor; speech energy shows in mouth, brows, and cheeks",
     gestureYue:
-      "雙手唔入鏡；講嘢能量只靠口型、眉毛同面頰微表情",
+      "一隻手穩定輕捏住迷你黑色無線領夾收音咪停喺鎖骨／下巴下方做支點；講嘢能量靠口型、眉毛同面頰微表情帶出",
     geminiPreviewPrompt:
-      "Vertical 9:16 intimate collarbone-up selfie close-up of a young East Asian creator, face filling about 60-65% of the frame, looking directly into the front camera with a calm warm half-smile (lips gently closed, no toothy grin), no hands waist or lap visible, soft side window light, lived-in bedroom corner softly blurred behind, iPhone 16 Pro 24mm f/1.8 photorealistic.",
+      "Vertical 9:16 intimate collarbone-up selfie close-up of a young East Asian creator, face filling about 60-65% of the frame, looking directly into the front camera with a calm warm half-smile (lips gently closed, no toothy grin), one hand lightly holding a compact matte-black rectangular wireless lavalier microphone between thumb and index finger near the collarbone below the chin, soft side window light, lived-in bedroom corner softly blurred behind, iPhone 16 Pro 24mm f/1.8 photorealistic.",
     previewUrl: "/talking-head-poses/collarbone-close.webp",
+  },
+  {
+    id: "handheld-selfie",
+    framing: "handheld-selfie",
+    nameEn: "Handheld Phone Selfie",
+    nameZhHant: "手持手機自拍",
+    nameZhHans: "手持手机自拍",
+    descriptionEn: "One-arm extended smartphone front-camera selfie with occasional realistic camera shake.",
+    descriptionZhHant: "手拎住手機自拍視角（單手伸出前鏡實拍），偶爾帶有自然手震微晃，極似真人實拍。",
+    startPoseEn:
+      "Character: authentic handheld smartphone front-camera selfie of the only person in the frame, framed from the upper chest up with one arm extended forward holding the smartphone camera just outside the bottom corner of the lens (creating a natural, slightly angled shoulder line and genuine one-handed selfie arm perspective while the other arm stays relaxed out of frame), eyes locked straight into the front camera lens with a natural mid-speech ready-to-speak expression (lips softly parted ~4–6mm showing a subtle, natural hint of the real upper front teeth from the reference photo as an oral anchor, lower teeth covered by the lower lip, cheeks relaxed and un-smiled — not a wide toothy grin, calm open un-squinted eyes), head tilted 2 degrees in a candid, unposed real-person vlog posture.",
+    endPoseEn:
+      "Character: still filming with one arm extended forward holding the smartphone front camera in the same candid upper-chest selfie framing, facing the lens with calm focused eyes, lips gently closed in a natural relaxed expression, same angled selfie shoulder line.",
+    startPoseYue:
+      "角色：真實手拎住手機自拍前鏡視角，畫面只有呢一個人，由上胸口以上裁切，其中一隻手臂同肩膀自然向鏡頭前下方伸出拎住部手機自拍（呈現真實單手舉機自拍嘅微斜肩線與手臂透視感，另一隻手自然放鬆唔入鏡），雙眼直望手機前置鏡頭中心，正準備開口講第一隻字嘅自然微啟唇神情（雙唇自然微啟約 4–6mm、隱約露出少少參考相片中真實自然嘅上排門牙作為牙齒基準、下唇遮住下排牙齒、面頰完全放鬆唔係大笑、唔擠蘋果肌、雙眼自然張開唔瞇眼），頭微傾 2 度，完全似真人隨手拎起手機自拍講嘢。",
+    endPoseYue:
+      "角色：仍然保持單手伸出向鏡頭方向手拎住手機自拍嘅上胸口自拍構圖與微斜肩線，正面直望手機鏡頭，口部合上、雙唇自然輕合保持平靜真實神情。",
+    cameraEn:
+      "Camera: candid one-handed iPhone 16 Pro front-camera selfie held at arm's length (35–45cm, 24mm f/1.8 wide selfie lens, subtle 12° high-angle perspective with one shoulder and upper arm visibly reaching forward toward the camera corner to hold the phone), natural handheld movement with occasional slight handheld camera shake and wrist micro-jitter so it looks 100% real. No microphone.",
+    cameraYue:
+      "鏡頭：單手伸出拎住 iPhone 16 Pro 前置鏡頭自拍（距離 35–45cm，24mm f/1.8 自拍焦段，微高角度 12 度俯拍，清楚見到一邊肩膀同上手臂向鏡頭前下方伸出拎住手機），帶有真實手持呼吸晃動同偶爾有少少真實手震微晃（occasional slight camera shake），睇落 100% 似真人手持實拍。冇咪。",
+    gestureEn:
+      "one arm stays extended forward toward the lens holding the smartphone camera with occasional slight handheld camera shake and natural breathing sway; the other hand stays relaxed out of frame",
+    gestureYue:
+      "一隻手臂保持向鏡頭前下方伸出拎住手機自拍，伴隨自然呼吸晃動同偶爾少少手震微晃；另一隻手自然放鬆唔入鏡",
+    geminiPreviewPrompt:
+      "Vertical 9:16 candid handheld smartphone front-camera POV selfie of a young East Asian creator from the upper chest up, one arm and shoulder visibly reaching forward toward the bottom corner of the camera lens as she holds the phone at arm's length to film herself, subtle 12-degree high-angle selfie perspective, calm warm natural expression (lips gently closed, no toothy grin), soft window daylight, lived-in room softly blurred behind, iPhone 16 Pro 24mm f/1.8 photorealistic.",
+    previewUrl: "/talking-head-poses/handheld-selfie.webp",
   },
 ] as const;
 

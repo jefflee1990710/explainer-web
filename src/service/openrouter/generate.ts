@@ -297,9 +297,19 @@ function heyGenAvatarIvBasePromptForLanguage(
   language?: VoLanguage,
 ): string {
   const fullBody = poseId === "full-body" || poseId === "waist-up";
-  const rawBase = fullBody
-    ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
-    : HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  const holdsLittleMic =
+    !poseId || poseId === "collarbone-close" || poseId === "waist-up";
+  const handheldSelfie = poseId === "handheld-selfie";
+  const poseClause = handheldSelfie
+    ? "Keep the extended selfie arm anchored toward the camera corner as if holding the smartphone in one hand, with organic handheld phone selfie sway and occasional slight handheld camera shake (2–4 degrees of natural wrist drift and occasional subtle shake bursts so it looks 100% like a real person filming themselves on a phone). "
+    : holdsLittleMic
+      ? "Keep the hand holding the compact matte-black wireless lavalier microphone steady near the collarbone / upper chest throughout the video (never drop, wave, or morph the wireless lavalier microphone). "
+      : "";
+  const rawBase =
+    poseClause +
+    (fullBody
+      ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+      : HEYGEN_AVATAR_IV_MOTION_PROMPT);
   if (!language || language === "yue") {
     return rawBase;
   }

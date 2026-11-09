@@ -531,4 +531,18 @@ test("heyGenAvatarIvMotionPrompt and openRouterHeyGenAudioVideoBody pass speakin
   assert.match(enBody.prompt, /Speaking in English/i);
   assert.match(enBody.motion_prompt || "", /Speaking in English/i);
   assert.doesNotMatch(enBody.prompt, /冇 mou5/);
+  assert.match(enPrompt, /wireless lavalier microphone/i);
+
+  const waistPrompt = heyGenAvatarIvMotionPrompt("waist-up", {
+    language: "en",
+    spokenScript: "Testing waist-up mic anchor.",
+  });
+  assert.match(waistPrompt, /wireless lavalier microphone/i);
+
+  const selfiePrompt = heyGenAvatarIvMotionPrompt("handheld-selfie", {
+    language: "yue",
+    spokenScript: "手拎住手機自拍講嘢。",
+  });
+  assert.match(selfiePrompt, /occasional slight handheld camera shake/i);
+  assert.match(selfiePrompt, /extended selfie arm/i);
 });

@@ -373,8 +373,16 @@ export function planTalkingHeadClips(input: {
   const basePerf =
     input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
   const selectedBg = getTalkingHeadBackground(input.talkingHeadBackgroundId);
-  const selectedPose = getTalkingHeadPose(input.talkingHeadPoseId);
+  const effectivePoseId =
+    input.talkingHeadPoseId ||
+    (talkingShot === "full-body" ? undefined : DEFAULT_TALKING_HEAD_POSE_ID);
+  const selectedPose = getTalkingHeadPose(effectivePoseId);
   const isZh = isChineseScaffolding(input.language);
+  const poseHoldsLittleMic =
+    selectedPose?.id === "collarbone-close" || selectedPose?.id === "waist-up";
+  const defaultMicProp = isZh
+    ? "一個細小啞光黑色方形無線領夾收音咪（compact matte-black wireless lavalier mic）"
+    : "a compact matte-black rectangular wireless lavalier microphone";
   const perf: PerformanceSlots = {
     ...basePerf,
     ...(selectedBg
@@ -386,6 +394,11 @@ export function planTalkingHeadClips(input: {
     ...(selectedPose
       ? {
           gestureLibrary: isZh ? selectedPose.gestureYue : selectedPose.gestureEn,
+        }
+      : {}),
+    ...(poseHoldsLittleMic && !basePerf.anchorProp?.trim()
+      ? {
+          anchorProp: defaultMicProp,
         }
       : {}),
   };
@@ -420,7 +433,8 @@ export function planTalkingHeadClips(input: {
     const realism = {
       fullBody: talkingShot === "full-body",
       openingPhoto: input.openingPhoto,
-      poseOwnsFraming: talkingHeadPoseOwnsFraming(input.talkingHeadPoseId),
+      poseOwnsFraming: talkingHeadPoseOwnsFraming(effectivePoseId),
+      handheldSelfie: effectivePoseId === "handheld-selfie",
     };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
@@ -568,7 +582,7 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
-      : "Handheld iPhone front-camera selfie at 30–40cm, 24mm at f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16. Organic 1–2° handheld micro-sway. No waist, lap, thighs, or hands in frame. No microphone. The character sits and looks into the lens. Do not stand them up.",
+      : "Handheld iPhone front-camera selfie at 30–40cm, 24mm at f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16. Organic 1–2° handheld micro-sway. No waist, lap, or thighs in frame; one hand lightly holds a compact matte-black wireless lavalier microphone near the collarbone. The character sits and looks into the lens. Do not stand them up.",
     "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. The camera does not jump: the end still is the same crop, distance, and screen position as the start still. Only the mouth, a few degrees of head, and the hands change. Motion is continuous lip-sync: eyes on the lens, head tilting and nodding, both hands gesturing. The voice says only this clip's line, once.",
   ].join(" ");
 }
@@ -781,9 +795,9 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
   const selectedPose =
-    scene.talkingHeadPoseId && scene.talkingHeadPoseId !== DEFAULT_TALKING_HEAD_POSE_ID
-      ? getTalkingHeadPose(scene.talkingHeadPoseId)
-      : undefined;
+    scene.shot === "full-body" && !scene.talkingHeadPoseId
+      ? undefined
+      : getTalkingHeadPose(scene.talkingHeadPoseId ?? DEFAULT_TALKING_HEAD_POSE_ID);
   const useEn = !isChineseScaffolding(language);
   const camera = selectedPose
     ? useEn
