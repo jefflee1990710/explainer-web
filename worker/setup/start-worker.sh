@@ -11,6 +11,34 @@ if [ -z "${COMFY_PROXY_TOKEN:-}" ] && [ -f /workspace/.comfy-token ]; then
   export COMFY_PROXY_TOKEN="$(cat /workspace/.comfy-token)"
 fi
 
+# 0. Ensure H3ClipShots in comfyui-h3-oneclick-swap samples 4 chronological frames per shot (>=2s) instead of only 2
+ONECLICK_INIT="/workspace/ComfyUI/custom_nodes/comfyui-h3-oneclick-swap/__init__.py"
+if [ -f "$ONECLICK_INIT" ] && grep -q "The images come in pairs, the first and last frame of each shot:" "$ONECLICK_INIT"; then
+  echo "[start-worker] patching H3ClipShots to sample 4 frames per shot..."
+  $PYTHON - <<'PY'
+path = "/workspace/ComfyUI/custom_nodes/comfyui-h3-oneclick-swap/__init__.py"
+with open(path, "r") as f:
+    text = f.read()
+old = '''        lines = ["The clip has %d shot%s. The images come in pairs, the first and last frame of each shot:" % (len(bounds), "" if len(bounds) == 1 else "s")]
+        for k, (a, b) in enumerate(bounds, 1):
+            picks += [a + (b - a) // 6, b - 1 - (b - a) // 6]
+            lines.append("Images %d and %d: shot %d, from %s to %s." % (2 * k - 1, 2 * k, k, timestamp(a / FPS), timestamp(b / FPS)))'''
+new = '''        lines = ["The clip has %d shot%s. The images show each shot in chronological order from start to end:" % (len(bounds), "" if len(bounds) == 1 else "s")]
+        for k, (a, b) in enumerate(bounds, 1):
+            span = max(1, b - a)
+            shot_picks = [a + span // 12, a + (span * 4) // 12, a + (span * 8) // 12, b - 1 - span // 12] if span >= 48 else [a + span // 6, b - 1 - span // 6]
+            first_img = len(picks) + 1
+            picks += shot_picks
+            lines.append("Images %d to %d: shot %d, from %s to %s." % (first_img, len(picks), k, timestamp(a / FPS), timestamp(b / FPS)))'''
+if old in text:
+    with open(path, "w") as f:
+        f.write(text.replace(old, new, 1))
+    print("Patched H3ClipShots successfully.")
+PY
+  pkill -9 -f "main.py --listen 127.0.0.1 --port 8188" >/dev/null 2>&1 || true
+  sleep 2
+fi
+
 # 1. Ensure ComfyUI is supervised on 127.0.0.1:8188 with --fast-disk so NVMe disk-backed mmap is used inside Docker
 if ! pgrep -f "main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch --fast-disk" >/dev/null 2>&1; then
   pkill -9 -f "comfy-supervisor" >/dev/null 2>&1 || true

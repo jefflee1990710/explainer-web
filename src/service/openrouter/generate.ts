@@ -2,6 +2,7 @@ import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
+import { talkingHeadLanguageName } from "@/service/minimax/talking-head-reference";
 import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
@@ -273,6 +274,42 @@ export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
 export const HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT =
   "Keep the exact framing, warm 3400K–4200K golden-amber indoor lighting and warm colour temperature (warm creamy highlights, warm healthy skin undertones, and warm room tones — never shift toward cold blue, cyan, or clinical grey white balance), background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Keep both arms and hands calm, relaxed, and still down at the sides/pocket throughout the video — NO hand gestures, NO waving, NO raising arms, and NO blurry hand motion. Add subtle, natural human breathing and clear 2–3 degree head nods, tilts, or shakes matching the sentence meaning while facing the camera. PRIORITY 1 — EXPRESSIVE, READABLE CONTENT-DRIVEN MICRO-EXPRESSIONS (NEVER A FROZEN POKER FACE, NEVER JUST LAUGH): Animate clear, readable ~3–4mm brow and eye micro-expressions with 2–3° head language (ZERO eye-squinting laughs, ZERO big toothy grins) that visibly shift based on the text content — inquisitive brow lift and head tilt on questions, serious un-smiled brow furrow and gentle head shake on problems/pain points, earnest confident nod on solutions, and brightened eyes with a warm closed-lip half-smile on positive reveals and the closing CTA. PRIORITY 2 — PHONEME-ACCURATE CANTONESE & ENGLISH CO-ARTICULATED LIP-SYNC: (1) Natural ~20–25% vertical jaw opening (never gape wide); (2) Mandatory bilabial `-m / m / b / p` lip closure — on every syllable with a bilabial consonant or `-m` coda (such as `冇 mou5`, `諗 nam2`, `點 dim2`), the upper and lower lips MUST press cleanly closed together before releasing into the next syllable (never leave the mouth hanging open on `諗`); (3) Subtle, restrained lip rounding on `o / u / w / gw` vowels (such as `過 gwo3`, `都 dou1`, `做 zou6`) — form only a small, soft, natural lip rounding with relaxed cheeks, NEVER a tight pucker or huge circular cartoon O-mouth, and keep the eyes calmly open (no squinting or closing eyes on rounded vowels); (4) Lower lip cushions and covers the lower teeth at all times (never show both rows of teeth, never rubbery face warp). Natural blinks every few seconds while eyes stay engaged on the lens.";
 
+export function heyGenAvatarIvLanguageSpeechLock(
+  language?: VoLanguage,
+  spokenScript?: string,
+): string {
+  const langName = talkingHeadLanguageName(language);
+  const cleanScript = spokenScript?.trim();
+  const parts: string[] = [];
+  if (langName) {
+    parts.push(
+      `Speaking in ${langName}. Synchronize mouth visemes, jaw opening, tongue placement, and lip closures word-for-word to the ${langName} reference audio; drop any resting smile while speaking so vowels and consonants articulate cleanly.`,
+    );
+  }
+  if (cleanScript) {
+    parts.push(`Spoken line${langName ? ` in ${langName}` : ""}: "${cleanScript}"`);
+  }
+  return parts.join(" ");
+}
+
+function heyGenAvatarIvBasePromptForLanguage(
+  poseId?: string | null,
+  language?: VoLanguage,
+): string {
+  const fullBody = poseId === "full-body" || poseId === "waist-up";
+  const rawBase = fullBody
+    ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
+    : HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  if (!language || language === "yue") {
+    return rawBase;
+  }
+  const langName = talkingHeadLanguageName(language) || "English";
+  return rawBase.replace(
+    /PRIORITY 2 — PHONEME-ACCURATE CANTONESE & ENGLISH CO-ARTICULATED LIP-SYNC:[\s\S]*$/,
+    `PRIORITY 2 — PHONEME-ACCURATE ${langName.toUpperCase()} CO-ARTICULATED LIP-SYNC: (1) Drop any resting closed-lip smile as soon as speech begins and open the mouth naturally (~30–45% conversational vertical jaw opening on stressed ${langName} vowels, never clamping the teeth shut or holding a fixed grin while talking); (2) Crisp bilabial m/b/p lip closure and labiodental f/v articulation matched strictly to the reference audio waveform; (3) Natural relaxed lip rounding on rounded vowels without cartoon O-mouth or rubbery cheek distortion; (4) Settle the mouth cleanly at speech pauses and at the end of the line.`,
+  );
+}
+
 export function heyGenAvatarIvMotionPrompt(
   poseId?: string | null,
   options?: {
@@ -282,30 +319,33 @@ export function heyGenAvatarIvMotionPrompt(
     language?: VoLanguage;
   },
 ): string {
-  const base =
-    poseId === "full-body" || poseId === "waist-up"
-      ? HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT
-      : HEYGEN_AVATAR_IV_MOTION_PROMPT;
+  const base = heyGenAvatarIvBasePromptForLanguage(poseId, options?.language);
+  const langLock = heyGenAvatarIvLanguageSpeechLock(
+    options?.language,
+    options?.spokenScript,
+  );
+  const withLang = (body: string) => (langLock ? `${langLock} ${body}` : body);
+
   if (options?.motionPrompt?.trim()) {
     const cleanedMotion = options.motionPrompt
       .replace(/\s*(?:Realism:|真實感：)[\s\S]*$/i, "")
       .trim();
-    if (cleanedMotion) return `${base} ${cleanedMotion}`;
+    if (cleanedMotion) return withLang(`${base} ${cleanedMotion}`);
   }
   const directorArcMatch = options?.directorMotionNote?.match(
     /(?:Director sentence-by-sentence facial expression choreography|Director content-driven micro-expression plan|導演逐句微表情(?:編排|規劃))[^]*?(?=\s*(?:Realism:|真實感：)|$)/,
   );
   if (directorArcMatch?.[0]) {
-    return `${base} ${directorArcMatch[0].trim()}`;
+    return withLang(`${base} ${directorArcMatch[0].trim()}`);
   }
   if (options?.spokenScript?.trim()) {
     const fallbackArc = planTalkingHeadFacialExpressionArc(
       options.spokenScript,
       options.language,
     );
-    if (fallbackArc) return `${base} ${fallbackArc}`;
+    if (fallbackArc) return withLang(`${base} ${fallbackArc}`);
   }
-  return base;
+  return withLang(base);
 }
 
 export function openRouterVideoAudioLipSyncBody(input: {
@@ -345,6 +385,8 @@ export function openRouterHeyGenAudioVideoBody(input: {
   prompt: string;
   motionPrompt?: string;
   expressiveness?: "low" | "medium" | "high";
+  language?: VoLanguage;
+  spokenScript?: string;
   aspectRatio: AspectRatio;
   durationSeconds?: number;
   startImageUrl: string;
@@ -354,14 +396,33 @@ export function openRouterHeyGenAudioVideoBody(input: {
   const model = input.model || OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const configured = clipVideoResolution();
   const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  const langLock = isAvatarIv
+    ? heyGenAvatarIvLanguageSpeechLock(input.language, input.spokenScript)
+    : "";
+  const appendLangLockIfMissing = (text: string) => {
+    if (!langLock) return text;
+    const langName = talkingHeadLanguageName(input.language);
+    if (langName && text.includes(`Speaking in ${langName}`)) return text;
+    return `${langLock} ${text}`.trim();
+  };
+  const hasKnownAvatarPrompt =
+    input.prompt.startsWith(HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT) ||
+    input.prompt.startsWith(HEYGEN_AVATAR_IV_MOTION_PROMPT) ||
+    /^Speaking in /i.test(input.prompt) ||
+    Boolean(input.language || input.spokenScript);
   const effectivePrompt = isAvatarIv
-    ? input.prompt.startsWith(HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT) ||
-      input.prompt.startsWith(HEYGEN_AVATAR_IV_MOTION_PROMPT)
-      ? capOpenRouterVideoPrompt(input.prompt)
-      : HEYGEN_AVATAR_IV_MOTION_PROMPT
+    ? hasKnownAvatarPrompt && input.prompt.trim()
+      ? capOpenRouterVideoPrompt(appendLangLockIfMissing(input.prompt.trim()))
+      : capOpenRouterVideoPrompt(
+          appendLangLockIfMissing(
+            heyGenAvatarIvBasePromptForLanguage(undefined, input.language),
+          ),
+        )
     : capOpenRouterVideoPrompt(input.prompt);
   const nativeMotionPrompt = isAvatarIv
-    ? capOpenRouterVideoPrompt(input.motionPrompt?.trim() || effectivePrompt)
+    ? capOpenRouterVideoPrompt(
+        appendLangLockIfMissing(input.motionPrompt?.trim() || effectivePrompt),
+      )
     : undefined;
   const nativeExpressiveness = isAvatarIv
     ? input.expressiveness || "low"
@@ -516,6 +577,8 @@ export async function submitOpenRouterClipVideo(
     prompt: string;
     motionPrompt?: string;
     expressiveness?: "low" | "medium" | "high";
+    language?: VoLanguage;
+    spokenScript?: string;
     aspectRatio: AspectRatio;
     durationSeconds: number;
     startImageUrl: string;
@@ -541,6 +604,8 @@ export async function submitOpenRouterClipVideo(
           prompt: input.prompt,
           motionPrompt: input.motionPrompt,
           expressiveness: input.expressiveness,
+          language: input.language,
+          spokenScript: input.spokenScript,
           aspectRatio: input.aspectRatio,
           durationSeconds: input.durationSeconds,
           startImageUrl: input.startImageUrl,

@@ -56,7 +56,13 @@ test("simple graph matches OpenJutsu defaults and the selected section", () => {
   assert.equal(graph["68"], undefined);
   assert.equal(graph["15"].inputs.unet_name, "minimax_h3_ref2va_pruned_int8_convrot.safetensors");
   assert.equal(graph["16"].inputs.lora_name, "minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors");
-  assert.equal(graph["30"].inputs.ref_image_size, "max");
+  assert.equal(graph["30"].inputs.ref_image_size, "match");
+  // Keep SAM face tracking nodes (69, 70, 71) wired into H3GreyMannequins (41) even when noLipSync is false
+  assert.ok(graph["69"]);
+  assert.ok(graph["70"]);
+  assert.ok(graph["71"]);
+  assert.deepEqual(graph["41"].inputs.faces, ["71", 0]);
+  assert.deepEqual(graph["41"].inputs.face_size, ["71", 1]);
   assert.match(String(graph["4"].inputs.prompt), /face shape/i);
   assert.equal(graph.scro_run_name.inputs.string_b, "_job1");
   assert.equal(graph["67"].inputs.filename, "swap_%date:yyyy-MM-dd%_job1");
@@ -265,7 +271,22 @@ test("canSubmitJutsuComfy only enables ComfyUI fast-path for character/object vi
   }
 });
 
-test("resolveComfySwapMotionSize upgrades 512 to 768 when the subject is small in the frame", () => {
+test("resolveComfySwapMotionSize upgrades 512 to 768 when personMappings is absent or the subject is not a large close-up", () => {
+  // Null or empty personMappings defaults to 768 so distant/acrobatic subjects stay sharp
+  assert.equal(
+    resolveComfySwapMotionSize({
+      motionSize: 512,
+      personMappings: undefined,
+    }),
+    768,
+  );
+  assert.equal(
+    resolveComfySwapMotionSize({
+      motionSize: 512,
+      personMappings: [],
+    }),
+    768,
+  );
   assert.equal(
     resolveComfySwapMotionSize({
       motionSize: 512,
@@ -396,10 +417,10 @@ test("trySubmitJutsuComfy leaves H3OneClickSwapPlan roles blank so Node 10 video
     assert.ok(submittedPromptGraph);
     // Node 11 (H3OneClickSwapPlan) roles MUST be empty string ("") rather than "Cathy"
     assert.equal(submittedPromptGraph["11"]?.inputs.roles, "");
-    // Node 32 (Motion reference video) is auto-upgraded to 768 because box.height (0.272) < 0.45
+    // Node 32 (Motion reference video) is auto-upgraded to 768 because box.height (0.272) < 0.55
     assert.equal(submittedPromptGraph["32"]?.inputs.largest_size, 768);
-    // Node 30 (MiniMaxH3ReferenceToVideo) uses ref_image_size = "max"
-    assert.equal(submittedPromptGraph["30"]?.inputs.ref_image_size, "max");
+    // Node 30 (MiniMaxH3ReferenceToVideo) uses OpenJutsu native ref_image_size = "match"
+    assert.equal(submittedPromptGraph["30"]?.inputs.ref_image_size, "match");
   } finally {
     if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
     else process.env.COMFY_BASE_URL = prevUrl;
@@ -458,16 +479,17 @@ test("buildSimpleGraph and trySubmitJutsuComfy lock characterOutfitSpec, suppres
   );
   assert.deepEqual(graph["11"].inputs.picture_1_text, ["scro_picture_1_text", 0]);
 
-  // 2. Grey mannequin (Node 41) softens source clothing contrast inside the person mask (Node 40)
-  assert.equal(graph["41"].inputs.blur, 0.08);
-  assert.equal(graph.scro_mannequin_contrast?.class_type, "AdjustContrast");
-  assert.deepEqual(graph.scro_mannequin_contrast?.inputs.images, ["41", 0]);
-  assert.equal(graph.scro_mannequin_contrast?.inputs.factor, 0.45);
-  assert.equal(graph.scro_mannequin_masked?.class_type, "ImageCompositeMasked");
-  assert.deepEqual(graph.scro_mannequin_masked?.inputs.destination, ["41", 0]);
-  assert.deepEqual(graph.scro_mannequin_masked?.inputs.source, ["scro_mannequin_contrast", 0]);
-  assert.deepEqual(graph.scro_mannequin_masked?.inputs.mask, ["40", 0]);
-  assert.deepEqual(graph["30"].inputs["ref_videos.ref_video_0"], ["scro_mannequin_masked", 0]);
+  // 2. Grey mannequin (Node 41) preserves OpenJutsu's native blur (0.04) and direct link to Node 30 without contrast flattening
+  assert.equal(graph["41"].inputs.blur, 0.04);
+  assert.equal(graph.scro_mannequin_contrast, undefined);
+  assert.equal(graph.scro_mannequin_masked, undefined);
+  assert.deepEqual(graph["30"].inputs["ref_videos.ref_video_0"], ["41", 0]);
+
+  // 2b. Node 43 (H3ClipShots) shot_prompt is enhanced with chronological full-body motion instructions
+  assert.equal(graph.scro_shot_prompt?.class_type, "StringConcatenate");
+  assert.deepEqual(graph.scro_shot_prompt?.inputs.string_a, ["11", 4]);
+  assert.match(String(graph.scro_shot_prompt?.inputs.string_b), /spinning|flipping|orientation|kicks/i);
+  assert.deepEqual(graph["43"].inputs.shot_prompt, ["scro_shot_prompt", 0]);
 
   // 3. Shot list output from Node 44 is scrubbed of source bags, earphones, and tops before Node 45 (H3FillShots)
   assert.equal(graph.scro_clean_shots?.class_type, "RegexReplace");
@@ -885,6 +907,9 @@ test("buildObjectGraph supports add mode with H3ObjectPlacementMask, buildAdvanc
   const advPlan = Object.values(advGraph).find((n) => n.class_type === "H3AdvancedSwapPlan");
   assert.ok(advPlan);
   assert.equal(advPlan.inputs.roles, "the dancer on the left\nthe singer on the right");
+  assert.equal(advGraph.scro_shot_prompt?.class_type, "StringConcatenate");
+  const advClipShots = Object.values(advGraph).find((n) => n.class_type === "H3ClipShots");
+  assert.deepEqual(advClipShots?.inputs.shot_prompt, ["scro_shot_prompt", 0]);
 
   const monGraph = buildMontageGraph({
     videoName: "src.mp4",

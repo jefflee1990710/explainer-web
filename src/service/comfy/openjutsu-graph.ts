@@ -17,7 +17,7 @@ export type ApiNode = {
 export type ApiGraph = Record<string, ApiNode>;
 
 export const OPENJUTSU_RESOLUTION = "736p";
-export const OPENJUTSU_MOTION = 512;
+export const OPENJUTSU_MOTION = 768;
 export const OPENJUTSU_CLIP_SECONDS = 6;
 
 const DEFAULT_MODEL = {
@@ -59,8 +59,12 @@ const SIMPLE_CLEAN_SHOTS_REGEX =
   "(?:,?\\s*\\b(?:with|in|wearing|dressed in|sporting)\\s+|\\s+and\\s+)?(?:(?:a|an|the|her|his|their)\\s+)?(?:(?!with\\b|in\\b|and\\b)[\\w-]+\\s+){0,3}?(?:crop\\s+top|tank\\s+top|tube\\s+top|halter\\s+top|camisole|sports\\s+bra|bra|top|shoulder\\s+bag|crossbody\\s+bag|handbag|tote\\s+bag|bag|purse|backpack|earphones?|earbuds?|headphones?|headset|lanyard|hair(?:style|cut)?|bangs|fringe|ponytail|braids?|pigtails?|bun|locks|tresses|strands?)(?:\\s+(?:slung|dangling|hanging|falling|flowing|cascading|draped|worn|loose|down)(?:\\s+down|\\s+forward|\\s+loosely)?(?:\\s+(?:from|over|across|around|past|below)\\s+(?:their|her|his|the)\\s+[\\w\\s]+?)?(?=[,.;]|\\s+and\\b|$))?";
 
 const MUTE = /^Mute the (clip|reference) audio H3 hears$/;
-const NO_LIP_SYNC =
-  /^(No lip-sync in the prompt|SAM: faces|SAM 3\.1 track faces|Faces \(shown on the mannequins?\))$/;
+// Keep SAM face-tracking nodes (69: SAM: faces, 70: SAM 3.1 track faces, 71: Faces (shown on the mannequin))
+// connected to H3GreyMannequins at all times so H3 always sees where the head/face is oriented inside the silhouette.
+const NO_LIP_SYNC = /^(No lip-sync in the prompt)$/;
+
+const FULL_BODY_SHOT_MOTION_INSTRUCTION =
+  "Describe the complete chronological progression of each subject's full-body movement from the start to the end of each shot, explicitly naming any running, jumping, mid-air spinning, flipping, inverted or horizontal body orientation, kicks, turns, and landing.";
 
 type Section = { start: number; length: number };
 
@@ -422,8 +426,8 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   silenceWhenSoundless(graph);
   graph[SIMPLE_NODES.describePicture].inputs.prompt = SIMPLE_DESCRIBE_PICTURE_PROMPT;
   graph[SIMPLE_NODES.describePicture].inputs.max_length = 150;
-  // Use "max" (2048px short edge) so full-body standing character sheets retain full facial detail in H3 reference tokens.
-  graph[SIMPLE_NODES.referenceConditioning].inputs.ref_image_size = "max";
+  // Keep OpenJutsu's native "match" (736p) so a static upright reference portrait does not overpower the grey mannequin's dynamic body orientation.
+  graph[SIMPLE_NODES.referenceConditioning].inputs.ref_image_size = "match";
   graph[SIMPLE_NODES.target].inputs.text = input.target;
   graph[SIMPLE_NODES.growMask].inputs.expand = SIMPLE_MARGINS[input.margin];
   if (!input.hatFix) {
@@ -433,33 +437,17 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   if (!input.noLipSync) dropNoLipSync(graph);
   setMotionSize(graph, input.motion);
 
-  // Soften dark/light clothing blocks inside the grey mannequin (Node 41) so a dark source top on bare skin
-  // does not bleed through as a black garment when the target character wears a light/pastel outfit.
-  graph[SIMPLE_NODES.mannequin].inputs.blur = 0.08;
-  graph.scro_mannequin_contrast = {
-    class_type: "AdjustContrast",
+  // Enhance H3ClipShots (Node 43) shot_prompt so Qwen3-VL (Node 44) describes full chronological body motion & orientation changes.
+  graph.scro_shot_prompt = {
+    class_type: "StringConcatenate",
     inputs: {
-      images: [SIMPLE_NODES.mannequin, 0],
-      factor: 0.45,
+      string_a: [SIMPLE_NODES.plan, 4],
+      string_b: FULL_BODY_SHOT_MOTION_INSTRUCTION,
+      delimiter: " ",
     },
-    _meta: { title: "Flatten mannequin clothing contrast" },
+    _meta: { title: "Enhance shot describer with full-body motion rules" },
   };
-  graph.scro_mannequin_masked = {
-    class_type: "ImageCompositeMasked",
-    inputs: {
-      destination: [SIMPLE_NODES.mannequin, 0],
-      source: ["scro_mannequin_contrast", 0],
-      x: 0,
-      y: 0,
-      resize_source: false,
-      mask: [SIMPLE_NODES.mannequinMask, 0],
-    },
-    _meta: { title: "Softened grey mannequin (person only)" },
-  };
-  graph[SIMPLE_NODES.referenceConditioning].inputs["ref_videos.ref_video_0"] = [
-    "scro_mannequin_masked",
-    0,
-  ];
+  graph["43"].inputs.shot_prompt = ["scro_shot_prompt", 0];
 
   // Scrub source-person tops, bags, and earphones from Node 44's shot list before H3FillShots (Node 45).
   graph.scro_clean_shots = {
@@ -658,12 +646,25 @@ function pruneAdvancedCore(
       node.inputs.expand = SIMPLE_MARGINS[input.margin];
     }
     if (node.class_type === "MiniMaxH3ReferenceToVideo") {
-      node.inputs.ref_image_size = "max";
+      node.inputs.ref_image_size = "match";
     }
   }
 
   const planId = nodeByTitle(graph, ADVANCED_PLAN_TITLE);
   const videoId = nodeByTitle(graph, ADVANCED_VIDEO_TITLE);
+  const clipShotsNode = Object.values(graph).find((node) => node.class_type === "H3ClipShots");
+  if (clipShotsNode && isLink(clipShotsNode.inputs.shot_prompt)) {
+    graph.scro_shot_prompt = {
+      class_type: "StringConcatenate",
+      inputs: {
+        string_a: clipShotsNode.inputs.shot_prompt,
+        string_b: FULL_BODY_SHOT_MOTION_INSTRUCTION,
+        delimiter: " ",
+      },
+      _meta: { title: "Enhance shot describer with full-body motion rules" },
+    };
+    clipShotsNode.inputs.shot_prompt = ["scro_shot_prompt", 0];
+  }
   const plan = graph[planId].inputs;
   const roles = input.roles.slice(0, pictures).map((r) => r.replace(/\s+/g, " ").trim());
   plan.resolution = OPENJUTSU_RESOLUTION;

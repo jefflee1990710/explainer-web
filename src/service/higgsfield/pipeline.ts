@@ -912,6 +912,8 @@ export async function sendClipVideo(
       prompt: avatarIvPrompt,
       motionPrompt: clipRow?.motionPrompt || avatarIvPrompt,
       expressiveness: clipRow?.expressiveness || "low",
+      language: project.language,
+      spokenScript: spokenLine,
       aspectRatio: project.aspectRatio,
       durationSeconds,
       startImageUrl: start,

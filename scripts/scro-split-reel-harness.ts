@@ -370,23 +370,20 @@ export async function recordLiveChromeAndExportScreenStudio(
       secure: true,
     });
 
-    // 1. Open /app creation studio
-    await page.goto("https://www.scro.io/app", {
+    // 1. Open the feature creation studio directly (/app/stories, /app/talking-heads, /app/explainers, etc.)
+    const featurePathMap: Record<SplitReelHarnessConfig["feature"], string> = {
+      story: "/app/stories",
+      talking: "/app/talking-heads",
+      explainer: "/app/explainers",
+      swap: "/app/scroswap",
+      teleport: "/app/teleport",
+    };
+    const creationUrl = `https://www.scro.io${featurePathMap[config.feature] || "/app/stories"}`;
+    await page.goto(creationUrl, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
-    await new Promise((r) => setTimeout(r, 2200));
-    await dismissTourIfPresent(page);
-
-    // Click feature tab ("Explainer", "Story", "Talking", "Swap", etc.)
-    await page.evaluate((label: string) => {
-      const links = Array.from(document.querySelectorAll("a, button"));
-      const match = links.find((el) =>
-        new RegExp(label, "i").test(el.textContent || ""),
-      );
-      if (match && match instanceof HTMLElement) match.click();
-    }, config.feature);
-    await new Promise((r) => setTimeout(r, 1800));
+    await new Promise((r) => setTimeout(r, 2500));
     await dismissTourIfPresent(page);
 
     const creationBoxes = await page.evaluate(() => {
@@ -396,10 +393,11 @@ export async function recordLiveChromeAndExportScreenStudio(
       const taRect = ta?.getBoundingClientRect();
       const genRect = gen?.getBoundingClientRect();
       return {
-        ta: taRect
+        hasTa: Boolean(taRect && taRect.width > 0),
+        ta: taRect && taRect.width > 0
           ? { x: taRect.x + Math.min(180, taRect.width * 0.35), y: taRect.y + 42 }
           : { x: 680, y: 540 },
-        gen: genRect
+        gen: genRect && genRect.width > 0
           ? { x: genRect.x + genRect.width / 2, y: genRect.y + genRect.height / 2 }
           : { x: 915, y: 550 },
       };
@@ -413,7 +411,9 @@ export async function recordLiveChromeAndExportScreenStudio(
       cursor: "iBeam",
     });
     recordClick();
-    await page.mouse.click(creationBoxes.ta.x, creationBoxes.ta.y);
+    if (creationBoxes.hasTa) {
+      await page.mouse.click(creationBoxes.ta.x, creationBoxes.ta.y).catch(() => {});
+    }
 
     const totalChunks = 24;
     for (let c = 1; c <= totalChunks; c++) {
@@ -421,18 +421,20 @@ export async function recordLiveChromeAndExportScreenStudio(
         0,
         Math.round((config.promptText.length * c) / totalChunks),
       );
-      await page.evaluate((txt: string) => {
-        const ta = document.querySelector("textarea");
-        if (ta) {
-          ta.focus();
-          const setter = Object.getOwnPropertyDescriptor(
-            window.HTMLTextAreaElement.prototype,
-            "value",
-          )?.set;
-          setter?.call(ta, txt);
-          ta.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-      }, partial);
+      await page
+        .evaluate((txt: string) => {
+          const ta = document.querySelector("textarea");
+          if (ta) {
+            ta.focus();
+            const setter = Object.getOwnPropertyDescriptor(
+              window.HTMLTextAreaElement.prototype,
+              "value",
+            )?.set;
+            setter?.call(ta, txt);
+            ta.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }, partial)
+        .catch(() => {});
       await captureFrames(2, {
         x: creationBoxes.ta.x + c * 3,
         y: creationBoxes.ta.y + 12,
@@ -614,95 +616,20 @@ export async function recordLiveChromeAndExportScreenStudio(
           await new Promise((r) => setTimeout(r, 350));
         }
         zoomRanges.push({ startMs: zoom2Start, endMs: currentMs(), zoom: 1.48 });
-      } else {
-        // Click Subtitles tab on left sidebar, click Next, pick a style card, and IMMEDIATELY click Generate/Cancel so the modal closes!
-        const zoom2Start = currentMs();
-        await stepVideoFrames(12, { x: 205, y: 260, cursor: "pointingHand" });
-        recordClick();
-        await page.evaluate(() => {
-          const btns = Array.from(document.querySelectorAll("button, [role=tab]"));
-          const subBtn = btns.find((b) => {
-            const t =
-              (b.textContent || "") +
-              " " +
-              (b.getAttribute("title") || "") +
-              " " +
-              (b.getAttribute("aria-label") || "");
-            return /subtitle|字幕/i.test(t);
-          });
-          if (subBtn && subBtn instanceof HTMLElement) subBtn.click();
-        });
-        await stepVideoFrames(14, { x: 310, y: 360, cursor: "pointingHand" });
-        recordClick();
-
-        const nextBox = await page.evaluate(() => {
-          const btns = Array.from(document.querySelectorAll("button"));
-          const next = btns.find((b) => b.textContent?.trim() === "Next");
-          if (!next) return null;
-          const r = next.getBoundingClientRect();
-          return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-        });
-        if (nextBox) {
-          await stepVideoFrames(12, {
-            x: nextBox.x,
-            y: nextBox.y,
-            cursor: "pointingHand",
-          });
-          recordClick();
-          await page.mouse.click(nextBox.x, nextBox.y);
-          await new Promise((r) => setTimeout(r, 350));
-
-          // Briskly click a subtitle style card in the modal (0.5s), then click "Generate from VO" / "Cancel" to CLOSE the modal!
-          await stepVideoFrames(12, { x: 520, y: 635, cursor: "pointingHand" });
-          recordClick();
-          await page.mouse.click(520, 635);
-          await stepVideoFrames(8);
-
-          const closeModalBox = await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll("button"));
-            const gen = btns.find((b) => /Generate from VO|產生字幕|Apply/i.test(b.textContent || ""));
-            const cancel = btns.find((b) => /^Cancel$|^取消$/i.test(b.textContent?.trim() || ""));
-            const target = gen || cancel;
-            if (!target) return null;
-            const r = target.getBoundingClientRect();
-            return {
-              x: r.x + r.width / 2,
-              y: r.y + r.height / 2,
-              hasGen: Boolean(gen),
-            };
-          });
-          if (closeModalBox) {
-            await stepVideoFrames(12, {
-              x: closeModalBox.x,
-              y: closeModalBox.y,
-              cursor: "pointingHand",
-            });
-            recordClick();
-            await page.mouse.click(closeModalBox.x, closeModalBox.y);
-            await new Promise((r) => setTimeout(r, 400));
-            // Ensure modal is closed if Generate from VO was async
-            await page.evaluate(() => {
-              const btns = Array.from(document.querySelectorAll("button"));
-              const cancel = btns.find((b) => /^Cancel$|^取消$/i.test(b.textContent?.trim() || ""));
-              if (cancel && cancel instanceof HTMLElement) cancel.click();
-            });
-          }
-        }
-        zoomRanges.push({ startMs: zoom2Start, endMs: currentMs(), zoom: 1.524 });
       }
 
-      // Switch left rail back to Assets (Media) so clip thumbnails show on the left while the main preview plays!
+      // Keep left rail on Assets (Media) — NEVER open the Subtitles modal — and play the video inside OpenCut!
       await page.evaluate(() => {
         const mediaRail = document.querySelector('[data-opencut-tour="rail-media"]') as HTMLElement | null;
         if (mediaRail) mediaRail.click();
       });
 
-      // Brisk 12-frame (0.5s) mouse moves + stationary preview playback holds for the remaining frames!
+      // Click timeline clip / play controls only — NEVER click right-panel modal buttons — so the video plays cleanly inside OpenCut!
       const postActions = [
         { x: 460, y: 920, cursor: "pointingHand" as const, click: true, zoom: true },
+        { x: 965, y: 675, cursor: "pointingHand" as const, click: false, zoom: false },
         { x: 580, y: 920, cursor: "pointingHand" as const, click: true, zoom: false },
-        { x: 1420, y: 360, cursor: "pointingHand" as const, click: true, zoom: false },
-        { x: 1480, y: 540, cursor: "pointingHand" as const, click: true, zoom: false },
+        { x: 740, y: 675, cursor: "arrow" as const, click: false, zoom: false },
         { x: 1495, y: 68, cursor: "pointingHand" as const, click: false, zoom: false },
       ];
       for (const act of postActions) {
@@ -1017,20 +944,22 @@ export async function compositeSplitScreenReel(
     executablePath: CHROME_PATH,
     headless: true,
     args: ["--no-sandbox", "--window-size=1440,300"],
-    defaultViewport: { width: 1440, height: 140, deviceScaleFactor: 1 },
+    defaultViewport: { width: 1440, height: 170, deviceScaleFactor: 1 },
   });
 
   let titleBuf: Buffer;
   try {
     const page = await browser.newPage();
-    // Render Torn Paper (撕紙 style) title strip with white prefix + neon-lime highlight
+    // Render large, high-visibility Torn Paper (撕紙 style) title banner with bright white fibrous torn outer rim + neon-lime highlight
     await page.setContent(`
       <!DOCTYPE html>
       <html>
-        <body style="margin:0;width:1440px;height:140px;background:#000000;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
-          <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;padding:16px 38px;background:#161822;border:2px solid rgba(163,255,71,0.45);clip-path:polygon(0% 8%, 4% 0%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 6%, 55% 1%, 64% 5%, 73% 0%, 82% 6%, 91% 1%, 97% 5%, 100% 2%, 99% 35%, 100% 68%, 98% 94%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);box-shadow:0 8px 24px rgba(0,0,0,0.65);">
-            <div style="color:#FFFFFF;font-size:50px;font-weight:900;letter-spacing:-0.3px;font-style:italic;">
-              ${config.hookPrefix} <span style="color:#A3FF47;">${config.hookHighlight}</span>
+        <body style="margin:0;width:1440px;height:170px;background:#000000;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+          <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;padding:7px 9px;background:#F5F7FA;clip-path:polygon(0% 10%, 3% 0%, 9% 7%, 16% 0%, 24% 6%, 33% 0%, 42% 6%, 51% 0%, 60% 6%, 69% 0%, 78% 6%, 87% 0%, 94% 6%, 100% 2%, 99% 35%, 100% 68%, 98% 94%, 93% 100%, 84% 94%, 75% 100%, 65% 93%, 54% 100%, 44% 94%, 35% 100%, 25% 93%, 15% 100%, 7% 94%, 1% 98%, 2% 62%, 0% 32%);filter:drop-shadow(0 0 24px rgba(163,255,71,0.42)) drop-shadow(0 10px 24px rgba(0,0,0,0.9));">
+            <div style="padding:18px 46px;background:linear-gradient(180deg,#1B1F2E 0%,#10131C 100%);border:3px solid #A3FF47;clip-path:polygon(0% 8%, 4% 1%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 5%, 55% 1%, 64% 5%, 73% 0%, 82% 5%, 91% 1%, 97% 5%, 100% 2%, 99% 36%, 100% 70%, 98% 95%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);">
+              <div style="color:#FFFFFF;font-size:64px;line-height:1.08;font-weight:900;letter-spacing:0.5px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.85);white-space:nowrap;">
+                ${config.hookPrefix} <span style="color:#A3FF47;text-shadow:0 0 20px rgba(163,255,71,0.55);">${config.hookHighlight}</span>
+              </div>
             </div>
           </div>
         </body>
@@ -1057,7 +986,7 @@ export async function compositeSplitScreenReel(
   })
     .composite([
       { input: logoBuf, left: 632, top: 258 },
-      { input: titleBuf, left: 0, top: 1255 },
+      { input: titleBuf, left: 0, top: 1248 },
     ])
     .png()
     .toFile(bgCanvasPath);
@@ -1074,7 +1003,7 @@ export async function compositeSplitScreenReel(
       "-i", config.topVideoPath,
       "-stream_loop", "-1", "-i", screenStudioMp4Path,
       "-filter_complex",
-      "[1:v]scale=1318:744[topv];[2:v]scale=1356:814[botv];[0:v][topv]overlay=61:506[tmp1];[tmp1][botv]overlay=42:1403[vout]",
+      "[1:v]scale=1318:744[topv];[2:v]scale=1356:814[botv];[0:v][topv]overlay=61:500[tmp1];[tmp1][botv]overlay=42:1422[vout]",
       "-map", "[vout]",
       "-map", "1:a",
       "-t", durSeconds.toFixed(2),

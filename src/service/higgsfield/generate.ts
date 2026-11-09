@@ -38,7 +38,7 @@ import {
   h3ClipVideoInput,
   seedanceClipVideoInput,
 } from "@/service/higgsfield/clip-keyframes";
-import type { AspectRatio, SceneTextLanguage } from "@/model/project";
+import type { AspectRatio, SceneTextLanguage, VoLanguage } from "@/model/project";
 
 /** Stored on skills / jobs; `/edit` is chosen automatically when references are present. */
 export const QWEN_IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image";
@@ -249,6 +249,8 @@ export async function submitClipVideo(
     prompt: string;
     motionPrompt?: string;
     expressiveness?: "low" | "medium" | "high";
+    language?: VoLanguage;
+    spokenScript?: string;
     aspectRatio: AspectRatio;
     durationSeconds: number;
     startImageUrl: string;
@@ -304,6 +306,8 @@ export async function submitClipVideo(
         prompt: input.prompt,
         motionPrompt: input.motionPrompt,
         expressiveness: input.expressiveness,
+        language: input.language,
+        spokenScript: input.spokenScript,
         aspectRatio: input.aspectRatio,
         durationSeconds: input.durationSeconds,
         startImageUrl: input.startImageUrl,

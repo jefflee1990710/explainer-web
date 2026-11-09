@@ -123,18 +123,20 @@ export function canSubmitJutsuComfy(
 }
 
 /**
- * Upgrade the 512px grey-mannequin motion reference to 768px when the subject occupies
- * less than 45% of the frame height (distant/wide full-body shots like road walks).
+ * Upgrade the 512px grey-mannequin motion reference to 768px when personMappings was not populated
+ * or when any mapped subject occupies less than 55% of the frame height (distant/wide full-body or acrobatic shots).
  */
 export function resolveComfySwapMotionSize(
   job: Pick<JutsuJob, "motionSize" | "personMappings">,
 ): 512 | 768 | 1376 {
   const base = job.motionSize ?? 512;
   if (base !== 512) return base;
-  const hasSmallSubject = (job.personMappings ?? []).some(
-    (m) => Number.isFinite(m.box?.height) && m.box.height > 0 && m.box.height < 0.45,
+  const mappings = job.personMappings ?? [];
+  if (mappings.length === 0) return 768;
+  const hasNonCloseupSubject = mappings.some(
+    (m) => !Number.isFinite(m.box?.height) || m.box.height <= 0 || m.box.height < 0.55,
   );
-  return hasSmallSubject ? 768 : 512;
+  return hasNonCloseupSubject ? 768 : 512;
 }
 
 // Character swap uses OpenJutsu simple. Object swap uses the object workflow.

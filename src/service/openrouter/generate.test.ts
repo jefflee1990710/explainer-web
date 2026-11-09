@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   fetchOpenRouterStatus,
   HEYGEN_AVATAR_IV_MOTION_PROMPT,
+  heyGenAvatarIvMotionPrompt,
   isOpenRouterStatusUrl,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
   openRouterClipVideoBody,
@@ -498,4 +499,36 @@ test("submitClipVideo with audioUrl sends talking-head-director clips (up to 120
     if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
     else process.env.OPENROUTER_API_KEY = prevKey;
   }
+});
+
+test("heyGenAvatarIvMotionPrompt and openRouterHeyGenAudioVideoBody pass speaking language and spoken script to heygen/avatar-iv without injecting Cantonese rules into English", () => {
+  const enPrompt = heyGenAvatarIvMotionPrompt("collarbone-close", {
+    language: "en",
+    spokenScript: "If you have ADHD, your brain has an interest-based nervous system.",
+  });
+  assert.match(enPrompt, /Speaking in English/i);
+  assert.match(enPrompt, /If you have ADHD, your brain has an interest-based nervous system\./);
+  assert.doesNotMatch(enPrompt, /冇 mou5|諗 nam2/);
+
+  const yuePrompt = heyGenAvatarIvMotionPrompt("collarbone-close", {
+    language: "yue",
+    spokenScript: "你有冇諗過點解越忙越無安全感？",
+  });
+  assert.match(yuePrompt, /Hong Kong Cantonese/i);
+  assert.match(yuePrompt, /冇 mou5/);
+  assert.match(yuePrompt, /你有冇諗過點解越忙越無安全感？/);
+
+  const enBody = openRouterHeyGenAudioVideoBody({
+    model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+    prompt: "Custom natural talking head prompt.",
+    language: "en",
+    spokenScript: "If you have ADHD, your brain has an interest-based nervous system.",
+    aspectRatio: "16:9",
+    startImageUrl: "https://blob/start.jpg",
+    audioUrl: "https://blob/vo.mp3",
+  });
+  assert.match(enBody.prompt, /Custom natural talking head prompt\./);
+  assert.match(enBody.prompt, /Speaking in English/i);
+  assert.match(enBody.motion_prompt || "", /Speaking in English/i);
+  assert.doesNotMatch(enBody.prompt, /冇 mou5/);
 });
