@@ -1093,21 +1093,18 @@ export async function compositeSplitScreenReel(
 export async function generateSeedreamReelCover(
   config: SplitReelHarnessConfig,
 ): Promise<string> {
-  const refCoverPath = path.join(
-    process.cwd(),
-    "Marketing/Explainer 2/Explainer 2 - Cover.png",
-  );
-  const refCoverBuf = await sharp(refCoverPath)
-    .resize(540, 960, { fit: "cover" })
-    .jpeg({ quality: 85 })
+  const logoPath = path.join(process.cwd(), "Marketing/logo-mark.png");
+  const logoBuf = await sharp(logoPath)
+    .resize(360, 360, { fit: "contain", background: { r: 18, g: 20, b: 28, alpha: 1 } })
+    .jpeg({ quality: 90 })
     .toBuffer();
-  const refs: string[] = [`data:image/jpeg;base64,${refCoverBuf.toString("base64")}`];
+  const refs: string[] = [`data:image/jpeg;base64,${logoBuf.toString("base64")}`];
 
   for (const scenePath of config.coverSceneImagePaths || []) {
     if (existsSync(scenePath)) {
       const buf = await sharp(scenePath)
         .resize(640, 360, { fit: "cover" })
-        .jpeg({ quality: 85 })
+        .jpeg({ quality: 88 })
         .toBuffer();
       refs.push(`data:image/jpeg;base64,${buf.toString("base64")}`);
     }
@@ -1123,14 +1120,12 @@ export async function generateSeedreamReelCover(
     "High-impact cinematic movie-poster lighting and camera work: dramatic chiaroscuro split lighting with glowing colored rim light and warm key spotlight cutting through subtle volumetric haze, dynamic low-angle 24mm/35mm wide-angle hero perspective with shallow depth-of-field bokeh and rich atmospheric contrast.";
 
   const prompt = [
-    "Vertical 9:16 dramatic cinematic movie-poster Instagram Reel cover with consistent Scro brand styling and a unique, high-drama visual composition.",
-    `1) TOP BRAND HEADER (exact match to Reference Image 1): Centered at the top is the dark rounded-square app icon with the glowing neon-lime S logo mark, and directly underneath it is a bright neon-lime pill badge reading "${config.coverBadge}" in bold black condensed sans-serif.`,
-    `2) DRAMATIC POSTER SCENE, LIGHTING & CAMERA: ${config.coverCenterPrompt}\n${dramaticDirection}`,
+    "Vertical 9:16 dramatic cinematic movie-poster Instagram Reel cover with consistent Scro brand styling and a unique, high-drama full-bleed visual composition.",
+    `1) TOP BRAND HEADER: Centered near the top is the dark rounded-square app icon with the glowing neon-lime S logo mark (matching Reference Image 1), and directly underneath it is a bright neon-lime pill badge reading "${config.coverBadge}" in bold black condensed sans-serif.`,
+    `2) DRAMATIC FULL-BLEED POSTER SCENE, LIGHTING & CAMERA: ${config.coverCenterPrompt}\n${dramaticDirection}`,
     `3) CENTER TORN-PAPER (撕紙 STYLE) TITLE BANNER (placed dead-center across the middle of the 9:16 poster): Right across the center of the composition, render a tactile hand-torn paper collage title banner (撕紙毛邊效果: layered charcoal-black and warm cream/neon-lime torn cardstock strips with rough white fibrous deckle edges and deep drop shadow) reading in giant ultra-bold condensed uppercase letters: ${headlineLines}.`,
-    "4) BOTTOM CALLOUT CARD (exact match to Reference Image 1): Near the bottom, a dark translucent frosted-glass rounded rectangle banner with a subtle glowing neon-lime border reading:",
-    `Line 1 (bold neon-lime condensed uppercase): "${config.coverFooterLine1}"`,
-    `Line 2 (bold pure-white condensed uppercase): "${config.coverFooterLine2}"`,
-    "Ultra-crisp theatrical poster photography, tactile torn-paper collage edges in the center title, razor-sharp typography.",
+    "4) CLEAN UNOBSTRUCTED BOTTOM (NO BOTTOM BOX): Do NOT draw any rectangular box, card, border frame, or banner at the bottom of the poster. Let the dramatic cinematic scene and subject bleed cleanly all the way to the bottom edge.",
+    "Ultra-crisp theatrical poster photography, tactile torn-paper collage edges in the center title, razor-sharp typography, zero bottom box.",
   ].join("\n\n");
 
   const res = await submitOpenRouterImage({
