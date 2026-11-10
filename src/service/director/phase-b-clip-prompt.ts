@@ -7,6 +7,7 @@ import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/s
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { surpriseVarietyPlan } from "@/service/director/surprise-interview";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
+import { spatialBlockingLockParagraph } from "@/service/higgsfield/object-sheet";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
 import { clipUsesTalkingPerformance } from "@/service/director/talking-performance";
@@ -125,6 +126,7 @@ export function clipPhaseBUserPrompt(input: {
       noSfx: true,
     }),
     input.characterLine,
+    spatialBlockingLockParagraph(input.phaseA),
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
     getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
       smoothMotion: Boolean(input.smoothMotion),

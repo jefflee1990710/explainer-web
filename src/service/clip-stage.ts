@@ -23,6 +23,7 @@ import type {
   ProjectClip,
   ProjectStatus,
   StoryboardRow,
+  VideoQualityTier,
   VoLanguage,
 } from "@/model/project";
 
@@ -58,7 +59,7 @@ export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
   skillSlug?: string;
   styleId?: string;
-  videoQualityTier?: Project["videoQualityTier"];
+  videoQualityTier?: VideoQualityTier;
   phaseA?: {
     characterLock?: string;
     clips: Array<

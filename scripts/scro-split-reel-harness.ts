@@ -955,29 +955,56 @@ export async function compositeSplitScreenReel(
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: true,
-    args: ["--no-sandbox", "--window-size=1440,300"],
-    defaultViewport: { width: 1440, height: 170, deviceScaleFactor: 1 },
+    args: ["--no-sandbox", "--window-size=1440,360"],
+    defaultViewport: { width: 1440, height: 320, deviceScaleFactor: 1 },
   });
 
-  let titleBuf: Buffer;
+  const titlePngPath = path.join(workDir, "hook_title_overlay.png");
   try {
     const page = await browser.newPage();
-    // Render large, high-visibility Torn Paper (撕紙 style) title banner with bright white fibrous torn outer rim + neon-lime highlight
+    const totalHookLen =
+      (config.hookPrefix?.length || 0) + 1 + (config.hookHighlight?.length || 0);
+    const useTwoLines = totalHookLen > 18;
+    const maxLineLen = useTwoLines
+      ? Math.max(config.hookPrefix?.length || 0, config.hookHighlight?.length || 0)
+      : totalHookLen;
+    const hookFontSize = useTwoLines
+      ? maxLineLen > 26
+        ? 58
+        : maxLineLen > 20
+          ? 64
+          : 68
+      : maxLineLen > 15
+        ? 66
+        : 70;
+    const line1FontSize = useTwoLines
+      ? Math.round(hookFontSize * 0.92)
+      : hookFontSize;
+    const innerHtml = useTwoLines
+      ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;">
+           <div style="color:#FFFFFF;font-size:${line1FontSize}px;line-height:1.02;font-weight:900;letter-spacing:1px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.92);white-space:nowrap;">${config.hookPrefix}</div>
+           <div style="color:#A3FF47;font-size:${hookFontSize}px;line-height:1.04;font-weight:900;letter-spacing:0.8px;font-style:italic;text-transform:uppercase;text-shadow:0 0 24px rgba(163,255,71,0.68),0 4px 14px rgba(0,0,0,0.95);white-space:nowrap;">${config.hookHighlight}</div>
+         </div>`
+      : `<div style="color:#FFFFFF;font-size:${hookFontSize}px;line-height:1.06;font-weight:900;letter-spacing:0.8px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.88);white-space:nowrap;">
+           ${config.hookPrefix} <span style="color:#A3FF47;text-shadow:0 0 24px rgba(163,255,71,0.68);">${config.hookHighlight}</span>
+         </div>`;
+    // Render high-visibility Torn Paper (撕紙 style) title banner on a transparent background with subtle overlap on top & bottom videos
     await page.setContent(`
       <!DOCTYPE html>
       <html>
-        <body style="margin:0;width:1440px;height:170px;background:#000000;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
-          <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;padding:7px 9px;background:#F5F7FA;clip-path:polygon(0% 10%, 3% 0%, 9% 7%, 16% 0%, 24% 6%, 33% 0%, 42% 6%, 51% 0%, 60% 6%, 69% 0%, 78% 6%, 87% 0%, 94% 6%, 100% 2%, 99% 35%, 100% 68%, 98% 94%, 93% 100%, 84% 94%, 75% 100%, 65% 93%, 54% 100%, 44% 94%, 35% 100%, 25% 93%, 15% 100%, 7% 94%, 1% 98%, 2% 62%, 0% 32%);filter:drop-shadow(0 0 24px rgba(163,255,71,0.42)) drop-shadow(0 10px 24px rgba(0,0,0,0.9));">
-            <div style="padding:18px 46px;background:linear-gradient(180deg,#1B1F2E 0%,#10131C 100%);border:3px solid #A3FF47;clip-path:polygon(0% 8%, 4% 1%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 5%, 55% 1%, 64% 5%, 73% 0%, 82% 5%, 91% 1%, 97% 5%, 100% 2%, 99% 36%, 100% 70%, 98% 95%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);">
-              <div style="color:#FFFFFF;font-size:64px;line-height:1.08;font-weight:900;letter-spacing:0.5px;font-style:italic;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,0.85);white-space:nowrap;">
-                ${config.hookPrefix} <span style="color:#A3FF47;text-shadow:0 0 20px rgba(163,255,71,0.55);">${config.hookHighlight}</span>
-              </div>
+        <body style="margin:0;width:1440px;height:320px;background:transparent;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+          <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;max-width:1280px;padding:9px 12px;background:#F5F7FA;transform:rotate(-0.4deg);clip-path:polygon(0% 10%, 3% 0%, 9% 7%, 16% 0%, 24% 6%, 33% 0%, 42% 6%, 51% 0%, 60% 6%, 69% 0%, 78% 6%, 87% 0%, 94% 6%, 100% 2%, 99% 35%, 100% 68%, 98% 94%, 93% 100%, 84% 94%, 75% 100%, 65% 93%, 54% 100%, 44% 94%, 35% 100%, 25% 93%, 15% 100%, 7% 94%, 1% 98%, 2% 62%, 0% 32%);filter:drop-shadow(0 0 28px rgba(163,255,71,0.52)) drop-shadow(0 12px 26px rgba(0,0,0,0.94));">
+            <div style="padding:${useTwoLines ? "15px 40px" : "20px 46px"};background:linear-gradient(180deg,#1B1F2E 0%,#0D1018 100%);border:3.5px solid #A3FF47;clip-path:polygon(0% 8%, 4% 1%, 11% 6%, 19% 1%, 28% 5%, 37% 0%, 46% 5%, 55% 1%, 64% 5%, 73% 0%, 82% 5%, 91% 1%, 97% 5%, 100% 2%, 99% 36%, 100% 70%, 98% 95%, 93% 100%, 84% 95%, 75% 100%, 65% 94%, 54% 100%, 44% 95%, 35% 100%, 25% 94%, 15% 100%, 7% 95%, 1% 98%, 2% 62%, 0% 32%);">
+              ${innerHtml}
             </div>
           </div>
         </body>
       </html>
     `);
-    titleBuf = Buffer.from(await page.screenshot({ type: "png" }));
+    const titleBuf = Buffer.from(
+      await page.screenshot({ type: "png", omitBackground: true }),
+    );
+    writeFileSync(titlePngPath, titleBuf);
   } finally {
     await browser.close();
   }
@@ -996,10 +1023,7 @@ export async function compositeSplitScreenReel(
       background: { r: 0, g: 0, b: 0, alpha: 1 },
     },
   })
-    .composite([
-      { input: logoBuf, left: 632, top: 258 },
-      { input: titleBuf, left: 0, top: 1248 },
-    ])
+    .composite([{ input: logoBuf, left: 632, top: 242 }])
     .png()
     .toFile(bgCanvasPath);
 
@@ -1014,8 +1038,9 @@ export async function compositeSplitScreenReel(
       "-loop", "1", "-i", bgCanvasPath,
       "-i", config.topVideoPath,
       "-stream_loop", "-1", "-i", screenStudioMp4Path,
+      "-loop", "1", "-i", titlePngPath,
       "-filter_complex",
-      "[1:v]scale=1318:744[topv];[2:v]scale=1356:814[botv];[0:v][topv]overlay=61:500[tmp1];[tmp1][botv]overlay=42:1422[vout]",
+      "[1:v]scale=1248:702[topv];[2:v]scale=1276:766[botv];[0:v][topv]overlay=96:468[tmp1];[tmp1][botv]overlay=82:1428[tmp2];[tmp2][3:v]overlay=0:1138[vout]",
       "-map", "[vout]",
       "-map", "1:a",
       "-t", durSeconds.toFixed(2),

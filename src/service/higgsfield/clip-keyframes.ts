@@ -1,6 +1,5 @@
 import {
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
-  OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
   OPENROUTER_WAN_3_VIDEO_MODEL,
   clipVideoResolution,
 } from "@/service/openrouter/generate";
@@ -12,17 +11,22 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 // Production V2 slug (H3 Max CLI job_type is OAuth-only).
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
-// Cinematic realistic uses MiniMax Hailuo 3 (2K + audio + first/last frame) on OpenRouter; non-realistic styles use Alibaba Wan 3.0.
+// Cinematic realistic and Story directors use MiniMax Hailuo 3 (H3 cloud model, 2K + audio + first/last frame) on OpenRouter; non-realistic styles use Alibaba Wan 3.0.
 export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;
 export const WAN_3_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;
+
+// HeyGen Avatar IV is a single-speaker head-puppet model and must ONLY be used for talking-head-director.
+export function usesHeyGenAvatarIvForSkill(skillSlug?: string): boolean {
+  return skillSlug === "talking-head-director";
+}
 
 export function clipVideoModel(
   styleOrId?: string | { id?: string; baseStyleId?: string } | null,
   skillSlug?: string,
 ) {
-  if (skillSlug === "story-short-director") {
-    return OPENROUTER_SEEDANCE_2_VIDEO_MODEL;
+  if (skillSlug === "story-short-director" || skillSlug === "one-take-director") {
+    return SEEDANCE_2_VIDEO_MODEL;
   }
   const style = typeof styleOrId === "string" ? { id: styleOrId } : styleOrId;
   return isRealisticStyle(style) ? SEEDANCE_2_VIDEO_MODEL : SEEDANCE_2_FAST_VIDEO_MODEL;

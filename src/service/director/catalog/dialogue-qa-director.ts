@@ -58,7 +58,7 @@ const raw = {
     "maxBackgroundSets": 4,
     "speechMode": "lip-sync",
     "bansNarration": true,
-    "audioFirstLipSync": true,
+    "audioFirstLipSync": false,
     "requiredCastCount": 2,
     "selfShotCreatorCamera": false,
     "forcesSceneText": false,

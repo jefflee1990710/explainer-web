@@ -46,6 +46,7 @@ export const phaseASchema = z.object({
   narrator: z.string(),
   englishWordCount: z.number().int().min(1),
   characterLock: z.string(),
+  spatialBlocking: z.string().optional(),
   palette: z.string(),
   bgmDirection: z.string(),
   narrativeArc: z.string(),

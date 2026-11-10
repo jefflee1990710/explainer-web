@@ -9,6 +9,7 @@ import {
   clipFrameAnchor,
   clipKeyframeUrls,
   clipVideoModel,
+  usesHeyGenAvatarIvForSkill,
   videoKeyframeUrls,
   h3ClipVideoInput,
   planFrameSubmissions,
@@ -290,16 +291,25 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
   );
 });
 
-test("clipVideoModel uses bytedance/seedance-2.0 for story-short-director, MiniMax Hailuo 3 for other realistic directors, and Alibaba Wan 3.0 for non-realistic styles", () => {
+test("clipVideoModel uses MiniMax Hailuo 3 (H3 cloud model) for story-short-director, one-take-director, and realistic directors, and Alibaba Wan 3.0 for non-realistic styles", () => {
   assert.equal(SEEDANCE_2_VIDEO_MODEL, "minimax/hailuo-3");
   assert.equal(SEEDANCE_2_FAST_VIDEO_MODEL, "alibaba/wan-3.0");
-  assert.equal(clipVideoModel("realistic", "story-short-director"), "bytedance/seedance-2.0");
-  assert.equal(clipVideoModel("doodle", "story-short-director"), "bytedance/seedance-2.0");
+  assert.equal(clipVideoModel("realistic", "story-short-director"), "minimax/hailuo-3");
+  assert.equal(clipVideoModel("doodle", "story-short-director"), "minimax/hailuo-3");
+  assert.equal(clipVideoModel("realistic", "one-take-director"), "minimax/hailuo-3");
+  assert.equal(clipVideoModel("doodle", "one-take-director"), "minimax/hailuo-3");
   assert.equal(clipVideoModel("realistic", "follow-shot-director"), "minimax/hailuo-3");
   assert.equal(clipVideoModel("realistic"), "minimax/hailuo-3");
   assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), "minimax/hailuo-3");
   assert.equal(clipVideoModel("doodle"), SEEDANCE_2_FAST_VIDEO_MODEL);
   assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "doodle" }), SEEDANCE_2_FAST_VIDEO_MODEL);
+  assert.equal(usesHeyGenAvatarIvForSkill("talking-head-director"), true);
+  assert.equal(usesHeyGenAvatarIvForSkill("story-short-director"), false);
+  assert.equal(usesHeyGenAvatarIvForSkill("one-take-director"), false);
+  assert.equal(usesHeyGenAvatarIvForSkill("dialogue-qa-director"), false);
+  assert.equal(usesHeyGenAvatarIvForSkill("talking-broll-director"), false);
+  assert.equal(usesHeyGenAvatarIvForSkill("editorial-interview-director"), false);
+  assert.equal(usesHeyGenAvatarIvForSkill("cartoon-explainer-video-director"), false);
   assert.deepEqual(
     seedanceClipVideoInput({
       prompt: "walk to the box",

@@ -1883,5 +1883,16 @@ test("trimmed Set does not duplicate a bracket label already held in 1) Characte
   assert.equal(matches.length, 1);
 });
 
+test("buildFramePrompt injects SPATIAL BLOCKING & 180-DEGREE AXIS LOCK from phaseA.spatialBlocking into every clip still", () => {
+  const story = project("realistic");
+  story.skillSlug = "story-short-director";
+  story.phaseA!.spatialBlocking =
+    "Chloe Lin sits on the left side of the walnut cafe table facing frame-right; Scro sits opposite across the table on the right side facing frame-left; mullioned sunset windows stay on the far background wall behind both characters.";
+  const prompt1 = buildFramePrompt(story, 1, "start");
+  assert.match(prompt1, /SPATIAL BLOCKING & 180-DEGREE AXIS LOCK/);
+  assert.match(prompt1, /Chloe Lin sits on the left side of the walnut cafe table/);
+});
+
+
 
 

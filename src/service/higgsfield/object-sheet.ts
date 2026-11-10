@@ -103,6 +103,12 @@ export function backgroundPlateLockParagraph(imageIndex: number, plate?: Pick<Ba
   ].join(" ");
 }
 
+export function spatialBlockingLockParagraph(phaseA?: { spatialBlocking?: string }) {
+  const plan = phaseA?.spatialBlocking?.trim();
+  if (!plan) return "";
+  return `SPATIAL BLOCKING & 180-DEGREE AXIS LOCK (must stay 100% consistent across all clips): ${plan}`;
+}
+
 export function objectSheetUrl(project: Pick<Project, "objectSheetUrl" | "objectSheetItems">) {
   return project.objectSheetUrl && (project.objectSheetItems?.length || 0) > 0
     ? project.objectSheetUrl

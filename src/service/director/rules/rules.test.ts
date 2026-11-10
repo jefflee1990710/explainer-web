@@ -136,6 +136,17 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   });
   assert.match(storyBlock, /Shot\/Reverse-Shot|Over-the-Shoulder/i);
   assert.match(storyBlock, /180-degree/i);
+  assert.match(storyBlock, /zero teeth|lips firmly sealed shut/i);
+
+  const storySceneDetail = getDirectorRuleModule("story-short-director").phaseASceneDetailBlock({
+    realistic: true,
+    selfShot: false,
+  });
+  assert.match(storySceneDetail, /zero teeth|lips firmly sealed shut/i);
+  assert.match(storySceneDetail, /parallax|spatial depth/i);
+  assert.match(storyBlock, /spatialBlocking/i);
+  assert.match(storyBlock, /opposite-seating|across the table/i);
+  assert.match(storyBlock, /exact hair, gender, and outfit of that named cast member/i);
 
   const oneTakeBlock = getDirectorRuleModule("one-take-director").phaseADirectorBlock({
     aspectRatio: "9:16",

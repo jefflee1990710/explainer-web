@@ -20,6 +20,7 @@ import {
   backgroundPlateLockParagraph,
   objectSheetLockParagraph,
   objectSheetUrl,
+  spatialBlockingLockParagraph,
 } from "@/service/higgsfield/object-sheet";
 import {
   clipFrameAnchor,
@@ -1015,6 +1016,7 @@ export function buildFramePrompt(
     characterUrls.length > 0,
     phaseA.characterLock,
   );
+  const spatialBlockingLine = spatialBlockingLockParagraph(phaseA);
   // Start stills need the whole move so the opening pose and framing leave room for it.
   const motionLabel =
     position === "start"
@@ -1065,6 +1067,7 @@ export function buildFramePrompt(
     ...(productLine ? [productLine] : []),
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
+    ...(spatialBlockingLine ? [spatialBlockingLine] : []),
     ...(listicle || sceneText.enabled || keepSceneLabels || paintSurpriseType || !sceneText.enabled
       ? []
       : sceneTextFrameLines(false, sceneText.language)),

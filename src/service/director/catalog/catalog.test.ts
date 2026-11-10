@@ -40,6 +40,7 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["cartoon-explainer-video-director"].behavior.keyframeMode, "start-only");
   assert.equal(DIRECTORS_BY_SLUG["cartoon-explainer-video-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["dialogue-qa-director"].behavior.requiredCastCount, 2);
+  assert.equal(DIRECTORS_BY_SLUG["dialogue-qa-director"].behavior.audioFirstLipSync, false);
   assert.equal(DIRECTORS_BY_SLUG["listicle-director"].behavior.forcesSceneText, true);
   assert.equal(DIRECTORS_BY_SLUG["surprise-interview-director"].behavior.bansNarration, true);
   assert.equal(DIRECTORS_BY_SLUG["outfit-reel-director"].behavior.speechMode, "silent");
