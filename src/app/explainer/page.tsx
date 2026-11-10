@@ -1,6 +1,8 @@
+import { PublicStudioCreationHub } from "@/presentation/components/economy/public-studio-creation-hub";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
+import { listPublicStyles } from "@/service/style/list";
 import { MarketingPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ExplainerCta } from "./explainer-cta";
@@ -15,11 +17,15 @@ export const generateMetadata = () => marketingPageMetadata("explainerPage");
 
 // Marketing: explainer director + whiteboard style for product concepts.
 export default async function ExplainerMarketingPage() {
-  const session = await getAuthSession();
+  const [session, styles] = await Promise.all([
+    getAuthSession(),
+    listPublicStyles(),
+  ]);
   const signedIn = Boolean(session);
   return (
     <PolicyLayout>
       <MarketingPageJsonLd pageKey="explainerPage" />
+      <PublicStudioCreationHub mode="explainer" signedIn={signedIn} styles={styles} />
       <ExplainerHero signedIn={signedIn} />
       <ExplainerStyle />
       <ExplainerUses signedIn={signedIn} />

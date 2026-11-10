@@ -1,4 +1,4 @@
-import { EconomyPublicLanding } from "@/presentation/components/economy/economy-public-landing";
+import { PublicStudioCreationHub } from "@/presentation/components/economy/public-studio-creation-hub";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
 import { listPublicStyles } from "@/service/style/list";
@@ -14,7 +14,7 @@ export default async function EconomyMarketingCreationPage() {
 
   return (
     <PolicyLayout>
-      <EconomyPublicLanding signedIn={signedIn} styles={styles} />
+      <PublicStudioCreationHub mode="economy" signedIn={signedIn} styles={styles} />
     </PolicyLayout>
   );
 }

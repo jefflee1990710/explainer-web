@@ -51,9 +51,9 @@ export function SiteHeader({
           bonusPercent={promoBonusPercent}
         />
       ) : null}
-      <header className="border-b border-zinc-200 bg-white/85 backdrop-blur-md">
+      <header className="border-b border-white/10 bg-[#0a0c10]/90 text-white backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-          <BrandMark wordClassName="text-lg font-bold tracking-tight sm:text-xl" />
+          <BrandMark wordClassName="text-lg font-bold tracking-tight text-white sm:text-xl" />
 
           {/* Desktop Navigation */}
           <nav
@@ -62,28 +62,34 @@ export function SiteHeader({
           >
             <Link
               href="/"
-              className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+              className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
             >
               {t("nav.home")}
+            </Link>
+            <Link
+              href="/economy"
+              className="shrink-0 font-semibold text-[#A3FF47] transition-colors hover:text-white"
+            >
+              Try It Now
             </Link>
             <SiteFeaturesMenu />
             {showAffiliate ? (
               <Link
                 href="/affiliate"
-                className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+                className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
               >
                 {t("nav.affiliate")}
               </Link>
             ) : null}
             <Link
               href="/pricing"
-              className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+              className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
             >
               {t("nav.pricing")}
             </Link>
             <Link
               href="/posts"
-              className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+              className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
             >
               {t("nav.blog")}
             </Link>
@@ -103,7 +109,7 @@ export function SiteHeader({
                     target: "/sign-in",
                   })
                 }
-                className="cursor-pointer whitespace-nowrap rounded-full bg-[#12141c] px-3.5 py-1.5 text-xs font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:px-4 sm:py-2 sm:text-sm"
+                className="cursor-pointer whitespace-nowrap rounded-full bg-[#A3FF47] px-3.5 py-1.5 text-xs font-bold text-[#12141c] transition-colors hover:brightness-95 sm:px-4 sm:py-2 sm:text-sm"
               >
                 {t("nav.signIn")}
               </Link>
@@ -113,7 +119,7 @@ export function SiteHeader({
               aria-label={mobileMenuOpen ? t("common.close") : t("nav.features")}
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-white text-[#12141c] transition-colors hover:bg-zinc-100 md:hidden"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:bg-white/20 md:hidden"
             >
               {mobileMenuOpen ? (
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

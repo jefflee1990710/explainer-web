@@ -85,22 +85,61 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           className="mt-7 flex w-full flex-col justify-center gap-3 sm:mt-9 sm:w-auto sm:flex-row sm:flex-wrap"
         >
           <Link
-            href={signedIn ? "/app/characters" : "/sign-up"}
+            href="/economy"
+            onClick={() =>
+              track("auth_cta_click", {
+                placement: "landing_hero_try_it_now",
+                target: "/economy",
+              })
+            }
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-black text-[#12141c] shadow-[0_12px_36px_rgba(198,242,75,0.32)] transition-transform hover:-translate-y-0.5 hover:bg-[#d4f76a] sm:w-auto sm:px-9"
+          >
+            ⚡ Try It Now
+          </Link>
+          <Link
+            href={signedIn ? "/app" : "/sign-up"}
             onClick={() =>
               track("auth_cta_click", {
                 placement: "landing_hero",
-                target: signedIn ? "/app/characters" : "/sign-up",
+                target: signedIn ? "/app" : "/sign-up",
               })
             }
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] shadow-[0_12px_36px_rgba(198,242,75,0.28)] transition-transform hover:-translate-y-0.5 hover:bg-[#d4f76a] sm:w-auto sm:px-9"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-8 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/15 sm:w-auto sm:px-9"
           >
             {signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart")}
           </Link>
+        </motion.div>
+
+        <motion.div
+          custom={5}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="mt-4 flex flex-wrap justify-center gap-2 text-xs"
+        >
           <Link
-            href="#use-cases"
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-8 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/15 sm:w-auto sm:px-9"
+            href="/economy"
+            className="rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/10 px-3 py-1 font-semibold text-[#c6f24b] hover:bg-[#c6f24b]/20"
           >
-            {t("landing.hero.ctaUseCases")}
+            ⚡ Economy Video (4 cr/s)
+          </Link>
+          <Link
+            href="/explainer"
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
+          >
+            📊 Explainer
+          </Link>
+          <Link
+            href="/scroswap"
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
+          >
+            🎭 Scro Swap
+          </Link>
+          <Link
+            href="/teleport"
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
+          >
+            🌍 Teleport
           </Link>
         </motion.div>
       </div>

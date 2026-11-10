@@ -27,13 +27,22 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
   const { t } = useI18n();
 
   return (
-    <footer className="border-t border-zinc-200 bg-white">
+    <footer className="border-t border-white/10 bg-[#0a0c10] text-zinc-400">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
-          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-600">
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-400">
+            <Link href="/economy" className="text-[#A3FF47] hover:text-white">
+              Economy Studio
+            </Link>
+            <Link href="/scroswap" className="hover:text-white">
+              Scro Swap
+            </Link>
+            <Link href="/teleport" className="hover:text-white">
+              Teleport
+            </Link>
             {SITE_FEATURE_LINKS.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-[#12141c]">
+              <Link key={item.href} href={item.href} className="hover:text-white">
                 {t(item.labelKey)}
               </Link>
             ))}

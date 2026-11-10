@@ -21,7 +21,7 @@ export async function PolicyLayout({ children }: { children: ReactNode }) {
     showAffiliate = isAffiliateAccount(user);
   }
   return (
-    <div className="flex min-h-dvh flex-1 flex-col bg-white text-zinc-900">
+    <div className="flex min-h-dvh flex-1 flex-col bg-[#0a0c10] text-white">
       <SiteHeader
         signedIn={Boolean(session)}
         showAffiliate={showAffiliate}
