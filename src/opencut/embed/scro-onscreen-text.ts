@@ -113,11 +113,15 @@ export async function insertScroOnscreenTextOnTimeline({
 	videoId,
 	item,
 	trackTitle = "On-Screen Text",
+	startTimeSeconds,
+	durationSeconds,
 }: {
 	editor: EditorCore;
 	videoId: string | null;
 	item: ScroOnscreenText;
 	trackTitle?: string;
+	startTimeSeconds?: number;
+	durationSeconds?: number;
 }): Promise<{ assetId: string; elementId: string } | null> {
 	const project = editor.project.getActiveOrNull();
 	if (!project) return null;
@@ -169,15 +173,22 @@ export async function insertScroOnscreenTextOnTimeline({
 		trackId = addTrackCmd.getTrackId();
 	}
 
-	const playheadSeconds = mediaTimeToSeconds({
-		time: editor.playback.getCurrentTime(),
-	});
+	const playheadSeconds =
+		typeof startTimeSeconds === "number" && Number.isFinite(startTimeSeconds)
+			? Math.max(0, startTimeSeconds)
+			: mediaTimeToSeconds({
+					time: editor.playback.getCurrentTime(),
+				});
+	const resolvedDurationSec =
+		typeof durationSeconds === "number" && Number.isFinite(durationSeconds) && durationSeconds > 0
+			? durationSeconds
+			: DEFAULT_DURATION_SEC;
 	const baseElement = buildElementFromMedia({
 		mediaId: createdAsset.id,
 		mediaType: "image",
 		name: scroOnscreenTextDisplayName(item.text),
 		startTime: mediaTimeFromSeconds({ seconds: Math.max(0, playheadSeconds) }),
-		duration: mediaTimeFromSeconds({ seconds: DEFAULT_DURATION_SEC }),
+		duration: mediaTimeFromSeconds({ seconds: resolvedDurationSec }),
 		scroOnscreenTextId: item.id,
 	});
 	const canvasW = project.settings?.canvasSize?.width ?? 1080;

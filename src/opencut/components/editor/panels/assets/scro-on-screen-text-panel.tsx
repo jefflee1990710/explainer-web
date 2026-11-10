@@ -39,6 +39,9 @@ export function ScroOnScreenTextPanel() {
 	const [error, setError] = useState<string | null>(null);
 
 	const styles = catalog?.styles ?? [];
+	const voLines = (catalog?.lines ?? []).filter(
+		(l) => l.line && l.line.trim() && l.line.trim() !== "(no dialogue)",
+	);
 	const activeStyleId =
 		selectedStyleId && styles.some((style) => style.id === selectedStyleId)
 			? selectedStyleId
@@ -142,6 +145,101 @@ export function ScroOnScreenTextPanel() {
 			removeScroOnscreenText(tempId);
 			toast.error(err instanceof Error ? err.message : oc.onScreenText.failedError);
 		}
+	};
+
+	const handleGenerateAllVo = async () => {
+		if (!videoId || !selectedStyle || voLines.length === 0) return;
+		setError(null);
+		setDialogOpen(false);
+
+		const mainElements =
+			editor.scenes.getActiveSceneOrNull()?.tracks.main.elements ?? [];
+
+		await Promise.all(
+			voLines.map(async (voEntry, idx) => {
+				const clipIdx = Math.max(0, (voEntry.clipNumber || idx + 1) - 1);
+				const mainEl = mainElements[clipIdx];
+				const startSec = mainEl
+					? mediaTimeToSeconds({ time: mainEl.startTime })
+					: clipIdx * 5;
+				const durSec = mainEl
+					? mediaTimeToSeconds({ time: mainEl.duration })
+					: 5;
+				const lineText = voEntry.line.trim();
+				if (!lineText) return;
+
+				const tempId = `temp_vo_${clipIdx}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+				const optimisticItem: ScroOnscreenText = {
+					id: tempId,
+					text: lineText,
+					textStyleId: selectedStyle.id,
+					styleName: selectedStyle.name,
+					clipIndex: clipIdx,
+					playheadSeconds: startSec,
+					status: "queued",
+					submittedAt: new Date().toISOString(),
+				};
+
+				upsertScroOnscreenText(optimisticItem);
+				await insertScroOnscreenTextOnTimeline({
+					editor,
+					videoId,
+					item: optimisticItem,
+					trackTitle: oc.onScreenText.title,
+					startTimeSeconds: startSec,
+					durationSeconds: durSec,
+				});
+
+				try {
+					const res = await enqueueOpencutOnScreenTextAction({
+						videoId,
+						textStyleId: selectedStyle.id,
+						styleName: selectedStyle.name,
+						text: lineText,
+						clipIndex: clipIdx,
+						playheadSeconds: startSec,
+					});
+					notifyTasksChanged();
+					if (!res.ok) {
+						removeScroOnscreenText(tempId);
+						return;
+					}
+					const realItem: ScroOnscreenText = {
+						id: res.item.id,
+						text: res.item.text,
+						textStyleId: res.item.textStyleId,
+						styleName: res.item.styleName ?? selectedStyle.name,
+						status: res.item.status,
+						clipIndex: res.item.clipIndex,
+						playheadSeconds: res.item.playheadSeconds,
+						offsetX: res.item.offsetX,
+						offsetY: res.item.offsetY,
+						inpaintedVideoUrl: res.item.inpaintedVideoUrl,
+						url: res.item.blobUrl || res.item.outputUrl,
+						error: res.item.error,
+						submittedAt: res.item.submittedAt,
+					};
+					rebindOptimisticScroOnscreenTextId({
+						editor,
+						tempId,
+						realItem,
+					});
+					const origin = scroEmbedParentOrigin();
+					if (origin) {
+						sendToScro(
+							{
+								type: "scro-project-updated",
+								videoId,
+								project: res.project,
+							},
+							origin,
+						);
+					}
+				} catch {
+					removeScroOnscreenText(tempId);
+				}
+			}),
+		);
 	};
 
 	if (!catalog) {
@@ -287,6 +385,7 @@ export function ScroOnScreenTextPanel() {
 				onOpenChange={setDialogOpen}
 				styles={styles}
 				selectedStyle={selectedStyle}
+				voLinesCount={voLines.length}
 				busy={false}
 				error={error}
 				onSelectStyle={(id) => {
@@ -294,6 +393,7 @@ export function ScroOnScreenTextPanel() {
 					setError(null);
 				}}
 				onGenerate={(text) => void handleGenerate(text)}
+				onGenerateAllVo={() => void handleGenerateAllVo()}
 			/>
 		</div>
 	);

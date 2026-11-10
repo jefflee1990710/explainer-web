@@ -23,19 +23,23 @@ export function ScroOnScreenTextDialog({
 	onOpenChange,
 	styles,
 	selectedStyle,
+	voLinesCount = 0,
 	busy,
 	error,
 	onSelectStyle,
 	onGenerate,
+	onGenerateAllVo,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	styles: ScroSubtitleStyle[];
 	selectedStyle: ScroSubtitleStyle | null;
+	voLinesCount?: number;
 	busy: boolean;
 	error: string | null;
 	onSelectStyle: (styleId: string) => void;
 	onGenerate: (text: string) => void;
+	onGenerateAllVo?: () => void;
 }) {
 	const { oc } = useOpencutI18n();
 	const [text, setText] = useState("");
@@ -102,6 +106,27 @@ export function ScroOnScreenTextDialog({
 									})}
 								</div>
 							) : null}
+						</div>
+					) : null}
+
+					{voLinesCount > 0 && onGenerateAllVo ? (
+						<div className="rounded-xl border border-[#A3FF47]/40 bg-[#A3FF47]/10 p-3 space-y-2">
+							<div className="flex items-center justify-between gap-2">
+								<span className="text-xs font-bold text-foreground">
+									✨ 自動套用此藝術字樣式到全部 VO 台詞（共 {voLinesCount} 段）
+								</span>
+							</div>
+							<Button
+								type="button"
+								disabled={busy}
+								onClick={onGenerateAllVo}
+								className="w-full cursor-pointer bg-[#A3FF47] font-bold text-[#12141c] hover:bg-[#b5ff66]"
+							>
+								{busy ? <Spinner className="mr-1.5 size-3.5" /> : null}
+								<span>
+									一鍵為全部 {voLinesCount} 段 VO 生成 AI 藝術字幕
+								</span>
+							</Button>
 						</div>
 					) : null}
 
