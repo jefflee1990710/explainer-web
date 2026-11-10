@@ -15,6 +15,11 @@ export type ScroOnscreenText = {
 	textStyleId: string;
 	styleName?: string;
 	status: ScroOnscreenTextStage;
+	clipIndex?: number;
+	playheadSeconds?: number;
+	offsetX?: number;
+	offsetY?: number;
+	inpaintedVideoUrl?: string;
 	url?: string;
 	error?: string;
 	submittedAt?: string;

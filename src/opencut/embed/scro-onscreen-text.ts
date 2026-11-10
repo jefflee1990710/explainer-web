@@ -180,14 +180,18 @@ export async function insertScroOnscreenTextOnTimeline({
 		duration: mediaTimeFromSeconds({ seconds: DEFAULT_DURATION_SEC }),
 		scroOnscreenTextId: item.id,
 	});
+	const canvasW = project.settings?.canvasSize?.width ?? 1080;
+	const canvasH = project.settings?.canvasSize?.height ?? 1920;
+	const posX = Math.round((item.offsetX ?? 0) * canvasW);
+	const posY = Math.round((item.offsetY ?? 0) * canvasH);
 	const element = {
 		...baseElement,
 		params: {
 			...baseElement.params,
 			"transform.scaleX": 0.88,
 			"transform.scaleY": 0.88,
-			"transform.positionX": 0,
-			"transform.positionY": 0,
+			"transform.positionX": posX,
+			"transform.positionY": posY,
 		},
 	};
 
@@ -314,10 +318,19 @@ export async function reconcileScroOnscreenTextsWithEditor({
 
 			const placeholderIds = new Set(placeholderAssets.map((a) => a.id));
 			const scene = editor.scenes.getActiveSceneOrNull();
+			const canvasW = project.settings?.canvasSize?.width ?? 1080;
+			const canvasH = project.settings?.canvasSize?.height ?? 1920;
+			const posX = Math.round((item.offsetX ?? 0) * canvasW);
+			const posY = Math.round((item.offsetY ?? 0) * canvasH);
 			if (scene) {
 				let updatedTimeline = false;
 				const swapElement = <
-					T extends { type: string; mediaId?: string; scroOnscreenTextId?: string },
+					T extends {
+						type: string;
+						mediaId?: string;
+						scroOnscreenTextId?: string;
+						params?: Record<string, unknown>;
+					},
 				>(
 					el: T,
 				): T => {
@@ -332,6 +345,15 @@ export async function reconcileScroOnscreenTextsWithEditor({
 								...el,
 								mediaId: finalAsset!.id,
 								scroOnscreenTextId: item.id,
+								...(el.params
+									? {
+											params: {
+												...el.params,
+												"transform.positionX": posX,
+												"transform.positionY": posY,
+											},
+										}
+									: {}),
 							};
 						}
 					}

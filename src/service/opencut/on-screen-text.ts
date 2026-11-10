@@ -31,6 +31,13 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import {
+  comfyViewAuthHeaders,
+  hasComfyEndpoint,
+  isComfyPromptStatusUrl,
+} from "@/service/comfy/openjutsu-client";
+import { submitComfyMaskedTextInpaintVideo } from "@/service/comfy/submit-clip-video";
+import { detectCenteredFaceSafeTextZone, type SafeTextBox } from "@/service/opencut/safe-text-zone";
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 
 const MAX_ON_SCREEN_TEXT_CHARS = 240;
@@ -127,6 +134,105 @@ export function onScreenTextPrompt(input: {
     "Include any paper strip, sticker, or stroke that belongs to the Look (keep every black, white, yellow, or bright green paper strip completely opaque and intact). Do not paint a full-bleed background scene.",
     `The outer background area around the graphic is flat ${keyColor.hex} (${keyColor.name}). Do not use green as the outer background. No pixel of the letters, paper strips, or sticker may be ${keyColor.hex}.`,
   ].join("\n");
+}
+
+// Build an in-scene redraw prompt that paints the selected artistic text style directly inside the SAM 3 safe box on Reference Image 1.
+export function inSceneOnScreenTextPrompt(input: {
+  text: string;
+  lookLine?: string;
+  sampleImageIndex?: number;
+  box: SafeTextBox;
+  width: number;
+  height: number;
+}): string {
+  const words = input.text.trim();
+  const rawLook = input.sampleImageIndex
+    ? textStyleSampleLookLine(input.sampleImageIndex)
+    : input.lookLine?.trim() || subtitleLookLine();
+  const look = stripFieldBackgroundClause(rawLook);
+  const w = Math.max(1, input.width);
+  const h = Math.max(1, input.height);
+  const xp = Math.round((input.box.x / w) * 100);
+  const yp = Math.round((input.box.y / h) * 100);
+  const wp = Math.round((input.box.w / w) * 100);
+  const hp = Math.round((input.box.h / h) * 100);
+
+  return [
+    `Edit Reference Image 1 by seamlessly painting an on-screen artistic title graphic inside the target region (x=${xp}%, y=${yp}%, width=${wp}%, height=${hp}%).`,
+    look,
+    `The only words to paint inside that target region are: ${words}`,
+    "Integrate any torn-paper strips, sticker borders, brushstrokes, and contact shadows naturally into the lighting and depth of Reference Image 1.",
+    "STRICT LOCK OUTSIDE TARGET BOX: Keep every human face, expression, hair, and all background details outside the target text region 100% pixel-identical to Reference Image 1.",
+  ].join("\n");
+}
+
+// Extract the painted artistic text inside `box` by comparing `paintedFrame` against `originalFrame` with soft edge feathering.
+export async function extractFeatheredInSceneTextPatch(input: {
+  originalFrame: Buffer;
+  paintedFrame: Buffer;
+  box: SafeTextBox;
+}): Promise<{ patchPng: Buffer; ratio: number }> {
+  const origMeta = await sharp(input.originalFrame)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width, height } = origMeta.info;
+  const origData = origMeta.data;
+
+  const paintedData = await sharp(input.paintedFrame)
+    .resize(width, height, { fit: "fill" })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+
+  const rgba = Buffer.alloc(width * height * 4, 0);
+  const { x: bx, y: by, w: bw, h: bh } = input.box;
+  const featherPx = Math.max(6, Math.round(Math.min(bw, bh) * 0.08));
+  let kept = 0;
+  const boxArea = Math.max(1, bw * bh);
+
+  const minX = Math.max(0, bx);
+  const maxX = Math.min(width - 1, bx + bw);
+  const minY = Math.max(0, by);
+  const maxY = Math.min(height - 1, by + bh);
+
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const i3 = (y * width + x) * 3;
+      const i4 = (y * width + x) * 4;
+      const r0 = origData[i3] ?? 0;
+      const g0 = origData[i3 + 1] ?? 0;
+      const b0 = origData[i3 + 2] ?? 0;
+      const r1 = paintedData[i3] ?? 0;
+      const g1 = paintedData[i3 + 1] ?? 0;
+      const b1 = paintedData[i3 + 2] ?? 0;
+
+      const diff = Math.hypot(r1 - r0, g1 - g0, b1 - b0);
+      if (diff <= 10) continue;
+
+      let alpha01 = Math.min(1, (diff - 10) / 22);
+      const edgeDist = Math.min(x - minX, maxX - x, y - minY, maxY - y);
+      if (edgeDist < featherPx) {
+        alpha01 *= edgeDist / featherPx;
+      }
+      const alphaByte = clampByte(alpha01 * 255);
+      if (alphaByte < 12) continue;
+
+      rgba[i4] = r1;
+      rgba[i4 + 1] = g1;
+      rgba[i4 + 2] = b1;
+      rgba[i4 + 3] = alphaByte;
+      if (alphaByte >= 64) kept++;
+    }
+  }
+
+  const patchPng = await sharp(rgba, {
+    raw: { width, height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+
+  return { patchPng, ratio: kept / boxArea };
 }
 
 function clampByte(value: number): number {
@@ -377,6 +483,8 @@ export async function enqueueOpencutOnScreenText(input: {
   textStyleId: string;
   styleName?: string;
   text: string;
+  clipIndex?: number;
+  playheadSeconds?: number;
 }): Promise<EnqueueOpencutOnScreenTextResult> {
   let spendKey: string | undefined;
   let clerkUserId = "";
@@ -424,11 +532,19 @@ export async function enqueueOpencutOnScreenText(input: {
     spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
 
     const resolvedStyleId = textStyleId || project.subtitleLook || "handwritten";
+    const resolvedClipIndex =
+      typeof input.clipIndex === "number" && Number.isFinite(input.clipIndex) && input.clipIndex >= 0
+        ? Math.floor(input.clipIndex)
+        : 0;
     const item: OnscreenTextItem = {
       id: new ObjectId().toHexString(),
       text: trimmedText,
       textStyleId: resolvedStyleId,
       ...(input.styleName?.trim() ? { styleName: input.styleName.trim() } : {}),
+      clipIndex: resolvedClipIndex,
+      ...(typeof input.playheadSeconds === "number" && Number.isFinite(input.playheadSeconds)
+        ? { playheadSeconds: Math.max(0, input.playheadSeconds) }
+        : {}),
       status: "queued",
       submittedAt: new Date().toISOString(),
       creditsCharged: FRAME_COST,
@@ -439,7 +555,7 @@ export async function enqueueOpencutOnScreenText(input: {
 
     queuedJobId = await insertPendingJob({
       projectId: project._id,
-      clipIndex: 0,
+      clipIndex: resolvedClipIndex,
       kind: "onscreenText",
       onscreenTextId: item.id,
       model,
@@ -502,12 +618,129 @@ export async function sendOnscreenText(
     project,
     item.textStyleId,
   );
+  const sceneTextLanguage = inferOnScreenTextSceneLanguage(line);
+  const route = resolveImageRoute(sceneTextLanguage);
+  const targetClipIdx = item.clipIndex ?? job.clipIndex ?? 0;
+  const targetClip = project.clips?.[targetClipIdx] ?? project.clips?.[0];
+  const targetClipNumber = targetClip?.clipNumber ?? targetClipIdx + 1;
+  const targetFrame =
+    project.frames?.find(
+      (f) => f.clipNumber === targetClipNumber && f.position === "start",
+    ) ?? project.frames?.find((f) => f.position === "start");
+  const startFrameUrl = targetFrame?.blobUrl || targetFrame?.outputUrl;
+  const clipVideoUrl = targetClip?.blobUrl || targetClip?.outputUrl;
+
+  if (startFrameUrl) {
+    try {
+      const startFrameBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
+      const safeZone = await detectCenteredFaceSafeTextZone(startFrameBuf);
+      const model = imageModelForSubmit(route, true);
+      const prompt = inSceneOnScreenTextPrompt({
+        text: line,
+        lookLine,
+        sampleImageIndex: sampleUrl ? 2 : undefined,
+        box: safeZone.bestBox,
+        width: safeZone.width,
+        height: safeZone.height,
+      });
+
+      const submitted = await submitImage({
+        model,
+        prompt,
+        aspectRatio: project.aspectRatio || "16:9",
+        quality: "medium",
+        resolution: "2k",
+        sceneTextLanguage,
+        referenceImageUrls: [startFrameUrl, ...(sampleUrl ? [sampleUrl] : [])],
+      });
+
+      await projects
+        .updateOne(
+          { _id: project._id, "onscreenTexts.id": item.id },
+          {
+            $set: {
+              "onscreenTexts.$.offsetX": safeZone.normalizedOffset.offsetX,
+              "onscreenTexts.$.offsetY": safeZone.normalizedOffset.offsetY,
+              updatedAt: new Date(),
+            },
+          },
+        )
+        .catch(() => {});
+
+      const syncImgUrl = submitted.images?.[0]?.url;
+      if (syncImgUrl) {
+        const paintedBuf = await decodeImageBufferFromOutputUrl(syncImgUrl);
+        const extracted = await extractFeatheredInSceneTextPatch({
+          originalFrame: startFrameBuf,
+          paintedFrame: paintedBuf,
+          box: safeZone.bestBox,
+        });
+        if (!plateIsEmpty(extracted.ratio)) {
+          const croppedPatch = await cropVerticalTransparentMargin(extracted.patchPng);
+          const patchBlobUrl = await persistBuffer(
+            croppedPatch,
+            `explainer/${project._id.toHexString()}/on-screen-text/${job._id.toHexString()}-patch.png`,
+            "image/png",
+          );
+          await projects
+            .updateOne(
+              { _id: project._id, "onscreenTexts.id": item.id },
+              {
+                $set: {
+                  "onscreenTexts.$.outputUrl": patchBlobUrl,
+                  "onscreenTexts.$.blobUrl": patchBlobUrl,
+                  updatedAt: new Date(),
+                },
+              },
+            )
+            .catch(() => {});
+        }
+
+        // Scheme B: When Vast.ai ComfyUI is configured and the target clip has a video,
+        // submit H3 Masked Latent Video Inpainting using the SAM 3 safe box and Seedream-painted start frame!
+        if (hasComfyEndpoint() && clipVideoUrl) {
+          try {
+            const clipVideoBuf = await decodeImageBufferFromOutputUrl(clipVideoUrl);
+            const paintedJpgBuf = await sharp(paintedBuf)
+              .jpeg({ quality: 94 })
+              .toBuffer();
+            const comfySub = await submitComfyMaskedTextInpaintVideo({
+              videoBuffer: clipVideoBuf,
+              paintedStartFrameBuffer: paintedJpgBuf,
+              section: {
+                start: 0,
+                length: Math.min(6, Math.max(3, targetClip?.durationSeconds ?? 6)),
+              },
+              boxNormalized: {
+                x: safeZone.bestBox.x / safeZone.width,
+                y: safeZone.bestBox.y / safeZone.height,
+                width: safeZone.bestBox.w / safeZone.width,
+                height: safeZone.bestBox.h / safeZone.height,
+              },
+              text: line,
+              styleDescription: lookLine,
+            });
+            return {
+              model: "comfy/h3-masked-text-inpaint",
+              requestId: comfySub.request_id,
+              statusUrl: comfySub.status_url,
+            };
+          } catch (comfyErr) {
+            console.warn("[on-screen-text] ComfyUI H3 Masked Latent fallback to in-scene patch:", comfyErr);
+          }
+        }
+      }
+
+      return toSent(model, submitted);
+    } catch (inSceneErr) {
+      console.warn("[on-screen-text] in-scene SAM 3 path fallback to chroma key:", inSceneErr);
+    }
+  }
+
   const keyColor = chooseOnScreenTextKeyColor({
     textStyleId: item.textStyleId,
     lookLine,
   });
-  const sceneTextLanguage = inferOnScreenTextSceneLanguage(line);
-  const route = resolveImageRoute(sceneTextLanguage);
   const model = imageModelForSubmit(route, Boolean(sampleUrl));
   const prompt = onScreenTextPrompt({
     text: line,
@@ -592,6 +825,81 @@ export async function syncOnscreenTextJob(
   }
 
   if (item.status === "completed" || item.status === "failed") return;
+
+  const targetClipIdx = item.clipIndex ?? job.clipIndex ?? 0;
+
+  // Scheme B settle: When the job was submitted to Vast.ai ComfyUI (`MiniMax-H3` Masked Latent Video Inpainting),
+  // download the inpainted MP4, persist it to Vercel Blob, and update both `onscreenTexts.$` and the target clip's video!
+  if (job.statusUrl && isComfyPromptStatusUrl(job.statusUrl)) {
+    try {
+      const headers = comfyViewAuthHeaders(outputUrl);
+      const vidResp = await fetch(outputUrl, headers ? { headers } : undefined);
+      if (!vidResp.ok) {
+        throw new Error(`無法下載 H3 Masked Latent 影片（HTTP ${vidResp.status}）`);
+      }
+      const vidBuf = Buffer.from(await vidResp.arrayBuffer());
+      const inpaintedVideoUrl = await persistBuffer(
+        vidBuf,
+        `explainer/${projectId.toHexString()}/on-screen-text/${job._id.toHexString()}-inpainted.mp4`,
+        "video/mp4",
+      );
+
+      const fallbackImgUrl = item.blobUrl || item.outputUrl || inpaintedVideoUrl;
+      const updateSet: Record<string, unknown> = {
+        "onscreenTexts.$.status": "completed",
+        "onscreenTexts.$.inpaintedVideoUrl": inpaintedVideoUrl,
+        "onscreenTexts.$.outputUrl": fallbackImgUrl,
+        "onscreenTexts.$.blobUrl": fallbackImgUrl,
+        updatedAt: new Date(),
+      };
+      if (project.clips && project.clips[targetClipIdx]) {
+        updateSet[`clips.${targetClipIdx}.status`] = "completed";
+        updateSet[`clips.${targetClipIdx}.outputUrl`] = inpaintedVideoUrl;
+        updateSet[`clips.${targetClipIdx}.blobUrl`] = inpaintedVideoUrl;
+      }
+
+      await projects.updateOne(
+        {
+          _id: projectId,
+          onscreenTexts: {
+            $elemMatch: { id: onscreenTextId, status: { $in: ["queued", "in_progress"] } },
+          },
+        },
+        {
+          $set: updateSet,
+          $unset: { "onscreenTexts.$.error": "" },
+        },
+      );
+      return;
+    } catch (error) {
+      console.error("[on-screen-text] H3 Masked Latent video settle failed", {
+        jobId: job._id,
+        error,
+      });
+      await failOnscreenText(projectId, onscreenTextId, "H3 Masked Latent 畫面文字影片合成失敗");
+      return;
+    }
+  }
+
+  // If `sendOnscreenText` already extracted and saved the feathered in-scene patch (`item.blobUrl`), mark completed directly!
+  if (item.blobUrl && item.blobUrl.startsWith("https://")) {
+    await projects.updateOne(
+      {
+        _id: projectId,
+        onscreenTexts: {
+          $elemMatch: { id: onscreenTextId, status: { $in: ["queued", "in_progress"] } },
+        },
+      },
+      {
+        $set: {
+          "onscreenTexts.$.status": "completed",
+          updatedAt: new Date(),
+        },
+        $unset: { "onscreenTexts.$.error": "" },
+      },
+    );
+    return;
+  }
 
   let croppedPng: Buffer;
   try {

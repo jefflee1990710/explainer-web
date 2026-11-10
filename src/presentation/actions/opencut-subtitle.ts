@@ -30,6 +30,8 @@ export async function enqueueOpencutOnScreenTextAction(input: {
   textStyleId: string;
   styleName?: string;
   text: string;
+  clipIndex?: number;
+  playheadSeconds?: number;
 }): Promise<EnqueueOpencutOnScreenTextResult> {
   return enqueueOpencutOnScreenText(input);
 }

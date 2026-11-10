@@ -396,6 +396,11 @@ export type OnscreenTextItem = {
   textStyleId: string;
   styleName?: string;
   status: "queued" | "in_progress" | "completed" | "failed";
+  clipIndex?: number;
+  playheadSeconds?: number;
+  offsetX?: number;
+  offsetY?: number;
+  inpaintedVideoUrl?: string;
   outputUrl?: string;
   blobUrl?: string;
   error?: string;

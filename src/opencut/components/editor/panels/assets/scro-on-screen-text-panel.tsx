@@ -20,6 +20,7 @@ import {
 import { ScroOnScreenTextDialog } from "@/opencut/components/editor/panels/assets/scro-on-screen-text-dialog";
 import { Spinner } from "@/opencut/components/ui/spinner";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
+import { mediaTimeToSeconds } from "@/opencut/wasm";
 import { enqueueOpencutOnScreenTextAction } from "@/presentation/actions/opencut-subtitle";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { cn } from "@/opencut/utils/ui";
@@ -76,11 +77,25 @@ export function ScroOnScreenTextPanel() {
 		});
 
 		try {
+			const playheadSeconds = mediaTimeToSeconds({
+				time: editor.playback.getCurrentTime(),
+			});
+			const mainElements =
+				editor.scenes.getActiveSceneOrNull()?.tracks.main.elements ?? [];
+			const foundClipIdx = mainElements.findIndex((el) => {
+				const start = mediaTimeToSeconds({ time: el.startTime });
+				const dur = mediaTimeToSeconds({ time: el.duration });
+				return playheadSeconds >= start && playheadSeconds <= start + dur;
+			});
+			const clipIndex = foundClipIdx >= 0 ? foundClipIdx : 0;
+
 			const res = await enqueueOpencutOnScreenTextAction({
 				videoId,
 				textStyleId: selectedStyle.id,
 				styleName: selectedStyle.name,
 				text: trimmed,
+				clipIndex,
+				playheadSeconds,
 			});
 			notifyTasksChanged();
 
@@ -96,6 +111,11 @@ export function ScroOnScreenTextPanel() {
 				textStyleId: res.item.textStyleId,
 				styleName: res.item.styleName ?? selectedStyle.name,
 				status: res.item.status,
+				clipIndex: res.item.clipIndex,
+				playheadSeconds: res.item.playheadSeconds,
+				offsetX: res.item.offsetX,
+				offsetY: res.item.offsetY,
+				inpaintedVideoUrl: res.item.inpaintedVideoUrl,
 				url: res.item.blobUrl || res.item.outputUrl,
 				error: res.item.error,
 				submittedAt: res.item.submittedAt,

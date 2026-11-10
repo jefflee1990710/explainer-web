@@ -6,9 +6,12 @@ import {
   cropVerticalTransparentMargin,
   decodeImageBufferFromOutputUrl,
   inferOnScreenTextSceneLanguage,
+  inSceneOnScreenTextPrompt,
+  extractFeatheredInSceneTextPatch,
   keyColorDifferencePng,
   onScreenTextPrompt,
 } from "@/service/opencut/on-screen-text";
+import { buildComfyMaskedTextInpaintGraph } from "@/service/comfy/submit-clip-video";
 
 test("inferOnScreenTextSceneLanguage routes CJK text to zh-Hant and Latin text to en", () => {
   assert.equal(inferOnScreenTextSceneLanguage("Try it now!"), "en");
@@ -133,4 +136,78 @@ test("cropVerticalTransparentMargin trims top and bottom transparent rows while 
   assert.equal(meta.width, width);
   // Band height is 31px + 16px top + 16px bottom = 63px (< 180px)
   assert.equal(meta.height, 63);
+});
+
+test("inSceneOnScreenTextPrompt instructs in-scene redraw inside target box without touching faces", () => {
+  const prompt = inSceneOnScreenTextPrompt({
+    text: "見工無回音？",
+    lookLine: "Look: bold condensed sans on torn-paper strips.",
+    box: { x: 200, y: 500, w: 600, h: 200 },
+    width: 1000,
+    height: 1000,
+  });
+  assert.match(prompt, /見工無回音？/);
+  assert.match(prompt, /x=20%/);
+  assert.match(prompt, /y=50%/);
+  assert.match(prompt, /keep every human face/i);
+});
+
+test("extractFeatheredInSceneTextPatch keeps painted text inside box opaque and unchanged background transparent", async () => {
+  const width = 200;
+  const height = 200;
+  const origRgb = Buffer.alloc(width * height * 3, 30);
+  const paintedRgb = Buffer.from(origRgb);
+
+  // Paint white-on-red torn paper bar inside box (x: 50..150, y: 80..120)
+  for (let y = 80; y < 120; y++) {
+    for (let x = 50; x < 150; x++) {
+      const i = (y * width + x) * 3;
+      paintedRgb[i] = 230;
+      paintedRgb[i + 1] = 40;
+      paintedRgb[i + 2] = 40;
+    }
+  }
+
+  const [origPng, paintedPng] = await Promise.all([
+    sharp(origRgb, { raw: { width, height, channels: 3 } }).png().toBuffer(),
+    sharp(paintedRgb, { raw: { width, height, channels: 3 } }).png().toBuffer(),
+  ]);
+
+  const { patchPng, ratio } = await extractFeatheredInSceneTextPatch({
+    originalFrame: origPng,
+    paintedFrame: paintedPng,
+    box: { x: 40, y: 70, w: 120, h: 60 },
+  });
+
+  assert.ok(ratio > 0.05, `expected non-empty ratio, got ${ratio}`);
+  const { data: outRgba } = await sharp(patchPng)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // Outside box (10, 10) must be transparent
+  assert.equal(outRgba[(10 * width + 10) * 4 + 3], 0);
+  // Painted center (100, 100) must be opaque red
+  const centerIdx = (100 * width + 100) * 4;
+  assert.equal(outRgba[centerIdx], 230);
+  assert.equal(outRgba[centerIdx + 3], 255);
+});
+
+test("buildComfyMaskedTextInpaintGraph configures H3ObjectPlacementMask, MiniMaxH3ContexMaskedTarget, and MiniMaxH3AddGuide at frame 0", () => {
+  const graph = buildComfyMaskedTextInpaintGraph({
+    runId: "txt123",
+    videoName: "clip.mp4",
+    paintedStartFrameName: "painted0.jpg",
+    section: { start: 0, length: 5 },
+    boxNormalized: { x: 0.21, y: 0.54, width: 0.58, height: 0.22 },
+    text: "見工無回音？",
+    styleDescription: "bold torn-paper strips",
+  });
+
+  assert.equal(graph.object_placement?.class_type, "H3ObjectPlacementMask");
+  assert.equal(graph["43"]?.class_type, "MiniMaxH3FantasticVideoEditLatent");
+  assert.equal(graph["44"]?.class_type, "MiniMaxH3ContexMaskedTarget");
+  assert.equal(graph["44"]?.inputs.mask_meaning, "white = generate");
+  assert.equal(graph.scro_first_frame_guide?.class_type, "MiniMaxH3AddGuide");
+  assert.equal(graph.scro_first_frame_guide?.inputs.frame_idx, 0);
 });

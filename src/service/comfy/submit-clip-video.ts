@@ -6,9 +6,11 @@ import {
   type ComfySubmitResult,
 } from "@/service/comfy/openjutsu-client";
 import {
+  buildObjectGraph,
   resolveH3ExtendDimensions,
   type ApiGraph,
 } from "@/service/comfy/openjutsu-graph";
+import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
@@ -397,6 +399,119 @@ export async function submitComfyStoryboardClipVideo(
   };
   if (!res.ok || !body.prompt_id) {
     throw new Error(body.error?.message || `ComfyUI 分鏡影片提交失敗（HTTP ${res.status}）`);
+  }
+  return {
+    request_id: body.prompt_id,
+    status_url: `comfy://prompt/${body.prompt_id}`,
+    status: "processing",
+  };
+}
+
+export function buildComfyMaskedTextInpaintGraph(input: {
+  runId: string;
+  videoName: string;
+  paintedStartFrameName: string;
+  section: { start: number; length: number };
+  boxNormalized: { x: number; y: number; width: number; height: number };
+  text: string;
+  styleDescription: string;
+}): ApiGraph {
+  const cleanText = input.text.replace(/\s+/g, " ").trim();
+  const cleanStyle = input.styleDescription.replace(/\s+/g, " ").trim();
+  const graph = buildObjectGraph({
+    runId: input.runId,
+    videoName: input.videoName,
+    imageName: input.paintedStartFrameName,
+    section: input.section,
+    mode: "add",
+    target: "text",
+    changeTo: `on-screen artistic graphic lettering "${cleanText}" (${cleanStyle})`,
+    action:
+      "stays razor-sharp, legible, and naturally integrated into the scene lighting and depth while all faces and surrounding action remain untouched",
+    biggestOnly: false,
+    keepOutline: false,
+    margin: "normal",
+    motion: 768,
+    seed: 0,
+    clipSeconds: Math.min(6, Math.max(2.5, input.section.length)),
+    placement: [
+      {
+        frame: 0,
+        x: input.boxNormalized.x,
+        y: input.boxNormalized.y,
+        width: input.boxNormalized.width,
+        height: input.boxNormalized.height,
+      },
+    ],
+  });
+
+  // Anchor the Seedream-painted start frame at frame_idx = 0 so the exact typography is locked into the latent
+  graph.scro_first_frame_guide = {
+    class_type: "MiniMaxH3AddGuide",
+    inputs: {
+      positive: ["24", 0],
+      latent: ["24", 1],
+      vae: ["14", 0],
+      image: ["2", 0],
+      frame_idx: 0,
+    },
+    _meta: { title: "First Frame Painted Text Latent Guide (frame_idx=0)" },
+  };
+  if (graph["45"]?.inputs) {
+    graph["45"].inputs.conditioning = ["scro_first_frame_guide", 0];
+  }
+
+  return graph;
+}
+
+export async function submitComfyMaskedTextInpaintVideo(
+  input: {
+    videoBuffer: Buffer;
+    paintedStartFrameBuffer: Buffer;
+    section: { start: number; length: number };
+    boxNormalized: { x: number; y: number; width: number; height: number };
+    text: string;
+    styleDescription: string;
+  },
+  options?: { fetch?: typeof fetch },
+): Promise<ComfySubmitResult> {
+  const fetchFn = options?.fetch ?? fetch;
+  const runId = randomUUID().replace(/-/g, "").slice(0, 12);
+  const videoWithAudio = await ensureMp4HasAudioStream(input.videoBuffer);
+
+  const [videoName, paintedStartFrameName] = await Promise.all([
+    uploadComfyImage(`text-inpaint-vid-${runId}.mp4`, videoWithAudio, fetchFn),
+    uploadComfyImage(`text-inpaint-start-${runId}.jpg`, input.paintedStartFrameBuffer, fetchFn),
+  ]);
+
+  const graph = buildComfyMaskedTextInpaintGraph({
+    runId,
+    videoName,
+    paintedStartFrameName,
+    section: input.section,
+    boxNormalized: input.boxNormalized,
+    text: input.text,
+    styleDescription: input.styleDescription,
+  });
+
+  const key = process.env.COMFY_API_KEY?.trim();
+  const base = comfyBaseUrl();
+  const res = await fetchFn(`${base}/prompt`, {
+    method: "POST",
+    headers: {
+      ...(key ? { Authorization: `Bearer ${key}` } : {}),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prompt: graph }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    prompt_id?: string;
+    error?: { message?: string };
+  };
+  if (!res.ok || !body.prompt_id) {
+    throw new Error(
+      body.error?.message || `ComfyUI Masked Text Inpaint 提交失敗（HTTP ${res.status}）`,
+    );
   }
   return {
     request_id: body.prompt_id,
