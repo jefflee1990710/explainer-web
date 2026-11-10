@@ -29,6 +29,14 @@ test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director wh
         skillSlug: "product-demo-director",
         durationSeconds: 8,
       }),
+      true,
+    );
+    assert.equal(
+      shouldUseComfyForClipVideo({
+        model: "alibaba/wan-3.0",
+        skillSlug: "cartoon-explainer-video-director",
+        durationSeconds: 8,
+      }),
       false,
     );
   } finally {

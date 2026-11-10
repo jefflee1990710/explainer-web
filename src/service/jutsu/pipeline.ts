@@ -83,9 +83,11 @@ import {
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
+  hasComfyEndpoint,
   isComfyPromptStatusUrl,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
+import { submitComfyStoryboardClipVideo } from "@/service/comfy/submit-clip-video";
 import {
   canSubmitJutsuComfy,
   trySubmitJutsuComfy,
@@ -945,10 +947,20 @@ export async function renderJutsuVideo(input: {
       },
     );
 
-    // Self-hosted OpenJutsu runs the masked H3 edit. Cloud ref2va is the fallback.
+    // Self-hosted / Serverless OpenJutsu runs the masked H3 edit; when relight/multi-person skips `trySubmitJutsuComfy`,
+    // still route the prepared start/end keyframes to Vast Serverless ComfyUI `submitComfyStoryboardClipVideo` instead of MiniMax Cloud.
     const comfySubmitted = await trySubmitJutsuComfy(job);
     const submitted = comfySubmitted
       ? comfySubmitted
+      : hasComfyEndpoint()
+      ? await submitComfyStoryboardClipVideo({
+          prompt: fullVideoPrompt,
+          aspectRatio: job.aspectRatio,
+          durationSeconds: Math.min(10, Math.max(5, Math.round(job.sectionLength))),
+          startImageUrl: job.preparedStartFrameUrl,
+          endImageUrl: job.preparedEndFrameUrl || job.preparedStartFrameUrl,
+          characterImageUrl: identityImageUrl,
+        })
       : useH3Ref2Va
       ? await submitMinimaxH3Ref2VaVideo({
           prompt: fullVideoPrompt,
@@ -1928,6 +1940,15 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
       const comfySubmitted = await trySubmitJutsuComfy(current, preloadedVideoBuffer);
       const submitted = comfySubmitted
         ? comfySubmitted
+        : hasComfyEndpoint()
+        ? await submitComfyStoryboardClipVideo({
+            prompt: fullVideoPrompt,
+            aspectRatio: current.aspectRatio,
+            durationSeconds: Math.min(10, Math.max(5, Math.round(current.sectionLength))),
+            startImageUrl: current.preparedStartFrameUrl,
+            endImageUrl: current.preparedEndFrameUrl || current.preparedStartFrameUrl,
+            characterImageUrl: identityImageUrl,
+          })
         : useH3Ref2Va
         ? await submitMinimaxH3Ref2VaVideo({
             prompt: fullVideoPrompt,

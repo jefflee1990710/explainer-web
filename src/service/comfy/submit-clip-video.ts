@@ -12,7 +12,10 @@ import {
 } from "@/service/comfy/openjutsu-graph";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
+import {
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
+  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+} from "@/service/openrouter/generate";
 
 export function shouldUseComfyForClipVideo(input: {
   model: string;
@@ -22,11 +25,14 @@ export function shouldUseComfyForClipVideo(input: {
   videoQualityTier?: VideoQualityTier;
 }): boolean {
   if (!hasComfyEndpoint()) return false;
+  if (process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() === "false") return false;
   if (input.audioUrl?.trim()) return false;
   if (input.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) return false;
   if (input.skillSlug === "talking-head-director") return false;
   if (input.skillSlug === "one-take-director") return true;
   if (input.videoQualityTier === "economy") return true;
+  // Route all MiniMax H3 (`minimax/hailuo-3`) video generation to Vast Serverless ComfyUI by default
+  if (input.model === OPENROUTER_HAILUO_3_VIDEO_MODEL) return true;
   return process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() === "true";
 }
 
