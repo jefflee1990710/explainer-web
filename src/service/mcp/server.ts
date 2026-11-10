@@ -27,6 +27,7 @@ import { listPublicStyles } from "@/service/style/list";
 import {
   BLUEPRINT_COST,
   clipVideoCost,
+  ECONOMY_VIDEO_CREDITS_PER_SECOND,
   FRAMES_COST,
   CINEMATIC_VIDEO_CREDITS_PER_SECOND,
   MIN_VIDEO_COST,
@@ -283,7 +284,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_video",
     {
       title: "Generate clip video",
-      description: `Generate or regenerate the rendered video for one clip (costs ${VIDEO_CREDITS_PER_SECOND} credits per second, minimum ${MIN_VIDEO_COST}; cinematic realistic costs ${CINEMATIC_VIDEO_CREDITS_PER_SECOND} per second; sitting talking-head costs ${TALKING_HEAD_CREDITS_PER_SECOND} credits per second, up to 120 seconds). Asks the user to approve before anything is queued.`,
+      description: `Generate or regenerate the rendered video for one clip (Economy tier costs ${ECONOMY_VIDEO_CREDITS_PER_SECOND} credits per second; 2K Cinema realistic costs ${CINEMATIC_VIDEO_CREDITS_PER_SECOND} per second; non-realistic cloud costs ${VIDEO_CREDITS_PER_SECOND} per second, minimum ${MIN_VIDEO_COST}; sitting talking-head costs ${TALKING_HEAD_CREDITS_PER_SECOND} credits per second, up to 120 seconds). Asks the user to approve before anything is queued.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),

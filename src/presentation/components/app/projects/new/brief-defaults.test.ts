@@ -5,6 +5,7 @@ import {
   defaultSceneTextLanguageForLocale,
   defaultVoLanguageForLocale,
   pickerDefaultSkillSlug,
+  resolveDefaultVideoQualityTier,
   resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
@@ -210,6 +211,13 @@ test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-se
     }),
     [],
   );
+});
+
+test("resolveDefaultVideoQualityTier reads economy or 2k_cinema and defaults to 2k_cinema", () => {
+  assert.equal(resolveDefaultVideoQualityTier("economy"), "economy");
+  assert.equal(resolveDefaultVideoQualityTier("2k_cinema"), "2k_cinema");
+  assert.equal(resolveDefaultVideoQualityTier(null), "2k_cinema");
+  assert.equal(resolveDefaultVideoQualityTier("invalid"), "2k_cinema");
 });
 
 

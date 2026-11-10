@@ -80,6 +80,7 @@ export type PublicVideo = {
   spokenScript?: string;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
+  videoQualityTier?: Project["videoQualityTier"];
   styleId: string;
   styleIds?: string[];
   language: NonNullable<Project["language"]>;
@@ -474,6 +475,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     spokenScript: video.spokenScript,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
+    ...(video.videoQualityTier ? { videoQualityTier: video.videoQualityTier } : {}),
     styleId: normalizeStyleId(video.styleId) || DEFAULT_STYLE_ID,
     ...(video.styleIds && video.styleIds.length > 0
       ? { styleIds: video.styleIds.map((id) => normalizeStyleId(id) || id) }

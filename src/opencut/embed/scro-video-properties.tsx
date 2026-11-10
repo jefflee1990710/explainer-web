@@ -17,6 +17,8 @@ import {
 } from "@/opencut/i18n/use-opencut-i18n";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import { canChangeClipStyle } from "@/service/opencut/clip-inspector-kind";
+import { setClipVideoQualityTierAction } from "@/presentation/actions/opencut-clip-style";
+import { writeDefaultVideoQualityTier } from "@/presentation/components/app/projects/new/brief-defaults";
 import { localizedStyleName } from "@/util/style-i18n";
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -215,6 +217,47 @@ export function ScroVideoProperties({
 										{oc.inspector.changeStyle}
 									</Button>
 								</div>
+
+								{inspectorKind !== "talking-head" ? (
+									<div className="flex items-center justify-between gap-2 pt-1.5">
+										<p className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+											{locale === "en" ? "Video Tier" : "影片方案"}
+										</p>
+										<div className="bg-muted inline-flex rounded-lg p-0.5">
+											{(["economy", "2k_cinema"] as const).map((tier) => {
+												const active =
+													(clip.videoQualityTier ?? "2k_cinema") === tier;
+												const label =
+													tier === "economy"
+														? locale === "en"
+															? "Economy · 4/s"
+															: "Economy · 4/s"
+														: "2K Cinema · 15/s";
+												return (
+													<button
+														key={tier}
+														type="button"
+														onClick={() => {
+															writeDefaultVideoQualityTier(tier);
+															void setClipVideoQualityTierAction({
+																videoId: store.videoId,
+																clipNumber: clip.clipNumber,
+																videoQualityTier: tier,
+															});
+														}}
+														className={`cursor-pointer rounded-md px-2 py-0.5 text-[11px] font-semibold transition ${
+															active
+																? "bg-foreground text-background"
+																: "text-muted-foreground hover:text-foreground"
+														}`}
+													>
+														{label}
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								) : null}
 							</div>
 							<div className="space-y-3 px-3.5 py-3">
 								<ScroVideoJutsuActions videoId={store.videoId} clip={clip} />

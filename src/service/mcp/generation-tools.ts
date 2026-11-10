@@ -7,7 +7,7 @@ import {
   generateAllSceneImagesAction,
   generateSelectedClipsAction,
 } from "@/service/clip/production";
-import type { ClipStoryboardInput } from "@/model/project";
+import { VIDEO_QUALITY_TIERS, type ClipStoryboardInput } from "@/model/project";
 import {
   refreshGenerationAction,
   regenerateFrameAction,
@@ -16,8 +16,24 @@ import {
 import { advanceOwnedJobs } from "@/service/generation/task-advance";
 import { listTasks } from "@/service/generation/task-list";
 import { requireVideoApproval } from "@/service/mcp/video-approval";
-import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
-import { getVideoAction } from "@/service/project/actions";
+import {
+  applyClipExtend,
+  applyClipScroSwap,
+  applyClipTeleport,
+} from "@/service/opencut/clip-jutsu";
+import {
+  applyClipStyle,
+  setClipVideoQualityTier,
+} from "@/service/opencut/clip-style";
+import {
+  CINEMATIC_VIDEO_CREDITS_PER_SECOND,
+  ECONOMY_VIDEO_CREDITS_PER_SECOND,
+  FRAME_COST,
+  FRAMES_COST,
+  scroSwapCost,
+  teleportCost,
+} from "@/service/production-plan";
+import { getVideoAction, createSimpleVideoAction } from "@/service/project/actions";
 import { videoPreview } from "@/service/mcp/video-preview";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
@@ -260,6 +276,142 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     wrapTool(user, apiKey, "list_tasks", 0, async ({ videoId }) => {
       await advanceOwnedJobs(user.clerkUserId).catch(() => {});
       return listTasks(user.clerkUserId, { videoId });
+    }),
+  );
+
+  server.registerTool(
+    "set_clip_video_quality_tier",
+    {
+      title: "Set clip video quality tier",
+      description: `Switch one clip between 'economy' (${ECONOMY_VIDEO_CREDITS_PER_SECOND} credits/s, first/last latent frames + reference conditioning) and '2k_cinema' (${CINEMATIC_VIDEO_CREDITS_PER_SECOND} credits/s, 2K cloud cinema) before generating or regenerating its video.`,
+      inputSchema: {
+        videoId: z.string(),
+        clipNumber: z.number().int().positive(),
+        videoQualityTier: z.enum(VIDEO_QUALITY_TIERS),
+      },
+    },
+    wrapTool(user, apiKey, "set_clip_video_quality_tier", 0, async (args) => {
+      return unwrap(await setClipVideoQualityTier(args)).project;
+    }),
+  );
+
+  server.registerTool(
+    "create_simple_video",
+    {
+      title: "Create simple single-clip video",
+      description: `Directly generate a single-clip video from a prompt, optional first/last frames, optional character/scene references, and videoQualityTier ('economy' at ${ECONOMY_VIDEO_CREDITS_PER_SECOND} credits/s or '2k_cinema' at ${CINEMATIC_VIDEO_CREDITS_PER_SECOND} credits/s).`,
+      inputSchema: {
+        prompt: z.string().min(1).max(2000).describe("Action, scene, and camera motion description"),
+        aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional().default("9:16"),
+        durationSeconds: z.number().int().min(5).max(12).optional().default(6),
+        styleId: z.string().optional().default("realistic"),
+        videoQualityTier: z.enum(VIDEO_QUALITY_TIERS).optional().default("economy"),
+        firstFrameUrl: z.string().url().optional().describe("Optional starting keyframe image URL"),
+        lastFrameUrl: z.string().url().optional().describe("Optional ending keyframe image URL"),
+        characterId: z.string().optional().describe("Optional character id from list_characters"),
+        referenceImageUrls: z.array(z.string().url()).max(4).optional().describe("Optional reference image URLs"),
+      },
+      annotations: { destructiveHint: true },
+    },
+    wrapTool(user, apiKey, "create_simple_video", 0, async (args) => {
+      await requireVideoApproval(
+        server,
+        `要建立並生成呢段 ${args.durationSeconds ?? 6} 秒影片（${args.videoQualityTier ?? "economy"} 模式）嗎？這會扣除 credits。`,
+      );
+      return unwrap(await createSimpleVideoAction(args)).project;
+    }),
+  );
+
+  server.registerTool(
+    "apply_clip_style",
+    {
+      title: "Apply clip visual style",
+      description: "Change one clip's visual styleId, redraw its frames in the new style, and queue auto-video generation.",
+      inputSchema: {
+        videoId: z.string(),
+        clipNumber: z.number().int().positive(),
+        styleId: z.string().min(1),
+      },
+    },
+    wrapTool(user, apiKey, "apply_clip_style", FRAME_COST, async (args) => {
+      return unwrap(await applyClipStyle(args)).project;
+    }),
+  );
+
+  server.registerTool(
+    "extend_clip_video",
+    {
+      title: "Extend clip video (+6s)",
+      description:
+        "Seamlessly extend a completed clip by +6 seconds using a 39-frame protected latent prefix and character/scene/prop references, inserting a new Clip N+1 right after it.",
+      inputSchema: {
+        videoId: z.string(),
+        clipNumber: z.number().int().positive(),
+        extensionPrompt: z.string().min(1).max(1200).describe("What happens in the next 6 seconds"),
+      },
+      annotations: { destructiveHint: true },
+    },
+    wrapTool(user, apiKey, "extend_clip_video", CINEMATIC_VIDEO_CREDITS_PER_SECOND * 6, async (args) => {
+      await requireVideoApproval(
+        server,
+        `要將 Clip ${args.clipNumber} 無縫延展 +6 秒嗎？這會扣除 credits。`,
+      );
+      const res = unwrap(
+        await applyClipExtend({
+          videoId: args.videoId,
+          clipNumber: args.clipNumber,
+          prompt: args.extensionPrompt,
+        }),
+      );
+      return { project: res.project, jobId: res.jobId, newClipNumber: res.newClipNumber };
+    }),
+  );
+
+  server.registerTool(
+    "apply_clip_scro_swap",
+    {
+      title: "Apply Scro Swap to clip",
+      description:
+        "Replace the character and/or outfit in a completed storyboard clip while preserving its motion and lip-sync.",
+      inputSchema: {
+        videoId: z.string(),
+        clipNumber: z.number().int().positive(),
+        characterId: z.string().optional().describe("Character id from list_characters"),
+        referenceImageUrls: z.array(z.string().url()).max(6).optional().describe("1 to 6 custom character/outfit reference image URLs"),
+      },
+      annotations: { destructiveHint: true },
+    },
+    wrapTool(user, apiKey, "apply_clip_scro_swap", scroSwapCost({ mediaKind: "video", durationSeconds: 6 }), async (args) => {
+      await requireVideoApproval(
+        server,
+        `要對 Clip ${args.clipNumber} 執行 Scro Swap 換角嗎？這會扣除 credits。`,
+      );
+      const res = unwrap(await applyClipScroSwap(args));
+      return { project: res.project, jobId: res.jobId };
+    }),
+  );
+
+  server.registerTool(
+    "apply_clip_teleport",
+    {
+      title: "Apply Teleport to clip",
+      description:
+        "Relocate the character in a completed storyboard clip into a new scene while keeping their identity and motion.",
+      inputSchema: {
+        videoId: z.string(),
+        clipNumber: z.number().int().positive(),
+        sceneImageUrl: z.string().url().optional().describe("New background scene photo URL"),
+        scenePrompt: z.string().max(600).optional().describe("Description of the new scene or lighting mood"),
+      },
+      annotations: { destructiveHint: true },
+    },
+    wrapTool(user, apiKey, "apply_clip_teleport", teleportCost({ durationSeconds: 6 }), async (args) => {
+      await requireVideoApproval(
+        server,
+        `要對 Clip ${args.clipNumber} 執行 Teleport 換場嗎？這會扣除 credits。`,
+      );
+      const res = unwrap(await applyClipTeleport(args));
+      return { project: res.project, jobId: res.jobId };
     }),
   );
 }

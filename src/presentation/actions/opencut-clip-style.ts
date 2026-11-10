@@ -7,3 +7,9 @@ export async function applyClipStyleAction(
 ) {
   return service.applyClipStyle(...args);
 }
+
+export async function setClipVideoQualityTierAction(
+  ...args: Parameters<typeof service.setClipVideoQualityTier>
+) {
+  return service.setClipVideoQualityTier(...args);
+}

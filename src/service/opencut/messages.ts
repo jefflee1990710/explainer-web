@@ -1,5 +1,5 @@
 import type { OpencutEditMedia } from "@/model/opencut-edit";
-import type { AspectRatio, FramePosition, OnscreenTextItem } from "@/model/project";
+import type { AspectRatio, FramePosition, OnscreenTextItem, VideoQualityTier } from "@/model/project";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { ScroClipInspectorKind } from "@/service/opencut/clip-inspector-kind";
 import type { ScroVideoUiStage } from "@/service/scro-video/view-model";
@@ -14,6 +14,7 @@ export type ScroVideoSeedClip = {
   stage: ScroVideoUiStage;
   inspectorKind?: ScroClipInspectorKind;
   styleId?: string;
+  videoQualityTier?: VideoQualityTier;
   posterUrl?: string;
   /** Completed still the video ends on. Shown beside the start so it can be added on its own. */
   endPosterUrl?: string;

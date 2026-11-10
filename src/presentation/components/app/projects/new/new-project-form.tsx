@@ -133,10 +133,12 @@ import {
   defaultCastIdsForStyle,
   pickerDefaultSkillSlug,
   readBriefDefaults,
+  readDefaultVideoQualityTier,
   resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
   resolveInitialVoLanguage,
   writeBriefDefaults,
+  writeDefaultVideoQualityTier,
 } from "@/presentation/components/app/projects/new/brief-defaults";
 import {
   defaultSkillSlugForUseCase,
@@ -384,6 +386,9 @@ export function NewProjectForm({
   // New videos start on Auto. A saved video keeps the length it was created with.
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
     initialVideo?.durationPreset || "auto",
+  );
+  const [videoQualityTier, setVideoQualityTier] = useState<"economy" | "2k_cinema">(
+    () => initialVideo?.videoQualityTier || readDefaultVideoQualityTier(),
   );
   const [characterIds, setCharacterIds] = useState<string[]>(() =>
     resolveInitialBriefCharacterIds({
@@ -698,6 +703,7 @@ export function NewProjectForm({
     formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
+    formData.set("videoQualityTier", videoQualityTier);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
     if (!talkingHead && clipDrafts.length > 0) {
@@ -1567,6 +1573,11 @@ export function NewProjectForm({
                   onAspectRatioSelect={onAspectRatioSelect}
                   durationPreset={durationPreset}
                   onDurationPresetChange={setDurationPreset}
+                  videoQualityTier={videoQualityTier}
+                  onVideoQualityTierChange={(tier) => {
+                    setVideoQualityTier(tier);
+                    writeDefaultVideoQualityTier(tier);
+                  }}
                   credits={walletCredits}
                   subscribed={walletSubscribed}
                   briefBusy={briefBusy}

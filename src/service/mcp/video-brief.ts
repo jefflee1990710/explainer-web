@@ -1,6 +1,8 @@
 import * as z from "zod";
 import { PRODUCT_MAX } from "@/model/product-constants";
+import { VIDEO_QUALITY_TIERS, type VideoQualityTier } from "@/model/project";
 import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
+import { TALKING_HEAD_POSE_IDS, type TalkingHeadPoseId } from "@/model/talking-head-options";
 import { importBrandAsset, importReferenceImage } from "@/service/project/reference-image-import";
 
 // Matches the create-video form. The action still validates language, cast, and logo.
@@ -31,6 +33,16 @@ export const videoBriefFields = {
   styleId: z.string(),
   aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
   durationPreset: z.enum(["auto", "micro", "short", "punchy", "full"]),
+  videoQualityTier: z
+    .enum(VIDEO_QUALITY_TIERS)
+    .optional()
+    .describe(
+      "Video generation tier: 'economy' (4 credits/s, first/last latent frames + reference conditioning) or '2k_cinema' (15 credits/s, 2K cloud cinema). Defaults to '2k_cinema'.",
+    ),
+  talkingHeadPoseId: z
+    .enum(TALKING_HEAD_POSE_IDS)
+    .optional()
+    .describe("Talking-head framing pose: collarbone-close, waist-up, full-body, or handheld-selfie"),
   language: z.string().default("en"),
   voiceGender: z.enum(["male", "female"]).default("male"),
   speechPace: z.enum(["slow", "medium", "fast"]).default("medium").describe("Speaking speed for narration / dialogue"),
@@ -74,6 +86,8 @@ export type VideoBriefArgs = {
   styleId: string;
   aspectRatio: "16:9" | "9:16" | "1:1";
   durationPreset: "auto" | "micro" | "short" | "punchy" | "full";
+  videoQualityTier?: VideoQualityTier;
+  talkingHeadPoseId?: TalkingHeadPoseId;
   language?: string;
   voiceGender?: "male" | "female";
   speechPace?: "slow" | "medium" | "fast";
@@ -92,6 +106,8 @@ export async function fillVideoBrief(form: FormData, args: VideoBriefArgs, clerk
   form.set("styleId", args.styleId);
   form.set("aspectRatio", args.aspectRatio);
   form.set("durationPreset", args.durationPreset);
+  if (args.videoQualityTier) form.set("videoQualityTier", args.videoQualityTier);
+  if (args.talkingHeadPoseId) form.set("talkingHeadPoseId", args.talkingHeadPoseId);
   form.set("language", args.language || "en");
   form.set("voiceGender", args.voiceGender || "male");
   form.set("speechPace", args.speechPace || "medium");

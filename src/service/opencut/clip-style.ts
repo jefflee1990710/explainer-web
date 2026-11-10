@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { videosCollection } from "@/dao";
-import type { Project } from "@/model/project";
+import { isVideoQualityTier, type Project, type VideoQualityTier } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import { markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
@@ -145,6 +145,74 @@ export async function applyClipStyle(input: {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "更換分鏡風格失敗",
+    };
+  }
+}
+
+export async function setClipVideoQualityTier(input: {
+  videoId: string;
+  clipNumber: number;
+  videoQualityTier: VideoQualityTier;
+}): Promise<ApplyClipStyleResult> {
+  try {
+    const user = await requireAppUser();
+    const videoId = String(input.videoId ?? "").trim();
+    const clipNumber = Number(input.clipNumber);
+    const tier = input.videoQualityTier;
+
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+    if (!Number.isInteger(clipNumber) || clipNumber < 1) {
+      return { ok: false, error: "找不到這段分鏡" };
+    }
+    if (!isVideoQualityTier(tier)) {
+      return { ok: false, error: "請選擇有效的影片方案" };
+    }
+
+    const videos = await videosCollection();
+    const project = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project?.phaseA) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const nextClips = project.phaseA.clips.map((c) =>
+      c.clipNumber === clipNumber ? { ...c, videoQualityTier: tier } : c,
+    );
+    const now = new Date();
+    await videos.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          "phaseA.clips": nextClips,
+          updatedAt: now,
+        },
+      },
+    );
+
+    const updated = (await videos.findOne({ _id: project._id })) ?? {
+      ...project,
+      phaseA: { ...project.phaseA, clips: nextClips },
+      updatedAt: now,
+    };
+    try {
+      revalidatePath(
+        folderVideoPath(project.projectId?.toHexString(), project._id.toHexString()),
+      );
+    } catch {
+      // Non-request context
+    }
+    return {
+      ok: true,
+      project: toPublicVideo(await markUnsentClipVideos(updated)),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "更新分鏡影片方案失敗",
     };
   }
 }

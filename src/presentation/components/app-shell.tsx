@@ -53,7 +53,14 @@ export function AppShell({
       icon: "home",
       section: "home",
     },
-    // TOOLS: existing 5 creation tools (+ Life) in a 2-column grid
+    // TOOLS: Simple (#1) + existing creation tools (+ Life) in a 2-column grid
+    {
+      href: "/app/simple",
+      label: locale === "zh-Hant" ? "Simple 極簡" : locale === "zh-Hans" ? "Simple 极简" : "Simple",
+      icon: "projects",
+      imageUrl: "/nav-tools/story.png",
+      section: "create",
+    },
     {
       href: "/app/explainers",
       label: locale === "zh-Hant" ? "解說" : locale === "zh-Hans" ? "解说" : "Explainer",

@@ -14,6 +14,7 @@ import type {
   SceneTextChoice,
   SpeechPace,
   StoryboardClipDraft,
+  VideoQualityTier,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -177,6 +178,8 @@ export function DirectorDockBrief({
   onSceneTextLanguageChange,
   aspectRatio,
   onAspectRatioSelect,
+  videoQualityTier = "2k_cinema",
+  onVideoQualityTierChange,
   credits,
   subscribed,
   briefBusy,
@@ -251,6 +254,8 @@ export function DirectorDockBrief({
   onAspectRatioSelect: (ratio: AspectRatio) => void;
   durationPreset?: DurationPreset;
   onDurationPresetChange?: (preset: DurationPreset) => void;
+  videoQualityTier?: VideoQualityTier;
+  onVideoQualityTierChange?: (tier: VideoQualityTier) => void;
   credits: number;
   subscribed: boolean;
   briefBusy: boolean;
@@ -792,6 +797,40 @@ export function DirectorDockBrief({
                   )
                 }
               />
+
+              {!talkingHead && onVideoQualityTierChange ? (
+                <DirectorDockPill
+                  icon={
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                  }
+                  label={
+                    videoQualityTier === "economy"
+                      ? locale === "en"
+                        ? "Economy · 4 cr/s"
+                        : "Economy 平價 · 4 cr/s"
+                      : locale === "en"
+                        ? "2K Cinema · 15 cr/s"
+                        : "2K Cinema · 15 cr/s"
+                  }
+                  disabled={briefBusy}
+                  onClick={() =>
+                    onVideoQualityTierChange(
+                      videoQualityTier === "economy" ? "2k_cinema" : "economy",
+                    )
+                  }
+                />
+              ) : null}
 
               <DirectorDockPill
                 icon={

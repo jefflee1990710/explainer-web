@@ -139,3 +139,9 @@ export async function getVideoAction(
 export const createProjectAction = createVideoAction;
 
 export const getProjectAction = getVideoAction;
+
+export async function createSimpleVideoAction(
+  ...args: Parameters<typeof service.createSimpleVideoAction>
+) {
+  return service.createSimpleVideoAction(...args);
+}

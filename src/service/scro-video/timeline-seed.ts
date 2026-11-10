@@ -16,6 +16,7 @@ type StoryboardSeedRow = {
   durationSeconds?: number;
   styleId?: string;
   skillSlug?: string;
+  videoQualityTier?: ScroVideoSeedClip["videoQualityTier"];
   timeRange?: string;
   englishVo?: string;
   subtitleCues?: string[];
@@ -28,6 +29,7 @@ type StoryboardSeedRow = {
 type SeedSource = ScroVideoSource & {
   skillSlug?: string;
   styleId?: string;
+  videoQualityTier?: ScroVideoSeedClip["videoQualityTier"];
   phaseA?: { clips: StoryboardSeedRow[] };
 };
 
@@ -40,6 +42,7 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
     const clipProj = resolveClipProject(project, view.clipNumber);
     const effectiveSkillSlug = clipProj.skillSlug ?? project.skillSlug;
     const effectiveStyleId = clipProj.styleId ?? project.styleId;
+    const effectiveQualityTier = clipProj.videoQualityTier ?? project.videoQualityTier;
     const dualBeat = isDualBeatSkill(effectiveSkillSlug);
     const inspectorKind = resolveClipInspectorKind(effectiveSkillSlug);
     const state = clipStateFor(project, view.clipNumber);
@@ -55,6 +58,7 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       stage: view.stage,
       inspectorKind,
       styleId: effectiveStyleId,
+      ...(effectiveQualityTier ? { videoQualityTier: effectiveQualityTier } : {}),
       posterUrl: view.posterUrl,
       endPosterUrl: end?.status === "completed" ? mediaSrc(end) : undefined,
       endFromClipNumber: endFromNextStart ? view.clipNumber + 1 : undefined,
@@ -152,6 +156,8 @@ export function diffScroSeedClips({
       before.stage !== clip.stage ||
       before.inspectorKind !== clip.inspectorKind ||
       before.styleId !== clip.styleId ||
+      before.videoQualityTier !== clip.videoQualityTier ||
+      before.videoCost !== clip.videoCost ||
       before.posterUrl !== clip.posterUrl ||
       before.endPosterUrl !== clip.endPosterUrl ||
       before.endPending !== clip.endPending ||

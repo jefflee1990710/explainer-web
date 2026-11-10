@@ -6,15 +6,44 @@ import { isSpeechPace } from "@/service/director/speech-pace";
 import { isPapercraftDioramaSkill, requiredCastCount } from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
 import { pickerDefaultStyleId } from "@/service/style";
-import type {
-  AspectRatio,
-  DurationPreset,
-  SceneTextChoice,
-  SpeechPace,
-  SubtitleLook,
-  VoLanguage,
-  VoiceGender,
+import {
+  isVideoQualityTier,
+  type AspectRatio,
+  type DurationPreset,
+  type SceneTextChoice,
+  type SpeechPace,
+  type SubtitleLook,
+  type VideoQualityTier,
+  type VoLanguage,
+  type VoiceGender,
 } from "@/model/project";
+
+export const DEFAULT_VIDEO_QUALITY_TIER_STORAGE_KEY = "scro:default-video-quality-tier";
+
+export function resolveDefaultVideoQualityTier(stored?: string | null): VideoQualityTier {
+  if (isVideoQualityTier(stored)) return stored;
+  return "2k_cinema";
+}
+
+export function readDefaultVideoQualityTier(): VideoQualityTier {
+  if (typeof window === "undefined") return "2k_cinema";
+  try {
+    return resolveDefaultVideoQualityTier(
+      window.localStorage.getItem(DEFAULT_VIDEO_QUALITY_TIER_STORAGE_KEY),
+    );
+  } catch {
+    return "2k_cinema";
+  }
+}
+
+export function writeDefaultVideoQualityTier(tier: VideoQualityTier) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DEFAULT_VIDEO_QUALITY_TIER_STORAGE_KEY, tier);
+  } catch {
+    // Ignore storage quota errors
+  }
+}
 
 export type BriefDefaults = {
   skillSlug: string;

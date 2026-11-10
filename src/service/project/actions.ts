@@ -93,17 +93,19 @@ import {
   restartBlockReason,
 } from "@/service/project/restart";
 import { cancelRestartImageJobs } from "@/service/project/restart-cancel";
-import type {
-  AspectRatio,
-  DurationPreset,
-  PhaseAEditInput,
-  ReferenceImage,
-  SceneTextChoice,
-  SpeechPace,
-  StoryboardClipDraft,
-  SubtitleLook,
-  VoLanguage,
-  VoiceGender,
+import {
+  isVideoQualityTier,
+  type AspectRatio,
+  type DurationPreset,
+  type PhaseAEditInput,
+  type ReferenceImage,
+  type SceneTextChoice,
+  type SpeechPace,
+  type StoryboardClipDraft,
+  type SubtitleLook,
+  type VideoQualityTier,
+  type VoLanguage,
+  type VoiceGender,
 } from "@/model/project";
 import {
   sanitizeClipDraftsInput,
@@ -130,6 +132,7 @@ type BriefFields = {
   spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
+  videoQualityTier?: VideoQualityTier;
   language: VoLanguage;
   narrationEnabled: boolean;
   voiceGender: VoiceGender;
@@ -211,6 +214,10 @@ async function readVideoBrief(
   const spokenScript = String(formData.get("spokenScript") || "").trim();
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
+  const rawQualityTier = String(formData.get("videoQualityTier") || "").trim();
+  const videoQualityTier: VideoQualityTier | undefined = isVideoQualityTier(rawQualityTier)
+    ? rawQualityTier
+    : undefined;
   const language = String(formData.get("language") || "en");
   const rawNarrationEnabled = formData.get("narrationEnabled");
   const narrationEnabled =
@@ -348,6 +355,7 @@ async function readVideoBrief(
       ...(isTalkingHeadSkill(ruleSlug) ? { spokenScript } : {}),
       aspectRatio,
       durationPreset,
+      ...(videoQualityTier ? { videoQualityTier } : {}),
       logoUrl,
       referenceImages: references.images,
       clipDrafts,
@@ -761,6 +769,7 @@ export async function createVideoAction(
       ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
+      ...(brief.videoQualityTier ? { videoQualityTier: brief.videoQualityTier } : {}),
       language: brief.language,
       narrationEnabled: brief.narrationEnabled,
       voiceGender: cast[0]?.voice?.gender ?? brief.voiceGender,
@@ -953,6 +962,7 @@ async function rewriteVideoBrief(
           ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
+          ...(brief.videoQualityTier ? { videoQualityTier: brief.videoQualityTier } : {}),
           language: brief.language,
           narrationEnabled: brief.narrationEnabled,
           voiceGender: castResult.cast[0]?.voice?.gender ?? brief.voiceGender,
@@ -1322,3 +1332,166 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
 
 // Keep the old name until the poll hook is switched.
 export const getProjectAction = getVideoAction;
+
+export async function createSimpleVideoAction(input: {
+  prompt: string;
+  aspectRatio?: AspectRatio;
+  durationSeconds?: number;
+  styleId?: string;
+  videoQualityTier?: VideoQualityTier;
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  characterId?: string;
+  referenceImageUrls?: string[];
+}): Promise<VideoResult> {
+  try {
+    const user = await requireAppUser();
+    const cleanPrompt = String(input.prompt || "").trim();
+    if (!cleanPrompt) {
+      return { ok: false, error: "請輸入影片動作或畫面描述（Prompt）" };
+    }
+    const aspectRatio: AspectRatio =
+      input.aspectRatio && ["16:9", "9:16", "1:1"].includes(input.aspectRatio)
+        ? input.aspectRatio
+        : "9:16";
+    const durationSeconds = Math.max(5, Math.min(12, Math.round(Number(input.durationSeconds) || 6)));
+    const styleId = input.styleId && isListedStyleId(input.styleId) ? input.styleId : "realistic";
+    const videoQualityTier: VideoQualityTier = isVideoQualityTier(input.videoQualityTier)
+      ? input.videoQualityTier
+      : "economy";
+
+    const skill = await findSelectableSkill(user.clerkUserId, "story-short-director");
+    if (!skill) return { ok: false, error: "找不到導演設定" };
+
+    const characterIds =
+      input.characterId && ObjectId.isValid(input.characterId) ? [input.characterId] : [];
+    const castResult = await buildCast(user.clerkUserId, styleId, characterIds);
+    if (!castResult.ok) return castResult;
+
+    const refImages: ReferenceImage[] = (input.referenceImageUrls || [])
+      .map((u) => u.trim())
+      .filter((u) => u.startsWith("https://"))
+      .slice(0, 4)
+      .map((url, idx) => ({
+        id: `R${idx + 1}`,
+        url,
+        description: "Scene or character reference",
+      }));
+
+    const firstUrl = input.firstFrameUrl?.trim();
+    const lastUrl = input.lastFrameUrl?.trim();
+    const hasFirstFrame = Boolean(firstUrl && firstUrl.startsWith("https://"));
+    const hasLastFrame = Boolean(lastUrl && lastUrl.startsWith("https://"));
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const frames = [
+      ...(hasFirstFrame
+        ? [
+            {
+              clipNumber: 1,
+              position: "start" as const,
+              prompt: cleanPrompt,
+              status: "completed" as const,
+              outputUrl: firstUrl!,
+              blobUrl: firstUrl!,
+              submittedAt: nowIso,
+            },
+          ]
+        : []),
+      ...(hasLastFrame
+        ? [
+            {
+              clipNumber: 1,
+              position: "end" as const,
+              prompt: cleanPrompt,
+              status: "completed" as const,
+              outputUrl: lastUrl!,
+              blobUrl: lastUrl!,
+              submittedAt: nowIso,
+            },
+          ]
+        : []),
+    ];
+
+    const videos = await videosCollection();
+    const insert = await videos.insertOne({
+      userId: user._id,
+      clerkUserId: user.clerkUserId,
+      skillId: skill._id,
+      skillSlug: "story-short-director",
+      styleId,
+      source: cleanPrompt,
+      aspectRatio,
+      durationPreset: "micro",
+      videoQualityTier,
+      language: "en",
+      narrationEnabled: false,
+      voiceGender: castResult.cast[0]?.voice?.gender ?? "female",
+      speechPace: "medium",
+      sceneTextEnabled: false,
+      sceneTextLanguage: "en",
+      subtitleLook: "handwritten",
+      textStyleId: "handwritten",
+      ...(refImages.length > 0 ? { referenceImages: refImages } : {}),
+      cast: castResult.cast,
+      status: "production",
+      phaseA: {
+        englishTitle: cleanPrompt.slice(0, 48),
+        localizedTitle: cleanPrompt.slice(0, 48),
+        targetDuration: `${durationSeconds}s`,
+        clipCount: 1,
+        loopMode: "linear",
+        coreMessage: cleanPrompt,
+        hookStrategy: "Direct simple video clip",
+        aspectRatio,
+        visualWorld: styleId,
+        narrator: "No narrator — characters speak when needed.",
+        englishWordCount: 10,
+        characterLock: castResult.cast.map((c) => c.name).join(", ") || "Protagonist",
+        palette: "Cinematic natural palette",
+        bgmDirection: "none",
+        narrativeArc: "Single continuous shot",
+        clips: [
+          {
+            clipNumber: 1,
+            timeRange: `0–${durationSeconds}s`,
+            durationSeconds,
+            narrativeJob: "Shot 1",
+            explainerScene: cleanPrompt,
+            motionCamera: cleanPrompt,
+            englishVo: "(no dialogue)",
+            bgmSfx: "none",
+            videoQualityTier,
+            ...(refImages.length > 0 ? { referenceImageIds: refImages.map((r) => r.id) } : {}),
+          },
+        ],
+      },
+      frames,
+      clips: [],
+      autoVideoClips: [1],
+      creditsCharged: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const videoIdHex = insert.insertedId.toHexString();
+    const { generateClipFramesAction, generateClipVideoAction } = await import(
+      "@/service/clip/production"
+    );
+    if (hasFirstFrame) {
+      await generateClipVideoAction(videoIdHex, 1);
+    } else {
+      await generateClipFramesAction(videoIdHex, 1);
+    }
+
+    const created = await videos.findOne({ _id: insert.insertedId });
+    revalidateVideo(videoIdHex, undefined);
+    return { ok: true, project: toPublicVideo(created!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "建立極簡影片失敗",
+    };
+  }
+}
