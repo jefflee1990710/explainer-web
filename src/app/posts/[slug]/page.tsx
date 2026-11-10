@@ -169,7 +169,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         <div className="mb-6">
           <Link
             href="/posts"
-            className="inline-flex items-center text-sm font-medium text-zinc-500 hover:text-zinc-900"
+            className="inline-flex items-center text-sm font-medium text-zinc-400 transition-colors hover:text-[#c6f24b]"
           >
             {copy.backToPosts}
           </Link>
@@ -179,28 +179,28 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           {/* Left/Main Column: Article Content + In-Article & Bottom Register CTAs */}
           <article lang={post.locale} className="min-w-0 lg:col-span-8">
             <header className="mb-8">
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                 <time dateTime={post.createdAt}>{formatDetailDate(post.createdAt, locale)}</time>
                 {post.tags.map((tag) => (
                   <Link
                     key={tag}
                     href={`/posts?tag=${encodeURIComponent(tag)}`}
-                    className="rounded-full bg-zinc-100 px-2.5 py-0.5 font-medium text-zinc-700 transition-colors hover:bg-zinc-200 hover:text-zinc-950"
+                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-medium text-zinc-300 transition-colors hover:border-[#c6f24b]/50 hover:bg-[#c6f24b]/10 hover:text-[#c6f24b]"
                   >
                     {tag}
                   </Link>
                 ))}
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 {post.title}
               </h1>
               {post.excerpt ? (
-                <p className="mt-4 text-lg leading-relaxed text-zinc-600">{post.excerpt}</p>
+                <p className="mt-4 text-lg leading-relaxed text-zinc-300">{post.excerpt}</p>
               ) : null}
               <BlogPostLinks post={post} productLabel={copy.productLink} />
             </header>
 
-            <div className="mb-10 aspect-16/10 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
+            <div className="mb-10 aspect-16/10 overflow-hidden rounded-2xl border border-white/10 bg-[#131722]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.featureImage}

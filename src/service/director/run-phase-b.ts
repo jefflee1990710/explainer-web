@@ -1,4 +1,8 @@
 import { generateText, Output } from "ai";
+import {
+  CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
+  formatCameraFirstVideoPrompt,
+} from "@/service/director/camera-first-prompt";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { getDirectorRuleModule } from "@/service/director/rules";
@@ -68,6 +72,7 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
+${CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE}
 ${
   steady
     ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
@@ -191,9 +196,16 @@ export async function runPhaseBForClip(
     !storyboardAsksForSubtitle(row?.startScene, row?.endScene, row?.explainerScene);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
   // Rewrite the model action first so "Never pull" locks appended below stay intact.
-  const modelPrompt = isSilentOutfitSkill(input.skill.slug)
+  const rawModelPrompt = isSilentOutfitSkill(input.skill.slug)
     ? rewriteOutfitSafetyText(output.prompt)
     : output.prompt;
+  const modelPrompt = talkingHead
+    ? rawModelPrompt
+    : formatCameraFirstVideoPrompt({
+        prompt: rawModelPrompt,
+        motionCamera: row?.motionCamera,
+        startScene: row?.startScene || row?.explainerScene,
+      });
   const prompt = [
     lock,
     cartoonNarratorVideoLock(input.skill.slug, {

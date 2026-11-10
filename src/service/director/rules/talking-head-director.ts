@@ -38,7 +38,7 @@ export const talkingHeadDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the talking expression and head/eye focus on a locked camera. Never re-describe a character's appearance or outfit.";
+      "Detail: ALWAYS state camera details, pointing direction, and locked framing FIRST, then describe the motion as timed beats across the clip, naming the talking expression and head/eye focus relative to the camera. Never re-describe a character's appearance or outfit.";
     if (!options.realistic) return base;
     return `${base} ${SELF_SHOT_VIDEO_DETAIL_RULE}`;
   },

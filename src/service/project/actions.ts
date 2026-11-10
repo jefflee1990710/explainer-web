@@ -26,6 +26,7 @@ import {
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
+import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
 import {
   scheduleClipAppendWorkerTask,
   schedulePhaseAWorkerTask,
@@ -1414,6 +1415,13 @@ export async function createSimpleVideoAction(input: {
         : []),
     ];
 
+    const cameraFirstScene = formatCameraFirstVideoPrompt({
+      prompt: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, silent visual action only.)`,
+    });
+    const cameraFirstMotion = formatCameraFirstVideoPrompt({
+      prompt: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, no talking.)`,
+    });
+
     const videos = await videosCollection();
     const insert = await videos.insertOne({
       userId: user._id,
@@ -1458,8 +1466,8 @@ export async function createSimpleVideoAction(input: {
             timeRange: `0–${durationSeconds}s`,
             durationSeconds,
             narrativeJob: "Shot 1",
-            explainerScene: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, silent visual action only.)`,
-            motionCamera: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, no talking.)`,
+            explainerScene: cameraFirstScene,
+            motionCamera: cameraFirstMotion,
             englishVo: "(no dialogue)",
             bgmSfx: "none",
             videoQualityTier,

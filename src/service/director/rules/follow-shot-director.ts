@@ -42,7 +42,7 @@ export const followShotDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the physical step/turn, facial expression, and follow camera framing.";
+      "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST (e.g. '24mm camera pointing to character from low level, ...'), then describe the motion as timed beats across the clip, naming the physical step/turn, facial expression, and follow camera framing, with all directions relative to the camera (toward camera, walking to left side of camera, leaving camera from right side).";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

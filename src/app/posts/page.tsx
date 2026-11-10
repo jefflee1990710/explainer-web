@@ -94,13 +94,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ) : null}
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <header className="mb-10 max-w-2xl">
-          <p className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+          <p className="text-xs font-semibold tracking-wider text-[#c6f24b] uppercase">
             {copy.eyebrow}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             {copy.title}
           </h1>
-          <p className="mt-3 text-base text-zinc-600">
+          <p className="mt-3 text-base text-zinc-300">
             {copy.subtitle}
           </p>
         </header>

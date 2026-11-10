@@ -35,7 +35,8 @@ export const oneTakeDirectorRules: DirectorRuleModule = {
       ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
       "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
       SIGHTLINE_RULE,
-      "motionCamera is the uninterrupted one-take camera and physical locomotion script across the full clip duration (up to 60s), written as sequential ~6-second time windows (`0–6s …; 6–12s …; 12–18s …`). Each 6s window states: time window → continuous physical movement progression → camera tracking motion → diegetic environmental sound.",
+      "CAMERA-FIRST & CAMERA-RELATIVE DIRECTION: Always state camera details, pointing direction, and camera motion FIRST (e.g. '24mm camera pointing to character from low level, tracking forward...'), then start other details; all directions given by the director MUST be relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side).",
+      "motionCamera is the uninterrupted one-take camera and physical locomotion script across the full clip duration (up to 60s), written as sequential ~6-second time windows (`0–6s …; 6–12s …; 12–18s …`). Each 6s window states: time window → camera details, pointing direction & camera tracking motion first → continuous physical movement progression relative to the camera → diegetic environmental sound.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock() {
@@ -60,8 +61,8 @@ export const oneTakeDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base = options.realistic
-      ? "Detail: describe the continuous one-take motion as sequential ~6-second beats across the full clip duration (e.g. 0–6s …; 6–12s …), each naming the continuous physical locomotion, a calm, focused real-person facial expression (natural blinks and focused eyes; lips naturally closed with zero spoken dialogue and zero lip-sync), and the continuous tracking camera movement. The lighting stays consistent. Never re-describe a character's appearance or outfit; it follows the keyframe."
-      : "Detail: describe the continuous one-take motion as sequential ~6-second beats across the full clip duration (e.g. 0–6s …; 6–12s …), each naming the continuous physical locomotion, the focused closed-lip facial expression, and the continuous tracking camera movement. The lighting stays consistent. Never re-describe a character's appearance or outfit; it follows the keyframe.";
+      ? "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST (e.g. '24mm camera pointing to character from low level, ...'), then describe the continuous one-take motion as sequential ~6-second beats across the full clip duration (e.g. 0–6s …; 6–12s …), each naming the continuous physical locomotion with all directions relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side), a calm, focused real-person facial expression (natural blinks and focused eyes; lips naturally closed with zero spoken dialogue and zero lip-sync), and the continuous tracking camera movement. The lighting stays consistent. Never re-describe a character's appearance or outfit; it follows the keyframe."
+      : "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST (e.g. '24mm camera pointing to character from low level, ...'), then describe the continuous one-take motion as sequential ~6-second beats across the full clip duration (e.g. 0–6s …; 6–12s …), each naming the continuous physical locomotion with all directions relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side), the focused closed-lip facial expression, and the continuous tracking camera movement. The lighting stays consistent. Never re-describe a character's appearance or outfit; it follows the keyframe.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

@@ -10,9 +10,9 @@ export function BlogPostGrid({ posts }: { posts: PublicBlogPost[] }) {
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-16 text-center">
-        <p className="text-base font-medium text-zinc-700">{t("blogPage.emptyTitle")}</p>
-        <p className="mt-1 text-sm text-zinc-500">
+      <div className="rounded-2xl border border-dashed border-white/15 bg-[#131722] px-6 py-16 text-center">
+        <p className="text-base font-medium text-zinc-200">{t("blogPage.emptyTitle")}</p>
+        <p className="mt-1 text-sm text-zinc-400">
           {t("blogPage.emptyBody")}
         </p>
       </div>

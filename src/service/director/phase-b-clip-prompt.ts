@@ -1,5 +1,6 @@
 import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
+import { CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE } from "@/service/director/camera-first-prompt";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { firstClipHookPerformanceVideoLine } from "@/service/director/hook-title";
 import { getDirectorRuleModule } from "@/service/director/rules";
@@ -128,6 +129,7 @@ export function clipPhaseBUserPrompt(input: {
     input.characterLine,
     spatialBlockingLockParagraph(input.phaseA),
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
+    CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
     getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
       smoothMotion: Boolean(input.smoothMotion),
       realistic: Boolean(input.realistic),

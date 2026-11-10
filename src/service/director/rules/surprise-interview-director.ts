@@ -43,7 +43,7 @@ export const surpriseInterviewDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the speaker's expression and lip-sync. Never re-describe a character's appearance or outfit.";
+      "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST, then describe the motion as timed beats across the clip, naming the speaker's expression and lip-sync relative to the camera. Never re-describe a character's appearance or outfit.";
     if (!options.realistic) return base;
     return `${base} ${SELF_SHOT_VIDEO_DETAIL_RULE}`;
   },

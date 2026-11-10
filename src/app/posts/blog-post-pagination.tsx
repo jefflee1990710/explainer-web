@@ -38,24 +38,24 @@ export function BlogPostPagination({
   return (
     <nav
       aria-label="Pagination"
-      className="mt-10 flex items-center justify-between border-t border-zinc-200 pt-6"
+      className="mt-10 flex items-center justify-between border-t border-white/10 pt-6"
     >
       <div>
         {hasPrevPage ? (
           <Link
             href={buildPageHref(page - 1, tag, q)}
-            className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+            className="inline-flex items-center rounded-xl border border-white/15 bg-[#131722] px-4 py-2 text-sm font-medium text-zinc-200 shadow-2xs transition hover:border-white/30 hover:bg-white/10"
           >
             {t("blogPage.prevPage")}
           </Link>
         ) : (
-          <span className="inline-flex items-center rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-400">
+          <span className="inline-flex items-center rounded-xl border border-white/5 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-500">
             {t("blogPage.prevPage")}
           </span>
         )}
       </div>
 
-      <p className="text-sm font-medium text-zinc-700">
+      <p className="text-sm font-medium text-zinc-300">
         {t("blogPage.pageOf", { page, total: totalPages })}
       </p>
 
@@ -63,12 +63,12 @@ export function BlogPostPagination({
         {hasNextPage ? (
           <Link
             href={buildPageHref(page + 1, tag, q)}
-            className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+            className="inline-flex items-center rounded-xl border border-white/15 bg-[#131722] px-4 py-2 text-sm font-medium text-zinc-200 shadow-2xs transition hover:border-white/30 hover:bg-white/10"
           >
             {t("blogPage.nextPage")}
           </Link>
         ) : (
-          <span className="inline-flex items-center rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-400">
+          <span className="inline-flex items-center rounded-xl border border-white/5 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-500">
             {t("blogPage.nextPage")}
           </span>
         )}

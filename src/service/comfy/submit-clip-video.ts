@@ -12,6 +12,7 @@ import {
 } from "@/service/comfy/openjutsu-graph";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
+import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
 import {
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
@@ -128,7 +129,9 @@ function buildRef2VaClipPrompt(input: {
   hasCharacterImage?: boolean;
   hasSceneImage?: boolean;
 }): string {
-  const clean = input.prompt.replace(/\s+/g, " ").trim();
+  const clean = formatCameraFirstVideoPrompt({
+    prompt: input.prompt.replace(/\s+/g, " ").trim(),
+  });
   const defs = [
     "<Picture 1> is the opening keyframe and subject/scene reference for [Shot 1], defining the exact starting composition, character appearance, outfit, lighting, and setting.",
   ];

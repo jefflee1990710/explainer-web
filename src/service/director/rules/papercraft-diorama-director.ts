@@ -41,7 +41,7 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), naming the cardstock mechanism and camera framing.";
+      "Detail: ALWAYS state macro camera details, pointing direction, and camera motion FIRST, then describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), naming the cardstock mechanism and camera framing, with all directions relative to the camera.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

@@ -7,6 +7,7 @@ import {
   SELF_SHOT_LIGHT_DIRECTOR_RULE,
   SELF_SHOT_VIDEO_DETAIL_RULE,
 } from "@/service/style/realistic-light";
+import { CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE } from "@/service/director/camera-first-prompt";
 
 // Shared detail contract for every director: Phase A writes concrete scenes,
 // stills and clip videos carry that detail through. Character look always
@@ -68,9 +69,10 @@ export function sceneDetailDirectorBlock(options: { realistic?: boolean; selfSho
 export function motionTransitionContract(options: { realistic?: boolean } = {}) {
   return [
     "motionCamera is the transition script from the start still to the end still, written as timed beats across the clip (e.g. 0–2s …; 2–5s …).",
+    CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
     options.realistic
-      ? "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the normal, alive facial expression shift (engaged real-person brow and eye focus when a character is present; never a blank or deadpan stare; never exaggerated cartoon faces) and the camera framing."
-      : "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change (vivid brow, eye, and mouth shifts when a character is present) and the camera framing.",
+      ? "Each beat states: time window → camera details, pointing direction & camera motion first → who or what moves relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side) → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the normal, alive facial expression shift (engaged real-person brow and eye focus when a character is present; never a blank or deadpan stare; never exaggerated cartoon faces) and the camera framing."
+      : "Each beat states: time window → camera details, pointing direction & camera motion first → who or what moves relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side) → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change (vivid brow, eye, and mouth shifts when a character is present) and the camera framing.",
     "Every difference between the start and end still gets a beat that shows its cause on camera: pose, each hand, eyeline, expression, and every prop or label that moves, appears, disappears, or changes state.",
     "A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).",
     "A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).",
@@ -95,10 +97,10 @@ export function frameRenderDetail(options: { realistic?: boolean; selfShot?: boo
 
 // Phase B system rule so each video prompt is a precise motion brief.
 export const PHASE_B_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: ALWAYS state the camera details, pointing direction, and camera motion FIRST at the very beginning of the video prompt (for example: '24mm camera pointing to character from low level, smooth tracking motion...'), then describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Every direction given by the director MUST be relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side). Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction relative to the camera, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export const PHASE_B_REALISTIC_NARRATOR_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a calm, relaxed, unforced real-person facial expression (lips softly closed at natural rest with zero mouth or jaw speech articulation, natural blinks, and attentive eye focus; never write a forced closed-lip smile or tight smirk; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: ALWAYS state the camera details, pointing direction, and camera motion FIRST at the very beginning of the video prompt (for example: '24mm camera pointing to character from low level, smooth tracking motion...'), then describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a calm, relaxed, unforced real-person facial expression (lips softly closed at natural rest with zero mouth or jaw speech articulation, natural blinks, and attentive eye focus; never write a forced closed-lip smile or tight smirk; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Every direction given by the director MUST be relative to the camera (e.g. toward camera, walking to left side of camera, leaving camera from right side). Name which hand, which direction relative to the camera, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export function phaseBDetailRules(
   options: { realistic?: boolean; selfShot?: boolean; narratorOnly?: boolean } = {},

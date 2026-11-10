@@ -32,7 +32,7 @@ export function BlogPostLinks({
               key={item.code}
               href={`/posts/${encodeURIComponent(item.slug)}`}
               hrefLang={item.code}
-              className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900"
+              className="font-medium text-zinc-300 underline decoration-white/30 underline-offset-4 hover:text-[#c6f24b]"
             >
               {blogLocaleLabel(item.code)}
             </Link>
@@ -42,7 +42,7 @@ export function BlogPostLinks({
       {landingPath ? (
         <Link
           href={landingPath}
-          className="font-semibold text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-700"
+          className="font-semibold text-[#c6f24b] underline decoration-[#c6f24b]/40 underline-offset-4 hover:text-white"
         >
           {productLabel}
         </Link>

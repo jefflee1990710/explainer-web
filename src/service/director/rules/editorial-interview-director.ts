@@ -39,7 +39,7 @@ export const editorialInterviewDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the composed action, expression, and editorial camera framing.";
+      "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST (e.g. '24mm camera pointing to character from low level, ...'), then describe the motion as timed beats across the clip, naming the composed action, expression, and editorial camera framing, with all directions relative to the camera (toward camera, walking to left side of camera, leaving camera from right side).";
     if (!options.realistic) return base;
     return `${base} ${REALISTIC_VIDEO_DETAIL_RULE}`;
   },

@@ -30,14 +30,14 @@ export function BlogPostSidebar({
   return (
     <aside className="space-y-6 lg:sticky lg:top-24">
       {recommendedPosts.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs">
-          <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-3">
-            <h2 className="font-display text-sm font-bold uppercase tracking-wider text-zinc-900">
+        <div className="rounded-2xl border border-white/10 bg-[#131722] p-5 shadow-2xs">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <h2 className="font-display text-sm font-bold uppercase tracking-wider text-white">
               {t("blogPage.recommendedHeading")}
             </h2>
             <Link
               href="/posts"
-              className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-900"
+              className="text-xs font-semibold text-zinc-400 transition hover:text-[#c6f24b]"
             >
               {t("blogPage.allPosts")}
             </Link>
@@ -48,7 +48,7 @@ export function BlogPostSidebar({
               <Link
                 key={item.id}
                 href={`/posts/${encodeURIComponent(item.slug)}`}
-                className="group flex items-start gap-3 rounded-xl p-1.5 transition hover:bg-zinc-50"
+                className="group flex items-start gap-3 rounded-xl p-1.5 transition hover:bg-white/5"
               >
                 {item.featureImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -58,19 +58,19 @@ export function BlogPostSidebar({
                     width={96}
                     height={64}
                     loading="lazy"
-                    className="h-16 w-24 shrink-0 rounded-lg border border-zinc-200 bg-zinc-100 object-cover transition group-hover:scale-[1.03]"
+                    className="h-16 w-24 shrink-0 rounded-lg border border-white/10 bg-[#0a0c10] object-cover transition group-hover:scale-[1.03]"
                   />
                 ) : null}
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900 group-hover:text-[#ff4d2e]">
+                  <p className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-100 group-hover:text-[#c6f24b]">
                     {item.title}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
                     <time dateTime={item.createdAt}>{formatShortDate(item.createdAt, locale)}</time>
                     {item.tags[0] ? (
                       <>
                         <span>·</span>
-                        <span className="truncate font-medium text-zinc-600">{item.tags[0]}</span>
+                        <span className="truncate font-medium text-zinc-300">{item.tags[0]}</span>
                       </>
                     ) : null}
                   </div>

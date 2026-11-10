@@ -40,7 +40,7 @@ export const workflowPromoDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the workflow interaction and camera framing.";
+      "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST, then describe the motion as timed beats across the clip, naming the workflow interaction and camera framing, with all directions relative to the camera.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

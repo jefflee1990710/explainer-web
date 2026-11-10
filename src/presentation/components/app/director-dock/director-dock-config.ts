@@ -396,7 +396,7 @@ export function resolveModeSwitchSkillSlug(
 
 export function isFullBleedStudioPath(pathname: string): boolean {
   return (
-    /^\/app\/(room|explainers|talking-heads|stories|life|scroswap|teleport|posts)(\/|$)/.test(
+    /^\/app\/(room|explainers|talking-heads|stories|life|scroswap|teleport|posts|simple)(\/|$)/.test(
       pathname,
     ) ||
     /^\/app\/videos\/.+/.test(pathname) ||

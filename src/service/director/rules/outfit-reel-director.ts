@@ -34,7 +34,7 @@ export const outfitReelDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the slow gimbal camera rotation around the planted character with silent closed-mouth smile. Never re-describe appearance.";
+      "Detail: ALWAYS state camera details, pointing direction, and gimbal rotation motion FIRST, then describe the slow gimbal camera rotation around the planted character with silent closed-mouth smile and all directions relative to the camera. Never re-describe appearance.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

@@ -38,7 +38,7 @@ export const fullBodyTalkingHeadDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: describe the motion as timed beats across the clip, naming the full-body speaker's gesture and expression on a locked camera. Never re-describe a character's appearance or outfit.";
+      "Detail: ALWAYS state camera details, pointing direction, and locked full-body framing FIRST, then describe the motion as timed beats across the clip, naming the full-body speaker's gesture and expression relative to the camera. Never re-describe a character's appearance or outfit.";
     if (!options.realistic) return base;
     return `${base} ${REALISTIC_VIDEO_DETAIL_RULE}`;
   },

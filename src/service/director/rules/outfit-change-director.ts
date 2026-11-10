@@ -34,7 +34,7 @@ export const outfitChangeDirectorRules: DirectorRuleModule = {
   },
   phaseBDetailRules(options) {
     const base =
-      "Detail: keep the camera 100% locked; play only a subtle editorial breath and weight shift with closed mouth.";
+      "Detail: ALWAYS state the locked camera details and pointing direction FIRST; keep the camera 100% locked and play only a subtle editorial breath and weight shift with closed mouth, with all directions relative to the camera.";
     if (!options.realistic) return base;
     return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
   },

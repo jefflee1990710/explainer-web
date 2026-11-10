@@ -10,6 +10,7 @@ import {
   shouldUseComfyForClipVideo,
   submitComfyStoryboardClipVideo,
 } from "@/service/comfy/submit-clip-video";
+import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
@@ -277,6 +278,13 @@ export async function submitClipVideo(
   const fallbackModel = isRealisticStyle(styleObj)
     ? OPENROUTER_HAILUO_3_VIDEO_MODEL
     : OPENROUTER_WAN_3_VIDEO_MODEL;
+  const effectiveVideoPrompt =
+    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL || Boolean(input.audioUrl)
+      ? input.prompt
+      : formatCameraFirstVideoPrompt({
+          prompt: input.prompt,
+          motionCamera: input.motionPrompt,
+        });
   if (
     shouldUseComfyForClipVideo({
       model,
@@ -288,7 +296,7 @@ export async function submitClipVideo(
   ) {
     return submitComfyStoryboardClipVideo(
       {
-        prompt: input.prompt,
+        prompt: effectiveVideoPrompt,
         aspectRatio: input.aspectRatio,
         durationSeconds: input.durationSeconds,
         startImageUrl: input.startImageUrl,
@@ -305,7 +313,7 @@ export async function submitClipVideo(
       {
         model,
         fallbackModel,
-        prompt: input.prompt,
+        prompt: effectiveVideoPrompt,
         motionPrompt: input.motionPrompt,
         expressiveness: input.expressiveness,
         language: input.language,
@@ -327,8 +335,8 @@ export async function submitClipVideo(
   // Start-only directors omit the end image; talking-head directors send both frames.
   const body =
     model === SEEDANCE_2_VIDEO_MODEL
-      ? seedanceClipVideoInput(input)
-      : h3ClipVideoInput(input);
+      ? seedanceClipVideoInput({ ...input, prompt: effectiveVideoPrompt })
+      : h3ClipVideoInput({ ...input, prompt: effectiveVideoPrompt });
   return client.subscribe(model, {
     input: body,
     withPolling: false,

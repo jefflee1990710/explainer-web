@@ -10,14 +10,14 @@ function renderInline(text: string): ReactNode[] {
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return (
-        <strong key={index} className="font-semibold text-zinc-900">
+        <strong key={index} className="font-semibold text-white">
           {renderInline(part.slice(2, -2))}
         </strong>
       );
     }
     if (part.startsWith("~~") && part.endsWith("~~") && part.length > 4) {
       return (
-        <del key={index} className="text-zinc-500 line-through">
+        <del key={index} className="text-zinc-400 line-through">
           {renderInline(part.slice(2, -2))}
         </del>
       );
@@ -26,7 +26,7 @@ function renderInline(text: string): ReactNode[] {
       return (
         <code
           key={index}
-          className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[0.9em] text-zinc-800"
+          className="rounded border border-white/10 bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em] text-[#c6f24b]"
         >
           {part.slice(1, -1)}
         </code>
@@ -42,7 +42,7 @@ function renderInline(text: string): ReactNode[] {
           href={href}
           target={isExternal ? "_blank" : undefined}
           rel={isExternal ? "noopener" : undefined}
-          className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600"
+          className="font-medium text-[#c6f24b] underline decoration-[#c6f24b]/50 underline-offset-4 hover:text-white"
         >
           {renderInline(label)}
         </a>
@@ -195,13 +195,13 @@ export function BlogPostContent({
   );
 
   return (
-    <div className="space-y-5 text-base leading-relaxed text-zinc-700">
+    <div className="space-y-5 text-base leading-relaxed text-zinc-200">
       {tocEntries.length >= 3 ? (
         <nav
           aria-label="Table of contents"
-          className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5"
+          className="rounded-2xl border border-white/10 bg-[#131722] p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+          <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
             On this page
           </p>
           <ol className="mt-2.5 space-y-1.5 text-sm">
@@ -209,7 +209,7 @@ export function BlogPostContent({
               <li key={entry.id}>
                 <a
                   href={`#${entry.id}`}
-                  className="font-medium text-zinc-700 hover:text-zinc-950 hover:underline"
+                  className="font-medium text-zinc-200 hover:text-[#c6f24b] hover:underline"
                 >
                   {renderInline(entry.label)}
                 </a>
@@ -229,7 +229,7 @@ export function BlogPostContent({
           return (
             <pre
               key={idx}
-              className="overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-sm text-zinc-100"
+              className="overflow-x-auto rounded-xl border border-white/10 bg-[#131722] p-4 font-mono text-sm text-zinc-100"
             >
               <code>{code}</code>
             </pre>
@@ -237,17 +237,17 @@ export function BlogPostContent({
         }
 
         if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(block)) {
-          return <hr key={idx} className="my-8 border-zinc-200" />;
+          return <hr key={idx} className="my-8 border-white/10" />;
         }
 
         const imageMatch = block.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
         if (imageMatch) {
           const [, alt, src] = imageMatch;
           return (
-            <figure key={idx} className="my-6 overflow-hidden rounded-2xl bg-zinc-100">
+            <figure key={idx} className="my-6 overflow-hidden rounded-2xl border border-white/10 bg-[#131722]">
               <img src={src} alt={alt} className="h-auto w-full object-cover" />
               {alt ? (
-                <figcaption className="px-4 py-2 text-center text-xs text-zinc-500">
+                <figcaption className="px-4 py-2 text-center text-xs text-zinc-400">
                   {alt}
                 </figcaption>
               ) : null}
@@ -260,7 +260,7 @@ export function BlogPostContent({
             <h4
               key={idx}
               id={headingMeta?.id}
-              className="scroll-mt-20 pt-2 text-lg font-semibold tracking-tight text-zinc-900"
+              className="scroll-mt-20 pt-2 text-lg font-semibold tracking-tight text-white"
             >
               {renderInline(block.slice(5))}
             </h4>
@@ -272,7 +272,7 @@ export function BlogPostContent({
             <h3
               key={idx}
               id={headingMeta?.id}
-              className="scroll-mt-20 pt-3 text-xl font-bold tracking-tight text-zinc-900"
+              className="scroll-mt-20 pt-3 text-xl font-bold tracking-tight text-white"
             >
               {renderInline(block.slice(4))}
             </h3>
@@ -284,7 +284,7 @@ export function BlogPostContent({
             <h2
               key={idx}
               id={headingMeta?.id}
-              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-zinc-900"
+              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-white"
             >
               {renderInline(block.slice(3))}
             </h2>
@@ -296,7 +296,7 @@ export function BlogPostContent({
             <h2
               key={idx}
               id={headingMeta?.id}
-              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-zinc-900"
+              className="scroll-mt-20 pt-4 text-2xl font-bold tracking-tight text-white"
             >
               {renderInline(block.slice(2))}
             </h2>
@@ -311,7 +311,7 @@ export function BlogPostContent({
           return (
             <blockquote
               key={idx}
-              className="border-l-4 border-zinc-300 pl-4 italic text-zinc-600"
+              className="border-l-4 border-[#c6f24b]/60 pl-4 italic text-zinc-300"
             >
               {renderInline(quoteText)}
             </blockquote>
@@ -336,29 +336,29 @@ export function BlogPostContent({
           return (
             <div
               key={idx}
-              className="my-6 overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-2xs"
+              className="my-6 overflow-x-auto rounded-xl border border-white/10 bg-[#131722] shadow-2xs"
             >
-              <table className="min-w-full divide-y divide-zinc-200 text-sm">
-                <thead className="bg-zinc-50">
+              <table className="min-w-full divide-y divide-white/10 text-sm">
+                <thead className="bg-white/5">
                   <tr>
                     {headers.map((header, colIdx) => (
                       <th
                         key={colIdx}
                         scope="col"
-                        className={`px-4 py-3 font-semibold text-zinc-900 ${alignClass(colIdx)}`}
+                        className={`px-4 py-3 font-semibold text-white ${alignClass(colIdx)}`}
                       >
                         {renderInline(header)}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 bg-white">
+                <tbody className="divide-y divide-white/10 bg-[#131722]">
                   {bodyRows.map((row, rowIdx) => (
-                    <tr key={rowIdx} className="hover:bg-zinc-50/70">
+                    <tr key={rowIdx} className="hover:bg-white/5">
                       {headers.map((_, colIdx) => (
                         <td
                           key={colIdx}
-                          className={`px-4 py-3 text-zinc-700 ${alignClass(colIdx)}`}
+                          className={`px-4 py-3 text-zinc-200 ${alignClass(colIdx)}`}
                         >
                           {renderInline(row[colIdx] ?? "")}
                         </td>
@@ -386,7 +386,7 @@ export function BlogPostContent({
                       checked={checked}
                       readOnly
                       disabled
-                      className="mt-1.5 h-4 w-4 shrink-0 rounded border-zinc-300 accent-zinc-900"
+                      className="mt-1.5 h-4 w-4 shrink-0 rounded border-white/20 accent-[#c6f24b]"
                     />
                     <span>{renderInline(itemText)}</span>
                   </li>

@@ -162,6 +162,7 @@ test("isFullBleedStudioPath matches all 5 Director Dock studios, video editor ro
   assert.equal(isFullBleedStudioPath("/app/life"), true);
   assert.equal(isFullBleedStudioPath("/app/scroswap"), true);
   assert.equal(isFullBleedStudioPath("/app/teleport"), true);
+  assert.equal(isFullBleedStudioPath("/app/simple"), true);
   assert.equal(isFullBleedStudioPath("/app/room"), true);
   assert.equal(isFullBleedStudioPath("/app/characters"), false);
   assert.equal(isFullBleedStudioPath("/app/billing"), false);
