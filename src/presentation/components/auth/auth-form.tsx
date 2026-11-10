@@ -54,9 +54,13 @@ function authErrorKey(code: string) {
 export function AuthForm({
   mode,
   nextPath,
+  onAuthSuccess,
+  onSwitchMode,
 }: {
   mode: "sign-in" | "sign-up";
   nextPath?: string;
+  onAuthSuccess?: () => void | Promise<void>;
+  onSwitchMode?: (nextMode: "sign-in" | "sign-up") => void;
 }) {
   const { t } = useI18n();
   const [email, setEmail] = useState("");
@@ -119,6 +123,10 @@ export function AuthForm({
     }
 
     await trackAsync(event, { method, nextPath: resolvedNext });
+    if (onAuthSuccess) {
+      await onAuthSuccess();
+      return;
+    }
     window.location.assign(resolvedNext);
   }
 
@@ -250,19 +258,51 @@ export function AuthForm({
       </form>
       <p className="mt-6 text-sm text-zinc-600">
         {register ? (
-          <Link
-            href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : "/sign-in"}
-            onClick={() =>
+          onSwitchMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                track("auth_mode_switch", {
+                  from: "sign-up",
+                  to: "sign-in",
+                  nextPath: resolvedNext,
+                });
+                onSwitchMode("sign-in");
+              }}
+              className="cursor-pointer font-semibold text-[#12141c] underline"
+            >
+              {t("auth.haveAccount")}
+            </button>
+          ) : (
+            <Link
+              href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : "/sign-in"}
+              onClick={() =>
+                track("auth_mode_switch", {
+                  from: "sign-up",
+                  to: "sign-in",
+                  nextPath: resolvedNext,
+                })
+              }
+              className="font-semibold text-[#12141c] underline"
+            >
+              {t("auth.haveAccount")}
+            </Link>
+          )
+        ) : onSwitchMode ? (
+          <button
+            type="button"
+            onClick={() => {
               track("auth_mode_switch", {
-                from: "sign-up",
-                to: "sign-in",
+                from: "sign-in",
+                to: "sign-up",
                 nextPath: resolvedNext,
-              })
-            }
-            className="font-semibold text-[#12141c] underline"
+              });
+              onSwitchMode("sign-up");
+            }}
+            className="cursor-pointer font-semibold text-[#12141c] underline"
           >
-            {t("auth.haveAccount")}
-          </Link>
+            {t("auth.needAccount")}
+          </button>
         ) : (
           <Link
             href={nextPath ? `/sign-up?next=${encodeURIComponent(nextPath)}` : "/sign-up"}
