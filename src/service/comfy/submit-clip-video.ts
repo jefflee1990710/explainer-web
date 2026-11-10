@@ -82,7 +82,7 @@ export function buildOneTakeChainShots(input: {
           hasSceneImage: input.hasSceneImage,
         }),
         length: h3ValidFrameLength(seconds),
-        steps: 8,
+        steps: 6,
         seed: "0",
       },
     ];
@@ -110,7 +110,7 @@ export function buildOneTakeChainShots(input: {
         hasSceneImage: input.hasSceneImage,
       }),
       length: H3_CHAIN_SEGMENT_FRAMES,
-      steps: 8,
+      steps: 6,
       seed: String(index),
     };
   });
@@ -302,7 +302,7 @@ export function buildComfyRef2VaLatentGuideGraph(input: {
               hasSceneImage: Boolean(sceneName),
             }),
             length: h3ValidFrameLength(input.durationSeconds),
-            steps: 8,
+            steps: 6,
             seed: "0",
           },
         ];

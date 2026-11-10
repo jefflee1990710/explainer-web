@@ -52,7 +52,7 @@ export type VoiceGender = "male" | "female";
 // How fast the narrator / characters speak; scales the spoken-word budget.
 export type SpeechPace = "slow" | "medium" | "fast";
 // On-canvas labels in storyboard stills; independent of voiceover language.
-export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
+export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans" | "ja" | "ko";
 // "none" is a brief choice, not a script. It turns on-screen text off.
 export type SceneTextChoice = SceneTextLanguage | "none";
 // Subtitle lettering. Placement is chosen by the director, not this field.
@@ -627,7 +627,7 @@ const clipDirectorOverridesSchema = z.object({
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
-  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "ja", "ko", "none"]).optional(),
   directorBackgroundId: z.string().optional(),
   backgroundImageUrls: z.array(z.string()).optional(),
   talkingHeadBackgroundId: z.string().optional(),
@@ -660,7 +660,7 @@ const storyboardRowSchema = z.object({
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
-  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "ja", "ko", "none"]).optional(),
   directorBackgroundId: z.string().optional(),
   backgroundImageUrls: z.array(z.string()).optional(),
   talkingHeadBackgroundId: z.string().optional(),
@@ -726,7 +726,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
-  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "ja", "ko", "none"]).optional(),
   subtitleLook: z.enum(SUBTITLE_LOOK_IDS).optional(),
   textStyleId: z.string().optional(),
   textStyleImageUrl: z.string().optional(),

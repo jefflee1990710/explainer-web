@@ -46,6 +46,20 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
     skillHint:
       "On-canvas text language: Simplified Chinese (简体中文). In-scene labels, signs, or short titles are in Simplified Chinese (简体中文). Never generate spoken subtitles or voiceover captions on screen.",
   },
+  ja: {
+    id: "ja",
+    label: "日本語",
+    sublabel: "平仮名・片仮名・漢字",
+    skillHint:
+      "On-canvas text language: Japanese (日本語 — full support for Hiragana ひらがな, Katakana カタカナ, and Kanji 漢字; preserve exact Hiragana for particles/inflections and Katakana for loanwords/emphasis). In-scene labels, signs, or short titles are in natural Japanese. Never generate spoken subtitles or voiceover captions on screen.",
+  },
+  ko: {
+    id: "ko",
+    label: "한국어",
+    sublabel: "한글 韓文畫面文字",
+    skillHint:
+      "On-canvas text language: Korean (한국어 한글). In-scene labels, signs, or short titles are in natural Korean Hangul. Never generate spoken subtitles or voiceover captions on screen.",
+  },
 };
 
 export const SCENE_TEXT_IDS = Object.keys(SCENE_TEXT_PRESETS) as SceneTextLanguage[];
@@ -84,6 +98,12 @@ export function resolveSceneText(input: {
   }
   if (input.language === "yue") {
     return { enabled: true, language: "zh-Hant" as const, inWorldLabels: false };
+  }
+  if (input.language === "ja" && (!input.sceneTextLanguage || input.sceneTextLanguage === "en")) {
+    return { enabled: true, language: "ja" as const, inWorldLabels: false };
+  }
+  if (input.language === "ko" && (!input.sceneTextLanguage || input.sceneTextLanguage === "en")) {
+    return { enabled: true, language: "ko" as const, inWorldLabels: false };
   }
   const language = input.sceneTextLanguage && isSceneTextLanguage(input.sceneTextLanguage)
     ? input.sceneTextLanguage
@@ -372,6 +392,12 @@ function markerLanguageHint(language: SceneTextLanguage) {
   }
   if (language === "zh-Hans") {
     return "On-canvas text language: Simplified Chinese (简体中文). Do not transliterate that beat's line into English. Lettering follows the selected text style.";
+  }
+  if (language === "ja") {
+    return "On-canvas text language: Japanese (日本語 — supporting Hiragana ひらがな, Katakana カタカナ, and Kanji 漢字). Do not transliterate that beat's line into English. Lettering follows the selected text style.";
+  }
+  if (language === "ko") {
+    return "On-canvas text language: Korean (한국어 한글). Do not transliterate that beat's line into English. Lettering follows the selected text style.";
   }
   return "On-canvas text language: English. One short beat title and diagram labels named in the Scene are also allowed. Lettering follows the selected text style.";
 }

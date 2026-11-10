@@ -54,20 +54,24 @@ export const LANGUAGE_PRESETS: Record<VoLanguage, LanguagePreset> = {
     planningSkillHint:
       "Planning explanations (narrativeJob, explainerScene, startScene, endScene, motionCamera, hookStrategy, coreMessage, localizedTitle, narrativeArc, visualWorld, narrator, palette, bgmDirection, and every clip bgmSfx note) must be Traditional Chinese (繁體中文，國語口語，簡短可讀). This overrides any skill line that says to write Phase A in the user's language.",
   },
-  ja: makeForeignLanguagePreset({
+  ja: {
     id: "ja",
     label: "日本語",
-    sublabel: "日文自然口語",
-    englishName: "Japanese (日本語)",
-    paceHint: "roughly 4–5 Japanese characters/kana per second of speech",
-  }),
-  ko: makeForeignLanguagePreset({
+    sublabel: "日文自然口語（平仮名・片仮名・漢字）",
+    skillHint:
+      "Voiceover language: natural conversational Japanese (日本語), using authentic Japanese script combining Kanji (漢字), Hiragana (ひらがな for native grammar, particles, and inflections), and Katakana (カタカナ for loanwords, emphasis, and sound effects). Keep sentences concise and speakable (roughly 4–5 Japanese morae/kana per second of speech).",
+    planningSkillHint:
+      "Planning explanations (narrativeJob, explainerScene, startScene, endScene, motionCamera, hookStrategy, coreMessage, localizedTitle, narrativeArc, visualWorld, narrator, palette, bgmDirection, and every clip bgmSfx note) must be written in clear English, while spoken lines in englishVo / startVo / endVo are written in natural conversational Japanese (日本語 — supporting both Hiragana ひらがな and Katakana カタカナ plus Kanji 漢字).",
+  },
+  ko: {
     id: "ko",
     label: "한국어",
-    sublabel: "韓文自然口語",
-    englishName: "Korean (한국어)",
-    paceHint: "roughly 3.5–4.5 Korean syllables per second of speech",
-  }),
+    sublabel: "韓文自然口語（한글）",
+    skillHint:
+      "Voiceover language: natural conversational Korean (한국어 한글). Keep sentences concise and speakable (roughly 3.5–4.5 Korean syllables per second of speech).",
+    planningSkillHint:
+      "Planning explanations (narrativeJob, explainerScene, startScene, endScene, motionCamera, hookStrategy, coreMessage, localizedTitle, narrativeArc, visualWorld, narrator, palette, bgmDirection, and every clip bgmSfx note) must be written in clear English, while spoken lines in englishVo / startVo / endVo are written in natural conversational Korean (한국어 한글).",
+  },
   id: makeForeignLanguagePreset({
     id: "id",
     label: "Bahasa Indonesia",

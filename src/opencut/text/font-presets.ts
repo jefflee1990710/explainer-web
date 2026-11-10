@@ -18,7 +18,7 @@ export const TEXT_FONT_PRESETS: TextFontPreset[] = [
 	{
 		id: "pop-heavy",
 		label: "綜藝爆款 · Pop Heavy",
-		family: "Anton, Dela Gothic One, Noto Sans TC",
+		family: "Anton, Dela Gothic One, Noto Sans TC, Noto Sans JP, Noto Sans KR",
 		sample: "爆款 Hook 100%",
 		weights: [400, 700, 900],
 		fontWeight: "bold",
@@ -26,7 +26,7 @@ export const TEXT_FONT_PRESETS: TextFontPreset[] = [
 	{
 		id: "modern-sans",
 		label: "現代粗黑 · Modern Sans",
-		family: "Montserrat, Noto Sans TC",
+		family: "Montserrat, Noto Sans TC, Noto Sans JP, Noto Sans KR",
 		sample: "重點解說 Key Point",
 		weights: [400, 700, 900],
 		fontWeight: "bold",

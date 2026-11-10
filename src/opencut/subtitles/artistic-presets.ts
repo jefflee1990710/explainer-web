@@ -52,7 +52,7 @@ export function quoteFontFamily({ fontFamily }: { fontFamily: string }): string 
 export function tokenizeMixedSubtitleLine(text: string): string[] {
 	const tokens: string[] = [];
 	const regex =
-		/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}][，。！？；：、）】」』》”’,.!?;:)\]]*|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}—–]+[—–]*|[—–]+|\s+/gu;
+		/[\p{Script=Katakana}][\p{Script=Katakana}ー・]*[，。！？；：、）】」』》”’,.!?;:)\]]*|[\p{Script=Han}\p{Script=Hiragana}\p{Script=Hangul}][ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶー゛゜\u3099\u309A々ゝゞヽヾ，。！？；：、）】」』》”’,.!?;:)\]]*|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}—–]+[—–]*|[—–]+|\s+/gu;
 	let match: RegExpExecArray | null;
 	while ((match = regex.exec(text)) !== null) {
 		tokens.push(match[0]);

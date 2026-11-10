@@ -519,6 +519,7 @@ export type PrepareJutsuJobInput = {
   maskMargin?: JutsuMaskMargin;
   hatFix?: boolean;
   noLipSync?: boolean;
+  keepSourceOutfit?: boolean;
   motionSize?: JutsuMotionSize;
   customEditPrompt?: string;
   colorSettings?: JutsuColorSettings;
@@ -734,6 +735,7 @@ export async function prepareJutsuJob(
     const maskMargin: JutsuMaskMargin = input.maskMargin ?? "normal";
     const hatFix = Boolean(input.hatFix);
     const noLipSync = Boolean(input.noLipSync);
+    const keepSourceOutfit = Boolean(input.keepSourceOutfit);
     const motionSize: JutsuMotionSize = input.motionSize ?? 512;
 
     const [
@@ -842,6 +844,7 @@ export async function prepareJutsuJob(
       maskMargin,
       hatFix,
       noLipSync,
+      ...(keepSourceOutfit ? { keepSourceOutfit: true } : {}),
       motionSize,
       mannequinVideoUrl,
       checkMaskVideoUrl,
@@ -1157,6 +1160,7 @@ export type StartScroSwapInput = {
   maskMargin?: JutsuMaskMargin;
   hatFix?: boolean;
   noLipSync?: boolean;
+  keepSourceOutfit?: boolean;
   motionSize?: JutsuMotionSize;
   keepSourceAudio?: boolean;
   applyColorFix?: boolean;
@@ -1343,6 +1347,7 @@ export async function startScroSwapJob(
     const maskMargin: JutsuMaskMargin = input.maskMargin ?? "normal";
     const hatFix = Boolean(input.hatFix);
     const noLipSync = Boolean(input.noLipSync);
+    const keepSourceOutfit = Boolean(input.keepSourceOutfit);
     const motionSize: JutsuMotionSize = input.motionSize ?? 512;
     const keepSourceAudio = input.keepSourceAudio !== false;
     const applyColorFix = input.applyColorFix !== false;
@@ -1422,6 +1427,7 @@ export async function startScroSwapJob(
       maskMargin,
       hatFix,
       noLipSync,
+      ...(keepSourceOutfit ? { keepSourceOutfit: true } : {}),
       motionSize,
       keepSourceAudio,
       applyColorFix,

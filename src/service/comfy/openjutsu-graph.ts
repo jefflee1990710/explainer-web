@@ -27,7 +27,7 @@ const DEFAULT_MODEL = {
   describer: "qwen3vl_8b_int8_convrot.safetensors",
   videoVae: "minimax_h3_video_vae_int8_convrot.safetensors",
   audioVae: "minimax_h3_audio_vae_fp32.safetensors",
-  steps: 8,
+  steps: 6,
 };
 
 const SIMPLE_MARGINS = { tight: 20, normal: 40, loose: 60 } as const;
@@ -53,6 +53,9 @@ const SIMPLE_NODES = {
 const SIMPLE_DESCRIBE_PICTURE_PROMPT =
   "Describe the person in this picture for a casting sheet, in one sentence of about 50 words: apparent age and gender, face shape, eye and nose shape, glasses, hair, facial hair, skin tone, build, and their complete outfit including exact garment colors, neckline, footwear, and accessories. No preamble, no background.";
 
+const SIMPLE_DESCRIBE_HEAD_ONLY_PROMPT =
+  "Describe ONLY the head, face, and hair of the person in this picture for a casting sheet, in one sentence of about 35 words: apparent age and gender, face shape, eye and nose shape, glasses, hair style and color, facial hair, and skin tone. Do NOT mention any clothing, shirt, top, or outfit. No preamble, no background.";
+
 // Strip source-person clothing, bags, earphones, and hair descriptions that Node 44 (Qwen3-VL on unmasked source frames)
 // may mention and that H3FillShots's built-in ACCESSORIES regex misses.
 const SIMPLE_CLEAN_SHOTS_REGEX =
@@ -75,6 +78,7 @@ export type SimpleGraphInput = {
   role: string;
   target: string;
   outfitSpec?: string;
+  keepSourceOutfit?: boolean;
   hatFix: boolean;
   noLipSync: boolean;
   margin: OpenJutsuMargin;
@@ -424,18 +428,22 @@ function describerPrompt(input: ObjectGraphInput) {
 export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   const graph = loadGraph("simple");
   silenceWhenSoundless(graph);
-  graph[SIMPLE_NODES.describePicture].inputs.prompt = SIMPLE_DESCRIBE_PICTURE_PROMPT;
-  graph[SIMPLE_NODES.describePicture].inputs.max_length = 150;
-  // Keep OpenJutsu's native "match" (736p) so a static upright reference portrait does not overpower the grey mannequin's dynamic body orientation.
-  graph[SIMPLE_NODES.referenceConditioning].inputs.ref_image_size = "match";
-  graph[SIMPLE_NODES.target].inputs.text = input.target;
+  const keepOutfit = Boolean(input.keepSourceOutfit);
+  const cloudQuality = process.env.COMFY_CLOUD_QUALITY?.trim() === "true";
+  graph[SIMPLE_NODES.describePicture].inputs.prompt = keepOutfit
+    ? SIMPLE_DESCRIBE_HEAD_ONLY_PROMPT
+    : SIMPLE_DESCRIBE_PICTURE_PROMPT;
+  graph[SIMPLE_NODES.describePicture].inputs.max_length = keepOutfit ? 100 : 150;
+  // Keep OpenJutsu's native "match" (736p) by default, or "max" (2048px 2K reference tokens) when COMFY_CLOUD_QUALITY=true on 48GB+ GPUs.
+  graph[SIMPLE_NODES.referenceConditioning].inputs.ref_image_size = cloudQuality ? "max" : "match";
+  graph[SIMPLE_NODES.target].inputs.text = keepOutfit ? "head" : input.target;
   graph[SIMPLE_NODES.growMask].inputs.expand = SIMPLE_MARGINS[input.margin];
   if (!input.hatFix) {
     for (const id of SIMPLE_NODES.hat) delete graph[id];
     graph[SIMPLE_NODES.growMask].inputs.mask = [SIMPLE_NODES.peopleMask, 0];
   }
   if (!input.noLipSync) dropNoLipSync(graph);
-  setMotionSize(graph, input.motion);
+  setMotionSize(graph, cloudQuality ? 1376 : input.motion);
 
   // Enhance H3ClipShots (Node 43) shot_prompt so Qwen3-VL (Node 44) describes full chronological body motion & orientation changes.
   graph.scro_shot_prompt = {
@@ -449,24 +457,28 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
   };
   graph["43"].inputs.shot_prompt = ["scro_shot_prompt", 0];
 
-  // Scrub source-person tops, bags, and earphones from Node 44's shot list before H3FillShots (Node 45).
-  graph.scro_clean_shots = {
-    class_type: "RegexReplace",
-    inputs: {
-      string: [SIMPLE_NODES.shotDescriber, 0],
-      regex_pattern: SIMPLE_CLEAN_SHOTS_REGEX,
-      replace: "",
-      case_insensitive: true,
-      multiline: true,
-      dotall: false,
-      count: 0,
-    },
-    _meta: { title: "Strip source outfit/bags/earphones from shots" },
-  };
-  graph[SIMPLE_NODES.fillShots].inputs.shots = ["scro_clean_shots", 0];
+  if (!keepOutfit) {
+    // Scrub source-person tops, bags, and earphones from Node 44's shot list before H3FillShots (Node 45).
+    graph.scro_clean_shots = {
+      class_type: "RegexReplace",
+      inputs: {
+        string: [SIMPLE_NODES.shotDescriber, 0],
+        regex_pattern: SIMPLE_CLEAN_SHOTS_REGEX,
+        replace: "",
+        case_insensitive: true,
+        multiline: true,
+        dotall: false,
+        count: 0,
+      },
+      _meta: { title: "Strip source outfit/bags/earphones from shots" },
+    };
+    graph[SIMPLE_NODES.fillShots].inputs.shots = ["scro_clean_shots", 0];
+  }
 
   const plan = graph[SIMPLE_NODES.plan].inputs;
-  const cleanOutfitSpec = input.outfitSpec?.replace(/\s+/g, " ").trim().replace(/\.+$/, "");
+  const cleanOutfitSpec = keepOutfit
+    ? undefined
+    : input.outfitSpec?.replace(/\s+/g, " ").trim().replace(/\.+$/, "");
   if (cleanOutfitSpec) {
     graph.scro_picture_1_text = {
       class_type: "StringConcatenate",
@@ -479,7 +491,7 @@ export function buildSimpleGraph(input: SimpleGraphInput): ApiGraph {
     };
     plan.picture_1_text = ["scro_picture_1_text", 0];
   }
-  plan.resolution = OPENJUTSU_RESOLUTION;
+  plan.resolution = cloudQuality ? "1080p" : OPENJUTSU_RESOLUTION;
   plan.seed = input.seed;
   plan.clip_seconds = input.clipSeconds;
   plan.roles = input.role.replace(/\s+/g, " ").trim();

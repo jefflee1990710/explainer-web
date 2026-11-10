@@ -30,6 +30,14 @@ const VO: Record<SceneTextLanguage, { startVo: string; endVo: string }> = {
     startVo: "你以为大语言模型",
     endVo: "里面有一颗巨大的思考脑？",
   },
+  ja: {
+    startVo: "大規模言語モデルの中に",
+    endVo: "巨大な脳があると思っていませんか？",
+  },
+  ko: {
+    startVo: "대규모 언어 모델 안에",
+    endVo: "거대한 두뇌가 있다고 생각하시나요?",
+  },
 };
 
 function sleep(ms: number) {

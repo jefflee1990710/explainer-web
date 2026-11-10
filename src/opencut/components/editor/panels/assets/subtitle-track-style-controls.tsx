@@ -317,7 +317,7 @@ export function SubtitleTrackStyleControls({
 	const fontFamily =
 		typeof sample.params.fontFamily === "string" && sample.params.fontFamily
 			? sample.params.fontFamily
-			: "Oswald, Montserrat, Noto Sans TC";
+			: "Oswald, Montserrat, Noto Sans TC, Noto Sans JP, Noto Sans KR";
 	const bgEnabled = Boolean(sample.params["background.enabled"]);
 	const bgStyle: TextBackgroundStyle =
 		(sample.params["background.style"] as TextBackgroundStyle | undefined) ??

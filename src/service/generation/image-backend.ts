@@ -43,6 +43,16 @@ export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = 
     model: SEEDREAM_5_PRO_IMAGE_MODEL,
     editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
+  ja: {
+    backend: "openrouter",
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
+  },
+  ko: {
+    backend: "openrouter",
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
+  },
 };
 
 const DEFAULT_ROUTE = IMAGE_ROUTE_BY_SCENE_TEXT.en;

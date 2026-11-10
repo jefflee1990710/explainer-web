@@ -87,9 +87,9 @@ test("preservePlannedDuration keeps director-planned duration for silent/short s
   assert.equal(single.timeRange, "0–9s");
 });
 
-test("storyboardModelForSkill routes all directors to gemini-3.8-flash for maximum speed and cost-efficiency", () => {
-  assert.equal(storyboardModelForSkill("story-short-director"), "gemini-3.8-flash");
-  assert.equal(storyboardModelForSkill("one-take-director"), "gemini-3.8-flash");
+test("storyboardModelForSkill routes story-short-director and one-take-director to gemini-4-argon and keeps gemini-3.8-flash for others", () => {
+  assert.equal(storyboardModelForSkill("story-short-director"), "gemini-4-argon");
+  assert.equal(storyboardModelForSkill("one-take-director"), "gemini-4-argon");
   assert.equal(storyboardModelForSkill("cartoon-explainer-video-director"), "gemini-3.8-flash");
   assert.equal(storyboardModelForSkill(), "gemini-3.8-flash");
 });

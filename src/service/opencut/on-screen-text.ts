@@ -71,9 +71,15 @@ export type EnqueueOpencutOnScreenTextResult =
       error: string;
     };
 
-// Detect CJK characters so Chinese/Japanese/Korean on-screen text routes appropriately.
+// Detect CJK characters (Japanese Hiragana/Katakana, Korean Hangul, Chinese Hanzi) so on-screen text routes appropriately.
 export function inferOnScreenTextSceneLanguage(text: string): SceneTextLanguage {
-  if (/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/.test(text)) {
+  if (/[\u3040-\u309f\u30a0-\u30ff\u31f0-\u31ff\uff65-\uff9f]/.test(text)) {
+    return "ja";
+  }
+  if (/[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(text)) {
+    return "ko";
+  }
+  if (/[\u3400-\u9fff\uf900-\ufaff]/.test(text)) {
     return "zh-Hant";
   }
   return "en";
@@ -164,6 +170,61 @@ export function inSceneOnScreenTextPrompt(input: {
     "Integrate any torn-paper strips, sticker borders, brushstrokes, and contact shadows naturally into the lighting and depth of Reference Image 1.",
     "STRICT LOCK OUTSIDE TARGET BOX: Keep every human face, expression, hair, and all background details outside the target text region 100% pixel-identical to Reference Image 1.",
   ].join("\n");
+}
+
+// Detect the actual bounding box where `paintedFrame` differs strongly from `originalFrame`,
+// falling back to `fallbackBox` if fewer than 64 pixels changed.
+export async function computePaintedDiffBoundingBox(input: {
+  originalFrame: Buffer;
+  paintedFrame: Buffer;
+  fallbackBox: SafeTextBox;
+}): Promise<SafeTextBox> {
+  const origMeta = await sharp(input.originalFrame)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width, height } = origMeta.info;
+  const origData = origMeta.data;
+  const paintedData = await sharp(input.paintedFrame)
+    .resize(width, height, { fit: "fill" })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  let count = 0;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i3 = (y * width + x) * 3;
+      const diff = Math.hypot(
+        (paintedData[i3] ?? 0) - (origData[i3] ?? 0),
+        (paintedData[i3 + 1] ?? 0) - (origData[i3 + 1] ?? 0),
+        (paintedData[i3 + 2] ?? 0) - (origData[i3 + 2] ?? 0),
+      );
+      if (diff >= 55) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+        count++;
+      }
+    }
+  }
+
+  if (count < 64 || maxX <= minX || maxY <= minY) {
+    return input.fallbackBox;
+  }
+
+  const pad = 16;
+  const rx = Math.max(0, minX - pad);
+  const ry = Math.max(0, minY - pad);
+  const rw = Math.min(width - rx, maxX - minX + 1 + pad * 2);
+  const rh = Math.min(height - ry, maxY - minY + 1 + pad * 2);
+  return { x: rx, y: ry, w: rw, h: rh };
 }
 
 // Extract the painted artistic text inside `box` by comparing `paintedFrame` against `originalFrame` with soft edge feathering.
@@ -670,10 +731,15 @@ export async function sendOnscreenText(
       const syncImgUrl = submitted.images?.[0]?.url;
       if (syncImgUrl) {
         const paintedBuf = await decodeImageBufferFromOutputUrl(syncImgUrl);
+        const actualBox = await computePaintedDiffBoundingBox({
+          originalFrame: startFrameBuf,
+          paintedFrame: paintedBuf,
+          fallbackBox: safeZone.bestBox,
+        });
         const extracted = await extractFeatheredInSceneTextPatch({
           originalFrame: startFrameBuf,
           paintedFrame: paintedBuf,
-          box: safeZone.bestBox,
+          box: actualBox,
         });
         if (!plateIsEmpty(extracted.ratio)) {
           const croppedPatch = await cropVerticalTransparentMargin(extracted.patchPng);
@@ -712,10 +778,10 @@ export async function sendOnscreenText(
                 length: Math.min(6, Math.max(3, targetClip?.durationSeconds ?? 6)),
               },
               boxNormalized: {
-                x: safeZone.bestBox.x / safeZone.width,
-                y: safeZone.bestBox.y / safeZone.height,
-                width: safeZone.bestBox.w / safeZone.width,
-                height: safeZone.bestBox.h / safeZone.height,
+                x: actualBox.x / safeZone.width,
+                y: actualBox.y / safeZone.height,
+                width: actualBox.w / safeZone.width,
+                height: actualBox.h / safeZone.height,
               },
               text: line,
               styleDescription: lookLine,

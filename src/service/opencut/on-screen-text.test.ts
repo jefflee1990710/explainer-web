@@ -13,10 +13,13 @@ import {
 } from "@/service/opencut/on-screen-text";
 import { buildComfyMaskedTextInpaintGraph } from "@/service/comfy/submit-clip-video";
 
-test("inferOnScreenTextSceneLanguage routes CJK text to zh-Hant and Latin text to en", () => {
+test("inferOnScreenTextSceneLanguage routes Japanese Hiragana/Katakana to ja, Korean Hangul to ko, CJK Hanzi to zh-Hant, and Latin to en", () => {
   assert.equal(inferOnScreenTextSceneLanguage("Try it now!"), "en");
   assert.equal(inferOnScreenTextSceneLanguage("限時優惠 50% OFF"), "zh-Hant");
   assert.equal(inferOnScreenTextSceneLanguage("係咪真㗎"), "zh-Hant");
+  assert.equal(inferOnScreenTextSceneLanguage("ひらがなとカタカナ"), "ja");
+  assert.equal(inferOnScreenTextSceneLanguage("AIマーケティング"), "ja");
+  assert.equal(inferOnScreenTextSceneLanguage("한국어 자막 테스트"), "ko");
 });
 
 test("onScreenTextPrompt uses non-green key color (#FF00FF for Torn Paper, #0055FF for pink/neon styles)", () => {

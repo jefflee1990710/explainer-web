@@ -169,13 +169,15 @@ export function withCharacterOutfitLock(
 export function buildCharacterPreparePromptWithRefs(
   referenceImageCount = 1,
   relightLook?: string | null,
+  keepSourceOutfit = false,
 ): { prompt: string; donorLabel: string } {
   const count = Math.max(1, Math.floor(referenceImageCount));
   const donorLabel =
     count === 1 ? "attached image 1" : `attached images 1 to ${count}`;
   const sourceLabel = `attached image ${count + 1}`;
-  const identityLock =
-    count === 1
+  const identityLock = keepSourceOutfit
+    ? `The face and hair must be the same person as ${donorLabel}: keep the exact face shape, jawline, eye shape, nose, lips, skin tone, facial features, and hairstyle of ${donorLabel}, while strictly keeping the ORIGINAL clothing and outfit worn by the person in ${sourceLabel} (do NOT copy any clothing from ${donorLabel}). From ${sourceLabel} keep the exact outfit, pose, and mood of the expression.`
+    : count === 1
       ? `The face must be the same person as ${donorLabel}: keep the face shape, jawline, eye shape, nose, lips, skin tone, and all facial features of ${donorLabel} exactly, plus its hair and clothing. Wardrobe lock: copy the exact outfit from ${donorLabel} (every garment, neckline, sleeve length, fabric texture, color, pattern, and chest graphic/logo if present) — never copy or blend any clothing from the person in ${sourceLabel}. From ${sourceLabel} take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in ${sourceLabel}.`
       : `All of ${donorLabel} show the same target character from multiple angles/views: keep the exact face shape, jawline, eye shape, nose, lips, skin tone, facial features, hair, and clothing shown across ${donorLabel}. Wardrobe lock: copy the exact outfit from ${donorLabel} (every garment, neckline, sleeve length, fabric texture, color, pattern, and chest graphic/logo if present) — never copy or blend any clothing from the person in ${sourceLabel}. From ${sourceLabel} take only the mood of the expression (mouth open or closed, eyebrow raise, gaze direction) and apply it to that unchanged face; never copy the face shape or features of the person in ${sourceLabel}.`;
   const sceneLock = `Keep the exact room, furniture, props, on-screen text, and background of ${sourceLabel} — never replace them with the backdrop from ${donorLabel}.`;

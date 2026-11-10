@@ -1,10 +1,18 @@
 const LATIN_WORD = String.raw`[A-Za-z0-9](?:[A-Za-z0-9'’.\-/&+@#%]*[A-Za-z0-9%])?`;
+// Keep contiguous Japanese Katakana loanwords (including long vowel mark ー and middle dot ・) intact.
+const KATAKANA_WORD = String.raw`[\p{Script=Katakana}][\p{Script=Katakana}ー・]*`;
+// Keep Hiragana / Kanji character attached to trailing small kana (っゃゅょぁぃぅぇぉ) or long vowel mark ー.
+const HIRAGANA_OR_HAN_UNIT = String.raw`[\p{Script=Han}\p{Script=Hiragana}][ぁぃぅぇぉっゃゅょゎゕゖー゛゜\u3099\u309A]*`;
 // One unbreakable unit: a Latin/number run with its inner spaces (Instagram, Scro.io, iPhone 17 Pro, 100%),
-// a space run, or one character.
-const TOKEN = new RegExp(String.raw`${LATIN_WORD}(?: ${LATIN_WORD})*|\s+|[\s\S]`, "gu");
+// a Katakana loanword run, a Hiragana/Kanji mora unit, a space run, or one character.
+const TOKEN = new RegExp(
+  String.raw`${LATIN_WORD}(?: ${LATIN_WORD})*|${KATAKANA_WORD}|${HIRAGANA_OR_HAN_UNIT}|\s+|[\s\S]`,
+  "gu",
+);
 const CLAUSE_END = /[，,、；;：:！？!?。]$/;
-// Closing marks never open line 2.
-const NO_LINE_START = /^[，,、；;：:！？!?。）)」』》〉”’.]/;
+// Closing marks and Japanese Kinsoku Shori (small kana, long vowel mark ー, iteration marks) never open line 2.
+const NO_LINE_START =
+  /^[，,、；;：:！？!?。）)」』》〉”’.ーぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶ・々ゝゞヽヾ】〕］｝]/;
 
 // Split a CJK line into two halves near the middle, after a clause mark when one is close,
 // and never inside an English word or number.

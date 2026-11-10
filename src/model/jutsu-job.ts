@@ -231,6 +231,7 @@ export type JutsuJob = {
   maskMargin?: "tight" | "normal" | "loose";
   hatFix?: boolean;
   noLipSync?: boolean;
+  keepSourceOutfit?: boolean;
   motionSize?: 512 | 768 | 1376;
   // Whether finalize should mux the source section soundtrack and apply H3 Soft color grade.
   keepSourceAudio?: boolean;
@@ -292,6 +293,7 @@ export type PublicJutsuJob = {
   maskMargin?: "tight" | "normal" | "loose";
   hatFix?: boolean;
   noLipSync?: boolean;
+  keepSourceOutfit?: boolean;
   motionSize?: 512 | 768 | 1376;
   mannequinVideoUrl?: string;
   checkMaskVideoUrl?: string;
@@ -341,6 +343,7 @@ export function toPublicJutsuJob(
     maskMargin: doc.maskMargin,
     hatFix: doc.hatFix,
     noLipSync: doc.noLipSync,
+    ...(doc.keepSourceOutfit !== undefined ? { keepSourceOutfit: doc.keepSourceOutfit } : {}),
     motionSize: doc.motionSize,
     mannequinVideoUrl: doc.mannequinVideoUrl,
     checkMaskVideoUrl: doc.checkMaskVideoUrl,

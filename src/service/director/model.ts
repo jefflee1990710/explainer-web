@@ -29,7 +29,10 @@ export function directorModel() {
   return client(modelId);
 }
 
-export function storyboardModelForSkill(_skillSlug?: string): string {
+export function storyboardModelForSkill(skillSlug?: string): string {
+  if (skillSlug === "story-short-director" || skillSlug === "one-take-director") {
+    return ARGON_MODEL;
+  }
   return STORYBOARD_MODEL;
 }
 

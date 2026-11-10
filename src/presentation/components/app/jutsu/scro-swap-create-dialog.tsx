@@ -152,6 +152,7 @@ export function ScroSwapCreateDialog({
   const [maskMargin, setMaskMargin] = useState<"tight" | "normal" | "loose">("normal");
   const [hatFix, setHatFix] = useState(false);
   const [noLipSync, setNoLipSync] = useState(false);
+  const [keepSourceOutfit, setKeepSourceOutfit] = useState(false);
   const [motionSize, setMotionSize] = useState<512 | 768 | 1376>(512);
   const [applyColorFixOnRender, setApplyColorFixOnRender] = useState(true);
   const [keepSourceAudio, setKeepSourceAudio] = useState(true);
@@ -476,6 +477,7 @@ export function ScroSwapCreateDialog({
         maskMargin,
         hatFix,
         noLipSync,
+        keepSourceOutfit,
         motionSize,
         keepSourceAudio,
         applyColorFix: applyColorFixOnRender,
@@ -1051,6 +1053,21 @@ export function ScroSwapCreateDialog({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={keepSourceOutfit}
+                      disabled={submitting}
+                      onChange={(e) => setKeepSourceOutfit(e.target.checked)}
+                      className="h-4 w-4 rounded accent-accent-ink"
+                    />
+                    <span>
+                      {isEn
+                        ? "Keep source outfit (head swap only)"
+                        : "保留原片穿搭（只換人樣與髮型）"}
+                    </span>
+                  </label>
+
                   <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
                     <input
                       type="checkbox"
