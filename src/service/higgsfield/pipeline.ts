@@ -62,6 +62,7 @@ import {
   clipVideoModel,
   clipKeyframeUrls,
   planFrameSubmissions,
+  usesHeyGenAvatarIvForSkill,
   videoKeyframeUrls,
 } from "@/service/higgsfield/clip-keyframes";
 import {
@@ -726,12 +727,8 @@ export async function sendClipVideo(
       isTalkingBrollSkill(skill.slug) ||
       Boolean(skill.behavior && skill.behavior.speechMode === "lip-sync" && !skill.behavior.audioFirstLipSync)) &&
     /b[-_ ]?roll/i.test(clipRow?.narrativeJob || "");
-  const audioFirstTalkingHead =
-    skill.slug === TALKING_HEAD_SKILL_SLUG ||
-    isDialogueQaSkill(skill.slug) ||
-    Boolean(skill.behavior?.audioFirstLipSync && !editorialInterviewBroll) ||
-    ((isEditorialInterviewSkill(skill.slug) || isTalkingBrollSkill(skill.slug)) &&
-      !editorialInterviewBroll);
+  // HeyGen Avatar IV is a single-speaker head-puppet model and is ONLY used for talking-head-director.
+  const audioFirstTalkingHead = usesHeyGenAvatarIvForSkill(skill.slug);
   const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
@@ -938,6 +935,7 @@ export async function sendClipVideo(
     sceneImageUrl: clipRefs.sceneImageUrl,
     styleId: clipStyleId,
     style,
+    videoQualityTier: project.videoQualityTier,
   });
   return toSent(targetModel, submitted);
 }

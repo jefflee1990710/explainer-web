@@ -13,6 +13,7 @@ import {
   resolveH3ExtendDimensions,
 } from "@/service/comfy/openjutsu-graph";
 import {
+  buildComfyRef2VaLatentGuideGraph,
   shouldUseComfyForClipVideo,
   submitComfyStoryboardClipVideo,
 } from "@/service/comfy/submit-clip-video";
@@ -929,4 +930,68 @@ test("buildObjectGraph supports add mode with H3ObjectPlacementMask, buildAdvanc
   const cropsNode = Object.values(monGraph).find((n) => n._meta?.title === "Show each track per shot");
   assert.ok(cropsNode);
   assert.equal(cropsNode.inputs.people, "<Subject 1>: dancer - white top\n<Subject 2>: skater - blue hoodie");
+});
+
+test("shouldUseComfyForClipVideo enables ComfyUI when videoQualityTier is economy, and buildComfyRef2VaLatentGuideGraph chains MiniMaxH3AddGuide at frame_idx 0 and -1", () => {
+  const prevUrl = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
+  try {
+    process.env.COMFY_BASE_URL = "http://127.0.0.1:8189";
+    process.env.COMFY_API_KEY = "test_key";
+    delete process.env.COMFY_CLIP_VIDEO_ENABLED;
+
+    assert.equal(
+      shouldUseComfyForClipVideo({
+        model: "minimax/hailuo-3",
+        skillSlug: "story-short-director",
+        videoQualityTier: "economy",
+      }),
+      true,
+    );
+    assert.equal(
+      shouldUseComfyForClipVideo({
+        model: "heygen/avatar-iv",
+        skillSlug: "talking-head-director",
+        videoQualityTier: "economy",
+      }),
+      false,
+    );
+
+    const startOnlyGraph = buildComfyRef2VaLatentGuideGraph({
+      runId: "r1",
+      aspectRatio: "16:9",
+      durationSeconds: 6,
+      prompt: "Walk forward",
+      startName: "start.jpg",
+      charName: "char.jpg",
+      sceneName: "scene.jpg",
+    });
+    assert.equal(startOnlyGraph["72"]?.class_type, "MiniMaxH3AddGuide");
+    assert.equal(startOnlyGraph["72"]?.inputs.frame_idx, 0);
+    assert.equal(startOnlyGraph["73"], undefined);
+    assert.deepEqual(startOnlyGraph["57"]?.inputs.conditioning, ["72", 0]);
+
+    const dualFrameGraph = buildComfyRef2VaLatentGuideGraph({
+      runId: "r2",
+      aspectRatio: "16:9",
+      durationSeconds: 6,
+      prompt: "Walk forward",
+      startName: "start.jpg",
+      endName: "end.jpg",
+      charName: "char.jpg",
+    });
+    assert.equal(dualFrameGraph["72"]?.class_type, "MiniMaxH3AddGuide");
+    assert.equal(dualFrameGraph["72"]?.inputs.frame_idx, 0);
+    assert.equal(dualFrameGraph["73"]?.class_type, "MiniMaxH3AddGuide");
+    assert.equal(dualFrameGraph["73"]?.inputs.frame_idx, -1);
+    assert.deepEqual(dualFrameGraph["57"]?.inputs.conditioning, ["73", 0]);
+  } finally {
+    if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevUrl;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+    if (prevFlag === undefined) delete process.env.COMFY_CLIP_VIDEO_ENABLED;
+    else process.env.COMFY_CLIP_VIDEO_ENABLED = prevFlag;
+  }
 });
