@@ -58,6 +58,7 @@ export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
   skillSlug?: string;
   styleId?: string;
+  videoQualityTier?: Project["videoQualityTier"];
   phaseA?: {
     characterLock?: string;
     clips: Array<
@@ -182,6 +183,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
             clipProj.styleId,
             Boolean(resolveVoiceSwapId(clipProj)),
             clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
+            clipProj.videoQualityTier,
           ),
     frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.

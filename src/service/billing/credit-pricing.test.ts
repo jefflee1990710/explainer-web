@@ -86,6 +86,12 @@ test("scroSwapCost and teleportCost charge 4 credits for static image swap and 4
   assert.equal(teleportCost({ durationSeconds: 10 }), 154);
 });
 
+test("economy videoQualityTier bills 4 credits per second with no voice surcharge while 2k_cinema keeps 15 credits/s", () => {
+  assert.equal(videoCost(6, "realistic", true, 15, "economy"), 24);
+  assert.equal(videoCost(6, "doodle", true, 15, "economy"), 24);
+  assert.equal(videoCost(6, "realistic", false, 15, "2k_cinema"), 90);
+});
+
 test("a new account can draw a 10-clip board and one realistic preview, but not a second clip", () => {
   assert.equal(WELCOME_CREDITS, 145);
   assert.equal(WELCOME_CREDITS >= 10 * FRAME_COST + videoCost(7, "realistic"), true);

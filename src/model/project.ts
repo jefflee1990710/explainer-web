@@ -16,6 +16,12 @@ export type CoverSafeArea = (typeof COVER_SAFE_AREA_IDS)[number];
 export const DURATION_PRESET_IDS = ["auto", "micro", "short", "punchy", "full"] as const;
 export type DurationPreset = (typeof DURATION_PRESET_IDS)[number];
 export type LoopMode = "linear" | "infinite";
+export const VIDEO_QUALITY_TIERS = ["economy", "2k_cinema"] as const;
+export type VideoQualityTier = (typeof VIDEO_QUALITY_TIERS)[number];
+
+export function isVideoQualityTier(value: unknown): value is VideoQualityTier {
+  return value === "economy" || value === "2k_cinema";
+}
 // Voiceover language supported across video creation and character demo voices.
 export const VO_LANGUAGE_IDS = [
   "en",
@@ -194,6 +200,7 @@ export type ClipDirectorOverrides = {
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
   logoUrl?: string;
+  videoQualityTier?: VideoQualityTier;
 };
 
 export type ClipAppendMode = "single_clip" | "full_video";
@@ -234,6 +241,7 @@ export type StoryboardRow = {
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
   logoUrl?: string;
+  videoQualityTier?: VideoQualityTier;
   // Director's choice: attach this clip's start still when drawing the end.
   // Absent on older videos and after a user edits the camera text.
   endUsesStartStill?: boolean;
@@ -326,6 +334,7 @@ export type PhaseAProposal = {
   narrator: string;
   englishWordCount: number;
   characterLock: string;
+  spatialBlocking?: string;
   palette: string;
   bgmDirection: string;
   narrativeArc: string;
@@ -440,6 +449,7 @@ export type Project = {
   spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
+  videoQualityTier?: VideoQualityTier;
   // Visual style. Missing or empty resolves to doodle; a user ObjectId names that user's style.
   styleId?: string;
   // Ordered visual styles when a multi-style director is selected (up to maxStyleCount).

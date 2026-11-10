@@ -29,6 +29,7 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
     clipProj.styleId,
     Boolean(resolveVoiceSwapId(clipProj)),
     clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
+    clipProj.videoQualityTier,
   );
 }
 

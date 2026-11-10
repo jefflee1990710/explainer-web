@@ -56,6 +56,7 @@ export type ClipContextSource = {
   talkingHeadBackgroundId?: string;
   talkingHeadPoseId?: string;
   logoUrl?: string;
+  videoQualityTier?: Project["videoQualityTier"];
   phaseA?: {
     characterLock?: string;
     clips: Array<Partial<StoryboardRow> & { clipNumber: number }>;
@@ -100,6 +101,9 @@ export function attachClipOverrides(
       ? { talkingHeadPoseId: overrides.talkingHeadPoseId }
       : {}),
     ...(overrides.logoUrl !== undefined ? { logoUrl: overrides.logoUrl } : {}),
+    ...(overrides.videoQualityTier !== undefined
+      ? { videoQualityTier: overrides.videoQualityTier }
+      : {}),
   };
 }
 
@@ -121,7 +125,8 @@ function hasAnyClipOverride(row: Partial<StoryboardRow> | undefined): boolean {
     row.backgroundImageUrls !== undefined ||
     row.talkingHeadBackgroundId !== undefined ||
     row.talkingHeadPoseId !== undefined ||
-    row.logoUrl !== undefined
+    row.logoUrl !== undefined ||
+    row.videoQualityTier !== undefined
   );
 }
 
@@ -178,6 +183,7 @@ export function resolveClipProject<T extends ClipContextSource>(
       : {}),
     ...(row?.talkingHeadPoseId !== undefined ? { talkingHeadPoseId: row.talkingHeadPoseId } : {}),
     ...(row?.logoUrl !== undefined ? { logoUrl: row.logoUrl } : {}),
+    ...(row?.videoQualityTier !== undefined ? { videoQualityTier: row.videoQualityTier } : {}),
     ...(base.phaseA && nextCharacterLock !== base.phaseA.characterLock
       ? {
           phaseA: {
