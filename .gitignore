@@ -52,5 +52,4 @@ next-env.d.ts
 
 # local marketing video renders and demo assets
 /Marketing/
-/public/hero/tools/
 
