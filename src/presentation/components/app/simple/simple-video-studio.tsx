@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { AspectRatio, VideoQualityTier } from "@/model/project";
 import { createSimpleVideoAction } from "@/presentation/actions/projects";
+import { uploadSimpleMediaAction } from "@/presentation/actions/simple-media";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import {
   buildCastSlotItems,
@@ -115,8 +116,10 @@ export function SimpleVideoStudio({
   const [firstFrameUrl, setFirstFrameUrl] = useState<string>("");
   const [lastFrameUrl, setLastFrameUrl] = useState<string>("");
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
+  const [refVideoUrl, setRefVideoUrl] = useState<string>("");
+  const [refAudioUrl, setRefAudioUrl] = useState<string>("");
   const [uploadingSlot, setUploadingSlot] = useState<
-    "first" | "last" | "ref" | null
+    "first" | "last" | "ref" | "video" | "audio" | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -128,6 +131,8 @@ export function SimpleVideoStudio({
   const firstFrameInputRef = useRef<HTMLInputElement>(null);
   const lastFrameInputRef = useRef<HTMLInputElement>(null);
   const refImageInputRef = useRef<HTMLInputElement>(null);
+  const refVideoInputRef = useRef<HTMLInputElement>(null);
+  const refAudioInputRef = useRef<HTMLInputElement>(null);
 
   const activeStyle = useMemo(
     () => styles.find((s) => s.id === styleId) ?? styles[0] ?? null,
@@ -183,6 +188,78 @@ export function SimpleVideoStudio({
     }
   }
 
+  async function handleUploadMedia(
+    e: ChangeEvent<HTMLInputElement>,
+    slot: "video" | "audio",
+  ) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const MAX_SIZE = 50 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setError(
+        isEn
+          ? "File size cannot exceed 50MB"
+          : "檔案大小不可超過 50MB",
+      );
+      return;
+    }
+
+    if (slot === "video") {
+      try {
+        const duration = await new Promise<number>((resolve, reject) => {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          const url = URL.createObjectURL(file);
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(url);
+            resolve(video.duration);
+          };
+          video.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("Failed to load video metadata"));
+          };
+          video.src = url;
+        });
+
+        if (duration > 15) {
+          setError(
+            isEn
+              ? "Video duration cannot exceed 15 seconds"
+              : "參考影片長度不可超過 15 秒",
+          );
+          return;
+        }
+      } catch {
+        setError(
+          isEn
+            ? "Unable to read video file metadata"
+            : "無法讀取影片檔案資訊",
+        );
+        return;
+      }
+    }
+
+    setUploadingSlot(slot);
+    setError("");
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const res = await uploadSimpleMediaAction(form);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      if (slot === "video") setRefVideoUrl(res.url);
+      else setRefAudioUrl(res.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingSlot(null);
+    }
+  }
+
   async function handleSubmit() {
     if (!prompt.trim() || submitting) return;
     setSubmitting(true);
@@ -199,6 +276,8 @@ export function SimpleVideoStudio({
         ...(lastFrameUrl ? { lastFrameUrl } : {}),
         ...(characterId ? { characterId } : {}),
         ...(referenceImageUrls.length > 0 ? { referenceImageUrls } : {}),
+        ...(refVideoUrl ? { refVideoUrl } : {}),
+        ...(refAudioUrl ? { refAudioUrl } : {}),
       });
       if (!res.ok) {
         setError(res.error);
@@ -239,6 +318,22 @@ export function SimpleVideoStudio({
         className="hidden"
         disabled={submitting || uploadingSlot !== null}
         onChange={(e) => void handleUploadImage(e, "ref")}
+      />
+      <input
+        ref={refVideoInputRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+        className="hidden"
+        disabled={submitting || uploadingSlot !== null}
+        onChange={(e) => void handleUploadMedia(e, "video")}
+      />
+      <input
+        ref={refAudioInputRef}
+        type="file"
+        accept="audio/mpeg,audio/mp3,audio/wav,audio/x-m4a,audio/m4a,.mp3,.wav,.m4a"
+        className="hidden"
+        disabled={submitting || uploadingSlot !== null}
+        onChange={(e) => void handleUploadMedia(e, "audio")}
       />
 
       <DirectorDockStage>
@@ -377,6 +472,84 @@ export function SimpleVideoStudio({
             disabled={submitting || uploadingSlot !== null}
             onClick={() => refImageInputRef.current?.click()}
           />
+
+          <DirectorDockDivider />
+
+          {/* Cell 4: Ref Video */}
+          <DirectorDockStepperCell
+            icon={
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m22 8-6 4 6 4V8Z" />
+                <rect x="2" y="6" width="14" height="12" rx="2" />
+              </svg>
+            }
+            label={isEn ? "Ref Video" : "參考影片"}
+            value={
+              uploadingSlot === "video"
+                ? isEn
+                  ? "Uploading..."
+                  : "上傳中..."
+                : refVideoUrl
+                  ? isEn
+                    ? "Attached (Click to change)"
+                    : "已附加（點擊更換）"
+                  : isEn
+                    ? "Optional (Upload Motion Ref)"
+                    : "選填（點擊上傳動態參考片）"
+            }
+            disabled={submitting || uploadingSlot !== null}
+            onClick={() => refVideoInputRef.current?.click()}
+          />
+
+          <DirectorDockDivider />
+
+          {/* Cell 5: Ref Audio */}
+          <DirectorDockStepperCell
+            icon={
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M2 10v4" />
+                <path d="M6 6v12" />
+                <path d="M10 3v18" />
+                <path d="M14 8v8" />
+                <path d="M18 5v14" />
+                <path d="M22 10v4" />
+              </svg>
+            }
+            label={isEn ? "Ref Audio" : "參考音訊"}
+            value={
+              uploadingSlot === "audio"
+                ? isEn
+                  ? "Uploading..."
+                  : "上傳中..."
+                : refAudioUrl
+                  ? isEn
+                    ? "Attached (Click to change)"
+                    : "已附加（點擊更換）"
+                  : isEn
+                    ? "Optional (Upload Audio)"
+                    : "選填（點擊上傳參考音訊）"
+            }
+            disabled={submitting || uploadingSlot !== null}
+            onClick={() => refAudioInputRef.current?.click()}
+          />
         </DirectorDockPanel>
 
         {/* Main Composer Box matching other generation studios */}
@@ -393,7 +566,11 @@ export function SimpleVideoStudio({
               : "請先描述鏡頭焦距、角度與運鏡方向（例如：24mm 低角度鏡頭指向主角，主角向鏡頭方向走來...），並於上方導演面板設定角色、風格與首尾幀..."
           }
           topMediaSlot={
-            firstFrameUrl || lastFrameUrl || referenceImageUrls.length > 0 ? (
+            firstFrameUrl ||
+            lastFrameUrl ||
+            referenceImageUrls.length > 0 ||
+            refVideoUrl ||
+            refAudioUrl ? (
               <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-zinc-200 bg-[#f4f4f5] p-2.5 text-xs">
                 {firstFrameUrl ? (
                   <div className="flex items-center gap-2 rounded-2xl bg-white px-2.5 py-1.5">
@@ -462,6 +639,68 @@ export function SimpleVideoStudio({
                     </button>
                   </div>
                 ))}
+                {refVideoUrl ? (
+                  <div className="flex items-center gap-2 rounded-2xl bg-white px-2.5 py-1.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m22 8-6 4 6 4V8Z" />
+                        <rect x="2" y="6" width="14" height="12" rx="2" />
+                      </svg>
+                    </span>
+                    <span className="font-bold text-[#12141c]">
+                      {isEn ? "Ref Video" : "參考影片"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRefVideoUrl("")}
+                      className="cursor-pointer px-1 text-zinc-500 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : null}
+                {refAudioUrl ? (
+                  <div className="flex items-center gap-2 rounded-2xl bg-white px-2.5 py-1.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2 10v4" />
+                        <path d="M6 6v12" />
+                        <path d="M10 3v18" />
+                        <path d="M14 8v8" />
+                        <path d="M18 5v14" />
+                        <path d="M22 10v4" />
+                      </svg>
+                    </span>
+                    <span className="font-bold text-[#12141c]">
+                      {isEn ? "Ref Audio" : "參考音訊"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRefAudioUrl("")}
+                      className="cursor-pointer px-1 text-zinc-500 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : undefined
           }
@@ -623,6 +862,68 @@ export function SimpleVideoStudio({
                 }
                 disabled={submitting || uploadingSlot !== null}
                 onClick={() => refImageInputRef.current?.click()}
+              />
+
+              <DirectorDockPill
+                icon={
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m22 8-6 4 6 4V8Z" />
+                    <rect x="2" y="6" width="14" height="12" rx="2" />
+                  </svg>
+                }
+                label={
+                  refVideoUrl
+                    ? isEn
+                      ? "Ref Video ✓"
+                      : "參考影片 ✓"
+                    : isEn
+                      ? "Ref Video"
+                      : "參考影片"
+                }
+                disabled={submitting || uploadingSlot !== null}
+                onClick={() => refVideoInputRef.current?.click()}
+              />
+
+              <DirectorDockPill
+                icon={
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M2 10v4" />
+                    <path d="M6 6v12" />
+                    <path d="M10 3v18" />
+                    <path d="M14 8v8" />
+                    <path d="M18 5v14" />
+                    <path d="M22 10v4" />
+                  </svg>
+                }
+                label={
+                  refAudioUrl
+                    ? isEn
+                      ? "Ref Audio ✓"
+                      : "參考音訊 ✓"
+                    : isEn
+                      ? "Ref Audio"
+                      : "參考音訊"
+                }
+                disabled={submitting || uploadingSlot !== null}
+                onClick={() => refAudioInputRef.current?.click()}
               />
             </>
           }
