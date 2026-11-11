@@ -42,12 +42,10 @@ test("buildComfyRef2VaLatentGuideGraph removes video and audio loader nodes when
   assert.equal(graph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], undefined);
 });
 
-test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head clips when ComfyUI is not configured", async () => {
-  const prevBase = process.env.COMFY_BASE_URL;
-  const prevKey = process.env.COMFY_API_KEY;
+test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head clips when Vast serverless is not configured", async () => {
+  const prevVast = process.env.VAST_API_KEY;
   try {
-    delete process.env.COMFY_BASE_URL;
-    delete process.env.COMFY_API_KEY;
+    delete process.env.VAST_API_KEY;
 
     await assert.rejects(
       () =>
@@ -59,13 +57,11 @@ test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head 
           skillSlug: "cartoon-explainer-video-director",
           styleId: "doodle",
         }),
-      /ComfyUI 尚未設定/,
+      /Vast serverless 尚未設定/,
     );
   } finally {
-    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
-    else process.env.COMFY_BASE_URL = prevBase;
-    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
-    else process.env.COMFY_API_KEY = prevKey;
+    if (prevVast === undefined) delete process.env.VAST_API_KEY;
+    else process.env.VAST_API_KEY = prevVast;
   }
 });
 
@@ -142,31 +138,42 @@ test("buildOneTakeChainShots returns 1 shot for <=10s and chains 192-frame (6.37
   assert.ok(fullMinute.every((s) => s.length === 192));
 });
 
-test("submitComfyStoryboardClipVideo sets Hard picture + smooth audio and multi-shot plan_json for one-take-director > 10s", async () => {
-  const prevBase = process.env.COMFY_BASE_URL;
-  const prevKey = process.env.COMFY_API_KEY;
-  process.env.COMFY_BASE_URL = "https://comfy.example.com";
-  process.env.COMFY_API_KEY = "secret-token";
-
-  let submittedGraph: Record<string, { inputs: Record<string, unknown> }> | undefined;
-
-  const fakeFetch: typeof fetch = async (input, init) => {
-    const url = typeof input === "string" ? input : input.toString();
-    if (url === "https://blob.example.com/start.jpg") {
-      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+function serverlessFetch(
+  onWorkflow: (graph: Record<string, { inputs: Record<string, unknown>; class_type?: string }>) => void,
+): typeof fetch {
+  return async (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    if (url === "https://run.vast.ai/route/") {
+      return Response.json({
+        url: "https://worker.example/h3",
+        endpoint: "scro-h3-comfy-serverless",
+        cost: 400,
+        reqnum: 7,
+        request_idx: 1,
+        signature: "signed",
+        __request_id: "route-1",
+      });
     }
-    if (url.endsWith("/upload/image")) {
-      return Response.json({ name: "uploaded-start.jpg" });
-    }
-    if (url.endsWith("/prompt")) {
+    if (url === "https://worker.example/h3/generate/sync") {
       const parsed = JSON.parse(String(init?.body)) as {
-        prompt: Record<string, { inputs: Record<string, unknown> }>;
+        payload: { input: { workflow_json: Record<string, { inputs: Record<string, unknown>; class_type?: string }> } };
       };
-      submittedGraph = parsed.prompt;
-      return Response.json({ prompt_id: "prompt-123" });
+      onWorkflow(parsed.payload.input.workflow_json);
+      return Response.json({
+        id: "prompt-123",
+        status: "completed",
+        output: [{ url: "https://cdn.example/clip.mp4", filename: "clip.mp4" }],
+      });
     }
     throw new Error(`unexpected URL ${url}`);
   };
+}
+
+test("submitComfyStoryboardClipVideo sets Hard picture + smooth audio and multi-shot plan_json for one-take-director > 10s", async () => {
+  const prevVast = process.env.VAST_API_KEY;
+  process.env.VAST_API_KEY = "vast-test";
+
+  let submittedGraph: Record<string, { inputs: Record<string, unknown> }> | undefined;
 
   try {
     const res = await submitComfyStoryboardClipVideo(
@@ -178,11 +185,16 @@ test("submitComfyStoryboardClipVideo sets Hard picture + smooth audio and multi-
         durationSeconds: 30,
         startImageUrl: "https://blob.example.com/start.jpg",
       },
-      { fetch: fakeFetch },
+      { fetch: serverlessFetch((graph) => {
+        submittedGraph = graph;
+      }) },
     );
     assert.equal(res.request_id, "prompt-123");
-    assert.equal(res.status_url, "comfy://prompt/prompt-123");
+    assert.equal(res.status, "completed");
+    assert.equal(res.video?.url, "https://cdn.example/clip.mp4");
+    assert.equal(res.status_url, "comfy://serverless/prompt-123");
     assert.ok(submittedGraph);
+    assert.equal(submittedGraph["2"]?.inputs.image, "https://blob.example.com/start.jpg");
     assert.equal(
       submittedGraph["25"]?.inputs.scene_continuity,
       "Hard picture + smooth audio",
@@ -194,49 +206,16 @@ test("submitComfyStoryboardClipVideo sets Hard picture + smooth audio and multi-
     assert.match(plan.shots[0]?.prompt ?? "", /starts sprinting downhill/);
     assert.match(plan.shots[4]?.prompt ?? "", /reaches valley floor/);
   } finally {
-    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
-    else process.env.COMFY_BASE_URL = prevBase;
-    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
-    else process.env.COMFY_API_KEY = prevKey;
+    if (prevVast === undefined) delete process.env.VAST_API_KEY;
+    else process.env.VAST_API_KEY = prevVast;
   }
 });
 
-test("submitComfyStoryboardClipVideo fetches, uploads, and wires reference video and audio when URLs provided", async () => {
-  const prevBase = process.env.COMFY_BASE_URL;
-  const prevKey = process.env.COMFY_API_KEY;
-  process.env.COMFY_BASE_URL = "https://comfy.example.com";
-  process.env.COMFY_API_KEY = "secret-token";
+test("submitComfyStoryboardClipVideo sends reference video and audio URLs to Vast serverless", async () => {
+  const prevVast = process.env.VAST_API_KEY;
+  process.env.VAST_API_KEY = "vast-test";
 
   let submittedGraph: Record<string, { inputs: Record<string, unknown>; class_type?: string }> | undefined;
-  const uploadedFiles: string[] = [];
-
-  const fakeFetch: typeof fetch = async (input, init) => {
-    const url = typeof input === "string" ? input : input.toString();
-    if (url === "https://blob.example.com/start.jpg") {
-      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
-    }
-    if (url === "https://blob.example.com/motion.mp4") {
-      return new Response(new Uint8Array([4, 5, 6]), { status: 200 });
-    }
-    if (url === "https://blob.example.com/speech.mp3") {
-      return new Response(new Uint8Array([7, 8, 9]), { status: 200 });
-    }
-    if (url.endsWith("/upload/image")) {
-      const formData = init?.body as FormData;
-      const file = formData.get("image") as File;
-      const name = file?.name || "unknown";
-      uploadedFiles.push(name);
-      return Response.json({ name });
-    }
-    if (url.endsWith("/prompt")) {
-      const parsed = JSON.parse(String(init?.body)) as {
-        prompt: Record<string, { inputs: Record<string, unknown>; class_type?: string }>;
-      };
-      submittedGraph = parsed.prompt;
-      return Response.json({ prompt_id: "prompt-456" });
-    }
-    throw new Error(`unexpected URL ${url}`);
-  };
 
   try {
     const res = await submitComfyStoryboardClipVideo(
@@ -248,30 +227,24 @@ test("submitComfyStoryboardClipVideo fetches, uploads, and wires reference video
         referenceVideoUrl: "https://blob.example.com/motion.mp4",
         referenceAudioUrl: "https://blob.example.com/speech.mp3",
       },
-      { fetch: fakeFetch },
+      {
+        fetch: serverlessFetch((graph) => {
+          submittedGraph = graph;
+        }),
+      },
     );
 
-    assert.equal(res.request_id, "prompt-456");
+    assert.equal(res.status, "completed");
     assert.ok(submittedGraph);
-
-    // Verify video loader and scaling node
+    assert.equal(submittedGraph["2"]?.inputs.image, "https://blob.example.com/start.jpg");
     assert.equal(submittedGraph["5"]?.class_type, "VHS_LoadVideo");
-    assert.match(String(submittedGraph["5"]?.inputs?.video), /clip-ref-video-.*\.mp4/);
+    assert.equal(submittedGraph["5"]?.inputs?.video, "https://blob.example.com/motion.mp4");
     assert.deepEqual(submittedGraph["30"]?.inputs?.["ref_videos.ref_video_0"], ["32", 0]);
-
-    // Verify audio loader node
     assert.equal(submittedGraph["74"]?.class_type, "VHS_LoadAudio");
-    assert.match(String(submittedGraph["74"]?.inputs?.audio), /clip-ref-audio-.*\.mp3/);
+    assert.equal(submittedGraph["74"]?.inputs?.audio, "https://blob.example.com/speech.mp3");
     assert.deepEqual(submittedGraph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], ["74", 0]);
-
-    // Verify uploaded files include start, video, audio
-    assert.ok(uploadedFiles.some((f) => f.includes("clip-start-")));
-    assert.ok(uploadedFiles.some((f) => f.includes("clip-ref-video-")));
-    assert.ok(uploadedFiles.some((f) => f.includes("clip-ref-audio-")));
   } finally {
-    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
-    else process.env.COMFY_BASE_URL = prevBase;
-    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
-    else process.env.COMFY_API_KEY = prevKey;
+    if (prevVast === undefined) delete process.env.VAST_API_KEY;
+    else process.env.VAST_API_KEY = prevVast;
   }
 });

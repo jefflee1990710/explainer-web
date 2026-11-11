@@ -756,10 +756,12 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
 test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head clips and submitComfyStoryboardClipVideo queues a ref2va graph", async () => {
   const prevUrl = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;
+  const prevVast = process.env.VAST_API_KEY;
   const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
   try {
     process.env.COMFY_BASE_URL = "https://comfy.example.com";
     process.env.COMFY_API_KEY = "secret";
+    process.env.VAST_API_KEY = "vast-test";
     delete process.env.COMFY_CLIP_VIDEO_ENABLED;
 
     assert.equal(
@@ -788,15 +790,25 @@ test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head 
     let queuedPrompt: Record<string, unknown> | undefined;
     const fakeFetch: typeof fetch = async (input, init) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-      if (url.startsWith("https://blob.test/")) {
-        return new Response(new Uint8Array([255, 216, 255]), { status: 200 });
+      if (url === "https://run.vast.ai/route/") {
+        return Response.json({
+          url: "https://worker.example/h3",
+          signature: "signed",
+          endpoint: "scro-h3-comfy-serverless",
+          cost: 400,
+        });
       }
-      if (url.endsWith("/upload/image")) {
-        return Response.json({ name: "frame.jpg" }, { status: 200 });
-      }
-      if (url.endsWith("/prompt")) {
-        queuedPrompt = (JSON.parse(String(init?.body ?? "{}")) as { prompt?: Record<string, unknown> }).prompt;
-        return Response.json({ prompt_id: "clip-comfy-1" }, { status: 200 });
+      if (url === "https://worker.example/h3/generate/sync") {
+        queuedPrompt = (
+          JSON.parse(String(init?.body ?? "{}")) as {
+            payload?: { input?: { workflow_json?: Record<string, unknown> } };
+          }
+        ).payload?.input?.workflow_json;
+        return Response.json({
+          id: "clip-comfy-1",
+          status: "completed",
+          output: [{ url: "https://cdn.example/clip.mp4" }],
+        });
       }
       throw new Error(`Unexpected fetch URL: ${url}`);
     };
@@ -812,13 +824,16 @@ test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head 
       { fetch: fakeFetch },
     );
     assert.equal(submitted.request_id, "clip-comfy-1");
-    assert.equal(submitted.status_url, "comfy://prompt/clip-comfy-1");
+    assert.equal(submitted.status_url, "comfy://serverless/clip-comfy-1");
+    assert.equal(submitted.video?.url, "https://cdn.example/clip.mp4");
     assert.ok(queuedPrompt);
   } finally {
     if (prevUrl === undefined) delete process.env.COMFY_BASE_URL;
     else process.env.COMFY_BASE_URL = prevUrl;
     if (prevKey === undefined) delete process.env.COMFY_API_KEY;
     else process.env.COMFY_API_KEY = prevKey;
+    if (prevVast === undefined) delete process.env.VAST_API_KEY;
+    else process.env.VAST_API_KEY = prevVast;
     if (prevFlag === undefined) delete process.env.COMFY_CLIP_VIDEO_ENABLED;
     else process.env.COMFY_CLIP_VIDEO_ENABLED = prevFlag;
   }

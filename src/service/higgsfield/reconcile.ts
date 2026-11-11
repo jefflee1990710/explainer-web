@@ -101,7 +101,7 @@ export function withFinishedOnScreenPaint(
   items: OnscreenTextItem[] | undefined,
 ): ProjectClip[] {
   return clips.map((clip) => {
-    if (clip.status === "in_progress" || clip.status === "pending") return clip;
+    if (clip.status === "in_progress" || clip.status === "queued") return clip;
     const current = mediaPath(mediaSrc(clip));
     if (!current) return clip;
     const paint = [...(items ?? [])]

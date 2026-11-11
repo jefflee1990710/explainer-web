@@ -12,6 +12,7 @@ import {
 } from "@/service/comfy/openjutsu-graph";
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
+import { submitVastServerlessWorkflow } from "@/service/comfy/vast-serverless";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
@@ -370,109 +371,31 @@ export async function submitComfyStoryboardClipVideo(
   },
   options?: { fetch?: typeof fetch },
 ): Promise<ComfySubmitResult> {
-  if (!hasComfyEndpoint()) {
-    throw new Error("ComfyUI 尚未設定");
+  // ref2va goes to Vast serverless. The GPU machine's COMFY_BASE_URL is not this path.
+  if (!process.env.VAST_API_KEY?.trim()) {
+    throw new Error("Vast serverless 尚未設定");
   }
   const fetchFn = options?.fetch ?? fetch;
   const runId = randomUUID().replace(/-/g, "").slice(0, 12);
-
-  const fetchBuf = async (url: string) => {
-    const r = await fetchFn(url);
-    if (!r.ok) throw new Error(`無法下載分鏡圖（HTTP ${r.status}）`);
-    return Buffer.from(await r.arrayBuffer());
+  const same = (url?: string, ...others: Array<string | undefined>) => {
+    const clean = url?.trim();
+    if (!clean || others.some((item) => item?.trim() === clean)) return null;
+    return clean;
   };
-
-  const resolveExt = (url: string | undefined, fallback: string) => {
-    if (!url) return fallback;
-    const clean = url.split("?")[0] || "";
-    const ext = clean.split(".").pop()?.toLowerCase();
-    return ext && /^[a-z0-9]{2,5}$/.test(ext) ? ext : fallback;
-  };
-
-  const [startBuf, endBuf, charBuf, sceneBuf, refVideoBuf, refAudioBuf] = await Promise.all([
-    fetchBuf(input.startImageUrl),
-    input.endImageUrl && input.endImageUrl !== input.startImageUrl
-      ? fetchBuf(input.endImageUrl)
-      : Promise.resolve(null),
-    input.characterImageUrl && input.characterImageUrl !== input.startImageUrl
-      ? fetchBuf(input.characterImageUrl).catch(() => null)
-      : Promise.resolve(null),
-    input.sceneImageUrl &&
-    input.sceneImageUrl !== input.startImageUrl &&
-    input.sceneImageUrl !== input.characterImageUrl
-      ? fetchBuf(input.sceneImageUrl).catch(() => null)
-      : Promise.resolve(null),
-    input.referenceVideoUrl
-      ? fetchBuf(input.referenceVideoUrl).catch((err) => {
-          throw new Error(`無法下載參考影片（${err instanceof Error ? err.message : String(err)}）`);
-        })
-      : Promise.resolve(null),
-    input.referenceAudioUrl
-      ? fetchBuf(input.referenceAudioUrl).catch((err) => {
-          throw new Error(`無法下載參考音訊（${err instanceof Error ? err.message : String(err)}）`);
-        })
-      : Promise.resolve(null),
-  ]);
-
-  const [startName, endName, charName, sceneName, videoName, audioName] = await Promise.all([
-    uploadComfyAsset(`clip-start-${runId}.jpg`, startBuf, fetchFn, "image/jpeg"),
-    endBuf ? uploadComfyAsset(`clip-end-${runId}.jpg`, endBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
-    charBuf ? uploadComfyAsset(`clip-char-${runId}.jpg`, charBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
-    sceneBuf ? uploadComfyAsset(`clip-scene-${runId}.jpg`, sceneBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
-    refVideoBuf
-      ? uploadComfyAsset(
-          `clip-ref-video-${runId}.${resolveExt(input.referenceVideoUrl, "mp4")}`,
-          refVideoBuf,
-          fetchFn,
-          "video/mp4",
-        )
-      : Promise.resolve(null),
-    refAudioBuf
-      ? uploadComfyAsset(
-          `clip-ref-audio-${runId}.${resolveExt(input.referenceAudioUrl, "mp3")}`,
-          refAudioBuf,
-          fetchFn,
-          "audio/mpeg",
-        )
-      : Promise.resolve(null),
-  ]);
-
   const graph = buildComfyRef2VaLatentGuideGraph({
     runId,
     aspectRatio: input.aspectRatio,
     durationSeconds: input.durationSeconds,
     prompt: input.prompt,
-    startName,
-    endName,
-    charName,
-    sceneName,
-    videoName,
-    audioName,
+    startName: input.startImageUrl,
+    endName: same(input.endImageUrl, input.startImageUrl),
+    charName: same(input.characterImageUrl, input.startImageUrl),
+    sceneName: same(input.sceneImageUrl, input.startImageUrl, input.characterImageUrl),
+    videoName: input.referenceVideoUrl?.trim() || null,
+    audioName: input.referenceAudioUrl?.trim() || null,
     skillSlug: input.skillSlug,
   });
-
-  const key = process.env.COMFY_API_KEY?.trim();
-  const base = comfyBaseUrl();
-  const res = await fetchFn(`${base}/prompt`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ prompt: graph }),
-  });
-  const body = (await res.json().catch(() => ({}))) as {
-    prompt_id?: string;
-    error?: { message?: string };
-  };
-  if (!res.ok || !body.prompt_id) {
-    throw new Error(body.error?.message || `ComfyUI 分鏡影片提交失敗（HTTP ${res.status}）`);
-  }
-  return {
-    request_id: body.prompt_id,
-    status_url: `comfy://prompt/${body.prompt_id}`,
-    status: "processing",
-  };
+  return submitVastServerlessWorkflow(graph, fetchFn);
 }
 
 export function buildComfyMaskedTextInpaintGraph(input: {
