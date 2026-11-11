@@ -19,7 +19,7 @@ export function DirectorDockStage({
 }) {
   return (
     <div
-      className={`director-dock-stage relative flex min-h-full w-full flex-1 flex-col overflow-x-hidden overflow-y-auto bg-[#fafafa] text-[#12141c] selection:bg-[#c6f24b] selection:text-[#12141c] ${className}`}
+      className={`director-dock-stage relative flex h-full min-h-0 min-h-full w-full flex-1 flex-col overflow-x-hidden overflow-y-auto bg-[#fafafa] text-[#12141c] selection:bg-[#c6f24b] selection:text-[#12141c] ${className}`}
       style={{
         backgroundImage:
           "radial-gradient(ellipse 75% 45% at 50% 15%, rgba(198, 242, 75, 0.14), transparent 70%)",

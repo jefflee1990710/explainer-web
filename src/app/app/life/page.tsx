@@ -16,13 +16,11 @@ export default async function LifePage({
   ]);
 
   return (
-    <div>
-      <LifeDesk
-        characters={page.characters}
-        shots={page.shots}
-        initialCharacterId={query.character}
-        subscribed={isSubscriptionActive(sub)}
-      />
-    </div>
+    <LifeDesk
+      characters={page.characters}
+      shots={page.shots}
+      initialCharacterId={query.character}
+      subscribed={isSubscriptionActive(sub)}
+    />
   );
 }
