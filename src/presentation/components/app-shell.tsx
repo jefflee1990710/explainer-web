@@ -53,7 +53,14 @@ export function AppShell({
       icon: "home",
       section: "home",
     },
-    // 1. CREATE VIDEO (Talking, Explainer, Story, Simple)
+    // 1. CREATE VIDEO (Simple, Talking, Explainer, Story)
+    {
+      href: "/app/simple",
+      label: locale === "zh-Hant" ? "極簡" : locale === "zh-Hans" ? "极简" : "Simple",
+      icon: "projects",
+      imageUrl: "/nav-tools/story.png",
+      section: "create",
+    },
     {
       href: "/app/talking-heads",
       label: locale === "zh-Hant" ? "口播" : locale === "zh-Hans" ? "口播" : "Talking",
@@ -72,13 +79,6 @@ export function AppShell({
       href: "/app/stories",
       label: locale === "zh-Hant" ? "故事" : locale === "zh-Hans" ? "故事" : "Story",
       icon: "directors",
-      imageUrl: "/nav-tools/story.png",
-      section: "create",
-    },
-    {
-      href: "/app/simple",
-      label: locale === "zh-Hant" ? "極簡" : locale === "zh-Hans" ? "极简" : "Simple",
-      icon: "projects",
       imageUrl: "/nav-tools/story.png",
       section: "create",
     },
