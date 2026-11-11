@@ -144,6 +144,8 @@ type BriefFields = {
   subtitleLook: SubtitleLook;
   textStyleId: string;
   textStyleImageUrl?: string;
+  onScreenTextStyleId?: string;
+  onScreenTextCoverage?: "hook" | "all";
   characterIds: string[];
   characterSelections: CharacterSelectionMap;
   productIds: string[];
@@ -229,6 +231,11 @@ async function readVideoBrief(
   const voiceGender = String(formData.get("voiceGender") || "male");
   const speechPace = String(formData.get("speechPace") || "medium");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
+  const onScreenTextStyleIdRaw = formData.get("onScreenTextStyleId");
+  const onScreenTextStyleId = onScreenTextStyleIdRaw ? String(onScreenTextStyleIdRaw).trim() : undefined;
+  const onScreenTextCoverageRaw = formData.get("onScreenTextCoverage");
+  const onScreenTextCoverage =
+    onScreenTextCoverageRaw === "all" ? "all" : onScreenTextCoverageRaw === "hook" ? "hook" : undefined;
   const textStyleRaw = String(formData.get("textStyleId") || formData.get("subtitleLook") || "");
   const characterIds = isPapercraftDioramaSkill(ruleSlug)
     ? []
@@ -380,6 +387,8 @@ async function readVideoBrief(
       subtitleLook: textStyle.subtitleLook,
       textStyleId: textStyle.textStyleId,
       ...(textStyle.textStyleImageUrl ? { textStyleImageUrl: textStyle.textStyleImageUrl } : {}),
+      ...(onScreenTextStyleId ? { onScreenTextStyleId } : {}),
+      ...(onScreenTextCoverage ? { onScreenTextCoverage } : {}),
       characterIds,
       characterSelections: parseCharacterSelections(
         String(formData.get("characterSelections") || ""),
@@ -784,6 +793,8 @@ export async function createVideoAction(
       subtitleLook: brief.subtitleLook,
       textStyleId: brief.textStyleId,
       ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
+      ...(brief.onScreenTextStyleId ? { onScreenTextStyleId: brief.onScreenTextStyleId } : {}),
+      ...(brief.onScreenTextCoverage ? { onScreenTextCoverage: brief.onScreenTextCoverage } : {}),
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       ...(brief.clipDrafts.length ? { clipDrafts: brief.clipDrafts } : {}),
@@ -977,6 +988,8 @@ async function rewriteVideoBrief(
           subtitleLook: brief.subtitleLook,
           textStyleId: brief.textStyleId,
           ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
+          ...(brief.onScreenTextStyleId ? { onScreenTextStyleId: brief.onScreenTextStyleId } : {}),
+          ...(brief.onScreenTextCoverage ? { onScreenTextCoverage: brief.onScreenTextCoverage } : {}),
           cast: castResult.cast,
           products: productResult.products,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),

@@ -1379,6 +1379,13 @@ export async function applyJobStatus(input: {
     await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
     // Talking-head later starts lock to Clip 1's start.
     if (job.clipIndex === 0) await submitStartsAwaitingFirstStart(projectId);
+    // Explainer auto on-screen text triggers in background once start frame(s) are ready
+    if (job.clipIndex === 0 || project?.onScreenTextCoverage === "all") {
+      const { triggerExplainerAutoOnScreenText } = await import("@/service/director/auto-onscreen-text");
+      triggerExplainerAutoOnScreenText(projectId).catch((err) => {
+        console.error("[auto-onscreen-text] trigger failed", { projectId, err });
+      });
+    }
   }
 
   // Previous end landed, so the next clip's start can use it as the place reference.
