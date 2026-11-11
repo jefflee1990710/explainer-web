@@ -257,6 +257,9 @@ export type StoryboardRow = {
   // Optional user-uploaded or re-recorded VO audio URL for this clip (bypasses ElevenLabs TTS).
   uploadedVoUrl?: string;
   uploadedVoDurationSeconds?: number;
+  // Simple Video: optional motion reference video URL and speech/soundscape audio URL.
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
 };
 
 // Prop tiles for the video-wide white-background object sheet.
@@ -373,7 +376,12 @@ export type ProjectClip = {
   // Pre-generated ElevenLabs TTS audio URL and speech onset used to time the video prompt.
   voUrl?: string;
   voOnsetSeconds?: number;
+  // Simple Video: optional motion reference video URL and speech/soundscape audio URL.
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
 };
+
+export type VideoClip = ProjectClip;
 
 // One talking-head subtitle plate. Burned onto the start and end stills before video.
 // Clips filmed from clean stills still burn this plate at export.
@@ -504,6 +512,9 @@ export type Project = {
   // Talking-head direct VO audio upload / recording (bypasses TTS and drives HeyGen Avatar IV directly).
   uploadedVoUrl?: string;
   uploadedVoDurationSeconds?: number;
+  // Simple Video: optional motion reference video URL and speech/soundscape audio URL.
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   // Real products. They are never restyled into the video's look.
@@ -674,6 +685,8 @@ const storyboardRowSchema = z.object({
   subtitleCues: z.array(z.string()).optional(),
   uploadedVoUrl: z.string().optional(),
   uploadedVoDurationSeconds: z.number().optional(),
+  referenceVideoUrl: z.string().optional(),
+  referenceAudioUrl: z.string().optional(),
 });
 
 const objectSheetItemSchema = z.object({
@@ -775,6 +788,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
   startImageUrl: z.string().optional(),
   uploadedVoUrl: z.string().optional(),
   uploadedVoDurationSeconds: z.number().optional(),
+  referenceVideoUrl: z.string().optional(),
+  referenceAudioUrl: z.string().optional(),
   cast: z.array(castMemberSchema).optional(),
   products: z.array(productShotSchema).optional(),
   status: z.enum([
@@ -849,6 +864,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
       mergedKeyframes: z.boolean().optional(),
       voUrl: z.string().optional(),
       voOnsetSeconds: z.number().optional(),
+      referenceVideoUrl: z.string().optional(),
+      referenceAudioUrl: z.string().optional(),
     }),
   ),
   reelUrl: z.string().optional(),
