@@ -622,8 +622,9 @@ export function PostHistoryDialog({
                   <div>
                     <button
                       type="button"
+                      disabled={post.status === "rendering"}
                       onClick={() => openPostInSam(post)}
-                      className="relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl bg-zinc-900"
+                      className="relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl bg-zinc-900 disabled:cursor-wait"
                     >
                       {post.currentImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -665,10 +666,17 @@ export function PostHistoryDialog({
                   <div className="mt-3 flex items-center justify-between gap-2 border-t border-accent-ink/10 pt-2">
                     <button
                       type="button"
+                      disabled={post.status === "rendering"}
                       onClick={() => openPostInSam(post)}
-                      className="cursor-pointer rounded-2xl bg-accent-ink px-3 py-1 text-xs font-bold text-[#c6f24b]"
+                      className="cursor-pointer rounded-2xl bg-accent-ink px-3 py-1 text-xs font-bold text-[#c6f24b] disabled:cursor-wait disabled:opacity-60"
                     >
-                      {isEn ? "Edit Poster" : "編輯海報"}
+                      {post.status === "rendering"
+                        ? isEn
+                          ? "Generating…"
+                          : "生成中…"
+                        : isEn
+                          ? "Edit Poster"
+                          : "編輯海報"}
                     </button>
                     <div className="flex items-center gap-1.5">
                       {post.currentImageUrl ? (

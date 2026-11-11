@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import sharp from "sharp";
 import { charactersCollection, postsCollection, productsCollection } from "@/dao";
 import type { Character } from "@/model/character";
@@ -363,59 +364,46 @@ export async function createPostJob(
 
     spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
 
-    let finalPrompt = basePrompt;
-    if (referenceUrls.length > 0) {
-      const refBuffers = (
-        await Promise.all(referenceUrls.map((u) => downloadBuffer(u)))
-      ).filter((b): b is Buffer => Boolean(b));
-      if (refBuffers.length > 0) {
-        finalPrompt = await upsampleJutsuFramePrompt({
-          baseRequest: basePrompt,
-          imageBuffers: refBuffers,
-        });
-      }
-    }
-
-    const webpBuf = await generateSeedreamPostBuffer({
-      prompt: finalPrompt,
-      aspectRatio,
-      referenceImageUrls: referenceUrls,
-    });
-
-    const [imageUrl, detectedElements] = await Promise.all([
-      persistBuffer(webpBuf, `${prefix}/rev-1-${Date.now()}.webp`, "image/webp"),
-      segmentPostBuffer(webpBuf),
-    ]);
-
     const now = new Date();
-    const rev1: PostRevision = {
-      revisionId: "rev-1",
-      imageUrl,
-      prompt: promptText,
-      editSummary: "初始生成",
-      detectedElements,
-      createdAt: now.toISOString(),
-    };
-
     const doc: Post = {
       _id: postId,
       userId: user._id,
       clerkUserId: user.clerkUserId,
-      status: "completed",
+      status: "rendering",
       prompt: promptText,
       aspectRatio,
       ...(styleId ? { styleId } : {}),
       ...(cast.length > 0 ? { cast } : {}),
       ...(products.length > 0 ? { products } : {}),
       ...(referenceImageUrl ? { referenceImageUrl } : {}),
-      currentImageUrl: imageUrl,
-      detectedElements,
-      revisions: [rev1],
+      currentImageUrl: "",
+      detectedElements: [],
+      revisions: [],
       createdAt: now,
       updatedAt: now,
     };
 
     await posts.insertOne(doc);
+
+    const bgInput = {
+      postId,
+      clerkUserId: user.clerkUserId,
+      prefix,
+      promptText,
+      basePrompt,
+      aspectRatio,
+      referenceUrls,
+      spendKey,
+    };
+
+    try {
+      after(() => {
+        void runPostCreateInBackground(bgInput);
+      });
+    } catch {
+      void runPostCreateInBackground(bgInput);
+    }
+
     try {
       revalidatePath("/app/posts");
     } catch {
@@ -430,6 +418,84 @@ export async function createPostJob(
       ok: false,
       error: error instanceof Error ? error.message : "生成貼文失敗，請稍後再試",
     };
+  }
+}
+
+export async function runPostCreateInBackground(input: {
+  postId: ObjectId;
+  clerkUserId: string;
+  prefix: string;
+  promptText: string;
+  basePrompt: string;
+  aspectRatio: PostAspectRatio;
+  referenceUrls: string[];
+  spendKey: string;
+}): Promise<void> {
+  const posts = await postsCollection();
+  try {
+    let finalPrompt = input.basePrompt;
+    if (input.referenceUrls.length > 0) {
+      const refBuffers = (
+        await Promise.all(input.referenceUrls.map((u) => downloadBuffer(u)))
+      ).filter((b): b is Buffer => Boolean(b));
+      if (refBuffers.length > 0) {
+        finalPrompt = await upsampleJutsuFramePrompt({
+          baseRequest: input.basePrompt,
+          imageBuffers: refBuffers,
+        });
+      }
+    }
+
+    const webpBuf = await generateSeedreamPostBuffer({
+      prompt: finalPrompt,
+      aspectRatio: input.aspectRatio,
+      referenceImageUrls: input.referenceUrls,
+    });
+
+    const [imageUrl, detectedElements] = await Promise.all([
+      persistBuffer(webpBuf, `${input.prefix}/rev-1-${Date.now()}.webp`, "image/webp"),
+      segmentPostBuffer(webpBuf),
+    ]);
+
+    const now = new Date();
+    const rev1: PostRevision = {
+      revisionId: "rev-1",
+      imageUrl,
+      prompt: input.promptText,
+      editSummary: "初始生成",
+      detectedElements,
+      createdAt: now.toISOString(),
+    };
+
+    await posts.updateOne(
+      { _id: input.postId },
+      {
+        $set: {
+          status: "completed",
+          currentImageUrl: imageUrl,
+          detectedElements,
+          revisions: [rev1],
+          updatedAt: now,
+        },
+      },
+    );
+  } catch (error) {
+    console.error("[post] background generation failed", {
+      postId: input.postId.toHexString(),
+      error,
+    });
+    if (input.spendKey && input.clerkUserId) {
+      await refundCredits(input.clerkUserId, FRAME_COST, input.spendKey).catch(() => {});
+    }
+    await posts.updateOne(
+      { _id: input.postId },
+      {
+        $set: {
+          status: "failed",
+          updatedAt: new Date(),
+        },
+      },
+    );
   }
 }
 

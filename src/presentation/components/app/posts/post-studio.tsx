@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { put } from "@vercel/blob/client";
 import {
   POST_ASPECT_RATIOS,
@@ -11,6 +11,7 @@ import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import {
   createPostJobAction,
   deletePostJobAction,
+  pollPostJobStatusAction,
 } from "@/presentation/actions/posts";
 import {
   buildCastSlotItems,
@@ -88,6 +89,32 @@ export function PostStudio({
       ? initialPostId
       : null,
   );
+
+  // Background polling for rendering posts
+  const renderingPostIds = useMemo(
+    () => posts.filter((p) => p.status === "rendering").map((p) => p.id),
+    [posts],
+  );
+
+  useEffect(() => {
+    if (renderingPostIds.length === 0) return;
+    const interval = setInterval(async () => {
+      for (const id of renderingPostIds) {
+        try {
+          const res = await pollPostJobStatusAction(id);
+          if (res.ok && res.post) {
+            syncUpdatedPost(res.post);
+            if (res.post.status === "completed" || res.post.status === "failed") {
+              notifyTasksChanged();
+            }
+          }
+        } catch {
+          // ignore transient poll error
+        }
+      }
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [renderingPostIds]);
 
   // Create Mode state
   const [createPrompt, setCreatePrompt] = useState("");
