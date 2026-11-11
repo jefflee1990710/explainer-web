@@ -142,15 +142,22 @@ function clipDurationSeconds(project: Project, clipIndex: number): number {
   return duration > 0 ? duration : 6;
 }
 
+// `startVo` / `endVo` are the two beats of one spoken line. The full line is `englishVo`.
+function spokenLineForRow(row: StoryboardRow | undefined): string {
+  const full = row?.englishVo?.replace(/\s+/g, " ").trim();
+  if (full) return full;
+  const start = row?.startVo?.replace(/\s+/g, " ").trim() ?? "";
+  const end = row?.endVo?.replace(/\s+/g, " ").trim() ?? "";
+  if (start && end && !start.includes(end)) return `${start} ${end}`.trim();
+  return start || end;
+}
+
 function spokenSentencesForRow(
   project: Project,
   row: StoryboardRow | undefined,
   clipIndex: number,
 ): string[] {
-  const spoken = groupSpokenSubtitleSentences(
-    row?.subtitleCues,
-    row?.startVo || row?.englishVo || row?.endVo,
-  );
+  const spoken = groupSpokenSubtitleSentences(row?.subtitleCues, spokenLineForRow(row));
   if (spoken.length > 0) return spoken.map(displayNumbersForOnScreenText);
   return [
     displayNumbersForOnScreenText(

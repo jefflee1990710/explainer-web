@@ -70,6 +70,33 @@ test("resolveExplainerAutoOnScreenTextTargets paints Clip 1's spoken sentences w
   assert.ok(targets[0].sectionLength > targets[1].sectionLength);
 });
 
+test("resolveExplainerAutoOnScreenTextTargets paints the full englishVo when startVo is only the opening beat", () => {
+  const project = {
+    skillSlug: "paper-cutout-explainer-video-director",
+    onScreenTextStyleId: "clean",
+    onScreenTextCoverage: "hook",
+    phaseA: {
+      clips: [
+        {
+          clipNumber: 1,
+          durationSeconds: 6,
+          startVo: "Ninety percent of creators do not realize",
+          englishVo:
+            "Ninety percent of creators do not realize their daily knowledge can make serious money.",
+          endVo: "their daily knowledge can make serious money.",
+        },
+      ],
+    },
+    clips: [{ clipNumber: 1, durationSeconds: 6, status: "completed", blobUrl: "https://blob/clip.mp4" }],
+  } as unknown as Project;
+
+  const targets = resolveExplainerAutoOnScreenTextTargets(project);
+  assert.deepEqual(
+    targets.map((target) => target.text),
+    ["90% of creators do not realize their daily knowledge can make serious money."],
+  );
+});
+
 test("resolveExplainerAutoOnScreenTextTargets uses each clip's spoken line when coverage is all", () => {
   const project = {
     skillSlug: "explainer",

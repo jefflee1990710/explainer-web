@@ -150,6 +150,7 @@ test("inSceneOnScreenTextPrompt instructs in-scene redraw inside target box with
     height: 1000,
   });
   assert.match(prompt, /見工無回音？/);
+  assert.match(prompt, /exactly once/i);
   assert.match(prompt, /x=20%/);
   assert.match(prompt, /y=50%/);
   assert.match(prompt, /keep every human face/i);

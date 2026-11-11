@@ -168,6 +168,7 @@ export function inSceneOnScreenTextPrompt(input: {
     `Edit Reference Image 1 by seamlessly painting an on-screen artistic title graphic inside the target region (x=${xp}%, y=${yp}%, width=${wp}%, height=${hp}%).`,
     look,
     `The only words to paint inside that target region are: ${words}`,
+    "Paint that phrase exactly once, as one cluster. Do not repeat any word.",
     "Integrate any torn-paper strips, sticker borders, brushstrokes, and contact shadows naturally into the lighting and depth of Reference Image 1.",
     "STRICT LOCK OUTSIDE TARGET BOX: Keep every human face, expression, hair, and all background details outside the target text region 100% pixel-identical to Reference Image 1.",
   ].join("\n");

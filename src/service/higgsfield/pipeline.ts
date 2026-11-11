@@ -67,6 +67,7 @@ import {
 } from "@/service/higgsfield/clip-keyframes";
 import {
   nextProjectStatus,
+  keepOnScreenPaintOnClips,
   reconcileClips,
   reconcileFrames,
 } from "@/service/higgsfield/reconcile";
@@ -1877,7 +1878,11 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
   }
 
   const frames = reconcileFrames(current.frames || [], allJobs);
-  const clips = reconcileClips(current.clips, allJobs);
+  const clips = keepOnScreenPaintOnClips(
+    reconcileClips(current.clips, allJobs),
+    allJobs,
+    current.onscreenTexts,
+  );
   const next = { ...current, ...set, frames, clips };
 
   // Strictly newer than what was read, so a same-millisecond write still

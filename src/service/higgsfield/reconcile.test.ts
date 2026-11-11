@@ -3,7 +3,12 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { GenerationJob } from "@/model/generation-job";
 import type { ClipFrame, ProjectClip } from "@/model/project";
-import { nextProjectStatus, reconcileClips, reconcileFrames } from "@/service/higgsfield/reconcile";
+import {
+  keepOnScreenPaintOnClips,
+  nextProjectStatus,
+  reconcileClips,
+  reconcileFrames,
+} from "@/service/higgsfield/reconcile";
 
 function job(partial: Partial<GenerationJob> & Pick<GenerationJob, "kind" | "clipIndex" | "status">): GenerationJob {
   return {
@@ -180,6 +185,66 @@ test("reconcileClips hides the last video while a new job is pending", () => {
   const failed = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "failed", error: "boom" })]);
   assert.equal(failed[0].status, "failed");
   assert.equal(failed[0].blobUrl, "old-video");
+});
+
+test("keepOnScreenPaintOnClips puts the painted file back on the clip that the video job would restore", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 6, prompt: "v", status: "completed", blobUrl: "https://blob/original.mp4" },
+  ];
+  const video = job({
+    kind: "video",
+    clipIndex: 0,
+    status: "completed",
+    blobUrl: "https://blob/original.mp4",
+    outputUrl: "https://openrouter.ai/api/v1/videos/gen/content",
+  });
+  const restored = reconcileClips(clips, [video]);
+  assert.equal(restored[0].blobUrl, "https://blob/original.mp4");
+  const painted = keepOnScreenPaintOnClips(restored, [video], [
+    {
+      id: "old",
+      text: "old line",
+      textStyleId: "clean",
+      status: "completed",
+      clipIndex: 0,
+      inpaintedVideoUrl: "https://blob/old-inpaint.mp4",
+    },
+    {
+      id: "line",
+      text: "90% of creators do not realize",
+      textStyleId: "clean",
+      status: "completed",
+      clipIndex: 0,
+      baseVideoUrl: "https://blob/original.mp4",
+      inpaintedVideoUrl: "https://blob/inpaint.mp4",
+    },
+  ]);
+  assert.equal(painted[0].blobUrl, "https://blob/inpaint.mp4");
+  assert.equal(painted[0].outputUrl, "https://blob/inpaint.mp4");
+});
+
+test("keepOnScreenPaintOnClips leaves a regenerated clip on the new video", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 6, prompt: "v", status: "completed", blobUrl: "https://blob/new.mp4" },
+  ];
+  const video = job({
+    kind: "video",
+    clipIndex: 0,
+    status: "completed",
+    blobUrl: "https://blob/new.mp4",
+  });
+  const next = keepOnScreenPaintOnClips(reconcileClips(clips, [video]), [video], [
+    {
+      id: "line",
+      text: "90%",
+      textStyleId: "clean",
+      status: "completed",
+      clipIndex: 0,
+      baseVideoUrl: "https://blob/original.mp4",
+      inpaintedVideoUrl: "https://blob/inpaint.mp4",
+    },
+  ]);
+  assert.equal(next[0].blobUrl, "https://blob/new.mp4");
 });
 
 test("reconcileClips keeps the last video when a completed job has no file", () => {

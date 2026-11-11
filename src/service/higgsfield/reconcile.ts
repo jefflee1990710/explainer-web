@@ -3,7 +3,11 @@ import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { isJobInFlight } from "@/service/generation/task-policy";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
-import type { ClipFrame, ProjectClip, ProjectStatus } from "@/model/project";
+import type { ClipFrame, OnscreenTextItem, ProjectClip, ProjectStatus } from "@/model/project";
+
+function mediaPath(url?: string) {
+  return (url ?? "").split("?")[0]?.trim() ?? "";
+}
 
 export function toFrameStatus(status?: GenerationStatus): ClipFrame["status"] {
   if (status === "completed") return "completed";
@@ -87,6 +91,41 @@ export function reconcileClips(clips: ProjectClip[] | undefined, jobs: Generatio
       blobUrl: nextUrl ? job.blobUrl : pending ? undefined : clip.blobUrl ?? job.blobUrl,
       error: job.error,
     };
+  });
+}
+
+// The video job still points at the unpainted file. A finished on-screen paint
+// for that same file has to stay on the clip, or the next sync puts the original back.
+export function keepOnScreenPaintOnClips(
+  clips: ProjectClip[],
+  jobs: GenerationJob[],
+  items: OnscreenTextItem[] | undefined,
+): ProjectClip[] {
+  return clips.map((clip) => {
+    const videoJob = newest(
+      jobs.filter((item) => item.kind === "video" && item.clipIndex === clip.clipNumber - 1),
+    );
+    if (!videoJob || isJobInFlight(videoJob.status)) return clip;
+    const videoUrl = mediaPath(mediaSrc(videoJob));
+    if (!videoUrl) return clip;
+    const paint = [...(items ?? [])]
+      .reverse()
+      .find(
+        (item) =>
+          (item.clipIndex ?? 0) === clip.clipNumber - 1 &&
+          item.status === "completed" &&
+          item.inpaintedVideoUrl?.startsWith("https://") &&
+          mediaPath(item.baseVideoUrl) === videoUrl,
+      );
+    if (!paint?.inpaintedVideoUrl) return clip;
+    const next: ProjectClip = {
+      ...clip,
+      status: "completed",
+      blobUrl: paint.inpaintedVideoUrl,
+      outputUrl: paint.inpaintedVideoUrl,
+    };
+    delete next.error;
+    return next;
   });
 }
 
