@@ -48,7 +48,6 @@ export function HomeView({
   useEffect(() => {
     if (!hotTopicsNeedRefresh) return;
     let cancelled = false;
-    setLoadingHotTopics(true);
     void getOrGenerateUserHotTopicsAction()
       .then((res) => {
         if (cancelled) return;
@@ -86,10 +85,10 @@ export function HomeView({
   const copy =
     locale === "zh-Hant"
       ? {
-          welcomeBadge: "SCRO AI STUDIO",
-          heroTitle: "今天想創作什麼內容？",
+          welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
+          heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
           heroSubtitle:
-            "從三大核心創作工具快速開始，打造專屬 AI 網紅，或一鍵套用為你量身推薦的熱門爆款主題。",
+            "養一個鎖臉鎖聲的專屬 AI 角色 IP —— 一站式包辦「拍新片 Create Video」、「改片特效 Remix Video」與「日常圖文 Social Image」。",
           shortcutsTitle: "精選創作工具 · Featured Creation Tools",
           tool1Tag: "STORYBOARD & VOICE",
           tool1Title: "Explainer 解說短片",
@@ -121,10 +120,10 @@ export function HomeView({
         }
       : locale === "zh-Hans"
         ? {
-            welcomeBadge: "SCRO AI STUDIO",
-            heroTitle: "今天想创作什么内容？",
+            welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
+            heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
             heroSubtitle:
-              "从三大核心创作工具快速开始，打造专属 AI 网红，或一键套用为你量身推荐的热门爆款主题。",
+              "养一个锁脸锁声的专属 AI 角色 IP —— 一站式包办「拍新片 Create Video」、「改片特效 Remix Video」与「日常图文 Social Image」。",
             shortcutsTitle: "精选创作工具 · Featured Creation Tools",
             tool1Tag: "STORYBOARD & VOICE",
             tool1Title: "Explainer 解说短片",
@@ -155,10 +154,10 @@ export function HomeView({
             startTopicCta: "立即生成短片 →",
           }
         : {
-            welcomeBadge: "SCRO AI STUDIO",
-            heroTitle: "What will you create today?",
+            welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
+            heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
             heroSubtitle:
-              "Jump into our top creation tools, spin up a new AI Influencer in seconds, or pick a personalized trending topic to start generating.",
+              "Lock one AI character face, voice, and wardrobe — then Create Video, Remix Video, and publish Daily Social Images from one studio.",
             shortcutsTitle: "Featured Creation Tools",
             tool1Tag: "STORYBOARD & VOICE",
             tool1Title: "Explainer Video",

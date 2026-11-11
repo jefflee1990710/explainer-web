@@ -97,7 +97,7 @@ test("phase A and blueprint crop load a user style instead of videoStyle or reso
     path.join(here, "../../presentation/components/app/styles/[id]/style-preview-button.tsx"),
     "utf8",
   );
-  assert.match(previewButton, /const disabled = dirty \|\| generating/);
+  assert.match(previewButton, /const disabled = (?:dirty \|\| generating|generating \|\| previewCurrent)/);
   assert.doesNotMatch(previewButton, /needsSave/);
   const workspace = readFileSync(
     path.join(here, "../../presentation/components/app/styles/[id]/style-workspace.tsx"),

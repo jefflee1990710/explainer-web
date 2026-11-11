@@ -61,51 +61,47 @@ test("each image costs 4 credits", () => {
   assert.equal(FRAMES_COST, 8);
 });
 
-test("video is billed 9 credits per second with a 5 second minimum", () => {
-  assert.equal(MIN_VIDEO_COST, 45);
-  assert.equal(videoCost(3), 45);
-  assert.equal(videoCost(5), 45);
-  assert.equal(videoCost(6.4), 54);
-  assert.equal(videoCost(8), 72);
-  assert.equal(videoCost(30), 135);
-  assert.equal(videoCost(Number.NaN), 45);
+test("video is billed 2 credits per second with a 5 second minimum across all Vast Serverless styles", () => {
+  assert.equal(MIN_VIDEO_COST, 10);
+  assert.equal(videoCost(3), 10);
+  assert.equal(videoCost(5), 10);
+  assert.equal(videoCost(6.4), 12);
+  assert.equal(videoCost(8), 16);
+  assert.equal(videoCost(30), 30);
+  assert.equal(videoCost(Number.NaN), 10);
 });
 
-test("cinematic realistic video costs 15 credits per second", () => {
-  assert.equal(videoCost(5, "realistic"), 75);
-  assert.equal(videoCost(8, "realistic"), 120);
-  assert.equal(videoCost(3, "doodle"), 45);
+test("cinematic realistic video also costs 2 credits per second on Vast Serverless", () => {
+  assert.equal(videoCost(5, "realistic"), 10);
+  assert.equal(videoCost(8, "realistic"), 16);
+  assert.equal(videoCost(3, "doodle"), 10);
 });
 
-test("scroSwapCost and teleportCost charge 4 credits for static image swap and 4 + 15 credits/s for video/gif", () => {
+test("scroSwapCost and teleportCost charge 4 credits for static image swap and 4 + 2 credits/s for video/gif", () => {
   assert.equal(scroSwapCost({ mediaKind: "image", durationSeconds: 6 }), 4);
-  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 6 }), 94);
-  assert.equal(scroSwapCost({ mediaKind: "gif", durationSeconds: 5 }), 79);
-  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 2 }), 34);
-  assert.equal(teleportCost({ durationSeconds: 6 }), 94);
-  assert.equal(teleportCost({ durationSeconds: 10 }), 154);
+  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 6 }), 16);
+  assert.equal(scroSwapCost({ mediaKind: "gif", durationSeconds: 5 }), 14);
+  assert.equal(scroSwapCost({ mediaKind: "video", durationSeconds: 2 }), 8);
+  assert.equal(teleportCost({ durationSeconds: 6 }), 16);
+  assert.equal(teleportCost({ durationSeconds: 10 }), 24);
 });
 
-test("economy videoQualityTier bills 4 credits per second with no voice surcharge while 2k_cinema keeps 15 credits/s", () => {
-  assert.equal(videoCost(6, "realistic", true, 15, "economy"), 24);
-  assert.equal(videoCost(6, "doodle", true, 15, "economy"), 24);
-  assert.equal(videoCost(6, "realistic", false, 15, "2k_cinema"), 90);
+test("all videoQualityTier values bill 2 credits per second with no voice surcharge", () => {
+  assert.equal(videoCost(6, "realistic", true, 15, "economy"), 12);
+  assert.equal(videoCost(6, "doodle", true, 15, "economy"), 12);
+  assert.equal(videoCost(6, "realistic", false, 15, "2k_cinema"), 12);
 });
 
-test("a new account can draw a 10-clip board and one realistic preview, but not a second clip", () => {
+test("a new account has enough welcome credits to draw a 10-clip board and preview clips", () => {
   assert.equal(WELCOME_CREDITS, 145);
   assert.equal(WELCOME_CREDITS >= 10 * FRAME_COST + videoCost(7, "realistic"), true);
-  assert.equal(
-    WELCOME_CREDITS < 10 * FRAME_COST + videoCost(7, "realistic") + videoCost(5, "realistic"),
-    true,
-  );
   assert.equal(WELCOME_CREDITS >= FRAMES_COST + MIN_VIDEO_COST, true);
 });
 
 test("upgrade is offered only when the wallet cannot pay for the video", () => {
-  assert.equal(needsVideoUpgrade(20), true);
-  assert.equal(needsVideoUpgrade(44), true);
-  assert.equal(needsVideoUpgrade(45), false);
+  assert.equal(needsVideoUpgrade(5), true);
+  assert.equal(needsVideoUpgrade(9), true);
+  assert.equal(needsVideoUpgrade(10), false);
   assert.equal(needsVideoUpgrade(60, 72), true);
   assert.equal(needsVideoUpgrade(72, 72), false);
 });

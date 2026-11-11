@@ -75,12 +75,25 @@ export function DirectorDockHero({
             compact ? "h-28 w-48 sm:h-32 sm:w-56" : "h-32 w-56 sm:h-40 sm:w-72"
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={centerCard.imageUrl}
-            alt={centerCard.title}
-            className="h-full w-full object-cover"
-          />
+          {centerCard.videoUrl ? (
+            <video
+              key={centerCard.videoUrl}
+              src={centerCard.videoUrl}
+              poster={centerCard.imageUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={centerCard.imageUrl}
+              alt={centerCard.title}
+              className="h-full w-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
           <div className="absolute inset-x-3.5 bottom-2.5 flex items-end justify-between gap-2 text-left">
             <div className="min-w-0">

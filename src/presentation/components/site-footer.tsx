@@ -32,8 +32,8 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-400">
-            <Link href="/economy" className="text-[#A3FF47] hover:text-white">
-              Economy Studio
+            <Link href="/simple" className="text-[#A3FF47] hover:text-white">
+              Simple Studio
             </Link>
             <Link href="/scroswap" className="hover:text-white">
               Scro Swap

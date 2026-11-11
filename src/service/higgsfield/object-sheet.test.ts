@@ -38,7 +38,7 @@ test("realistic prop sheet and empty set carry camera, grain, and directional li
     style,
     items: [{ name: "mug", notes: "chipped ceramic" }],
   });
-  assert.match(props, /grazing directional key light/);
+  assert.match(props, /soft, even, diffused ambient light/);
   assert.match(props, /50mm lens at f\/8/);
   assert.match(props, /no film grain/);
   assert.doesNotMatch(props, /Portra-style|subtle film grain/);

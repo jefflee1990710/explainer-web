@@ -26,10 +26,9 @@ import {
   setClipVideoQualityTier,
 } from "@/service/opencut/clip-style";
 import {
-  CINEMATIC_VIDEO_CREDITS_PER_SECOND,
-  ECONOMY_VIDEO_CREDITS_PER_SECOND,
   FRAME_COST,
   FRAMES_COST,
+  VIDEO_CREDITS_PER_SECOND,
   scroSwapCost,
   teleportCost,
 } from "@/service/production-plan";
@@ -283,7 +282,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "set_clip_video_quality_tier",
     {
       title: "Set clip video quality tier",
-      description: `Switch one clip between 'economy' (${ECONOMY_VIDEO_CREDITS_PER_SECOND} credits/s, first/last latent frames + reference conditioning) and '2k_cinema' (${CINEMATIC_VIDEO_CREDITS_PER_SECOND} credits/s, 2K cloud cinema) before generating or regenerating its video.`,
+      description: `Switch one clip's video quality tier ('2k_cinema' at ${VIDEO_CREDITS_PER_SECOND} credits/s).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -299,13 +298,13 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "create_simple_video",
     {
       title: "Create simple single-clip video",
-      description: `Directly generate a single-clip video from a prompt, optional first/last frames, optional character/scene references, and videoQualityTier ('economy' at ${ECONOMY_VIDEO_CREDITS_PER_SECOND} credits/s or '2k_cinema' at ${CINEMATIC_VIDEO_CREDITS_PER_SECOND} credits/s).`,
+      description: `Directly generate a single-clip video from a prompt, optional first/last frames, and optional character/scene references (${VIDEO_CREDITS_PER_SECOND} credits/s).`,
       inputSchema: {
         prompt: z.string().min(1).max(2000).describe("Action, scene, and camera motion description"),
         aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional().default("9:16"),
         durationSeconds: z.number().int().min(5).max(12).optional().default(6),
         styleId: z.string().optional().default("realistic"),
-        videoQualityTier: z.enum(VIDEO_QUALITY_TIERS).optional().default("economy"),
+        videoQualityTier: z.enum(VIDEO_QUALITY_TIERS).optional().default("2k_cinema"),
         firstFrameUrl: z.string().url().optional().describe("Optional starting keyframe image URL"),
         lastFrameUrl: z.string().url().optional().describe("Optional ending keyframe image URL"),
         characterId: z.string().optional().describe("Optional character id from list_characters"),
@@ -316,7 +315,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     wrapTool(user, apiKey, "create_simple_video", 0, async (args) => {
       await requireVideoApproval(
         server,
-        `要建立並生成呢段 ${args.durationSeconds ?? 6} 秒影片（${args.videoQualityTier ?? "economy"} 模式）嗎？這會扣除 credits。`,
+        `要建立並生成呢段 ${args.durationSeconds ?? 6} 秒影片嗎？這會扣除 credits。`,
       );
       return unwrap(await createSimpleVideoAction(args)).project;
     }),
@@ -351,7 +350,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       },
       annotations: { destructiveHint: true },
     },
-    wrapTool(user, apiKey, "extend_clip_video", CINEMATIC_VIDEO_CREDITS_PER_SECOND * 6, async (args) => {
+    wrapTool(user, apiKey, "extend_clip_video", VIDEO_CREDITS_PER_SECOND * 6, async (args) => {
       await requireVideoApproval(
         server,
         `要將 Clip ${args.clipNumber} 無縫延展 +6 秒嗎？這會扣除 credits。`,

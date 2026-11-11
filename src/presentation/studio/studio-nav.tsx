@@ -7,13 +7,22 @@ import { useRouteTransition } from "@/presentation/studio/route-transition";
 import type { StudioNavItem, StudioNavSection } from "@/presentation/studio/studio-shell";
 import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
 
-const GROUP_SECTIONS: StudioNavSection[] = ["create", "character", "assets", "account"];
+const GROUP_SECTIONS: StudioNavSection[] = [
+  "create",
+  "remix",
+  "social",
+  "character",
+  "assets",
+  "account",
+];
 
-// OpenArt-inspired left side menu:
+// OpenArt-inspired left side menu organized by the 3 Point-2 Creator IP Scenarios:
 // 1. Prominent Home pill at top
-// 2. TOOLS (2-column grid of creation tools)
-// 3. CHARACTER (indented tree items)
-// 4. ASSETS (indented tree items)
+// 2. CREATE VIDEO (2-column grid: Talking, Explainer, Story, Simple)
+// 3. REMIX VIDEO (2-column grid: Swap, Teleport)
+// 4. SOCIAL IMAGE (2-column grid: Life, Poster)
+// 5. CHARACTER IP (indented tree items)
+// 6. ASSETS (indented tree items)
 export function StudioNav({
   items,
   forceExpanded = false,
@@ -26,6 +35,8 @@ export function StudioNav({
   const [openGroups, setOpenGroups] = useState<Record<StudioNavSection, boolean>>({
     home: true,
     create: true,
+    remix: true,
+    social: true,
     character: true,
     assets: true,
     account: true,
@@ -33,9 +44,36 @@ export function StudioNav({
 
   const labels: Record<StudioNavSection, string> = {
     home: locale === "zh-Hant" ? "首頁" : locale === "zh-Hans" ? "首页" : "Home",
-    create: locale === "zh-Hant" ? "TOOLS · 創作工具" : locale === "zh-Hans" ? "TOOLS · 创作工具" : "TOOLS",
-    character: locale === "zh-Hant" ? "AI INFLUENCER · 角色" : locale === "zh-Hans" ? "AI INFLUENCER · 角色" : "CHARACTER",
-    assets: locale === "zh-Hant" ? "ASSETS · 素材與資產" : locale === "zh-Hans" ? "ASSETS · 素材与资产" : "ASSETS",
+    create:
+      locale === "zh-Hant"
+        ? "CREATE VIDEO · 拍新片"
+        : locale === "zh-Hans"
+          ? "CREATE VIDEO · 拍新片"
+          : "CREATE VIDEO",
+    remix:
+      locale === "zh-Hant"
+        ? "REMIX VIDEO · 改片特效"
+        : locale === "zh-Hans"
+          ? "REMIX VIDEO · 改片特效"
+          : "REMIX VIDEO",
+    social:
+      locale === "zh-Hant"
+        ? "SOCIAL IMAGE · 日常圖文"
+        : locale === "zh-Hans"
+          ? "SOCIAL IMAGE · 日常图文"
+          : "SOCIAL IMAGE",
+    character:
+      locale === "zh-Hant"
+        ? "CHARACTER IP · 角色 IP"
+        : locale === "zh-Hans"
+          ? "CHARACTER IP · 角色 IP"
+          : "CHARACTER IP",
+    assets:
+      locale === "zh-Hant"
+        ? "ASSETS · 素材與資產"
+        : locale === "zh-Hans"
+          ? "ASSETS · 素材与资产"
+          : "ASSETS",
     account: t("production.shell.navAccount"),
   };
 
@@ -67,7 +105,8 @@ export function StudioNav({
         if (group.length === 0) return null;
         const labelId = `studio-nav-${section}`;
         const isOpen = !forceExpanded || (openGroups[section] ?? true);
-        const isToolsSection = section === "create";
+        const isToolsSection =
+          section === "create" || section === "remix" || section === "social";
 
         return (
           <div

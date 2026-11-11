@@ -53,12 +53,12 @@ export function AppShell({
       icon: "home",
       section: "home",
     },
-    // TOOLS: Simple (#1) + existing creation tools (+ Life) in a 2-column grid
+    // 1. CREATE VIDEO (Talking, Explainer, Story, Simple)
     {
-      href: "/app/simple",
-      label: locale === "zh-Hant" ? "Simple 極簡" : locale === "zh-Hans" ? "Simple 极简" : "Simple",
-      icon: "projects",
-      imageUrl: "/nav-tools/story.png",
+      href: "/app/talking-heads",
+      label: locale === "zh-Hant" ? "口播" : locale === "zh-Hans" ? "口播" : "Talking",
+      icon: "directors",
+      imageUrl: "/nav-tools/talking.png",
       section: "create",
     },
     {
@@ -69,13 +69,6 @@ export function AppShell({
       section: "create",
     },
     {
-      href: "/app/talking-heads",
-      label: locale === "zh-Hant" ? "口播" : locale === "zh-Hans" ? "口播" : "Talking",
-      icon: "directors",
-      imageUrl: "/nav-tools/talking.png",
-      section: "create",
-    },
-    {
       href: "/app/stories",
       label: locale === "zh-Hant" ? "故事" : locale === "zh-Hans" ? "故事" : "Story",
       icon: "directors",
@@ -83,18 +76,34 @@ export function AppShell({
       section: "create",
     },
     {
+      href: "/app/simple",
+      label: locale === "zh-Hant" ? "極簡" : locale === "zh-Hans" ? "极简" : "Simple",
+      icon: "projects",
+      imageUrl: "/nav-tools/story.png",
+      section: "create",
+    },
+    // 2. REMIX VIDEO (Swap, Teleport)
+    {
       href: "/app/scroswap",
       label: locale === "zh-Hant" ? "換角" : locale === "zh-Hans" ? "换角" : "Swap",
       icon: "styles",
       imageUrl: "/nav-tools/swap.png",
-      section: "create",
+      section: "remix",
     },
     {
       href: "/app/teleport",
       label: locale === "zh-Hant" ? "換場" : locale === "zh-Hans" ? "换场" : "Teleport",
       icon: "room",
       imageUrl: "/nav-tools/teleport.png",
-      section: "create",
+      section: "remix",
+    },
+    // 3. SOCIAL IMAGE (Life, Poster)
+    {
+      href: "/app/life",
+      label: t("nav.life"),
+      icon: "life",
+      imageUrl: "/nav-tools/life.png",
+      section: "social",
     },
     ...(POSTS_FEATURE_ENABLED
       ? [
@@ -103,17 +112,10 @@ export function AppShell({
             label: locale === "en" ? "Poster" : t("nav.posts"),
             icon: "posts" as const,
             imageUrl: "/nav-tools/poster.png",
-            section: "create" as const,
+            section: "social" as const,
           },
         ]
       : []),
-    {
-      href: "/app/life",
-      label: t("nav.life"),
-      icon: "life",
-      imageUrl: "/nav-tools/life.png",
-      section: "create",
-    },
     // CHARACTER & ASSETS
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
@@ -131,6 +133,12 @@ export function AppShell({
       icon: "tasks",
       section: "assets",
       badge: runningCount,
+    },
+    {
+      href: "/app/mcp",
+      label: locale === "en" ? "API & MCP" : "API 與 MCP",
+      icon: "mcp",
+      section: "assets",
     },
   ];
 
@@ -158,7 +166,7 @@ export function AppShell({
           usageLabel={locale === "en" ? "Usage & Credits" : "用量與儲值 Usage"}
           billingLabel={locale === "en" ? "Billing & Card" : "信用卡與付款 Billing"}
           invoicesLabel={locale === "en" ? "Invoices" : "帳單紀錄 Invoices"}
-          mcpLabel={t("nav.mcp")}
+          mcpLabel={locale === "en" ? "API Keys & Docs" : "API 金鑰與文件"}
           affiliateLabel={affiliateEnabled ? t("nav.affiliate") : undefined}
           credits={credits}
           creditLimit={creditLimit}

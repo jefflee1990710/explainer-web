@@ -13,7 +13,14 @@ import {
 import { StudioRouteSkeleton } from "@/presentation/studio/studio-route-skeleton";
 import { StudioThemeProvider, useStudioTheme } from "@/presentation/studio/studio-theme";
 
-export type StudioNavSection = "home" | "create" | "character" | "assets" | "account";
+export type StudioNavSection =
+  | "home"
+  | "create"
+  | "remix"
+  | "social"
+  | "character"
+  | "assets"
+  | "account";
 
 export type StudioNavItem = {
   href: string;

@@ -9,7 +9,7 @@ test("product sheet is photographed with grazing light, a 50mm lens, and clean d
     referenceCount: 2,
   });
   assert.match(prompt, /Photorealistic product reference sheet/);
-  assert.match(prompt, /grazing directional key light/);
+  assert.match(prompt, /modern full-frame digital camera/);
   assert.match(prompt, /50mm lens/);
   assert.match(prompt, /front view at f\/8/);
   assert.match(prompt, /no film grain/);

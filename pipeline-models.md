@@ -48,7 +48,7 @@
 
 ## 自架 OpenJutsu（Vast ComfyUI）
 
-`COMFY_BASE_URL` 同 `COMFY_API_KEY` 都有值時，Scro Swap 的角色替換走 OpenJutsu `simple` workflow，物件替換走 `object` workflow，Teleport 走 `object` 且 `mode` 為 `background`，OpenEdit Extend Video 走 `extend` workflow（39 幀 Latent Prefix + 最後 6 秒影片 + 角色／場景／道具參考圖）。當用戶在建立影片、剪輯器或 `/app/simple` 選擇 **`Economy` 模式（`videoQualityTier: "economy"`，收 `4 credits/s`）** 或設定 `COMFY_CLIP_VIDEO_ENABLED=true` 時，分鏡生片自動切換至 Vast `ref2va` + `MiniMaxH3AddGuide`（`frame_idx: 0` 首幀 Latent + `frame_idx: -1` 尾幀 Latent）執行；選擇 **`2K Cinema` 模式（`videoQualityTier: "2k_cinema"`，收 `15 credits/s`）** 則維持雲端 2K 管道。
+`COMFY_BASE_URL` 同 `COMFY_API_KEY` 都有值時，所有非 `talking-head-director` 的影片生成（包含寫實、白板手繪、剪紙拼貼、火柴人、動漫、Story、One-Take、Scro Swap、Teleport、OpenEdit Extend Video）100% 統一走 Vast.ai Serverless ComfyUI（`MiniMax-H3 ref2va` + `MiniMaxH3AddGuide` 首尾幀 Latent 引導，無雲端影片 Fallback，統一收費 **`2 credits/s`** 並內含語音；`talking-head-director` 維持走 OpenRouter `heygen/avatar-iv` 收費 **`4 credits/s`**）。
 
 自架權重是 `minimax_h3_ref2va_pruned_int8_convrot.safetensors`、`minimax_h3_DMAD_4step_full_lora_avg_rank_39_bf16.safetensors`、`qwen3vl_32b_minimax_h3_int4_convrot.safetensors`、`qwen3vl_8b_int8_convrot.safetensors`、`minimax_h3_video_vae_int8_convrot.safetensors`、`minimax_h3_audio_vae_fp32.safetensors`、`sam3.1_multiplex_fp16.safetensors`。解析度預設 `736p`，6 steps。靜圖、打光同 color fix 仍走雲端。
 

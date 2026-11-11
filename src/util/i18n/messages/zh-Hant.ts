@@ -20,9 +20,9 @@ import { wardrobeZhHant } from "@/util/i18n/messages/workspace/wardrobe.zh-Hant"
 
 export const zhHant: Messages = {
   meta: {
-    title: "AI 網紅、Explainer 解說片、口播、Scro Swap 換角與自動剪輯工作台 | Scro",
+    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro 一站式 AI 角色 IP 與短片工作台",
     description:
-      "用同一個鎖定臉、衣櫃同 21 語聲線的 AI 網紅拍白板/剪紙 Explainer、120 秒 1080p 口播、產品帶貨 UGC，並內建 Scro Swap 影片換角、Teleport 換場、SAM 3 海報局部重繪與 AI 自動對拍多軌剪輯台。",
+      "Build Your AI Creator IP, Then Put Them Everywhere. 養一個鎖定臉、衣櫃同 21 語聲線的 AI 角色 IP，包辦真人口播、白板/剪紙 Explainer、2K 劇情短片、Scro Swap 換角、Teleport 換場與每日 IG 生活貼文。",
   },
   nav: {
     projects: "影片",
@@ -136,16 +136,17 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Explainer · AI Influencer",
-      title: "用 AI 網紅拍 Explainer。",
-      subtitle: "同一張臉、同一把聲，拍白板解說同網紅短片。",
-      ctaStart: "拍一條 Explainer",
+      kicker: "AI Creator IP · 一站式拍片、改片與日常圖文",
+      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
+      subtitle:
+        "養一個鎖臉、鎖聲、專屬衣櫥的 AI 角色 IP —— 一站式包辦真人口播、白板解說、2K 劇情短片、動作換角與每日 IG 貼文。",
+      ctaStart: "建立我的 AI 角色 IP",
       ctaWorkspace: "進入創作工作台",
-      ctaUseCases: "睇解說片同網紅",
-      platformReels: "Explainer 解說片",
-      platformShorts: "AI Influencer",
-      platformTiktok: "同一張臉",
-      artLabel: "白板 Explainer 同 AI 網紅出鏡",
+      ctaUseCases: "睇角色 3 大創作場景",
+      platformReels: "🎬 拍新片 Create Video",
+      platformShorts: "⚡ 改片 Remix Video",
+      platformTiktok: "📸 出圖 Social Image",
+      artLabel: "Build Your AI Creator IP, Then Put Them Everywhere",
     },
     academy: {
       eyebrow: "Explainer Reel",

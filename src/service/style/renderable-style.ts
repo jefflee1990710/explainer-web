@@ -1,5 +1,5 @@
 import { defaultStyleBehavior, type IStyleBehavior } from "@/model/style";
-import type { StyleId } from "@/model/style-id";
+import { isStyleId, type StyleId } from "@/model/style-id";
 import type { UserStyleDoc } from "@/model/user-style";
 import { resolvedStyle } from "@/service/style/load-style";
 import type { Style } from "@/service/style/types";
@@ -50,5 +50,23 @@ export async function loadRenderableStyle(input: {
   ownerClerkUserId: string;
   findUserStyle?: (id: string, owner: string) => Promise<UserStyleDoc | null>;
 }): Promise<RenderableStyle> {
-  return renderableFromSystem(resolvedStyle(input.styleId));
+  const { styleId, ownerClerkUserId, findUserStyle } = input;
+
+  if (!styleId || styleId === "") {
+    return renderableFromSystem(resolvedStyle(undefined));
+  }
+
+  if (isStyleId(styleId)) {
+    return renderableFromSystem(resolvedStyle(styleId));
+  }
+
+  if (findUserStyle) {
+    const doc = await findUserStyle(styleId, ownerClerkUserId);
+    if (!doc) {
+      throw new Error(`Style "${styleId}" is missing`);
+    }
+    return renderableFromUserStyle(doc);
+  }
+
+  return renderableFromSystem(resolvedStyle(styleId));
 }

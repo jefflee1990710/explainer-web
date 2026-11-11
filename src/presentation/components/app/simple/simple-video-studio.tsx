@@ -23,18 +23,14 @@ import {
   CharacterSelectDialog,
   defaultSheetForStyle,
 } from "@/presentation/components/app/projects/[id]/character-select-dialog";
-import {
-  readDefaultVideoQualityTier,
-  writeDefaultVideoQualityTier,
-} from "@/presentation/components/app/projects/new/brief-defaults";
+import { readDefaultVideoQualityTier } from "@/presentation/components/app/projects/new/brief-defaults";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import type { CharacterSelectionMap } from "@/service/character/character-presets";
 import {
-  CINEMATIC_VIDEO_CREDITS_PER_SECOND,
-  ECONOMY_VIDEO_CREDITS_PER_SECOND,
   FRAME_COST,
+  VIDEO_CREDITS_PER_SECOND,
 } from "@/service/credit-costs";
 
 const ASPECT_OPTIONS: readonly AspectRatio[] = ["9:16", "16:9", "1:1"];
@@ -108,7 +104,7 @@ export function SimpleVideoStudio({
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("9:16");
   const [durationSeconds, setDurationSeconds] = useState<number>(6);
   const [styleId, setStyleId] = useState<string>("realistic");
-  const [videoQualityTier, setVideoQualityTier] = useState<VideoQualityTier>(
+  const [videoQualityTier] = useState<VideoQualityTier>(
     () => readDefaultVideoQualityTier(),
   );
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>(
@@ -156,10 +152,7 @@ export function SimpleVideoStudio({
     [selectedCharacterIds, characters, styleId, characterSelections],
   );
 
-  const perSecondCost =
-    videoQualityTier === "economy"
-      ? ECONOMY_VIDEO_CREDITS_PER_SECOND
-      : CINEMATIC_VIDEO_CREDITS_PER_SECOND;
+  const perSecondCost = VIDEO_CREDITS_PER_SECOND;
   const estimatedCost =
     (firstFrameUrl ? 0 : FRAME_COST) + perSecondCost * durationSeconds;
 
@@ -249,16 +242,7 @@ export function SimpleVideoStudio({
       />
 
       <DirectorDockStage>
-        <DirectorDockHero
-          kind="story"
-          headlineOverride={
-            isEn
-              ? "Bring Your Shot to Life"
-              : locale === "zh-Hans"
-                ? "一键生成单镜电影短片"
-                : "一鍵生成單鏡電影短片"
-          }
-        />
+        <DirectorDockHero kind="simple" />
 
         {/* Collapsible Director Panel matching other generation studios */}
         <DirectorDockPanel>
@@ -549,37 +533,6 @@ export function SimpleVideoStudio({
                     ),
                   )
                 }
-              />
-
-              <DirectorDockPill
-                icon={
-                  <svg
-                    aria-hidden="true"
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                }
-                label={
-                  videoQualityTier === "economy"
-                    ? isEn
-                      ? "Economy · 4 cr/s"
-                      : "Economy 平價 · 4 cr/s"
-                    : "2K Cinema · 15 cr/s"
-                }
-                disabled={submitting}
-                onClick={() => {
-                  const next =
-                    videoQualityTier === "economy" ? "2k_cinema" : "economy";
-                  setVideoQualityTier(next);
-                  writeDefaultVideoQualityTier(next);
-                }}
               />
 
               <DirectorDockPill

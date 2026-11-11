@@ -52,7 +52,7 @@ test("all primary locales translate Wardrobe (衣櫥) and Post", () => {
   assert.equal(ja.nav.blog, "記事");
   assert.equal(ko.nav.blog, "블로그");
 
-  assert.equal(en.nav.posts, "Post");
+  assert.equal(en.nav.posts, "Poster");
   assert.equal(zhHant.nav.posts, "海報");
   assert.equal(zhHans.nav.posts, "海报");
   assert.equal(ja.nav.posts, "投稿");

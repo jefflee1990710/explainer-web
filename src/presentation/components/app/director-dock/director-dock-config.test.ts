@@ -14,14 +14,76 @@ import {
   resolveModeSwitchSkillSlug,
 } from "./director-dock-config";
 
-test("getDirectorHeroCopy returns 3 showcase cards and localized headline for all 5 studios", () => {
-  const kinds = ["explainer", "talking-head", "life", "scroswap", "teleport"] as const;
+test("getDirectorHeroCopy returns left/right images and center video for all 8 feature creation studios", () => {
+  const kinds = [
+    "simple",
+    "explainer",
+    "talking-head",
+    "story",
+    "scroswap",
+    "teleport",
+    "posts",
+    "life",
+  ] as const;
   for (const kind of kinds) {
     const copy = getDirectorHeroCopy(kind, "zh-Hant");
     assert.equal(copy.cards.length, 3);
     assert.ok(copy.headline.length > 0);
-    assert.ok(copy.cards.every((c) => c.imageUrl.startsWith("/")));
+    const [leftCard, centerCard, rightCard] = copy.cards;
+    assert.equal(leftCard.imageUrl, `/hero/tools/${kind}/left.webp`);
+    assert.equal(leftCard.videoUrl, undefined);
+    assert.equal(centerCard.imageUrl, `/hero/tools/${kind}/center.webp`);
+    assert.equal(centerCard.videoUrl, `/hero/tools/${kind}/center.mp4`);
+    assert.equal(rightCard.imageUrl, `/hero/tools/${kind}/right.webp`);
+    assert.equal(rightCard.videoUrl, undefined);
+
+    assert.ok(
+      fs.existsSync(path.join(process.cwd(), "public", leftCard.imageUrl)),
+      `Missing left image for ${kind}`,
+    );
+    assert.ok(
+      fs.existsSync(path.join(process.cwd(), "public", centerCard.imageUrl)),
+      `Missing center image for ${kind}`,
+    );
+    assert.ok(
+      fs.existsSync(path.join(process.cwd(), "public", centerCard.videoUrl!)),
+      `Missing center video for ${kind}`,
+    );
+    assert.ok(
+      fs.existsSync(path.join(process.cwd(), "public", rightCard.imageUrl)),
+      `Missing right image for ${kind}`,
+    );
   }
+});
+
+test("DirectorDockHero renders center video and all 8 feature forms include DirectorDockHero", () => {
+  const heroSource = fs.readFileSync(
+    path.join(
+      process.cwd(),
+      "src/presentation/components/app/director-dock/director-dock-hero.tsx",
+    ),
+    "utf8",
+  );
+  assert.match(heroSource, /centerCard\.videoUrl/);
+  assert.match(heroSource, /<video\b/);
+
+  const simpleSource = fs.readFileSync(
+    path.join(
+      process.cwd(),
+      "src/presentation/components/app/simple/simple-video-studio.tsx",
+    ),
+    "utf8",
+  );
+  assert.match(simpleSource, /<DirectorDockHero[\s\S]*?kind="simple"/);
+
+  const lifeSource = fs.readFileSync(
+    path.join(
+      process.cwd(),
+      "src/presentation/components/app/life/life-desk.tsx",
+    ),
+    "utf8",
+  );
+  assert.match(lifeSource, /<DirectorDockHero[\s\S]*?kind="life"/);
 });
 
 test("cycleOption wraps forward and backward safely", () => {
@@ -131,18 +193,33 @@ test("OpenCut dark mode preserves white scaling anchors and uses white selection
   assert.match(selectableItemSource, /ring-white/);
 });
 
-test("StudioNav renders tools in 1-column list and StudioShell avoids conflicting inline-flex + hidden on collapse button", () => {
+test("StudioNav renders tools in 2-column grid across create/remix/social sections and platform slogan is updated", async () => {
   const navSource = fs.readFileSync(
     path.join(process.cwd(), "src/presentation/studio/studio-nav.tsx"),
     "utf8",
   );
-  assert.doesNotMatch(navSource, /grid-cols-2/);
+  assert.match(navSource, /grid-cols-2/);
+  assert.match(navSource, /CREATE VIDEO/);
+  assert.match(navSource, /REMIX VIDEO/);
+  assert.match(navSource, /SOCIAL IMAGE/);
 
-  const shellSource = fs.readFileSync(
-    path.join(process.cwd(), "src/presentation/studio/studio-shell.tsx"),
+  const appShellSource = fs.readFileSync(
+    path.join(process.cwd(), "src/presentation/components/app-shell.tsx"),
     "utf8",
   );
-  assert.doesNotMatch(shellSource, /inline-flex[^`]*\$\{\s*expanded \? "inline-flex" : "hidden/);
+  assert.match(appShellSource, /section:\s*"remix"/);
+  assert.match(appShellSource, /section:\s*"social"/);
+
+  const { en } = await import("@/util/i18n/messages/en");
+  const { zhHant } = await import("@/util/i18n/messages/zh-Hant");
+  assert.equal(
+    en.landing.hero.title,
+    "Build Your AI Creator IP, Then Put Them Everywhere.",
+  );
+  assert.equal(
+    zhHant.landing.hero.title,
+    "Build Your AI Creator IP, Then Put Them Everywhere.",
+  );
 });
 
 test("LIFE_REMARK_STAGE_CLASS includes w-fit and tokens.css preserves rounded-full on director-dock-cell pills", () => {

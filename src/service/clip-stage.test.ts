@@ -67,9 +67,9 @@ test("no frames at all → no_frames", () => {
   assert.equal(clipStateFor(project(), 1).stage, "no_frames");
 });
 
-test("cinematic realistic bills the Seedance video rate", () => {
-  assert.equal(clipStateFor(project(), 1).videoCost, 45);
-  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 75);
+test("cinematic realistic bills the Vast Serverless video rate", () => {
+  assert.equal(clipStateFor(project(), 1).videoCost, 10);
+  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 10);
 });
 
 test("sitting talking-head bills 4 credits per second with no voice surcharge", () => {
@@ -271,8 +271,8 @@ test("one-take-director 60s realistic clip bills for the full 60 seconds instead
     phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).videoCost, 60 * 15);
-  assert.equal(clipVideoCost(p, 1), 60 * 15);
+  assert.equal(clipStateFor(p, 1).videoCost, 60 * 2);
+  assert.equal(clipVideoCost(p, 1), 60 * 2);
 });
 
 test("redrawing the next talking-head start makes this video stale, not these frames", () => {

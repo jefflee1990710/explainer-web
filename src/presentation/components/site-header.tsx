@@ -67,7 +67,7 @@ export function SiteHeader({
               {t("nav.home")}
             </Link>
             <Link
-              href="/economy"
+              href="/simple"
               className="shrink-0 font-semibold text-[#A3FF47] transition-colors hover:text-white"
             >
               Try It Now

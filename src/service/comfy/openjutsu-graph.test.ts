@@ -713,7 +713,7 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
     shots: Array<{ length: number; steps: number; prompt: string }>;
   };
   assert.equal(planJson.shots[0]?.length, 192);
-  assert.equal(planJson.shots[0]?.steps, 8);
+  assert.equal(planJson.shots[0]?.steps, 6);
 
   // Reference Conditioning compacts characterImageName (ref_image_0) and propImageName (ref_image_1), deleting unused scene image loader
   const refNode = Object.values(graph).find((n) => n.class_type === "MiniMaxH3ReferenceToVideo");
@@ -753,7 +753,7 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
   });
 });
 
-test("shouldUseComfyForClipVideo is opt-in via COMFY_CLIP_VIDEO_ENABLED and submitComfyStoryboardClipVideo queues a ref2va graph", async () => {
+test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head clips and submitComfyStoryboardClipVideo queues a ref2va graph", async () => {
   const prevUrl = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;
   const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
@@ -762,12 +762,6 @@ test("shouldUseComfyForClipVideo is opt-in via COMFY_CLIP_VIDEO_ENABLED and subm
     process.env.COMFY_API_KEY = "secret";
     delete process.env.COMFY_CLIP_VIDEO_ENABLED;
 
-    assert.equal(
-      shouldUseComfyForClipVideo({ model: "minimax/hailuo-3" }),
-      false,
-    );
-
-    process.env.COMFY_CLIP_VIDEO_ENABLED = "true";
     assert.equal(
       shouldUseComfyForClipVideo({ model: "minimax/hailuo-3" }),
       true,

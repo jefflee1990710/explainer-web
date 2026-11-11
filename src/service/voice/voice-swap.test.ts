@@ -125,14 +125,14 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
     }),
     "v_scro",
   );
-  assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 50);
+  assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 10);
 });
 
-test("voice swap adds 1 credit per billed second", () => {
-  assert.equal(videoCost(5, undefined, true), 50);
-  assert.equal(videoCost(8, "realistic", true), 128);
-  assert.equal(videoCost(3, undefined, true), 50);
-  assert.equal(videoCost(5), 45);
+test("voice is included in the 2 credits per billed second rate without extra surcharge", () => {
+  assert.equal(videoCost(5, undefined, true), 10);
+  assert.equal(videoCost(8, "realistic", true), 16);
+  assert.equal(videoCost(3, undefined, true), 10);
+  assert.equal(videoCost(5), 10);
 });
 
 test("whiteboard submit duration grows to cover a longer VO and stays put when VO fits", () => {

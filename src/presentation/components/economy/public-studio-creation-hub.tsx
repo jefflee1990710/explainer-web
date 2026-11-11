@@ -19,14 +19,13 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicStyle } from "@/presentation/serialize";
 import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 import {
-  CINEMATIC_VIDEO_CREDITS_PER_SECOND,
-  ECONOMY_VIDEO_CREDITS_PER_SECOND,
   FRAME_COST,
+  VIDEO_CREDITS_PER_SECOND,
   scroSwapCost,
   teleportCost,
 } from "@/service/credit-costs";
 
-export type PublicCreationMode = "economy" | "explainer" | "scroswap" | "teleport";
+export type PublicCreationMode = "simple" | "economy" | "explainer" | "scroswap" | "teleport";
 
 const PENDING_CREATION_STORAGE_KEY = "scro:pending-public-creation:v1";
 const ASPECT_OPTIONS: readonly AspectRatio[] = ["9:16", "16:9", "1:1"];
@@ -82,13 +81,14 @@ export function PublicStudioCreationHub({
   const { locale } = useI18n();
   const isEn = locale === "en";
 
+  const isSimple = mode === "simple" || mode === "economy";
   const [signedIn, setSignedIn] = useState(initialSignedIn);
   const [prompt, setPrompt] = useState(
     mode === "explainer"
       ? isEn
         ? "Why the 2-Minute Rule beats willpower for building daily habits"
         : "點解「兩分鐘法則」比靠意志力更容易養成每日習慣"
-      : mode === "economy"
+      : isSimple
         ? isEn
           ? "A young woman in a sleek trench coat walking through a neon-lit Tokyo alley at night, cinematic 35mm tracking shot"
           : "身穿風衣的主角在夜晚霓虹燈閃爍的東京街頭漫步回眸，35mm 電影推進鏡頭"
@@ -108,7 +108,7 @@ export function PublicStudioCreationHub({
     locale === "zh-Hant" ? "yue" : locale === "zh-Hans" ? "zh" : "en",
   );
   const [videoQualityTier, setVideoQualityTier] =
-    useState<VideoQualityTier>("economy");
+    useState<VideoQualityTier>("2k_cinema");
 
   const [firstFrameDataUrl, setFirstFrameDataUrl] = useState<string>("");
   const [lastFrameDataUrl, setLastFrameDataUrl] = useState<string>("");
@@ -136,10 +136,7 @@ export function PublicStudioCreationHub({
   const [error, setError] = useState("");
   const autoTriggeredRef = useRef(false);
 
-  const perSecondCost =
-    videoQualityTier === "economy"
-      ? ECONOMY_VIDEO_CREDITS_PER_SECOND
-      : CINEMATIC_VIDEO_CREDITS_PER_SECOND;
+  const perSecondCost = VIDEO_CREDITS_PER_SECOND;
 
   const estimatedCost =
     mode === "scroswap"
@@ -295,7 +292,7 @@ export function PublicStudioCreationHub({
         return;
       }
 
-      // Default: Economy / Simple single-clip video creation (No Lip-Sync)
+      // Default: Simple single-clip video creation (No Lip-Sync)
       const [firstFrameUrl, lastFrameUrl, ...refUrls] = await Promise.all([
         active.firstFrameDataUrl
           ? dataUrlToUploadedBlobUrl(active.firstFrameDataUrl, "first-frame.jpg")
@@ -381,6 +378,7 @@ export function PublicStudioCreationHub({
       if (!raw) return;
       const saved = JSON.parse(raw) as PendingPublicCreationDraft;
       if (saved.mode !== mode) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved.prompt) setPrompt(saved.prompt);
       if (saved.aspectRatio) setAspectRatio(saved.aspectRatio);
       if (saved.durationSeconds) setDurationSeconds(saved.durationSeconds);
@@ -403,12 +401,22 @@ export function PublicStudioCreationHub({
     }
   }, [initialSignedIn, mode]);
 
+  const simpleHero = {
+    kicker: isEn
+      ? "Scro Simple Video Studio · Camera-First AI Video"
+      : "Scro Simple 極簡生片工作台 · 鏡頭優先單鏡電影",
+    title: isEn ? "Bring Your Shot to Life in One Pass" : "一鍵生成單鏡高畫質電影短片",
+    sub: isEn
+      ? `Generate 6–12s cinematic video clips with First/Last Frame latent lock & reference images at just 2 credits/s. Sign up to get ${WELCOME_CREDITS} Free Credits and generate right now!`
+      : `每秒只需 2 credits（支援首尾幀 Latent 鎖定與參考圖，純視覺無 Lip-Sync）。新註冊即送 ${WELCOME_CREDITS} Free Credits 免費生片！`,
+  };
+
   const modeTabs: Array<{ id: PublicCreationMode; href: string; label: string; badge: string }> = [
     {
-      id: "economy",
-      href: "/economy",
-      label: isEn ? "⚡ Economy Simple" : "⚡ Economy 極簡生片",
-      badge: "4 cr/s · 80% OFF",
+      id: "simple",
+      href: "/simple",
+      label: isEn ? "⚡ Simple Video" : "⚡ Simple 極簡生片",
+      badge: "2 cr/s",
     },
     {
       id: "explainer",
@@ -431,23 +439,16 @@ export function PublicStudioCreationHub({
   ];
 
   const heroCopy = {
-    economy: {
-      kicker: isEn
-        ? "Scro Economy Video Studio · 80% Cheaper Than Market"
-        : "Scro Economy 平價生片引擎 · 比市價平 80%",
-      title: isEn ? "AI Video Generation Can Actually Be Super Cheap!" : "AI 影片生成原來可以超平民化！",
-      sub: isEn
-        ? `Only 4 credits/second ($0.14/s) — just $0.86 per 6-second clip with First/Last Frame latent lock & Reference images (no lip-sync). Sign up to get ${WELCOME_CREDITS} Free Credits and generate right now!`
-        : `每秒只需 4 credits（約 $0.14 USD/秒）—— 一條 6 秒片僅需 $0.86 USD（支援首尾幀 Latent 鎖定與參考圖，純視覺無 Lip-Sync）。新註冊即送 ${WELCOME_CREDITS} Free Credits 免費生片！`,
-    },
+    simple: simpleHero,
+    economy: simpleHero,
     explainer: {
       kicker: isEn
         ? "AI Explainer Video Director · 1-Click Storyboard & Diagrams"
         : "AI 概念解說片導演 · 一鍵生成結構化圖表動畫",
       title: isEn ? "Turn Any Topic Into a Viral Explainer Reel" : "輸入主題或文章，一鍵生成高留存解說短片",
       sub: isEn
-        ? `Choose Paper-Cutout Collage, Whiteboard Doodle, or 3D Papercraft Diorama. Supports Economy mode (4 credits/s) & ${WELCOME_CREDITS} Free Welcome Credits!`
-        : `內建剪紙拼貼、白板手繪與 3D 紙雕模型三大解說導演，支援 Economy 平價模式（4 credits/秒），新註冊即送 ${WELCOME_CREDITS} Free Credits！`,
+        ? `Choose Paper-Cutout Collage, Whiteboard Doodle, or 3D Papercraft Diorama with ${WELCOME_CREDITS} Free Welcome Credits!`
+        : `內建剪紙拼貼、白板手繪與 3D 紙雕模型三大解說導演，新註冊即送 ${WELCOME_CREDITS} Free Credits！`,
     },
     scroswap: {
       kicker: isEn
@@ -475,7 +476,7 @@ export function PublicStudioCreationHub({
         {/* Top Mode Switcher Pills (Dark Mode Studio Portal Style) */}
         <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
           {modeTabs.map((tab) => {
-            const active = tab.id === mode;
+            const active = tab.id === mode || (mode === "economy" && tab.id === "simple");
             return (
               <Link
                 key={tab.id}
@@ -521,10 +522,10 @@ export function PublicStudioCreationHub({
               </span>
               <div>
                 <h2 className="font-display text-base font-bold text-white sm:text-lg">
-                  {mode === "economy"
+                  {isSimple
                     ? isEn
-                      ? "Simple / Economy Video Studio (No Lip-Sync)"
-                      : "Simple / Economy 極簡生片工作台（無 Lip-Sync）"
+                      ? "Simple Video Studio (No Lip-Sync)"
+                      : "Simple 極簡生片工作台（無 Lip-Sync）"
                     : mode === "explainer"
                       ? isEn
                         ? "AI Explainer Storyboard Studio"
@@ -545,35 +546,15 @@ export function PublicStudioCreationHub({
               </div>
             </div>
 
-            {mode === "economy" || mode === "explainer" ? (
-              <div className="inline-flex rounded-full border border-white/15 bg-[#0a0c10] p-1">
-                {(["economy", "2k_cinema"] as const).map((tier) => {
-                  const active = videoQualityTier === tier;
-                  return (
-                    <button
-                      key={tier}
-                      type="button"
-                      onClick={() => setVideoQualityTier(tier)}
-                      className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                        active
-                          ? "bg-[#A3FF47] text-[#12141c]"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      {tier === "economy"
-                        ? isEn
-                          ? "⚡ Economy · 4 cr/s"
-                          : "⚡ Economy 平價 · 4 cr/s"
-                        : "🎬 2K Cinema · 15 cr/s"}
-                    </button>
-                  );
-                })}
+            {isSimple || mode === "explainer" ? (
+              <div className="inline-flex items-center rounded-full border border-[#A3FF47]/30 bg-[#A3FF47]/15 px-3.5 py-1.5 text-xs font-bold text-[#A3FF47]">
+                ⚡ 2 cr/s
               </div>
             ) : null}
           </div>
 
-          {/* MODE 1 & 2: ECONOMY / EXPLAINER FORM */}
-          {mode === "economy" || mode === "explainer" ? (
+          {/* MODE 1 & 2: SIMPLE / EXPLAINER FORM */}
+          {isSimple || mode === "explainer" ? (
             <>
               {mode === "explainer" ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -641,7 +622,7 @@ export function PublicStudioCreationHub({
                 />
               </div>
 
-              {mode === "economy" ? (
+              {isSimple ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-1.5 rounded-2xl border border-white/10 bg-[#0a0c10]/80 p-3.5">
                     <div className="flex items-center justify-between">

@@ -28,6 +28,7 @@ import {
   DirectorDockComposer,
   DirectorDockDivider,
   DirectorDockDurationCell,
+  DirectorDockHero,
   DirectorDockPanel,
   DirectorDockPill,
   DirectorDockQuickTile,
@@ -41,10 +42,7 @@ import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-s
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
 import { LifePhotoEditor } from "@/presentation/components/app/life/life-photo-editor";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
-import {
-  LifeRecentDrawer,
-  LifeRecentOpenButton,
-} from "@/presentation/components/app/life/life-recent-drawer";
+import { LifeRecentDrawer } from "@/presentation/components/app/life/life-recent-drawer";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeDressDialog } from "@/presentation/components/app/life/life-dress-dialog";
 import {
@@ -967,6 +965,8 @@ export function LifeDesk({
             {t("life.needBlueprint")}
           </p>
         ) : null}
+
+        <DirectorDockHero kind="life" compact />
 
         {/* Collapsible Director Panel */}
         <DirectorDockPanel

@@ -23,7 +23,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
 
   // Viewport under the sticky header on desktop, with min-height guard so shorter laptop screens never clip.
   return (
-    <section className="relative flex w-full flex-col overflow-hidden border-b border-black/40 bg-[#0a0c10] lg:h-[calc(100dvh-4rem)] lg:min-h-[42rem]">
+    <section className="relative flex w-full flex-col overflow-hidden border-b border-[#272a36] bg-[#0d0e13] lg:h-[calc(100dvh-4rem)] lg:min-h-[42rem]">
       <div className="order-2 lg:order-1 lg:contents">
         <LandingHeroArt />
       </div>
@@ -85,11 +85,11 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           className="mt-7 flex w-full flex-col justify-center gap-3 sm:mt-9 sm:w-auto sm:flex-row sm:flex-wrap"
         >
           <Link
-            href="/economy"
+            href="/simple"
             onClick={() =>
               track("auth_cta_click", {
                 placement: "landing_hero_try_it_now",
-                target: "/economy",
+                target: "/simple",
               })
             }
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-black text-[#12141c] shadow-[0_12px_36px_rgba(198,242,75,0.32)] transition-transform hover:-translate-y-0.5 hover:bg-[#d4f76a] sm:w-auto sm:px-9"
@@ -118,10 +118,10 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           className="mt-4 flex flex-wrap justify-center gap-2 text-xs"
         >
           <Link
-            href="/economy"
+            href="/simple"
             className="rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/10 px-3 py-1 font-semibold text-[#c6f24b] hover:bg-[#c6f24b]/20"
           >
-            ⚡ Economy Video (4 cr/s)
+            ⚡ Simple Video (2 cr/s)
           </Link>
           <Link
             href="/explainer"

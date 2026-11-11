@@ -5,6 +5,34 @@ import {
   shouldUseComfyForClipVideo,
   submitComfyStoryboardClipVideo,
 } from "@/service/comfy/submit-clip-video";
+import { submitClipVideo } from "@/service/higgsfield/generate";
+
+test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head clips when ComfyUI is not configured", async () => {
+  const prevBase = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  try {
+    delete process.env.COMFY_BASE_URL;
+    delete process.env.COMFY_API_KEY;
+
+    await assert.rejects(
+      () =>
+        submitClipVideo({
+          prompt: "Whiteboard marker draws a flowchart.",
+          aspectRatio: "16:9",
+          durationSeconds: 6,
+          startImageUrl: "https://blob.example.com/start.jpg",
+          skillSlug: "cartoon-explainer-video-director",
+          styleId: "doodle",
+        }),
+      /ComfyUI 尚未設定/,
+    );
+  } finally {
+    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevBase;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+  }
+});
 
 test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director whenever Comfy endpoint is configured", () => {
   const prevBase = process.env.COMFY_BASE_URL;
@@ -37,7 +65,7 @@ test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director wh
         skillSlug: "cartoon-explainer-video-director",
         durationSeconds: 8,
       }),
-      false,
+      true,
     );
   } finally {
     if (prevBase === undefined) delete process.env.COMFY_BASE_URL;

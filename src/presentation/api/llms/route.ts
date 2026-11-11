@@ -134,7 +134,7 @@ export function buildLlmsFullTxt(
     "",
     "## 3. Pricing & Plans (`/pricing`)",
     "",
-    "Storyboard drafting is free before approval. Credits are spent only when generating character blueprints, Life photos, posters, keyframe stills (4 credits/image), or rendered video clips (4 credits/s for 1080p talking-head with voice included; 9 credits/s for stylized video; 15 credits/s for 2K realistic video).",
+    "Storyboard drafting is free before approval. Credits are spent only when generating character blueprints, Life photos, posters, keyframe stills (4 credits/image), or rendered video clips (2 credits/s across all storyboard, explainer, realistic, and story videos with voice included; 4 credits/s for 1080p sitting talking-head with voice included).",
     "",
     `- **Starter** ($${PLANS.starter.amountUsd}/month): ${PLANS.starter.monthlyCredits.toLocaleString("en-US")} monthly credits — ideal for testing Scro and solo creators.`,
     `- **Pro** ($${PLANS.pro.amountUsd}/month): ${PLANS.pro.monthlyCredits.toLocaleString("en-US")} monthly credits — for business owners publishing regular shorts and Life posts.`,

@@ -221,8 +221,8 @@ describe("per-clip stage and steady-stills resolution", () => {
     const state2 = clipStateFor(project, 2);
     assert.equal(state2.frameCost, FRAME_COST);
     assert.equal(clipVideoCost(project, 1), 20);
-    assert.equal(clipVideoCost(project, 2), 50);
-    assert.equal(state2.videoCost, 50);
+    assert.equal(clipVideoCost(project, 2), 10);
+    assert.equal(state2.videoCost, 10);
   });
 
   it("isolates frameSubmitPlan anchors across director changes and builds per-clip frames in framesWithClip", () => {

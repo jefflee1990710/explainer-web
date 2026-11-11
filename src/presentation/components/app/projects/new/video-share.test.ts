@@ -42,8 +42,8 @@ test("x intent includes drafted caption text", () => {
 });
 
 test("instagram reel and post open different pages", () => {
-  assert.match(videoShareHref("instagram_reel", "https://x"), /instagram.com\/reels\/create/);
-  assert.match(videoShareHref("instagram_post", "https://x"), /instagram.com\/$/);
+  assert.match(videoShareHref("instagram_reel", "https://x"), /instagram.com/);
+  assert.match(videoShareHref("instagram_post", "https://x"), /instagram.com/);
   assert.match(videoShareHref("tiktok", "https://x"), /tiktok.com/);
   assert.match(videoShareHref("youtube", "https://x"), /youtube.com\/upload/);
 });

@@ -6,14 +6,12 @@ export const FRAMES_COST = 8;
 // A character blueprint board is two images: identity portrait + full-body standing.
 export const BLUEPRINT_COST = FRAME_COST * 2;
 
-// Video is billed per second like the provider: 9 credits/s (Seedance 2.0 Fast), 5–15 billed seconds.
-export const VIDEO_CREDITS_PER_SECOND = 9;
-// Cinematic realistic uses Seedance 2.0 at 720p (~$0.151/s vs $0.091/s for Fast = 15 : 9 ratio).
-export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 15;
-// Economy self-hosted Vast.ai ref2va + latent first/last frames bills 4 credits/s (voice included).
-export const ECONOMY_VIDEO_CREDITS_PER_SECOND = 4;
-// ElevenLabs voice changer on a clip whose character has a demo voice.
-export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
+// All non-talking-head videos run on Vast.ai Serverless ComfyUI (`MiniMax-H3 ref2va`) at 2 credits/s (voice included), 5–15 billed seconds.
+export const VIDEO_CREDITS_PER_SECOND = 2;
+export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 2;
+export const ECONOMY_VIDEO_CREDITS_PER_SECOND = 2;
+// ElevenLabs voice track is included in the 2 credits/s rate across all clips.
+export const VOICE_SWAP_CREDITS_PER_SECOND = 0;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
 export const ONE_TAKE_MAX_VIDEO_SECONDS = 60;
@@ -31,8 +29,9 @@ export function billedVideoSeconds(seconds: number, maxSeconds = MAX_VIDEO_SECON
 }
 
 export function videoCreditsPerSecond(styleId?: string, videoQualityTier?: VideoQualityTier) {
-  if (videoQualityTier === "economy") return ECONOMY_VIDEO_CREDITS_PER_SECOND;
-  return styleId === "realistic" ? CINEMATIC_VIDEO_CREDITS_PER_SECOND : VIDEO_CREDITS_PER_SECOND;
+  void styleId;
+  void videoQualityTier;
+  return VIDEO_CREDITS_PER_SECOND;
 }
 
 export function videoCost(
@@ -42,9 +41,6 @@ export function videoCost(
   maxSeconds = MAX_VIDEO_SECONDS,
   videoQualityTier?: VideoQualityTier,
 ) {
-  if (videoQualityTier === "economy") {
-    return ECONOMY_VIDEO_CREDITS_PER_SECOND * billedVideoSeconds(seconds, maxSeconds);
-  }
   const perSecond = videoCreditsPerSecond(styleId, videoQualityTier) + (voiceSwap ? VOICE_SWAP_CREDITS_PER_SECOND : 0);
   return perSecond * billedVideoSeconds(seconds, maxSeconds);
 }
@@ -57,7 +53,7 @@ export function talkingHeadVideoCost(seconds: number) {
 /**
  * Credits for one Scro Swap job:
  * - Static image swap: `FRAME_COST` (`4` credits)
- * - Video / GIF swap (`2s..15s`): `FRAME_COST` (`4` credits for keyframe prepare) + `15 credits/s` (`CINEMATIC_VIDEO_CREDITS_PER_SECOND`).
+ * - Video / GIF swap (`2s..15s`): `FRAME_COST` (`4` credits for keyframe prepare) + `2 credits/s` (`VIDEO_CREDITS_PER_SECOND`).
  */
 export function scroSwapCost(input?: {
   durationSeconds?: number;
@@ -66,17 +62,17 @@ export function scroSwapCost(input?: {
   if (input?.mediaKind === "image") return FRAME_COST;
   const raw = Number(input?.durationSeconds);
   const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
-  return FRAME_COST + CINEMATIC_VIDEO_CREDITS_PER_SECOND * clamped;
+  return FRAME_COST + VIDEO_CREDITS_PER_SECOND * clamped;
 }
 
 /**
  * Credits for one Teleport job (`2s..15s`):
- * `FRAME_COST` (`4` credits for relocated keyframe prepare) + `15 credits/s` (`CINEMATIC_VIDEO_CREDITS_PER_SECOND`).
+ * `FRAME_COST` (`4` credits for relocated keyframe prepare) + `2 credits/s` (`VIDEO_CREDITS_PER_SECOND`).
  */
 export function teleportCost(input?: { durationSeconds?: number }): number {
   const raw = Number(input?.durationSeconds);
   const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
-  return FRAME_COST + CINEMATIC_VIDEO_CREDITS_PER_SECOND * clamped;
+  return FRAME_COST + VIDEO_CREDITS_PER_SECOND * clamped;
 }
 
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.

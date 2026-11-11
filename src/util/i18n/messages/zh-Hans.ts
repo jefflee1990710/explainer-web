@@ -2,9 +2,9 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const zhHans: Partial<Messages> = {
   meta: {
-    title: "Explainer 解说片与 AI 网红 | Scro",
+    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro",
     description:
-      "用同一个锁定脸、衣柜和声音的 AI 网红拍白板 Explainer。从分镜到发布，概念片和网红短片都是同一个人出镜。",
+      "Build Your AI Creator IP, Then Put Them Everywhere. 养一个锁定脸、衣柜和 21 语声音的 AI 角色 IP，一站式包办真人口播、白板 Explainer、2K 剧情短片、动作换角与每日 IG 贴文。",
   },
   nav: {
     projects: "视频",
@@ -59,16 +59,16 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "Explainer · AI Influencer",
-      title: "用 AI 网红拍 Explainer。",
-      subtitle: "同一张脸、同一把声，拍白板解说和网红短片。",
-      ctaStart: "拍一条 Explainer",
+      kicker: "AI Creator IP · 一站式拍片、改片与日常图文",
+      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
+      subtitle: "养一个锁脸、锁声、专属衣橱的 AI 角色 IP —— 一站式包办真人口播、白板解说、2K 剧情短片、动作换角与每日 IG 贴文。",
+      ctaStart: "创建我的 AI 角色 IP",
       ctaWorkspace: "打开创作工作区",
-      ctaUseCases: "看解说片和网红",
-      platformReels: "Explainer 解说片",
-      platformShorts: "AI Influencer",
-      platformTiktok: "同一张脸",
-      artLabel: "白板 Explainer 和 AI 网红出镜",
+      ctaUseCases: "查看角色 3 大创作场景",
+      platformReels: "🎬 拍新片 Create Video",
+      platformShorts: "⚡ 改片 Remix Video",
+      platformTiktok: "📸 出图 Social Image",
+      artLabel: "Build Your AI Creator IP, Then Put Them Everywhere",
     },
     academy: {
       eyebrow: "Explainer Reel",

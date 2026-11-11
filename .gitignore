@@ -49,3 +49,8 @@ next-env.d.ts
 
 # local TTS experiments (audio dataset and model weights)
 /experiments/
+
+# local marketing video renders and demo assets
+/Marketing/
+/public/hero/tools/
+

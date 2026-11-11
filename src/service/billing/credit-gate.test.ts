@@ -140,7 +140,7 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
     () =>
       evaluateCreditSpendGate({
         email: "newuser@example.com",
-        credits: 11,
+        credits: 9,
         cost: MIN_VIDEO_COST,
         sub: null,
       }),

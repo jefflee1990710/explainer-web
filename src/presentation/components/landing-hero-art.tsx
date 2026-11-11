@@ -16,20 +16,29 @@ export function LandingHeroArt() {
       aria-label={t("landing.hero.artLabel")}
     >
       <ParallaxLayer distance={10} className="absolute inset-0">
-        <img
-          src="/hero/studio-backdrop.webp"
-          alt=""
-          className="h-full w-full object-cover object-center"
-        />
-        {/* Keep drama on the sides; soft vignette so center copy stays readable. */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(10,12,16,0.28)_0%,rgba(10,12,16,0.55)_55%,rgba(10,12,16,0.82)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_14%_48%,rgba(198,242,75,0.16),transparent_42%),radial-gradient(ellipse_at_86%_48%,rgba(198,242,75,0.16),transparent_42%)]" />
+        {/* Portal-matched dark studio canvas (#0d0e13) + top radial olive-lime ambient glow */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.05] mix-blend-soft-light"
+          className="absolute inset-0 bg-[#0d0e13]"
+          style={{
+            backgroundImage: [
+              "radial-gradient(ellipse 75% 48% at 50% 12%, rgba(198, 242, 75, 0.20), rgba(198, 242, 75, 0.05) 45%, transparent 72%)",
+              "radial-gradient(ellipse 42% 45% at 14% 50%, rgba(198, 242, 75, 0.10), transparent 65%)",
+              "radial-gradient(ellipse 42% 45% at 86% 50%, rgba(198, 242, 75, 0.10), transparent 65%)",
+              "linear-gradient(180deg, rgba(22, 24, 33, 0.65) 0%, #0d0e13 78%)",
+            ].join(", "),
+          }}
+        />
+        {/* Subtle portal studio architectural grid */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.18]"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+              "linear-gradient(to right, rgba(39,42,54,0.55) 1px, transparent 1px), linear-gradient(to bottom, rgba(39,42,54,0.55) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 35%, #000 25%, transparent 80%)",
           }}
         />
       </ParallaxLayer>

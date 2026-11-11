@@ -1,4 +1,4 @@
-import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS } from "@/service/credit-costs";
+import { FRAMES_COST, MIN_VIDEO_SECONDS } from "@/service/credit-costs";
 
 // Provider COGS used to set list prices (checked 2026-09).
 // Image: Marketing Studio Flare ~$0.075 (Qwen Image 3 is $0.04).
@@ -7,10 +7,10 @@ import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS } from "@/service/credit
 export const IMAGE_COGS_USD = 0.075;
 export const VIDEO_COGS_PER_SECOND_USD = 0.13;
 
-// Typical clip: two Flare frames + a 5s video, spread over its credits.
+// Baseline credit COGS anchor used to size monthly subscription credits (checked 2026-09).
 export const TYPICAL_COGS_PER_CREDIT_USD =
   (2 * IMAGE_COGS_USD + MIN_VIDEO_SECONDS * VIDEO_COGS_PER_SECOND_USD) /
-  (FRAMES_COST + MIN_VIDEO_COST);
+  (FRAMES_COST + 45);
 
 export function typicalCogsUsd(credits: number) {
   return credits * TYPICAL_COGS_PER_CREDIT_USD;

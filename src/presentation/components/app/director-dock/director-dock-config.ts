@@ -1,4 +1,5 @@
 export type DirectorStudioKind =
+  | "simple"
   | "explainer"
   | "talking-head"
   | "story"
@@ -9,6 +10,7 @@ export type DirectorStudioKind =
 
 export interface HeroShowcaseCard {
   imageUrl: string;
+  videoUrl?: string;
   tag: string;
   title: string;
 }
@@ -24,6 +26,39 @@ export function getDirectorHeroCopy(
   locale: string,
 ): DirectorHeroCopy {
   switch (kind) {
+    case "simple":
+      return {
+        headline:
+          locale === "zh-Hant"
+            ? "一鍵生成單鏡電影短片"
+            : locale === "zh-Hans"
+              ? "一键生成单镜电影短片"
+              : "Bring Your Shot to Life",
+        subtitle:
+          locale === "zh-Hant"
+            ? "輸入鏡頭焦距、角度與動作描述，結合首尾幀與角色一鍵生成電影級單鏡影片"
+            : locale === "zh-Hans"
+              ? "输入镜头焦距、角度与动作描述，结合首尾帧与角色一键生成电影级单镜影片"
+              : "Camera-first single-shot video generation with start/end frames and character lock",
+        cards: [
+          {
+            imageUrl: "/hero/tools/simple/left.webp",
+            tag: "FIRST FRAME",
+            title: "Start Keyframe",
+          },
+          {
+            imageUrl: "/hero/tools/simple/center.webp",
+            videoUrl: "/hero/tools/simple/center.mp4",
+            tag: "SIMPLE VIDEO",
+            title: "2K CAMERA-FIRST SHOT",
+          },
+          {
+            imageUrl: "/hero/tools/simple/right.webp",
+            tag: "LAST FRAME",
+            title: "End Keyframe",
+          },
+        ],
+      };
     case "explainer":
       return {
         headline:
@@ -40,19 +75,20 @@ export function getDirectorHeroCopy(
               : "AI storyboard, voiceover, and visual direction in one studio dock",
         cards: [
           {
-            imageUrl: "/hero/styles/paper-cutout.webp",
+            imageUrl: "/hero/tools/explainer/left.webp",
+            tag: "WHITEBOARD DOODLE",
+            title: "Visual Diagram",
+          },
+          {
+            imageUrl: "/hero/tools/explainer/center.webp",
+            videoUrl: "/hero/tools/explainer/center.mp4",
+            tag: "EXPLAINER REEL",
+            title: "AI EXPLAINER DIRECTOR",
+          },
+          {
+            imageUrl: "/hero/tools/explainer/right.webp",
             tag: "PAPER CUTOUT",
-            title: "Storybook Explainer",
-          },
-          {
-            imageUrl: "/hero/outputs/explainer.webp",
-            tag: "CINEMA STUDIO",
-            title: "FIRST AI EXPLAINER REEL",
-          },
-          {
-            imageUrl: "/hero/styles/ray-traced.webp",
-            tag: "3D CINEMA",
-            title: "Visual Hook Series",
+            title: "Storybook Collage",
           },
         ],
       };
@@ -72,17 +108,18 @@ export function getDirectorHeroCopy(
               : "Type a script or upload audio for lifelike lip-sync talking-head reels",
         cards: [
           {
-            imageUrl: "/talking-head-backgrounds/creator-podcast-desk.webp",
+            imageUrl: "/hero/tools/talking-head/left.webp",
             tag: "PODCAST DESK",
             title: "Creator Studio",
           },
           {
-            imageUrl: "/talking-head-backgrounds/hk-seaview-office.webp",
+            imageUrl: "/hero/tools/talking-head/center.webp",
+            videoUrl: "/hero/tools/talking-head/center.mp4",
             tag: "TALKING HEAD",
             title: "AI INFLUENCER ON CAMERA",
           },
           {
-            imageUrl: "/talking-head-backgrounds/sunlit-cafe-window.webp",
+            imageUrl: "/hero/tools/talking-head/right.webp",
             tag: "LIFESTYLE",
             title: "Warm Cafe Vlog",
           },
@@ -104,17 +141,18 @@ export function getDirectorHeroCopy(
               : "Character-driven narrative short films with emotional beats and cinematic camera work",
         cards: [
           {
-            imageUrl: "/relight/sunset_window.webp",
+            imageUrl: "/hero/tools/story/left.webp",
             tag: "DRAMA BEAT",
             title: "Golden Hour Scene",
           },
           {
-            imageUrl: "/home/tool-story.png",
+            imageUrl: "/hero/tools/story/center.webp",
+            videoUrl: "/hero/tools/story/center.mp4",
             tag: "SHORT FILM",
             title: "CINEMATIC STORY DIRECTOR",
           },
           {
-            imageUrl: "/relight/cyan_orb.webp",
+            imageUrl: "/hero/tools/story/right.webp",
             tag: "NEON MOOD",
             title: "Night Dialogue",
           },
@@ -136,19 +174,20 @@ export function getDirectorHeroCopy(
               : "Post templates, real-world scenes, and person replacement for your AI creator",
         cards: [
           {
-            imageUrl: "/talking-head-backgrounds/sunlit-cafe-window.webp",
+            imageUrl: "/hero/tools/life/left.webp",
             tag: "CAFE VIBE",
             title: "Afternoon Espresso",
           },
           {
-            imageUrl: "/hero/outputs/life-cafe.webp",
+            imageUrl: "/hero/tools/life/center.webp",
+            videoUrl: "/hero/tools/life/center.mp4",
             tag: "LIFE STUDIO",
             title: "CANDID LIFESTYLE SHOT",
           },
           {
-            imageUrl: "/talking-head-backgrounds/minimalist-loft-plant.webp",
+            imageUrl: "/hero/tools/life/right.webp",
             tag: "OOTD LOOK",
-            title: "Minimalist Loft",
+            title: "Street Fashion Feed",
           },
         ],
       };
@@ -168,19 +207,20 @@ export function getDirectorHeroCopy(
               : "Multi-person detection with full-body motion, relighting, and lip-sync",
         cards: [
           {
-            imageUrl: "/relight/golden_halo.webp",
-            tag: "RELIGHT",
-            title: "Golden Halo",
+            imageUrl: "/hero/tools/scroswap/left.webp",
+            tag: "SOURCE MOTION",
+            title: "Original Action Clip",
           },
           {
-            imageUrl: "/showcase/scro-reel.png",
+            imageUrl: "/hero/tools/scroswap/center.webp",
+            videoUrl: "/hero/tools/scroswap/center.mp4",
             tag: "SCRO SWAP",
             title: "CHARACTER MOTION SWAP",
           },
           {
-            imageUrl: "/relight/cyan_orb.webp",
-            tag: "NEON GEL",
-            title: "Cyber Studio",
+            imageUrl: "/hero/tools/scroswap/right.webp",
+            tag: "TARGET CAST",
+            title: "Swapped Identity & Light",
           },
         ],
       };
@@ -200,19 +240,20 @@ export function getDirectorHeroCopy(
               : "Preserve subject identity and motion while relocating into any scene or mood",
         cards: [
           {
-            imageUrl: "/talking-head-backgrounds/hk-seaview-office.webp",
-            tag: "HARBOUR VIEW",
-            title: "Penthouse Skyline",
+            imageUrl: "/hero/tools/teleport/left.webp",
+            tag: "ORIGINAL CLIP",
+            title: "Subject & Motion",
           },
           {
-            imageUrl: "/showcase/product-marketing.png",
+            imageUrl: "/hero/tools/teleport/center.webp",
+            videoUrl: "/hero/tools/teleport/center.mp4",
             tag: "TELEPORT 2K",
             title: "SCENE RELOCATION STUDIO",
           },
           {
-            imageUrl: "/relight/sunset_window.webp",
-            tag: "SUNSET MOOD",
-            title: "Golden Hour",
+            imageUrl: "/hero/tools/teleport/right.webp",
+            tag: "NEW SCENE",
+            title: "Relocated Destination",
           },
         ],
       };
@@ -232,19 +273,20 @@ export function getDirectorHeroCopy(
               : "2K poster generation with element editing for people, objects, and text",
         cards: [
           {
-            imageUrl: "/hero/outputs/life-cafe.webp",
-            tag: "CHARACTER",
-            title: "Character Swap",
+            imageUrl: "/hero/tools/posts/left.webp",
+            tag: "CHARACTER & PRODUCT",
+            title: "Brand Assets",
           },
           {
-            imageUrl: "/showcase/product-marketing.png",
+            imageUrl: "/hero/tools/posts/center.webp",
+            videoUrl: "/hero/tools/posts/center.mp4",
             tag: "POSTER CREATOR",
-            title: "2K POSTER STUDIO",
+            title: "2K SAM-3 POSTER STUDIO",
           },
           {
-            imageUrl: "/hero/styles/paper-cutout.webp",
-            tag: "TEXT & OBJECT",
-            title: "In-Place Poster Edit",
+            imageUrl: "/hero/tools/posts/right.webp",
+            tag: "LAYER INPAINT",
+            title: "Click-to-Edit Elements",
           },
         ],
       };

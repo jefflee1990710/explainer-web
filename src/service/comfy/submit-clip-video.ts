@@ -13,10 +13,7 @@ import {
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
-import {
-  OPENROUTER_HAILUO_3_VIDEO_MODEL,
-  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-} from "@/service/openrouter/generate";
+import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export function shouldUseComfyForClipVideo(input: {
   model: string;
@@ -30,11 +27,9 @@ export function shouldUseComfyForClipVideo(input: {
   if (input.audioUrl?.trim()) return false;
   if (input.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) return false;
   if (input.skillSlug === "talking-head-director") return false;
-  if (input.skillSlug === "one-take-director") return true;
-  if (input.videoQualityTier === "economy") return true;
-  // Route all MiniMax H3 (`minimax/hailuo-3`) video generation to Vast Serverless ComfyUI by default
-  if (input.model === OPENROUTER_HAILUO_3_VIDEO_MODEL) return true;
-  return process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() === "true";
+  // Route all non-talking-head video generation (realistic, doodle, paper-cutout, stickman, anime, story, one-take)
+  // to Vast Serverless ComfyUI by default with no cloud fallback.
+  return true;
 }
 
 function h3ValidFrameLength(durationSeconds: number): number {
@@ -349,6 +344,9 @@ export async function submitComfyStoryboardClipVideo(
   },
   options?: { fetch?: typeof fetch },
 ): Promise<ComfySubmitResult> {
+  if (!hasComfyEndpoint()) {
+    throw new Error("ComfyUI 尚未設定");
+  }
   const fetchFn = options?.fetch ?? fetch;
   const runId = randomUUID().replace(/-/g, "").slice(0, 12);
 

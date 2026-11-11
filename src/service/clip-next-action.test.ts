@@ -60,7 +60,7 @@ test("ready frames ask for the video at the clip's per-second cost", () => {
   assert.equal(action.kind, "video");
   assert.equal(action.cost, MIN_VIDEO_COST);
   const eightSeconds = clipNextAction({ ...state("frames_ready"), videoCost: videoCost(8) });
-  assert.equal(eightSeconds.cost, 72);
+  assert.equal(eightSeconds.cost, 16);
 });
 
 test("failed video retries the video", () => {

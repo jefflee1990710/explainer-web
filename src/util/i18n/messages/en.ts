@@ -20,9 +20,9 @@ import { wardrobeEn } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 export const en: Messages = {
   meta: {
-    title: "AI Influencer, Explainer Videos, 120s Talking-Head, Scro Swap & AI Video Editor | Scro",
+    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro",
     description:
-      "Build a virtual KOL with a locked face, custom wardrobe, and 21-language cloned voice. Ship whiteboard & paper-cutout explainers, 120s 1080p talking-head reels, product UGC, SAM 3 Scro Swap, Teleport scene relocation, 2K posters, and peak-aligned timeline edits.",
+      "Build Your AI Creator IP, Then Put Them Everywhere. Lock one face, custom wardrobe, and 21-language voice to direct 120s talking-head reels, whiteboard explainers, 2K stories, SAM 3 Scro Swap, Teleport scene relocation, Life photos, and 2K posters.",
   },
   nav: {
     projects: "Video",
@@ -136,17 +136,17 @@ export const en: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Explainer · AI Influencer",
-      title: "Explainer videos. One AI Influencer.",
+      kicker: "AI Creator IP · Video, Remix & Social Studio",
+      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
       subtitle:
-        "Lock one face, voice, and wardrobe. Then ship whiteboard explainers and influencer shorts.",
-      ctaStart: "Make an explainer",
-      ctaWorkspace: "Open studio",
-      ctaUseCases: "See explainer and influencer",
-      platformReels: "Explainer videos",
-      platformShorts: "AI Influencer",
-      platformTiktok: "One locked face",
-      artLabel: "Explainer video and AI Influencer on one stage",
+        "Lock one face, voice, and wardrobe. Direct videos, remixes, and daily social posts.",
+      ctaStart: "Build My AI Creator",
+      ctaWorkspace: "Open Studio",
+      ctaUseCases: "See What Your Creator Can Do",
+      platformReels: "Create Video",
+      platformShorts: "Remix Video",
+      platformTiktok: "Social Image",
+      artLabel: "Build your AI Creator IP and put them everywhere",
     },
     academy: {
       eyebrow: "Explainer reel",

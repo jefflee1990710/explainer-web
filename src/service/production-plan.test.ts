@@ -127,8 +127,8 @@ test("video cost follows each clip's storyboard duration", () => {
     frames: [],
     clips: [],
   };
-  assert.equal(clipVideoCost(project, 2), 72);
-  assert.equal(cheapestVideoCost(project, [1, 2]), 45);
+  assert.equal(clipVideoCost(project, 2), 16);
+  assert.equal(cheapestVideoCost(project, [1, 2]), 10);
   assert.deepEqual(planGenerateAllVideos(project), { frames: [], videos: [], cost: 0 });
 });
 
@@ -274,6 +274,6 @@ test("clipVideoCost bills up to 120 seconds for talking-head-director and caps o
     frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
     clips: [],
   };
-  // non-talking-head remains capped at 15s: 9 credits/s * 15s = 135
-  assert.equal(planGenerateAllVideos(cartoon60s).cost, 135);
+  // non-talking-head remains capped at 15s: 2 credits/s * 15s = 30
+  assert.equal(planGenerateAllVideos(cartoon60s).cost, 30);
 });

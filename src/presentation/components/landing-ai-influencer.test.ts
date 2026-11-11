@@ -8,12 +8,15 @@ import { zhHans } from "@/util/i18n/messages/zh-Hans";
 
 const ROOT = process.cwd();
 
-test("landing messages focus Scro on explainer videos and AI Influencers", () => {
-  assert.match(en.meta.title, /Explainer|AI Influencer/i);
-  assert.match(en.landing.hero.kicker, /Explainer|AI Influencer/i);
-  assert.match(en.landing.hero.title, /Explainer|AI Influencer/i);
+test("landing messages focus Scro on AI Creator IP and explainer/video studio", () => {
+  assert.match(en.meta.title, /AI Creator IP|Explainer|AI Influencer/i);
+  assert.match(en.landing.hero.kicker, /AI Creator IP|Explainer|AI Influencer/i);
+  assert.equal(
+    en.landing.hero.title,
+    "Build Your AI Creator IP, Then Put Them Everywhere.",
+  );
   assert.ok(en.landing.hero.title.length <= 60, "en hero title should stay concise");
-  assert.ok(en.landing.hero.subtitle.length <= 100, "en hero subtitle should stay concise");
+  assert.ok(en.landing.hero.subtitle.length <= 130, "en hero subtitle should stay concise");
   assert.match(en.landing.cast.title, /AI Influencer|explainer/i);
   assert.match(en.landing.steps.step1Title, /character|wardrobe/i);
   assert.match(en.landing.steps.step2Title, /explainer/i);
@@ -21,16 +24,25 @@ test("landing messages focus Scro on explainer videos and AI Influencers", () =>
   assert.doesNotMatch(en.landing.academy.title, /course/i);
   assert.match(zhHant.landing.academy.title, /Reel|白板/);
 
-  assert.match(zhHant.meta.title, /Explainer|AI 網紅/);
-  assert.match(zhHant.landing.hero.kicker, /Explainer|AI Influencer|AI 網紅/);
-  assert.match(zhHant.landing.hero.title, /Explainer|AI 網紅/);
-  assert.ok(zhHant.landing.hero.title.length <= 24, "zhHant hero title should stay concise");
-  assert.ok(zhHant.landing.hero.subtitle.length <= 45, "zhHant hero subtitle should stay concise");
+  assert.match(zhHant.meta.title, /AI Creator IP|AI 角色 IP|Explainer|AI 網紅/);
+  assert.match(zhHant.landing.hero.kicker, /AI Creator IP|Explainer|AI Influencer|AI 網紅/);
+  assert.equal(
+    zhHant.landing.hero.title,
+    "Build Your AI Creator IP, Then Put Them Everywhere.",
+  );
+  assert.ok(zhHant.landing.hero.subtitle.length <= 80, "zhHant hero subtitle should stay concise");
   assert.match(zhHant.landing.cast.title, /AI 網紅|Explainer/);
   assert.match(zhHant.landing.steps.step1Title, /角色|衣櫃/);
 
-  assert.match(zhHans.meta?.title ?? "", /Explainer|AI 网红/);
-  assert.match(zhHans.landing?.hero?.kicker ?? "", /Explainer|AI Influencer|AI 网红/);
+  assert.match(zhHans.meta?.title ?? "", /AI Creator IP|Explainer|AI 网红/);
+  assert.match(zhHans.landing?.hero?.kicker ?? "", /AI Creator IP|Explainer|AI Influencer|AI 网红/);
+
+  const heroArt = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/landing-hero-art.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(heroArt, /studio-backdrop\.webp/);
+  assert.match(heroArt, /#0d0e13/);
 });
 
 test("HomePage use cases lead with explainer videos, then the AI Influencer", () => {

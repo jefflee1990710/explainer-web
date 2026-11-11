@@ -17,13 +17,13 @@ test("only a saved 製作 or 影片 step is restored", () => {
   assert.equal(parseEditorTab("0"), null);
   assert.equal(parseEditorTab("3"), null);
   assert.equal(parseEditorTab("1"), 1);
-  assert.equal(parseEditorTab("2"), 2);
+  assert.equal(parseEditorTab("2"), 1);
 });
 
 test("影片 is restored only after every clip is ready", () => {
-  assert.equal(rememberedEditorStep("1", false), 1);
+  assert.equal(rememberedEditorStep("1", false), null);
   assert.equal(rememberedEditorStep("1", true), 1);
   assert.equal(rememberedEditorStep("2", false), null);
-  assert.equal(rememberedEditorStep("2", true), 2);
+  assert.equal(rememberedEditorStep("2", true), 1);
   assert.equal(rememberedEditorStep(null, true), null);
 });

@@ -32,19 +32,9 @@ import {
   DEFAULT_JUTSU_COLOR_SETTINGS,
 } from "@/service/jutsu/color-grade";
 import {
-  describeJutsuVideoMotion,
-  upsampleJutsuFramePrompt,
-} from "@/service/jutsu/describer";
-import {
-  hasMinimaxApiKey,
-  submitMinimaxH3Ref2VaVideo,
-} from "@/service/jutsu/minimax-h3-ref2va";
-import {
-  extractVideoSectionAudioMp3,
   extractVideoSectionKeyframes,
   muxSourceSectionAudio,
 } from "@/service/jutsu/pipeline";
-import { buildSam3MannequinAndMaskVideos } from "@/service/jutsu/sam-mannequin";
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
@@ -60,23 +50,14 @@ import {
 import { trySubmitTeleportComfy } from "@/service/comfy/submit-swap";
 import { scheduleTeleportFinishedEmail } from "@/service/notify/generation-email";
 import {
-  OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   openRouterAuthHeaders,
-  submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
-import { cutSubjectOntoPlain } from "@/service/teleport/identity-frame";
-import {
-  buildTeleportRelocatePrompt,
-  buildTeleportScenePlatePrompt,
-  buildTeleportVideoPrompt,
-  chooseTeleportVideoEngine,
-} from "@/service/teleport/prompts";
+import { buildTeleportScenePlatePrompt } from "@/service/teleport/prompts";
 import {
   isAllowedTeleportMediaUrl,
   normalizeTeleportStart,
-  teleportSubmitDurationSeconds,
   type TeleportStartInput,
 } from "@/service/teleport/start-input";
 import { blobStoreHost } from "@/service/video-edit/edit-state";
@@ -276,229 +257,48 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
       return { sceneImageUrl, scenePlateGenerated: true };
     };
 
-    let submitted: {
-      request_id?: string;
-      status_url?: string;
-      video?: { url: string };
-    };
-    let motionText: string | undefined;
-
-    if (hasComfyEndpoint()) {
-      // Self-hosted ComfyUI runs its own SAM 3.1 mask, Qwen-VL describer, and start-frame background edit.
-      // Only persist the raw start still (and scene plate when text-only) and submit directly.
-      const [rawStartFrameUrl, scene] = await Promise.all([
-        persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
-        resolveScenePlate(),
-      ]);
-      await col.updateOne(
-        { _id: job._id },
-        {
-          $set: {
-            sectionLength: effectiveSectionLength,
-            rawStartFrameUrl,
-            preparedStartFrameUrl: rawStartFrameUrl,
-            sceneImageUrl: scene.sceneImageUrl,
-            scenePlateGenerated: scene.scenePlateGenerated,
-            updatedAt: new Date(),
-          },
-        },
-      );
-      await syncStandaloneEngineFrame({
-        targetVideoId: job.targetVideoId,
-        targetClipNumber: job.targetClipNumber,
-        aspectRatio: extracted.aspectRatio,
-        durationSeconds: effectiveSectionLength,
-        posterUrl: rawStartFrameUrl,
-      });
-      const comfyJob: TeleportJobDoc = {
-        ...job,
-        sectionLength: effectiveSectionLength,
-        rawStartFrameUrl,
-        preparedStartFrameUrl: rawStartFrameUrl,
-        sceneImageUrl: scene.sceneImageUrl,
-        scenePlateGenerated: scene.scenePlateGenerated,
-      };
-      const comfySubmitted = await trySubmitTeleportComfy(comfyJob, sourceVideoBuffer);
-      if (!comfySubmitted) {
-        throw new Error("ComfyUI Teleport 提交失敗");
-      }
-      submitted = comfySubmitted;
-    } else {
-      const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
-        persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
-        persistBuffer(extracted.endFrameWebp, `${prefix}/raw-end.webp`, "image/webp"),
-      ]);
-      await col.updateOne(
-        { _id: job._id },
-        {
-          $set: {
-            sectionLength: effectiveSectionLength,
-            rawStartFrameUrl,
-            rawEndFrameUrl,
-            updatedAt: new Date(),
-          },
-        },
-      );
-
-      // SAM mannequin, scene plate, and section audio extraction do not depend on each other.
-      const [samResult, scene, sectionAudioMp3] = await Promise.all([
-        buildSam3MannequinAndMaskVideos({
-          sourceVideoBuffer,
-          sectionStart: job.sectionStart,
-          sectionLength: effectiveSectionLength,
-          target: "person",
-          margin: "normal",
-          hatFix: false,
-          motionSize: 768,
-          // Openjutsu object-swap background: flip the grown person mask and grey the surroundings.
-          maskMode: "background",
-        }).catch((error) => {
-          console.error("[teleport] mannequin failed", { jobId: job._id.toHexString(), error });
-          return null;
-        }),
-        resolveScenePlate(),
-        job.keepSourceAudio !== false
-          ? extractVideoSectionAudioMp3(
-              sourceVideoBuffer,
-              job.sectionStart,
-              effectiveSectionLength,
-            )
-          : Promise.resolve(null),
-      ]);
-
-      const firstSubjectMask = samResult?.firstSubjectMask ?? null;
-      const identityIgnoresBackground = !firstSubjectMask;
-      const identityBuffer = firstSubjectMask
-        ? await cutSubjectOntoPlain(
-            extracted.startFrameWebp,
-            firstSubjectMask.mask,
-            firstSubjectMask.width,
-            firstSubjectMask.height,
-          )
-        : extracted.startFrameWebp;
-
-      const [identityFrameUrl, mannequinVideoUrl, sectionAudioUrl] = await Promise.all([
-        persistBuffer(identityBuffer, `${prefix}/identity.webp`, "image/webp"),
-        samResult
-          ? persistBuffer(samResult.mannequinVideoBuffer, `${prefix}/mannequin.mp4`, "video/mp4")
-          : Promise.resolve(undefined),
-        sectionAudioMp3
-          ? persistBuffer(sectionAudioMp3, `${prefix}/section-audio.mp3`, "audio/mpeg")
-          : Promise.resolve(undefined),
-      ]);
-      await col.updateOne(
-        { _id: job._id },
-        {
-          $set: {
-            sceneImageUrl: scene.sceneImageUrl,
-            scenePlateGenerated: scene.scenePlateGenerated,
-            identityFrameUrl,
-            mannequinVideoUrl,
-            sectionAudioUrl,
-            updatedAt: new Date(),
-          },
-        },
-      );
-
-      // Upsample the relocate prompts against [raw frame, scene] so Seedream keeps the person and enters the place.
-      const sceneBuffer = await fetchBufferOrNull(scene.sceneImageUrl);
-      const withScene = (raw: Buffer) => (sceneBuffer ? [raw, sceneBuffer] : [raw]);
-      // H3 ref2va animates the start still. The end still is only for the Hailuo fallback.
-      const h3Ready = hasMinimaxApiKey();
-      const [startPrompt, endPrompt] = await Promise.all([
-        upsampleJutsuFramePrompt({
-          baseRequest: buildTeleportRelocatePrompt({ moment: "start", scenePrompt: job.scenePrompt }),
-          imageBuffers: withScene(extracted.startFrameWebp),
-        }),
-        h3Ready
-          ? Promise.resolve(null)
-          : upsampleJutsuFramePrompt({
-              baseRequest: buildTeleportRelocatePrompt({ moment: "end", scenePrompt: job.scenePrompt }),
-              imageBuffers: withScene(extracted.endFrameWebp),
-            }),
-      ]);
-
-      const [preparedStart, preparedEnd] = await Promise.all([
-        seedreamWebp({
-          prompt: startPrompt,
-          aspectRatio: job.aspectRatio,
-          referenceImageUrls: [rawStartFrameUrl, scene.sceneImageUrl],
-        }),
-        endPrompt
-          ? seedreamWebp({
-              prompt: endPrompt,
-              aspectRatio: job.aspectRatio,
-              referenceImageUrls: [rawEndFrameUrl, scene.sceneImageUrl],
-            })
-          : Promise.resolve(null),
-      ]);
-      const [preparedStartFrameUrl, preparedEndFrameUrl] = await Promise.all([
-        persistBuffer(preparedStart, `${prefix}/prepared-start.webp`, "image/webp"),
-        preparedEnd
-          ? persistBuffer(preparedEnd, `${prefix}/prepared-end.webp`, "image/webp")
-          : Promise.resolve(undefined),
-      ]);
-
-      motionText = await describeJutsuVideoMotion({
-        sampledFrameBuffers: extracted.sampledFramesJpeg,
-        preparedFrameBuffer: preparedStart,
-      });
-
-      await col.updateOne(
-        { _id: job._id },
-        {
-          $set: {
-            preparedStartFrameUrl,
-            ...(preparedEndFrameUrl ? { preparedEndFrameUrl } : {}),
-            editPrompt: startPrompt,
-            motionDescription: motionText,
-            updatedAt: new Date(),
-          },
-        },
-      );
-
-      await syncStandaloneEngineFrame({
-        targetVideoId: job.targetVideoId,
-        targetClipNumber: job.targetClipNumber,
-        aspectRatio: extracted.aspectRatio,
-        durationSeconds: effectiveSectionLength,
-        posterUrl: preparedStartFrameUrl,
-      });
-
-      const engine = chooseTeleportVideoEngine({
-        hasMannequin: Boolean(mannequinVideoUrl),
-        hasMinimaxKey: hasMinimaxApiKey(),
-      });
-      const prompt = buildTeleportVideoPrompt({
-        engine,
-        motionText,
-        scenePrompt: job.scenePrompt,
-        identityIgnoresBackground,
-        hasReferenceAudio: Boolean(sectionAudioUrl),
-      });
-      const durationSeconds = teleportSubmitDurationSeconds(effectiveSectionLength);
-
-      submitted =
-        engine === "h3" && mannequinVideoUrl
-          ? await submitMinimaxH3Ref2VaVideo({
-              prompt,
-              preparedImageUrl: preparedStartFrameUrl,
-              identityImageUrl: identityFrameUrl,
-              mannequinVideoUrl,
-              audioUrl: sectionAudioUrl,
-              noLipSync: false,
-              durationSeconds,
-              aspectRatio: job.aspectRatio,
-            })
-          : await submitOpenRouterClipVideo({
-              model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
-              prompt,
-              aspectRatio: job.aspectRatio,
-              durationSeconds,
-              startImageUrl: preparedStartFrameUrl,
-              endImageUrl: preparedEndFrameUrl || preparedStartFrameUrl,
-            });
+    if (!hasComfyEndpoint()) {
+      throw new Error("ComfyUI 尚未設定");
     }
+    // Self-hosted ComfyUI runs its own SAM 3.1 mask, Qwen-VL describer, and start-frame background edit.
+    // Only persist the raw start still (and scene plate when text-only) and submit directly.
+    const [rawStartFrameUrl, scene] = await Promise.all([
+      persistBuffer(extracted.startFrameWebp, `${prefix}/raw-start.webp`, "image/webp"),
+      resolveScenePlate(),
+    ]);
+    await col.updateOne(
+      { _id: job._id },
+      {
+        $set: {
+          sectionLength: effectiveSectionLength,
+          rawStartFrameUrl,
+          preparedStartFrameUrl: rawStartFrameUrl,
+          sceneImageUrl: scene.sceneImageUrl,
+          scenePlateGenerated: scene.scenePlateGenerated,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    await syncStandaloneEngineFrame({
+      targetVideoId: job.targetVideoId,
+      targetClipNumber: job.targetClipNumber,
+      aspectRatio: extracted.aspectRatio,
+      durationSeconds: effectiveSectionLength,
+      posterUrl: rawStartFrameUrl,
+    });
+    const comfyJob: TeleportJobDoc = {
+      ...job,
+      sectionLength: effectiveSectionLength,
+      rawStartFrameUrl,
+      preparedStartFrameUrl: rawStartFrameUrl,
+      sceneImageUrl: scene.sceneImageUrl,
+      scenePlateGenerated: scene.scenePlateGenerated,
+    };
+    const comfySubmitted = await trySubmitTeleportComfy(comfyJob, sourceVideoBuffer);
+    if (!comfySubmitted) {
+      throw new Error("ComfyUI Teleport 提交失敗");
+    }
+    const submitted = comfySubmitted;
 
     await col.updateOne(
       { _id: job._id },
@@ -506,7 +306,6 @@ export async function runTeleportJobInBackground(jobId: ObjectId): Promise<void>
         $set: {
           openRouterRequestId: submitted.request_id,
           openRouterStatusUrl: submitted.status_url,
-          ...(motionText ? { motionDescription: motionText } : {}),
           updatedAt: new Date(),
         },
       },

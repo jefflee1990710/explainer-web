@@ -3,7 +3,6 @@ import {
   OPENROUTER_WAN_3_VIDEO_MODEL,
   clipVideoResolution,
 } from "@/service/openrouter/generate";
-import { isRealisticStyle } from "@/service/style/realistic-light";
 import { mediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 
@@ -11,9 +10,10 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 // Production V2 slug (H3 Max CLI job_type is OAuth-only).
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
-// Cinematic realistic and Story directors use MiniMax Hailuo 3 (H3 cloud model, 2K + audio + first/last frame) on OpenRouter; non-realistic styles use Alibaba Wan 3.0.
+// All storyboard directors and styles (realistic, doodle, paper-cutout, stickman, anime, story-short, one-take)
+// use MiniMax H3 (`minimax/hailuo-3`), routed to Vast.ai Serverless ComfyUI (`ref2va`).
 export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
-export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;
+export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const WAN_3_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;
 
 // HeyGen Avatar IV is a single-speaker head-puppet model and must ONLY be used for talking-head-director.
@@ -25,11 +25,9 @@ export function clipVideoModel(
   styleOrId?: string | { id?: string; baseStyleId?: string } | null,
   skillSlug?: string,
 ) {
-  if (skillSlug === "story-short-director" || skillSlug === "one-take-director") {
-    return SEEDANCE_2_VIDEO_MODEL;
-  }
-  const style = typeof styleOrId === "string" ? { id: styleOrId } : styleOrId;
-  return isRealisticStyle(style) ? SEEDANCE_2_VIDEO_MODEL : SEEDANCE_2_FAST_VIDEO_MODEL;
+  void styleOrId;
+  void skillSlug;
+  return SEEDANCE_2_VIDEO_MODEL;
 }
 
 export type FrameAnchorKind = "clip-start" | "prev-end" | "clip-end";
