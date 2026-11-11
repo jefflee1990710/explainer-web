@@ -51,11 +51,11 @@ export function resolveExplainerAutoOnScreenTextTargets(
   }
 
   const coverage = project.onScreenTextCoverage || "hook";
-  const storyboard = project.phaseA?.clips || (project.phaseA as any)?.storyboard || [];
+  const storyboard = project.phaseA?.clips ?? [];
   const clips = project.clips || [];
 
   if (coverage === "hook") {
-    const firstScene = storyboard[0]?.startScene || (storyboard[0] as any)?.explainerScene;
+    const firstScene = storyboard[0]?.startScene || storyboard[0]?.explainerScene;
     const text = extractCleanHookText({
       sceneText: firstScene,
       fallbackTitle: project.phaseA?.localizedTitle,
@@ -71,7 +71,7 @@ export function resolveExplainerAutoOnScreenTextTargets(
   for (let i = 0; i < count; i++) {
     const sb = storyboard[i];
     const clip = clips[i];
-    const sceneText = sb?.startScene || (sb as any)?.explainerScene;
+    const sceneText = sb?.startScene || sb?.explainerScene;
     const text = extractCleanHookText({
       sceneText,
       fallbackTitle: i === 0 ? project.phaseA?.localizedTitle : undefined,

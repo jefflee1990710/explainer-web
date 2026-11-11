@@ -169,8 +169,12 @@ export function ExplainerOnScreenTextDialog({
               {SYSTEM_TEXT_STYLE_ORDER.map((styleId) => {
                 const isSelected = selectedStyleId === styleId;
                 const previewSrc = systemTextStylePreview(styleId as SubtitleLook);
-                const styleName = t(`pickers.subtitleLook.${styleId}.label` as any) || styleId;
-                const sublabel = t(`pickers.subtitleLook.${styleId}.sublabel` as any) || "";
+                const styleName =
+                  t(`pickers.subtitleLook.${styleId}.label` as Parameters<typeof t>[0]) ||
+                  styleId;
+                const sublabel =
+                  t(`pickers.subtitleLook.${styleId}.sublabel` as Parameters<typeof t>[0]) ||
+                  "";
 
                 return (
                   <button

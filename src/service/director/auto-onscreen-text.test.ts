@@ -10,7 +10,7 @@ test("resolveExplainerAutoOnScreenTextTargets returns only Clip 1 when coverage 
     onScreenTextCoverage: "hook",
     phaseA: {
       localizedTitle: "香港買樓 3 大陷阱",
-      storyboard: [
+      clips: [
         { clipNumber: 1, startScene: "Hook: 「買樓避坑」", startVo: "買樓千祈咪踩呢個陷阱" },
         { clipNumber: 2, startScene: "Point 1", startVo: "第一點係印花稅" },
       ],
@@ -35,7 +35,7 @@ test("resolveExplainerAutoOnScreenTextTargets returns all clips when coverage is
     onScreenTextCoverage: "all",
     phaseA: {
       localizedTitle: "AI 革命",
-      storyboard: [
+      clips: [
         { clipNumber: 1, startScene: "「AI 改變一切」", startVo: "AI 已經改變工作方式" },
         { clipNumber: 2, startScene: "「自動化工具」", startVo: "自動化工具幫你省時間" },
       ],
