@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveExplainerAutoOnScreenTextTargets } from "@/service/director/auto-onscreen-text";
+import {
+  explainerClipHasVideo,
+  onscreenTextClipIsSettled,
+  resolveExplainerAutoOnScreenTextTargets,
+} from "@/service/director/auto-onscreen-text";
 import type { Project } from "@/model/project";
 
 test("resolveExplainerAutoOnScreenTextTargets returns only Clip 1 when coverage is 'hook'", () => {
@@ -65,4 +69,39 @@ test("resolveExplainerAutoOnScreenTextTargets returns empty when not explainer o
     phaseA: { localizedTitle: "Title" },
   } as unknown as Project;
   assert.equal(resolveExplainerAutoOnScreenTextTargets(talkingHead).length, 0);
+});
+
+test("explainerClipHasVideo waits until the clip file is completed", () => {
+  const clips = [
+    { clipNumber: 1, status: "in_progress", blobUrl: "https://blob/clip-1.mp4" },
+    { clipNumber: 2, status: "completed", outputUrl: "https://blob/clip-2.mp4" },
+    { clipNumber: 3, status: "completed" },
+  ] as Project["clips"];
+  assert.equal(explainerClipHasVideo(clips, 0), false);
+  assert.equal(explainerClipHasVideo(clips, 1), true);
+  assert.equal(explainerClipHasVideo(clips, 2), false);
+});
+
+test("onscreenTextClipIsSettled ignores a finished sticker that was never painted into the video", () => {
+  assert.equal(
+    onscreenTextClipIsSettled(
+      [{ id: "a", text: "Hook", textStyleId: "clean", status: "completed", clipIndex: 0, blobUrl: "https://blob/patch.png" }],
+      0,
+    ),
+    false,
+  );
+  assert.equal(
+    onscreenTextClipIsSettled(
+      [{ id: "a", text: "Hook", textStyleId: "clean", status: "completed", clipIndex: 0, inpaintedVideoUrl: "https://blob/clip.mp4" }],
+      0,
+    ),
+    true,
+  );
+  assert.equal(
+    onscreenTextClipIsSettled(
+      [{ id: "a", text: "Hook", textStyleId: "clean", status: "in_progress", clipIndex: 0 }],
+      0,
+    ),
+    true,
+  );
 });

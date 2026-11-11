@@ -1364,8 +1364,12 @@ export async function applyJobStatus(input: {
 
   await syncProjectFromJobs(projectId);
 
-  // Last clip video just landed: queue 成片合成 as a background task.
+  // Last clip video just landed: draw Explainer on-screen text into that file, then queue 成片合成.
   if (job.kind === "video" && status === "completed" && (blobUrl || outputUrl)) {
+    const { triggerExplainerAutoOnScreenText } = await import("@/service/director/auto-onscreen-text");
+    await triggerExplainerAutoOnScreenText(projectId).catch((err) => {
+      console.error("[auto-onscreen-text] trigger failed", { projectId, err });
+    });
     await queueReelIfReady(projectId);
   }
 
@@ -1379,13 +1383,6 @@ export async function applyJobStatus(input: {
     await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
     // Talking-head later starts lock to Clip 1's start.
     if (job.clipIndex === 0) await submitStartsAwaitingFirstStart(projectId);
-    // Explainer auto on-screen text triggers in background once start frame(s) are ready
-    if (job.clipIndex === 0 || project?.onScreenTextCoverage === "all") {
-      const { triggerExplainerAutoOnScreenText } = await import("@/service/director/auto-onscreen-text");
-      triggerExplainerAutoOnScreenText(projectId).catch((err) => {
-        console.error("[auto-onscreen-text] trigger failed", { projectId, err });
-      });
-    }
   }
 
   // Previous end landed, so the next clip's start can use it as the place reference.

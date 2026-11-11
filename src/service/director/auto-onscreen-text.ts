@@ -1,7 +1,10 @@
 import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
-import type { Project } from "@/model/project";
-import { enqueueOpencutOnScreenText } from "@/service/opencut/on-screen-text";
+import type { OnscreenTextItem, Project } from "@/model/project";
+import {
+  enqueueProjectOnScreenText,
+  requeueOnScreenTextDraw,
+} from "@/service/opencut/on-screen-text";
 
 export type AutoOnScreenTextTarget = {
   clipIndex: number;
@@ -91,7 +94,43 @@ export function resolveExplainerAutoOnScreenTextTargets(
   return targets;
 }
 
-// Background orchestrator that enqueues on-screen text jobs for Explainer videos
+// The clip video must already exist. Lettering is drawn into that file, not onto the still.
+export function explainerClipHasVideo(
+  clips: Project["clips"] | undefined,
+  clipIndex: number,
+): boolean {
+  const clip = clips?.[clipIndex];
+  if (!clip || clip.status !== "completed") return false;
+  const url = (clip.blobUrl || clip.outputUrl || "").trim();
+  return url.startsWith("https://");
+}
+
+// A clip is settled while a draw is in flight, or after the letters are in the video.
+export function onscreenTextClipIsSettled(
+  items: OnscreenTextItem[] | undefined,
+  clipIndex: number,
+): boolean {
+  return (items ?? []).some((item) => {
+    if ((item.clipIndex ?? 0) !== clipIndex) return false;
+    if (item.status === "queued" || item.status === "in_progress") return true;
+    return Boolean(item.inpaintedVideoUrl);
+  });
+}
+
+function reusableOnScreenText(
+  items: OnscreenTextItem[] | undefined,
+  clipIndex: number,
+): OnscreenTextItem | undefined {
+  return (items ?? []).find(
+    (item) =>
+      (item.clipIndex ?? 0) === clipIndex &&
+      !item.inpaintedVideoUrl &&
+      (item.status === "completed" || item.status === "failed"),
+  );
+}
+
+// Background orchestrator that enqueues on-screen text jobs for Explainer videos.
+// Runs after the target clip video is completed, then draws the letters into that video.
 export async function triggerExplainerAutoOnScreenText(
   projectId: string | ObjectId,
 ): Promise<{ ok: boolean; enqueuedCount: number; error?: string }> {
@@ -108,25 +147,26 @@ export async function triggerExplainerAutoOnScreenText(
       return { ok: true, enqueuedCount: 0 };
     }
 
-    const existingClipIndices = new Set(
-      (project.onscreenTexts || []).map((item) => item.clipIndex ?? 0),
-    );
-
     let enqueuedCount = 0;
     for (const target of targets) {
-      if (existingClipIndices.has(target.clipIndex)) {
+      if (!explainerClipHasVideo(project.clips, target.clipIndex)) continue;
+      if (onscreenTextClipIsSettled(project.onscreenTexts, target.clipIndex)) continue;
+
+      const reusable = reusableOnScreenText(project.onscreenTexts, target.clipIndex);
+      if (reusable) {
+        const requeued = await requeueOnScreenTextDraw(project, reusable);
+        if (requeued) enqueuedCount++;
         continue;
       }
-      const res = await enqueueOpencutOnScreenText({
-        videoId: project._id.toHexString(),
+
+      const res = await enqueueProjectOnScreenText({
+        project,
         textStyleId: project.onScreenTextStyleId!,
         text: target.text,
         clipIndex: target.clipIndex,
         playheadSeconds: target.playheadSeconds,
       });
-      if (res.ok) {
-        enqueuedCount++;
-      }
+      if (res.ok) enqueuedCount++;
     }
 
     return { ok: true, enqueuedCount };

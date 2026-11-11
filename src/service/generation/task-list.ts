@@ -73,7 +73,7 @@ export function taskDetail(
   if (job.kind === "backgroundPlate") return "場景背景參考";
   if (job.kind === "reelCover") return "影片封面";
   if (job.kind === "poseEdit") return "改圖";
-  if (job.kind === "onscreenText") return "畫面文字圖片";
+  if (job.kind === "onscreenText") return "畫面文字";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
   if (job.kind === "subtitlePlate") return `${clip} · 字幕圖`;

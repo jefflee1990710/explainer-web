@@ -397,7 +397,8 @@ export type SubtitlePlate = {
   line?: string;
 };
 
-// One OpenCut AI on-screen text image asset (`ScroOnscreenText`) generated in the background queue.
+// One on-screen text draw. The letters are painted into the clip video at the safe zone.
+// This is not a library image (`ScroOnscreenText` cards stay out of Assets).
 export type OnscreenTextItem = {
   id: string;
   text: string;

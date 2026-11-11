@@ -6,7 +6,6 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { scroEmbedParentOrigin } from "@/opencut/embed/scro-embed-parent";
 import { sendToScro } from "@/opencut/embed/scro-transport";
 import {
-	insertScroOnscreenTextOnTimeline,
 	rebindOptimisticScroOnscreenTextId,
 	removeScroOnscreenText,
 	upsertScroOnscreenText,
@@ -25,8 +24,7 @@ import { enqueueOpencutOnScreenTextAction } from "@/presentation/actions/opencut
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { cn } from "@/opencut/utils/ui";
 
-// Panel listing AI-generated subtitle style images and `ScroOnscreenText` items;
-// clicking Generate inserts a placeholder on the timeline immediately and runs generation in the background queue.
+// Panel for drawing artistic text into a clip video. The letters are painted on the video, not stored as an asset.
 export function ScroOnScreenTextPanel() {
 	const editor = useEditor();
 	const catalog = useScroSubtitleCatalog();
@@ -58,7 +56,7 @@ export function ScroOnScreenTextPanel() {
 		if (!videoId || !selectedStyle) return;
 
 		setError(null);
-		// Immediately close dialog to return to editor and show the placeholder on timeline & assets.
+		// Close the dialog. The letters are drawn into the clip video, not added as an asset.
 		setDialogOpen(false);
 
 		const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -72,12 +70,6 @@ export function ScroOnScreenTextPanel() {
 		};
 
 		upsertScroOnscreenText(optimisticItem);
-		await insertScroOnscreenTextOnTimeline({
-			editor,
-			videoId,
-			item: optimisticItem,
-			trackTitle: oc.onScreenText.title,
-		});
 
 		try {
 			const playheadSeconds = mediaTimeToSeconds({
@@ -162,9 +154,6 @@ export function ScroOnScreenTextPanel() {
 				const startSec = mainEl
 					? mediaTimeToSeconds({ time: mainEl.startTime })
 					: clipIdx * 5;
-				const durSec = mainEl
-					? mediaTimeToSeconds({ time: mainEl.duration })
-					: 5;
 				const lineText = voEntry.line.trim();
 				if (!lineText) return;
 
@@ -181,14 +170,6 @@ export function ScroOnScreenTextPanel() {
 				};
 
 				upsertScroOnscreenText(optimisticItem);
-				await insertScroOnscreenTextOnTimeline({
-					editor,
-					videoId,
-					item: optimisticItem,
-					trackTitle: oc.onScreenText.title,
-					startTimeSeconds: startSec,
-					durationSeconds: durSec,
-				});
 
 				try {
 					const res = await enqueueOpencutOnScreenTextAction({
@@ -273,25 +254,14 @@ export function ScroOnScreenTextPanel() {
 									<button
 										key={item.id}
 										type="button"
-										disabled={isPending || isFailed}
-										onClick={() => {
-											if (item.status !== "completed" || !item.url) return;
-											void insertScroOnscreenTextOnTimeline({
-												editor,
-												videoId,
-												item,
-												trackTitle: oc.onScreenText.title,
-											}).then((ok) => {
-												if (ok) toast.success(oc.onScreenText.addedToast);
-											});
-										}}
+										disabled={isPending || isFailed || item.status === "completed"}
 										className={cn(
 											"group flex flex-col gap-1 rounded-md border p-1.5 text-left transition",
 											isPending
 												? "border-amber-500/40 bg-amber-500/5 cursor-wait"
 												: isFailed
 													? "border-destructive/40 bg-destructive/5 cursor-not-allowed"
-													: "border-border/70 hover:border-foreground cursor-pointer",
+													: "border-border/70 cursor-default",
 										)}
 									>
 										<div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-[#12141c] p-1">
@@ -302,6 +272,10 @@ export function ScroOnScreenTextPanel() {
 													alt={item.text}
 													className="max-h-full max-w-full object-contain"
 												/>
+											) : item.status === "completed" ? (
+												<span className="line-clamp-3 px-2 text-center text-[11px] font-semibold text-white">
+													{item.text}
+												</span>
 											) : isPending ? (
 												<div className="flex flex-col items-center justify-center gap-1.5 px-2 text-center">
 													<Spinner className="size-4 text-[#c6f24b]" />
@@ -321,7 +295,7 @@ export function ScroOnScreenTextPanel() {
 												? `${styleTitle} · ${oc.onScreenText.generating}`
 												: isFailed
 													? `${styleTitle} · Failed`
-													: `${styleTitle} · ${oc.onScreenText.insertAgain}`}
+													: styleTitle}
 										</span>
 									</button>
 								);

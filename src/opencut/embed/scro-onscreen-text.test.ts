@@ -7,7 +7,7 @@ import {
 	setScroOnscreenTexts,
 	upsertScroOnscreenText,
 } from "@/opencut/embed/scro-onscreen-text-store";
-import { isScroSceneStill } from "@/opencut/embed/scro-video-assets";
+import { isScroOnscreenTextAsset, isScroSceneStill } from "@/opencut/embed/scro-video-assets";
 
 test("ScroOnscreenText store preserves optimistic temp items until replaced by server state", () => {
 	setScroOnscreenTexts({ videoId: "vid_1", items: [] });
@@ -40,10 +40,17 @@ test("ScroOnscreenText store preserves optimistic temp items until replaced by s
 	assert.equal(getScroOnscreenTexts()[0]?.id, "real_abc");
 });
 
-test("scroOnscreenTextDisplayName formats clean label and isScroSceneStill keeps ScroOnscreenText visible in Assets", () => {
+test("scroOnscreenTextDisplayName formats a label and the card is not a scene still", () => {
 	assert.equal(
 		scroOnscreenTextDisplayName("  Dopamine   Level!  "),
 		"ScroOnscreenText · Dopamine Level!",
+	);
+	assert.equal(
+		isScroOnscreenTextAsset({
+			name: "ScroOnscreenText · Dopamine Level!",
+			scroOnscreenTextId: "ost_1",
+		}),
+		true,
 	);
 	assert.equal(
 		isScroSceneStill({

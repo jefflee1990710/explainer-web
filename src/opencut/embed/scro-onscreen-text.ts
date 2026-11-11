@@ -38,8 +38,11 @@ export {
 const DEFAULT_DURATION_SEC = 3;
 const PLACEHOLDER_WIDTH = 1280;
 const PLACEHOLDER_HEIGHT = 360;
-const hydratingIds = new Set<string>();
 
+function isOnscreenTextLibraryAsset(asset: { name?: string; scroOnscreenTextId?: string }) {
+	if (asset.scroOnscreenTextId) return true;
+	return /^ScroOnscreenText\b/i.test(asset.name ?? "");
+}
 // Draw a visual stand-in card while the AI subtitle graphic is queued/generating in the background.
 export function drawOnscreenTextPlaceholder(
 	ctx: CanvasRenderingContext2D,
@@ -264,12 +267,11 @@ export function rebindOptimisticScroOnscreenTextId({
 	}
 }
 
-// Reconcile completed `ScroOnscreenText` items from the server: downloads the finished transparent PNG
-// and replaces any placeholder asset & timeline element in-place so the canvas and timeline refresh automatically.
+// Letters are painted into the clip video. Drop any sticker card or overlay so Assets stays clip-only.
 export async function reconcileScroOnscreenTextsWithEditor({
 	editor,
-	videoId,
-	items,
+	videoId: _videoId,
+	items: _items,
 }: {
 	editor: EditorCore;
 	videoId: string;
@@ -278,141 +280,45 @@ export async function reconcileScroOnscreenTextsWithEditor({
 	const project = editor.project.getActiveOrNull();
 	if (!project) return;
 
-	for (const item of items) {
-		if (item.status !== "completed" || !item.url) continue;
-		if (hydratingIds.has(item.id)) continue;
-
-		const currentAssets = editor.media.getAssets();
-		const existingReal = currentAssets.find(
-			(asset) =>
-				asset.scroOnscreenTextId === item.id &&
-				asset.scroPlaceholder !== true &&
-				(asset.sourceUrl === item.url || Boolean(asset.url)),
-		);
-		const placeholderAssets = currentAssets.filter(
-			(asset) =>
-				asset.scroOnscreenTextId === item.id && asset.scroPlaceholder === true,
-		);
-
-		if (existingReal && placeholderAssets.length === 0) continue;
-
-		hydratingIds.add(item.id);
-		try {
-			let finalAsset = existingReal;
-			if (!finalAsset) {
-				const blob = await fetchMediaBlobWithTimeout({ url: item.url });
-				if (!blob) continue;
-				const file = new File(
-					[blob],
-					`${scroOnscreenTextDisplayName(item.text)}.png`,
-					{ type: "image/png" },
-				);
-				const processed = await processMediaAssets({ files: [file] });
-				const first = processed[0];
-				if (!first) continue;
-
-				finalAsset =
-					(await editor.media.addMediaAsset({
-						projectId: project.metadata.id,
-						asset: {
-							...first,
-							name: scroOnscreenTextDisplayName(item.text),
-							scroOnscreenTextId: item.id,
-							scroPlaceholder: false,
-							sourceUrl: item.url,
-						},
-					})) ?? undefined;
+	const assets = editor.media.getAssets();
+	const stickerAssets = assets.filter((asset) => isOnscreenTextLibraryAsset(asset));
+	const dropIds = new Set(stickerAssets.map((asset) => asset.id));
+	if (dropIds.size > 0) {
+		editor.media.setAssets({
+			assets: assets.filter((asset) => !dropIds.has(asset.id)),
+		});
+		for (const asset of stickerAssets) {
+			if (asset.url?.startsWith("blob:")) URL.revokeObjectURL(asset.url);
+			if (asset.thumbnailUrl?.startsWith("blob:") && asset.thumbnailUrl !== asset.url) {
+				URL.revokeObjectURL(asset.thumbnailUrl);
 			}
-
-			if (!finalAsset) continue;
-			rememberClipSource(videoId, finalAsset.id, item.url);
-
-			const placeholderIds = new Set(placeholderAssets.map((a) => a.id));
-			const scene = editor.scenes.getActiveSceneOrNull();
-			const canvasW = project.settings?.canvasSize?.width ?? 1080;
-			const canvasH = project.settings?.canvasSize?.height ?? 1920;
-			const posX = Math.round((item.offsetX ?? 0) * canvasW);
-			const posY = Math.round((item.offsetY ?? 0) * canvasH);
-			if (scene) {
-				let updatedTimeline = false;
-				const swapElement = <
-					T extends {
-						type: string;
-						mediaId?: string;
-						scroOnscreenTextId?: string;
-						params?: Record<string, unknown>;
-					},
-				>(
-					el: T,
-				): T => {
-					if (
-						el.type === "image" &&
-						(el.scroOnscreenTextId === item.id ||
-							(el.mediaId && placeholderIds.has(el.mediaId)))
-					) {
-						if (el.mediaId !== finalAsset!.id || el.scroOnscreenTextId !== item.id) {
-							updatedTimeline = true;
-							return {
-								...el,
-								mediaId: finalAsset!.id,
-								scroOnscreenTextId: item.id,
-								...(el.params
-									? {
-											params: {
-												...el.params,
-												"transform.positionX": posX,
-												"transform.positionY": posY,
-											},
-										}
-									: {}),
-							};
-						}
-					}
-					return el;
-				};
-
-				const nextOverlay = scene.tracks.overlay.map((track) => {
-					if (track.type !== "video") return track;
-					return {
-						...track,
-						elements: track.elements.map((el) => swapElement(el)),
-					};
-				});
-				const nextMainElements = scene.tracks.main.elements.map((el) =>
-					swapElement(el),
-				);
-
-				if (updatedTimeline) {
-					editor.timeline.updateTracks({
-						...scene.tracks,
-						main: { ...scene.tracks.main, elements: nextMainElements },
-						overlay: nextOverlay,
-					});
-				}
-			}
-
-			if (placeholderIds.size > 0) {
-				const remaining = editor.media
-					.getAssets()
-					.filter((asset) => !placeholderIds.has(asset.id));
-				editor.media.setAssets({ assets: remaining });
-				for (const oldAsset of placeholderAssets) {
-					if (oldAsset.url) URL.revokeObjectURL(oldAsset.url);
-					if (oldAsset.thumbnailUrl && oldAsset.thumbnailUrl !== oldAsset.url) {
-						URL.revokeObjectURL(oldAsset.thumbnailUrl);
-					}
-					await storageService
-						.deleteMediaAsset({
-							projectId: project.metadata.id,
-							id: oldAsset.id,
-						})
-						.catch(() => {});
-				}
-			}
-
-			armScroSync();
-		} finally {
-			hydratingIds.delete(item.id);
+			await storageService
+				.deleteMediaAsset({ projectId: project.metadata.id, id: asset.id })
+				.catch(() => {});
 		}
+		armScroSync();
 	}
+
+	const scene = editor.scenes.getActiveSceneOrNull();
+	if (!scene) return;
+	const isSticker = (element: { type: string; mediaId?: string; scroOnscreenTextId?: string }) =>
+		Boolean(element.scroOnscreenTextId) ||
+		(element.type === "image" && element.mediaId != null && dropIds.has(element.mediaId));
+	let changed = false;
+	const nextOverlay = scene.tracks.overlay.map((track) => {
+		if (track.type !== "video") return track;
+		const elements = track.elements.filter((element) => !isSticker(element));
+		if (elements.length !== track.elements.length) changed = true;
+		return { ...track, elements };
+	});
+	const nextMain = scene.tracks.main.elements.filter((element) => !isSticker(element));
+	if (nextMain.length !== scene.tracks.main.elements.length) changed = true;
+	if (!changed) return;
+	editor.timeline.updateTracks({
+		...scene.tracks,
+		main: { ...scene.tracks.main, elements: nextMain },
+		overlay: nextOverlay,
+	});
+	armScroSync();
 }
+

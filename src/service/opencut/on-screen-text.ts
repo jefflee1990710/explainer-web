@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import sharp from "sharp";
-import { generationJobsCollection, textStylesCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, textStylesCollection, usersCollection, videosCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { OnscreenTextItem, Project, SceneTextLanguage } from "@/model/project";
 import type { TextStyleDoc } from "@/model/text-style";
@@ -538,9 +538,9 @@ async function resolveStyleLookAndSample(
   return { lookLine: subtitleLookLine(project.subtitleLook) };
 }
 
-// Queue a new `ScroOnscreenText` item on the project and kick off background generation in `generationJobs`.
-export async function enqueueOpencutOnScreenText(input: {
-  videoId: string;
+// Queue a draw onto one clip video. Safe to call from the generation pipeline (no session cookie).
+export async function enqueueProjectOnScreenText(input: {
+  project: Project;
   textStyleId: string;
   styleName?: string;
   text: string;
@@ -548,14 +548,16 @@ export async function enqueueOpencutOnScreenText(input: {
   playheadSeconds?: number;
 }): Promise<EnqueueOpencutOnScreenTextResult> {
   let spendKey: string | undefined;
-  let clerkUserId = "";
   let queuedJobId: ObjectId | undefined;
+  const project = input.project;
 
   try {
-    const user = await requireAppUser();
-    clerkUserId = user.clerkUserId;
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId: project.clerkUserId });
+    if (!user) {
+      return { ok: false, error: "找不到使用者" };
+    }
 
-    const videoId = String(input.videoId ?? "").trim();
     const textStyleId = String(input.textStyleId ?? "").trim();
     const trimmedText = String(input.text ?? "")
       .replace(/\s+/g, " ")
@@ -565,24 +567,12 @@ export async function enqueueOpencutOnScreenText(input: {
     if (!trimmedText) {
       return { ok: false, error: "請輸入要產生的畫面文字" };
     }
-    if (!ObjectId.isValid(videoId)) {
-      return { ok: false, error: "專案不存在" };
-    }
-
-    const projects = await videosCollection();
-    const project = await projects.findOne({
-      _id: new ObjectId(videoId),
-      clerkUserId: user.clerkUserId,
-    });
-    if (!project) {
-      return { ok: false, error: "專案不存在" };
-    }
 
     if (!isSubtitleLook(textStyleId) && ObjectId.isValid(textStyleId)) {
       const styles = await textStylesCollection();
       const customDoc = await styles.findOne({
         _id: new ObjectId(textStyleId),
-        clerkUserId: user.clerkUserId,
+        clerkUserId: project.clerkUserId,
       });
       if (!customDoc) {
         return { ok: false, error: "找不到文字樣式" };
@@ -590,8 +580,9 @@ export async function enqueueOpencutOnScreenText(input: {
     }
 
     await assertCanSpendCredits(user, FRAME_COST);
-    spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    spendKey = await consumeCredits(project.clerkUserId, FRAME_COST);
 
+    const projects = await videosCollection();
     const resolvedStyleId = textStyleId || project.subtitleLook || "handwritten";
     const resolvedClipIndex =
       typeof input.clipIndex === "number" && Number.isFinite(input.clipIndex) && input.clipIndex >= 0
@@ -643,9 +634,93 @@ export async function enqueueOpencutOnScreenText(input: {
       const jobs = await generationJobsCollection();
       await jobs.deleteOne({ _id: queuedJobId }).catch(() => {});
     }
-    if (spendKey && clerkUserId) {
-      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
+    if (spendKey) {
+      await refundCredits(project.clerkUserId, FRAME_COST, spendKey).catch(() => {});
     }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "排程畫面文字失敗",
+    };
+  }
+}
+
+// Replay a sticker-only draw so the same line is painted into the clip video, without charging again.
+export async function requeueOnScreenTextDraw(
+  project: Project,
+  item: OnscreenTextItem,
+): Promise<boolean> {
+  const projects = await videosCollection();
+  const claimed = await projects.updateOne(
+    {
+      _id: project._id,
+      onscreenTexts: {
+        $elemMatch: {
+          id: item.id,
+          status: { $in: ["completed", "failed"] },
+          inpaintedVideoUrl: { $exists: false },
+        },
+      },
+    },
+    {
+      $set: {
+        "onscreenTexts.$.status": "queued",
+        "onscreenTexts.$.submittedAt": new Date().toISOString(),
+        "onscreenTexts.$.creditsCharged": 0,
+        updatedAt: new Date(),
+      },
+      $unset: {
+        "onscreenTexts.$.error": "",
+        "onscreenTexts.$.blobUrl": "",
+        "onscreenTexts.$.outputUrl": "",
+      },
+    },
+  );
+  if (claimed.modifiedCount !== 1) return false;
+
+  const model = imageRouteForSceneText(inferOnScreenTextSceneLanguage(item.text)).model;
+  const jobId = await insertPendingJob({
+    projectId: project._id,
+    clipIndex: item.clipIndex ?? 0,
+    kind: "onscreenText",
+    onscreenTextId: item.id,
+    model,
+  });
+  kickJob(jobId);
+  return true;
+}
+
+// Queue a new on-screen text draw from an editor request.
+export async function enqueueOpencutOnScreenText(input: {
+  videoId: string;
+  textStyleId: string;
+  styleName?: string;
+  text: string;
+  clipIndex?: number;
+  playheadSeconds?: number;
+}): Promise<EnqueueOpencutOnScreenTextResult> {
+  try {
+    const user = await requireAppUser();
+    const videoId = String(input.videoId ?? "").trim();
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+    const projects = await videosCollection();
+    const project = await projects.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project) {
+      return { ok: false, error: "專案不存在" };
+    }
+    return enqueueProjectOnScreenText({
+      project,
+      textStyleId: input.textStyleId,
+      styleName: input.styleName,
+      text: input.text,
+      clipIndex: input.clipIndex,
+      playheadSeconds: input.playheadSeconds,
+    });
+  } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "排程畫面文字失敗",
@@ -680,151 +755,107 @@ export async function sendOnscreenText(
     item.textStyleId,
   );
   const sceneTextLanguage = inferOnScreenTextSceneLanguage(line);
-  const route = resolveImageRoute(sceneTextLanguage);
   const targetClipIdx = item.clipIndex ?? job.clipIndex ?? 0;
-  const targetClip = project.clips?.[targetClipIdx] ?? project.clips?.[0];
+  const targetClip = project.clips?.[targetClipIdx];
   const targetClipNumber = targetClip?.clipNumber ?? targetClipIdx + 1;
   const targetFrame =
     project.frames?.find(
       (f) => f.clipNumber === targetClipNumber && f.position === "start",
     ) ?? project.frames?.find((f) => f.position === "start");
   const startFrameUrl = targetFrame?.blobUrl || targetFrame?.outputUrl;
-  const clipVideoUrl = targetClip?.blobUrl || targetClip?.outputUrl;
+  const clipVideoUrl = (targetClip?.blobUrl || targetClip?.outputUrl || "").trim();
 
-  if (startFrameUrl) {
-    try {
-      const startFrameBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
-      const safeZone = await detectCenteredFaceSafeTextZone(startFrameBuf);
-      const model = imageModelForSubmit(route, true);
-      const prompt = inSceneOnScreenTextPrompt({
-        text: line,
-        lookLine,
-        sampleImageIndex: sampleUrl ? 2 : undefined,
-        box: safeZone.bestBox,
-        width: safeZone.width,
-        height: safeZone.height,
-      });
-
-      const submitted = await submitImage({
-        model,
-        prompt,
-        aspectRatio: project.aspectRatio || "16:9",
-        quality: "medium",
-        resolution: "2k",
-        sceneTextLanguage,
-        referenceImageUrls: [startFrameUrl, ...(sampleUrl ? [sampleUrl] : [])],
-      });
-
-      await projects
-        .updateOne(
-          { _id: project._id, "onscreenTexts.id": item.id },
-          {
-            $set: {
-              "onscreenTexts.$.offsetX": safeZone.normalizedOffset.offsetX,
-              "onscreenTexts.$.offsetY": safeZone.normalizedOffset.offsetY,
-              updatedAt: new Date(),
-            },
-          },
-        )
-        .catch(() => {});
-
-      const syncImgUrl = submitted.images?.[0]?.url;
-      if (syncImgUrl) {
-        const paintedBuf = await decodeImageBufferFromOutputUrl(syncImgUrl);
-        const actualBox = await computePaintedDiffBoundingBox({
-          originalFrame: startFrameBuf,
-          paintedFrame: paintedBuf,
-          fallbackBox: safeZone.bestBox,
-        });
-        const extracted = await extractFeatheredInSceneTextPatch({
-          originalFrame: startFrameBuf,
-          paintedFrame: paintedBuf,
-          box: actualBox,
-        });
-        if (!plateIsEmpty(extracted.ratio)) {
-          const croppedPatch = await cropVerticalTransparentMargin(extracted.patchPng);
-          const patchBlobUrl = await persistBuffer(
-            croppedPatch,
-            `explainer/${project._id.toHexString()}/on-screen-text/${job._id.toHexString()}-patch.png`,
-            "image/png",
-          );
-          await projects
-            .updateOne(
-              { _id: project._id, "onscreenTexts.id": item.id },
-              {
-                $set: {
-                  "onscreenTexts.$.outputUrl": patchBlobUrl,
-                  "onscreenTexts.$.blobUrl": patchBlobUrl,
-                  updatedAt: new Date(),
-                },
-              },
-            )
-            .catch(() => {});
-        }
-
-        // Scheme B: When Vast.ai ComfyUI is configured and the target clip has a video,
-        // submit H3 Masked Latent Video Inpainting using the SAM 3 safe box and Seedream-painted start frame!
-        if (hasComfyEndpoint() && clipVideoUrl) {
-          try {
-            const clipVideoBuf = await decodeImageBufferFromOutputUrl(clipVideoUrl);
-            const paintedJpgBuf = await sharp(paintedBuf)
-              .jpeg({ quality: 94 })
-              .toBuffer();
-            const comfySub = await submitComfyMaskedTextInpaintVideo({
-              videoBuffer: clipVideoBuf,
-              paintedStartFrameBuffer: paintedJpgBuf,
-              section: {
-                start: 0,
-                length: Math.min(6, Math.max(3, targetClip?.durationSeconds ?? 6)),
-              },
-              boxNormalized: {
-                x: actualBox.x / safeZone.width,
-                y: actualBox.y / safeZone.height,
-                width: actualBox.w / safeZone.width,
-                height: actualBox.h / safeZone.height,
-              },
-              text: line,
-              styleDescription: lookLine,
-            });
-            return {
-              model: "comfy/h3-masked-text-inpaint",
-              requestId: comfySub.request_id,
-              statusUrl: comfySub.status_url,
-            };
-          } catch (comfyErr) {
-            console.warn("[on-screen-text] ComfyUI H3 Masked Latent fallback to in-scene patch:", comfyErr);
-          }
-        }
-      }
-
-      return toSent(model, submitted);
-    } catch (inSceneErr) {
-      console.warn("[on-screen-text] in-scene SAM 3 path fallback to chroma key:", inSceneErr);
-    }
+  if (!startFrameUrl) {
+    throw new PermanentJobError("找不到分鏡靜態圖，無法選擇畫面文字位置");
+  }
+  if (!clipVideoUrl.startsWith("https://")) {
+    throw new Error("分鏡影片尚未完成，稍後再把文字畫進影片");
+  }
+  if (!hasComfyEndpoint()) {
+    throw new PermanentJobError("未設定 ComfyUI，無法把畫面文字畫進影片");
   }
 
-  const keyColor = chooseOnScreenTextKeyColor({
-    textStyleId: item.textStyleId,
-    lookLine,
-  });
-  const model = imageModelForSubmit(route, Boolean(sampleUrl));
-  const prompt = onScreenTextPrompt({
+  // Same idea as Swap object-add: pick the open region, paint the letters there, then draw only that box into the video.
+  const startFrameBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
+  const safeZone = await detectCenteredFaceSafeTextZone(startFrameBuf);
+  const prompt = inSceneOnScreenTextPrompt({
     text: line,
     lookLine,
-    sampleImageIndex: sampleUrl ? 1 : undefined,
-    keyColor,
+    sampleImageIndex: sampleUrl ? 2 : undefined,
+    box: safeZone.bestBox,
+    width: safeZone.width,
+    height: safeZone.height,
   });
 
   const submitted = await submitImage({
-    model,
+    model: imageModelForSubmit(resolveImageRoute(sceneTextLanguage), true),
     prompt,
-    aspectRatio: "16:9",
+    aspectRatio: project.aspectRatio || "16:9",
     quality: "medium",
-    resolution: "1k",
+    resolution: "2k",
     sceneTextLanguage,
-    referenceImageUrls: sampleUrl ? [sampleUrl] : undefined,
+    referenceImageUrls: [startFrameUrl, ...(sampleUrl ? [sampleUrl] : [])],
   });
-  return toSent(model, submitted);
+
+  const syncImgUrl = submitted.images?.[0]?.url;
+  if (!syncImgUrl) {
+    throw new Error("畫面文字參考圖尚未完成");
+  }
+
+  const paintedBuf = await decodeImageBufferFromOutputUrl(syncImgUrl);
+  const actualBox = await computePaintedDiffBoundingBox({
+    originalFrame: startFrameBuf,
+    paintedFrame: paintedBuf,
+    fallbackBox: safeZone.bestBox,
+  });
+  const paintedJpgBuf = await sharp(paintedBuf).jpeg({ quality: 94 }).toBuffer();
+  const clipVideoBuf = await decodeImageBufferFromOutputUrl(clipVideoUrl);
+  const zoneW = Math.max(1, safeZone.width);
+  const zoneH = Math.max(1, safeZone.height);
+  const comfySub = await submitComfyMaskedTextInpaintVideo({
+    videoBuffer: clipVideoBuf,
+    paintedStartFrameBuffer: paintedJpgBuf,
+    section: {
+      start: 0,
+      length: Math.min(6, Math.max(3, targetClip?.durationSeconds ?? 6)),
+    },
+    boxNormalized: {
+      x: Math.min(1, Math.max(0, actualBox.x / zoneW)),
+      y: Math.min(1, Math.max(0, actualBox.y / zoneH)),
+      width: Math.min(1, Math.max(0.02, actualBox.w / zoneW)),
+      height: Math.min(1, Math.max(0.02, actualBox.h / zoneH)),
+    },
+    text: line,
+    styleDescription: lookLine,
+  });
+
+  const claim: Record<string, unknown> = {
+    "onscreenTexts.$.offsetX": safeZone.normalizedOffset.offsetX,
+    "onscreenTexts.$.offsetY": safeZone.normalizedOffset.offsetY,
+    updatedAt: new Date(),
+  };
+  if (project.clips?.[targetClipIdx]) {
+    claim[`clips.${targetClipIdx}.status`] = "in_progress";
+    claim[`clips.${targetClipIdx}.submittedAt`] = new Date().toISOString();
+  }
+  await projects
+    .updateOne(
+      { _id: project._id, "onscreenTexts.id": item.id },
+      {
+        $set: claim,
+        $unset: {
+          "onscreenTexts.$.blobUrl": "",
+          "onscreenTexts.$.outputUrl": "",
+        },
+      },
+    )
+    .catch(() => {});
+
+  return {
+    model: "comfy/h3-masked-text-inpaint",
+    requestId: comfySub.request_id,
+    statusUrl: comfySub.status_url,
+  };
 }
 
 async function failOnscreenText(
@@ -852,7 +883,19 @@ async function failOnscreenText(
     },
   );
   if (claimed.matchedCount === 0) return;
-  await refundCredits(project.clerkUserId, item?.creditsCharged ?? FRAME_COST);
+  const clipIdx = item?.clipIndex ?? 0;
+  const clip = project.clips?.[clipIdx];
+  const clipUrl = (clip?.blobUrl || clip?.outputUrl || "").trim();
+  if (clip?.status === "in_progress" && clipUrl.startsWith("https://")) {
+    await projects.updateOne(
+      { _id: projectId },
+      { $set: { [`clips.${clipIdx}.status`]: "completed", updatedAt: new Date() } },
+    );
+  }
+  const refund = item?.creditsCharged ?? FRAME_COST;
+  if (refund > 0) {
+    await refundCredits(project.clerkUserId, refund);
+  }
 }
 
 // Mirror an `onscreenText` background job onto `project.onscreenTexts`.
@@ -910,12 +953,9 @@ export async function syncOnscreenTextJob(
         "video/mp4",
       );
 
-      const fallbackImgUrl = item.blobUrl || item.outputUrl || inpaintedVideoUrl;
       const updateSet: Record<string, unknown> = {
         "onscreenTexts.$.status": "completed",
         "onscreenTexts.$.inpaintedVideoUrl": inpaintedVideoUrl,
-        "onscreenTexts.$.outputUrl": fallbackImgUrl,
-        "onscreenTexts.$.blobUrl": fallbackImgUrl,
         updatedAt: new Date(),
       };
       if (project.clips && project.clips[targetClipIdx]) {
@@ -933,7 +973,11 @@ export async function syncOnscreenTextJob(
         },
         {
           $set: updateSet,
-          $unset: { "onscreenTexts.$.error": "" },
+          $unset: {
+            "onscreenTexts.$.error": "",
+            "onscreenTexts.$.blobUrl": "",
+            "onscreenTexts.$.outputUrl": "",
+          },
         },
       );
       return;

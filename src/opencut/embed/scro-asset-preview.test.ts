@@ -207,6 +207,24 @@ describe("merge scro media after regenerate", () => {
 		);
 	});
 
+	it("hides ScroOnscreenText cards because the letters are painted into the clip", () => {
+		const textCard = asset({
+			id: "onscreen",
+			name: "ScroOnscreenText · 90% MISS THIS",
+			type: "image",
+			url: "https://cdn.example/on-screen-text/patch.png",
+			scroOnscreenTextId: "ost_1",
+		});
+		const merged = mergeScroMediaAssets({
+			assets: [newVideo, textCard],
+			clips: [clip({ stage: "video_ready", videoUrl: "https://cdn.example/clip-1.mp4" })],
+		});
+		assert.deepEqual(
+			merged.map((item) => item.id),
+			["new-video"],
+		);
+	});
+
 	it("keeps a lone Clip N · Start still as that clip's ScroVideo card", () => {
 		const onlyStill = asset({
 			id: "clip2-start",

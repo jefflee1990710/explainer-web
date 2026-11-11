@@ -69,6 +69,15 @@ export function scroAssetPreviewSrc({
 	return asset.url ?? asset.thumbnailUrl ?? clip?.posterUrl;
 }
 
+/** On-screen lettering is painted into the clip video. It is not a library card. */
+export function isScroOnscreenTextAsset(asset: {
+	name?: string;
+	scroOnscreenTextId?: string;
+}): boolean {
+	if (asset.scroOnscreenTextId) return true;
+	return /^ScroOnscreenText\b/i.test(asset.name ?? "");
+}
+
 /** Scene stills stay on the timeline. The Assets panel lists the clip video, not the picture. */
 export function isScroSceneStill({
 	asset,
@@ -165,7 +174,9 @@ export function pickScroClipAsset({
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset | undefined {
 	const tagged = assets.filter(
-		(asset) => resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
+		(asset) =>
+			!isScroOnscreenTextAsset(asset) &&
+			resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
 	);
 	// Prefer the clip card over a loose "Clip N · Start" still, but that still is the card when it is all we have.
 	const preferred = tagged.filter((asset) => !isStandaloneFrameStillName(asset.name));
@@ -223,6 +234,7 @@ export function mergeScroMediaAssets({
 		const other = assets.filter(
 			(asset) =>
 				!used.has(asset.id) &&
+				!isScroOnscreenTextAsset(asset) &&
 				!isStandaloneFrameStillName(asset.name) &&
 				!isScroSceneStill({ asset, clips }) &&
 				resolveScroClipNumber({ asset, clips: undefined }) == null,
@@ -239,6 +251,7 @@ export function mergeScroMediaAssets({
 	}
 	const other = assets.filter((asset) => {
 		if (used.has(asset.id)) return false;
+		if (isScroOnscreenTextAsset(asset)) return false;
 		if (isStandaloneFrameStillName(asset.name)) return false;
 		if (isScroSceneStill({ asset, clips })) return false;
 		return resolveScroClipNumber({ asset, clips: undefined }) == null;

@@ -77,7 +77,12 @@ export type ClipStageSource = {
   backgroundPlates?: Array<{ setId: string; clipNumbers: number[]; url?: string }>;
   backgroundPlateError?: string;
   clipAppends?: Array<{ status: string }>;
-  onscreenTexts?: Array<{ status: string; blobUrl?: string; outputUrl?: string }>;
+  onscreenTexts?: Array<{
+    status: string;
+    blobUrl?: string;
+    outputUrl?: string;
+    inpaintedVideoUrl?: string;
+  }>;
 };
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
@@ -100,6 +105,17 @@ function isCompleted(item?: MediaItem) {
 // Keep polling until blobUrl exists so the tile can swap off a flaky CDN URL.
 function needsPersist(item?: MediaItem) {
   return Boolean(item && item.status === "completed" && !item.blobUrl);
+}
+
+// A finished draw lives on the clip video (`inpaintedVideoUrl`), not as a sticker file.
+function onscreenTextStillWorking(item: {
+  status: string;
+  blobUrl?: string;
+  outputUrl?: string;
+  inpaintedVideoUrl?: string;
+}) {
+  if (item.status === "completed" && item.inpaintedVideoUrl) return false;
+  return isInFlight(item) || needsPersist(item);
 }
 
 // ISO strings compare lexicographically; missing values never count as later.
@@ -230,7 +246,7 @@ export function isMediaBusy(project: ClipStageSource) {
   return (
     (project.frames || []).some((frame) => isInFlight(frame) || needsPersist(frame)) ||
     project.clips.some((clip) => isInFlight(clip) || needsPersist(clip)) ||
-    (project.onscreenTexts || []).some((item) => isInFlight(item) || needsPersist(item))
+    (project.onscreenTexts || []).some((item) => onscreenTextStillWorking(item))
   );
 }
 
@@ -362,7 +378,7 @@ export function inFlightCounts(project: ClipStageSource): InFlightCounts {
     else counts.framesGenerating += 1;
   }
   for (const item of project.onscreenTexts || []) {
-    if (!isInFlight(item)) continue;
+    if (!onscreenTextStillWorking(item)) continue;
     if (item.status === "queued") counts.framesQueued += 1;
     else counts.framesGenerating += 1;
   }
