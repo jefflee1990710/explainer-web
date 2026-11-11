@@ -2,6 +2,10 @@
 
 import { ScrollArea } from "@/opencut/components/ui/scroll-area";
 import {
+	autoAudioLaneForTrack,
+	useAutoAudioBusy,
+} from "@/opencut/embed/scro-auto-audio-busy";
+import {
 	Delete02Icon,
 	MagicWand05Icon,
 	MusicNote03Icon,
@@ -644,6 +648,7 @@ function TrackLabelsPanel({
 	getTrackExpansionHeight: (trackIndex: number) => number;
 }) {
 	const { oc } = useOpencutI18n();
+	const autoAudioBusy = useAutoAudioBusy();
 	const editor = useEditor();
 	const scene = useEditor((e) => e.scenes.getActiveSceneOrNull());
 	const tracks = useMemo<TimelineTrack[]>(
@@ -689,6 +694,13 @@ function TrackLabelsPanel({
 							{tracks.map((track, index) => {
 								const expandedRows = trackExpandedRowsMap[index];
 								const baseHeight = getTrackHeight({ type: track.type });
+								const audioLane = autoAudioLaneForTrack(track);
+								const audioLaneBusy =
+									audioLane === "sfx"
+										? autoAudioBusy.sfx
+										: audioLane === "bgm"
+											? autoAudioBusy.bgm
+											: false;
 
 								return (
 									<div
@@ -728,8 +740,17 @@ function TrackLabelsPanel({
 													<span className="truncate">{oc.subtitleTrack.trackBadge}</span>
 												</button>
 											) : (
-												<span className="text-muted-foreground truncate text-xs font-medium">
-													{TRACK_TYPE_LABELS[track.type] ?? "Track"}
+												<span className="text-muted-foreground flex min-w-0 items-center gap-1 truncate text-xs font-medium">
+													{audioLaneBusy ? (
+														<span className="border-primary/30 border-t-primary size-3 shrink-0 animate-spin rounded-full border-2" />
+													) : null}
+													<span className="truncate">
+														{audioLane === "sfx"
+															? "SFX"
+															: audioLane === "bgm"
+																? "BGM"
+																: (TRACK_TYPE_LABELS[track.type] ?? "Track")}
+													</span>
 												</span>
 											)}
 											<div className="flex items-center gap-1.5">

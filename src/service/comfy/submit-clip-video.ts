@@ -486,11 +486,13 @@ export function buildComfyMaskedTextInpaintGraph(input: {
 }): ApiGraph {
   const cleanText = input.text.replace(/\s+/g, " ").trim();
   const cleanStyle = input.styleDescription.replace(/\s+/g, " ").trim();
+  // H3 paints 2.5–6s. Load that same span so the guide frame and the source frames stay aligned.
+  const seconds = Math.min(6, Math.max(2.5, input.section.length));
   const graph = buildObjectGraph({
     runId: input.runId,
     videoName: input.videoName,
     imageName: input.paintedStartFrameName,
-    section: input.section,
+    section: { start: input.section.start, length: seconds },
     mode: "add",
     target: "text",
     changeTo: `on-screen artistic graphic lettering "${cleanText}" (${cleanStyle})`,
@@ -501,7 +503,7 @@ export function buildComfyMaskedTextInpaintGraph(input: {
     margin: "normal",
     motion: 768,
     seed: 0,
-    clipSeconds: Math.min(6, Math.max(2.5, input.section.length)),
+    clipSeconds: seconds,
     placement: [
       {
         frame: 0,

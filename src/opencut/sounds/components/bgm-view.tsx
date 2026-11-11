@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	FavouriteIcon,
-	MagicWand05Icon,
 	MusicNote03Icon,
 	PauseIcon,
 	PlayIcon,
@@ -15,10 +14,7 @@ import { Button } from "@/opencut/components/ui/button";
 import { Input } from "@/opencut/components/ui/input";
 import { ScrollArea } from "@/opencut/components/ui/scroll-area";
 import { useEditor } from "@/opencut/editor/use-editor";
-import { runAutoInsertBgmOnTimeline } from "@/opencut/embed/scro-auto-audio";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
-import { useScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
-import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
 import type { SoundEffect } from "@/opencut/sounds/types";
 import { buildLibraryAudioElement } from "@/opencut/timeline/element-utils";
@@ -33,7 +29,6 @@ import {
 	AI_BGM_NAME_PREFIX,
 	AI_BGM_VOLUME_DB,
 	isAiBgmElementName,
-	resolveAutoAudioLines,
 	type LibrarySound,
 } from "@/service/opencut/auto-audio-shared";
 
@@ -285,33 +280,6 @@ export function BgmView() {
 
 	const displayedTracks = viewTab === "saved" ? savedAsLibrary : tracks;
 	const { locale, oc } = useOpencutI18n();
-	const catalog = useScroSubtitleCatalog();
-	const scroVideos = useScroVideos();
-	const [autoBgmBusy, setAutoBgmBusy] = useState(false);
-	const autoLines = resolveAutoAudioLines(catalog?.lines, scroVideos?.clips);
-
-	const handleAutoBgm = async () => {
-		if (autoBgmBusy) return;
-		setAutoBgmBusy(true);
-		try {
-			const firstClip = scroVideos?.clips?.[0];
-			const res = await runAutoInsertBgmOnTimeline({
-				editor,
-				lines: autoLines,
-				title:
-					firstClip?.englishVo?.slice(0, 40) || firstClip?.name?.slice(0, 40),
-			});
-			if (res.error) toast.error(res.error);
-			else {
-				const mood = res.selection?.mood ?? "ambient";
-				toast.success(`已自動加入背景音樂（${mood}）`);
-			}
-		} catch {
-			toast.error("自動加入背景音樂失敗");
-		} finally {
-			setAutoBgmBusy(false);
-		}
-	};
 
 	return (
 		<div className="flex h-full flex-col">
@@ -370,18 +338,6 @@ export function BgmView() {
 						</button>
 					</div>
 				</div>
-
-				<Button
-					type="button"
-					variant="secondary"
-					size="sm"
-					disabled={autoBgmBusy || autoLines.length === 0}
-					onClick={() => void handleAutoBgm()}
-					className="h-7 w-full justify-center gap-1.5 rounded-lg text-xs font-semibold"
-				>
-					<HugeiconsIcon icon={MagicWand05Icon} className="size-3.5" />
-					<span>{autoBgmBusy ? oc.bgm.autoBgmBusy : oc.bgm.autoBgm}</span>
-				</Button>
 
 				{viewTab === "browse" ? (
 					<>

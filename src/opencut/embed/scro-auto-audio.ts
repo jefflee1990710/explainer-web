@@ -3,6 +3,7 @@
 import type { ElementAnimations } from "@/opencut/animation/types";
 import type { EditorCore } from "@/opencut/core";
 import { isTransitionElement } from "@/opencut/effects/transition-layout";
+import { setAutoAudioLaneBusy } from "@/opencut/embed/scro-auto-audio-busy";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
 import { matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
 import { getScroVideos } from "@/opencut/embed/scro-video-store";
@@ -66,6 +67,49 @@ async function downloadAndDecodeSound(sound: LibrarySound): Promise<{
 	} finally {
 		void audioContext.close();
 	}
+}
+
+/** Reuse the named SFX or BGM row, or append one so the loader has a lane. */
+function ensureNamedAudioTrack(
+	editor: EditorCore,
+	name: string,
+): { id: string; created: boolean } {
+	const scene = editor.scenes.getActiveScene();
+	const existing = scene.tracks.audio.find((track) => track.name === name);
+	if (existing) return { id: existing.id, created: false };
+	const id = editor.timeline.addTrack({
+		type: "audio",
+		name,
+		index: scene.tracks.overlay.length + 1 + scene.tracks.audio.length,
+	});
+	return { id, created: true };
+}
+
+function releaseCreatedAudioTrack(
+	editor: EditorCore,
+	trackId: string,
+	created: boolean,
+) {
+	if (!created) return;
+	const track = editor.scenes
+		.getActiveScene()
+		.tracks.audio.find((item) => item.id === trackId);
+	if (track && track.elements.length === 0) {
+		editor.timeline.removeTrack({ trackId });
+	}
+}
+
+function audioTrackFitsSpan(
+	elements: Array<{ startTime: number; duration: number }>,
+	startSec: number,
+	durationSec: number,
+): boolean {
+	const start = mediaTimeFromSeconds({ seconds: Math.max(0, startSec) });
+	const end = start + mediaTimeFromSeconds({ seconds: Math.max(0.2, durationSec) });
+	return elements.every((element) => {
+		const elementEnd = element.startTime + element.duration;
+		return end <= element.startTime || start >= elementEnd;
+	});
 }
 
 function deleteNamedAudioElements({
@@ -222,78 +266,96 @@ export async function runAutoInsertSfxOnTimeline({
 		return { insertedCount: 0, error: "主軌道上尚未有對應的分鏡片段" };
 	}
 
-	const seedClips = getScroVideos()?.clips ?? [];
-	const seedByClipNumber = new Map(seedClips.map((c) => [c.clipNumber, c]));
+	const sfxTrack = ensureNamedAudioTrack(editor, AI_SFX_NAME_PREFIX);
+	setAutoAudioLaneBusy("sfx", true);
+	try {
+		const seedClips = getScroVideos()?.clips ?? [];
+		const seedByClipNumber = new Map(seedClips.map((c) => [c.clipNumber, c]));
 
-	const enrichedClips: TimelineAudioClipInput[] = matchedLines.map((l) => {
-		const slot = slots.get(l.clipNumber);
-		const seed = seedByClipNumber.get(l.clipNumber);
-		return {
-			clipNumber: l.clipNumber,
-			line: l.line,
-			visualScene: seed?.explainerScene,
-			motionCamera: seed?.motionCamera,
-			startSec: slot ? mediaTimeToSeconds({ time: slot.startTime }) : undefined,
-			durationSec: slot ? mediaTimeToSeconds({ time: slot.duration }) : undefined,
-		};
-	});
-
-	const { transitions, visualPops } = extractTimelineCues(scene.tracks);
-
-	const planRes = await autoPlanOpencutSfxAction({
-		clips: enrichedClips,
-		transitions,
-		visualPops,
-	});
-	if (!planRes.ok) {
-		return { insertedCount: 0, error: planRes.error };
-	}
-	if (planRes.insertions.length === 0) {
-		return { insertedCount: 0, error: "找不到合適的聲效素材" };
-	}
-
-	deleteNamedAudioElements({ editor, predicate: isAiSfxElementName });
-
-	let insertedCount = 0;
-	for (const ins of planRes.insertions) {
-		const slot = slots.get(ins.clipNumber) ?? scene.tracks.main.elements[0];
-		if (!slot) continue;
-		const decoded = await downloadAndDecodeSound(ins.sound);
-		if (!decoded) continue;
-
-		const clipStartSec = mediaTimeToSeconds({ time: slot.startTime });
-		const clipDurSec = mediaTimeToSeconds({ time: slot.duration });
-		const startSec = computeSfxStartSeconds({
-			clipStartSec,
-			clipDurSec,
-			beat: ins.beat,
-			offsetRatio: ins.offsetRatio,
-			targetTimeSec: ins.targetTimeSec,
-			peakOffsetSec: decoded.peakOffsetSec,
+		const enrichedClips: TimelineAudioClipInput[] = matchedLines.map((l) => {
+			const slot = slots.get(l.clipNumber);
+			const seed = seedByClipNumber.get(l.clipNumber);
+			return {
+				clipNumber: l.clipNumber,
+				line: l.line,
+				visualScene: seed?.explainerScene,
+				motionCamera: seed?.motionCamera,
+				startSec: slot ? mediaTimeToSeconds({ time: slot.startTime }) : undefined,
+				durationSec: slot ? mediaTimeToSeconds({ time: slot.duration }) : undefined,
+			};
 		});
-		const maxDur = Math.max(
-			0.25,
-			Math.min(decoded.durationSec || ins.sound.duration || 1.2, 3.5),
-		);
 
-		insertDecodedSoundOnAudioTrack({
-			editor,
-			sound: ins.sound,
-			decoded,
-			name: `${AI_SFX_NAME_PREFIX} ${ins.clipNumber} · ${ins.query}`,
-			startTimeSeconds: startSec,
-			durationSeconds: maxDur,
-			volumeDb: AI_SFX_VOLUME_DB,
-			placement: { mode: "auto", trackType: "audio" },
+		const { transitions, visualPops } = extractTimelineCues(scene.tracks);
+
+		const planRes = await autoPlanOpencutSfxAction({
+			clips: enrichedClips,
+			transitions,
+			visualPops,
 		});
-		insertedCount++;
-	}
+		if (!planRes.ok) {
+			releaseCreatedAudioTrack(editor, sfxTrack.id, sfxTrack.created);
+			return { insertedCount: 0, error: planRes.error };
+		}
+		if (planRes.insertions.length === 0) {
+			releaseCreatedAudioTrack(editor, sfxTrack.id, sfxTrack.created);
+			return { insertedCount: 0, error: "找不到合適的聲效素材" };
+		}
 
-	if (insertedCount === 0) {
-		return { insertedCount: 0, error: "無法載入聲效檔案到時間軸" };
+		deleteNamedAudioElements({ editor, predicate: isAiSfxElementName });
+
+		let insertedCount = 0;
+		for (const ins of planRes.insertions) {
+			const slot = slots.get(ins.clipNumber) ?? scene.tracks.main.elements[0];
+			if (!slot) continue;
+			const decoded = await downloadAndDecodeSound(ins.sound);
+			if (!decoded) continue;
+
+			const clipStartSec = mediaTimeToSeconds({ time: slot.startTime });
+			const clipDurSec = mediaTimeToSeconds({ time: slot.duration });
+			const startSec = computeSfxStartSeconds({
+				clipStartSec,
+				clipDurSec,
+				beat: ins.beat,
+				offsetRatio: ins.offsetRatio,
+				targetTimeSec: ins.targetTimeSec,
+				peakOffsetSec: decoded.peakOffsetSec,
+			});
+			const maxDur = Math.max(
+				0.25,
+				Math.min(decoded.durationSec || ins.sound.duration || 1.2, 3.5),
+			);
+
+			const freshTrack = editor.scenes
+				.getActiveScene()
+				.tracks.audio.find((track) => track.id === sfxTrack.id);
+			const fits =
+				freshTrack != null &&
+				audioTrackFitsSpan(freshTrack.elements, startSec, maxDur);
+
+			insertDecodedSoundOnAudioTrack({
+				editor,
+				sound: ins.sound,
+				decoded,
+				name: `${AI_SFX_NAME_PREFIX} ${ins.clipNumber} · ${ins.query}`,
+				startTimeSeconds: startSec,
+				durationSeconds: maxDur,
+				volumeDb: AI_SFX_VOLUME_DB,
+				placement: fits
+					? { mode: "explicit", trackId: sfxTrack.id }
+					: { mode: "auto", trackType: "audio" },
+			});
+			insertedCount++;
+		}
+
+		if (insertedCount === 0) {
+			releaseCreatedAudioTrack(editor, sfxTrack.id, sfxTrack.created);
+			return { insertedCount: 0, error: "無法載入聲效檔案到時間軸" };
+		}
+		armScroSync();
+		return { insertedCount, insertions: planRes.insertions };
+	} finally {
+		setAutoAudioLaneBusy("sfx", false);
 	}
-	armScroSync();
-	return { insertedCount, insertions: planRes.insertions };
 }
 
 /**
@@ -325,106 +387,107 @@ export async function runAutoInsertBgmOnTimeline({
 		return { inserted: false, error: "主軌道尚無足夠長度可鋪背景音樂" };
 	}
 
-	const seedClips = getScroVideos()?.clips ?? [];
-	const seedByClipNumber = new Map(seedClips.map((c) => [c.clipNumber, c]));
-	const enrichedClips: TimelineAudioClipInput[] = lines.map((l) => ({
-		clipNumber: l.clipNumber,
-		line: l.line,
-		visualScene: seedByClipNumber.get(l.clipNumber)?.explainerScene,
-	}));
+	const bgmTrack = ensureNamedAudioTrack(editor, AI_BGM_NAME_PREFIX);
+	setAutoAudioLaneBusy("bgm", true);
+	try {
+		const seedClips = getScroVideos()?.clips ?? [];
+		const seedByClipNumber = new Map(seedClips.map((c) => [c.clipNumber, c]));
+		const enrichedClips: TimelineAudioClipInput[] = lines.map((l) => ({
+			clipNumber: l.clipNumber,
+			line: l.line,
+			visualScene: seedByClipNumber.get(l.clipNumber)?.explainerScene,
+		}));
 
-	const planRes = await autoPlanOpencutBgmAction({
-		clips: enrichedClips,
-		title,
-	});
-	if (!planRes.ok) {
-		return { inserted: false, error: planRes.error };
-	}
-
-	const sound = planRes.selection.sound;
-	const decoded = await downloadAndDecodeSound(sound);
-	if (!decoded) {
-		return { inserted: false, error: "無法載入背景音樂檔案到時間軸" };
-	}
-
-	deleteNamedAudioElements({ editor, predicate: isAiBgmElementName });
-
-	const scene = editor.scenes.getActiveScene();
-	const slots = matchSubtitleSlots({
-		elements: scene.tracks.main.elements,
-		clipNumbers: lines.map((l) => l.clipNumber),
-	});
-	const speechWindows: SpeechWindow[] = [];
-	for (const line of lines) {
-		if (!line.line.trim() || /^\(no dialogue\)$/i.test(line.line.trim())) {
-			continue;
+		const planRes = await autoPlanOpencutBgmAction({
+			clips: enrichedClips,
+			title,
+		});
+		if (!planRes.ok) {
+			releaseCreatedAudioTrack(editor, bgmTrack.id, bgmTrack.created);
+			return { inserted: false, error: planRes.error };
 		}
-		const slot = slots.get(line.clipNumber);
-		if (!slot) continue;
-		const startSec = mediaTimeToSeconds({ time: slot.startTime });
-		const durSec = mediaTimeToSeconds({ time: slot.duration });
-		if (durSec > 0.1) {
-			speechWindows.push({
-				startSec: startSec + 0.08,
-				endSec: Math.max(startSec + 0.1, startSec + durSec - 0.12),
+
+		const sound = planRes.selection.sound;
+		const decoded = await downloadAndDecodeSound(sound);
+		if (!decoded) {
+			releaseCreatedAudioTrack(editor, bgmTrack.id, bgmTrack.created);
+			return { inserted: false, error: "無法載入背景音樂檔案到時間軸" };
+		}
+
+		deleteNamedAudioElements({ editor, predicate: isAiBgmElementName });
+
+		const scene = editor.scenes.getActiveScene();
+		const slots = matchSubtitleSlots({
+			elements: scene.tracks.main.elements,
+			clipNumbers: lines.map((l) => l.clipNumber),
+		});
+		const speechWindows: SpeechWindow[] = [];
+		for (const line of lines) {
+			if (!line.line.trim() || /^\(no dialogue\)$/i.test(line.line.trim())) {
+				continue;
+			}
+			const slot = slots.get(line.clipNumber);
+			if (!slot) continue;
+			const startSec = mediaTimeToSeconds({ time: slot.startTime });
+			const durSec = mediaTimeToSeconds({ time: slot.duration });
+			if (durSec > 0.1) {
+				speechWindows.push({
+					startSec: startSec + 0.08,
+					endSec: Math.max(startSec + 0.1, startSec + durSec - 0.12),
+				});
+			}
+		}
+
+		const segments = buildBgmSegmentsForTimeline({
+			timelineDurationSec: timelineDur,
+			soundDurationSec: decoded.durationSec,
+		});
+		if (segments.length === 0) {
+			releaseCreatedAudioTrack(editor, bgmTrack.id, bgmTrack.created);
+			return { inserted: false, error: "無法計算背景音樂鋪底區間" };
+		}
+
+		for (let i = 0; i < segments.length; i++) {
+			const seg = segments[i];
+			const kfPoints = buildBgmAutoDuckingKeyframes({
+				segmentStartSec: seg.startSec,
+				segmentDurationSec: seg.durationSec,
+				timelineDurationSec: timelineDur,
+				speechWindows,
+				duckedDb: AI_BGM_DUCKED_VOLUME_DB,
+				unduckedDb: AI_BGM_VOLUME_DB,
+				fadeOutSec: 1.5,
+			});
+
+			const animations: ElementAnimations = {
+				volume: {
+					keys: kfPoints.map((pt) => ({
+						id: generateUUID(),
+						time: mediaTimeFromSeconds({ seconds: pt.timeSec }),
+						value: pt.valueDb,
+						segmentToNext: "linear" as const,
+						tangentMode: "auto" as const,
+					})),
+				},
+			};
+
+			const segSuffix = segments.length > 1 ? ` (${i + 1}/${segments.length})` : "";
+			insertDecodedSoundOnAudioTrack({
+				editor,
+				sound,
+				decoded,
+				name: `${AI_BGM_NAME_PREFIX} · ${planRes.selection.mood} · ${sound.name.slice(0, 24)}${segSuffix}`,
+				startTimeSeconds: seg.startSec,
+				durationSeconds: seg.durationSec,
+				volumeDb: AI_BGM_VOLUME_DB,
+				animations,
+				placement: { mode: "explicit", trackId: bgmTrack.id },
 			});
 		}
+
+		armScroSync();
+		return { inserted: true, selection: planRes.selection };
+	} finally {
+		setAutoAudioLaneBusy("bgm", false);
 	}
-
-	const segments = buildBgmSegmentsForTimeline({
-		timelineDurationSec: timelineDur,
-		soundDurationSec: decoded.durationSec,
-	});
-	if (segments.length === 0) {
-		return { inserted: false, error: "無法計算背景音樂鋪底區間" };
-	}
-
-	const bgmTrackId = editor.timeline.addTrack({
-		type: "audio",
-		index:
-			editor.scenes.getActiveScene().tracks.overlay.length +
-			1 +
-			editor.scenes.getActiveScene().tracks.audio.length,
-	});
-
-	for (let i = 0; i < segments.length; i++) {
-		const seg = segments[i];
-		const kfPoints = buildBgmAutoDuckingKeyframes({
-			segmentStartSec: seg.startSec,
-			segmentDurationSec: seg.durationSec,
-			timelineDurationSec: timelineDur,
-			speechWindows,
-			duckedDb: AI_BGM_DUCKED_VOLUME_DB,
-			unduckedDb: AI_BGM_VOLUME_DB,
-			fadeOutSec: 1.5,
-		});
-
-		const animations: ElementAnimations = {
-			volume: {
-				keys: kfPoints.map((pt) => ({
-					id: generateUUID(),
-					time: mediaTimeFromSeconds({ seconds: pt.timeSec }),
-					value: pt.valueDb,
-					segmentToNext: "linear" as const,
-					tangentMode: "auto" as const,
-				})),
-			},
-		};
-
-		const segSuffix = segments.length > 1 ? ` (${i + 1}/${segments.length})` : "";
-		insertDecodedSoundOnAudioTrack({
-			editor,
-			sound,
-			decoded,
-			name: `${AI_BGM_NAME_PREFIX} · ${planRes.selection.mood} · ${sound.name.slice(0, 24)}${segSuffix}`,
-			startTimeSeconds: seg.startSec,
-			durationSeconds: seg.durationSec,
-			volumeDb: AI_BGM_VOLUME_DB,
-			animations,
-			placement: { mode: "explicit", trackId: bgmTrackId },
-		});
-	}
-
-	armScroSync();
-	return { inserted: true, selection: planRes.selection };
 }

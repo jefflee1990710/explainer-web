@@ -407,6 +407,13 @@ export type OnscreenTextItem = {
   status: "queued" | "in_progress" | "completed" | "failed";
   clipIndex?: number;
   playheadSeconds?: number;
+  // Seconds from the start of this clip where this sentence is painted.
+  sectionStart?: number;
+  sectionLength?: number;
+  // Raw clip file this sentence chain started from. A regenerate gets a new base.
+  baseVideoUrl?: string;
+  // Full clip file this draw is spliced back into.
+  sourceVideoUrl?: string;
   offsetX?: number;
   offsetY?: number;
   inpaintedVideoUrl?: string;
@@ -619,6 +626,15 @@ const onscreenTextItemSchema = z.object({
   textStyleId: z.string(),
   styleName: z.string().optional(),
   status: frameStatusSchema,
+  clipIndex: z.number().optional(),
+  playheadSeconds: z.number().optional(),
+  sectionStart: z.number().optional(),
+  sectionLength: z.number().optional(),
+  baseVideoUrl: z.string().optional(),
+  sourceVideoUrl: z.string().optional(),
+  offsetX: z.number().optional(),
+  offsetY: z.number().optional(),
+  inpaintedVideoUrl: z.string().optional(),
   outputUrl: z.string().optional(),
   blobUrl: z.string().optional(),
   error: z.string().optional(),

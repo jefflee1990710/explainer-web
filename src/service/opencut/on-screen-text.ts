@@ -38,6 +38,7 @@ import {
 } from "@/service/comfy/openjutsu-client";
 import { submitComfyMaskedTextInpaintVideo } from "@/service/comfy/submit-clip-video";
 import { detectCenteredFaceSafeTextZone, type SafeTextBox } from "@/service/opencut/safe-text-zone";
+import { extractVideoFrameJpeg, spliceVideoSection } from "@/service/opencut/splice-video-section";
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 
 const MAX_ON_SCREEN_TEXT_CHARS = 240;
@@ -546,6 +547,9 @@ export async function enqueueProjectOnScreenText(input: {
   text: string;
   clipIndex?: number;
   playheadSeconds?: number;
+  sectionStart?: number;
+  sectionLength?: number;
+  baseVideoUrl?: string;
 }): Promise<EnqueueOpencutOnScreenTextResult> {
   let spendKey: string | undefined;
   let queuedJobId: ObjectId | undefined;
@@ -597,6 +601,13 @@ export async function enqueueProjectOnScreenText(input: {
       ...(typeof input.playheadSeconds === "number" && Number.isFinite(input.playheadSeconds)
         ? { playheadSeconds: Math.max(0, input.playheadSeconds) }
         : {}),
+      ...(typeof input.sectionStart === "number" && Number.isFinite(input.sectionStart)
+        ? { sectionStart: Math.max(0, input.sectionStart) }
+        : {}),
+      ...(typeof input.sectionLength === "number" && Number.isFinite(input.sectionLength)
+        ? { sectionLength: Math.max(0.1, input.sectionLength) }
+        : {}),
+      ...(input.baseVideoUrl?.trim() ? { baseVideoUrl: input.baseVideoUrl.trim() } : {}),
       status: "queued",
       submittedAt: new Date().toISOString(),
       creditsCharged: FRAME_COST,
@@ -648,6 +659,7 @@ export async function enqueueProjectOnScreenText(input: {
 export async function requeueOnScreenTextDraw(
   project: Project,
   item: OnscreenTextItem,
+  timing?: { sectionStart?: number; sectionLength?: number; baseVideoUrl?: string },
 ): Promise<boolean> {
   const projects = await videosCollection();
   const claimed = await projects.updateOne(
@@ -666,12 +678,18 @@ export async function requeueOnScreenTextDraw(
         "onscreenTexts.$.status": "queued",
         "onscreenTexts.$.submittedAt": new Date().toISOString(),
         "onscreenTexts.$.creditsCharged": 0,
+        ...(typeof timing?.sectionStart === "number" ? { "onscreenTexts.$.sectionStart": timing.sectionStart } : {}),
+        ...(typeof timing?.sectionLength === "number"
+          ? { "onscreenTexts.$.sectionLength": timing.sectionLength }
+          : {}),
+        ...(timing?.baseVideoUrl ? { "onscreenTexts.$.baseVideoUrl": timing.baseVideoUrl } : {}),
         updatedAt: new Date(),
       },
       $unset: {
         "onscreenTexts.$.error": "",
         "onscreenTexts.$.blobUrl": "",
         "onscreenTexts.$.outputUrl": "",
+        "onscreenTexts.$.sourceVideoUrl": "",
       },
     },
   );
@@ -776,8 +794,29 @@ export async function sendOnscreenText(
   }
 
   // Same idea as Swap object-add: pick the open region, paint the letters there, then draw only that box into the video.
-  const startFrameBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
-  const safeZone = await detectCenteredFaceSafeTextZone(startFrameBuf);
+  const clipDuration = Math.max(0.5, targetClip?.durationSeconds ?? 6);
+  const sectionStart = Math.max(0, item.sectionStart ?? 0);
+  const sectionLength = Math.min(6, Math.max(0.5, item.sectionLength ?? clipDuration));
+  const clipVideoBuf = await decodeImageBufferFromOutputUrl(clipVideoUrl);
+  let guideBuf: Buffer;
+  let guideUrl = startFrameUrl;
+  if (sectionStart >= 0.15) {
+    // Later sentences paint onto the frame at that moment, not the opening still.
+    try {
+      guideBuf = await extractVideoFrameJpeg(clipVideoBuf, sectionStart);
+      guideUrl = await persistBuffer(
+        guideBuf,
+        `explainer/${project._id.toHexString()}/on-screen-text/${item.id}-guide.jpg`,
+        "image/jpeg",
+      );
+    } catch (error) {
+      console.error("[on-screen-text] frame extract failed", { itemId: item.id, error });
+      guideBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
+    }
+  } else {
+    guideBuf = await decodeImageBufferFromOutputUrl(startFrameUrl);
+  }
+  const safeZone = await detectCenteredFaceSafeTextZone(guideBuf);
   const prompt = inSceneOnScreenTextPrompt({
     text: line,
     lookLine,
@@ -794,7 +833,7 @@ export async function sendOnscreenText(
     quality: "medium",
     resolution: "2k",
     sceneTextLanguage,
-    referenceImageUrls: [startFrameUrl, ...(sampleUrl ? [sampleUrl] : [])],
+    referenceImageUrls: [guideUrl, ...(sampleUrl ? [sampleUrl] : [])],
   });
 
   const syncImgUrl = submitted.images?.[0]?.url;
@@ -804,20 +843,19 @@ export async function sendOnscreenText(
 
   const paintedBuf = await decodeImageBufferFromOutputUrl(syncImgUrl);
   const actualBox = await computePaintedDiffBoundingBox({
-    originalFrame: startFrameBuf,
+    originalFrame: guideBuf,
     paintedFrame: paintedBuf,
     fallbackBox: safeZone.bestBox,
   });
   const paintedJpgBuf = await sharp(paintedBuf).jpeg({ quality: 94 }).toBuffer();
-  const clipVideoBuf = await decodeImageBufferFromOutputUrl(clipVideoUrl);
   const zoneW = Math.max(1, safeZone.width);
   const zoneH = Math.max(1, safeZone.height);
   const comfySub = await submitComfyMaskedTextInpaintVideo({
     videoBuffer: clipVideoBuf,
     paintedStartFrameBuffer: paintedJpgBuf,
     section: {
-      start: 0,
-      length: Math.min(6, Math.max(3, targetClip?.durationSeconds ?? 6)),
+      start: sectionStart,
+      length: sectionLength,
     },
     boxNormalized: {
       x: Math.min(1, Math.max(0, actualBox.x / zoneW)),
@@ -832,6 +870,9 @@ export async function sendOnscreenText(
   const claim: Record<string, unknown> = {
     "onscreenTexts.$.offsetX": safeZone.normalizedOffset.offsetX,
     "onscreenTexts.$.offsetY": safeZone.normalizedOffset.offsetY,
+    "onscreenTexts.$.sectionStart": sectionStart,
+    "onscreenTexts.$.sectionLength": sectionLength,
+    "onscreenTexts.$.sourceVideoUrl": clipVideoUrl,
     updatedAt: new Date(),
   };
   if (project.clips?.[targetClipIdx]) {
@@ -946,9 +987,26 @@ export async function syncOnscreenTextJob(
       if (!vidResp.ok) {
         throw new Error(`無法下載 H3 Masked Latent 影片（HTTP ${vidResp.status}）`);
       }
-      const vidBuf = Buffer.from(await vidResp.arrayBuffer());
+      const sectionBuf = Buffer.from(await vidResp.arrayBuffer());
+      const sectionStart = item.sectionStart ?? 0;
+      const sourceUrl = (item.sourceVideoUrl || "").trim();
+      let finalBuf: Buffer = sectionBuf;
+      if (sourceUrl.startsWith("https://")) {
+        // Comfy returns only the painted time range. Put it back into the full clip and keep the original voice.
+        const sourceBuf = await decodeImageBufferFromOutputUrl(sourceUrl);
+        finalBuf = Buffer.from(
+          await spliceVideoSection({
+            source: sourceBuf,
+            section: sectionBuf,
+            start: sectionStart,
+            length: item.sectionLength && item.sectionLength > 0 ? item.sectionLength : 30,
+          }),
+        );
+      } else if (sectionStart > 0.04) {
+        throw new Error("找不到原片，無法嵌入這句字幕");
+      }
       const inpaintedVideoUrl = await persistBuffer(
-        vidBuf,
+        finalBuf,
         `explainer/${projectId.toHexString()}/on-screen-text/${job._id.toHexString()}-inpainted.mp4`,
         "video/mp4",
       );
@@ -964,7 +1022,7 @@ export async function syncOnscreenTextJob(
         updateSet[`clips.${targetClipIdx}.blobUrl`] = inpaintedVideoUrl;
       }
 
-      await projects.updateOne(
+      const claimed = await projects.updateOne(
         {
           _id: projectId,
           onscreenTexts: {
@@ -980,6 +1038,12 @@ export async function syncOnscreenTextJob(
           },
         },
       );
+      if (claimed.modifiedCount === 1) {
+        const { triggerExplainerAutoOnScreenText } = await import("@/service/director/auto-onscreen-text");
+        await triggerExplainerAutoOnScreenText(projectId).catch((err) => {
+          console.error("[auto-onscreen-text] next sentence failed", { projectId, err });
+        });
+      }
       return;
     } catch (error) {
       console.error("[on-screen-text] H3 Masked Latent video settle failed", {

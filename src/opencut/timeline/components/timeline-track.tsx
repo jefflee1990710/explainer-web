@@ -2,6 +2,7 @@
 
 import { isTransitionElement } from "@/opencut/effects/transition-layout";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
+import { AutoAudioLaneLoading } from "./auto-audio-lane-loading";
 import { TimelineElement } from "./timeline-element";
 import type { TimelineTrack } from "@/opencut/timeline";
 import type { TimelineElement as TimelineElementType } from "@/opencut/timeline";
@@ -158,6 +159,7 @@ export function TimelineTrackContent({
 					</>
 				)}
 			</div>
+			<AutoAudioLaneLoading track={track} zoomLevel={zoomLevel} />
 		</div>
 	);
 }
