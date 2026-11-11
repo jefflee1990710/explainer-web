@@ -121,6 +121,8 @@ export type PublicVideo = {
   startImageUrl?: string;
   uploadedVoUrl?: string;
   uploadedVoDurationSeconds?: number;
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
   // `voiceSample` carries the clone id so clip prices include the voice swap.
   cast: Array<{
     characterId: string;
@@ -512,6 +514,8 @@ export function toPublicVideo(video: Project): PublicVideo {
     startImageUrl: video.startImageUrl,
     uploadedVoUrl: video.uploadedVoUrl,
     uploadedVoDurationSeconds: video.uploadedVoDurationSeconds,
+    referenceVideoUrl: video.referenceVideoUrl,
+    referenceAudioUrl: video.referenceAudioUrl,
     cast: (video.cast || []).map((member) => ({
       characterId: member.characterId.toHexString(),
       ...(member.versionId ? { versionId: member.versionId.toHexString() } : {}),

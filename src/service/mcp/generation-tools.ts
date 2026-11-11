@@ -309,6 +309,8 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
         lastFrameUrl: z.string().url().optional().describe("Optional ending keyframe image URL"),
         characterId: z.string().optional().describe("Optional character id from list_characters"),
         referenceImageUrls: z.array(z.string().url()).max(4).optional().describe("Optional reference image URLs"),
+        refVideoUrl: z.string().url().optional().describe("Optional motion reference video URL (.mp4, .mov, .webm)"),
+        refAudioUrl: z.string().url().optional().describe("Optional speech/soundscape audio URL (.mp3, .wav, .m4a)"),
       },
       annotations: { destructiveHint: true },
     },

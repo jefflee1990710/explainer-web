@@ -14,6 +14,8 @@ export const POST = withApiUser(async ({ request }) => {
     lastFrameUrl?: string;
     characterId?: string;
     referenceImageUrls?: string[];
+    refVideoUrl?: string;
+    refAudioUrl?: string;
   }>(request);
 
   return fromResult(
@@ -27,6 +29,8 @@ export const POST = withApiUser(async ({ request }) => {
       lastFrameUrl: body.lastFrameUrl,
       characterId: body.characterId,
       referenceImageUrls: body.referenceImageUrls,
+      refVideoUrl: body.refVideoUrl,
+      refAudioUrl: body.refAudioUrl,
     }),
     201,
   );

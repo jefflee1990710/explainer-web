@@ -103,6 +103,7 @@ import {
   type SceneTextChoice,
   type SpeechPace,
   type StoryboardClipDraft,
+  type StoryboardRow,
   type SubtitleLook,
   type VideoQualityTier,
   type VoLanguage,
@@ -1334,6 +1335,87 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
 // Keep the old name until the poll hook is switched.
 export const getProjectAction = getVideoAction;
 
+export type SimpleVideoClipDraft = {
+  clip: StoryboardRow;
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
+  projectPayload: {
+    referenceVideoUrl?: string;
+    referenceAudioUrl?: string;
+  };
+  cameraFirstScene: string;
+  cameraFirstMotion: string;
+  durationSeconds: number;
+};
+
+export function buildSimpleVideoClipDraft(input: {
+  prompt: string;
+  durationSeconds?: number;
+  refVideoUrl?: string;
+  refAudioUrl?: string;
+  referenceImageIds?: string[];
+  videoQualityTier?: VideoQualityTier;
+}): SimpleVideoClipDraft {
+  const cleanPrompt = String(input.prompt || "").trim();
+  const durationSeconds = Math.max(5, Math.min(12, Math.round(Number(input.durationSeconds) || 6)));
+  const cleanRefVideoUrl =
+    typeof input.refVideoUrl === "string" && input.refVideoUrl.trim().length > 0
+      ? input.refVideoUrl.trim()
+      : undefined;
+  const validRefVideoUrl =
+    cleanRefVideoUrl && /^https?:\/\//i.test(cleanRefVideoUrl) ? cleanRefVideoUrl : undefined;
+
+  const cleanRefAudioUrl =
+    typeof input.refAudioUrl === "string" && input.refAudioUrl.trim().length > 0
+      ? input.refAudioUrl.trim()
+      : undefined;
+  const validRefAudioUrl =
+    cleanRefAudioUrl && /^https?:\/\//i.test(cleanRefAudioUrl) ? cleanRefAudioUrl : undefined;
+
+  const cameraFirstScene = formatCameraFirstVideoPrompt({
+    prompt: validRefAudioUrl
+      ? `${cleanPrompt} (Natural lip sync matching audio track, expressive facial performance.)`
+      : `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, silent visual action only.)`,
+  });
+  const cameraFirstMotion = formatCameraFirstVideoPrompt({
+    prompt: validRefAudioUrl
+      ? `${cleanPrompt} (Natural dialogue and head motion matching audio.)`
+      : `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, no talking.)`,
+  });
+
+  const clip: StoryboardRow = {
+    clipNumber: 1,
+    timeRange: `0–${durationSeconds}s`,
+    durationSeconds,
+    narrativeJob: "Shot 1",
+    explainerScene: cameraFirstScene,
+    motionCamera: cameraFirstMotion,
+    englishVo: "(no dialogue)",
+    bgmSfx: "none",
+    videoQualityTier: input.videoQualityTier || "economy",
+    ...(input.referenceImageIds && input.referenceImageIds.length > 0
+      ? { referenceImageIds: input.referenceImageIds }
+      : {}),
+    ...(validRefVideoUrl ? { referenceVideoUrl: validRefVideoUrl } : {}),
+    ...(validRefAudioUrl ? { referenceAudioUrl: validRefAudioUrl } : {}),
+  };
+
+  const projectPayload = {
+    ...(validRefVideoUrl ? { referenceVideoUrl: validRefVideoUrl } : {}),
+    ...(validRefAudioUrl ? { referenceAudioUrl: validRefAudioUrl } : {}),
+  };
+
+  return {
+    clip,
+    referenceVideoUrl: validRefVideoUrl,
+    referenceAudioUrl: validRefAudioUrl,
+    projectPayload,
+    cameraFirstScene,
+    cameraFirstMotion,
+    durationSeconds,
+  };
+}
+
 export async function createSimpleVideoAction(input: {
   prompt: string;
   aspectRatio?: AspectRatio;
@@ -1344,6 +1426,8 @@ export async function createSimpleVideoAction(input: {
   lastFrameUrl?: string;
   characterId?: string;
   referenceImageUrls?: string[];
+  refVideoUrl?: string;
+  refAudioUrl?: string;
 }): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
@@ -1355,7 +1439,6 @@ export async function createSimpleVideoAction(input: {
       input.aspectRatio && ["16:9", "9:16", "1:1"].includes(input.aspectRatio)
         ? input.aspectRatio
         : "9:16";
-    const durationSeconds = Math.max(5, Math.min(12, Math.round(Number(input.durationSeconds) || 6)));
     const styleId = input.styleId && isListedStyleId(input.styleId) ? input.styleId : "realistic";
     const videoQualityTier: VideoQualityTier = isVideoQualityTier(input.videoQualityTier)
       ? input.videoQualityTier
@@ -1378,6 +1461,16 @@ export async function createSimpleVideoAction(input: {
         url,
         description: "Scene or character reference",
       }));
+
+    const draft = buildSimpleVideoClipDraft({
+      prompt: cleanPrompt,
+      durationSeconds: input.durationSeconds,
+      refVideoUrl: input.refVideoUrl,
+      refAudioUrl: input.refAudioUrl,
+      referenceImageIds: refImages.map((r) => r.id),
+      videoQualityTier,
+    });
+    const durationSeconds = draft.durationSeconds;
 
     const firstUrl = input.firstFrameUrl?.trim();
     const lastUrl = input.lastFrameUrl?.trim();
@@ -1415,13 +1508,6 @@ export async function createSimpleVideoAction(input: {
         : []),
     ];
 
-    const cameraFirstScene = formatCameraFirstVideoPrompt({
-      prompt: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, silent visual action only.)`,
-    });
-    const cameraFirstMotion = formatCameraFirstVideoPrompt({
-      prompt: `${cleanPrompt} (Strictly NO lip-sync, lips stay closed, no talking.)`,
-    });
-
     const videos = await videosCollection();
     const insert = await videos.insertOne({
       userId: user._id,
@@ -1444,6 +1530,8 @@ export async function createSimpleVideoAction(input: {
       ...(refImages.length > 0 ? { referenceImages: refImages } : {}),
       cast: castResult.cast,
       status: "production",
+      ...(draft.referenceVideoUrl ? { referenceVideoUrl: draft.referenceVideoUrl } : {}),
+      ...(draft.referenceAudioUrl ? { referenceAudioUrl: draft.referenceAudioUrl } : {}),
       phaseA: {
         englishTitle: cleanPrompt.slice(0, 48),
         localizedTitle: cleanPrompt.slice(0, 48),
@@ -1460,20 +1548,7 @@ export async function createSimpleVideoAction(input: {
         palette: "Cinematic natural palette",
         bgmDirection: "none",
         narrativeArc: "Single continuous shot",
-        clips: [
-          {
-            clipNumber: 1,
-            timeRange: `0–${durationSeconds}s`,
-            durationSeconds,
-            narrativeJob: "Shot 1",
-            explainerScene: cameraFirstScene,
-            motionCamera: cameraFirstMotion,
-            englishVo: "(no dialogue)",
-            bgmSfx: "none",
-            videoQualityTier,
-            ...(refImages.length > 0 ? { referenceImageIds: refImages.map((r) => r.id) } : {}),
-          },
-        ],
+        clips: [draft.clip],
       },
       frames,
       clips: [],
