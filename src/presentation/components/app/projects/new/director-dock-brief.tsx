@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   useMemo,
@@ -79,6 +80,8 @@ import {
   lockedStyleIdForSkill,
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
+import { ExplainerOnScreenTextDialog } from "./explainer-on-screen-text-dialog";
+import { systemTextStylePreview, type SubtitleLook } from "@/service/director/subtitle-look";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 
 const ASPECT_OPTIONS: readonly AspectRatio[] = ["9:16", "16:9", "1:1"];
@@ -178,6 +181,12 @@ export function DirectorDockBrief({
   onVoLanguageChange,
   sceneTextLanguage,
   onSceneTextLanguageChange,
+  onScreenTextStyleId,
+  onOnScreenTextStyleIdChange,
+  onScreenTextCoverage,
+  onOnScreenTextCoverageChange,
+  onScreenTextEnabled,
+  onOnScreenTextEnabledChange,
   aspectRatio,
   onAspectRatioSelect,
   credits,
@@ -250,6 +259,12 @@ export function DirectorDockBrief({
   onSpeechPaceChange?: (pace: SpeechPace) => void;
   sceneTextLanguage: SceneTextChoice;
   onSceneTextLanguageChange: (choice: SceneTextChoice) => void;
+  onScreenTextStyleId?: string;
+  onOnScreenTextStyleIdChange?: (id: string) => void;
+  onScreenTextCoverage?: "hook" | "all";
+  onOnScreenTextCoverageChange?: (cov: "hook" | "all") => void;
+  onScreenTextEnabled?: boolean;
+  onOnScreenTextEnabledChange?: (enabled: boolean) => void;
   aspectRatio: AspectRatio | "";
   onAspectRatioSelect: (ratio: AspectRatio) => void;
   durationPreset?: DurationPreset;
@@ -287,6 +302,7 @@ export function DirectorDockBrief({
   const [voDialogOpen, setVoDialogOpen] = useState(false);
   const [draftsDialogOpen, setDraftsDialogOpen] = useState(false);
   const [actingNoteOpen, setActingNoteOpen] = useState(false);
+  const [onScreenTextDialogOpen, setOnScreenTextDialogOpen] = useState(false);
 
   const [createdCharacters, setCreatedCharacters] = useState<PublicCharacter[]>(
     [],
@@ -825,34 +841,59 @@ export function DirectorDockBrief({
                 }
               />
 
-              <DirectorDockPill
-                icon={
-                  <svg
-                    aria-hidden="true"
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="M7 15h4M15 15h2M7 11h2M13 11h4" />
-                  </svg>
-                }
-                label={
-                  locale === "en"
-                    ? `Text: ${sceneTextLabel}`
-                    : `字卡: ${sceneTextLabel}`
-                }
-                disabled={briefBusy}
-                onClick={() =>
-                  onSceneTextLanguageChange(
-                    cycleOption(SCENE_TEXT_OPTIONS, activeSceneTextLanguage, 1),
-                  )
-                }
-              />
+              {!talkingHead && !isStory ? (
+                <DirectorDockPill
+                  icon={
+                    <div className="relative h-3.5 w-3.5 overflow-hidden rounded-[3px] border border-[var(--studio-line)] bg-black/40">
+                      <Image
+                        src={systemTextStylePreview((onScreenTextStyleId as SubtitleLook) || "clean")}
+                        alt="Style"
+                        fill
+                        sizes="14px"
+                        className="object-cover"
+                      />
+                    </div>
+                  }
+                  label={
+                    !onScreenTextEnabled
+                      ? locale === "en"
+                        ? "Text: Off"
+                        : "字卡: 關閉"
+                      : `${t(`pickers.subtitleLook.${onScreenTextStyleId || "clean"}.label` as any) || "藝術字"} · ${onScreenTextCoverage === "all" ? (locale === "en" ? "All" : "全分鏡") : "Hook"}`
+                  }
+                  disabled={briefBusy}
+                  onClick={() => setOnScreenTextDialogOpen(true)}
+                />
+              ) : (
+                <DirectorDockPill
+                  icon={
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="M7 15h4M15 15h2M7 11h2M13 11h4" />
+                    </svg>
+                  }
+                  label={
+                    locale === "en"
+                      ? `Text: ${sceneTextLabel}`
+                      : `字卡: ${sceneTextLabel}`
+                  }
+                  disabled={briefBusy}
+                  onClick={() =>
+                    onSceneTextLanguageChange(
+                      cycleOption(SCENE_TEXT_OPTIONS, activeSceneTextLanguage, 1),
+                    )
+                  }
+                />
+              )}
 
               {talkingHead ? (
                 <DirectorDockPill
@@ -1313,6 +1354,22 @@ export function DirectorDockBrief({
           </div>
         </DialogBackdrop>
       ) : null}
+
+      <ExplainerOnScreenTextDialog
+        open={onScreenTextDialogOpen}
+        onClose={() => setOnScreenTextDialogOpen(false)}
+        enabled={Boolean(onScreenTextEnabled)}
+        onEnabledChange={(en) => {
+          onOnScreenTextEnabledChange?.(en);
+          onSceneTextLanguageChange(
+            en ? (sceneTextLanguage === "none" ? "zh-Hant" : sceneTextLanguage) : "none",
+          );
+        }}
+        selectedStyleId={onScreenTextStyleId || "clean"}
+        onStyleIdChange={(id) => onOnScreenTextStyleIdChange?.(id)}
+        coverage={onScreenTextCoverage || "hook"}
+        onCoverageChange={(cov) => onOnScreenTextCoverageChange?.(cov)}
+      />
     </>
   );
 }

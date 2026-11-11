@@ -382,6 +382,16 @@ export function NewProjectForm({
   const [textStyleId, setTextStyleId] = useState(() =>
     chosenTextStyleId(initialVideo, lastBrief?.textStyleId, textStyles),
   );
+  const [onScreenTextStyleId, setOnScreenTextStyleId] = useState<string>(
+    initialVideo?.onScreenTextStyleId || "clean",
+  );
+  const [onScreenTextCoverage, setOnScreenTextCoverage] = useState<"hook" | "all">(
+    initialVideo?.onScreenTextCoverage || "hook",
+  );
+  const [onScreenTextEnabled, setOnScreenTextEnabled] = useState<boolean>(() => {
+    if (initialVideo) return Boolean(initialVideo.onScreenTextStyleId);
+    return true;
+  });
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
     initialVideo?.aspectRatio || lastBrief?.aspectRatio || "9:16",
   );
@@ -701,6 +711,10 @@ export function NewProjectForm({
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
     formData.set("sceneTextLanguage", sceneTextLanguage);
+    if (onScreenTextEnabled && onScreenTextStyleId) {
+      formData.set("onScreenTextStyleId", onScreenTextStyleId);
+      formData.set("onScreenTextCoverage", onScreenTextCoverage);
+    }
     formData.set("textStyleId", textStyleId);
     formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
     formData.set("aspectRatio", aspectRatio);
@@ -845,6 +859,10 @@ export function NewProjectForm({
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
     formData.set("sceneTextLanguage", sceneTextLanguage);
+    if (onScreenTextEnabled && onScreenTextStyleId) {
+      formData.set("onScreenTextStyleId", onScreenTextStyleId);
+      formData.set("onScreenTextCoverage", onScreenTextCoverage);
+    }
     formData.set("textStyleId", textStyleId);
     formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
     formData.set("aspectRatio", aspectRatio || "9:16");
@@ -1571,6 +1589,12 @@ export function NewProjectForm({
                     setLanguageExplicit(true);
                     setSceneTextLanguage(next);
                   }}
+                  onScreenTextStyleId={onScreenTextStyleId}
+                  onOnScreenTextStyleIdChange={setOnScreenTextStyleId}
+                  onScreenTextCoverage={onScreenTextCoverage}
+                  onOnScreenTextCoverageChange={setOnScreenTextCoverage}
+                  onScreenTextEnabled={onScreenTextEnabled}
+                  onOnScreenTextEnabledChange={setOnScreenTextEnabled}
                   aspectRatio={aspectRatio}
                   onAspectRatioSelect={onAspectRatioSelect}
                   durationPreset={durationPreset}
