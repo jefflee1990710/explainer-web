@@ -116,4 +116,22 @@ test("TermsDocument and PrivacyDocument disclaim any affirmative duty to monitor
   // Privacy Policy safe harbor & external copy disclaimer
   assert.match(privacyHtml, /no affirmative obligation or duty of care/i);
   assert.match(privacyHtml, /copies already downloaded or distributed externally/i);
+
+  // Full platform feature coverage (Voice Cloning, Extend Video, Wardrobe, Products, Room, REST API / MCP keys, Affiliate Program)
+  assert.match(termsHtml, /Extend Video/i);
+  assert.match(termsHtml, /Wardrobe/i);
+  assert.match(termsHtml, /MCP/i);
+  assert.match(termsHtml, /Affiliate/i);
+
+  // 2025-2026 Hong Kong ordinances & PCPD Data Protection Principles (Cap. 200 s.159AAE/s.161, Cap. 390, Cap. 210, Cap. 486 DPP1 & DPP3)
+  assert.match(termsHtml, /159AAE/);
+  assert.match(termsHtml, /Cap\. 390/);
+  assert.match(termsHtml, /Cap\. 210/);
+  assert.match(termsHtml, /Data Protection Principles 1 and 3/i);
+
+  // Deployer AI Disclosure Obligation (EU AI Act Article 50 & HK Generative AI Guideline) & 48-hour NCII takedown (TAKE IT DOWN Act)
+  assert.match(termsHtml, /Article 50/i);
+  assert.match(termsHtml, /48 hours/i);
+  assert.match(privacyHtml, /48 hours/i);
+  assert.match(privacyHtml, /cross-border/i);
 });

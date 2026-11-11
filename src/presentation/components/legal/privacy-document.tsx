@@ -127,7 +127,7 @@ export function PrivacyDocument() {
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              5. Sub-Processors &amp; Third-Party Providers
+              5. Sub-Processors, Third-Party Providers &amp; Cross-Border Processing
             </h2>
             <p className="mt-2">
               To operate the Service, we share only the minimum necessary data with trusted
@@ -135,8 +135,11 @@ export function PrivacyDocument() {
               (payments), MongoDB Atlas and Vercel / Vercel Blob (database and cloud media storage),
               transactional/marketing email delivery services, and upstream AI model providers (such
               as Google Gemini, OpenRouter, MiniMax, Alibaba Cloud, ByteDance Seedream, HeyGen,
-              ElevenLabs, fal.ai, and our dedicated ComfyUI GPU nodes). Uploaded photos, source
-              videos, audio, and prompts are transmitted to those model providers solely to execute
+              ElevenLabs, fal.ai, and our dedicated ComfyUI GPU nodes). Because these cloud and AI
+              inference sub-processors operate on servers located globally (including outside the
+              Hong Kong Special Administrative Region), by using the Service and submitting prompts
+              or media, you expressly consent to the cross-border transfer and transient processing
+              of your uploaded photos, source videos, voice samples, and prompts solely to execute
               your requested render.
             </p>
           </section>
@@ -176,20 +179,23 @@ export function PrivacyDocument() {
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              7. Third-Party Likeness Takedown &amp; Privacy Complaints
+              7. Third-Party Likeness Takedown (48-Hour Priority Removal) &amp; Privacy Complaints
             </h2>
             <p className="mt-2">
               If you are an individual whose photograph, video, or voice has been uploaded to or
-              synthesized on Scro by a user without your consent, please contact us immediately at{" "}
+              synthesized on Scro by a user without your consent (in contravention of Data
+              Protection Principles 1 and 3 or Section 64 of the Hong Kong PDPO Cap. 486), please
+              contact us immediately at{" "}
               <a className="font-semibold text-[#12141c] underline" href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>{" "}
               with the relevant link or description. Upon receiving specific notice and reasonable
-              verification, we will take commercially reasonable steps to delete the unauthorized
-              media hosted on our controlled storage servers and take appropriate enforcement action
-              against the responsible user account. Because Scro is a self-service tool, NOVAX
-              Limited cannot control and expressly disclaims any liability for copies already
-              downloaded or distributed externally by a user.
+              verification, we will take commercially reasonable steps—targeted within 48 hours for
+              verified non-consensual intimate or unauthorized likeness reports—to purge the
+              unauthorized media hosted on our controlled storage servers, permanently block the
+              offending account from re-uploading, and take appropriate enforcement action. Because
+              Scro is a self-service tool, NOVAX Limited cannot control and expressly disclaims any
+              liability for copies already downloaded or distributed externally by a user.
             </p>
           </section>
 

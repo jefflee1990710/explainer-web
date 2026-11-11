@@ -55,15 +55,29 @@ export function TermsDocument() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-[#12141c]">3. The Service &amp; Accounts</h2>
+            <h2 className="text-xl font-semibold text-[#12141c]">
+              3. The Service, Accounts, API/MCP Keys &amp; Affiliate Program
+            </h2>
             <p className="mt-2">
               Scro provides automated AI creation and editing tools, including AI Influencer
               character creation, Explainer videos, Talking Head videos, Story videos, Scro Swap
-              (character and object replacement), Teleport (scene relocation), Life photos, Poster
-              generation, and OpenCut timeline editing. You must provide accurate registration
-              information, maintain the security of your login credentials, and accept full
-              responsibility for all activities, uploads, prompts, and renders performed under your
-              account.
+              (character and object replacement), Teleport (scene relocation), Extend Video (latent
+              video continuation), Voice Cloning and multilingual voice synthesis, Wardrobe (custom
+              garment styling), Products (product promo sheets), Room (3x3 background sets), Life
+              photos, Pose Edits, Poster generation, OpenCut timeline editing, and programmatic REST
+              API and Model Context Protocol (MCP) access (<code>exp_live_*</code> API keys). You
+              must provide accurate registration information, maintain the security of your login
+              credentials and API/MCP keys, and accept 100% legal responsibility for all activities,
+              uploads, prompts, and renders performed under your account or via your API/MCP keys.
+              You are strictly prohibited from reselling or operating an unmoderated third-party
+              proxy or &ldquo;deepfake-as-a-service&rdquo; wrapper using Scro API/MCP keys.
+            </p>
+            <p className="mt-2">
+              <strong>Affiliate Program Conduct:</strong> Participants in the Scro Affiliate Program
+              must market the Service truthfully and lawfully. Promoting Scro through NSFW,
+              &ldquo;nudifier&rdquo;, non-consensual deepfake, celebrity impersonation, or deceptive
+              advertising will result in immediate account termination and permanent forfeiture of
+              all accrued and unpaid affiliate commissions.
             </p>
           </section>
 
@@ -181,19 +195,24 @@ export function TermsDocument() {
                 AI synthesis, face/character swap, or voice cloning being performed; and
               </li>
               <li>
-                Your source media and resulting AI outputs comply with all applicable criminal and
-                civil laws, including Hong Kong&apos;s <em>Crimes Ordinance</em> (Cap. 200)
-                offences regarding non-consensual intimate images, the{" "}
-                <em>Personal Data (Privacy) Ordinance</em> (Cap. 486) Section 64 anti-doxxing
-                provisions, intellectual property laws, and right-of-publicity statutes in your
-                jurisdiction.
+                Your source media (including photos, videos, voice samples, wardrobe garments, and
+                product images) and resulting AI outputs comply with all applicable criminal, civil,
+                and data-protection laws, including Hong Kong&apos;s <em>Crimes Ordinance</em> (Cap.
+                200) Section 159AAE (non-consensual intimate images) and Section 161 (access to
+                computer with criminal or dishonest intent), the{" "}
+                <em>Control of Obscene and Indecent Articles Ordinance</em> (Cap. 390), the{" "}
+                <em>Theft Ordinance</em> (Cap. 210) (fraud and blackmail), the{" "}
+                <em>Personal Data (Privacy) Ordinance</em> (Cap. 486) Data Protection Principles 1
+                and 3 (lawful collection and express consent for new use) and Section 64
+                anti-doxxing provisions, intellectual property laws, and right-of-publicity statutes
+                in your jurisdiction.
               </li>
             </ol>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              6. Neutral Technology Provider, No Duty to Monitor &amp; Sole User Responsibility
+              6. Neutral Technology Provider, No Duty to Monitor &amp; Deployer AI Disclosure Duty
             </h2>
             <p className="mt-2">
               Scro operates strictly as a passive technical intermediary and automated, self-service
@@ -209,13 +228,22 @@ export function TermsDocument() {
               compliance reviews are exercised solely as a <strong>right, and not an obligation</strong>,
               of NOVAX Limited, and never create or imply any duty of care, fiduciary duty, or
               assumption of responsibility toward any user or third party.{" "}
-              <strong>You are the sole creator, publisher, and legally responsible party</strong>{" "}
+              <strong>You are the sole creator, deployer, publisher, and legally responsible party</strong>{" "}
               for all source media you upload and all images, audio, and videos you generate,
               download, or distribute. You must review all outputs for accuracy, legality, and
-              appropriateness before publishing or sharing them. NOVAX Limited expressly disclaims
-              any and all liability arising from user-generated content, user misuse of the Service,
-              upstream AI provider moderation refusals, or copies already downloaded or distributed
-              externally by users.
+              appropriateness before publishing or sharing them.
+            </p>
+            <p className="mt-2">
+              <strong>Mandatory Deployer AI Labelling &amp; Disclosure:</strong> Where you publish,
+              broadcast, or distribute realistic AI-generated or manipulated video, image, or voice
+              outputs externally, you are solely responsible for clearly labelling and disclosing
+              that the content is artificially generated or synthesized, in compliance with{" "}
+              <em>EU AI Act Article 50</em>, the{" "}
+              <em>Hong Kong Generative Artificial Intelligence Technical and Application Guideline</em>
+              , and all applicable transparency laws in your jurisdiction. NOVAX Limited expressly
+              disclaims any and all liability arising from user-generated content, user failure to
+              label synthetic media, user misuse of the Service, upstream AI provider moderation
+              refusals, or copies already downloaded or distributed externally by users.
             </p>
           </section>
 
@@ -333,9 +361,11 @@ export function TermsDocument() {
               review and accept the updated Terms upon login before continuing to use the workspace.
             </p>
             <p className="mt-2">
-              To ask questions about these Terms, or to report abuse, unauthorized likeness usage,
-              or copyright infringement for immediate takedown, please contact{" "}
-              <strong>NOVAX Limited</strong> at{" "}
+              To ask questions about these Terms, or to report abuse, non-consensual intimate
+              imagery (NCII), unauthorized likeness/voice usage, or copyright infringement for
+              priority takedown (targeted within 48 hours of verified notice in accordance with
+              global safety standards including the US TAKE IT DOWN Act and EU Digital Services Act),
+              please contact <strong>NOVAX Limited</strong> at{" "}
               <a className="font-semibold text-[#12141c] underline" href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>
