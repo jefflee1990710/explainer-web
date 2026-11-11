@@ -96,6 +96,8 @@ export type PublicVideo = {
   subtitleOverlay: boolean;
   subtitlePlates?: SubtitlePlate[];
   onscreenTexts?: Project["onscreenTexts"];
+  onScreenTextStyleId?: string;
+  onScreenTextCoverage?: "hook" | "all";
   characterImageUrl?: string;
   characterStillUrl?: string;
   stillError?: string;
@@ -496,6 +498,8 @@ export function toPublicVideo(video: Project): PublicVideo {
       usesTalkingHeadSubtitleOverlay({ skillSlug: video.skillSlug, styleId: video.styleId }),
     subtitlePlates: video.subtitlePlates,
     onscreenTexts: video.onscreenTexts,
+    onScreenTextStyleId: video.onScreenTextStyleId,
+    onScreenTextCoverage: video.onScreenTextCoverage,
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,

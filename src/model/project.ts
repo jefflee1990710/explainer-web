@@ -490,6 +490,9 @@ export type Project = {
   subtitlePlates?: SubtitlePlate[];
   // OpenCut AI on-screen text image assets (`ScroOnscreenText`) queued from the editor.
   onscreenTexts?: OnscreenTextItem[];
+  // Explainer auto on-screen text style id and coverage mode.
+  onScreenTextStyleId?: string;
+  onScreenTextCoverage?: "hook" | "all";
   // Painted-subtitle stills: one lettering card per subtitle line and look.
   subtitleLetterings?: SubtitleLettering[];
   characterImageUrl?: string;
@@ -746,6 +749,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
   subtitleOverlay: z.boolean().optional(),
   subtitlePlates: z.array(subtitlePlateSchema).optional(),
   onscreenTexts: z.array(onscreenTextItemSchema).optional(),
+  onScreenTextStyleId: z.string().optional(),
+  onScreenTextCoverage: z.enum(["hook", "all"]).optional(),
   subtitleLetterings: z.array(z.object({ key: z.string(), url: z.string() })).optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),
