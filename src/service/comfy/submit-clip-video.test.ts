@@ -1,11 +1,46 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildComfyRef2VaLatentGuideGraph,
   buildOneTakeChainShots,
   shouldUseComfyForClipVideo,
   submitComfyStoryboardClipVideo,
 } from "@/service/comfy/submit-clip-video";
 import { submitClipVideo } from "@/service/higgsfield/generate";
+
+test("buildComfyRef2VaLatentGuideGraph connects ref_videos and ref_video_audios when videoName and audioName are provided", () => {
+  const graph = buildComfyRef2VaLatentGuideGraph({
+    runId: "test_run",
+    aspectRatio: "9:16",
+    durationSeconds: 6,
+    prompt: "Camera moves through street",
+    startName: "start.jpg",
+    videoName: "motion.mp4",
+    audioName: "speech.mp3",
+  });
+
+  assert.equal(graph["5"]?.class_type, "VHS_LoadVideo");
+  assert.equal(graph["5"]?.inputs?.video, "motion.mp4");
+  assert.deepEqual(graph["30"]?.inputs?.["ref_videos.ref_video_0"], ["32", 0]);
+
+  assert.equal(graph["74"]?.class_type, "VHS_LoadAudio");
+  assert.equal(graph["74"]?.inputs?.audio, "speech.mp3");
+  assert.deepEqual(graph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], ["74", 0]);
+});
+
+test("buildComfyRef2VaLatentGuideGraph removes video and audio loader nodes when videoName and audioName are omitted", () => {
+  const graph = buildComfyRef2VaLatentGuideGraph({
+    runId: "test_run_empty",
+    aspectRatio: "9:16",
+    durationSeconds: 6,
+    prompt: "Camera moves through street",
+    startName: "start.jpg",
+  });
+
+  assert.equal(graph["5"], undefined);
+  assert.equal(graph["30"]?.inputs?.["ref_videos.ref_video_0"], undefined);
+  assert.equal(graph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], undefined);
+});
 
 test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head clips when ComfyUI is not configured", async () => {
   const prevBase = process.env.COMFY_BASE_URL;
@@ -158,6 +193,81 @@ test("submitComfyStoryboardClipVideo sets Hard picture + smooth audio and multi-
     assert.equal(plan.shots.length, 5);
     assert.match(plan.shots[0]?.prompt ?? "", /starts sprinting downhill/);
     assert.match(plan.shots[4]?.prompt ?? "", /reaches valley floor/);
+  } finally {
+    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevBase;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+  }
+});
+
+test("submitComfyStoryboardClipVideo fetches, uploads, and wires reference video and audio when URLs provided", async () => {
+  const prevBase = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  process.env.COMFY_BASE_URL = "https://comfy.example.com";
+  process.env.COMFY_API_KEY = "secret-token";
+
+  let submittedGraph: Record<string, { inputs: Record<string, unknown>; class_type?: string }> | undefined;
+  const uploadedFiles: string[] = [];
+
+  const fakeFetch: typeof fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === "https://blob.example.com/start.jpg") {
+      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    }
+    if (url === "https://blob.example.com/motion.mp4") {
+      return new Response(new Uint8Array([4, 5, 6]), { status: 200 });
+    }
+    if (url === "https://blob.example.com/speech.mp3") {
+      return new Response(new Uint8Array([7, 8, 9]), { status: 200 });
+    }
+    if (url.endsWith("/upload/image")) {
+      const formData = init?.body as FormData;
+      const file = formData.get("image") as File;
+      const name = file?.name || "unknown";
+      uploadedFiles.push(name);
+      return Response.json({ name });
+    }
+    if (url.endsWith("/prompt")) {
+      const parsed = JSON.parse(String(init?.body)) as {
+        prompt: Record<string, { inputs: Record<string, unknown>; class_type?: string }>;
+      };
+      submittedGraph = parsed.prompt;
+      return Response.json({ prompt_id: "prompt-456" });
+    }
+    throw new Error(`unexpected URL ${url}`);
+  };
+
+  try {
+    const res = await submitComfyStoryboardClipVideo(
+      {
+        prompt: "A runner sprinting in the park",
+        aspectRatio: "9:16",
+        durationSeconds: 6,
+        startImageUrl: "https://blob.example.com/start.jpg",
+        referenceVideoUrl: "https://blob.example.com/motion.mp4",
+        referenceAudioUrl: "https://blob.example.com/speech.mp3",
+      },
+      { fetch: fakeFetch },
+    );
+
+    assert.equal(res.request_id, "prompt-456");
+    assert.ok(submittedGraph);
+
+    // Verify video loader and scaling node
+    assert.equal(submittedGraph["5"]?.class_type, "VHS_LoadVideo");
+    assert.match(String(submittedGraph["5"]?.inputs?.video), /clip-ref-video-.*\.mp4/);
+    assert.deepEqual(submittedGraph["30"]?.inputs?.["ref_videos.ref_video_0"], ["32", 0]);
+
+    // Verify audio loader node
+    assert.equal(submittedGraph["74"]?.class_type, "VHS_LoadAudio");
+    assert.match(String(submittedGraph["74"]?.inputs?.audio), /clip-ref-audio-.*\.mp3/);
+    assert.deepEqual(submittedGraph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], ["74", 0]);
+
+    // Verify uploaded files include start, video, audio
+    assert.ok(uploadedFiles.some((f) => f.includes("clip-start-")));
+    assert.ok(uploadedFiles.some((f) => f.includes("clip-ref-video-")));
+    assert.ok(uploadedFiles.some((f) => f.includes("clip-ref-audio-")));
   } finally {
     if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
     else process.env.COMFY_BASE_URL = prevBase;

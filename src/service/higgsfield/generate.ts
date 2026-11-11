@@ -242,26 +242,30 @@ export async function submitImage(input: {
 // Backwards-compatible alias.
 export const submitCharacterStill = submitImage;
 
+export type SubmitClipVideoInput = {
+  prompt: string;
+  motionPrompt?: string;
+  expressiveness?: "low" | "medium" | "high";
+  language?: VoLanguage;
+  spokenScript?: string;
+  aspectRatio: AspectRatio;
+  durationSeconds: number;
+  startImageUrl: string;
+  endImageUrl?: string;
+  characterImageUrl?: string;
+  sceneImageUrl?: string;
+  audioUrl?: string;
+  referenceVideoUrl?: string;
+  referenceAudioUrl?: string;
+  model?: string;
+  skillSlug?: string;
+  styleId?: string;
+  style?: { id?: string; baseStyleId?: string } | null;
+  videoQualityTier?: VideoQualityTier;
+};
+
 export async function submitClipVideo(
-  input: {
-    prompt: string;
-    motionPrompt?: string;
-    expressiveness?: "low" | "medium" | "high";
-    language?: VoLanguage;
-    spokenScript?: string;
-    aspectRatio: AspectRatio;
-    durationSeconds: number;
-    startImageUrl: string;
-    endImageUrl?: string;
-    characterImageUrl?: string;
-    sceneImageUrl?: string;
-    audioUrl?: string;
-    model?: string;
-    skillSlug?: string;
-    styleId?: string;
-    style?: { id?: string; baseStyleId?: string } | null;
-    videoQualityTier?: VideoQualityTier;
-  },
+  input: SubmitClipVideoInput,
   options?: { fetch?: typeof fetch; callbackUrl?: string | null },
 ) {
   const provider = clipVideoProvider();
@@ -297,6 +301,8 @@ export async function submitClipVideo(
         endImageUrl: input.endImageUrl,
         characterImageUrl: input.characterImageUrl,
         sceneImageUrl: input.sceneImageUrl,
+        referenceVideoUrl: input.referenceVideoUrl,
+        referenceAudioUrl: input.referenceAudioUrl,
         skillSlug: input.skillSlug,
       },
       options,

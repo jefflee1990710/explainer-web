@@ -184,16 +184,17 @@ function buildRef2VaClipPrompt(input: {
   ].join("\n");
 }
 
-async function uploadComfyImage(
+export async function uploadComfyAsset(
   name: string,
   bytes: Buffer,
   fetchFn: typeof fetch,
+  mime = "image/jpeg",
 ): Promise<string> {
   const key = process.env.COMFY_API_KEY?.trim();
   const base = comfyBaseUrl();
   if (!base || (!key && !hasComfyEndpoint())) throw new Error("ComfyUI 尚未設定");
   const form = new FormData();
-  form.append("image", new Blob([new Uint8Array(bytes)], { type: "image/jpeg" }), name);
+  form.append("image", new Blob([new Uint8Array(bytes)], { type: mime }), name);
   form.append("type", "input");
   form.append("overwrite", "true");
   const res = await fetchFn(`${base}/upload/image`, {
@@ -208,6 +209,8 @@ async function uploadComfyImage(
   return body.name;
 }
 
+export const uploadComfyImage = uploadComfyAsset;
+
 export function buildComfyRef2VaLatentGuideGraph(input: {
   runId: string;
   aspectRatio: AspectRatio;
@@ -217,17 +220,38 @@ export function buildComfyRef2VaLatentGuideGraph(input: {
   endName?: string | null;
   charName?: string | null;
   sceneName?: string | null;
+  videoName?: string | null;
+  audioName?: string | null;
   skillSlug?: string;
 }): ApiGraph {
-  const { runId, startName, endName, charName, sceneName } = input;
+  const { runId, startName, endName, charName, sceneName, videoName, audioName } = input;
   const graph = structuredClone(extendWorkflowJson) as unknown as ApiGraph;
   // Remove external video loader nodes (independent single-clip generation from reference images)
-  for (const id of ["4", "5", "6", "27", "32"]) {
-    delete graph[id];
-  }
+  delete graph["4"];
+  delete graph["6"];
+  delete graph["27"];
   delete graph["28"].inputs.external_context;
-  delete graph["30"].inputs["ref_videos.ref_video_0"];
-  delete graph["30"].inputs["ref_video_audios.ref_video_audio_0"];
+
+  if (videoName) {
+    graph["5"].inputs.video = videoName;
+    graph["30"].inputs["ref_videos.ref_video_0"] = ["32", 0];
+  } else {
+    delete graph["5"];
+    delete graph["32"];
+    delete graph["30"].inputs["ref_videos.ref_video_0"];
+  }
+
+  if (audioName) {
+    graph["74"] = {
+      class_type: "VHS_LoadAudio",
+      inputs: { audio: audioName },
+      _meta: { title: "Reference Audio" },
+    };
+    graph["30"].inputs["ref_video_audios.ref_video_audio_0"] = ["74", 0];
+  } else {
+    delete graph["74"];
+    delete graph["30"].inputs["ref_video_audios.ref_video_audio_0"];
+  }
 
   graph["2"].inputs.image = startName;
   graph["30"].inputs["ref_images.ref_image_0"] = ["2", 0];
@@ -340,6 +364,8 @@ export async function submitComfyStoryboardClipVideo(
     endImageUrl?: string;
     characterImageUrl?: string;
     sceneImageUrl?: string;
+    referenceVideoUrl?: string;
+    referenceAudioUrl?: string;
     skillSlug?: string;
   },
   options?: { fetch?: typeof fetch },
@@ -356,7 +382,14 @@ export async function submitComfyStoryboardClipVideo(
     return Buffer.from(await r.arrayBuffer());
   };
 
-  const [startBuf, endBuf, charBuf, sceneBuf] = await Promise.all([
+  const resolveExt = (url: string | undefined, fallback: string) => {
+    if (!url) return fallback;
+    const clean = url.split("?")[0] || "";
+    const ext = clean.split(".").pop()?.toLowerCase();
+    return ext && /^[a-z0-9]{2,5}$/.test(ext) ? ext : fallback;
+  };
+
+  const [startBuf, endBuf, charBuf, sceneBuf, refVideoBuf, refAudioBuf] = await Promise.all([
     fetchBuf(input.startImageUrl),
     input.endImageUrl && input.endImageUrl !== input.startImageUrl
       ? fetchBuf(input.endImageUrl)
@@ -369,13 +402,39 @@ export async function submitComfyStoryboardClipVideo(
     input.sceneImageUrl !== input.characterImageUrl
       ? fetchBuf(input.sceneImageUrl).catch(() => null)
       : Promise.resolve(null),
+    input.referenceVideoUrl
+      ? fetchBuf(input.referenceVideoUrl).catch((err) => {
+          throw new Error(`無法下載參考影片（${err instanceof Error ? err.message : String(err)}）`);
+        })
+      : Promise.resolve(null),
+    input.referenceAudioUrl
+      ? fetchBuf(input.referenceAudioUrl).catch((err) => {
+          throw new Error(`無法下載參考音訊（${err instanceof Error ? err.message : String(err)}）`);
+        })
+      : Promise.resolve(null),
   ]);
 
-  const [startName, endName, charName, sceneName] = await Promise.all([
-    uploadComfyImage(`clip-start-${runId}.jpg`, startBuf, fetchFn),
-    endBuf ? uploadComfyImage(`clip-end-${runId}.jpg`, endBuf, fetchFn) : Promise.resolve(null),
-    charBuf ? uploadComfyImage(`clip-char-${runId}.jpg`, charBuf, fetchFn) : Promise.resolve(null),
-    sceneBuf ? uploadComfyImage(`clip-scene-${runId}.jpg`, sceneBuf, fetchFn) : Promise.resolve(null),
+  const [startName, endName, charName, sceneName, videoName, audioName] = await Promise.all([
+    uploadComfyAsset(`clip-start-${runId}.jpg`, startBuf, fetchFn, "image/jpeg"),
+    endBuf ? uploadComfyAsset(`clip-end-${runId}.jpg`, endBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
+    charBuf ? uploadComfyAsset(`clip-char-${runId}.jpg`, charBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
+    sceneBuf ? uploadComfyAsset(`clip-scene-${runId}.jpg`, sceneBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
+    refVideoBuf
+      ? uploadComfyAsset(
+          `clip-ref-video-${runId}.${resolveExt(input.referenceVideoUrl, "mp4")}`,
+          refVideoBuf,
+          fetchFn,
+          "video/mp4",
+        )
+      : Promise.resolve(null),
+    refAudioBuf
+      ? uploadComfyAsset(
+          `clip-ref-audio-${runId}.${resolveExt(input.referenceAudioUrl, "mp3")}`,
+          refAudioBuf,
+          fetchFn,
+          "audio/mpeg",
+        )
+      : Promise.resolve(null),
   ]);
 
   const graph = buildComfyRef2VaLatentGuideGraph({
@@ -387,6 +446,8 @@ export async function submitComfyStoryboardClipVideo(
     endName,
     charName,
     sceneName,
+    videoName,
+    audioName,
     skillSlug: input.skillSlug,
   });
 
