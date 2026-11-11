@@ -75,7 +75,9 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
+  isCastCountValid,
   lockedStyleIdForSkill,
+  STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 
@@ -323,10 +325,13 @@ export function DirectorDockBrief({
         characterSelections[c.id],
       ),
     }));
-    const slotTotal = resolveCastSlotCount(
-      talkingHead ? "talking-head" : "explainer",
-      castNeed,
-    );
+    const slotTotal =
+      ruleSlug === STORY_SHORT_SKILL_SLUG
+        ? 2
+        : resolveCastSlotCount(
+            talkingHead ? "talking-head" : "explainer",
+            castNeed,
+          );
     return buildCastSlotItems(characterIds, enriched, slotTotal);
   }, [allCharacters, styleId, characterSelections, characterIds, castNeed, talkingHead]);
 
@@ -951,11 +956,11 @@ export function DirectorDockBrief({
           creditBadge={creditEstimate}
           error={error}
           footerNotice={
-            restarting || (castNeed > 0 && characterIds.length !== castNeed) ? (
+            restarting || (castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)) ? (
               <div className="flex w-full flex-wrap items-center justify-between gap-2">
                 <span>
-                  {castNeed > 0 && characterIds.length !== castNeed
-                    ? t("brief.footer.castRequired", { n: castNeed })
+                  {castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)
+                    ? t("brief.footer.castRequired", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed })
                     : restarting
                       ? t("brief.footer.restartWarning")
                       : null}
@@ -1021,8 +1026,8 @@ export function DirectorDockBrief({
           styleId={styleId}
           value={characterIds}
           selections={characterSelections}
-          max={castNeed > 0 ? castNeed : 1}
-          required={castNeed}
+          max={ruleSlug === STORY_SHORT_SKILL_SLUG ? 2 : castNeed > 0 ? castNeed : 1}
+          required={ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed}
           credits={credits}
           subscribed={subscribed}
           onChange={onCharacterIdsChange}
@@ -1047,7 +1052,12 @@ export function DirectorDockBrief({
           onCreated={(created) => {
             setCreatedCharacters((prev) => [created, ...prev]);
             setCharOverrides((prev) => ({ ...prev, [created.id]: created }));
-            const maxCast = castNeed > 0 ? castNeed : 1;
+            const maxCast =
+              ruleSlug === STORY_SHORT_SKILL_SLUG
+                ? 2
+                : castNeed > 0
+                  ? castNeed
+                  : 1;
             if (maxCast <= 1) {
               onCharacterIdsChange([created.id]);
             } else {

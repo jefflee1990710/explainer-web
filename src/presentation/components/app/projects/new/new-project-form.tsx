@@ -75,12 +75,14 @@ import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
   isBookendSkill,
+  isCastCountValid,
   isValidDirectorBackgroundId,
   lockedStyleIdForSkill,
   requiredCastCount,
   skillAllowsBackgroundUpload,
   skillBansNarration,
   skillForcesSceneText,
+  STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
 import { DirectorBackgroundPicker } from "@/presentation/components/app/projects/new/director-background-picker";
 import {
@@ -739,8 +741,8 @@ export function NewProjectForm({
 
   function onNextWizardStep() {
     if (wizardStep === 0) {
-      if (castNeed > 0 && characterIds.length !== castNeed) {
-        setError(t("brief.error.castCount", { n: castNeed }));
+      if (castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)) {
+        setError(t("brief.error.castCount", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed }));
         return;
       }
       goToWizardStep(1);
@@ -800,8 +802,8 @@ export function NewProjectForm({
       if (wizardStep !== 2) goToWizardStep(2);
       return;
     }
-    if (castNeed > 0 && characterIds.length !== castNeed) {
-      setError(t("brief.error.castCount", { n: castNeed }));
+    if (castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)) {
+      setError(t("brief.error.castCount", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed }));
       if (setupMode === "details" && wizardStep !== 0) goToWizardStep(0);
       return;
     }
@@ -1464,7 +1466,7 @@ export function NewProjectForm({
     (!talkingHead || spokenScript.trim().length > 0 || Boolean(uploadedVoUrl)) &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
-    (castNeed === 0 || characterIds.length === castNeed) &&
+    isCastCountValid(ruleSlug, characterIds.length) &&
     referenceImages.every((item) => item.description.trim().length > 0) &&
     !briefBusy;
   // Video desk opens directly in OpenCut (including while Phase A writes the storyboard).
@@ -1750,8 +1752,8 @@ export function NewProjectForm({
                                 credits={walletCredits}
                                 subscribed={walletSubscribed}
                                 disabled={briefBusy}
-                                max={castNeed > 0 ? castNeed : 1}
-                                required={castNeed}
+                                max={ruleSlug === STORY_SHORT_SKILL_SLUG ? 2 : castNeed > 0 ? castNeed : 1}
+                                required={ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed}
                               />
                             </Section>
                           </div>
@@ -2082,8 +2084,8 @@ export function NewProjectForm({
 
                 <div className="flex flex-wrap items-center gap-4">
                   <p className="text-xs text-muted">
-                    {castNeed > 0 && characterIds.length !== castNeed
-                      ? t("brief.footer.castRequired", { n: castNeed })
+                    {castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)
+                      ? t("brief.footer.castRequired", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed })
                       : wizardStep === (talkingHead ? 2 : 3)
                         ? restarting
                           ? t("brief.footer.restartWarning")

@@ -1,5 +1,6 @@
 import type { AspectRatio } from "@/model/project";
 import type { ReferenceImageDraft } from "@/presentation/components/app/projects/new/reference-images-field";
+import { isCastCountValid } from "@/service/director/skill-rules";
 
 export type BriefWizardStepIndex = 0 | 1 | 2 | 3;
 
@@ -65,7 +66,7 @@ export type BriefWizardValidationState = {
 export function isStep1Valid(state: BriefWizardValidationState): boolean {
   return (
     state.skillSlug.trim().length > 0 &&
-    (state.castNeed === 0 || state.characterIds.length === state.castNeed)
+    isCastCountValid(state.skillSlug, state.characterIds.length, state.castNeed)
   );
 }
 

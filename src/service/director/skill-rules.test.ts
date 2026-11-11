@@ -4,6 +4,7 @@ import {
   bookendDirectorBlock,
   bookendLocksLength,
   isBookendSkill,
+  isCastCountValid,
   normalizeBookendClips,
   phaseADurationHint,
   briefSkillError,
@@ -461,6 +462,11 @@ test("Q&A director requires exactly two characters", () => {
   );
   assert.equal(briefSkillError({ skillSlug: "talking-head-director", characterIds: ["a"] }), undefined);
   assert.equal(requiredCastCount("story-short-director"), 2);
+  assert.equal(isCastCountValid("story-short-director", 1), true);
+  assert.equal(isCastCountValid("story-short-director", 2), true);
+  assert.equal(isCastCountValid("story-short-director", 0), false);
+  assert.equal(isCastCountValid("dialogue-qa-director", 1), false);
+  assert.equal(isCastCountValid("dialogue-qa-director", 2), true);
   assert.equal(briefSkillError({ skillSlug: "story-short-director", characterIds: ["a"] }), undefined);
   assert.equal(briefSkillError({ skillSlug: "story-short-director", characterIds: ["a", "b"] }), undefined);
   assert.equal(requiredCastCount("one-take-director"), 1);

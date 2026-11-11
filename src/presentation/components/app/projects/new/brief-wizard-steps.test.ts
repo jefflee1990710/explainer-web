@@ -39,7 +39,7 @@ test("BRIEF_WIZARD_STEPS exposes 4 ordered steps with specs (03) before optional
   );
 });
 
-test("step 1 requires skillSlug and exact required cast count", () => {
+test("step 1 requires skillSlug and exact required cast count, while story-short-director accepts 1 or 2 characters", () => {
   assert.equal(isStep1Valid(baseState()), true);
   assert.equal(isStep1Valid(baseState({ skillSlug: "" })), false);
   assert.equal(isStep1Valid(baseState({ castNeed: 2, characterIds: ["char-1"] })), false);
@@ -48,6 +48,18 @@ test("step 1 requires skillSlug and exact required cast count", () => {
     true,
   );
   assert.equal(isStep1Valid(baseState({ castNeed: 0, characterIds: [] })), true);
+  assert.equal(
+    isStep1Valid(baseState({ skillSlug: "story-short-director", castNeed: 2, characterIds: ["char-1"] })),
+    true,
+  );
+  assert.equal(
+    isStep1Valid(baseState({ skillSlug: "story-short-director", castNeed: 2, characterIds: ["char-1", "char-2"] })),
+    true,
+  );
+  assert.equal(
+    isStep1Valid(baseState({ skillSlug: "story-short-director", castNeed: 2, characterIds: [] })),
+    false,
+  );
 });
 
 test("step 2 allows optional source (instruction), requires talking-head script when applicable, and requires reference descriptions", () => {

@@ -216,6 +216,18 @@ export function requiredCastCount(skillSlug?: string) {
   return 1;
 }
 
+export function isCastCountValid(
+  skillSlug?: string,
+  count: number = 0,
+  castNeed?: number,
+): boolean {
+  if (skillSlug === STORY_SHORT_SKILL_SLUG) {
+    return count >= 1 && count <= 2;
+  }
+  const need = castNeed !== undefined ? castNeed : requiredCastCount(skillSlug);
+  return need === 0 || count === need;
+}
+
 export function isComparisonCardSkill(skillSlug?: string) {
   return skillSlug === COMPARISON_CARD_SKILL_SLUG;
 }

@@ -46,9 +46,11 @@ import type { CharacterSelectionMap } from "@/service/character/character-preset
 import {
   defaultDirectorBackgroundId,
   directorPresetBackgrounds,
+  isCastCountValid,
   isValidDirectorBackgroundId,
   requiredCastCount,
   skillAllowsBackgroundUpload,
+  STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
 import { DEFAULT_SPEECH_PACE } from "@/service/director/speech-pace";
 import {
@@ -321,7 +323,7 @@ export function AppendDirectorDialog({
   const hasSpokenOrContent = talkingHead
     ? spokenScript.trim().length > 0 || Boolean(uploadedVoUrl)
     : source.trim().length > 0;
-  const castValid = castNeed === 0 || characterIds.length === castNeed;
+  const castValid = isCastCountValid(ruleSlug, characterIds.length);
   const canConfirm =
     !pending &&
     skillSlug !== "" &&
@@ -333,7 +335,7 @@ export function AppendDirectorDialog({
     event.preventDefault();
     if (pending) return;
     if (!castValid) {
-      setLocalError(t("brief.error.castCount", { n: castNeed }));
+      setLocalError(t("brief.error.castCount", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed }));
       return;
     }
     if (!hasSpokenOrContent) {
@@ -575,8 +577,8 @@ export function AppendDirectorDialog({
                     credits={credits}
                     subscribed={subscribed}
                     disabled={pending}
-                    max={castNeed > 0 ? castNeed : 1}
-                    required={castNeed}
+                    max={ruleSlug === STORY_SHORT_SKILL_SLUG ? 2 : castNeed > 0 ? castNeed : 1}
+                    required={ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed}
                   />
                 </div>
               </div>
@@ -617,9 +619,9 @@ export function AppendDirectorDialog({
                       {displayedError}
                     </p>
                   ) : null}
-                  {castNeed > 0 && characterIds.length !== castNeed ? (
+                  {castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length) ? (
                     <p className="text-xs text-muted">
-                      {t("brief.footer.castRequired", { n: castNeed })}
+                      {t("brief.footer.castRequired", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed })}
                     </p>
                   ) : null}
                   <StudioButton
