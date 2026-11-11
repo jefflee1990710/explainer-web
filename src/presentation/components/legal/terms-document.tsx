@@ -99,25 +99,61 @@ export function TermsDocument() {
                 </strong>{" "}
                 Any content depicting, involving, or simulating minors (persons under 18) in any
                 sexual, suggestive, abusive, or harmful context, or uploading images/videos of
-                minors for face or body swapping. We enforce absolute zero tolerance and immediately
-                report any such activity to law enforcement authorities worldwide.
+                minors for face or body swapping. Upon becoming aware of any suspected CSAM or minor
+                exploitation, NOVAX Limited reserves the right to immediately terminate the account
+                and report all relevant records to law enforcement authorities worldwide, without
+                assuming any affirmative obligation to pre-screen or monitor user activity.
               </li>
               <li>
                 <strong>
-                  (d) Unauthorized Third-Party Likeness &amp; Impersonation:
+                  (d) Unauthorized Third-Party Likeness, Voice Scams &amp; Biometric/eKYC Spoofing:
                 </strong>{" "}
                 Uploading or using the photograph, video, or voice of any real individual (including
-                private individuals, acquaintances, public figures, celebrities, or politicians)
-                without their verifiable, explicit prior consent, or creating deceptive media to
-                impersonate, defraud, blackmail, extort, or mislead others.
+                private individuals, acquaintances, public figures, celebrities, or executives)
+                without their verifiable, explicit prior consent; creating deceptive media for
+                impersonation, CEO/wire fraud, fake celebrity endorsements, blackmail, or phishing;
+                or synthesizing facial or vocal media to bypass biometric authentication, liveness
+                detection, or eKYC security verification.
               </li>
               <li>
                 <strong>
-                  (e) Harassment, Hate Speech, Violence &amp; Illegal Acts:
+                  (e) National Security, Sedition, Election Interference &amp; Political Deepfakes:
                 </strong>{" "}
-                Content that promotes unlawful violence, self-harm, terrorism, cyberbullying,
-                doxxing, defamation, discrimination, financial scams, or infringement of third-party
-                copyright, trademark, or privacy rights.
+                Any content that violates the <em>Hong Kong National Security Law</em>, the{" "}
+                <em>Safeguarding National Security Ordinance</em>, or applicable national security
+                laws (including secession, subversion, terrorism, collusion with external forces, or
+                seditious intent), or that fabricates, manipulates, or impersonates government
+                officials, heads of state, political candidates, judges, or law enforcement
+                personnel, or generates deceptive media for election interference or public
+                disorder.
+              </li>
+              <li>
+                <strong>
+                  (f) Doxxing, Harassment, Gore, Animal Cruelty &amp; Violent Extremism:
+                </strong>{" "}
+                Content that promotes unlawful violence, self-harm, suicide, extreme gore or bodily
+                mutilation, animal cruelty, violent extremism, cyberbullying, defamation, hate
+                speech, or unlawful doxxing and weaponization of personal data in violation of
+                Section 64 of the Hong Kong <em>Personal Data (Privacy) Ordinance</em> (Cap. 486).
+              </li>
+              <li>
+                <strong>
+                  (g) Fabricated Evidence, Fake News &amp; Provenance Tampering:
+                </strong>{" "}
+                Generating or altering media to fabricate court or legal evidence, insurance claims,
+                crime or accident scenes, CCTV footage, or fake news broadcasts presented as
+                authentic factual events, or removing or tampering with AI provenance or metadata
+                signals.
+              </li>
+              <li>
+                <strong>
+                  (h) Unlicensed Professional Advice, Financial Scams &amp; Illicit Goods:
+                </strong>{" "}
+                Using AI Influencers, Talking Head, or Explainer videos to deliver unlicensed
+                medical, legal, or financial/investment advice, impersonate licensed professionals,
+                or promote unapproved pharmaceuticals, illegal gambling, narcotics, weapons,
+                counterfeit goods, pyramid/Ponzi schemes, or infringement of third-party copyright,
+                trademark, or privacy rights.
               </li>
             </ul>
           </section>
@@ -147,29 +183,39 @@ export function TermsDocument() {
               <li>
                 Your source media and resulting AI outputs comply with all applicable criminal and
                 civil laws, including Hong Kong&apos;s <em>Crimes Ordinance</em> (Cap. 200)
-                offences regarding non-consensual intimate images, intellectual property laws, and
-                right-of-publicity statutes in your jurisdiction.
+                offences regarding non-consensual intimate images, the{" "}
+                <em>Personal Data (Privacy) Ordinance</em> (Cap. 486) Section 64 anti-doxxing
+                provisions, intellectual property laws, and right-of-publicity statutes in your
+                jurisdiction.
               </li>
             </ol>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              6. Neutral Technology Provider &amp; Sole User Responsibility
+              6. Neutral Technology Provider, No Duty to Monitor &amp; Sole User Responsibility
             </h2>
             <p className="mt-2">
-              Scro operates strictly as an automated, self-service technical tool. Generation jobs
-              are executed automatically by machine-learning pipelines in response to user prompts
-              and uploads. <strong>NOVAX Limited</strong> does not pre-approve, direct, verify, or
-              endorse any user-submitted media or AI-generated output.
+              Scro operates strictly as a passive technical intermediary and automated, self-service
+              SaaS compute tool. Generation jobs are executed automatically by machine-learning
+              pipelines in response to user prompts and uploads. <strong>NOVAX Limited</strong> does
+              not pre-approve, direct, verify, or endorse any user-submitted media or AI-generated
+              output, and assumes <strong>no affirmative legal or contractual duty</strong> to
+              monitor, pre-screen, police, audit, or verify user uploads, prompts, or generated
+              assets.
             </p>
             <p className="mt-2">
+              Any automated safety filters, upstream model moderation blocks, or administrative
+              compliance reviews are exercised solely as a <strong>right, and not an obligation</strong>,
+              of NOVAX Limited, and never create or imply any duty of care, fiduciary duty, or
+              assumption of responsibility toward any user or third party.{" "}
               <strong>You are the sole creator, publisher, and legally responsible party</strong>{" "}
               for all source media you upload and all images, audio, and videos you generate,
               download, or distribute. You must review all outputs for accuracy, legality, and
               appropriateness before publishing or sharing them. NOVAX Limited expressly disclaims
-              any and all liability arising from user-generated content or user misuse of the
-              Service.
+              any and all liability arising from user-generated content, user misuse of the Service,
+              upstream AI provider moderation refusals, or copies already downloaded or distributed
+              externally by users.
             </p>
           </section>
 

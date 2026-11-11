@@ -151,11 +151,14 @@ export function PrivacyDocument() {
             </p>
             <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-amber-950">
               <li>
-                <strong>Authorized Safety &amp; Compliance Review:</strong> Authorized NOVAX Limited
-                administrators and automated safety systems may access and review user prompts,
-                uploaded source files, reference photos, and generated outputs to diagnose technical
-                failures, audit system security, or investigate suspected violations of our Terms of
-                Service (including NSFW content, non-consensual deepfakes/NCII, CSAM, or fraud).
+                <strong>Authorized Safety &amp; Compliance Review (No Duty to Monitor):</strong>{" "}
+                Authorized NOVAX Limited administrators and automated safety systems reserve the
+                right (but assume <strong>no affirmative obligation or duty of care</strong> to
+                pre-screen or monitor workspaces) to access and review user prompts, uploaded source
+                files, reference photos, and generated outputs to diagnose technical failures, audit
+                system security, or investigate suspected violations of our Terms of Service
+                (including NSFW content, non-consensual deepfakes/NCII, CSAM, doxxing, national
+                security offences, or fraud).
               </li>
               <li>
                 <strong>Disclosure to Law Enforcement &amp; Third Parties:</strong> NOVAX Limited
@@ -181,9 +184,12 @@ export function PrivacyDocument() {
               <a className="font-semibold text-[#12141c] underline" href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>{" "}
-              with the relevant link or description. Upon verification, we will promptly delete the
-              unauthorized media from our storage servers and take enforcement action against the
-              responsible user account.
+              with the relevant link or description. Upon receiving specific notice and reasonable
+              verification, we will take commercially reasonable steps to delete the unauthorized
+              media hosted on our controlled storage servers and take appropriate enforcement action
+              against the responsible user account. Because Scro is a self-service tool, NOVAX
+              Limited cannot control and expressly disclaims any liability for copies already
+              downloaded or distributed externally by a user.
             </p>
           </section>
 

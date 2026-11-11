@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PrivacyDocument } from "@/presentation/components/legal/privacy-document";
+import { TermsDocument } from "@/presentation/components/legal/terms-document";
 import {
   PRIVACY_VERSION,
   TERMS_VERSION,
@@ -89,4 +93,27 @@ test("buildMarketingConsentUpdate sets both top-level flag and timestamped objec
   const optOut = buildMarketingConsentUpdate(false, now);
   assert.equal(optOut.marketingEmailsAllowed, false);
   assert.deepEqual(optOut.marketingConsent, { consented: false, updatedAt: now });
+});
+
+test("TermsDocument and PrivacyDocument disclaim any affirmative duty to monitor and cover all sensitive and illegal AI content categories", () => {
+  const termsHtml = renderToStaticMarkup(createElement(TermsDocument));
+  const privacyHtml = renderToStaticMarkup(createElement(PrivacyDocument));
+
+  // No affirmative duty to monitor / safe harbor protection for NOVAX Limited
+  assert.match(termsHtml, /No Duty to Monitor/i);
+  assert.match(termsHtml, /no affirmative legal or contractual duty/i);
+  assert.match(termsHtml, /right, and not an obligation/i);
+
+  // Sensitive & illegal content categories in Terms
+  assert.match(termsHtml, /Safeguarding National Security Ordinance/i);
+  assert.match(termsHtml, /election interference/i);
+  assert.match(termsHtml, /biometric|eKYC/i);
+  assert.match(termsHtml, /Cap\. 486/i);
+  assert.match(termsHtml, /fabricated.*evidence|fake news/i);
+  assert.match(termsHtml, /unlicensed medical, legal, or financial/i);
+  assert.match(termsHtml, /animal cruelty/i);
+
+  // Privacy Policy safe harbor & external copy disclaimer
+  assert.match(privacyHtml, /no affirmative obligation or duty of care/i);
+  assert.match(privacyHtml, /copies already downloaded or distributed externally/i);
 });
