@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { usersCollection } from "@/dao";
+import { isEmailOrUidBlocked } from "@/dao/blocked-users";
 import { persistUxEvent } from "@/service/analytics/ux-tracker";
 import { upsertAppUserFromIdentity } from "@/service/auth";
 import { adminAuth } from "@/service/firebase/admin";
@@ -34,8 +35,21 @@ export async function establishSessionAction(
   idToken: string,
   telemetry?: EstablishSessionTelemetry,
 ) {
-  const expiresIn = TWO_WEEKS_MS;
   const auth = adminAuth();
+  const decoded = await auth.verifyIdToken(idToken);
+  const email = decoded.email || "";
+
+  // Check if account or email has been blocked
+  const blockCheck = await isEmailOrUidBlocked(email, decoded.uid);
+  if (blockCheck.blocked) {
+    try {
+      await auth.updateUser(decoded.uid, { disabled: true });
+      await auth.revokeRefreshTokens(decoded.uid);
+    } catch {}
+    throw new Error(blockCheck.reason || "該帳號因違反服務條款已被停權，無法登入或註冊。");
+  }
+
+  const expiresIn = TWO_WEEKS_MS;
   const session = await auth.createSessionCookie(idToken, { expiresIn });
   const jar = await cookies();
   jar.set(SESSION_COOKIE, session, {
@@ -48,9 +62,8 @@ export async function establishSessionAction(
 
   // Tell the operator about this sign-in and record a server-side UX event so hard page navigation never drops it.
   try {
-    const decoded = await auth.verifyIdToken(idToken);
     const record = await auth.getUser(decoded.uid);
-    const email = record.email || decoded.email || "";
+    const userEmail = record.email || email || "";
     const kind = accountEventKind(Date.parse(record.metadata.creationTime), Date.now());
     const hdrs = await headers();
     const userAgent = hdrs.get("user-agent");
@@ -60,7 +73,7 @@ export async function establishSessionAction(
       const marketingOptIn = Boolean(telemetry.marketingOptIn);
       await upsertAppUserFromIdentity({
         uid: decoded.uid,
-        email,
+        email: userEmail,
         name: record.displayName || decoded.name,
         emailVerified: record.emailVerified,
       });
@@ -83,7 +96,7 @@ export async function establishSessionAction(
         category: "auth",
         source: "server",
         clerkUserId: decoded.uid,
-        userEmail: email || null,
+        userEmail: userEmail || null,
         anonId: telemetry.anonId ?? null,
         sessionId: telemetry.sessionId ?? null,
         path: telemetry.path ?? null,

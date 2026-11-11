@@ -47,6 +47,7 @@ function authErrorKey(code: string) {
   }
   if (code === "auth/unauthorized-domain") return "auth.unauthorizedDomain";
   if (code === "auth/popup-blocked") return "auth.popupBlocked";
+  if (code === "auth/user-disabled") return "auth.accountBlocked";
   return "auth.genericError";
 }
 
@@ -156,6 +157,12 @@ export function AuthForm({
       const idToken = await cred.user.getIdToken();
       await finish(idToken, register ? "sign_up" : "login", "email");
     } catch (caught) {
+      const msg = caught instanceof Error ? caught.message : "";
+      if (msg.includes("停權") || msg.toLowerCase().includes("blocked") || msg.toLowerCase().includes("suspended")) {
+        setError(msg);
+        setPending(false);
+        return;
+      }
       const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
       track("auth_failed", {
         mode,
@@ -189,6 +196,12 @@ export function AuthForm({
       const idToken = await cred.user.getIdToken();
       await finish(idToken, created ? "sign_up" : "login", "google");
     } catch (caught) {
+      const msg = caught instanceof Error ? caught.message : "";
+      if (msg.includes("停權") || msg.toLowerCase().includes("blocked") || msg.toLowerCase().includes("suspended")) {
+        setError(msg);
+        setPending(false);
+        return;
+      }
       const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         track("auth_google_cancelled", {

@@ -2112,6 +2112,7 @@ export const zhHant: Messages = {
     invalidCredential: "Email 或密碼不正確。",
     unauthorizedDomain: "這個網站還沒被允許使用 Google 登入。",
     popupBlocked: "瀏覽器擋住了 Google 視窗。請允許彈出視窗後再試。",
+    accountBlocked: "此帳號因違反服務條款（禁止生成不當/違法內容）已被永久停權。",
     genericError: "無法登入，請再試一次。",
   },
 };

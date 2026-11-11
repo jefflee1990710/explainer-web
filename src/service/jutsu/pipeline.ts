@@ -38,6 +38,10 @@ import {
   type DetectedSourcePerson,
 } from "@/service/fal/sam3-image";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import {
+  assertSafeMediaBuffer,
+  assertSafeMediaUrl,
+} from "@/service/safety/content-moderation";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
   createStandaloneEngineProject,
@@ -634,6 +638,12 @@ export async function prepareJutsuJob(
       sectionStart,
       sectionLength,
     );
+
+    // Pre-filter safety check: reject NSFW/adult content before processing or persisting
+    await assertSafeMediaBuffer(extracted.startFrameWebp, "來源影片畫面");
+    if (donorImageUrl) {
+      await assertSafeMediaUrl(donorImageUrl, "角色參考照片");
+    }
 
     const [rawStartFrameUrl, rawEndFrameUrl] = await Promise.all([
       persistBuffer(
@@ -1323,6 +1333,10 @@ export async function startScroSwapJob(
       };
     }
 
+    if (donorImageUrl) {
+      await assertSafeMediaUrl(donorImageUrl, "角色參考照片");
+    }
+
     const sectionStart = Math.max(0, Number(input.sectionStart) || 0);
     const sectionLength = Math.min(
       JUTSU_MAX_SECTION_SECONDS,
@@ -1484,6 +1498,7 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         throw new Error("無法讀取來源圖片檔案");
       }
       const rawImgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      await assertSafeMediaBuffer(rawImgBuffer, "來源圖片");
       const meta = await sharp(rawImgBuffer).metadata();
       const w = meta.width || 1024;
       const h = meta.height || 1024;
@@ -1619,6 +1634,9 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
           : current.sectionLength,
       );
       const effectiveSectionLength = gifOriginalDuration ?? extracted.actualDuration;
+
+      // Safety check: reject NSFW/adult video frame before submitting to ComfyUI / H3
+      await assertSafeMediaBuffer(extracted.startFrameWebp, "來源影片畫面");
 
       const prefix = `explainer/jutsu/${current.userId.toHexString()}/${current._id.toHexString()}`;
       const useComfy = canSubmitJutsuComfy({

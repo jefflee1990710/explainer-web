@@ -12,6 +12,7 @@ import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { evaluateWelcomeGrant } from "@/service/billing/welcome-guard";
 import { seedStarterCharacters } from "@/service/character/starter-cast";
 import { usersCollection } from "@/dao";
+import { isEmailOrUidBlocked } from "@/dao/blocked-users";
 import { adminAuth } from "@/service/firebase/admin";
 import { SESSION_COOKIE } from "@/service/firebase/session";
 import { mcpUserStore } from "@/service/mcp/api-keys";
@@ -49,8 +50,16 @@ export async function upsertAppUserFromIdentity(
   const name = identity.name || email.split("@")[0] || "User";
   const uid = identity.uid;
 
+  const blockCheck = await isEmailOrUidBlocked(email, uid);
+  if (blockCheck.blocked) {
+    throw new Error(blockCheck.reason || "該帳號因違反服務條款已被停權，無法使用本服務。");
+  }
+
   const users = await usersCollection();
   const existing = await users.findOne({ clerkUserId: uid });
+  if (existing?.isBlocked) {
+    throw new Error(existing.blockedReason || "該帳號因違反服務條款已被停權，無法使用本服務。");
+  }
   const now = new Date();
 
   if (existing) {

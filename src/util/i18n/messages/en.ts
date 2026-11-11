@@ -2126,6 +2126,7 @@ export const en: Messages = {
     invalidCredential: "Email or password is incorrect.",
     unauthorizedDomain: "This site is not allowed to use Google sign-in yet.",
     popupBlocked: "The browser blocked the Google window. Allow pop-ups and try again.",
+    accountBlocked: "This account has been suspended for violating the Terms of Service.",
     genericError: "Could not sign in. Try again.",
   },
 };

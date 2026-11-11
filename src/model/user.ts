@@ -37,6 +37,10 @@ export type AppUser = {
     consented: boolean;
     updatedAt: Date;
   };
+  // Account ban / enforcement block flag. Blocked users cannot sign in or register.
+  isBlocked?: boolean;
+  blockedReason?: string;
+  blockedAt?: Date;
   // Times this user ran “fill voice from blueprint”, used for the 5-minute cap.
   voiceFillAt?: Date[];
   // 4-hour cached personalized Hot Topics generated from the user's recent creations.
@@ -76,6 +80,9 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
       updatedAt: z.date(),
     })
     .optional(),
+  isBlocked: z.boolean().optional(),
+  blockedReason: z.string().optional(),
+  blockedAt: z.date().optional(),
   voiceFillAt: z.array(z.date()).optional(),
   hotTopicsCache: z
     .object({

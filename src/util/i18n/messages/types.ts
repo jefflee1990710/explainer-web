@@ -1493,6 +1493,7 @@ export type Messages = {
     invalidCredential: string;
     unauthorizedDomain: string;
     popupBlocked: string;
+    accountBlocked: string;
     genericError: string;
   };
 };
