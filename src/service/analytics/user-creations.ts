@@ -1,6 +1,7 @@
 import {
   charactersCollection,
   generationJobsCollection,
+  jutsuJobsCollection,
   lifeShotsCollection,
   projectsCollection,
   usersCollection,
@@ -27,6 +28,8 @@ export type AdminUserVideoItem = {
   clipVideoUrls: string[];
   reelUrl: string | null;
   finalUrl: string | null;
+  swapSourceVideoUrl?: string | null;
+  swapReferenceImageUrls?: string[];
   createdAtIso: string;
   updatedAtIso: string;
 };
@@ -75,6 +78,8 @@ export type AdminUserCreationsDetail = {
   email: string;
   name: string;
   credits: number;
+  marketingEmailsAllowed: boolean;
+  acceptedTermsVersion: string | null;
   createdAtIso: string;
   videos: AdminUserVideoItem[];
   characters: AdminUserCharacterItem[];
@@ -95,7 +100,7 @@ export async function getAdminUserCreations(
   const trimmedId = clerkUserId.trim();
   if (!trimmedId) return null;
 
-  const [usersCol, foldersCol, videosCol, charsCol, lifeCol, jobsCol] =
+  const [usersCol, foldersCol, videosCol, charsCol, lifeCol, jobsCol, jutsuCol] =
     await Promise.all([
       usersCollection(),
       projectsCollection(),
@@ -103,9 +108,10 @@ export async function getAdminUserCreations(
       charactersCollection(),
       lifeShotsCollection(),
       generationJobsCollection(),
+      jutsuJobsCollection(),
     ]);
 
-  const [userDoc, folders, videos, characters, lifeShots] = await Promise.all([
+  const [userDoc, folders, videos, characters, lifeShots, jutsuJobs] = await Promise.all([
     usersCol.findOne({ clerkUserId: trimmedId }),
     foldersCol.find({ clerkUserId: trimmedId }).sort({ updatedAt: -1 }).toArray(),
     videosCol
@@ -123,7 +129,30 @@ export async function getAdminUserCreations(
       .sort({ createdAt: -1 })
       .limit(100)
       .toArray(),
+    jutsuCol
+      .find({ clerkUserId: trimmedId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray(),
   ]);
+
+  const jutsuByVideoId = new Map<
+    string,
+    { sourceVideoUrl: string | null; referenceImageUrls: string[] }
+  >();
+  for (const jj of jutsuJobs) {
+    const vidKey = jj.targetVideoId ? String(jj.targetVideoId) : "";
+    if (!vidKey || jutsuByVideoId.has(vidKey)) continue;
+    const refs = Array.isArray(jj.referenceImageUrls) && jj.referenceImageUrls.length > 0
+      ? jj.referenceImageUrls.filter(Boolean)
+      : jj.referenceImageUrl
+        ? [jj.referenceImageUrl]
+        : [];
+    jutsuByVideoId.set(vidKey, {
+      sourceVideoUrl: jj.sourceVideoUrl ?? null,
+      referenceImageUrls: refs,
+    });
+  }
 
   const folderNameById = new Map<string, string>();
   for (const f of folders) {
@@ -167,8 +196,11 @@ export async function getAdminUserCreations(
       v.source?.slice(0, 60) ||
       "Untitled Video";
 
+    const vidHex = v._id.toString();
+    const swapInfo = jutsuByVideoId.get(vidHex);
+
     return {
-      id: v._id.toString(),
+      id: vidHex,
       folderId: folderHex,
       folderName: folderNameById.get(folderHex) ?? "Default Project",
       title,
@@ -187,6 +219,8 @@ export async function getAdminUserCreations(
       clipVideoUrls,
       reelUrl: v.reelUrl ?? null,
       finalUrl: v.finalUrl ?? null,
+      swapSourceVideoUrl: swapInfo?.sourceVideoUrl ?? null,
+      swapReferenceImageUrls: swapInfo?.referenceImageUrls ?? [],
       createdAtIso: toIso(v.createdAt),
       updatedAtIso: toIso(v.updatedAt ?? v.createdAt),
     };
@@ -253,6 +287,10 @@ export async function getAdminUserCreations(
     email: userDoc?.email || trimmedId,
     name: userDoc?.name || "User",
     credits: userDoc?.credits ?? 0,
+    marketingEmailsAllowed: Boolean(
+      userDoc?.marketingEmailsAllowed ?? userDoc?.marketingConsent?.consented,
+    ),
+    acceptedTermsVersion: userDoc?.legalAcceptance?.termsVersion ?? null,
     createdAtIso: toIso(userDoc?.createdAt),
     videos: videoItems,
     characters: characterItems,

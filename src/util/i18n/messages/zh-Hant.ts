@@ -358,14 +358,20 @@ export const zhHant: Messages = {
     terms: "服務條款",
     privacy: "私隱政策",
     rights: "© 2026 Scro",
-    acceptTerms: "我已閱讀並同意服務條款。",
-    acceptPrivacy: "我已閱讀並同意私隱政策。",
-    mustAccept: "請先同意兩者才能繼續。",
+    acceptTerms: "我確認已年滿 18 歲，並已閱讀及同意",
+    acceptPrivacy: "我已閱讀並同意",
+    acceptMarketing:
+      "我同意接收 Scro 的產品更新、創作教學與優惠行銷電郵（選填，可隨時取消訂閱）。",
+    signUpAcceptPrefix: "我確認已年滿 18 歲，並已閱讀及同意",
+    signUpAcceptAnd: "與",
+    mustAccept: "請先勾選同意服務條款與私隱政策才能繼續。",
     agree: "同意並繼續",
     firstTitle: "請同意服務條款與私隱政策",
-    firstBody: "這是你第一次登入。同意兩者後就能開始使用 Scro。",
-    updatedTitle: "請再確認更新後的條款",
-    updatedBody: "服務條款或私隱政策已更新。同意目前版本後才能繼續使用 Scro。",
+    firstBody:
+      "開始使用 Scro 前，請確認你已年滿 18 歲，並同意我們的服務條款（含嚴格內容規範與肖像授權條款）及私隱政策。",
+    updatedTitle: "請確認更新後的服務條款與私隱政策",
+    updatedBody:
+      "我們的服務條款與私隱政策已經更新（包含內容安全規範、肖像授權保證及平台免責保護條款）。請勾選同意目前版本以繼續使用 Scro。",
     version: "版本 {version}",
   },
   dashboard: {

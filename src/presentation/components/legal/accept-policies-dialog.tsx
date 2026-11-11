@@ -8,13 +8,20 @@ import { acceptCurrentPolicies } from "@/presentation/actions/legal";
 import { track, trackAsync } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// Shown over the app on first login, and again when the published versions change.
-// There is no dismiss control: both boxes are required.
-export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
+// Shown over the app when the user has not yet accepted the published Terms/Privacy versions.
+// There is no dismiss control: both Terms and Privacy checkboxes are required; Marketing email is optional.
+export function AcceptPoliciesDialog({
+  firstTime,
+  initialMarketingOptIn = true,
+}: {
+  firstTime: boolean;
+  initialMarketingOptIn?: boolean;
+}) {
   const { t } = useI18n();
   const titleId = useId();
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(initialMarketingOptIn);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -26,14 +33,14 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
     event.preventDefault();
     setPending(true);
     setError("");
-    const result = await acceptCurrentPolicies({ terms, privacy });
+    const result = await acceptCurrentPolicies({ terms, privacy, marketingOptIn });
     if (!result.ok) {
       track("legal_accept_error", { terms, privacy });
       setError(t("legal.mustAccept"));
       setPending(false);
       return;
     }
-    await trackAsync("legal_dialog_accepted", { firstTime });
+    await trackAsync("legal_dialog_accepted", { firstTime, marketingOptIn });
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full navigation re-runs AppLayout server check to unmount the policy dialog
     window.location.assign("/app");
   }
@@ -53,10 +60,10 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
         <p className="mt-2 text-sm leading-6 text-zinc-600">
           {firstTime ? t("legal.firstBody") : t("legal.updatedBody")}
         </p>
-        <label className="mt-6 flex items-start gap-3 text-sm text-zinc-700">
+        <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm text-zinc-700">
           <input
             type="checkbox"
-            className="mt-1"
+            className="mt-1 h-4 w-4 shrink-0 accent-[#12141c]"
             checked={terms}
             onChange={(event) => setTerms(event.target.checked)}
           />
@@ -72,10 +79,10 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
             </Link>
           </span>
         </label>
-        <label className="mt-3 flex items-start gap-3 text-sm text-zinc-700">
+        <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm text-zinc-700">
           <input
             type="checkbox"
-            className="mt-1"
+            className="mt-1 h-4 w-4 shrink-0 accent-[#12141c]"
             checked={privacy}
             onChange={(event) => setPrivacy(event.target.checked)}
           />
@@ -91,11 +98,21 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
             </Link>
           </span>
         </label>
+        <div className="my-4 border-t border-zinc-200" />
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-zinc-600">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0 accent-[#12141c]"
+            checked={marketingOptIn}
+            onChange={(event) => setMarketingOptIn(event.target.checked)}
+          />
+          <span>{t("legal.acceptMarketing")}</span>
+        </label>
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
         <button
           type="submit"
           disabled={pending || !terms || !privacy}
-          className="mt-6 inline-flex rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] disabled:opacity-50"
+          className="mt-6 inline-flex cursor-pointer rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("legal.agree")}
         </button>

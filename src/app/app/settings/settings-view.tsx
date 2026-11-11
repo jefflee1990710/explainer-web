@@ -1,13 +1,34 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { LOCALE_OPTIONS } from "@/util/i18n";
+import { updateMarketingConsentAction } from "@/presentation/actions/legal";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useStudioTheme, type StudioTheme } from "@/presentation/studio/studio-theme";
 
-// Workspace settings: Appearance (Dark / Light mode, default Dark) and Language.
-export function SettingsView() {
+// Workspace settings: Appearance (Dark / Light mode, default Dark), Language, and Email Preferences.
+export function SettingsView({
+  initialMarketingOptIn = false,
+  acceptedTermsVersion = null,
+}: {
+  initialMarketingOptIn?: boolean;
+  acceptedTermsVersion?: string | null;
+}) {
   const { locale, setLocale, t } = useI18n();
   const { theme, setTheme } = useStudioTheme();
+  const [marketingOptIn, setMarketingOptIn] = useState(initialMarketingOptIn);
+  const [savingMarketing, setSavingMarketing] = useState(false);
+
+  async function onToggleMarketing(nextVal: boolean) {
+    setMarketingOptIn(nextVal);
+    setSavingMarketing(true);
+    try {
+      await updateMarketingConsentAction(nextVal);
+    } finally {
+      setSavingMarketing(false);
+    }
+  }
 
   const themeHeading =
     locale === "zh-Hant"
@@ -151,6 +172,41 @@ export function SettingsView() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="max-w-xl rounded-[1.5rem] border border-[var(--studio-line)] bg-[var(--studio-panel)] p-6">
+        <h2 className="font-display text-lg font-bold">
+          {locale === "zh-Hant"
+            ? "行銷電郵與條款 · Email & Legal"
+            : locale === "zh-Hans"
+              ? "营销电邮与条款 · Email & Legal"
+              : "Marketing Emails & Legal"}
+        </h2>
+        <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm text-[var(--studio-ink)]">
+          <input
+            type="checkbox"
+            disabled={savingMarketing}
+            checked={marketingOptIn}
+            onChange={(event) => void onToggleMarketing(event.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 accent-[#c6f24b]"
+          />
+          <span>{t("legal.acceptMarketing")}</span>
+        </label>
+        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-[var(--studio-line)] pt-4 text-xs text-[var(--studio-muted)]">
+          <Link href="/terms" target="_blank" className="font-semibold underline">
+            {t("legal.terms")}
+          </Link>
+          <Link href="/privacy" target="_blank" className="font-semibold underline">
+            {t("legal.privacy")}
+          </Link>
+          {acceptedTermsVersion ? (
+            <span>
+              {locale === "zh-Hant"
+                ? `已同意版本：${acceptedTermsVersion}`
+                : `Accepted version: ${acceptedTermsVersion}`}
+            </span>
+          ) : null}
+        </div>
       </section>
     </div>
   );

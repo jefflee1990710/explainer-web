@@ -35,6 +35,8 @@ export type StuckStageSummaryItem = {
 export type UserDiagnosticRow = UserJourneySnapshot & {
   diagnosis: StuckStageClassification;
   postActivationActions: string[];
+  marketingEmailsAllowed: boolean;
+  acceptedTermsVersion: string | null;
 };
 
 export type PostActivationReport = {
@@ -392,8 +394,18 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
     .sort((a, b) => b.count - a.count);
 
   const userEmailByClerkId = new Map<string, string>();
+  const userLegalByClerkId = new Map<
+    string,
+    { marketingEmailsAllowed: boolean; acceptedTermsVersion: string | null }
+  >();
   const snapshots: UserJourneySnapshot[] = users.map((u) => {
     userEmailByClerkId.set(u.clerkUserId, u.email);
+    userLegalByClerkId.set(u.clerkUserId, {
+      marketingEmailsAllowed: Boolean(
+        u.marketingEmailsAllowed ?? u.marketingConsent?.consented,
+      ),
+      acceptedTermsVersion: u.legalAcceptance?.termsVersion ?? null,
+    });
     const charStat = charStatsByUser.get(u.clerkUserId);
     const videoStat = videoStatsByUser.get(u.clerkUserId);
     const lifeStat = lifeStatsByUser.get(u.clerkUserId);
@@ -455,10 +467,15 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
     })),
   );
 
-  const userRows: UserDiagnosticRow[] = diagnosed.map((row) => ({
-    ...row,
-    postActivationActions: postActivation.recentByUser[row.clerkUserId] ?? [],
-  }));
+  const userRows: UserDiagnosticRow[] = diagnosed.map((row) => {
+    const legal = userLegalByClerkId.get(row.clerkUserId);
+    return {
+      ...row,
+      postActivationActions: postActivation.recentByUser[row.clerkUserId] ?? [],
+      marketingEmailsAllowed: legal?.marketingEmailsAllowed ?? false,
+      acceptedTermsVersion: legal?.acceptedTermsVersion ?? null,
+    };
+  });
 
   // Group stuck stages across all users.
   const stageGroupMap = new Map<

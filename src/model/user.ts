@@ -30,6 +30,13 @@ export type AppUser = {
     privacyVersion: string;
     acceptedAt: Date;
   };
+  // Top-level flag for querying users who opted in to receive marketing emails.
+  marketingEmailsAllowed?: boolean;
+  // Timestamped audit record of the user's marketing email consent preference.
+  marketingConsent?: {
+    consented: boolean;
+    updatedAt: Date;
+  };
   // Times this user ran “fill voice from blueprint”, used for the 5-minute cap.
   voiceFillAt?: Date[];
   // 4-hour cached personalized Hot Topics generated from the user's recent creations.
@@ -60,6 +67,13 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
       termsVersion: z.string(),
       privacyVersion: z.string(),
       acceptedAt: z.date(),
+    })
+    .optional(),
+  marketingEmailsAllowed: z.boolean().optional(),
+  marketingConsent: z
+    .object({
+      consented: z.boolean(),
+      updatedAt: z.date(),
     })
     .optional(),
   voiceFillAt: z.array(z.date()).optional(),

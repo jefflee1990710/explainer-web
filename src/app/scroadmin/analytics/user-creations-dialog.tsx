@@ -35,7 +35,7 @@ export function UserCreationsDialog({
   user: Pick<UserDiagnosticRow, "clerkUserId" | "email" | "name" | "credits"> | null;
   onClose: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<AdminUserCreationsDetail | null>(null);
   const [activeTab, setActiveTab] = useState<"videos" | "characters" | "life" | "failed">("videos");
@@ -45,23 +45,21 @@ export function UserCreationsDialog({
     title: string;
   } | null>(null);
 
+  const loading = Boolean(user && loadedUserId !== user.clerkUserId);
+
   useEffect(() => {
-    if (!user) {
-      setDetail(null);
-      setError(null);
-      return;
-    }
+    if (!user) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setDetail(null);
-    void getAdminUserCreationsAction(user.clerkUserId).then((res) => {
+    const targetUserId = user.clerkUserId;
+    void getAdminUserCreationsAction(targetUserId).then((res) => {
       if (cancelled) return;
-      setLoading(false);
+      setLoadedUserId(targetUserId);
       if (!res.ok) {
+        setDetail(null);
         setError(res.error);
         return;
       }
+      setError(null);
       setDetail(res.data);
       if (res.data.videos.length > 0) {
         setActiveTab("videos");
@@ -122,6 +120,30 @@ export function UserCreationsDialog({
               <span className="rounded-full bg-[#12141c] px-3 py-0.5 font-mono text-xs font-semibold text-[#c6f24b]">
                 剩餘 {detail?.credits ?? user.credits} Credits
               </span>
+              {detail ? (
+                <>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold ${
+                      detail.acceptedTermsVersion
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    {detail.acceptedTermsVersion
+                      ? `已簽條款 ${detail.acceptedTermsVersion}`
+                      : "未簽條款"}
+                  </span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      detail.marketingEmailsAllowed
+                        ? "bg-sky-50 text-sky-700"
+                        : "bg-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    {detail.marketingEmailsAllowed ? "✉️ 可寄行銷信" : "未同意行銷信"}
+                  </span>
+                </>
+              ) : null}
             </div>
             <p className="mt-0.5 truncate font-mono text-xs text-zinc-500">
               {detail?.email || user.email} · UID: {user.clerkUserId}
@@ -333,6 +355,64 @@ export function UserCreationsDialog({
                                       Clip {idx + 1} (放大檢視)
                                     </button>
                                   </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {v.swapSourceVideoUrl ||
+                          (v.swapReferenceImageUrls && v.swapReferenceImageUrls.length > 0) ? (
+                            <div>
+                              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                                Scro Swap 原始影片與目標角色參考圖 (Source &amp; Swap Character)
+                              </p>
+                              <div className="flex flex-wrap items-start gap-3">
+                                {v.swapSourceVideoUrl ? (
+                                  <div className="w-36 shrink-0 overflow-hidden rounded-xl border border-amber-300 bg-black">
+                                    <video
+                                      src={v.swapSourceVideoUrl}
+                                      controls
+                                      preload="metadata"
+                                      className="aspect-[9/16] w-full object-contain"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setLightboxMedia({
+                                          type: "video",
+                                          url: v.swapSourceVideoUrl!,
+                                          title: `${v.title} · 換角前原始影片 (Before Swap)`,
+                                        })
+                                      }
+                                      className="block w-full cursor-pointer bg-amber-950 px-2 py-1 text-center text-[10px] font-bold text-amber-200 hover:bg-black hover:text-[#c6f24b]"
+                                    >
+                                      換角前原片 (放大)
+                                    </button>
+                                  </div>
+                                ) : null}
+                                {v.swapReferenceImageUrls?.map((refUrl, idx) => (
+                                  <button
+                                    key={`${v.id}-swap-ref-${idx}`}
+                                    type="button"
+                                    onClick={() =>
+                                      setLightboxMedia({
+                                        type: "image",
+                                        url: refUrl,
+                                        title: `${v.title} · Swap 目標角色 #${idx + 1}`,
+                                      })
+                                    }
+                                    className="group relative h-36 w-28 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 border-sky-300 bg-zinc-100"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={refUrl}
+                                      alt=""
+                                      className="h-full w-full object-cover transition group-hover:scale-105"
+                                    />
+                                    <span className="absolute inset-x-0 bottom-0 bg-sky-950/90 px-1.5 py-0.5 text-center text-[10px] font-bold text-sky-200">
+                                      Swap 目標角色
+                                    </span>
+                                  </button>
                                 ))}
                               </div>
                             </div>

@@ -358,17 +358,23 @@ export const en: Messages = {
     },
   },
   legal: {
-    terms: "Terms",
-    privacy: "Privacy",
+    terms: "Terms of Service",
+    privacy: "Privacy Policy",
     rights: "© 2026 Scro",
-    acceptTerms: "I have read and agree to the Terms.",
-    acceptPrivacy: "I have read and agree to the Privacy Policy.",
-    mustAccept: "Accept both to continue.",
+    acceptTerms: "I confirm I am 18+ and have read and agree to the",
+    acceptPrivacy: "I have read and agree to the",
+    acceptMarketing:
+      "I agree to receive product updates, creator tips, and marketing emails from Scro (optional, unsubscribe anytime).",
+    signUpAcceptPrefix: "I confirm I am 18+ and agree to the",
+    signUpAcceptAnd: "and",
+    mustAccept: "Please accept both the Terms of Service and Privacy Policy to continue.",
     agree: "Agree and continue",
     firstTitle: "Agree to the Terms and Privacy Policy",
-    firstBody: "This is your first time in. Accept both to start using Scro.",
-    updatedTitle: "Review the updated terms",
-    updatedBody: "The Terms or Privacy Policy changed since you last agreed. Accept the current versions to keep using Scro.",
+    firstBody:
+      "Before using Scro, please confirm you are at least 18 years old and agree to our Terms of Service (including our strict Acceptable Use Policy) and Privacy Policy.",
+    updatedTitle: "Review the updated Terms & Privacy Policy",
+    updatedBody:
+      "Our Terms of Service and Privacy Policy have been updated (including content safety, likeness consent, and platform protection rules). Please accept the current versions to continue using Scro.",
     version: "Version {version}",
   },
   dashboard: {

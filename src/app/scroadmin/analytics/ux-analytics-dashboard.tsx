@@ -351,6 +351,7 @@ export function UxAnalyticsDashboard({
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 font-semibold uppercase tracking-wider text-zinc-500">
                   <th className="whitespace-nowrap px-3 py-3">用戶 (Email / 名稱)</th>
+                  <th className="whitespace-nowrap px-3 py-3">條款 / 行銷信</th>
                   <th className="whitespace-nowrap px-3 py-3">診斷卡關階段</th>
                   {selectedStage === "activated_producing" ? (
                     <th className="whitespace-nowrap px-3 py-3">產出後動作</th>
@@ -391,6 +392,28 @@ export function UxAnalyticsDashboard({
                           查看作品 ↗
                         </span>
                       </button>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ${
+                            u.acceptedTermsVersion
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-zinc-100 text-zinc-500"
+                          }`}
+                        >
+                          {u.acceptedTermsVersion ? `TnC ${u.acceptedTermsVersion}` : "未簽署"}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            u.marketingEmailsAllowed
+                              ? "bg-sky-50 text-sky-700"
+                              : "bg-zinc-100 text-zinc-400"
+                          }`}
+                        >
+                          {u.marketingEmailsAllowed ? "✉️ 可寄行銷信" : "未訂閱行銷"}
+                        </span>
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <span

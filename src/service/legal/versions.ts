@@ -1,18 +1,36 @@
 import type { AppUser } from "@/model/user";
 
 // Bump the matching date when that document changes. Stale acceptances are blocked after login.
-export const TERMS_VERSION = "2026-10-24";
-export const PRIVACY_VERSION = "2026-10-24";
+export const TERMS_VERSION = "2026-11-11";
+export const PRIVACY_VERSION = "2026-11-11";
 
 export const LEGAL_CONSENT_COOKIE = "scro_legal_consent";
 
 export type LegalAcceptance = NonNullable<AppUser["legalAcceptance"]>;
+export type MarketingConsent = NonNullable<AppUser["marketingConsent"]>;
 
 export function currentLegalAcceptance(acceptedAt = new Date()): LegalAcceptance {
   return {
     termsVersion: TERMS_VERSION,
     privacyVersion: PRIVACY_VERSION,
     acceptedAt,
+  };
+}
+
+export function buildMarketingConsentUpdate(
+  consented: boolean,
+  updatedAt = new Date(),
+): {
+  marketingEmailsAllowed: boolean;
+  marketingConsent: MarketingConsent;
+} {
+  const allowed = Boolean(consented);
+  return {
+    marketingEmailsAllowed: allowed,
+    marketingConsent: {
+      consented: allowed,
+      updatedAt,
+    },
   };
 }
 

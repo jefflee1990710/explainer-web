@@ -332,6 +332,9 @@ export type Messages = {
     rights: string;
     acceptTerms: string;
     acceptPrivacy: string;
+    acceptMarketing: string;
+    signUpAcceptPrefix: string;
+    signUpAcceptAnd: string;
     mustAccept: string;
     agree: string;
     firstTitle: string;

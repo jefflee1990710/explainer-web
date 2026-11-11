@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { usersCollection } from "@/dao";
 import { AppShell } from "@/presentation/components/app-shell";
 import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-policies-dialog";
 import { isAffiliateAccount } from "@/service/affiliate/enabled";
-import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { getAuthSession, requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
 import { adhocBonusPercent } from "@/service/billing/promo";
-import {
-  currentLegalAcceptance,
-  needsPolicyAcceptance,
-  shouldAutoRecordInitialPolicyAcceptance,
-} from "@/service/legal/versions";
+import { needsPolicyAcceptance } from "@/service/legal/versions";
 
 // Session cookie is only available per request, so do not prerender /app at build time.
 export const dynamic = "force-dynamic";
@@ -43,24 +37,6 @@ export default async function AppLayout({
   const session = await getAuthSession();
   if (!session) redirect("/sign-in?next=/app");
   const user = await requireAppUser();
-  if (shouldAutoRecordInitialPolicyAcceptance(user)) {
-    const now = new Date();
-    const acceptance = currentLegalAcceptance(now);
-    user.legalAcceptance = acceptance;
-    try {
-      const users = await usersCollection();
-      await users.updateOne(
-        { _id: user._id },
-        { $set: { legalAcceptance: acceptance, updatedAt: now } },
-      );
-      logServerUxEvent("legal_accepted", undefined, {
-        clerkUserId: user.clerkUserId,
-        userEmail: user.email,
-      });
-    } catch (error) {
-      console.error("auto legalAcceptance failed", error);
-    }
-  }
   const activeTasks = await safeCountActiveTasks(user.clerkUserId);
   return (
     <>
@@ -77,9 +53,12 @@ export default async function AppLayout({
       >
         {children}
       </AppShell>
-      {/* Stale policy versions still require explicit re-consent via AcceptPoliciesDialog */}
-      {Boolean(user.legalAcceptance) && needsPolicyAcceptance(user) ? (
-        <AcceptPoliciesDialog firstTime={false} />
+      {/* Require explicit consent for any missing or stale Terms / Privacy version */}
+      {needsPolicyAcceptance(user) ? (
+        <AcceptPoliciesDialog
+          firstTime={!user.legalAcceptance}
+          initialMarketingOptIn={user.marketingEmailsAllowed ?? true}
+        />
       ) : null}
     </>
   );

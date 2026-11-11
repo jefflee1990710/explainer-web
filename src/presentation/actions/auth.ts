@@ -1,9 +1,15 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
+import { usersCollection } from "@/dao";
 import { persistUxEvent } from "@/service/analytics/ux-tracker";
+import { upsertAppUserFromIdentity } from "@/service/auth";
 import { adminAuth } from "@/service/firebase/admin";
 import { SESSION_COOKIE } from "@/service/firebase/session";
+import {
+  buildMarketingConsentUpdate,
+  currentLegalAcceptance,
+} from "@/service/legal/versions";
 import { scheduleOperatorAccountEmail } from "@/service/notify/operator-email";
 import { accountEventKind } from "@/service/notify/operator-notice";
 
@@ -19,6 +25,8 @@ export type EstablishSessionTelemetry = {
   path?: string | null;
   referrer?: string | null;
   locale?: string | null;
+  acceptedLegal?: boolean;
+  marketingOptIn?: boolean;
 };
 
 // Trade a Firebase ID token for an httpOnly session cookie the server can verify.
@@ -46,6 +54,28 @@ export async function establishSessionAction(
     const kind = accountEventKind(Date.parse(record.metadata.creationTime), Date.now());
     const hdrs = await headers();
     const userAgent = hdrs.get("user-agent");
+
+    if (telemetry?.acceptedLegal) {
+      const now = new Date();
+      const marketingOptIn = Boolean(telemetry.marketingOptIn);
+      await upsertAppUserFromIdentity({
+        uid: decoded.uid,
+        email,
+        name: record.displayName || decoded.name,
+        emailVerified: record.emailVerified,
+      });
+      const users = await usersCollection();
+      await users.updateOne(
+        { clerkUserId: decoded.uid },
+        {
+          $set: {
+            legalAcceptance: currentLegalAcceptance(now),
+            ...buildMarketingConsentUpdate(marketingOptIn, now),
+            updatedAt: now,
+          },
+        },
+      );
+    }
 
     if (telemetry?.event) {
       await persistUxEvent({

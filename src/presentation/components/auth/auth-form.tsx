@@ -65,6 +65,8 @@ export function AuthForm({
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const engagedRef = useRef(false);
@@ -110,6 +112,9 @@ export function AuthForm({
         path,
         referrer,
         locale,
+        ...(register && acceptedLegal
+          ? { acceptedLegal: true, marketingOptIn }
+          : {}),
       });
     } catch (sessionErr) {
       const msg = sessionErr instanceof Error ? sessionErr.message : "session_failed";
@@ -132,6 +137,11 @@ export function AuthForm({
 
   async function onEmail(event: React.FormEvent) {
     event.preventDefault();
+    if (register && !acceptedLegal) {
+      track("legal_accept_error", { mode, method: "email" });
+      setError(t("legal.mustAccept"));
+      return;
+    }
     setPending(true);
     setError("");
     track("auth_submit_attempt", {
@@ -159,6 +169,11 @@ export function AuthForm({
   }
 
   async function onGoogle() {
+    if (register && !acceptedLegal) {
+      track("legal_accept_error", { mode, method: "google" });
+      setError(t("legal.mustAccept"));
+      return;
+    }
     setPending(true);
     setError("");
     const inAppBrowser = detectInAppBrowser();
@@ -247,7 +262,52 @@ export function AuthForm({
             className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {register ? (
+          <div className="space-y-2.5 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3.5 text-xs leading-5 text-zinc-700">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => {
+                  setAcceptedLegal(event.target.checked);
+                  if (error) setError("");
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#12141c]"
+              />
+              <span>
+                {t("legal.signUpAcceptPrefix")}{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  onClick={() => track("legal_link_click", { target: "terms" })}
+                  className="font-semibold text-[#12141c] underline"
+                >
+                  {t("legal.terms")}
+                </Link>{" "}
+                {t("legal.signUpAcceptAnd")}{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  onClick={() => track("legal_link_click", { target: "privacy" })}
+                  className="font-semibold text-[#12141c] underline"
+                >
+                  {t("legal.privacy")}
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2.5 text-zinc-600">
+              <input
+                type="checkbox"
+                checked={marketingOptIn}
+                onChange={(event) => setMarketingOptIn(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#12141c]"
+              />
+              <span>{t("legal.acceptMarketing")}</span>
+            </label>
+          </div>
+        ) : null}
+        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
         <button
           type="submit"
           disabled={pending}
