@@ -94,30 +94,27 @@ export function reconcileClips(clips: ProjectClip[] | undefined, jobs: Generatio
   });
 }
 
-// The video job still points at the unpainted file. A finished on-screen paint
-// for that same file has to stay on the clip, or the next sync puts the original back.
-export function keepOnScreenPaintOnClips(
+// A finished paint whose base is the file currently on the clip. A newer video
+// uses a different file, so an older paint is left off.
+export function withFinishedOnScreenPaint(
   clips: ProjectClip[],
-  jobs: GenerationJob[],
   items: OnscreenTextItem[] | undefined,
 ): ProjectClip[] {
   return clips.map((clip) => {
-    const videoJob = newest(
-      jobs.filter((item) => item.kind === "video" && item.clipIndex === clip.clipNumber - 1),
-    );
-    if (!videoJob || isJobInFlight(videoJob.status)) return clip;
-    const videoUrl = mediaPath(mediaSrc(videoJob));
-    if (!videoUrl) return clip;
+    if (clip.status === "in_progress" || clip.status === "pending") return clip;
+    const current = mediaPath(mediaSrc(clip));
+    if (!current) return clip;
     const paint = [...(items ?? [])]
       .reverse()
-      .find(
-        (item) =>
-          (item.clipIndex ?? 0) === clip.clipNumber - 1 &&
-          item.status === "completed" &&
-          item.inpaintedVideoUrl?.startsWith("https://") &&
-          mediaPath(item.baseVideoUrl) === videoUrl,
-      );
-    if (!paint?.inpaintedVideoUrl) return clip;
+      .find((item) => {
+        if ((item.clipIndex ?? 0) !== clip.clipNumber - 1) return false;
+        if (item.status !== "completed" || !item.inpaintedVideoUrl?.startsWith("https://")) return false;
+        const painted = mediaPath(item.inpaintedVideoUrl);
+        const base = mediaPath(item.baseVideoUrl);
+        if (!base || !painted) return false;
+        return current === base || current === painted;
+      });
+    if (!paint?.inpaintedVideoUrl || mediaPath(paint.inpaintedVideoUrl) === current) return clip;
     const next: ProjectClip = {
       ...clip,
       status: "completed",
@@ -127,6 +124,25 @@ export function keepOnScreenPaintOnClips(
     delete next.error;
     return next;
   });
+}
+
+// The video job still points at the unpainted file. A finished on-screen paint
+// for that same file has to stay on the clip, or the next sync puts the original back.
+// A clip whose video is still generating keeps that in-progress state.
+export function keepOnScreenPaintOnClips(
+  clips: ProjectClip[],
+  jobs: GenerationJob[],
+  items: OnscreenTextItem[] | undefined,
+): ProjectClip[] {
+  const held = clips.map((clip) => {
+    const videoJob = newest(
+      jobs.filter((item) => item.kind === "video" && item.clipIndex === clip.clipNumber - 1),
+    );
+    if (videoJob && isJobInFlight(videoJob.status)) return clip;
+    return null;
+  });
+  const painted = withFinishedOnScreenPaint(clips, items);
+  return painted.map((clip, index) => held[index] ?? clip);
 }
 
 // Only production-family projects flip between production and ready; every

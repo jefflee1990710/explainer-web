@@ -5,6 +5,7 @@ import type { GenerationJob } from "@/model/generation-job";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import {
   keepOnScreenPaintOnClips,
+  withFinishedOnScreenPaint,
   nextProjectStatus,
   reconcileClips,
   reconcileFrames,
@@ -221,6 +222,59 @@ test("keepOnScreenPaintOnClips puts the painted file back on the clip that the v
   ]);
   assert.equal(painted[0].blobUrl, "https://blob/inpaint.mp4");
   assert.equal(painted[0].outputUrl, "https://blob/inpaint.mp4");
+});
+
+test("withFinishedOnScreenPaint swaps a stored original for the painted file", () => {
+  const next = withFinishedOnScreenPaint(
+    [
+      {
+        clipNumber: 1,
+        durationSeconds: 6,
+        prompt: "v",
+        status: "completed",
+        blobUrl: "https://blob/original.mp4",
+        outputUrl: "https://openrouter.ai/api/v1/videos/gen/content",
+      },
+    ],
+    [
+      {
+        id: "line",
+        text: "90% of creators do not realize",
+        textStyleId: "clean",
+        status: "completed",
+        clipIndex: 0,
+        baseVideoUrl: "https://blob/original.mp4?v=1",
+        inpaintedVideoUrl: "https://blob/inpaint.mp4",
+      },
+    ],
+  );
+  assert.equal(next[0].blobUrl, "https://blob/inpaint.mp4");
+  assert.equal(next[0].outputUrl, "https://blob/inpaint.mp4");
+});
+
+test("keepOnScreenPaintOnClips leaves a clip alone while its video is still generating", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 6, prompt: "v", status: "completed", blobUrl: "https://blob/original.mp4" },
+  ];
+  const video = job({
+    kind: "video",
+    clipIndex: 0,
+    status: "in_progress",
+    blobUrl: "https://blob/original.mp4",
+  });
+  const next = keepOnScreenPaintOnClips(reconcileClips(clips, [video]), [video], [
+    {
+      id: "line",
+      text: "90%",
+      textStyleId: "clean",
+      status: "completed",
+      clipIndex: 0,
+      baseVideoUrl: "https://blob/original.mp4",
+      inpaintedVideoUrl: "https://blob/inpaint.mp4",
+    },
+  ]);
+  assert.equal(next[0].status, "in_progress");
+  assert.notEqual(next[0].blobUrl, "https://blob/inpaint.mp4");
 });
 
 test("keepOnScreenPaintOnClips leaves a regenerated clip on the new video", () => {

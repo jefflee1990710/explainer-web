@@ -485,7 +485,8 @@ export function buildComfyMaskedTextInpaintGraph(input: {
   styleDescription: string;
 }): ApiGraph {
   const cleanText = input.text.replace(/\s+/g, " ").trim();
-  const cleanStyle = input.styleDescription.replace(/\s+/g, " ").trim();
+  // styleDescription stays off this graph. The clean look tells the model to fill every strip,
+  // and restating it here paints a second copy on top of the guide frame.
   // H3 paints 2.5–6s. Load that same span so the guide frame and the source frames stay aligned.
   const seconds = Math.min(6, Math.max(2.5, input.section.length));
   const graph = buildObjectGraph({
@@ -495,9 +496,9 @@ export function buildComfyMaskedTextInpaintGraph(input: {
     section: { start: input.section.start, length: seconds },
     mode: "add",
     target: "text",
-    changeTo: `on-screen artistic graphic lettering "${cleanText}" (${cleanStyle})`,
+    changeTo: `single on-screen lettering of "${cleanText}" already painted in the guide, each word once, no second copy, no extra strip`,
     action:
-      "stays razor-sharp, legible, and naturally integrated into the scene lighting and depth while all faces and surrounding action remain untouched",
+      "stays razor-sharp and exactly as painted in the guide, with no second copy of any word, while all faces and surrounding action remain untouched",
     biggestOnly: false,
     keepOutline: false,
     margin: "normal",

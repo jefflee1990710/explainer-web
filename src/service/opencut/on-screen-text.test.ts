@@ -12,6 +12,7 @@ import {
   onScreenTextPrompt,
 } from "@/service/opencut/on-screen-text";
 import { buildComfyMaskedTextInpaintGraph } from "@/service/comfy/submit-clip-video";
+import { subtitleLookLine } from "@/service/director/subtitle-look";
 
 test("inferOnScreenTextSceneLanguage routes Japanese Hiragana/Katakana to ja, Korean Hangul to ko, CJK Hanzi to zh-Hant, and Latin to en", () => {
   assert.equal(inferOnScreenTextSceneLanguage("Try it now!"), "en");
@@ -151,9 +152,25 @@ test("inSceneOnScreenTextPrompt instructs in-scene redraw inside target box with
   });
   assert.match(prompt, /見工無回音？/);
   assert.match(prompt, /exactly once/i);
+  assert.match(prompt, /each word appears once/i);
   assert.match(prompt, /x=20%/);
   assert.match(prompt, /y=50%/);
   assert.match(prompt, /keep every human face/i);
+});
+
+test("inSceneOnScreenTextPrompt does not tell the model to fill every torn-paper strip", () => {
+  const prompt = inSceneOnScreenTextPrompt({
+    text: "90% of creators do not realize",
+    lookLine: subtitleLookLine("clean"),
+    box: { x: 200, y: 500, w: 600, h: 200 },
+    width: 1000,
+    height: 1000,
+  });
+  assert.match(prompt, /exactly once/i);
+  assert.match(prompt, /each word appears once/i);
+  assert.match(prompt, /do not repeat a word/i);
+  assert.doesNotMatch(prompt, /never draw an empty blank strip/i);
+  assert.doesNotMatch(prompt, /every strip contains words/i);
 });
 
 test("extractFeatheredInSceneTextPatch keeps painted text inside box opaque and unchanged background transparent", async () => {
@@ -205,8 +222,16 @@ test("buildComfyMaskedTextInpaintGraph configures H3ObjectPlacementMask, MiniMax
     section: { start: 0, length: 5 },
     boxNormalized: { x: 0.21, y: 0.54, width: 0.58, height: 0.22 },
     text: "見工無回音？",
-    styleDescription: "bold torn-paper strips",
+    styleDescription: subtitleLookLine("clean"),
   });
+
+  const changeTo = Object.values(graph)
+    .map((node) => (node as { inputs?: { change_to?: unknown } }).inputs?.change_to)
+    .find((value) => typeof value === "string");
+  assert.match(String(changeTo), /each word once/i);
+  assert.match(String(changeTo), /no second copy/i);
+  assert.doesNotMatch(String(changeTo), /never draw an empty blank strip/i);
+  assert.doesNotMatch(JSON.stringify(graph), /never draw an empty blank strip/i);
 
   assert.equal(graph.object_placement?.class_type, "H3ObjectPlacementMask");
   assert.equal(graph["43"]?.class_type, "MiniMaxH3FantasticVideoEditLatent");

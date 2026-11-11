@@ -12,6 +12,7 @@ import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
 import { summarizeVideoLocks } from "@/service/video-progress-steps";
+import { withFinishedOnScreenPaint } from "@/service/higgsfield/reconcile";
 import { displayMediaSrc } from "@/util/media-src";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
@@ -539,7 +540,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     status: normalizeProjectStatus(video.status),
     phaseA: serializePhaseA(video.phaseA),
     frames: video.frames || [],
-    clips: video.clips,
+    clips: withFinishedOnScreenPaint(video.clips ?? [], video.onscreenTexts),
     sceneChats: toPublicSceneChats(video.sceneChats),
     reelUrl: video.reelUrl,
     reelStatus: video.reelStatus,

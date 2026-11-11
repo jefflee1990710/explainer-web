@@ -132,6 +132,18 @@ export function subtitleLookLine(look?: string | null) {
   return LOOK_LINE[resolveSubtitleLook(look)];
 }
 
+// On-screen video paint only. The clean card still says to fill every strip;
+// that sentence makes a large safe box repeat the opening words.
+export function lookLineForOnScreenVideo(lookLine?: string | null): string {
+  return (lookLine ?? "")
+    .replace(
+      /split the phrase across both strips so every strip contains words and never draw an empty blank strip\.?\s*/gi,
+      "Use at most two strips. Put each word on those strips exactly once. Do not add extra strips and do not repeat a word. ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // Custom text style: the uploaded image is a lettering sample, not a placement guide.
 export function textStyleSampleLookLine(imageIndex: number) {
   return `Look: match attached image ${imageIndex}, a lettering sample. Copy its weight, color, texture, and edges only. Do not copy the words in that image.`;
