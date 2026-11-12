@@ -71,10 +71,12 @@ export function OpenCutAddClipModal({
   const [simpleCharacterId, setSimpleCharacterId] = useState<string | undefined>(undefined);
   const [simpleRefImages, setSimpleRefImages] = useState<string[]>([]);
 
+  const completedClips = (project.clips ?? []).filter((c) => c.status === "completed");
+
   // Swap form states
   const [swapSourceType, setSwapSourceType] = useState<"clip" | "upload">("clip");
   const [swapSourceClipNumber, setSwapSourceClipNumber] = useState<number>(
-    defaultInsertAt > 1 ? defaultInsertAt - 1 : 1,
+    () => completedClips[0]?.clipNumber ?? (defaultInsertAt > 1 ? defaultInsertAt - 1 : 1),
   );
   const [swapUploadedUrl, setSwapUploadedUrl] = useState("");
   const [swapCharacterId, setSwapCharacterId] = useState<string | undefined>(undefined);
@@ -82,7 +84,7 @@ export function OpenCutAddClipModal({
   // Teleport form states
   const [teleportSourceType, setTeleportSourceType] = useState<"clip" | "upload">("clip");
   const [teleportSourceClipNumber, setTeleportSourceClipNumber] = useState<number>(
-    defaultInsertAt > 1 ? defaultInsertAt - 1 : 1,
+    () => completedClips[0]?.clipNumber ?? (defaultInsertAt > 1 ? defaultInsertAt - 1 : 1),
   );
   const [teleportUploadedUrl, setTeleportUploadedUrl] = useState("");
   const [teleportScenePrompt, setTeleportScenePrompt] = useState("");
@@ -91,7 +93,6 @@ export function OpenCutAddClipModal({
   if (!open) return null;
 
   const totalClips = project.phaseA?.clips?.length ?? project.clips?.length ?? 0;
-  const completedClips = (project.clips ?? []).filter((c) => c.status === "completed");
 
   const slotOptions = Array.from({ length: totalClips + 1 }, (_, i) => i + 1);
 
@@ -220,7 +221,12 @@ export function OpenCutAddClipModal({
           try {
             await onAppendDirector({
               ...payload,
-              afterClipNumber: insertAt > 1 ? insertAt - 1 : undefined,
+              afterClipNumber:
+                payload.afterClipNumber !== undefined
+                  ? payload.afterClipNumber
+                  : insertAt > 1
+                  ? insertAt - 1
+                  : undefined,
             });
             onClose();
           } catch {
@@ -604,7 +610,9 @@ export function OpenCutAddClipModal({
                 submitting ||
                 (selectedMode === "simple" && !simplePrompt.trim()) ||
                 (selectedMode === "swap" && swapSourceType === "upload" && !swapUploadedUrl.trim()) ||
-                (selectedMode === "teleport" && teleportSourceType === "upload" && !teleportUploadedUrl.trim())
+                (selectedMode === "swap" && swapSourceType === "clip" && completedClips.length === 0) ||
+                (selectedMode === "teleport" && teleportSourceType === "upload" && !teleportUploadedUrl.trim()) ||
+                (selectedMode === "teleport" && teleportSourceType === "clip" && completedClips.length === 0)
               }
               onClick={() => {
                 if (selectedMode === "simple") void handleSimpleSubmit();

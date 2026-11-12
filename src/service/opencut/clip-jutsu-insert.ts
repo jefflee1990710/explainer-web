@@ -170,18 +170,6 @@ export async function applyClipScroSwapInsertAction(
     });
     if (!inserted.ok) return inserted;
 
-    await videos.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          phaseA: inserted.project.phaseA,
-          clips: inserted.project.clips,
-          frames: inserted.project.frames,
-          updatedAt: now,
-        },
-      },
-    );
-
     const started = await startScroSwapJob({
       sourceVideoUrl,
       sectionStart: 0,
@@ -193,10 +181,21 @@ export async function applyClipScroSwapInsertAction(
       applyColorFix: true,
       targetVideoId: project._id.toHexString(),
       targetClipNumber: inserted.newClipNumber,
-      previousClipVideoUrl: sourceVideoUrl,
     });
 
     if (!started.ok) return started;
+
+    await videos.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          phaseA: inserted.project.phaseA,
+          clips: inserted.project.clips,
+          frames: inserted.project.frames,
+          updatedAt: now,
+        },
+      },
+    );
 
     const updated = await videos.findOne({ _id: project._id });
     try {
@@ -276,18 +275,6 @@ export async function applyClipTeleportInsertAction(
     });
     if (!inserted.ok) return inserted;
 
-    await videos.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          phaseA: inserted.project.phaseA,
-          clips: inserted.project.clips,
-          frames: inserted.project.frames,
-          updatedAt: now,
-        },
-      },
-    );
-
     const started = await startTeleportJob({
       sourceVideoUrl,
       aspectRatio: project.aspectRatio,
@@ -299,10 +286,21 @@ export async function applyClipTeleportInsertAction(
       applyColorFix: true,
       targetVideoId: project._id.toHexString(),
       targetClipNumber: inserted.newClipNumber,
-      previousClipVideoUrl: sourceVideoUrl,
     });
 
     if (!started.ok) return started;
+
+    await videos.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          phaseA: inserted.project.phaseA,
+          clips: inserted.project.clips,
+          frames: inserted.project.frames,
+          updatedAt: now,
+        },
+      },
+    );
 
     const updated = await videos.findOne({ _id: project._id });
     try {

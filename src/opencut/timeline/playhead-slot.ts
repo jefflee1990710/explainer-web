@@ -14,14 +14,32 @@ export function resolvePlayheadInsertSlot(input: PlayheadSlotInput): number {
     return 1;
   }
 
-  // If an active clip on the timeline was explicitly hovered or selected:
-  if (typeof activeClipNumber === "number" && activeClipNumber > 0) {
-    return activeClipNumber + 1;
-  }
+  const totalDuration = clipDurations.reduce((sum, c) => sum + Math.max(0.1, c.durationSeconds), 0);
 
   // If playhead is precisely at the start (0s):
   if (playheadSeconds <= 0) {
     return 1;
+  }
+
+  // If playhead is at or past the end of all clips:
+  if (playheadSeconds >= totalDuration) {
+    return clipDurations.length + 1;
+  }
+
+  // If an active clip on the timeline was explicitly hovered or selected and playhead is within its bounds:
+  if (typeof activeClipNumber === "number" && activeClipNumber > 0) {
+    let accumulated = 0;
+    for (const clip of clipDurations) {
+      const start = accumulated;
+      const end = accumulated + Math.max(0.1, clip.durationSeconds);
+      if (clip.clipNumber === activeClipNumber) {
+        if (playheadSeconds >= start && playheadSeconds <= end) {
+          return activeClipNumber + 1;
+        }
+        break;
+      }
+      accumulated = end;
+    }
   }
 
   let accumulated = 0;
@@ -35,6 +53,5 @@ export function resolvePlayheadInsertSlot(input: PlayheadSlotInput): number {
     accumulated = end;
   }
 
-  // If playhead is at or past the end of all clips:
   return clipDurations.length + 1;
 }

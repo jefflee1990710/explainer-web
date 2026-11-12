@@ -2,11 +2,13 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { videosCollection } from "@/dao";
-import type { ProjectClip, StoryboardRow, VideoQualityTier } from "@/model/project";
+import type { ProjectClip, ReferenceImage, StoryboardRow, VideoQualityTier } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits } from "@/service/billing/credits";
 import { insertClips } from "@/service/clip/clip-order";
+import { queueAutoClipVideos } from "@/service/clip/auto-video";
+import { FRAME_COST } from "@/service/credit-costs";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { enqueueClipFrameJobs } from "@/service/higgsfield/pipeline";
 
@@ -27,6 +29,7 @@ export function buildSimpleClipDraftRow(input: {
   prompt: string;
   durationSeconds?: number;
   clipNumber: number;
+  characterId?: string;
   refVideoUrl?: string;
   refAudioUrl?: string;
   referenceImageIds?: string[];
@@ -48,6 +51,7 @@ export function buildSimpleClipDraftRow(input: {
     englishVo: "(no dialogue)",
     bgmSfx: "none",
     videoQualityTier: input.videoQualityTier || "economy",
+    ...(input.characterId ? { characterIds: [input.characterId] } : {}),
     ...(input.referenceImageIds?.length
       ? { referenceImageIds: input.referenceImageIds }
       : {}),
@@ -90,17 +94,33 @@ export async function appendSimpleClipAction(
       5,
       Math.min(12, Math.round(Number(input.durationSeconds) || 6)),
     );
-    const costCredits = durationSeconds * 2;
+    const videoCost = durationSeconds * 2;
+    const firstFrameUrl = input.firstFrameUrl?.trim();
+    const hasFirstFrame = Boolean(firstFrameUrl && firstFrameUrl.startsWith("https://"));
+    const initialCost = hasFirstFrame ? 0 : FRAME_COST;
+
     try {
-      await assertCanSpendCredits(user, costCredits);
+      await assertCanSpendCredits(user, initialCost + videoCost);
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "點數不足，無法新增分鏡" };
     }
+
+    const refImages: ReferenceImage[] = (input.referenceImageUrls || [])
+      .map((u) => u.trim())
+      .filter((u) => u.startsWith("https://"))
+      .slice(0, 4)
+      .map((url, idx) => ({
+        id: `R${idx + 1}`,
+        url,
+        description: "Scene or character reference",
+      }));
 
     const newRow = buildSimpleClipDraftRow({
       prompt: cleanPrompt,
       durationSeconds,
       clipNumber: insertAt,
+      characterId: input.characterId,
+      referenceImageIds: refImages.map((r) => r.id),
       refVideoUrl: input.refVideoUrl,
       refAudioUrl: input.refAudioUrl,
       videoQualityTier: input.videoQualityTier,
@@ -109,13 +129,12 @@ export async function appendSimpleClipAction(
     const now = new Date();
     const nowIso = now.toISOString();
 
-    const firstFrameUrl = input.firstFrameUrl?.trim();
-    const newFrame = firstFrameUrl?.startsWith("https://")
+    const newFrame = hasFirstFrame
       ? {
           clipNumber: insertAt,
           position: "start" as const,
-          url: firstFrameUrl,
-          blobUrl: firstFrameUrl,
+          url: firstFrameUrl!,
+          blobUrl: firstFrameUrl!,
           prompt: cleanPrompt,
           status: "completed" as const,
           createdAt: nowIso,
@@ -136,6 +155,8 @@ export async function appendSimpleClipAction(
       prompt: cleanPrompt,
       status: "queued" as const,
       submittedAt: nowIso,
+      ...(input.refVideoUrl ? { referenceVideoUrl: input.refVideoUrl } : {}),
+      ...(input.refAudioUrl ? { referenceAudioUrl: input.refAudioUrl } : {}),
     };
 
     // Use pure insertClips to shift existing clips and frames
@@ -169,7 +190,18 @@ export async function appendSimpleClipAction(
       newClip,
     ].sort((a, b) => a.clipNumber - b.clipNumber);
 
-    await consumeCredits(user.clerkUserId, costCredits);
+    const updatedAutoVideoClips = Array.from(
+      new Set([...(shifted.project.autoVideoClips || []), insertAt]),
+    );
+
+    if (initialCost > 0) {
+      await consumeCredits(user.clerkUserId, initialCost);
+    }
+
+    const mergedRefImages = [
+      ...(project.referenceImages || []).filter((img) => !refImages.some((r) => r.url === img.url)),
+      ...refImages,
+    ];
 
     await videos.updateOne(
       { _id: project._id },
@@ -178,6 +210,8 @@ export async function appendSimpleClipAction(
           phaseA: shifted.project.phaseA,
           clips: updatedClips,
           frames: updatedFrames,
+          autoVideoClips: updatedAutoVideoClips,
+          referenceImages: mergedRefImages,
           updatedAt: now,
         },
       },
@@ -194,16 +228,18 @@ export async function appendSimpleClipAction(
       // Non-request context
     }
 
-    // If frame is queued, trigger frame job
-    if (newFrame.status === "queued") {
-      after(async () => {
-        try {
+    // Trigger frame job if queued, or auto-video if frame is already present
+    after(async () => {
+      try {
+        if (newFrame.status === "queued") {
           await enqueueClipFrameJobs(updatedProject, [insertAt]);
-        } catch (err) {
-          console.error("[appendSimpleClipAction] frame queue error", err);
+        } else {
+          await queueAutoClipVideos(project._id);
         }
-      });
-    }
+      } catch (err) {
+        console.error("[appendSimpleClipAction] queue error", err);
+      }
+    });
 
     return { ok: true, project: toPublicVideo(updatedProject) };
   } catch (err) {

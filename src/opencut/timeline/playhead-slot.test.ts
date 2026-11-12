@@ -19,18 +19,24 @@ test("resolvePlayheadInsertSlot at 0s inserts at 1", () => {
   assert.equal(resolvePlayheadInsertSlot({ playheadSeconds: 0, clipDurations: clips }), 1);
 });
 
-test("resolvePlayheadInsertSlot honors activeClipNumber if provided", () => {
+test("resolvePlayheadInsertSlot honors activeClipNumber if provided within clip bounds", () => {
   const clips = [
     { clipNumber: 1, durationSeconds: 6 },
     { clipNumber: 2, durationSeconds: 6 },
   ];
   assert.equal(
-    resolvePlayheadInsertSlot({ playheadSeconds: 1, clipDurations: clips, activeClipNumber: 2 }),
+    resolvePlayheadInsertSlot({ playheadSeconds: 7, clipDurations: clips, activeClipNumber: 2 }),
     3,
   );
 });
 
-test("resolvePlayheadInsertSlot past total duration inserts at clips.length + 1", () => {
-  const clips = [{ clipNumber: 1, durationSeconds: 6 }];
-  assert.equal(resolvePlayheadInsertSlot({ playheadSeconds: 15, clipDurations: clips }), 2);
+test("resolvePlayheadInsertSlot past total duration inserts at clips.length + 1 even if activeClipNumber was set", () => {
+  const clips = [
+    { clipNumber: 1, durationSeconds: 6 },
+    { clipNumber: 2, durationSeconds: 6 },
+  ];
+  assert.equal(
+    resolvePlayheadInsertSlot({ playheadSeconds: 15, clipDurations: clips, activeClipNumber: 1 }),
+    3,
+  );
 });
