@@ -21,8 +21,7 @@ async function main() {
     Number(process.env.WORKER_CPU_CONCURRENCY || 6),
   );
 
-  // GPU-machine workflows (Swap, Teleport, Extend, on-screen text) use local ComfyUI.
-  // Storyboard H3 ref2va does not: it calls Vast serverless from VAST_API_KEY.
+  // Point ComfyUI client directly at local loopback ComfyUI if running on the Vast GPU box
   const explicitLocalComfyUrl = process.env.COMFY_LOCAL_URL?.trim();
   const localComfyUrl = explicitLocalComfyUrl || "http://127.0.0.1:8188";
   let comfyCheck = await checkLocalComfyUi(localComfyUrl);

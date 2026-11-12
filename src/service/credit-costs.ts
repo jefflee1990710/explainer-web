@@ -6,7 +6,7 @@ export const FRAMES_COST = 8;
 // A character blueprint board is two images: identity portrait + full-body standing.
 export const BLUEPRINT_COST = FRAME_COST * 2;
 
-// Storyboard clips run on Vast serverless MiniMax-H3 ref2va at 2 credits/s (voice included), 5–15 billed seconds.
+// All non-talking-head videos run on Vast.ai Serverless ComfyUI (`MiniMax-H3 ref2va`) at 2 credits/s (voice included), 5–15 billed seconds.
 export const VIDEO_CREDITS_PER_SECOND = 2;
 export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 2;
 export const ECONOMY_VIDEO_CREDITS_PER_SECOND = 2;
