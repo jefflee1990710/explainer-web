@@ -600,6 +600,7 @@ export function getOpencutMessages(locale?: string | null) {
 			} satisfies Record<ScroVideoUiStage, string>,
 		},
 		timelineToolbar: {
+			addClip: pick({ en: "Add clip", zhHant: "新增片段", zhHans: "新增片段", ja: "クリップを追加", ko: "클립 추가" }),
 			splitElement: pick({ en: "Split element", zhHant: "分割片段", zhHans: "分割片段", ja: "要素を分割", ko: "요소 분할" }),
 			splitLeft: pick({ en: "Split left", zhHant: "裁切左側", zhHans: "裁切左侧", ja: "左側を分割", ko: "왼쪽 분할" }),
 			splitRight: pick({ en: "Split right", zhHant: "裁切右側", zhHans: "裁切右侧", ja: "右側を分割", ko: "오른쪽 분할" }),

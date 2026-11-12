@@ -1,6 +1,10 @@
 import { useEditor } from "@/opencut/editor/use-editor";
-import { isScroClipEditLocked } from "@/opencut/embed/scro-clip-number";
+import {
+	isScroClipEditLocked,
+	resolveElementScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { requestScroTimelineAddClip } from "@/opencut/embed/scro-video-actions";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import {
 	TooltipProvider,
@@ -47,6 +51,7 @@ import {
 	MagicWand05Icon,
 	HeadphonesIcon,
 	MusicNote03Icon,
+	PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { OcRippleIcon } from "@/opencut/components/icons";
@@ -241,9 +246,34 @@ function ToolbarLeftSection() {
 		invokeAction(action);
 	};
 
+	const handleAddClip = () => {
+		const playheadSeconds = editor.playback.getCurrentTime();
+		const activeClipNumber = selectedElement
+			? (resolveElementScroClipNumber({
+					element: selectedElement.element,
+					assets: mediaAssets,
+					clips: scroVideos?.clips,
+			  }) ?? undefined)
+			: undefined;
+		requestScroTimelineAddClip({
+			videoId: scroVideos?.videoId,
+			playheadSeconds,
+			activeClipNumber,
+		});
+	};
+
 	return (
 		<div className="flex items-center gap-1">
 			<TooltipProvider delayDuration={500}>
+				<button
+					type="button"
+					onClick={handleAddClip}
+					className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md bg-accent-ink px-2.5 text-xs font-semibold text-white transition hover:opacity-90 mr-1 shadow-xs"
+				>
+					<HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
+					<span>{oc.timelineToolbar.addClip}</span>
+				</button>
+
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
 					tooltip={oc.timelineToolbar.splitElement}
