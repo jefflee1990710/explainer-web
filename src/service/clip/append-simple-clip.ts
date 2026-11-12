@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { videosCollection } from "@/dao";
-import type { StoryboardRow, VideoQualityTier } from "@/model/project";
+import type { ProjectClip, StoryboardRow, VideoQualityTier } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits } from "@/service/billing/credits";
@@ -91,9 +91,10 @@ export async function appendSimpleClipAction(
       Math.min(12, Math.round(Number(input.durationSeconds) || 6)),
     );
     const costCredits = durationSeconds * 2;
-    const canSpend = await assertCanSpendCredits(user.clerkUserId, costCredits);
-    if (!canSpend.ok) {
-      return { ok: false, error: canSpend.error };
+    try {
+      await assertCanSpendCredits(user, costCredits);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "點數不足，無法新增分鏡" };
     }
 
     const newRow = buildSimpleClipDraftRow({
@@ -129,13 +130,12 @@ export async function appendSimpleClipAction(
           updatedAt: nowIso,
         };
 
-    const newClip = {
+    const newClip: ProjectClip = {
       clipNumber: insertAt,
       durationSeconds,
+      prompt: cleanPrompt,
       status: "queued" as const,
       submittedAt: nowIso,
-      narrativeJob: newRow.narrativeJob,
-      explainerScene: cleanPrompt,
     };
 
     // Use pure insertClips to shift existing clips and frames
@@ -169,10 +169,7 @@ export async function appendSimpleClipAction(
       newClip,
     ].sort((a, b) => a.clipNumber - b.clipNumber);
 
-    await consumeCredits(user.clerkUserId, costCredits, {
-      description: `新增 Simple Video 片段 #${insertAt}`,
-      projectId: project._id.toHexString(),
-    });
+    await consumeCredits(user.clerkUserId, costCredits);
 
     await videos.updateOne(
       { _id: project._id },
@@ -201,7 +198,7 @@ export async function appendSimpleClipAction(
     if (newFrame.status === "queued") {
       after(async () => {
         try {
-          await enqueueClipFrameJobs(project._id.toHexString(), [insertAt]);
+          await enqueueClipFrameJobs(updatedProject, [insertAt]);
         } catch (err) {
           console.error("[appendSimpleClipAction] frame queue error", err);
         }

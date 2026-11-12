@@ -72,10 +72,9 @@ export function buildJutsuClipInsertion<T extends ExtendableProject>(
   const newClip: ProjectClip = {
     clipNumber: insertAt,
     durationSeconds,
+    prompt: newRow.explainerScene,
     status: "in_progress",
     submittedAt: input.nowIso,
-    narrativeJob: newRow.narrativeJob,
-    explainerScene: newRow.explainerScene,
   };
 
     const shifted = insertClips(
