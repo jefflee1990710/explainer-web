@@ -180,8 +180,8 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(withCast, /jump/);
   assert.match(withCast, /pull \(bring in/);
   assert.match(withCast, /push \(send out/);
-  assert.match(withCast, /point toward the camera/);
-  assert.match(withCast, /last clip never points toward the camera/);
+  assert.match(withCast, /points at the teaching element/);
+  assert.match(withCast, /No clip points toward the camera/);
   assert.match(withCast, /not two standing poses/);
   assert.match(withCast, /head may turn/);
   assert.match(withCast, /previous two clips/);
@@ -200,7 +200,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(movingStill, /same side/);
   assert.match(movingStill, /left or the right/);
   assert.match(movingStill, /feet off the ground/);
-  assert.match(movingStill, /point toward the camera/);
+  assert.match(movingStill, /aims at the teaching element, never at the lens/);
   assert.match(movingStill, /not a neutral standing pose/);
   const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
   assert.match(movingVideo, /same side/);
@@ -267,7 +267,7 @@ test("every action has a short still line for both stills and a video line", () 
         position,
       });
       assert.match(still, new RegExp(action === "dial" ? "DIAL" : action.toUpperCase()));
-      assert.ok(still.length <= generic.length + 120, `${action} ${position} is ${still.length} chars`);
+      assert.ok(still.length <= generic.length + 200, `${action} ${position} is ${still.length} chars`);
     }
     const video = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true, action });
     assert.match(video, /This clip's action is/);
@@ -277,11 +277,13 @@ test("every action has a short still line for both stills and a video line", () 
   assert.match(block, /previous two clips/);
   assert.match(block, /three beats/);
   assert.match(block, /Clip 1 opens already moving/);
-  assert.match(block, /snap zoom in/);
-  assert.match(block, /360 orbit/);
-  assert.match(block, /overhead drop/);
-  assert.match(block, /crash push/);
+  assert.match(block, /snap zoom in to the active element/);
+  assert.match(block, /never a 360 orbit/);
+  assert.match(block, /overhead view of the graph/);
+  assert.match(block, /crash push toward the graph/);
   assert.match(block, /dutch snap/);
+  assert.match(block, /Lips and jaw stay sealed/);
+  assert.match(block, /Never look into the lens/);
   assert.match(block, /Later clips do not repeat this hook camera/);
   assert.match(cartoonExplainerDirectorBlock(), /snap zoom into the key node/);
   assert.match(
@@ -659,7 +661,7 @@ test("realistic explainer acts the line's emotion at natural intensity while non
     action: "squeeze",
     realistic: true,
   });
-  assert.match(realisticVideo5, /lips stay firmly closed with zero mouth or jaw speech movement/);
+  assert.match(realisticVideo5, /lips and jaw stay firmly closed with zero mouth or jaw speech movement/);
   assert.match(realisticVideo5, /natural real-person intensity/);
   assert.match(realisticVideo5, /never a blank or deadpan stare/);
   assert.doesNotMatch(realisticVideo5, /calm, relaxed, unforced neutral expression/);

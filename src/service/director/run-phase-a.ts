@@ -316,7 +316,7 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${verticalSafeAreaDirectorLine(input.aspectRatio)}
 ${directorRules.phaseAKeyframeDeltaBlock({ language: input.language, hasCharacter, steadyStills })}
-${firstClipHookPerformanceDirectorRule(realisticFlag)}
+${firstClipHookPerformanceDirectorRule(realisticFlag, isDiagramExplainerSkill(input.skill.slug))}
 ${directorRules.phaseASceneDetailBlock({
   realistic: realisticFlag,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
@@ -324,7 +324,7 @@ ${directorRules.phaseASceneDetailBlock({
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: isDiagramExplainerSkill(input.skill.slug) }) : ""}
 ${
   isDiagramExplainerSkill(input.skill.slug)
-    ? `On-screen text is REQUIRED (${SCENE_TEXT_PRESETS[sceneText.language].label}) and cannot be turned off. Every clip shows animated teaching elements plus a rich written explanation (one or two plain sentences, the same meaning as englishVo). Those sentences are painted later as artistic on-screen text, so do not write Subtitle: or caption the spoken line on the still. Leave open board space. Clip 1's startScene MUST open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds, ${HOOK_TITLE_PLACEMENT}. Short labels on the elements stay.`
+    ? `On-screen text is REQUIRED (${SCENE_TEXT_PRESETS[sceneText.language].label}) and cannot be turned off. Every clip shows animated teaching elements plus a rich written explanation (one or two plain sentences, the same meaning as englishVo). Draw those sentences on the start still as artistic on-screen text. Do not write Subtitle:. Clip 1's startScene MUST open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds, ${HOOK_TITLE_PLACEMENT}. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync and no look into the lens. Short labels on the elements stay.`
     : sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}, and a numbered item list must appear in item stills. Never write spoken subtitles.`
     : sceneText.enabled

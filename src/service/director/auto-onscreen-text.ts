@@ -343,6 +343,11 @@ export async function triggerExplainerAutoOnScreenText(
     if (!project) {
       return { ok: false, enqueuedCount: 0, error: "專案不存在" };
     }
+    // Whiteboard and paper-cutout draw the explanation on the start still.
+    // MiniMax H3 then adds motion. Do not post-paint with ref2va / object-add.
+    if (isDiagramExplainerSkill(project.skillSlug)) {
+      return { ok: true, enqueuedCount: 0 };
+    }
 
     const targets = resolveExplainerAutoOnScreenTextTargets(project);
     if (targets.length === 0) {

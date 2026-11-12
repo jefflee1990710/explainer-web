@@ -45,6 +45,7 @@ import {
 } from "@/service/director/camera-move";
 import { frameEndMoment, frameStartMoment } from "@/service/director/keyframe-delta";
 import {
+  diagramStartFrameLetteringLines,
   comparisonOnCanvasLines,
   listicleOnCanvasLines,
   resolveSceneText,
@@ -533,11 +534,15 @@ function fitFramePrompt(
   ];
   let current = parts;
   let prompt = compose(current);
-  for (const step of steps) {
+  for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
+    if (process.env.FIT_DEBUG) {
+      console.error(`FIT before ${stepIndex} len ${prompt.length}`);
+    }
     if (prompt.length <= budget) return prompt;
-    current = step(current);
+    current = steps[stepIndex](current);
     prompt = compose(current);
   }
+  if (process.env.FIT_DEBUG) console.error(`FIT final len ${prompt.length}`);
   return prompt;
 }
 
@@ -978,6 +983,14 @@ export function buildFramePrompt(
   const openingCamera = position === "start" && angleText ? openingCameraDirective(motionDescription) : "";
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = false;
+  const chosenLetteringLook = project.onScreenTextStyleId || project.subtitleLook;
+  const diagramStartLettering =
+    isDiagramExplainerSkill(project.skillSlug) && position === "start" && !silentClip
+      ? diagramStartFrameLetteringLines(
+          (row.englishVo || voForFrame || "").trim(),
+          chosenLetteringLook ? resolveSubtitleLook(chosenLetteringLook) : undefined,
+        )
+      : [];
   const onCanvasTextBlock = !sceneText.enabled || talkingHeadSkipsLettering
     ? sceneTextFrameLines(false, sceneText.language)
     : overlay
@@ -1047,6 +1060,7 @@ export function buildFramePrompt(
 
   const [styleHeader, styleBody = ""] = styleLinesForFrame(style);
   const compose = (parts: FrameTrimmable) => [
+    ...diagramStartLettering,
     ...onCanvasTextBlock,
     styleHeader,
     ...(parts.styleBody ? [parts.styleBody] : []),
@@ -1116,6 +1130,8 @@ export function buildFramePrompt(
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(!sceneText.enabled || talkingHeadSkipsLettering
       ? ["Final check: no letters, no subtitle, no caption, no numbers, no sign, no watermark."]
+      : diagramStartLettering.length
+      ? ["Final check: the board explanation is drawn on this start still and spelled exactly."]
       : overlay
       ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
       : listicle

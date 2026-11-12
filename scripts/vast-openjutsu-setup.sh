@@ -85,8 +85,14 @@ for repo, filename, dest in jobs:
 PY
 
 # Comfy stays on loopback. The proxy on 8189 is the only published port.
+# 80GB and larger cards keep the H3 weights resident. A 16GB 4060 cannot.
+HIGHVRAM_ARG=""
+VRAM_MB="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | awk 'BEGIN{m=0} {if ($1+0>m) m=$1+0} END{print m}')"
+if [ "${VRAM_MB:-0}" -ge 80000 ]; then
+  HIGHVRAM_ARG="--highvram"
+fi
 if ! pgrep -f "python main.py --listen 127.0.0.1 --port 8188" >/dev/null 2>&1; then
-  nohup $PYTHON main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch > /workspace/comfy.log 2>&1 &
+  nohup $PYTHON main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch $HIGHVRAM_ARG > /workspace/comfy.log 2>&1 &
 fi
 if ! pgrep -f "vast-openjutsu-proxy.py" >/dev/null 2>&1; then
   nohup $PYTHON /workspace/vast-openjutsu-proxy.py > /workspace/proxy.log 2>&1 &

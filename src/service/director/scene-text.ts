@@ -14,7 +14,11 @@ import {
   listicleListEntries,
 } from "@/service/director/skill-rules";
 import type { SceneTextChoice, SceneTextLanguage } from "@/model/project";
-import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle-look";
+import {
+  lookLineForOnScreenVideo,
+  subtitleLookLine,
+  type SubtitleLook,
+} from "@/service/director/subtitle-look";
 import { explainerWrittenLanguage, isDiagramExplainerSkill } from "@/service/director/explainer-family";
 
 export type SceneTextPreset = {
@@ -272,7 +276,7 @@ export function sceneTextSkillHint(
     aspectRatio?: string;
     look?: SubtitleLook;
     lookLine?: string;
-    // Whiteboard / paper-cutout: rich explanation on every page, painted later as artistic text.
+    // Whiteboard / paper-cutout: draw the explanation on the start still.
     richExplanation?: boolean;
   },
 ) {
@@ -313,7 +317,7 @@ export function sceneTextSkillHint(
   if (options?.richExplanation) {
     return [
       "On-screen text is REQUIRED and cannot be turned off. Every clip has animated teaching elements and a rich written explanation: one or two plain sentences that teach this beat, the same meaning as englishVo.",
-      "Those sentences are painted later as artistic on-screen text in the user's chosen style. Do not write Subtitle: and do not draw the full voiceover onto the stills. Leave a clean open area. Short diagram labels inside 「」 stay on the objects.",
+      "Draw those sentences on the start still as artistic on-screen text in the user's chosen style. Do not write Subtitle:. Short diagram labels inside 「」 stay on the objects. The video adds motion around that lettering and keeps the words in place.",
       hookTitleRule,
       `Explanation language: ${SCENE_TEXT_PRESETS[language].label}.`,
       "The off-screen voiceover speaks the same explanation. The on-screen character never speaks.",
@@ -560,6 +564,27 @@ export function sceneTextFrameLines(
     letterStyle,
     "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",
     "Ignore any storyboard mention of other wording (e.g. Mental Health); do not paint prompt instructions — only the quoted subtitle strings.",
+  ].filter(Boolean);
+}
+
+// Diagram explainer start stills: spell the explanation on the board, then the video moves around it.
+export function diagramStartFrameLetteringLines(narration: string, look?: SubtitleLook): string[] {
+  const formatted = formatVoiceoverForMarker(narration);
+  if (!formatted.line1) return [];
+  const lines = formatted.line2
+    ? [
+        `Board explanation line 1 (spell exactly): "${formatted.line1}"`,
+        `Board explanation line 2 (spell exactly): "${formatted.line2}"`,
+      ]
+    : [`Board explanation (spell exactly): "${formatted.line1}"`];
+  const lookLine = look ? lookLineForOnScreenVideo(subtitleLookLine(look)) : "";
+  return [
+    "Draw this explanation on the start still. The video then moves around it.",
+    ...lines,
+    lookLine,
+    look
+      ? "Lettering follows that Look. Place it on the board among the teaching elements, not a bottom subtitle bar. Spell it once. Short 「」 labels stay."
+      : "Place it on the board among the teaching elements, not a bottom subtitle bar. Spell it once. Short 「」 labels stay.",
   ].filter(Boolean);
 }
 

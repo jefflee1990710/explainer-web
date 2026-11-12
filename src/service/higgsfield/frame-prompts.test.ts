@@ -156,6 +156,11 @@ test("any director's Clip 1 start still places the 「」 hook title slightly ab
   cartoon.phaseA!.clips[0].explainerScene = "Diagram with hook banner 「STOP PAYING FOR ADS」.";
   const explainer = buildFramePrompt(cartoon, 1, "start");
   assert.equal(explainer.match(/thick solid border/g)?.length, 1);
+  assert.doesNotMatch(explainer, /HOOK EXPRESSION/);
+  assert.match(explainer, /lips and jaw sealed/i);
+  assert.match(explainer, /teaching element/);
+  assert.match(explainer, /Board explanation/);
+  assert.doesNotMatch(explainer, /Subtitle:/);
 });
 
 test("realistic paper-cutout Clip 1 start still with numbered Set cutouts fits FRAME_PROMPT_BUDGET without losing labels or locks", () => {
@@ -199,12 +204,14 @@ test("realistic paper-cutout Clip 1 start still with numbered Set cutouts fits F
   assert.match(prompt, /Paper-cutout collage lock/);
   assert.match(prompt, /The wooden board IS the background/);
   assert.match(prompt, /FACIAL EXPRESSION & BODY LOCK/);
+  assert.doesNotMatch(prompt, /HOOK EXPRESSION/);
+  assert.match(prompt, /lips and jaw sealed/i);
   assert.match(prompt, /Clip 1 hook title/);
   assert.match(prompt, /overrides any top/i);
   assert.match(prompt, /Realistic light & camera/);
 });
 
-test("whiteboard stills keep diagram labels after the scene is trimmed and omit spoken subtitles", () => {
+test("whiteboard stills draw the spoken explanation on the start still and keep diagram labels", () => {
   const cartoon = project("realistic");
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
@@ -218,21 +225,29 @@ test("whiteboard stills keep diagram labels after the scene is trimmed and omit 
     englishVo: "Four lighting techniques you must know. Everything begins inside a dark studio.",
   };
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.doesNotMatch(prompt, /Four lighting techniques you must know/);
-  assert.doesNotMatch(prompt, /Everything begins inside a dark studio/);
+  assert.match(prompt, /Board explanation/);
+  assert.match(prompt, /Four lighting techniques you must know/);
+  assert.match(prompt, /Everything begins inside a dark studio/);
+  assert.doesNotMatch(prompt, /Subtitle:/);
   assert.match(prompt, /「LIGHT CONTROL」/);
 });
 
-test("cartoon stills keep bracket labels on props and omit spoken subtitles", () => {
+test("cartoon stills keep bracket labels and draw the spoken explanation on the start still", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
   cartoon.phaseA!.clips[0].startScene =
     'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
+  cartoon.phaseA!.clips[0].englishVo = "Save it now!";
   cartoon.phaseA!.clips[0].startVo = "Save it now!";
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.doesNotMatch(prompt, /Save it now!/);
+  assert.match(prompt, /Board explanation/);
+  assert.match(prompt, /Save it now!/);
+  assert.doesNotMatch(prompt, /Subtitle:/);
+  assert.match(prompt, /Final check: the board explanation is drawn on this start still/);
   assert.match(prompt, /「VIRAL SHOTS」/);
+  assert.doesNotMatch(buildFramePrompt(cartoon, 1, "end"), /Board explanation/);
+  assert.doesNotMatch(prompt, /HOOK EXPRESSION/);
 });
 
 test("doodle frame prompt uses the loaded style, no hard-coded whiteboard literal", () => {
@@ -331,7 +346,7 @@ test("whiteboard explainer with a cast locks the camera and keeps the 70/30 diag
   assert.match(end, /same side/);
   assert.match(end, /left-to-right or right-to-left/);
   assert.match(end, /feet off the ground/);
-  assert.match(end, /point toward the camera/);
+  assert.match(end, /aims at the teaching element, never at the lens/);
   assert.match(end, /not a neutral stand/);
   assert.match(end, /70\/30 Diagram-First Spatial Hierarchy/);
   assert.match(end, /Keep the same camera, shot size, angle, crop, set, lighting, character size, and screen position/);

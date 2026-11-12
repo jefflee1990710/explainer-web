@@ -20,6 +20,7 @@ import {
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
   voiceoverLineLooksLatin,
+  diagramStartFrameLetteringLines,
 } from "@/service/director/scene-text";
 
 test("resolveSceneText is always on; legacy false and missing still enable", () => {
@@ -271,6 +272,16 @@ test("Clip 1 hook title sits slightly above center on a bordered high-contrast p
   assert.match(firstClipHookPerformanceDirectorRule(true), /natural real-person intensity/i);
   assert.match(firstClipHookPerformanceFrameLine(false), /HOOK EXPRESSION & MOTION/i);
   assert.match(firstClipHookPerformanceVideoLine(true), /0–2s/i);
+  const elementHook = firstClipHookPerformanceDirectorRule(false, true);
+  assert.match(elementHook, /teaching element/);
+  assert.match(elementHook, /Lips and jaw stay sealed/);
+  assert.doesNotMatch(elementHook, /HOOK EXPRESSION/);
+  assert.match(firstClipHookPerformanceFrameLine(false, true), /HOOK ELEMENT FOCUS/);
+  assert.match(firstClipHookPerformanceVideoLine(false, true, true), /zero lip-sync/);
+  const lettering = diagramStartFrameLetteringLines("Save it now.");
+  assert.match(lettering.join("\n"), /Board explanation/);
+  assert.match(lettering.join("\n"), /Save it now/);
+  assert.doesNotMatch(lettering.join("\n"), /Subtitle:/);
 });
 
 test("director revision note toggles on-screen text allowance without adding subtitles", () => {

@@ -59,7 +59,11 @@ test("middle clip quotes both neighbours and asks for that clip only", () => {
 
   const clip1 = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 1 });
   assert.match(clip1, /HOOK RETENTION \(Clip 1/);
-  assert.match(clip1, /facial expression/i);
+  assert.match(clip1, /teaching element/);
+  assert.match(clip1, /zero lip-sync/);
+  assert.match(clip1, /Never look into the lens/);
+  assert.doesNotMatch(clip1, /HOOK EXPRESSION/);
+  assert.doesNotMatch(clip1, /toward camera/);
 });
 
 test("Phase B motion rules never call start/end stills a reference image", () => {
@@ -217,13 +221,20 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   );
 });
 
-test("dual-beat clips swap the keyframe lettering at the midpoint instead of banning on-screen text", () => {
+test("diagram explainer lettering stays on the start frame and is not wiped", () => {
   const lock = phaseBLetteringLock({ skillSlug: "cartoon-explainer-video-director", durationSeconds: 5 });
-  assert.match(lock, /about 2\.5s/);
-  assert.match(lock, /wipes off/);
-  assert.match(lock, /writes on in the same spot/);
+  assert.match(lock, /start frame already draws the explanation/);
+  assert.match(lock, /Do not morph, erase, rewrite, or duplicate/);
   assert.match(lock, /not a caption or subtitle/);
+  assert.doesNotMatch(lock, /wipes off/);
+  assert.doesNotMatch(lock, /Subtitle:/);
   assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
+  const paper = phaseBLetteringLock({
+    skillSlug: "paper-cutout-explainer-video-director",
+    durationSeconds: 6,
+  });
+  assert.match(paper, /second copy/);
+  assert.doesNotMatch(paper, /wipes off/);
 });
 
 test("steady stills keep the lettering fixed and ask the move to accelerate then decelerate", () => {
@@ -232,9 +243,8 @@ test("steady stills keep the lettering fixed and ask the move to accelerate then
     durationSeconds: 5,
     fixedLettering: true,
   });
-  assert.match(fixed, /start frame carries the marker line/);
-  assert.match(fixed, /no wipe, no rewrite, no new words/);
-  assert.match(fixed, /no end frame to match/);
+  assert.match(fixed, /start frame already draws the explanation/);
+  assert.match(fixed, /Do not morph, erase, rewrite, or duplicate/);
   assert.doesNotMatch(fixed, /wipes off/);
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
   assert.match(prompt, /accelerates through the change, then decelerates into the landing/);

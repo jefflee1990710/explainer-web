@@ -2,6 +2,7 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE } from "@/service/director/camera-first-prompt";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { firstClipHookPerformanceVideoLine } from "@/service/director/hook-title";
 import { getDirectorRuleModule } from "@/service/director/rules";
 import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/service/director/skill-rules";
@@ -49,8 +50,8 @@ export function phaseBWardrobeLock(input: {
   return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
 }
 
-// Dual-beat stills always carry startVo / endVo marker lettering, so the video
-// must swap it at the midpoint rather than erase it as a "caption".
+// Dual-beat stills carry marker lettering. Diagram explainers draw the explanation
+// once on the start still and keep those words; other dual-beat clips may swap at the midpoint.
 export function phaseBLetteringLock(input: {
   skillSlug: string;
   durationSeconds: number;
@@ -58,6 +59,9 @@ export function phaseBLetteringLock(input: {
   fixedLettering?: boolean;
 }) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
+  if (isDiagramExplainerSkill(input.skillSlug)) {
+    return "On-canvas lettering: the start frame already draws the explanation. Keep those exact words sharp and in the same place for the whole clip. Do not morph, erase, rewrite, or duplicate that explanation. Do not paint a second copy on an end frame. This is board lettering, not a caption or subtitle.";
+  }
   if (input.fixedLettering) {
     return "On-canvas lettering: the start frame carries the marker line and it stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. There is no end frame to match. This is in-scene lettering from the keyframe, not a caption or subtitle.";
   }
@@ -114,6 +118,10 @@ export function clipPhaseBUserPrompt(input: {
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 
   const silent = isSilentOutfitSkill(input.skillSlug);
+  // Missing slug still resolves to the cartoon explainer module, so treat that fallback the same.
+  const diagramExplainer =
+    isDiagramExplainerSkill(input.skillSlug) ||
+    isDiagramExplainerSkill(getDirectorRuleModule(input.skillSlug).slug);
   return [
     `Approved Phase A JSON:\n${JSON.stringify(input.phaseA, null, 2)}`,
     `${input.bansNarration ? "Dialogue language" : "Voiceover language"}: ${input.languageLabel} (${input.languageSublabel})`,
@@ -129,7 +137,9 @@ export function clipPhaseBUserPrompt(input: {
     input.characterLine,
     spatialBlockingLockParagraph(input.phaseA),
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-    CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
+    diagramExplainer
+      ? "BOARD CAMERA: describe the board camera first. Do not point it at the character's face. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed. No lip-sync and no greeting wave."
+      : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
     getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
       smoothMotion: Boolean(input.smoothMotion),
       realistic: Boolean(input.realistic),
@@ -144,6 +154,7 @@ export function clipPhaseBUserPrompt(input: {
       ? firstClipHookPerformanceVideoLine(
           Boolean(input.realistic),
           !input.bansNarration && !clipUsesTalkingPerformance(input.skillSlug),
+          diagramExplainer,
         )
       : "",
     closing,

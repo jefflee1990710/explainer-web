@@ -107,6 +107,7 @@ import {
   COMFY_H3_REF2VA_VIDEO_MODEL,
   simpleRef2VaReferences,
   usesSimpleRef2Va,
+  usesStoryRef2Va,
 } from "@/service/comfy/simple-ref2va";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
@@ -784,8 +785,8 @@ export async function sendClipVideo(
     spokenLine,
   );
 
-  // Seated talking-head and A-roll talking clips send this mp3 as the lip-sync driver to HeyGen Avatar IV.
-  // All other voiced directors synthesize ElevenLabs audio across all languages and keep it for voice muxing.
+  // Talking-head sends this mp3 into HeyGen Avatar IV. Story sends it into MiniMax H3 ref2va.
+  // Other voiced directors keep the ElevenLabs track and mux it after the video returns.
   const directUploadedVoUrl =
     clipRow?.uploadedVoUrl || (clipNumber === 1 ? project.uploadedVoUrl : undefined);
   const directUploadedVoDuration =
@@ -930,6 +931,33 @@ export async function sendClipVideo(
 
   const targetModel = clipVideoModel(style ?? clipStyleId, project.skillSlug);
   const clipRefs = resolveClipExtendReferences(project, clipNumber);
+  // Story: the latest still is both keyframes. The character still and ElevenLabs VO are references.
+  if (usesStoryRef2Va(project.skillSlug)) {
+    if (hasSpokenLine && !referenceAudioUrl) {
+      throw new Error("這段對白還沒有語音，無法用參考音訊產片");
+    }
+    const characterImageUrl = clipRefs.characterImageUrls.find((url) => url.startsWith("https://"));
+    const submitted = await submitComfyStoryboardClipVideo({
+      prompt: [
+        videoPrompt,
+        "Use this still as both the first frame and the last frame.",
+        referenceAudioUrl
+          ? "Natural lip sync matching the reference audio. The speaker says only that dialogue."
+          : "No dialogue. Lips stay closed.",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      aspectRatio: project.aspectRatio,
+      durationSeconds,
+      startImageUrl: start,
+      endImageUrl: start,
+      pinSameFrameAsLast: true,
+      characterImageUrl,
+      referenceAudioUrl,
+      skillSlug: project.skillSlug,
+    });
+    return toSent(COMFY_H3_REF2VA_VIDEO_MODEL, submitted);
+  }
   // Simple keeps first frame, last frame, and extra stills in one Vast ref2va request.
   if (usesSimpleRef2Va(project)) {
     const endForSimple = end && end !== start ? end : undefined;

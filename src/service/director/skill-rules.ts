@@ -585,13 +585,13 @@ const CARTOON_ACTIONS: CartoonActionSpec[] = [
   },
   {
     action: "point",
-    cue: "points at the camera",
-    meaning: "call to action, \"you\"",
-    director: "arm down, then one arm aimed at the lens, not at a side graphic",
-    pattern: /\bpoint(?:s|ed|ing)?\b(?=[^.;]*\b(?:camera|lens|viewer)\b)/i,
-    start: "This clip's one action is a POINT toward the camera. In this still the pointing arm is down.",
-    end: "This still is after the POINT: one arm reaches straight at the lens, fingertip aimed at the viewer, not at a side graphic.",
-    video: "This clip's action is a POINT toward the camera: the arm rises and the fingertip aims at the lens.",
+    cue: "points at the teaching element",
+    meaning: "direct attention to the active element",
+    director: "arm down, then one arm and the eyes aimed at the named teaching element, never at the lens",
+    pattern: /\bpoint(?:s|ed|ing)?\b(?=[^.;]*\b(?:camera|lens|viewer|element|node|card|graph)\b)/i,
+    start: "This clip's one action is a POINT at the teaching element. In this still the arm is down and the eyes are already on that element, never the lens.",
+    end: "This still is after the POINT: the arm and eyes aim at the teaching element on the board, never at the lens. Lips stay sealed.",
+    video: "This clip's action is a POINT at the teaching element: the fingertip and eyes aim at that element, never the lens. Lips stay sealed.",
   },
 ];
 
@@ -608,20 +608,19 @@ export function cartoonHookCameraRule(
   smoothMotion?: boolean,
   realistic?: boolean,
 ) {
-  const faceNote = realistic
-    ? "The face and body act the hook line's emotion at natural real-person intensity with lips firmly closed — never a blank or deadpan stare; the character stays silent and never lip-syncs."
-    : "The face and body act the hook line's emotion with a vivid expression only. The character stays silent.";
+  const faceNote =
+    "Eyes and hands stay on the teaching element. Lips and jaw stay sealed. Never look into the lens, never lip-sync, and never wave at the camera. This includes Clip 1.";
   if (smoothMotion) {
     if (!hasCharacter) {
       return "Clip 1 is the hook: keep the camera 100% locked and stationary square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan). Open with fast, accelerated, tightly packed visual beats every 1.0–1.5 seconds where cutout elements whip in, unfold flat (摺開), tear open (撕開), or draw stroke-by-stroke (畫出) with crisp stop-motion speed. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Show every in-between frame. No skipped frame and no new angle.";
     }
-    return `Clip 1 is the hook: keep the camera 100% locked and stationary square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan). Open with fast, accelerated, tightly packed visual beats every 1.0–1.5 seconds (starts, accelerates through the change, then decelerates into the landing; the middle of that move is sharp and quick). Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Both Camera lines keep the exact same locked framing and side. Show every in-between frame. No skipped frame, no orbit, and no new angle. ${faceNote} Later clips do not repeat this hook.`;
+    return `Clip 1 is the hook: keep the camera 100% locked and stationary square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan). Open with fast, accelerated, tightly packed visual beats every 1.0–1.5 seconds on the teaching elements (starts, accelerates through the change, then decelerates into the landing; the middle of that move is sharp and quick). Never a close-up of the face. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Both Camera lines keep the exact same locked framing and side. Show every in-between frame. No skipped frame, no orbit, and no new angle. ${faceNote} Later clips do not repeat this hook.`;
   }
   if (!hasCharacter) {
-    return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
+    return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. Never a close-up of a face. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
   }
-  const hookFace = "face acting the hook line's emotion";
-  return `Clip 1 is the hook and always uses exactly one exaggerated camera move, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in from a wider shot to the ${hookFace}; a snap zoom out from the ${hookFace} to the full body and the graph; a fast 360 orbit around the character that ends on the opposite side; an overhead drop from looking down onto an eye-level ${hookFace}; a crash push from far across the canvas into a close-up as the graph rushes past; a dutch snap from a tilted close-up into an upright wider view. Write that before and after in each still's Camera line, so shot size or angle differs. ${faceNote} Later clips do not repeat this hook camera.`;
+  void realistic;
+  return `Clip 1 is the hook and always uses exactly one exaggerated camera move on the teaching element, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in to the active element, never to the face; a snap zoom out from that element to the whole graph; an overhead view of the graph; a crash push toward the graph, not the face; a dutch snap that keeps the eyes on the element. Never a close-up of the face and never a 360 orbit around the character. Write that before and after in each still's Camera line, so shot size or angle differs. ${faceNote} Later clips do not repeat this hook camera.`;
 }
 
 // Six explicit visual diagram archetypes so the LLM never defaults to generic floating boxes.
@@ -646,7 +645,7 @@ export const EXPLAINER_VISUAL_TRANSFORMATION_RULE =
   "Visual Transformation Spine (Cause-and-Effect Clarity): every clip MUST visually demonstrate HOW and WHY the idea works through one clear state transformation (`State A: ❌ misconception / bottleneck / pain` → `physical mechanism / action` → `State B: ✅ truth / unlocked flow / solution`) so a muted viewer understands the logic at a glance — never stage a static collection of disconnected noun labels.";
 
 export const EXPLAINER_CONCRETE_METAPHOR_RULE =
-  "Animated Elements Plus Written Explanation: every teaching element is a recognizable everyday physical object or visual metaphor that shows its state (a clogged funnel vs an open filter, a 5% red battery vs a 100% green battery, a heavy boulder blocking a path vs a 3-step staircase, a leaking bucket vs a sealed valve), with a short colloquial label in 「」 (2–4 words / 2–6 CJK characters) in the configured scene-text language. Every clip ALSO carries a rich written explanation of this beat — one or two plain sentences that teach the idea, the same meaning as englishVo. Those sentences are painted afterwards as artistic on-screen text in the user's chosen style, so leave a clean open area on the board and do not draw the full sentences into the still (no Subtitle: line). The off-screen voiceover still speaks englishVo. On-screen text cannot be turned off. Never a board of objects with no explanation, and never a plain PowerPoint card that replaces the objects.";
+  "Animated Elements Plus Written Explanation: every teaching element is a recognizable everyday physical object or visual metaphor that shows its state (a clogged funnel vs an open filter, a 5% red battery vs a 100% green battery, a heavy boulder blocking a path vs a 3-step staircase, a leaking bucket vs a sealed valve), with a short colloquial label in 「」 (2–4 words / 2–6 CJK characters) in the configured scene-text language. Every clip ALSO carries a rich written explanation of this beat — one or two plain sentences that teach the idea, the same meaning as englishVo. Draw those sentences onto the start still as artistic on-screen text in the user's chosen style, spelled once among the teaching elements. Never write Subtitle:. The video adds motion around that lettering and keeps the words in place. The off-screen voiceover still speaks englishVo. On-screen text cannot be turned off. Never a board of objects with no explanation, and never a plain PowerPoint card that replaces the objects.";
 
 export const EXPLAINER_FOCAL_CONTRAST_RULE =
   "1-2-3 Visual Reading Path & Single Hero Pop: stage a clear 1 → 2 → 3 eye path (left-to-right or top-to-bottom). Keep 70–80% of supporting context nodes in calm neutral/monochrome/kraft tones, and highlight ONLY the single active takeaway node of that beat in 1 vibrant high-contrast accent colour at 1.5x–2x scale, with the character's gaze/hand or the clip's single directional arrow pointing directly at that active takeaway node.";
@@ -655,7 +654,7 @@ export const EXPLAINER_ELEMENT_TRANSITION_EFFECTS_RULE =
   "Element Transit-In & Transit-Out Choreography (REQUIRED in `motionCamera`): the director MUST plan distinct, tactile transition effects for how each teaching element appears (showing / transit in), transforms, and disappears (exiting / transit out) across the timed beats, choosing from: (1) `Slide-in / Slide-out (滑入／滑出)` (cards, columns, or badges sliding briskly in from the frame edge into the central 70–80% diagram zone, or sliding cleanly off-frame when replaced), (2) `Unfold / Fold-open (摺開)` (a folded paper strip, accordion brochure, or multi-step card unfolding flat onto the board to reveal the next layer, or folding shut to exit), (3) `Tear-open / Peel-away (撕開)` (a top cover strip, myth sticker, or kraft paper seal tearing open or peeling away cleanly to reveal the truth/answer card underneath), (4) `Draw-on / Self-sketching Effect (畫出)` (connecting arrows, lines, circles, underlines, checkmarks, or chart curves drawing themselves progressively stroke-by-stroke across the board to link nodes or circle the focal point), (5) `Flip-over (翻轉)` (a two-sided card flipping cleanly in place along its edge from Side A to Side B), and (6) `Pop-in / Stamp-down (彈出／蓋章)` (a highlight badge or number tag stamping crisply onto the focal node). Keep 100% of every active diagram card inside the central 70–80% safe zone (never push cards half-off the left/right edges of the screen, and never slide a card across or over the character's face/head).";
 
 export const EXPLAINER_CHARACTER_FOCUS_GUIDE_RULE =
-  "Character Presenter & Focus-Point Guidance: the character stays anchored in their 20–30% lower-left or lower-right presenter zone (never walking into the center of the diagram and never wrestling or stretching giant diagram boxes across their face/chest). As each teaching element transits in, unfolds (摺開), tears open (撕開), draws on (畫出), or flips, the character points their hand/finger and directs their gaze directly at that active focus point to guide the viewer's eye from Beat 1 → Beat 2 → Beat 3.";
+  "Character Presenter & Focus-Point Guidance: the character stays anchored in their 20–30% lower-left or lower-right presenter zone (never walking into the center of the diagram and never wrestling or stretching giant diagram boxes across their face/chest). On every clip, including Clip 1, the eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Lips and jaw stay sealed. No lip-sync, no greeting wave, and no look into the lens. As each teaching element transits in, unfolds (摺開), tears open (撕開), draws on (畫出), or flips, the character points their hand/finger and directs their gaze directly at that active focus point to guide the viewer's eye from Beat 1 → Beat 2 → Beat 3.";
 
 // Concept explainers teach with several on-screen pieces, named in the still and in the camera move.
 function teachingElementsRule(pieceNoun: string, graphNoun: string) {
@@ -734,15 +733,15 @@ export function cartoonExplainerDirectorBlock(options?: {
     "Single location lock: keep the entire video in ONE single consistent background environment / set from Clip 1 through the final clip (exactly one background plate shared by all clips; never switch rooms or locations mid-video).",
     "On screen, the character never speaks, never lip-syncs, and never introduces themself. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
-      ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump at most once per video, on the key beat. The last clip never points toward the camera. Pick another action that matches the last line, and keep the hands on the graph. A different standing position, a few steps, or a walk is not a new action.`
+      ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump at most once per video, on the key beat. No clip points toward the camera or looks into the lens; a point aims at the teaching element and the eyes stay there. Lips and jaw stay sealed on every clip, including Clip 1. Pick another action that matches the last line, and keep the hands on the graph. A different standing position, a few steps, or a walk is not a new action.`
       : realistic
         ? "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth firmly closed with a normal, alive, engaged facial expression (never a blank or deadpan stare; never exaggerated cartoon faces). It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props."
         : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting with vivid facial expressions. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter ? actingRule : "",
     hasCharacter
       ? smooth
-        ? `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. ${smoothAngleRule} No orbit and no move to another side inside a clip. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
-        : `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. ${angleRule} One continuous move, no cut and no teleport. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
+        ? `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn toward the teaching element, never toward the lens. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. ${smoothAngleRule} No orbit and no move to another side inside a clip. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
+        : `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn toward the teaching element, never toward the lens. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. ${angleRule} One continuous move, no cut and no teleport. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
       : "",
     hasCharacter
       ? `For every topic, keep a rich on-screen ${graphNoun} (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the ${pieceNoun} this clip's action works on. Do not reuse the same camera ${flatBoard ? "framing" : "angle"} on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics.`
@@ -751,7 +750,7 @@ export function cartoonExplainerDirectorBlock(options?: {
       ? "startScene and endScene are the before and after of that one action as listed, not two standing poses. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera."
       : "",
     hasCharacter
-      ? "When the action moves an element (every action except jump and point toward the camera), write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the hands and where its destination is (the slot, bin, stack, socket, or graph node). In endScene the element is still visible. Never write that it vanished, was swallowed, or is entirely inside something."
+      ? "When the action moves an element (every action except jump and point), write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the hands and where its destination is (the slot, bin, stack, socket, or graph node). In endScene the element is still visible. Never write that it vanished, was swallowed, or is entirely inside something."
       : "",
     hasCharacter
       ? smooth
@@ -762,7 +761,7 @@ export function cartoonExplainerDirectorBlock(options?: {
     // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
     cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
     flatBoard ? paperCutoutCameraRule(surfaceOpts) : "",
-    "On-canvas beat text: on-screen explanation is mandatory and cannot be turned off. englishVo is one or two plain sentences that explain this beat, spoken by the off-screen narrator and painted later as artistic on-screen text — never write Subtitle: or draw that full voiceover onto the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object. Leave open board space for the artistic explanation.",
+    "On-canvas beat text: on-screen explanation is mandatory and cannot be turned off. englishVo is one or two plain sentences that explain this beat, spoken by the off-screen narrator and drawn on the start still as artistic on-screen text — never write Subtitle:. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object. The video adds motion around that lettering and keeps the words in place.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -820,8 +819,8 @@ export function cartoonNarratorFrameLock(
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? `HOOK CAMERA: Clip 1 keeps a 100% locked stationary square-on camera (no zoom-in or push-in).${hookTitleStill}`
-        : `HOOK CAMERA: exaggerated framing named in the Scene (shot size or angle differs from the other still of Clip 1).${hookTitleStill}`
+        ? `HOOK CAMERA: Clip 1 keeps a 100% locked stationary square-on camera (no zoom-in or push-in). Eyes and hands stay on the teaching element. Lips and jaw stay sealed. Never look into the lens.${hookTitleStill}`
+        : `HOOK CAMERA: framing stays on the teaching element, not a close-up of the face. Eyes and hands stay on that element. Lips and jaw stay sealed. Never look into the lens.${hookTitleStill}`
       : "";
   const cameraMatch = steady
     ? "Camera angle, shot size, and side match the other still of this clip."
@@ -833,7 +832,7 @@ export function cartoonNarratorFrameLock(
           customBackground: options?.customBackground,
         })
       : WHITEBOARD_CANVAS_LOCK;
-  const silent = `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (lips closed when facing camera; unseen from behind; no greeting wave).${actingStill}`;
+  const silent = `${whiteboard2dRule} Silent demonstrator on every clip, including Clip 1: the character does not talk or lip-sync (lips and jaw sealed; no greeting wave; eyes and hands stay on the teaching element; never look into the lens).${actingStill}`;
   const labels =
     "Draw every beat title or diagram label in 「」 as readable writing on that object (use at most 1 directional arrow, never blank grey tape or unlabelled strips; not the subtitle).";
   if (options?.hasCharacter) {
@@ -848,7 +847,7 @@ export function cartoonNarratorFrameLock(
         hook,
       ].filter(Boolean).join(" ");
     }
-    return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
+    return `${silent} ${DIAGRAM_LAYOUT_HIERARCHY_RULE} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point aims at the teaching element, never at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right, but the eyes stay on the element. ${cameraMatch} Draw every teaching element named in the Scene, including the explanation graph and the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
   const base = `${silent} Draw every teaching element named in the Scene. The explanation graph is the primary graphic. ${labels}`;
   return hook ? `${base} ${hook}` : base;
@@ -907,15 +906,15 @@ export function cartoonNarratorVideoLock(
         })
       : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
-    `Voiceover is mixed in later from an unseen off-screen narrator and is not performed in this picture. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. The character only interacts with the elements on screen (point, tap, place, slide, flip, or pick up) and does not talk to the camera. ${canvasVoice}`;
+    `Voiceover is mixed in later from an unseen off-screen narrator and is not performed in this picture. The on-screen character never speaks or lip-syncs — lips and jaw stay firmly closed with zero mouth or jaw speech movement for the entire clip, including Clip 1. Eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never look into the lens and never wave at the camera. The written explanation is already drawn on the start frame. Keep those exact words sharp and in the same place while elements move. Do not morph, erase, rewrite, or duplicate that explanation. ${canvasVoice}`;
   const teachingMotion =
     "Animate every teaching element named in the Scene on its own beat, and do not leave the extra concept pieces as a frozen background.";
   if (!options?.hasCharacter) {
     const graphHook =
       options?.clipNumber === 1
         ? smooth
-          ? " HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in) while the elements accelerate rapidly at 2x–3x speed through the change, then decelerate into the landing. The middle of that move is sharp and quick. Show every in-between frame. No skipped frame and no new angle."
-          : " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
+          ? " HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in) while the elements accelerate rapidly at 2x–3x speed through the change, then decelerate into the landing. Eyes stay on the teaching element. Lips and jaw stay sealed. Never look into the lens. Show every in-between frame. No skipped frame and no new angle."
+          : " HOOK CAMERA: move the teaching element, sharp and fast, no slow glide and no blur. Never a close-up of a face and never a look into the lens. Lips and jaw stay sealed."
         : "";
     const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
     const noCastFace = realistic
@@ -927,14 +926,13 @@ export function cartoonNarratorVideoLock(
   const named = spec ? ` ${spec.video}` : "";
   const expVideo =
     " Act the emotion of the spoken line through upper-face eyebrows, eyes, head tilt, and pointing gestures while the lower face, jaw, and lips remain 100% static and sealed shut — the gaze and hand point directly at the element being explained as each teaching element is mentioned.";
-  const hookFace = realistic
-    ? "the character's upper-face eyebrows and eyes expressing the hook's emotion at natural real-person intensity while the lips and jaw stay 100% immobile and sealed shut (zero lip motion)"
-    : "the character's upper-face eyebrows and eyes expressing the hook's emotion with a vivid closed-lip expression while the lips and jaw stay 100% immobile and sealed shut (zero lip motion)";
+  const hookFace =
+    "the character's eyes and hands stay on the teaching element while the lips and jaw stay 100% immobile and sealed shut (zero lip motion, never a look into the lens)";
   const hook =
     options?.clipNumber === 1
       ? smooth
-        ? ` HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in) while the elements and character pointing gesture execute fast speed-ramped motion — accelerating rapidly at 2x–3x speed through the middle of each move, then snapping to a crisp landing. Show every in-between frame. No skipped frame and no new angle. In this locked full-board view, keep ${hookFace}. The character stays silent.`
-        : ` HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows ${hookFace}. The character stays silent.`
+        ? ` HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in) while the elements and the pointing hand move with fast speed-ramped motion — accelerating rapidly at 2x–3x speed through the middle of each move, then snapping to a crisp landing. Show every in-between frame. No skipped frame and no new angle. In this locked full-board view, ${hookFace}. The character stays silent.`
+        : ` HOOK CAMERA: play the move on the teaching element, sharp and fast in the first second, no slow glide and no blur. Never a close-up of the face. ${hookFace}. The character stays silent.`
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
   const faceBeats = realistic

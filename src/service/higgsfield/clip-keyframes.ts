@@ -11,7 +11,7 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
 // Storyboard directors use OpenRouter MiniMax H3 (`minimax/hailuo-3`) first and last frames.
-// `/app/simple` is the exception and renders on Vast MiniMax H3 ref2va. Swap and Teleport stay on that GPU too.
+// `/app/simple` and `story-short-director` render on Vast MiniMax H3 ref2va. Swap and Teleport stay on that GPU too.
 export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const WAN_3_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;

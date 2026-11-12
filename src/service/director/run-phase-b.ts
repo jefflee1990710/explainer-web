@@ -73,7 +73,11 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
-${CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE}
+${
+  isDiagramExplainerSkill(input.skill.slug)
+    ? "BOARD CAMERA: describe the board camera first. Do not point it at the character's face. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed. No lip-sync and no greeting wave."
+    : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE
+}
 ${
   steady
     ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
@@ -202,7 +206,8 @@ export async function runPhaseBForClip(
   const rawModelPrompt = isSilentOutfitSkill(input.skill.slug)
     ? rewriteOutfitSafetyText(output.prompt)
     : output.prompt;
-  const modelPrompt = talkingHead
+  // Diagram explainers must not be rewritten into "pointing to character" / "toward camera".
+  const modelPrompt = talkingHead || isDiagramExplainerSkill(input.skill.slug)
     ? rawModelPrompt
     : formatCameraFirstVideoPrompt({
         prompt: rawModelPrompt,

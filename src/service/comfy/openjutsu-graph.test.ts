@@ -775,7 +775,7 @@ test("storyboard clips stay on OpenRouter, and submitComfyStoryboardClipVideo st
         model: "bytedance/seedance-2.0",
         skillSlug: "story-short-director",
       }),
-      false,
+      true,
     );
     assert.equal(
       shouldUseComfyForClipVideo({
@@ -941,7 +941,7 @@ test("storyboard clips stay off ComfyUI, and buildComfyRef2VaLatentGuideGraph ch
         skillSlug: "story-short-director",
         videoQualityTier: "economy",
       }),
-      false,
+      true,
     );
     assert.equal(
       shouldUseComfyForClipVideo({

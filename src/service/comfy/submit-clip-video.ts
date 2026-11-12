@@ -16,6 +16,7 @@ import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-pr
 import {
   MAX_SIMPLE_REF2VA_STILLS,
   usesSimpleRef2Va,
+  usesStoryRef2Va,
 } from "@/service/comfy/simple-ref2va";
 
 export function shouldUseComfyForClipVideo(input: {
@@ -27,16 +28,18 @@ export function shouldUseComfyForClipVideo(input: {
   videoEngine?: string;
   hookStrategy?: string;
 }): boolean {
-  // Only `/app/simple` uses Vast ref2va. Other storyboard clips stay on OpenRouter Hailuo 3.
+  // `/app/simple` and story-short use Vast ref2va. Other storyboard clips stay on OpenRouter Hailuo 3.
   void input.model;
   void input.audioUrl;
-  void input.skillSlug;
   void input.durationSeconds;
   void input.videoQualityTier;
-  return usesSimpleRef2Va({
-    videoEngine: input.videoEngine,
-    phaseA: input.hookStrategy ? { hookStrategy: input.hookStrategy } : undefined,
-  });
+  return (
+    usesStoryRef2Va(input.skillSlug) ||
+    usesSimpleRef2Va({
+      videoEngine: input.videoEngine,
+      phaseA: input.hookStrategy ? { hookStrategy: input.hookStrategy } : undefined,
+    })
+  );
 }
 
 function h3ValidFrameLength(durationSeconds: number): number {
@@ -400,6 +403,8 @@ export async function submitComfyStoryboardClipVideo(
     referenceImageUrls?: string[];
     referenceImageNotes?: string[];
     skillSlug?: string;
+    // Story uses one still as both the opening and closing latent guide.
+    pinSameFrameAsLast?: boolean;
   },
   options?: { fetch?: typeof fetch },
 ): Promise<ComfySubmitResult> {
@@ -422,6 +427,7 @@ export async function submitComfyStoryboardClipVideo(
     return ext && /^[a-z0-9]{2,5}$/.test(ext) ? ext : fallback;
   };
 
+  const pinSameFrameAsLast = Boolean(input.pinSameFrameAsLast);
   const extraStills: Array<{ url: string; note: string }> = [];
   const seenExtra = new Set<string>();
   (input.referenceImageUrls || []).forEach((url, index) => {
@@ -434,13 +440,17 @@ export async function submitComfyStoryboardClipVideo(
     extraStills.push({ url: clean, note: note || "a scene or subject reference" });
   });
 
+  const characterUrl = input.characterImageUrl?.trim();
+  const reuseStartAsCharacter = Boolean(
+    pinSameFrameAsLast && characterUrl && characterUrl === input.startImageUrl,
+  );
   const [startBuf, endBuf, charBuf, sceneBuf, refVideoBuf, refAudioBuf, extraBufs] = await Promise.all([
     fetchBuf(input.startImageUrl),
-    input.endImageUrl && input.endImageUrl !== input.startImageUrl
+    !pinSameFrameAsLast && input.endImageUrl && input.endImageUrl !== input.startImageUrl
       ? fetchBuf(input.endImageUrl)
       : Promise.resolve(null),
-    input.characterImageUrl && input.characterImageUrl !== input.startImageUrl
-      ? fetchBuf(input.characterImageUrl).catch(() => null)
+    characterUrl && characterUrl !== input.startImageUrl
+      ? fetchBuf(characterUrl).catch(() => null)
       : Promise.resolve(null),
     input.sceneImageUrl &&
     input.sceneImageUrl !== input.startImageUrl &&
@@ -466,10 +476,16 @@ export async function submitComfyStoryboardClipVideo(
     ),
   ]);
 
+  const endBuffer = pinSameFrameAsLast ? startBuf : endBuf;
+  const characterBuffer = reuseStartAsCharacter ? startBuf : charBuf;
   const [startName, endName, charName, sceneName, videoName, audioName, extraNames] = await Promise.all([
     uploadComfyAsset(`clip-start-${runId}.jpg`, startBuf, fetchFn, "image/jpeg"),
-    endBuf ? uploadComfyAsset(`clip-end-${runId}.jpg`, endBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
-    charBuf ? uploadComfyAsset(`clip-char-${runId}.jpg`, charBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
+    endBuffer
+      ? uploadComfyAsset(`clip-end-${runId}.jpg`, endBuffer, fetchFn, "image/jpeg")
+      : Promise.resolve(null),
+    characterBuffer
+      ? uploadComfyAsset(`clip-char-${runId}.jpg`, characterBuffer, fetchFn, "image/jpeg")
+      : Promise.resolve(null),
     sceneBuf ? uploadComfyAsset(`clip-scene-${runId}.jpg`, sceneBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
     refVideoBuf
       ? uploadComfyAsset(

@@ -1,4 +1,4 @@
-// `/app/simple` is the only storyboard path that renders on Vast MiniMax H3 ref2va.
+// `/app/simple` and `story-short-director` render on Vast MiniMax H3 ref2va.
 // Every other director stays on OpenRouter `minimax/hailuo-3`.
 
 export const SIMPLE_VIDEO_ENGINE = "comfy-ref2va" as const;
@@ -16,6 +16,13 @@ export function usesSimpleRef2Va(project: {
     project.videoEngine === SIMPLE_VIDEO_ENGINE ||
     project.phaseA?.hookStrategy === SIMPLE_VIDEO_HOOK
   );
+}
+
+// Story locks the latest still as both keyframes, then adds a reference image and the VO.
+export const STORY_REF2VA_SKILL_SLUG = "story-short-director";
+
+export function usesStoryRef2Va(skillSlug?: string): boolean {
+  return skillSlug === STORY_REF2VA_SKILL_SLUG;
 }
 
 export type SimpleRef2VaStill = { url: string; note: string };

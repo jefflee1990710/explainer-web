@@ -286,13 +286,13 @@ test("submitComfyStoryboardClipVideo fetches, uploads, and wires reference video
   }
 });
 
-test("shouldUseComfyForClipVideo routes only simple videos onto Vast ref2va", () => {
+test("shouldUseComfyForClipVideo routes story and simple videos onto Vast ref2va", () => {
   assert.equal(
     shouldUseComfyForClipVideo({
       model: "minimax/hailuo-3",
       skillSlug: "story-short-director",
     }),
-    false,
+    true,
   );
   assert.equal(
     shouldUseComfyForClipVideo({
@@ -362,4 +362,70 @@ test("simple ref2va graph wires the end frame and extra stills as later pictures
   assert.equal(plan.shots.length, 1);
   assert.match(plan.shots[0]?.prompt ?? "", /<Picture 3> is the character identity/);
   assert.match(plan.shots[0]?.prompt ?? "", /neon alley/);
+});
+
+test("story ref2va pins the same still as first and last frame and keeps the reference image and audio", async () => {
+  const prevBase = process.env.COMFY_BASE_URL;
+  const prevKey = process.env.COMFY_API_KEY;
+  process.env.COMFY_BASE_URL = "https://comfy.example.com";
+  process.env.COMFY_API_KEY = "secret-token";
+
+  let submittedGraph: Record<string, { inputs: Record<string, unknown>; class_type?: string }> | undefined;
+  const uploadedFiles: string[] = [];
+  const fakeFetch: typeof fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === "https://blob.example.com/latest.jpg" || url === "https://blob.example.com/hero.jpg" || url === "https://blob.example.com/line.mp3") {
+      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    }
+    if (url.endsWith("/upload/image")) {
+      const formData = init?.body as FormData;
+      const file = formData.get("image") as File;
+      const name = file?.name || "unknown";
+      uploadedFiles.push(name);
+      return Response.json({ name });
+    }
+    if (url.endsWith("/prompt")) {
+      const parsed = JSON.parse(String(init?.body)) as {
+        prompt: Record<string, { inputs: Record<string, unknown>; class_type?: string }>;
+      };
+      submittedGraph = parsed.prompt;
+      return Response.json({ prompt_id: "prompt-story" });
+    }
+    throw new Error(`unexpected URL ${url}`);
+  };
+
+  try {
+    const res = await submitComfyStoryboardClipVideo(
+      {
+        prompt: "She answers across the table.",
+        aspectRatio: "9:16",
+        durationSeconds: 6,
+        startImageUrl: "https://blob.example.com/latest.jpg",
+        endImageUrl: "https://blob.example.com/latest.jpg",
+        pinSameFrameAsLast: true,
+        characterImageUrl: "https://blob.example.com/hero.jpg",
+        referenceAudioUrl: "https://blob.example.com/line.mp3",
+        skillSlug: "story-short-director",
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(res.request_id, "prompt-story");
+    assert.ok(uploadedFiles.some((name) => name.startsWith("clip-start-")));
+    assert.ok(uploadedFiles.some((name) => name.startsWith("clip-end-")));
+    assert.ok(uploadedFiles.some((name) => name.startsWith("clip-char-")));
+    assert.ok(uploadedFiles.some((name) => name.startsWith("clip-ref-audio-")));
+    assert.equal(submittedGraph?.["73"]?.inputs?.frame_idx, -1);
+    assert.equal(submittedGraph?.["74"]?.class_type, "VHS_LoadAudio");
+    assert.equal(submittedGraph?.["70"]?.class_type, "LoadImage");
+    const plan = JSON.parse(String(submittedGraph?.["26"]?.inputs?.plan_json)) as {
+      shots: Array<{ prompt: string }>;
+    };
+    assert.match(plan.shots[0]?.prompt ?? "", /closing keyframe/);
+    assert.match(plan.shots[0]?.prompt ?? "", /Character Identity/);
+  } finally {
+    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
+    else process.env.COMFY_BASE_URL = prevBase;
+    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
+    else process.env.COMFY_API_KEY = prevKey;
+  }
 });

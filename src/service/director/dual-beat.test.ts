@@ -120,7 +120,7 @@ test("diagram explainer dual-beat block requires written explanation and a separ
   const block = dualBeatDirectorBlock(true, { richOnScreenText: true, steadyStills: true });
   assert.match(block, /cannot be turned off/);
   assert.match(block, /artistic on-screen text/);
-  assert.match(block, /do not write Subtitle:/);
+  assert.match(block, /Do not write Subtitle:/);
   assert.match(block, /complete explanation/);
   assert.doesNotMatch(block, /Subtitle \(spell exactly\)/);
 });
