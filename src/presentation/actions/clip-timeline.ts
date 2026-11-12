@@ -6,6 +6,14 @@ import {
   duplicateClipAction as duplicateClip,
   reorderClipsAction as reorderClips,
 } from "@/service/clip/clip-timeline-actions";
+import { appendSimpleClipAction as appendSimpleClip } from "@/service/clip/append-simple-clip";
+
+export async function appendSimpleClipAction(
+  ...args: Parameters<typeof appendSimpleClip>
+) {
+  return appendSimpleClip(...args);
+}
+
 
 export async function appendDirectorClipAction(
   ...args: Parameters<typeof appendDirectorClip>
