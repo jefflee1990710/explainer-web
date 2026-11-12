@@ -291,7 +291,7 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
   );
 });
 
-test("clipVideoModel uses MiniMax H3 for all storyboard styles and directors (routed to Vast Serverless ComfyUI)", () => {
+test("clipVideoModel uses OpenRouter MiniMax H3 for all storyboard styles and directors", () => {
   assert.equal(SEEDANCE_2_VIDEO_MODEL, "minimax/hailuo-3");
   assert.equal(SEEDANCE_2_FAST_VIDEO_MODEL, "minimax/hailuo-3");
   assert.equal(clipVideoModel("realistic", "story-short-director"), "minimax/hailuo-3");

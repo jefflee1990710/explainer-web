@@ -37,7 +37,7 @@ export const videoBriefFields = {
     .enum(VIDEO_QUALITY_TIERS)
     .optional()
     .describe(
-      "Video generation tier: '2k_cinema' (2 credits/s, Vast Serverless ComfyUI H3). Defaults to '2k_cinema'.",
+      "Video generation tier: '2k_cinema' (2 credits/s, OpenRouter MiniMax H3). Defaults to '2k_cinema'.",
     ),
   talkingHeadPoseId: z
     .enum(TALKING_HEAD_POSE_IDS)

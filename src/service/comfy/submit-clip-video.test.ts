@@ -42,34 +42,43 @@ test("buildComfyRef2VaLatentGuideGraph removes video and audio loader nodes when
   assert.equal(graph["30"]?.inputs?.["ref_video_audios.ref_video_audio_0"], undefined);
 });
 
-test("submitClipVideo never falls back to cloud OpenRouter for non-talking-head clips when ComfyUI is not configured", async () => {
-  const prevBase = process.env.COMFY_BASE_URL;
-  const prevKey = process.env.COMFY_API_KEY;
-  try {
-    delete process.env.COMFY_BASE_URL;
-    delete process.env.COMFY_API_KEY;
-
-    await assert.rejects(
-      () =>
-        submitClipVideo({
-          prompt: "Whiteboard marker draws a flowchart.",
-          aspectRatio: "16:9",
-          durationSeconds: 6,
-          startImageUrl: "https://blob.example.com/start.jpg",
-          skillSlug: "cartoon-explainer-video-director",
-          styleId: "doodle",
-        }),
-      /ComfyUI 尚未設定/,
+test("submitClipVideo sends non-talking-head clips to OpenRouter minimax/hailuo-3", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  let posted: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    posted = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(
+      JSON.stringify({
+        id: "vid-hailuo-story",
+        polling_url: "/api/v1/videos/vid-hailuo-story",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
     );
+  };
+  try {
+    const submitted = await submitClipVideo(
+      {
+        prompt: "Whiteboard marker draws a flowchart.",
+        aspectRatio: "16:9",
+        durationSeconds: 6,
+        startImageUrl: "https://blob.example.com/start.jpg",
+        skillSlug: "cartoon-explainer-video-director",
+        styleId: "doodle",
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(posted?.model, "minimax/hailuo-3");
+    assert.equal(submitted.request_id, "vid-hailuo-story");
+    assert.match(submitted.status_url ?? "", /vid-hailuo-story/);
   } finally {
-    if (prevBase === undefined) delete process.env.COMFY_BASE_URL;
-    else process.env.COMFY_BASE_URL = prevBase;
-    if (prevKey === undefined) delete process.env.COMFY_API_KEY;
-    else process.env.COMFY_API_KEY = prevKey;
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
   }
 });
 
-test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director whenever Comfy endpoint is configured", () => {
+test("shouldUseComfyForClipVideo keeps storyboard clips off the Vast GPU", () => {
   const prevBase = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;
   const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
@@ -84,7 +93,7 @@ test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director wh
         skillSlug: "one-take-director",
         durationSeconds: 30,
       }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({
@@ -92,7 +101,7 @@ test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director wh
         skillSlug: "product-demo-director",
         durationSeconds: 8,
       }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({
@@ -100,7 +109,7 @@ test("shouldUseComfyForClipVideo enables ComfyUI ref2va for one-take-director wh
         skillSlug: "cartoon-explainer-video-director",
         durationSeconds: 8,
       }),
-      true,
+      false,
     );
   } finally {
     if (prevBase === undefined) delete process.env.COMFY_BASE_URL;

@@ -67,7 +67,7 @@ test("no frames at all → no_frames", () => {
   assert.equal(clipStateFor(project(), 1).stage, "no_frames");
 });
 
-test("cinematic realistic bills the Vast Serverless video rate", () => {
+test("cinematic realistic bills the GPU ComfyUI video rate", () => {
   assert.equal(clipStateFor(project(), 1).videoCost, 10);
   assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 10);
 });
@@ -263,7 +263,7 @@ test("talking-head clip waits while the next start draws, and is not failed by i
   assert.equal(clipStateFor(failed, 2).stage, "frames_failed");
 });
 
-test("one-take-director 60s realistic clip bills for the full 60 seconds instead of clamping at 15s", async () => {
+test("one-take-director bills the OpenRouter 15 second cap", async () => {
   const { clipVideoCost } = await import("@/service/production-plan");
   const p = project({
     skillSlug: "one-take-director",
@@ -271,8 +271,8 @@ test("one-take-director 60s realistic clip bills for the full 60 seconds instead
     phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).videoCost, 60 * 2);
-  assert.equal(clipVideoCost(p, 1), 60 * 2);
+  assert.equal(clipStateFor(p, 1).videoCost, 15 * 2);
+  assert.equal(clipVideoCost(p, 1), 15 * 2);
 });
 
 test("redrawing the next talking-head start makes this video stale, not these frames", () => {

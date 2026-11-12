@@ -60,18 +60,17 @@ import {
   upsampleJutsuFramePrompt,
 } from "@/service/jutsu/describer";
 import { resolveJutsuLightText } from "@/service/jutsu/light-looks";
-import {
-  buildJutsuRef2VaPrompt,
-  hasMinimaxApiKey,
-} from "@/service/jutsu/minimax-h3-ref2va";
+import { hasMinimaxApiKey } from "@/service/jutsu/minimax-h3-ref2va";
 import {
   buildSam3MannequinAndMaskVideos,
   type JutsuMaskMargin,
   type JutsuMotionSize,
 } from "@/service/jutsu/sam-mannequin";
 import {
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   openRouterAuthHeaders,
+  submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
@@ -87,7 +86,6 @@ import {
   isComfyPromptStatusUrl,
   pollVideoProviderStatus,
 } from "@/service/comfy/openjutsu-client";
-import { submitComfyStoryboardClipVideo } from "@/service/comfy/submit-clip-video";
 import {
   canSubmitJutsuComfy,
   trySubmitJutsuComfy,
@@ -877,10 +875,20 @@ export async function prepareJutsuJob(
   }
 }
 
+function jutsuOpenRouterPrompt(motionText: string, lightText: string) {
+  return [
+    "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
+    motionText,
+    lightText ? `Lighting remains consistent: ${lightText}` : "",
+    "Preserve any on-screen text or graphic letters from the attached frames.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 /**
  * Step 2 of Jutsu Studio (Render Video):
- * Submits the prepared start & end keyframes + two-pass motion description to OpenRouter `minimax/hailuo-3`,
- * polls until completion, muxes the original section soundtrack, and applies Openjutsu's H3 Soft color grade.
+ * Swap runs on the Vast GPU. When that graph is skipped, start and end frames go to OpenRouter `minimax/hailuo-3`.
  */
 export async function renderJutsuVideo(input: {
   jobId: string;
@@ -910,36 +918,6 @@ export async function renderJutsuVideo(input: {
       (input.motionDescription ?? job.motionDescription ?? "").trim() ||
       "Continuous natural movement from the opening frame to the closing frame.";
     const lightText = resolveJutsuLightText(job.relightId, job.customLightPrompt);
-    // MiniMax H3 reference-to-video cannot also take first/last frames (error 2013).
-    const useH3Ref2Va = Boolean(job.mannequinVideoUrl && hasMinimaxApiKey());
-    // Character swap: pass the original character photo(s) so H3 does not drift from the redrawn still.
-    const identityImageUrls =
-      job.mode === "character_swap"
-        ? normalizeJutsuReferenceUrls(job.referenceImageUrls, job.referenceImageUrl)
-        : [];
-    const identityImageUrl = identityImageUrls[0];
-    const referenceAudioUrl =
-      !job.noLipSync && input.keepSourceAudio !== false ? job.sectionAudioUrl : undefined;
-    const fullVideoPrompt = useH3Ref2Va
-      ? buildJutsuRef2VaPrompt({
-          motionText,
-          lightText,
-          hasIdentityImage: Boolean(
-            identityImageUrls.length > 0 &&
-              identityImageUrls[0] !== job.preparedStartFrameUrl,
-          ),
-          identityImageCount: identityImageUrls.length,
-          hasReferenceAudio: Boolean(referenceAudioUrl),
-          characterOutfitSpec: job.characterOutfitSpec,
-        })
-      : [
-          "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
-          motionText,
-          lightText ? `Lighting remains consistent: ${lightText}` : "",
-          "Preserve any on-screen text or graphic letters from the attached frames.",
-        ]
-          .filter(Boolean)
-          .join(" ");
 
     await col.updateOne(
       { _id: job._id },
@@ -953,18 +931,17 @@ export async function renderJutsuVideo(input: {
       },
     );
 
-    // Self-hosted / Serverless OpenJutsu runs the masked H3 edit; when relight/multi-person skips `trySubmitJutsuComfy`,
-    // route the prepared start/end keyframes strictly to Vast Serverless ComfyUI `submitComfyStoryboardClipVideo` with no cloud fallback.
+    // Vast runs the masked swap. Relight and other skips use OpenRouter first and last frames.
     const comfySubmitted = await trySubmitJutsuComfy(job);
     const submitted = comfySubmitted
       ? comfySubmitted
-      : await submitComfyStoryboardClipVideo({
-          prompt: fullVideoPrompt,
+      : await submitOpenRouterClipVideo({
+          model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
+          prompt: jutsuOpenRouterPrompt(motionText, lightText),
           aspectRatio: job.aspectRatio,
           durationSeconds: Math.min(10, Math.max(5, Math.round(job.sectionLength))),
           startImageUrl: job.preparedStartFrameUrl,
           endImageUrl: job.preparedEndFrameUrl || job.preparedStartFrameUrl,
-          characterImageUrl: identityImageUrl,
         });
 
     await col.updateOne(
@@ -1895,51 +1872,17 @@ export async function runScroSwapJobInBackground(jobId: ObjectId): Promise<void>
         current.relightId,
         current.customLightPrompt,
       );
-      const useH3Ref2Va = Boolean(current.mannequinVideoUrl && hasMinimaxApiKey());
-      const identityImageUrls =
-        current.personMappings && current.personMappings.length > 0
-          ? flattenPersonMappingDonorUrls(current.personMappings)
-          : normalizeJutsuReferenceUrls(
-              current.referenceImageUrls,
-              current.referenceImageUrl,
-            );
-      const identityImageUrl = identityImageUrls[0] ?? current.referenceImageUrl;
-      const referenceAudioUrl =
-        !current.noLipSync && current.keepSourceAudio !== false
-          ? current.sectionAudioUrl
-          : undefined;
-      const fullVideoPrompt = useH3Ref2Va
-        ? buildJutsuRef2VaPrompt({
-            motionText,
-            lightText,
-            hasIdentityImage: Boolean(
-              identityImageUrls.length > 0 &&
-                identityImageUrls[0] !== current.preparedStartFrameUrl,
-            ),
-            identityImageCount: identityImageUrls.length,
-            hasReferenceAudio: Boolean(referenceAudioUrl),
-            characterOutfitSpec: current.characterOutfitSpec,
-            personMappings: current.personMappings,
-          })
-        : [
-            "[Shot 1] The shot begins from the attached first frame and transitions smoothly to the attached last frame.",
-            motionText,
-            lightText ? `Lighting remains consistent: ${lightText}` : "",
-            "Preserve any on-screen text or graphic letters from the attached frames.",
-          ]
-            .filter(Boolean)
-            .join(" ");
 
       const comfySubmitted = await trySubmitJutsuComfy(current, preloadedVideoBuffer);
       const submitted = comfySubmitted
         ? comfySubmitted
-        : await submitComfyStoryboardClipVideo({
-            prompt: fullVideoPrompt,
+        : await submitOpenRouterClipVideo({
+            model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
+            prompt: jutsuOpenRouterPrompt(motionText, lightText),
             aspectRatio: current.aspectRatio,
             durationSeconds: Math.min(10, Math.max(5, Math.round(current.sectionLength))),
             startImageUrl: current.preparedStartFrameUrl,
             endImageUrl: current.preparedEndFrameUrl || current.preparedStartFrameUrl,
-            characterImageUrl: identityImageUrl,
           });
 
       await col.updateOne(

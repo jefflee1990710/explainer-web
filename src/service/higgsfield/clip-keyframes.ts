@@ -11,7 +11,7 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
 // All storyboard directors and styles (realistic, doodle, paper-cutout, stickman, anime, story-short, one-take)
-// use MiniMax H3 (`minimax/hailuo-3`), routed to Vast.ai Serverless ComfyUI (`ref2va`).
+// use OpenRouter MiniMax H3 (`minimax/hailuo-3`) first and last frames. Swap and Teleport stay on the Vast GPU.
 export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const WAN_3_VIDEO_MODEL = OPENROUTER_WAN_3_VIDEO_MODEL;

@@ -7,7 +7,6 @@ import {
   FRAME_COST,
   MIN_VIDEO_COST,
   MIN_VIDEO_SECONDS,
-  ONE_TAKE_MAX_VIDEO_SECONDS,
   talkingHeadVideoCost,
   videoCost,
 } from "@/service/credit-costs";
@@ -28,7 +27,7 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
     seconds,
     clipProj.styleId,
     Boolean(resolveVoiceSwapId(clipProj)),
-    clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
+    undefined,
     clipProj.videoQualityTier,
   );
 }

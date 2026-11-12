@@ -753,7 +753,7 @@ test("buildExtendGraph configures 39-frame latent prefix, last-6s reference vide
   });
 });
 
-test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head clips and submitComfyStoryboardClipVideo queues a ref2va graph", async () => {
+test("storyboard clips stay on OpenRouter, and submitComfyStoryboardClipVideo still queues a ref2va graph", async () => {
   const prevUrl = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;
   const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
@@ -764,18 +764,18 @@ test("shouldUseComfyForClipVideo is enabled by default for all non-talking-head 
 
     assert.equal(
       shouldUseComfyForClipVideo({ model: "minimax/hailuo-3" }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({ model: "alibaba/wan-3.0" }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({
         model: "bytedance/seedance-2.0",
         skillSlug: "story-short-director",
       }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({
@@ -926,7 +926,7 @@ test("buildObjectGraph supports add mode with H3ObjectPlacementMask, buildAdvanc
   assert.equal(cropsNode.inputs.people, "<Subject 1>: dancer - white top\n<Subject 2>: skater - blue hoodie");
 });
 
-test("shouldUseComfyForClipVideo enables ComfyUI when videoQualityTier is economy, and buildComfyRef2VaLatentGuideGraph chains MiniMaxH3AddGuide at frame_idx 0 and -1", () => {
+test("storyboard clips stay off ComfyUI, and buildComfyRef2VaLatentGuideGraph chains MiniMaxH3AddGuide at frame_idx 0 and -1", () => {
   const prevUrl = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;
   const prevFlag = process.env.COMFY_CLIP_VIDEO_ENABLED;
@@ -941,7 +941,7 @@ test("shouldUseComfyForClipVideo enables ComfyUI when videoQualityTier is econom
         skillSlug: "story-short-director",
         videoQualityTier: "economy",
       }),
-      true,
+      false,
     );
     assert.equal(
       shouldUseComfyForClipVideo({

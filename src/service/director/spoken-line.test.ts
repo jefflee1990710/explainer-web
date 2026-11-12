@@ -62,11 +62,11 @@ test("subtitleText drops speaker names and quotes from dialogue lines", () => {
   assert.equal(subtitleText("Plain line, no speaker."), "Plain line, no speaker.");
 });
 
-test("lockDialogueSpeech leaves explainer prompts unchanged until a spoken line is supplied", () => {
-  assert.equal(
-    lockDialogueSpeech("Narrator reads the line.", "cartoon-explainer-video-director"),
-    "Narrator reads the line.",
-  );
+test("diagram explainers seal the mouth even before a spoken line is supplied", () => {
+  const sealed = lockDialogueSpeech("Narrator reads the line.", "cartoon-explainer-video-director");
+  assert.match(sealed, /^SILENT ON-SCREEN CHARACTER/);
+  assert.match(sealed, /Narrator reads the line/);
+  assert.doesNotMatch(sealed, /AUDIO REQUIRED/);
   assert.equal(
     lockDialogueSpeech("She puts on the skirt.", "outfit-reel-director"),
     "She puts on the skirt.",
@@ -77,20 +77,26 @@ test("lockDialogueSpeech leaves explainer prompts unchanged until a spoken line 
   );
 });
 
-test("cartoon explainer puts the narrator line first so the clip cannot stay silent", () => {
+test("diagram explainers do not ask the video model to speak, and the character only works the on-screen elements", () => {
   const line = "Boosting cannot revive a dead post.";
   const locked = lockDialogueSpeech("Animate the magnifier.", "cartoon-explainer-video-director", line);
-  assert.match(locked, /^AUDIO REQUIRED/);
-  assert.match(locked, /Boosting cannot revive a dead post/);
-  assert.match(locked, /never silent/);
-  assert.match(locked, /mouth stays closed/);
-  assert.match(locked, /Sound effects never replace this voice/);
+  assert.match(locked, /^SILENT ON-SCREEN CHARACTER/);
+  assert.match(locked, /no lip-sync/);
+  assert.match(locked, /only interact with the elements already on screen/);
+  assert.doesNotMatch(locked, /AUDIO REQUIRED/);
+  assert.doesNotMatch(locked, /Boosting cannot revive a dead post/);
   assert.equal(lockDialogueSpeech(locked, "cartoon-explainer-video-director", line), locked);
-  assert.equal(
-    lockDialogueSpeech("Animate.", "cartoon-explainer-video-director", "(no dialogue)"),
-    "Animate.",
-  );
+  const paper = lockDialogueSpeech("Flip the vault cutout.", "paper-cutout-explainer-video-director", line);
+  assert.match(paper, /^SILENT ON-SCREEN CHARACTER/);
+  assert.doesNotMatch(paper, /AUDIO REQUIRED/);
+  const silent = lockDialogueSpeech("Animate.", "cartoon-explainer-video-director", "(no dialogue)");
+  assert.match(silent, /^SILENT ON-SCREEN CHARACTER/);
+  assert.match(silent, /Animate\./);
+  assert.doesNotMatch(silent, /AUDIO REQUIRED/);
   assert.equal(narratorSpeechLock("(no dialogue)"), "");
+  const listicle = lockDialogueSpeech("Show the item.", "listicle-director", line);
+  assert.match(listicle, /^AUDIO REQUIRED/);
+  assert.match(listicle, /Boosting cannot revive a dead post/);
 });
 
 test("cartoon explainer narratorSpeechLock locks the character's female voice timbre on the unseen narrator", () => {
@@ -117,11 +123,10 @@ test("cartoon explainer narratorSpeechLock locks the character's female voice ti
     undefined,
     { voiceGender: "female", speakers },
   );
-  assert.match(
-    locked,
-    /^AUDIO REQUIRED, spoken once by an unseen off-screen narrator \(young adult female, mid-high, bright, soft, light, youthful and clear with an airy tone — never switch to a male voice\)/,
-  );
-  assert.equal(locked.split("AUDIO REQUIRED").length - 1, 1);
+  assert.match(locked, /^SILENT ON-SCREEN CHARACTER/);
+  assert.doesNotMatch(locked, /AUDIO REQUIRED/);
+  assert.doesNotMatch(locked, /Fun AI clips are everywhere right now/);
+  assert.equal(lockDialogueSpeech(locked, "cartoon-explainer-video-director", line, ["Scro Official"], undefined, { voiceGender: "female", speakers }), locked);
 });
 
 test("narrator-only explainer strips character name prefixes from voice locks so video models never lip-sync the on-screen character", () => {
@@ -159,6 +164,9 @@ test("narrator-only explainer strips character name prefixes from voice locks so
   assert.doesNotMatch(locked, /Alice's\s+locked\s+voice\s+timbre/i);
   assert.match(locked, /the locked narrator voice timbre/i);
   assert.match(locked, /Off-screen narrator:\s*young adult female/i);
+  assert.match(locked, /^SILENT ON-SCREEN CHARACTER/);
+  assert.doesNotMatch(locked, /AUDIO REQUIRED/);
+  assert.doesNotMatch(locked, /Most people think procrastination comes from laziness/);
 });
 
 test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", () => {

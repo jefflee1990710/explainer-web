@@ -317,7 +317,7 @@ export async function executeWorkerTask(
         return { outcome: "failed", error: job.error ?? "Extend Video 失敗", permanent: true };
       }
 
-      await report(30, job.openRouterStatusUrl ? "polling_comfy" : "submitting_comfy");
+      await report(30, job.openRouterStatusUrl ? "polling_video" : "submitting_openrouter");
       if (!job.openRouterStatusUrl) {
         await runExtendJobInBackground(jobId);
       } else {
@@ -337,7 +337,7 @@ export async function executeWorkerTask(
         delayMs: 5_000,
         progress: 65,
         stage: "rendering",
-        lane: "gpu",
+        lane: "cpu",
       };
     }
 

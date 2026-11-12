@@ -3,6 +3,7 @@ import {
   CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
   formatCameraFirstVideoPrompt,
 } from "@/service/director/camera-first-prompt";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { getDirectorRuleModule } from "@/service/director/rules";
@@ -92,7 +93,9 @@ ${directorRules.phaseBDetailRules({
 ${
     silent
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
-      : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
+      : isDiagramExplainerSkill(input.skill.slug)
+        ? "Do not quote englishVo and do not ask anyone on screen to speak it. The voiceover is added after the picture. The on-screen character stays silent, with lips and jaw motionless, and only interacts with the elements on the board (point, tap, place, slide, flip, or pick up)."
+        : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
   } ${
     silent
       ? "Do not copy a narrator voice."

@@ -6,7 +6,6 @@ import {
   fetchComfyPromptStatus,
   isComfyPromptStatusUrl,
 } from "@/service/comfy/openjutsu-client";
-import { submitComfyStoryboardClipVideo } from "@/service/comfy/submit-clip-video";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
 import {
   fetchOpenRouterStatus,
@@ -286,28 +285,6 @@ export async function submitClipVideo(
           prompt: input.prompt,
           motionCamera: input.motionPrompt,
         });
-  const isTalkingHeadHeyGen =
-    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
-    Boolean(input.audioUrl?.trim()) ||
-    input.skillSlug === "talking-head-director";
-
-  if (!isTalkingHeadHeyGen) {
-    return submitComfyStoryboardClipVideo(
-      {
-        prompt: effectiveVideoPrompt,
-        aspectRatio: input.aspectRatio,
-        durationSeconds: input.durationSeconds,
-        startImageUrl: input.startImageUrl,
-        endImageUrl: input.endImageUrl,
-        characterImageUrl: input.characterImageUrl,
-        sceneImageUrl: input.sceneImageUrl,
-        referenceVideoUrl: input.referenceVideoUrl,
-        referenceAudioUrl: input.referenceAudioUrl,
-        skillSlug: input.skillSlug,
-      },
-      options,
-    );
-  }
   if (provider === "openrouter") {
     return submitOpenRouterClipVideo(
       {

@@ -2,6 +2,7 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { VoiceGender } from "@/model/project";
 import { characterVoiceTimbre, firstLockedCharacterVoice } from "@/service/director/character-voice";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import {
   isSilentOutfitSkill,
   skillBansNarration,
@@ -99,8 +100,8 @@ export function speakingMouthLock(line: string, castNames?: string[]) {
   return `Mouth: only the speaking character lip-syncs. ${beats} Do not move a listener's mouth as if they are talking.`;
 }
 
-// Cartoon explainer is always narrated. The line goes first so a long motion
-// prompt cannot bury it, and sound effects cannot stand in for the voice.
+// Narrated directors other than the diagram explainers still ask the video model
+// to speak. Diagram explainers mux ElevenLabs later, so they must not.
 // Lock the narrator's gender/timbre right on the opening line so the video model
 // does not default the "unseen off-screen narrator" to a generic male voice when
 // the on-screen character's mouth is closed.
@@ -122,6 +123,12 @@ export function narratorSpeechLock(
       ? ` (adult ${gender} voice — never switch to a ${opposite} voice)`
       : "";
   return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed (lips firmly closed with zero lip-sync and zero jaw speech movement; off-screen voiceover only, the person on screen never lip-syncs or speaks).`;
+}
+
+// Diagram explainers: the video model must not perform the voiceover.
+// The character only works the pieces already on the board.
+export function explainerInteractionLock() {
+  return "SILENT ON-SCREEN CHARACTER: nobody on screen speaks and there is no lip-sync. Lips and jaw stay sealed and completely motionless for the entire clip. Do not generate speech, mouth shapes, or talking. The character does not look at the camera to perform. They only interact with the elements already on screen — point at, tap, place, slide, flip, or pick up those pieces — and their eyes and hands stay on the element they are moving.";
 }
 
 export function talkingSpeakerSpeechLock(
@@ -237,17 +244,25 @@ export function lockDialogueSpeech(
           "the locked narrator voice timbre",
         );
     }
-    const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
-    if (lock) {
-      // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.
-      body = body.replace(/^AUDIO REQUIRED, spoken once by an unseen off-screen narrator[^\n]*\n\n/, "");
-      // Strip any speaking-mouth articulation wording from realistic light locks when the skill is narrator-only.
-      body = body.replace(
-        /restrained natural mouth and jaw articulation when speaking \(no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks\)/g,
-        "normal, alive, engaged facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator)",
-      );
-      if (!body.includes(lock)) body = `${lock}\n\n${body}`;
+    // A stored prompt may already open with the spoken line. Drop it before choosing the lock.
+    body = body.replace(/^AUDIO REQUIRED, spoken once by an unseen off-screen narrator[^\n]*(?:\n\n)?/, "");
+    // Strip any speaking-mouth articulation wording from realistic light locks when the skill is narrator-only.
+    body = body.replace(
+      /restrained natural mouth and jaw articulation when speaking \(no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks\)/g,
+      "normal, alive, engaged facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator)",
+    );
+    if (isDiagramExplainerSkill(skillSlug)) {
+      const interaction = explainerInteractionLock();
+      if (body.startsWith(`${interaction}\n\n`)) body = body.slice(interaction.length + 2);
+      const spoken = subtitleText(spokenLine ?? "").replaceAll('"', "'");
+      if (spoken) {
+        body = body.replaceAll(`"${spoken}"`, "").replaceAll(`'${spoken}'`, "");
+      }
+      body = body.trim();
+      return body.includes(interaction) ? body : `${interaction}\n\n${body}`.trim();
     }
+    const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
+    if (lock && !body.includes(lock)) body = `${lock}\n\n${body}`;
     const cameraLock = storyShortCameraLock(skillSlug);
     if (cameraLock && !body.includes(cameraLock)) {
       body = `${body}\n\n${cameraLock}`;

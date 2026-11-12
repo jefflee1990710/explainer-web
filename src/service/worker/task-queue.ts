@@ -51,7 +51,7 @@ export function inferWorkerTaskLane(
     useComfy?: boolean;
   },
 ): WorkerTaskLane {
-  if (kind === "jutsu_swap" || kind === "teleport" || kind === "extend") {
+  if (kind === "jutsu_swap" || kind === "teleport") {
     return "gpu";
   }
   if (
@@ -455,7 +455,7 @@ export async function syncPendingDomainJobsToWorkerQueue(limit = 50): Promise<{
   }
   for (const job of activeExtends) {
     if (!job._id) continue;
-    await enqueueWorkerTask({ kind: "extend", targetId: job._id, lane: "gpu" });
+    await enqueueWorkerTask({ kind: "extend", targetId: job._id, lane: "cpu" });
     enqueued += 1;
   }
   return { enqueued };

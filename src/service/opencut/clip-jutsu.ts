@@ -290,7 +290,7 @@ export function buildExtendedClipInsertion<T extends ExtendableProject>(input: {
   };
 }
 
-/** Insert a new `Clip N+1` after `clipNumber` and start a Vast H3 `ref2va` 39-frame latent extension job. */
+/** Insert a new `Clip N+1` after `clipNumber` and continue it on OpenRouter MiniMax H3 from the last frame. */
 export async function applyClipExtend(input: {
   videoId: string;
   clipNumber: number;

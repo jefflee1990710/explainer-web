@@ -13,7 +13,6 @@ import {
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export function shouldUseComfyForClipVideo(input: {
   model: string;
@@ -22,14 +21,9 @@ export function shouldUseComfyForClipVideo(input: {
   durationSeconds?: number;
   videoQualityTier?: VideoQualityTier;
 }): boolean {
-  if (!hasComfyEndpoint()) return false;
-  if (process.env.COMFY_CLIP_VIDEO_ENABLED?.trim() === "false") return false;
-  if (input.audioUrl?.trim()) return false;
-  if (input.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) return false;
-  if (input.skillSlug === "talking-head-director") return false;
-  // Route all non-talking-head video generation (realistic, doodle, paper-cutout, stickman, anime, story, one-take)
-  // to Vast Serverless ComfyUI by default with no cloud fallback.
-  return true;
+  // Storyboard MiniMax H3 is OpenRouter `minimax/hailuo-3`. Vast ComfyUI stays on Swap and Teleport.
+  void input;
+  return false;
 }
 
 function h3ValidFrameLength(durationSeconds: number): number {

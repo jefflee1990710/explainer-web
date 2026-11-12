@@ -61,7 +61,7 @@ test("each image costs 4 credits", () => {
   assert.equal(FRAMES_COST, 8);
 });
 
-test("video is billed 2 credits per second with a 5 second minimum across all Vast Serverless styles", () => {
+test("video is billed 2 credits per second with a 5 second minimum across all GPU ComfyUI styles", () => {
   assert.equal(MIN_VIDEO_COST, 10);
   assert.equal(videoCost(3), 10);
   assert.equal(videoCost(5), 10);
@@ -71,7 +71,7 @@ test("video is billed 2 credits per second with a 5 second minimum across all Va
   assert.equal(videoCost(Number.NaN), 10);
 });
 
-test("cinematic realistic video also costs 2 credits per second on Vast Serverless", () => {
+test("cinematic realistic video also costs 2 credits per second on the GPU ComfyUI", () => {
   assert.equal(videoCost(5, "realistic"), 10);
   assert.equal(videoCost(8, "realistic"), 16);
   assert.equal(videoCost(3, "doodle"), 10);

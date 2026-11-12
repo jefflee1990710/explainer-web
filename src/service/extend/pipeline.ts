@@ -19,39 +19,33 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { teleportCost } from "@/service/credit-costs";
-import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
-  hasComfyEndpoint,
   isComfyPromptStatusUrl,
   pollVideoProviderStatus,
-  submitOpenJutsuExtend,
 } from "@/service/comfy/openjutsu-client";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { collectExtendJobTransientBlobUrls } from "@/util/blob/engine-job-blobs";
-import { composeJutsuCharacterReferenceSheet } from "@/service/comfy/submit-swap";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import {
   applyJutsuColorGradeBuffer,
   DEFAULT_JUTSU_COLOR_SETTINGS,
 } from "@/service/jutsu/color-grade";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
-import { openRouterAuthHeaders } from "@/service/openrouter/generate";
+import {
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
+  openRouterAuthHeaders,
+  submitOpenRouterClipVideo,
+} from "@/service/openrouter/generate";
 
 type ExtendJobDoc = ExtendJob & { _id: ObjectId };
 
 export const EXTEND_CLIP_DURATION_SECONDS = 6;
 
 export function shouldUseComfyForExtend(): boolean {
-  return hasComfyEndpoint() && process.env.COMFY_EXTEND_ENABLED?.trim() !== "false";
-}
-
-async function fetchBufferOrNull(url: string): Promise<Buffer | null> {
-  return fetch(url)
-    .then((r) => (r.ok ? r.arrayBuffer() : null))
-    .then((ab) => (ab ? Buffer.from(ab) : null))
-    .catch(() => null);
+  // Extend continues from the last frame on OpenRouter MiniMax H3. Vast stays on Swap and Teleport.
+  return false;
 }
 
 function cleanHttpUrls(urls: readonly string[] | undefined, maxCount: number): string[] {
@@ -168,41 +162,16 @@ export async function runExtendJobInBackground(jobId: ObjectId): Promise<void> {
   if (job.openRouterStatusUrl) return;
 
   try {
-    const videoRes = await fetch(job.sourceVideoUrl);
-    if (!videoRes.ok) throw new Error("無法讀取來源分鏡影片");
-    const rawVideoBuffer = Buffer.from(await videoRes.arrayBuffer());
-
-    if (!shouldUseComfyForExtend()) {
-      throw new Error("ComfyUI 尚未設定");
+    const startImageUrl = job.posterFrameUrl?.trim();
+    if (!startImageUrl?.startsWith("https://")) {
+      throw new Error("找不到延展用的最後一幀");
     }
-    const video = await ensureMp4HasAudioStream(rawVideoBuffer);
-    const [charBufs, sceneBuf, propBufs] = await Promise.all([
-      Promise.all((job.characterImageUrls ?? []).map((u) => fetchBufferOrNull(u))),
-      job.sceneImageUrl ? fetchBufferOrNull(job.sceneImageUrl) : Promise.resolve(null),
-      Promise.all((job.propImageUrls ?? []).map((u) => fetchBufferOrNull(u))),
-    ]);
-    const validCharBufs = charBufs.filter((b): b is Buffer => b !== null);
-    const validPropBufs = propBufs.filter((b): b is Buffer => b !== null);
-
-    const [characterImage, propImage] = await Promise.all([
-      validCharBufs.length > 0
-        ? composeJutsuCharacterReferenceSheet(validCharBufs)
-        : Promise.resolve(null),
-      validPropBufs.length > 0
-        ? composeJutsuCharacterReferenceSheet(validPropBufs)
-        : Promise.resolve(null),
-    ]);
-
-    const submitted = await submitOpenJutsuExtend({
-      video,
-      clipDurationSeconds: job.sourceDurationSeconds,
-      extensionPrompt: job.prompt,
-      characterImage,
-      sceneImage: sceneBuf,
-      propImage,
+    const submitted = await submitOpenRouterClipVideo({
+      model: OPENROUTER_HAILUO_3_VIDEO_MODEL,
+      prompt: job.prompt,
       aspectRatio: job.aspectRatio,
-      seed: 0,
-      runId: job._id.toHexString(),
+      durationSeconds: EXTEND_CLIP_DURATION_SECONDS,
+      startImageUrl,
     });
 
     await col.updateOne(

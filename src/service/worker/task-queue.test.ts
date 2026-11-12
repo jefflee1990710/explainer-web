@@ -7,10 +7,10 @@ import {
   shouldUseWorkerQueueOnly,
 } from "@/service/worker/task-queue";
 
-test("inferWorkerTaskLane routes ComfyUI and engine video jobs to gpu lane and API/FFmpeg jobs to cpu lane", () => {
+test("inferWorkerTaskLane routes Swap and Teleport to the gpu lane and Extend plus API jobs to the cpu lane", () => {
   assert.equal(inferWorkerTaskLane("jutsu_swap"), "gpu");
   assert.equal(inferWorkerTaskLane("teleport"), "gpu");
-  assert.equal(inferWorkerTaskLane("extend"), "gpu");
+  assert.equal(inferWorkerTaskLane("extend"), "cpu");
   assert.equal(
     inferWorkerTaskLane("generation_submit", {
       generationKind: "video",

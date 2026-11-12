@@ -306,7 +306,8 @@ test("explainer acting follows the spoken line, not a fixed per-clip expression 
     assert.match(block, /Content-driven acting/);
     assert.match(block, /if the line is exciting/i);
     assert.match(block, /direct attention to the teaching element the narrator is naming/);
-    assert.match(block, /every timed beat in motionCamera names the emotion/);
+    assert.match(block, /every timed beat in motionCamera names which on-screen element the hands and eyes work/);
+    assert.match(block, /never speaks, never lip-syncs, and never performs to the camera/);
     assert.match(block, /never repeat the same expression on two clips in a row/);
     assert.doesNotMatch(block, /shocked wide saucer eyes/);
 

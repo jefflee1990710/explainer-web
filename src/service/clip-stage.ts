@@ -2,7 +2,6 @@ import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import {
   MIN_VIDEO_SECONDS,
-  ONE_TAKE_MAX_VIDEO_SECONDS,
   talkingHeadVideoCost,
   videoCost,
 } from "@/service/credit-costs";
@@ -199,7 +198,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
             row?.durationSeconds ?? MIN_VIDEO_SECONDS,
             clipProj.styleId,
             Boolean(resolveVoiceSwapId(clipProj)),
-            clipProj.skillSlug === "one-take-director" ? ONE_TAKE_MAX_VIDEO_SECONDS : undefined,
+            undefined,
             clipProj.videoQualityTier,
           ),
     frameCost: clipFrameCost(project, clipNumber),
