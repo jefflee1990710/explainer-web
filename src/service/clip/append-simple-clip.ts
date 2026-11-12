@@ -151,18 +151,21 @@ export async function appendSimpleClipAction(
         autoVideoClips: project.autoVideoClips,
         edit: project.edit,
       },
-      insertAt,
       [newRow],
+      insertAt,
     );
+    if (!shifted.ok) {
+      return { ok: false, error: shifted.error };
+    }
 
     // Place new frame and new clip at insertAt
     const updatedFrames = [
-      ...(shifted.frames || []).filter((f) => f.clipNumber !== insertAt),
+      ...(shifted.project.frames || []).filter((f) => f.clipNumber !== insertAt),
       newFrame,
     ].sort((a, b) => a.clipNumber - b.clipNumber);
 
     const updatedClips = [
-      ...(shifted.clips || []).filter((c) => c.clipNumber !== insertAt),
+      ...(shifted.project.clips || []).filter((c) => c.clipNumber !== insertAt),
       newClip,
     ].sort((a, b) => a.clipNumber - b.clipNumber);
 
@@ -175,7 +178,7 @@ export async function appendSimpleClipAction(
       { _id: project._id },
       {
         $set: {
-          phaseA: shifted.phaseA,
+          phaseA: shifted.project.phaseA,
           clips: updatedClips,
           frames: updatedFrames,
           updatedAt: now,
