@@ -52,6 +52,36 @@ export function requestScroSceneEdit({
 	);
 }
 
+export type ScroTimelineAddClipMessage = {
+	type: "scro-timeline-add-clip";
+	videoId?: string;
+	playheadSeconds: number;
+	activeClipNumber?: number;
+};
+
+/** Ask the Scro host to open the Add Clip dialog with the current playhead context. */
+export function requestScroTimelineAddClip({
+	videoId,
+	playheadSeconds,
+	activeClipNumber,
+}: {
+	videoId?: string;
+	playheadSeconds: number;
+	activeClipNumber?: number;
+}) {
+	const origin = scroEmbedParentOrigin() ?? window.location.origin;
+	sendToScro(
+		{
+			type: "scro-timeline-add-clip",
+			videoId,
+			playheadSeconds,
+			activeClipNumber,
+		},
+		origin,
+	);
+}
+
+
 /** Ask the Scro host to open FrameEdit, SceneChat, Scro Swap, Teleport, Extend Video, or Clip Style. */
 export function requestScroOpenAi({
 	videoId,
