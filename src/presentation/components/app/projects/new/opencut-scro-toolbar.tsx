@@ -11,6 +11,8 @@ import {
   type AppendDirectorDialogMode,
   type AppendDirectorSubmitPayload,
 } from "@/presentation/components/app/projects/new/append-director-dialog";
+import { OpenCutAddClipModal } from "@/presentation/components/app/projects/new/opencut-add-clip-modal";
+import { resolvePlayheadInsertSlot } from "@/opencut/timeline/playhead-slot";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
 import { EditorReRecordVoDialog } from "@/presentation/components/app/projects/new/editor-rerecord-vo-dialog";
 import { OpenCutAiToolbarActions } from "@/presentation/components/app/projects/new/opencut-ai-toolbar-actions";
@@ -97,6 +99,8 @@ export function OpenCutScroToolbar({
   const [tasksOpen, setTasksOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<BulkMode | null>(null);
   const [appendMode, setAppendMode] = useState<AppendDirectorDialogMode | null>(null);
+  const [timelineAddClipOpen, setTimelineAddClipOpen] = useState(false);
+  const [timelineInsertAt, setTimelineInsertAt] = useState<number>(1);
   const [addPending, setAddPending] = useState(false);
   const [addError, setAddError] = useState("");
   const clips = project.phaseA?.clips ?? [];
@@ -160,7 +164,26 @@ export function OpenCutScroToolbar({
     const host = scroHost();
     if (!host) return;
     return host.subscribeScro((payload) => {
-      const data = payload as { type?: string; videoId?: string; action?: ScroClipMenuAction };
+      const data = payload as {
+        type?: string;
+        videoId?: string;
+        action?: ScroClipMenuAction;
+        playheadSeconds?: number;
+        activeClipNumber?: number;
+      };
+      if (data?.type === "scro-timeline-add-clip") {
+        const targetSlot = resolvePlayheadInsertSlot({
+          playheadSeconds: Number(data.playheadSeconds) || 0,
+          clipDurations: clips.map((c) => ({
+            clipNumber: c.clipNumber,
+            durationSeconds: c.durationSeconds,
+          })),
+          activeClipNumber: data.activeClipNumber,
+        });
+        setTimelineInsertAt(targetSlot);
+        setTimelineAddClipOpen(true);
+        return;
+      }
       if (data?.type !== "scro-clip-menu" || data.videoId !== project.id || !data.action) return;
       if (!idleRef.current) return;
       if (data.action === "remaining" || data.action === "scenes") {
@@ -287,6 +310,22 @@ export function OpenCutScroToolbar({
             setAddError("");
           }}
           onConfirm={(payload) => void confirmAppend(payload)}
+        />
+      ) : null}
+      {timelineAddClipOpen ? (
+        <OpenCutAddClipModal
+          open={timelineAddClipOpen}
+          defaultInsertAt={timelineInsertAt}
+          project={project}
+          skills={skills}
+          styles={styles}
+          characters={characters}
+          products={products}
+          credits={credits}
+          subscribed={subscribed}
+          onClose={() => setTimelineAddClipOpen(false)}
+          onProject={onProject}
+          onAppendDirector={confirmAppend}
         />
       ) : null}
     </>
