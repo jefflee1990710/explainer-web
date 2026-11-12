@@ -526,6 +526,8 @@ export type Project = {
   // Simple Video: optional motion reference video URL and speech/soundscape audio URL.
   referenceVideoUrl?: string;
   referenceAudioUrl?: string;
+  // `/app/simple` only. Other videos omit this and stay on OpenRouter Hailuo 3.
+  videoEngine?: "comfy-ref2va";
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   // Real products. They are never restyled into the video's look.
@@ -812,6 +814,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   uploadedVoDurationSeconds: z.number().optional(),
   referenceVideoUrl: z.string().optional(),
   referenceAudioUrl: z.string().optional(),
+  videoEngine: z.literal("comfy-ref2va").optional(),
   cast: z.array(castMemberSchema).optional(),
   products: z.array(productShotSchema).optional(),
   status: z.enum([

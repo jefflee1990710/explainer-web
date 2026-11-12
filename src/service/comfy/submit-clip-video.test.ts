@@ -6,6 +6,7 @@ import {
   shouldUseComfyForClipVideo,
   submitComfyStoryboardClipVideo,
 } from "@/service/comfy/submit-clip-video";
+import { simpleRef2VaReferences } from "@/service/comfy/simple-ref2va";
 import { submitClipVideo } from "@/service/higgsfield/generate";
 
 test("buildComfyRef2VaLatentGuideGraph connects ref_videos and ref_video_audios when videoName and audioName are provided", () => {
@@ -283,4 +284,82 @@ test("submitComfyStoryboardClipVideo fetches, uploads, and wires reference video
     if (prevKey === undefined) delete process.env.COMFY_API_KEY;
     else process.env.COMFY_API_KEY = prevKey;
   }
+});
+
+test("shouldUseComfyForClipVideo routes only simple videos onto Vast ref2va", () => {
+  assert.equal(
+    shouldUseComfyForClipVideo({
+      model: "minimax/hailuo-3",
+      skillSlug: "story-short-director",
+    }),
+    false,
+  );
+  assert.equal(
+    shouldUseComfyForClipVideo({
+      model: "minimax/hailuo-3",
+      skillSlug: "story-short-director",
+      videoEngine: "comfy-ref2va",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldUseComfyForClipVideo({
+      model: "minimax/hailuo-3",
+      hookStrategy: "Direct simple video clip",
+    }),
+    true,
+  );
+});
+
+test("simpleRef2VaReferences keeps character and scene stills apart from the start and end guides", () => {
+  const stills = simpleRef2VaReferences({
+    startImageUrl: "https://blob.example.com/start.jpg",
+    endImageUrl: "https://blob.example.com/end.jpg",
+    characterImageUrls: [
+      "https://blob.example.com/start.jpg",
+      "https://blob.example.com/hero.jpg",
+    ],
+    referenceImages: [
+      { url: "https://blob.example.com/hero.jpg", description: "same person" },
+      { url: "https://blob.example.com/alley.jpg", description: "neon alley" },
+      { url: "http://insecure.example/nope.jpg", description: "dropped" },
+    ],
+  });
+  assert.deepEqual(
+    stills.map((item) => item.url),
+    ["https://blob.example.com/hero.jpg", "https://blob.example.com/alley.jpg"],
+  );
+  assert.match(stills[0]?.note ?? "", /character identity/);
+  assert.match(stills[1]?.note ?? "", /neon alley/);
+});
+
+test("simple ref2va graph wires the end frame and extra stills as later pictures", () => {
+  const graph = buildComfyRef2VaLatentGuideGraph({
+    runId: "simple1",
+    aspectRatio: "9:16",
+    durationSeconds: 6,
+    prompt: "She turns toward the window.",
+    startName: "start.jpg",
+    endName: "end.jpg",
+    extraRefNames: ["char.jpg", "room.jpg"],
+    extraReferenceNotes: [
+      "the character identity and wardrobe reference",
+      "a scene or subject reference (neon alley)",
+    ],
+    skillSlug: "story-short-director",
+  });
+  assert.equal(graph["3"]?.inputs?.image, "end.jpg");
+  assert.equal(graph["80"]?.inputs?.image, "char.jpg");
+  assert.equal(graph["81"]?.inputs?.image, "room.jpg");
+  assert.deepEqual(graph["30"]?.inputs?.["ref_images.ref_image_0"], ["2", 0]);
+  assert.deepEqual(graph["30"]?.inputs?.["ref_images.ref_image_1"], ["3", 0]);
+  assert.deepEqual(graph["30"]?.inputs?.["ref_images.ref_image_2"], ["80", 0]);
+  assert.deepEqual(graph["30"]?.inputs?.["ref_images.ref_image_3"], ["81", 0]);
+  assert.equal(graph["73"]?.inputs?.frame_idx, -1);
+  const plan = JSON.parse(String(graph["26"]?.inputs?.plan_json)) as {
+    shots: Array<{ prompt: string }>;
+  };
+  assert.equal(plan.shots.length, 1);
+  assert.match(plan.shots[0]?.prompt ?? "", /<Picture 3> is the character identity/);
+  assert.match(plan.shots[0]?.prompt ?? "", /neon alley/);
 });

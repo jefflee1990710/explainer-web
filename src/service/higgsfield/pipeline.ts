@@ -102,6 +102,12 @@ import {
   withSceneCharacterLocks,
 } from "@/service/higgsfield/scene-character-lock";
 import { resolveClipExtendReferences } from "@/service/opencut/clip-extend-refs";
+import { submitComfyStoryboardClipVideo } from "@/service/comfy/submit-clip-video";
+import {
+  COMFY_H3_REF2VA_VIDEO_MODEL,
+  simpleRef2VaReferences,
+  usesSimpleRef2Va,
+} from "@/service/comfy/simple-ref2va";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
@@ -924,6 +930,43 @@ export async function sendClipVideo(
 
   const targetModel = clipVideoModel(style ?? clipStyleId, project.skillSlug);
   const clipRefs = resolveClipExtendReferences(project, clipNumber);
+  // Simple keeps first frame, last frame, and extra stills in one Vast ref2va request.
+  if (usesSimpleRef2Va(project)) {
+    const endForSimple = end && end !== start ? end : undefined;
+    const assignedIds = clipRow?.referenceImageIds;
+    const referenceImages = (project.referenceImages || []).filter((image) =>
+      assignedIds?.length ? assignedIds.includes(image.id) : true,
+    );
+    const stills = simpleRef2VaReferences({
+      characterImageUrls: clipRefs.characterImageUrls,
+      referenceImages,
+      startImageUrl: start,
+      endImageUrl: endForSimple,
+    });
+    const referenceVideoUrl = clipRow?.referenceVideoUrl || project.referenceVideoUrl;
+    const referenceAudioUrl = clipRow?.referenceAudioUrl || project.referenceAudioUrl;
+    const submitted = await submitComfyStoryboardClipVideo({
+      prompt: [
+        videoPrompt,
+        referenceVideoUrl ? "Follow the reference video for camera path and body motion." : "",
+        referenceAudioUrl
+          ? "Natural lip sync matching the reference audio track."
+          : "Strictly no lip-sync. Lips stay closed.",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      aspectRatio: project.aspectRatio,
+      durationSeconds,
+      startImageUrl: start,
+      endImageUrl: endForSimple,
+      referenceImageUrls: stills.map((item) => item.url),
+      referenceImageNotes: stills.map((item) => item.note),
+      referenceVideoUrl,
+      referenceAudioUrl,
+      skillSlug: project.skillSlug,
+    });
+    return toSent(COMFY_H3_REF2VA_VIDEO_MODEL, submitted);
+  }
   const submitted = await submitClipVideo({
     model: targetModel,
     skillSlug: project.skillSlug,

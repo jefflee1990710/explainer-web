@@ -127,7 +127,10 @@ export async function fillVideoBrief(form: FormData, args: VideoBriefArgs, clerk
     sceneTextLanguage: args.sceneTextLanguage,
     onScreenTextStyleId: args.onScreenTextStyleId,
   });
-  form.set("sceneTextLanguage", explainerOnScreen?.sceneTextLanguage ?? args.sceneTextLanguage || "en");
+  form.set(
+    "sceneTextLanguage",
+    (explainerOnScreen?.sceneTextLanguage ?? args.sceneTextLanguage) || "en",
+  );
   if (explainerOnScreen) {
     form.set("onScreenTextStyleId", explainerOnScreen.onScreenTextStyleId);
     form.set("onScreenTextCoverage", explainerOnScreen.onScreenTextCoverage);

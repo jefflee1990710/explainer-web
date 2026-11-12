@@ -27,6 +27,7 @@ import {
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
+import { SIMPLE_VIDEO_ENGINE, SIMPLE_VIDEO_HOOK } from "@/service/comfy/simple-ref2va";
 import {
   scheduleClipAppendWorkerTask,
   schedulePhaseAWorkerTask,
@@ -1563,6 +1564,7 @@ export async function createSimpleVideoAction(input: {
       status: "production",
       ...(draft.referenceVideoUrl ? { referenceVideoUrl: draft.referenceVideoUrl } : {}),
       ...(draft.referenceAudioUrl ? { referenceAudioUrl: draft.referenceAudioUrl } : {}),
+      videoEngine: SIMPLE_VIDEO_ENGINE,
       phaseA: {
         englishTitle: cleanPrompt.slice(0, 48),
         localizedTitle: cleanPrompt.slice(0, 48),
@@ -1570,7 +1572,7 @@ export async function createSimpleVideoAction(input: {
         clipCount: 1,
         loopMode: "linear",
         coreMessage: cleanPrompt,
-        hookStrategy: "Direct simple video clip",
+        hookStrategy: SIMPLE_VIDEO_HOOK,
         aspectRatio,
         visualWorld: styleId,
         narrator: "No narrator — characters speak when needed.",

@@ -13,6 +13,10 @@ import {
 import { ensureMp4HasAudioStream } from "@/service/comfy/ensure-audio";
 import extendWorkflowJson from "@/service/comfy/workflows/extend.api.json";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
+import {
+  MAX_SIMPLE_REF2VA_STILLS,
+  usesSimpleRef2Va,
+} from "@/service/comfy/simple-ref2va";
 
 export function shouldUseComfyForClipVideo(input: {
   model: string;
@@ -20,10 +24,19 @@ export function shouldUseComfyForClipVideo(input: {
   skillSlug?: string;
   durationSeconds?: number;
   videoQualityTier?: VideoQualityTier;
+  videoEngine?: string;
+  hookStrategy?: string;
 }): boolean {
-  // Storyboard MiniMax H3 is OpenRouter `minimax/hailuo-3`. Vast ComfyUI stays on Swap and Teleport.
-  void input;
-  return false;
+  // Only `/app/simple` uses Vast ref2va. Other storyboard clips stay on OpenRouter Hailuo 3.
+  void input.model;
+  void input.audioUrl;
+  void input.skillSlug;
+  void input.durationSeconds;
+  void input.videoQualityTier;
+  return usesSimpleRef2Va({
+    videoEngine: input.videoEngine,
+    phaseA: input.hookStrategy ? { hookStrategy: input.hookStrategy } : undefined,
+  });
 }
 
 function h3ValidFrameLength(durationSeconds: number): number {
@@ -117,6 +130,7 @@ function buildRef2VaClipPrompt(input: {
   hasEndFrame: boolean;
   hasCharacterImage?: boolean;
   hasSceneImage?: boolean;
+  extraReferenceNotes?: string[];
 }): string {
   const clean = formatCameraFirstVideoPrompt({
     prompt: input.prompt.replace(/\s+/g, " ").trim(),
@@ -152,6 +166,15 @@ function buildRef2VaClipPrompt(input: {
     );
     retention.push(
       `<Picture ${nextPic}>: style_and_environment_locked - maintain consistent background geometry, lighting, and colour palette.`,
+    );
+    nextPic++;
+  }
+  for (const note of input.extraReferenceNotes || []) {
+    const clean = note.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+    defs.push(`<Picture ${nextPic}> is ${clean}.`);
+    retention.push(
+      `<Picture ${nextPic}>: fully_preserved - keep the identity, wardrobe, product, or environment shown in this reference.`,
     );
     nextPic++;
   }
@@ -216,6 +239,8 @@ export function buildComfyRef2VaLatentGuideGraph(input: {
   sceneName?: string | null;
   videoName?: string | null;
   audioName?: string | null;
+  extraRefNames?: Array<string | null | undefined>;
+  extraReferenceNotes?: string[];
   skillSlug?: string;
 }): ApiGraph {
   const { runId, startName, endName, charName, sceneName, videoName, audioName } = input;
@@ -273,6 +298,17 @@ export function buildComfyRef2VaLatentGuideGraph(input: {
     graph["30"].inputs[`ref_images.ref_image_${nextRefSlot}`] = ["71", 0];
     nextRefSlot++;
   }
+  const extraNames = (input.extraRefNames || []).filter((name): name is string => Boolean(name));
+  extraNames.forEach((name, index) => {
+    const nodeId = String(80 + index);
+    graph[nodeId] = {
+      class_type: "LoadImage",
+      inputs: { image: name },
+      _meta: { title: `Reference still ${index + 1}` },
+    };
+    graph["30"].inputs[`ref_images.ref_image_${nextRefSlot}`] = [nodeId, 0];
+    nextRefSlot++;
+  });
 
   // Anchor first_frame (startName) into target latent at frame_idx = 0 via MiniMaxH3AddGuide
   graph["72"] = {
@@ -322,6 +358,7 @@ export function buildComfyRef2VaLatentGuideGraph(input: {
               hasEndFrame: Boolean(endName),
               hasCharacterImage: Boolean(charName),
               hasSceneImage: Boolean(sceneName),
+              extraReferenceNotes: input.extraReferenceNotes,
             }),
             length: h3ValidFrameLength(input.durationSeconds),
             steps: 6,
@@ -360,6 +397,8 @@ export async function submitComfyStoryboardClipVideo(
     sceneImageUrl?: string;
     referenceVideoUrl?: string;
     referenceAudioUrl?: string;
+    referenceImageUrls?: string[];
+    referenceImageNotes?: string[];
     skillSlug?: string;
   },
   options?: { fetch?: typeof fetch },
@@ -383,7 +422,19 @@ export async function submitComfyStoryboardClipVideo(
     return ext && /^[a-z0-9]{2,5}$/.test(ext) ? ext : fallback;
   };
 
-  const [startBuf, endBuf, charBuf, sceneBuf, refVideoBuf, refAudioBuf] = await Promise.all([
+  const extraStills: Array<{ url: string; note: string }> = [];
+  const seenExtra = new Set<string>();
+  (input.referenceImageUrls || []).forEach((url, index) => {
+    const clean = url.trim();
+    if (!clean.startsWith("https://") || seenExtra.has(clean)) return;
+    if (clean === input.startImageUrl || clean === input.endImageUrl) return;
+    if (extraStills.length >= MAX_SIMPLE_REF2VA_STILLS) return;
+    seenExtra.add(clean);
+    const note = input.referenceImageNotes?.[index]?.replace(/\s+/g, " ").trim();
+    extraStills.push({ url: clean, note: note || "a scene or subject reference" });
+  });
+
+  const [startBuf, endBuf, charBuf, sceneBuf, refVideoBuf, refAudioBuf, extraBufs] = await Promise.all([
     fetchBuf(input.startImageUrl),
     input.endImageUrl && input.endImageUrl !== input.startImageUrl
       ? fetchBuf(input.endImageUrl)
@@ -406,9 +457,16 @@ export async function submitComfyStoryboardClipVideo(
           throw new Error(`無法下載參考音訊（${err instanceof Error ? err.message : String(err)}）`);
         })
       : Promise.resolve(null),
+    Promise.all(
+      extraStills.map((still) =>
+        fetchBuf(still.url).catch((err) => {
+          throw new Error(`無法下載參考圖（${err instanceof Error ? err.message : String(err)}）`);
+        }),
+      ),
+    ),
   ]);
 
-  const [startName, endName, charName, sceneName, videoName, audioName] = await Promise.all([
+  const [startName, endName, charName, sceneName, videoName, audioName, extraNames] = await Promise.all([
     uploadComfyAsset(`clip-start-${runId}.jpg`, startBuf, fetchFn, "image/jpeg"),
     endBuf ? uploadComfyAsset(`clip-end-${runId}.jpg`, endBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
     charBuf ? uploadComfyAsset(`clip-char-${runId}.jpg`, charBuf, fetchFn, "image/jpeg") : Promise.resolve(null),
@@ -429,6 +487,11 @@ export async function submitComfyStoryboardClipVideo(
           "audio/mpeg",
         )
       : Promise.resolve(null),
+    Promise.all(
+      extraBufs.map((buf, index) =>
+        uploadComfyAsset(`clip-ref-still-${runId}-${index}.jpg`, buf, fetchFn, "image/jpeg"),
+      ),
+    ),
   ]);
 
   const graph = buildComfyRef2VaLatentGuideGraph({
@@ -442,6 +505,8 @@ export async function submitComfyStoryboardClipVideo(
     sceneName,
     videoName,
     audioName,
+    extraRefNames: extraNames,
+    extraReferenceNotes: extraStills.map((still) => still.note),
     skillSlug: input.skillSlug,
   });
 
