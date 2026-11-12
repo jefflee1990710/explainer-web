@@ -1,4 +1,5 @@
-// Local Vast GPU fleet for OpenJutsu. One slot is the live Comfy target; the others stay stopped.
+// Local Vast GPU fleet for OpenJutsu. Only the active card exists.
+// Ada and PRO 6000 are rented when switched to, then destroyed so an idle card has no disk charge.
 
 export const COMFY_GPU_IDS = ["4060", "ada", "pro6000"] as const;
 export type ComfyGpuId = (typeof COMFY_GPU_IDS)[number];
@@ -8,7 +9,7 @@ export type ComfyGpuSlot = {
   label: string;
   gpuName: string;
   instanceId: number | null;
-  // Provision leaves this card running. The other two are created and then stopped.
+  // The 4060 can stay rented. Ada and PRO 6000 stay uncreated until a switch.
   keepRunningOnProvision: boolean;
 };
 
@@ -65,7 +66,7 @@ export function slotById(registry: ComfyGpuRegistry, id: ComfyGpuId): ComfyGpuSl
   return slot;
 }
 
-// Stop every other fleet member. Instances outside this registry are left alone.
+// Other fleet instance ids. Ada and PRO 6000 are deleted; the 4060 is only stopped.
 export function instanceIdsToStop(registry: ComfyGpuRegistry, active: ComfyGpuId): number[] {
   return registry.slots
     .filter((slot) => slot.id !== active && typeof slot.instanceId === "number")

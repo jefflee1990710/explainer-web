@@ -2,6 +2,7 @@
 # Install ComfyUI, the OpenJutsu custom nodes, and the H3 weights on a fresh Vast GPU box.
 set -euo pipefail
 exec > /workspace/openjutsu-setup.log 2>&1
+echo $$ > /workspace/openjutsu-setup.pid
 echo "setup start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 export DEBIAN_FRONTEND=noninteractive
@@ -67,16 +68,19 @@ jobs = [
     ("Comfy-Org/sam3.1", "checkpoints/sam3.1_multiplex_fp16.safetensors", "models/checkpoints"),
     ("Bingsu/adetailer", "face_yolov8m.pt", "models/ultralytics/bbox"),
     ("Bingsu/adetailer", "person_yolov8m-seg.pt", "models/ultralytics/segm"),
-    ("datasets/Gourieff/ReActor", "models/sams/sam_vit_b_01ec64.pth", "models/sams"),
+    # ReActor SAM lives in a dataset repo. "datasets/…" is not a valid repo id.
+    ("Gourieff/ReActor", "models/sams/sam_vit_b_01ec64.pth", "models/sams", "dataset"),
 ]
-for repo, filename, dest in jobs:
+for row in jobs:
+    repo, filename, dest = row[0], row[1], row[2]
+    repo_type = row[3] if len(row) > 3 else "model"
     os.makedirs(dest, exist_ok=True)
     target = os.path.join(dest, os.path.basename(filename))
     if os.path.exists(target) and os.path.getsize(target) > 1_000_000:
         print("have", target, flush=True)
         continue
     print("download", repo, filename, flush=True)
-    path = hf_hub_download(repo, filename)
+    path = hf_hub_download(repo, filename, repo_type=repo_type)
     if os.path.abspath(path) != os.path.abspath(target):
         if os.path.lexists(target):
             os.remove(target)

@@ -1,0 +1,26 @@
+{
+  "active": "pro6000",
+  "slots": [
+    {
+      "id": "4060",
+      "label": "scro-openjutsu-poc",
+      "gpuName": "RTX 4060 Ti",
+      "instanceId": 59041320,
+      "keepRunningOnProvision": true
+    },
+    {
+      "id": "ada",
+      "label": "scro-openjutsu-ada",
+      "gpuName": "RTX 6000Ada",
+      "instanceId": null,
+      "keepRunningOnProvision": false
+    },
+    {
+      "id": "pro6000",
+      "label": "scro-openjutsu-pro6000",
+      "gpuName": "RTX PRO 6000 WS",
+      "instanceId": 60354480,
+      "keepRunningOnProvision": false
+    }
+  ]
+}
