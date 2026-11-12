@@ -39,6 +39,7 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextChoice, SCENE_TEXT_OFF } from "@/service/director/scene-text";
+import { coerceDiagramExplainerOnScreenText } from "@/service/director/explainer-family";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isDurationPreset } from "@/service/director/duration-presets";
 import {
@@ -230,12 +231,29 @@ async function readVideoBrief(
       : rawNarrationEnabled !== "false" && rawNarrationEnabled !== "0";
   const voiceGender = String(formData.get("voiceGender") || "male");
   const speechPace = String(formData.get("speechPace") || "medium");
-  const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
+  const sceneTextLanguageInput = String(formData.get("sceneTextLanguage") || "en");
   const onScreenTextStyleIdRaw = formData.get("onScreenTextStyleId");
-  const onScreenTextStyleId = onScreenTextStyleIdRaw ? String(onScreenTextStyleIdRaw).trim() : undefined;
   const onScreenTextCoverageRaw = formData.get("onScreenTextCoverage");
-  const onScreenTextCoverage =
-    onScreenTextCoverageRaw === "all" ? "all" : onScreenTextCoverageRaw === "hook" ? "hook" : undefined;
+  // Whiteboard and paper-cutout cannot choose "none". Every clip gets artistic explanation text.
+  const explainerOnScreen = coerceDiagramExplainerOnScreenText({
+    skillSlug: ruleSlug,
+    language,
+    sceneTextLanguage: sceneTextLanguageInput,
+    onScreenTextStyleId: onScreenTextStyleIdRaw ? String(onScreenTextStyleIdRaw).trim() : undefined,
+  });
+  const sceneTextLanguage = explainerOnScreen?.sceneTextLanguage ?? sceneTextLanguageInput;
+  const onScreenTextStyleId = explainerOnScreen
+    ? explainerOnScreen.onScreenTextStyleId
+    : onScreenTextStyleIdRaw
+      ? String(onScreenTextStyleIdRaw).trim()
+      : undefined;
+  const onScreenTextCoverage = explainerOnScreen
+    ? explainerOnScreen.onScreenTextCoverage
+    : onScreenTextCoverageRaw === "all"
+      ? "all"
+      : onScreenTextCoverageRaw === "hook"
+        ? "hook"
+        : undefined;
   const textStyleRaw = String(formData.get("textStyleId") || formData.get("subtitleLook") || "");
   const characterIds = isPapercraftDioramaSkill(ruleSlug)
     ? []

@@ -21,6 +21,8 @@ import {
 import {
   ruleSlugFor,
 } from "@/presentation/components/app/projects/new/skill-selection";
+import { ExplainerArtisticFontGrid } from "@/presentation/components/app/projects/new/explainer-artistic-font-grid";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
@@ -131,6 +133,7 @@ export type FirstVideoQuickSubmitPayload = {
   characterSelections: CharacterSelectionMap;
   content: string;
   talkingHead: boolean;
+  onScreenTextStyleId?: string;
 };
 
 // Full-screen onboarding popup shown to newly registered / logged-in users who have 0 videos.
@@ -177,11 +180,13 @@ export function FirstVideoOnboardingModal({
   const [characterIds, setCharacterIds] = useState<string[]>(defaults.characterIds);
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>({});
   const [content, setContent] = useState<string>("");
+  const [onScreenTextStyleId, setOnScreenTextStyleId] = useState("clean");
   const [localError, setLocalError] = useState<string>("");
 
   const ruleSlug = ruleSlugFor(skillSlug, skills);
   const castNeed = requiredCastCount(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
+  const explainerTextRequired = isDiagramExplainerSkill(ruleSlug);
   const effectiveCharacterIds =
     characterIds.length > 0 ? characterIds : defaults.characterIds;
 
@@ -376,6 +381,7 @@ export function FirstVideoOnboardingModal({
       characterSelections,
       content: trimmed,
       talkingHead,
+      ...(explainerTextRequired ? { onScreenTextStyleId } : {}),
     });
   }
 
@@ -553,6 +559,28 @@ export function FirstVideoOnboardingModal({
                 placeholder={copy.placeholder}
                 className="mt-3 w-full resize-y rounded-xl border border-[#12141c]/20 bg-[#fcfbf9] p-3.5 text-base leading-relaxed text-[#12141c] outline-none transition placeholder:text-[#5c6170]/60 focus:border-[#12141c] focus:bg-white focus:ring-2 focus:ring-[#12141c]/10"
               />
+
+              {explainerTextRequired ? (
+                <div className="mt-4 border-t border-[#12141c]/10 pt-4">
+                  <p className="font-display text-sm font-bold text-[#12141c]">
+                    {isZhHant ? "AI 畫面藝術字" : isZhHans ? "AI 画面艺术字" : "Artistic on-screen text"}
+                  </p>
+                  <p className="mt-1 text-xs text-[#5c6170]">
+                    {isZhHant
+                      ? "一定要有。每個分鏡都會用這個藝術字寫上解釋，再加上旁白。"
+                      : isZhHans
+                        ? "一定要有。每个分镜都会用这个艺术字写上解释，再加上旁白。"
+                        : "Required. Every clip gets a written explanation in this font, plus the voiceover."}
+                  </p>
+                  <div className="mt-3">
+                    <ExplainerArtisticFontGrid
+                      selectedStyleId={onScreenTextStyleId}
+                      onStyleIdChange={setOnScreenTextStyleId}
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               {displayedError ? (
                 <p

@@ -132,6 +132,8 @@ export function dualBeatDirectorBlock(
     hasCharacter?: boolean;
     // Cinematic realistic: both stills share one camera and one subtitle; only the action differs.
     steadyStills?: boolean;
+    // Diagram explainers: animated elements, a written explanation, and a separate voiceover.
+    richOnScreenText?: boolean;
   },
 ) {
   const labels = sceneStateLabels(options?.language);
@@ -142,6 +144,7 @@ export function dualBeatDirectorBlock(
       : "explainerScene may repeat 起始：…。結尾：… for compatibility. Write startScene and endScene in the scene description language from the language setting.";
   // OFF 有兩種：完全無字（其他技能）或「只關字幕、保留場景短標籤」（白板概念解說）。
   const inWorldLabels = !sceneTextEnabled && Boolean(options?.inWorldLabels);
+  const rich = Boolean(options?.richOnScreenText);
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   return [
     "This skill uses Dual-Keyframe + Dual-Beat (白板概念解說 only).",
@@ -163,12 +166,16 @@ export function dualBeatDirectorBlock(
     "motionCamera: the transition script between those two stills (see the motionCamera contract). Never a still prompt.",
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
-    sceneTextEnabled || inWorldLabels
-      ? `Voiceover captions OFF: no subtitle band and no Subtitle sentence on either still; never transcribe the voiceover on canvas. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
-      : "On-canvas text OFF: no writing on either still.",
+    rich
+      ? "On-screen text is REQUIRED and cannot be turned off. Every clip is animated teaching elements plus a rich written explanation: englishVo is one or two plain sentences that teach this beat. Those sentences are painted later as artistic on-screen text, so do not write Subtitle: and do not transcribe the voiceover onto the still. Short diagram labels inside 「」 stay on the objects. Leave a clean open area on the board for the artistic explanation."
+      : sceneTextEnabled || inWorldLabels
+        ? `Voiceover captions OFF: no subtitle band and no Subtitle sentence on either still; never transcribe the voiceover on canvas. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
+        : "On-canvas text OFF: no writing on either still.",
     "Do not take lettering from the visual style.",
-    sceneTextEnabled || inWorldLabels
-      ? "Labels must name a step, mechanism, or part of the diagram inside 「」; never transcribe the voiceover."
-      : "Do not invent extra titles besides the beat voiceover.",
+    rich
+      ? "englishVo must be a complete explanation, not a fragment. Labels inside 「」 name a step or part; they are not a second copy of the voiceover."
+      : sceneTextEnabled || inWorldLabels
+        ? "Labels must name a step, mechanism, or part of the diagram inside 「」; never transcribe the voiceover."
+        : "Do not invent extra titles besides the beat voiceover.",
   ].join("\n");
 }

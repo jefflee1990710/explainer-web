@@ -4,6 +4,7 @@ import { VIDEO_QUALITY_TIERS, type VideoQualityTier } from "@/model/project";
 import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
 import { TALKING_HEAD_POSE_IDS, type TalkingHeadPoseId } from "@/model/talking-head-options";
 import { importBrandAsset, importReferenceImage } from "@/service/project/reference-image-import";
+import { coerceDiagramExplainerOnScreenText } from "@/service/director/explainer-family";
 
 // Matches the create-video form. The action still validates language, cast, and logo.
 export const videoBriefFields = {
@@ -49,7 +50,15 @@ export const videoBriefFields = {
   sceneTextLanguage: z
     .enum(["en", "zh-Hant", "zh-Hans", "ja", "ko", "none"])
     .default("en")
-    .describe("On-canvas text script. none leaves the picture and the video without writing"),
+    .describe(
+      "On-canvas text script. none leaves the picture without writing, except whiteboard and paper-cutout explainers, which always keep writing.",
+    ),
+  onScreenTextStyleId: z
+    .enum(SUBTITLE_LOOK_IDS)
+    .optional()
+    .describe(
+      "Artistic on-screen font for whiteboard and paper-cutout explainers. Those directors always paint every clip and cannot choose none. Defaults to clean.",
+    ),
   subtitleLook: z
     .enum(SUBTITLE_LOOK_IDS)
     .default("handwritten")
@@ -92,6 +101,7 @@ export type VideoBriefArgs = {
   voiceGender?: "male" | "female";
   speechPace?: "slow" | "medium" | "fast";
   sceneTextLanguage?: "en" | "zh-Hant" | "zh-Hans" | "ja" | "ko" | "none";
+  onScreenTextStyleId?: SubtitleLook;
   subtitleLook?: SubtitleLook;
   characterIds?: string[];
   productIds?: string[];
@@ -111,7 +121,17 @@ export async function fillVideoBrief(form: FormData, args: VideoBriefArgs, clerk
   form.set("language", args.language || "en");
   form.set("voiceGender", args.voiceGender || "male");
   form.set("speechPace", args.speechPace || "medium");
-  form.set("sceneTextLanguage", args.sceneTextLanguage || "en");
+  const explainerOnScreen = coerceDiagramExplainerOnScreenText({
+    skillSlug: args.skillSlug,
+    language: args.language,
+    sceneTextLanguage: args.sceneTextLanguage,
+    onScreenTextStyleId: args.onScreenTextStyleId,
+  });
+  form.set("sceneTextLanguage", explainerOnScreen?.sceneTextLanguage ?? args.sceneTextLanguage || "en");
+  if (explainerOnScreen) {
+    form.set("onScreenTextStyleId", explainerOnScreen.onScreenTextStyleId);
+    form.set("onScreenTextCoverage", explainerOnScreen.onScreenTextCoverage);
+  }
   form.set("subtitleLook", args.subtitleLook || "handwritten");
   for (const id of args.characterIds || []) form.append("characterIds", id);
   for (const id of args.productIds || []) form.append("productIds", id);

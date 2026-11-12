@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import Image from "next/image";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import {
-  SYSTEM_TEXT_STYLE_ORDER,
-  systemTextStylePreview,
-  type SubtitleLook,
-} from "@/service/director/subtitle-look";
+import { ExplainerArtisticFontGrid } from "./explainer-artistic-font-grid";
 
 export type ExplainerOnScreenTextDialogProps = {
   open: boolean;
@@ -19,6 +14,8 @@ export type ExplainerOnScreenTextDialogProps = {
   onStyleIdChange: (styleId: string) => void;
   coverage: "hook" | "all";
   onCoverageChange: (coverage: "hook" | "all") => void;
+  // Diagram explainers cannot turn writing off. The font grid stays required.
+  required?: boolean;
 };
 
 export function ExplainerOnScreenTextDialog({
@@ -30,6 +27,7 @@ export function ExplainerOnScreenTextDialog({
   onStyleIdChange,
   coverage,
   onCoverageChange,
+  required = false,
 }: ExplainerOnScreenTextDialogProps) {
   const { t, locale } = useI18n();
   const titleId = useId();
@@ -46,6 +44,7 @@ export function ExplainerOnScreenTextDialog({
   if (!open) return null;
 
   const isEn = locale === "en";
+  const active = required || enabled;
 
   return (
     <DialogBackdrop
@@ -92,138 +91,79 @@ export function ExplainerOnScreenTextDialog({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Enable Switch & Coverage Mode */}
-          <div className="rounded-xl border border-[var(--studio-line)] bg-[var(--studio-canvas)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onEnabledChange(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--studio-teal)]"></div>
-              </label>
-              <div>
-                <span className="text-sm font-semibold">
-                  {isEn ? "Enable On-Screen Text" : "啟用畫面藝術字"}
-                </span>
-                <p className="text-xs text-[var(--studio-muted)]">
-                  {enabled
-                    ? isEn
-                      ? "Automatically added to video without manual editor steps"
-                      : "生成後自動貼合進影片，無需進編輯器手動加入"
-                    : isEn
-                      ? "Keep scene visuals clean with no added title graphics"
-                      : "影片保持純淨畫面，不自動疊加藝術字卡"}
-                </p>
-              </div>
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {required ? (
+            <div className="rounded-xl border border-[var(--studio-line)] bg-[var(--studio-canvas)] p-4">
+              <p className="text-sm font-semibold">
+                {isEn ? "On-screen explanation is required" : "畫面解釋文字一定要有"}
+              </p>
+              <p className="mt-1 text-xs text-[var(--studio-muted)]">
+                {isEn
+                  ? "Every clip keeps the animated elements, a written explanation in the font below, and the voiceover. You cannot turn this off."
+                  : "每個分鏡都保留動畫元素、用下面的藝術字寫上解釋，再加上旁白。不能選關閉。"}
+              </p>
             </div>
-
-            {/* Coverage Segmented Control (Approach C) */}
-            {enabled ? (
-              <div className="flex items-center rounded-lg border border-[var(--studio-line)] bg-[var(--studio-panel)] p-1 shrink-0 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => onCoverageChange("hook")}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                    coverage === "hook"
-                      ? "bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-sm"
-                      : "text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
-                  }`}
-                >
-                  {isEn ? "Hook Title Only" : "僅第 1 鏡頭 Hook (推薦)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onCoverageChange("all")}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                    coverage === "all"
-                      ? "bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-sm"
-                      : "text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
-                  }`}
-                >
-                  {isEn ? "All Clips" : "全部分鏡字卡"}
-                </button>
+          ) : (
+            <div className="flex flex-col justify-between gap-4 rounded-xl border border-[var(--studio-line)] bg-[var(--studio-canvas)] p-4 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(e) => onEnabledChange(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-neutral-600 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-[var(--studio-teal)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                </label>
+                <div>
+                  <span className="text-sm font-semibold">
+                    {isEn ? "Enable On-Screen Text" : "啟用畫面藝術字"}
+                  </span>
+                  <p className="text-xs text-[var(--studio-muted)]">
+                    {enabled
+                      ? isEn
+                        ? "Automatically added to video without manual editor steps"
+                        : "生成後自動貼合進影片，無需進編輯器手動加入"
+                      : isEn
+                        ? "Keep scene visuals clean with no added title graphics"
+                        : "影片保持純淨畫面，不自動疊加藝術字卡"}
+                  </p>
+                </div>
               </div>
-            ) : null}
-          </div>
-
-          {/* 13 Styles Visual Grid */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--studio-muted)]">
-                {isEn ? "Select Artistic Typography Style" : "選擇藝術字款式風格"}
-              </span>
-              <span className="text-xs text-[var(--studio-muted)]">
-                {SYSTEM_TEXT_STYLE_ORDER.length} {isEn ? "Styles" : "款風格"}
-              </span>
-            </div>
-
-            <div
-              className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 transition-opacity ${
-                enabled ? "opacity-100" : "opacity-40 pointer-events-none"
-              }`}
-            >
-              {SYSTEM_TEXT_STYLE_ORDER.map((styleId) => {
-                const isSelected = selectedStyleId === styleId;
-                const previewSrc = systemTextStylePreview(styleId as SubtitleLook);
-                const styleName =
-                  t(`pickers.subtitleLook.${styleId}.label` as Parameters<typeof t>[0]) ||
-                  styleId;
-                const sublabel =
-                  t(`pickers.subtitleLook.${styleId}.sublabel` as Parameters<typeof t>[0]) ||
-                  "";
-
-                return (
+              {enabled ? (
+                <div className="flex shrink-0 items-center self-start rounded-lg border border-[var(--studio-line)] bg-[var(--studio-panel)] p-1 sm:self-auto">
                   <button
-                    key={styleId}
                     type="button"
-                    onClick={() => onStyleIdChange(styleId)}
-                    className={`group relative flex flex-col overflow-hidden rounded-xl border text-left transition duration-150 ${
-                      isSelected
-                        ? "border-[var(--studio-teal)] ring-2 ring-[var(--studio-teal)]/40 bg-[var(--studio-fill)]"
-                        : "border-[var(--studio-line)] hover:border-[var(--studio-muted)] bg-[var(--studio-canvas)]"
+                    onClick={() => onCoverageChange("hook")}
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                      coverage === "hook"
+                        ? "bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-sm"
+                        : "text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
                     }`}
                   >
-                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/40">
-                      <Image
-                        src={previewSrc}
-                        alt={styleName}
-                        fill
-                        sizes="(max-width: 640px) 50vw, 25vw"
-                        className="object-cover transition duration-200 group-hover:scale-105"
-                      />
-                      {isSelected ? (
-                        <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--studio-teal)] text-black">
-                          <svg
-                            className="h-2.5 w-2.5"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-                          </svg>
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="p-2">
-                      <div className="text-xs font-bold text-[var(--studio-ink)] truncate">
-                        {styleName}
-                      </div>
-                      <div className="text-[10px] text-[var(--studio-muted)] truncate">
-                        {sublabel}
-                      </div>
-                    </div>
+                    {isEn ? "Hook Title Only" : "僅第 1 鏡頭 Hook (推薦)"}
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={() => onCoverageChange("all")}
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                      coverage === "all"
+                        ? "bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-sm"
+                        : "text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
+                    }`}
+                  >
+                    {isEn ? "All Clips" : "全部分鏡字卡"}
+                  </button>
+                </div>
+              ) : null}
             </div>
-          </div>
+          )}
+
+          <ExplainerArtisticFontGrid
+            selectedStyleId={selectedStyleId}
+            onStyleIdChange={onStyleIdChange}
+            disabled={!active}
+          />
         </div>
 
         {/* Footer */}

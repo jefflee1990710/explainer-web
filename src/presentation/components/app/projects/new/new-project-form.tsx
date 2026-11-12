@@ -161,6 +161,8 @@ import {
 import { useRouteTransition } from "@/presentation/studio/route-transition";
 import { DEFAULT_SPEECH_PACE } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
+import { ExplainerArtisticFontGrid } from "@/presentation/components/app/projects/new/explainer-artistic-font-grid";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -242,6 +244,12 @@ function chosenTextStyleId(
   const id = video?.textStyleId || remembered || video?.subtitleLook || DEFAULT_SUBTITLE_LOOK;
   if (isSubtitleLook(id) || styles.some((style) => style.id === id)) return id;
   return video?.subtitleLook || DEFAULT_SUBTITLE_LOOK;
+}
+
+function sceneTextForVoice(language: VoLanguage, locale: string): SceneTextChoice {
+  if (language === "yue") return "zh-Hant";
+  if (language === "zh") return locale === "zh-Hans" ? "zh-Hans" : "zh-Hant";
+  return "en";
 }
 
 export function NewProjectForm({
@@ -386,9 +394,10 @@ export function NewProjectForm({
     initialVideo?.onScreenTextStyleId || "clean",
   );
   const [onScreenTextCoverage, setOnScreenTextCoverage] = useState<"hook" | "all">(
-    initialVideo?.onScreenTextCoverage || "hook",
+    initialVideo?.onScreenTextCoverage || (isDiagramExplainerSkill(ruleSlug) ? "all" : "hook"),
   );
   const [onScreenTextEnabled, setOnScreenTextEnabled] = useState<boolean>(() => {
+    if (isDiagramExplainerSkill(ruleSlug)) return true;
     if (initialVideo) return Boolean(initialVideo.onScreenTextStyleId);
     return true;
   });
@@ -691,6 +700,14 @@ export function NewProjectForm({
     );
   }
 
+  const explainerTextRequired = isDiagramExplainerSkill(ruleSlug);
+  const effectiveSceneTextLanguage: SceneTextChoice =
+    explainerTextRequired && sceneTextLanguage === "none"
+      ? sceneTextForVoice(language, locale)
+      : sceneTextLanguage;
+  const effectiveOnScreenEnabled = explainerTextRequired || onScreenTextEnabled;
+  const effectiveOnScreenCoverage: "hook" | "all" = explainerTextRequired ? "all" : onScreenTextCoverage;
+
   function briefFormData() {
     const formData = new FormData();
     if (folderId) formData.set("projectId", folderId);
@@ -710,10 +727,10 @@ export function NewProjectForm({
     formData.set("language", language);
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
-    formData.set("sceneTextLanguage", sceneTextLanguage);
-    if (onScreenTextEnabled && onScreenTextStyleId) {
-      formData.set("onScreenTextStyleId", onScreenTextStyleId);
-      formData.set("onScreenTextCoverage", onScreenTextCoverage);
+    formData.set("sceneTextLanguage", effectiveSceneTextLanguage);
+    if (explainerTextRequired || (onScreenTextEnabled && onScreenTextStyleId)) {
+      formData.set("onScreenTextStyleId", onScreenTextStyleId || "clean");
+      formData.set("onScreenTextCoverage", effectiveOnScreenCoverage);
     }
     formData.set("textStyleId", textStyleId);
     formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
@@ -858,10 +875,16 @@ export function NewProjectForm({
     formData.set("language", language);
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
-    formData.set("sceneTextLanguage", sceneTextLanguage);
-    if (onScreenTextEnabled && onScreenTextStyleId) {
-      formData.set("onScreenTextStyleId", onScreenTextStyleId);
-      formData.set("onScreenTextCoverage", onScreenTextCoverage);
+    const quickExplainer = isDiagramExplainerSkill(ruleSlugFor(payload.skillSlug, allSkills));
+    formData.set(
+      "sceneTextLanguage",
+      quickExplainer && sceneTextLanguage === "none"
+        ? sceneTextForVoice(language, locale)
+        : effectiveSceneTextLanguage,
+    );
+    if (quickExplainer || (onScreenTextEnabled && onScreenTextStyleId)) {
+      formData.set("onScreenTextStyleId", payload.onScreenTextStyleId || onScreenTextStyleId || "clean");
+      formData.set("onScreenTextCoverage", quickExplainer ? "all" : effectiveOnScreenCoverage);
     }
     formData.set("textStyleId", textStyleId);
     formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
@@ -1249,6 +1272,13 @@ export function NewProjectForm({
     if (isTalkingHeadSkill(nextRuleSlug) && wizardStep === 3) {
       setWizardStep(2);
     }
+    if (isDiagramExplainerSkill(nextRuleSlug)) {
+      setOnScreenTextEnabled(true);
+      setOnScreenTextCoverage("all");
+      if (sceneTextLanguage === "none") {
+        setSceneTextLanguage(sceneTextForVoice(language, locale));
+      }
+    }
     const nextNeed = requiredCastCount(nextRuleSlug);
     const switchState = computeSkillSwitchState({
       currentStyleId: styleId,
@@ -1584,16 +1614,17 @@ export function NewProjectForm({
                   dialogueOnly={dialogueOnly}
                   speechPace={speechPace}
                   onSpeechPaceChange={setSpeechPace}
-                  sceneTextLanguage={sceneTextLanguage}
+                  sceneTextLanguage={effectiveSceneTextLanguage}
                   onSceneTextLanguageChange={(next) => {
+                    if (explainerTextRequired && next === "none") return;
                     setLanguageExplicit(true);
                     setSceneTextLanguage(next);
                   }}
                   onScreenTextStyleId={onScreenTextStyleId}
                   onOnScreenTextStyleIdChange={setOnScreenTextStyleId}
-                  onScreenTextCoverage={onScreenTextCoverage}
+                  onScreenTextCoverage={effectiveOnScreenCoverage}
                   onOnScreenTextCoverageChange={setOnScreenTextCoverage}
-                  onScreenTextEnabled={onScreenTextEnabled}
+                  onScreenTextEnabled={effectiveOnScreenEnabled}
                   onOnScreenTextEnabledChange={setOnScreenTextEnabled}
                   aspectRatio={aspectRatio}
                   onAspectRatioSelect={onAspectRatioSelect}
@@ -2013,13 +2044,33 @@ export function NewProjectForm({
                           }
                         >
                           <SceneTextPicker
-                            language={sceneTextLanguage}
+                            language={effectiveSceneTextLanguage}
                             onLanguageChange={(next) => {
+                              if (explainerTextRequired && next === "none") return;
                               setLanguageExplicit(true);
                               setSceneTextLanguage(next);
                             }}
                             disabled={briefBusy}
                           />
+                          {explainerTextRequired ? (
+                            <div className="mt-4">
+                              <p className="text-sm font-semibold">
+                                {locale === "en" ? "Artistic on-screen text" : "AI 畫面藝術字"}
+                              </p>
+                              <p className="mt-1 text-xs text-muted">
+                                {locale === "en"
+                                  ? "Required. Every clip gets a written explanation in this font, plus the voiceover."
+                                  : "一定要有。每個分鏡都會用這個藝術字寫上解釋，再加上旁白。"}
+                              </p>
+                              <div className="mt-3">
+                                <ExplainerArtisticFontGrid
+                                  selectedStyleId={onScreenTextStyleId || "clean"}
+                                  onStyleIdChange={setOnScreenTextStyleId}
+                                  disabled={briefBusy}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
                         </Section>
                       </div>
                     </div>

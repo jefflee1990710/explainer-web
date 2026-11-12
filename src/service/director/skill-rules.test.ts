@@ -154,6 +154,8 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /every topic/);
   assert.match(block, /beat title/);
   assert.match(block, /never write Subtitle:/);
+  assert.match(block, /artistic on-screen text/);
+  assert.match(block, /cannot be turned off/);
   assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.doesNotMatch(block, /at least 3 concrete props/);
   assert.doesNotMatch(block, /SYSTOLIC|TPU|walk-forward/i);

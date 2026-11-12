@@ -55,6 +55,42 @@ test("resolveSceneText is always on; legacy false and missing still enable", () 
   });
 });
 
+test("diagram explainers stay on when the brief says none", () => {
+  assert.deepEqual(
+    resolveSceneText({
+      skillSlug: "cartoon-explainer-video-director",
+      sceneTextLanguage: "none",
+      language: "yue",
+    }),
+    { enabled: true, language: "zh-Hant", inWorldLabels: false },
+  );
+  assert.equal(
+    resolveSceneText({
+      skillSlug: "paper-cutout-explainer-video-director",
+      sceneTextLanguage: "none",
+      language: "en",
+    }).enabled,
+    true,
+  );
+  assert.equal(
+    resolveSceneText({
+      skillSlug: "story-short-director",
+      sceneTextLanguage: "none",
+      language: "en",
+    }).enabled,
+    false,
+  );
+});
+
+test("diagram explainer hint requires a written explanation plus voiceover", () => {
+  const hint = sceneTextSkillHint(true, "en", { dualBeat: true, richExplanation: true });
+  assert.match(hint, /cannot be turned off/);
+  assert.match(hint, /artistic on-screen text/);
+  assert.match(hint, /BIG, BOLD HOOK TITLE/);
+  assert.match(hint, /off-screen voiceover/);
+  assert.doesNotMatch(hint, /Subtitle \(spell exactly\)/);
+});
+
 test("listicle forces on-canvas text even when the toggle is off", () => {
   assert.equal(
     resolveSceneText({

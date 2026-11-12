@@ -6,6 +6,7 @@ import {
   cartoonNarratorVideoLock,
 } from "@/service/director/skill-rules";
 import {
+  coerceDiagramExplainerOnScreenText,
   explainerCanvasKind,
   isDiagramExplainerSkill,
   PAPER_CUTOUT_EXPLAINER_SKILL_SLUG,
@@ -128,13 +129,13 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.match(block, /70\/30 Diagram-First Spatial Hierarchy/);
     assert.match(block, /Complete Diagram Scaffold in `startScene`/);
     assert.match(block, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
-    assert.match(block, /Concrete Visual Metaphors Over Plain Text Cards/);
+    assert.match(block, /Animated Elements Plus Written Explanation/);
     assert.match(block, /1-2-3 Visual Reading Path & Single Hero Pop/);
   }
   for (const slug of ["paper-cutout-explainer-video-director", "cartoon-explainer-video-director"] as const) {
     const director = DIRECTORS_BY_SLUG[slug];
     assert.match(director.systemPrompt, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
-    assert.match(director.systemPrompt, /Concrete Visual Metaphors Over Plain Text Cards/);
+    assert.match(director.systemPrompt, /Animated Elements Plus Written Explanation/);
     assert.match(director.systemPrompt, /1-2-3 Visual Reading Path & Single Hero Pop/);
   }
 });
@@ -191,5 +192,30 @@ test("paper-cutout director defines preset backgrounds on IDirector and resolves
     customBackground: true,
   });
   assert.match(customFrame, /attached background reference image/i);
+});
+
+test("diagram explainers cannot choose none and always paint every clip", () => {
+  assert.equal(coerceDiagramExplainerOnScreenText({ skillSlug: "story-short-director" }), null);
+  const coerced = coerceDiagramExplainerOnScreenText({
+    skillSlug: CARTOON_EXPLAINER_SKILL_SLUG,
+    language: "en",
+    sceneTextLanguage: "none",
+    onScreenTextStyleId: "not-a-look",
+  });
+  assert.deepEqual(coerced, {
+    sceneTextLanguage: "en",
+    sceneTextEnabled: true,
+    onScreenTextStyleId: "clean",
+    onScreenTextCoverage: "all",
+  });
+  assert.equal(
+    coerceDiagramExplainerOnScreenText({
+      skillSlug: PAPER_CUTOUT_EXPLAINER_SKILL_SLUG,
+      language: "yue",
+      sceneTextLanguage: "zh-Hans",
+      onScreenTextStyleId: "neon",
+    })?.onScreenTextStyleId,
+    "neon",
+  );
 });
 

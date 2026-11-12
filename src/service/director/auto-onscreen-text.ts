@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import type { OnscreenTextItem, Project, StoryboardRow } from "@/model/project";
 import { displayNumbersForOnScreenText } from "@/service/director/onscreen-number-text";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import {
   enqueueProjectOnScreenText,
   requeueOnScreenTextDraw,
@@ -192,7 +193,7 @@ function appendClipSentenceTargets(
 }
 
 // Resolve the spoken sentences that get painted into each Explainer clip.
-// Hook coverage paints every sentence of Clip 1. All coverage paints every clip.
+// Diagram explainers always paint every clip. Other explainer slugs still honor hook vs all.
 export function resolveExplainerAutoOnScreenTextTargets(
   project: Project,
 ): AutoOnScreenTextTarget[] {
@@ -203,7 +204,9 @@ export function resolveExplainerAutoOnScreenTextTargets(
     return [];
   }
 
-  const coverage = project.onScreenTextCoverage || "hook";
+  const coverage = isDiagramExplainerSkill(project.skillSlug)
+    ? "all"
+    : project.onScreenTextCoverage || "hook";
   const storyboard = project.phaseA?.clips ?? [];
   const clips = project.clips || [];
   const targets: AutoOnScreenTextTarget[] = [];

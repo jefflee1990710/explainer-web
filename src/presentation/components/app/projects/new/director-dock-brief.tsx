@@ -81,6 +81,7 @@ import {
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
 import { ExplainerOnScreenTextDialog } from "./explainer-on-screen-text-dialog";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { systemTextStylePreview, type SubtitleLook } from "@/service/director/subtitle-look";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 
@@ -368,6 +369,7 @@ export function DirectorDockBrief({
 
   const isStory =
     ruleSlug === "story-short-director" || ruleSlug === "one-take-director";
+  const explainerTextRequired = isDiagramExplainerSkill(ruleSlug);
 
   function handleSelectMode(nextId: string) {
     if (error) onError("");
@@ -855,11 +857,11 @@ export function DirectorDockBrief({
                     </div>
                   }
                   label={
-                    !onScreenTextEnabled
-                      ? locale === "en"
+                    explainerTextRequired || onScreenTextEnabled
+                      ? `${t(`pickers.subtitleLook.${onScreenTextStyleId || "clean"}.label` as Parameters<typeof t>[0]) || "藝術字"} · ${explainerTextRequired || onScreenTextCoverage === "all" ? (locale === "en" ? "All" : "全分鏡") : "Hook"}`
+                      : locale === "en"
                         ? "Text: Off"
                         : "字卡: 關閉"
-                      : `${t(`pickers.subtitleLook.${onScreenTextStyleId || "clean"}.label` as any) || "藝術字"} · ${onScreenTextCoverage === "all" ? (locale === "en" ? "All" : "全分鏡") : "Hook"}`
                   }
                   disabled={briefBusy}
                   onClick={() => setOnScreenTextDialogOpen(true)}
@@ -1358,8 +1360,10 @@ export function DirectorDockBrief({
       <ExplainerOnScreenTextDialog
         open={onScreenTextDialogOpen}
         onClose={() => setOnScreenTextDialogOpen(false)}
-        enabled={Boolean(onScreenTextEnabled)}
+        required={explainerTextRequired}
+        enabled={explainerTextRequired || Boolean(onScreenTextEnabled)}
         onEnabledChange={(en) => {
+          if (explainerTextRequired && !en) return;
           onOnScreenTextEnabledChange?.(en);
           onSceneTextLanguageChange(
             en ? (sceneTextLanguage === "none" ? "zh-Hant" : sceneTextLanguage) : "none",

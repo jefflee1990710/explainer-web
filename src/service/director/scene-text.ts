@@ -15,6 +15,7 @@ import {
 } from "@/service/director/skill-rules";
 import type { SceneTextChoice, SceneTextLanguage } from "@/model/project";
 import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle-look";
+import { explainerWrittenLanguage, isDiagramExplainerSkill } from "@/service/director/explainer-family";
 
 export type SceneTextPreset = {
   id: SceneTextLanguage;
@@ -94,6 +95,14 @@ export function resolveSceneText(input: {
   language?: VoLanguage;
 }) {
   if (input.sceneTextLanguage === SCENE_TEXT_OFF) {
+    // Diagram explainers always keep writing. "none" falls back to the voiceover script.
+    if (isDiagramExplainerSkill(input.skillSlug)) {
+      return {
+        enabled: true,
+        language: explainerWrittenLanguage(input.language),
+        inWorldLabels: false,
+      };
+    }
     return { enabled: false, language: "en" as const, inWorldLabels: false };
   }
   if (input.language === "yue") {
@@ -263,6 +272,8 @@ export function sceneTextSkillHint(
     aspectRatio?: string;
     look?: SubtitleLook;
     lookLine?: string;
+    // Whiteboard / paper-cutout: rich explanation on every page, painted later as artistic text.
+    richExplanation?: boolean;
   },
 ) {
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
@@ -298,6 +309,15 @@ export function sceneTextSkillHint(
   }
   if (!enabled) {
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」 (and no Clip 1 hook title). Communicate only with images, props, and composition.";
+  }
+  if (options?.richExplanation) {
+    return [
+      "On-screen text is REQUIRED and cannot be turned off. Every clip has animated teaching elements and a rich written explanation: one or two plain sentences that teach this beat, the same meaning as englishVo.",
+      "Those sentences are painted later as artistic on-screen text in the user's chosen style. Do not write Subtitle: and do not draw the full voiceover onto the stills. Leave a clean open area. Short diagram labels inside 「」 stay on the objects.",
+      hookTitleRule,
+      `Explanation language: ${SCENE_TEXT_PRESETS[language].label}.`,
+      "The off-screen voiceover speaks the same explanation. The on-screen character never speaks.",
+    ].join(" ");
   }
   if (options?.dualBeat) {
     return [

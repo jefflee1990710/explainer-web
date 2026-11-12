@@ -116,6 +116,15 @@ test("dual-beat director block allows diagram labels when on-screen text is on a
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });
 
+test("diagram explainer dual-beat block requires written explanation and a separate voiceover", () => {
+  const block = dualBeatDirectorBlock(true, { richOnScreenText: true, steadyStills: true });
+  assert.match(block, /cannot be turned off/);
+  assert.match(block, /artistic on-screen text/);
+  assert.match(block, /do not write Subtitle:/);
+  assert.match(block, /complete explanation/);
+  assert.doesNotMatch(block, /Subtitle \(spell exactly\)/);
+});
+
 test("steady stills copy the camera and never paint spoken subtitles", () => {
   const steady = dualBeatDirectorBlock(true, { steadyStills: true, hasCharacter: true });
   assert.match(steady, /Camera line is a copy of the start Camera line/);

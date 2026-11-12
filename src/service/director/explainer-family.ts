@@ -3,6 +3,7 @@ import {
   DEFAULT_PAPER_CUTOUT_BACKGROUND_ID,
   resolvePaperCutoutBackground,
 } from "@/model/paper-cutout-backgrounds";
+import { isSubtitleLook } from "@/service/director/subtitle-look";
 
 /** Paper-cutout collage explainer — sibling of the whiteboard concept explainer. */
 export const PAPER_CUTOUT_EXPLAINER_SKILL_SLUG = "paper-cutout-explainer-video-director";
@@ -15,6 +16,44 @@ export function isDiagramExplainerSkill(skillSlug?: string) {
     skillSlug === CARTOON_EXPLAINER_SKILL_SLUG ||
     skillSlug === PAPER_CUTOUT_EXPLAINER_SKILL_SLUG
   );
+}
+
+export const DEFAULT_EXPLAINER_ON_SCREEN_TEXT_STYLE_ID = "clean";
+
+type WrittenSceneText = "en" | "zh-Hant" | "zh-Hans" | "ja" | "ko";
+
+const WRITTEN_SCENE_TEXT = ["en", "zh-Hant", "zh-Hans", "ja", "ko"] as const;
+
+// Voiceover language → the script painted on the board. Never "none".
+export function explainerWrittenLanguage(language?: string): WrittenSceneText {
+  if (language === "yue" || language === "zh" || language === "zh-Hant") return "zh-Hant";
+  if (language === "zh-Hans") return "zh-Hans";
+  if (language === "ja") return "ja";
+  if (language === "ko") return "ko";
+  return "en";
+}
+
+// Whiteboard and paper-cutout explainers always paint every clip. "none" is not a choice.
+export function coerceDiagramExplainerOnScreenText(input: {
+  skillSlug?: string;
+  language?: string;
+  sceneTextLanguage?: string;
+  onScreenTextStyleId?: string;
+}): {
+  sceneTextLanguage: WrittenSceneText;
+  sceneTextEnabled: true;
+  onScreenTextStyleId: string;
+  onScreenTextCoverage: "all";
+} | null {
+  if (!isDiagramExplainerSkill(input.skillSlug)) return null;
+  const chosen = WRITTEN_SCENE_TEXT.find((id) => id === input.sceneTextLanguage);
+  const styleId = input.onScreenTextStyleId?.trim() || "";
+  return {
+    sceneTextLanguage: chosen ?? explainerWrittenLanguage(input.language),
+    sceneTextEnabled: true,
+    onScreenTextStyleId: isSubtitleLook(styleId) ? styleId : DEFAULT_EXPLAINER_ON_SCREEN_TEXT_STYLE_ID,
+    onScreenTextCoverage: "all",
+  };
 }
 
 export function explainerCanvasKind(skillSlug?: string): ExplainerCanvasKind | null {

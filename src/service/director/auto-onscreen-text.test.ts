@@ -24,7 +24,7 @@ test("groupSpokenSubtitleSentences joins cues into the spoken sentences", () => 
   ]);
 });
 
-test("resolveExplainerAutoOnScreenTextTargets paints Clip 1's spoken sentences when coverage is hook", () => {
+test("diagram explainers paint every clip even when coverage was hook", () => {
   const project = {
     skillSlug: "paper-cutout-explainer-video-director",
     onScreenTextStyleId: "clean",
@@ -53,7 +53,10 @@ test("resolveExplainerAutoOnScreenTextTargets paints Clip 1's spoken sentences w
   } as unknown as Project;
 
   const targets = resolveExplainerAutoOnScreenTextTargets(project);
-  assert.equal(targets.length, 2);
+  assert.equal(targets.filter((target) => target.clipIndex === 0).length, 2);
+  assert.equal(targets.filter((target) => target.clipIndex === 1).length, 1);
+  assert.equal(targets.at(-1)?.text, "Take your daily experience and turn it into an offer.");
+  assert.equal(targets.at(-1)?.playheadSeconds, 6);
   assert.equal(targets[0].clipIndex, 0);
   assert.equal(
     targets[0].text,

@@ -60,6 +60,7 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
       "Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through motionCamera to the end still.",
       "The start and end still of one clip share the same light and the same place. endScene is the opening still after motionCamera has finished: its Camera line is the landed shot size, angle, and where subjects sit. If motionCamera keeps the camera locked, keep that Camera line. Write the landed picture, not the in-between path.",
       "Before returning, compare each clip's start and end still item by item: every difference appears in motionCamera, and every object motionCamera touches already exists in the start still or enters in a beat.",
+      "Mandatory on-screen explanation: every page has animated teaching elements the character handles (point, tap, place, slide, flip, or pick up) and a rich written explanation of this beat — one or two plain sentences in the configured scene-text language, the same meaning as englishVo. The off-screen voiceover speaks those sentences. The full sentences are painted later in the user's artistic text style, so leave a clean open area and do not letter the full voiceover into the still. Short labels on the elements stay. Never plan a text-free page and never turn on-screen text off.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock(options) {

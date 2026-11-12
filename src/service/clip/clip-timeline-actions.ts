@@ -38,6 +38,7 @@ import { FRAME_COST } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isSceneTextChoice, resolveSceneText, SCENE_TEXT_OFF } from "@/service/director/scene-text";
+import { coerceDiagramExplainerOnScreenText } from "@/service/director/explainer-family";
 import {
   applyClipOrder,
   duplicateClip,
@@ -243,15 +244,24 @@ export async function appendDirectorClipAction(
           ? input.speechPace
           : project.speechPace;
       effectiveSpeechPace = speechPace;
-      const sceneTextLanguage =
+      const sceneTextLanguageInput =
         input.sceneTextLanguage && isSceneTextChoice(input.sceneTextLanguage)
           ? input.sceneTextLanguage
           : project.sceneTextLanguage;
+      const explainerOnScreen = coerceDiagramExplainerOnScreenText({
+        skillSlug: effectiveSkillSlug,
+        language,
+        sceneTextLanguage: sceneTextLanguageInput,
+        onScreenTextStyleId: project.onScreenTextStyleId,
+      });
+      const sceneTextLanguage = explainerOnScreen?.sceneTextLanguage ?? sceneTextLanguageInput;
       const sceneTextEnabled =
         sceneTextLanguage !== undefined
-          ? sceneTextLanguage === SCENE_TEXT_OFF
-            ? false
-            : applySkillSceneText(effectiveSkillSlug, true)
+          ? explainerOnScreen
+            ? true
+            : sceneTextLanguage === SCENE_TEXT_OFF
+              ? false
+              : applySkillSceneText(effectiveSkillSlug, true)
           : project.sceneTextEnabled;
       const rawDirectorBg = input.directorBackgroundId?.trim() || "";
       const directorBackgroundId = isValidDirectorBackgroundId(effectiveSkillSlug, rawDirectorBg)

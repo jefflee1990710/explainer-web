@@ -45,6 +45,7 @@ import {
   isDualBeatSkill,
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { normalizeOneTakePhaseA, withSpokenClipDurations } from "@/service/director/clip-seconds";
@@ -320,9 +321,11 @@ ${directorRules.phaseASceneDetailBlock({
   realistic: realisticFlag,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
 })}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: isDiagramExplainerSkill(input.skill.slug) }) : ""}
 ${
-  sceneText.enabled && skillForcesSceneText(input.skill.slug)
+  isDiagramExplainerSkill(input.skill.slug)
+    ? `On-screen text is REQUIRED (${SCENE_TEXT_PRESETS[sceneText.language].label}) and cannot be turned off. Every clip shows animated teaching elements plus a rich written explanation (one or two plain sentences, the same meaning as englishVo). Those sentences are painted later as artistic on-screen text, so do not write Subtitle: or caption the spoken line on the still. Leave open board space. Clip 1's startScene MUST open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds, ${HOOK_TITLE_PLACEMENT}. Short labels on the elements stay.`
+    : sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}, and a numbered item list must appear in item stills. Never write spoken subtitles.`
     : sceneText.enabled
       ? directorRules.allowsInventedProps
@@ -397,6 +400,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   aspectRatio: input.aspectRatio,
   look: subtitleLook,
   lookLine: sampleLookLine,
+  richExplanation: isDiagramExplainerSkill(input.skill.slug),
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
