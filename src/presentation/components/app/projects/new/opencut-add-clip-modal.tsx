@@ -371,6 +371,7 @@ export function OpenCutAddClipModal({
                 <div className="flex flex-wrap items-center gap-2">
                   {simpleRefImages.map((url, idx) => (
                     <div key={url} className="relative size-12 rounded-lg border border-[var(--studio-line)] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={url} alt={`Ref ${idx + 1}`} className="size-full object-cover" />
                       <button
                         type="button"
@@ -557,6 +558,7 @@ export function OpenCutAddClipModal({
                 <div className="flex items-center gap-2">
                   {teleportSceneImageUrl ? (
                     <div className="relative size-12 rounded-lg border border-[var(--studio-line)] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={teleportSceneImageUrl} alt="Scene" className="size-full object-cover" />
                       <button
                         type="button"

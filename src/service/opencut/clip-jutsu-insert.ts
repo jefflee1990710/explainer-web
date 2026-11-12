@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { videosCollection } from "@/dao";
-import type { ClipFrame, Project, ProjectClip, StoryboardRow } from "@/model/project";
+import type { ClipFrame, ProjectClip, StoryboardRow } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import { insertClips, type ClipOrderProject } from "@/service/clip/clip-order";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import {
   BulkGenerateDialog,
@@ -103,7 +103,7 @@ export function OpenCutScroToolbar({
   const [timelineInsertAt, setTimelineInsertAt] = useState<number>(1);
   const [addPending, setAddPending] = useState(false);
   const [addError, setAddError] = useState("");
-  const clips = project.phaseA?.clips ?? [];
+  const clips = useMemo(() => project.phaseA?.clips ?? [], [project.phaseA?.clips]);
 
   async function runSelected(clipNumbers: number[], kind: "frames" | "videos") {
     if (await onGenerateSelected(clipNumbers, kind)) onClearChecked();
@@ -154,10 +154,12 @@ export function OpenCutScroToolbar({
   const videosEnabled = allFramesReady(project);
   const idleRef = useRef(idle);
   const videosEnabledRef = useRef(videosEnabled);
+  const clipsRef = useRef(clips);
   useLayoutEffect(() => {
     idleRef.current = idle;
     videosEnabledRef.current = videosEnabled;
-  }, [idle, videosEnabled]);
+    clipsRef.current = clips;
+  }, [idle, videosEnabled, clips]);
 
   // Assets header menu asks for the same dialogs that used to be buttons here.
   useEffect(() => {
@@ -172,9 +174,10 @@ export function OpenCutScroToolbar({
         activeClipNumber?: number;
       };
       if (data?.type === "scro-timeline-add-clip") {
+        const currentClips = clipsRef.current;
         const targetSlot = resolvePlayheadInsertSlot({
           playheadSeconds: Number(data.playheadSeconds) || 0,
-          clipDurations: clips.map((c) => ({
+          clipDurations: currentClips.map((c) => ({
             clipNumber: c.clipNumber,
             durationSeconds: c.durationSeconds,
           })),
