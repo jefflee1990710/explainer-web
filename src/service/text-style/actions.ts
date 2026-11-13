@@ -97,8 +97,11 @@ function parseChatImageUrl(value: unknown): string | undefined {
 // Copy a system preview PNG from /public into the user's blob store.
 export async function copySystemTextStylePreview(look: string, clerkUserId: string) {
   if (!isSubtitleLook(look)) throw new Error("找不到模板");
-  const relative = systemTextStylePreview(look).replace(/^\//, "");
-  const buffer = await readFile(path.join(process.cwd(), "public", relative));
+  const preview = systemTextStylePreview(look);
+  const fileName = preview.startsWith("/text-styles/") ? preview.slice("/text-styles/".length) : "";
+  if (!fileName || fileName.includes("/") || fileName.includes("..")) throw new Error("找不到模板");
+  // Static `text-styles` prefix so the file tracer does not pack all of public/.
+  const buffer = await readFile(path.join(process.cwd(), "public", "text-styles", fileName));
   return persistBuffer(buffer, brandAssetPath(clerkUserId, randomUUID(), "png"), "image/png");
 }
 

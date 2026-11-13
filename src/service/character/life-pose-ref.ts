@@ -20,7 +20,8 @@ export async function lifePoseReferenceUrl(
   if (appUrl.startsWith("https://")) return `${appUrl}${relative}`;
   const cached = uploaded.get(id);
   if (cached) return cached;
-  const bytes = await readFile(path.join(process.cwd(), "public", relative));
+  // Static `life-poses` prefix so the file tracer does not pack all of public/.
+  const bytes = await readFile(path.join(process.cwd(), "public", "life-poses", `${id}.png`));
   const url = await upload(`data:image/png;base64,${bytes.toString("base64")}`, `explainer/life-poses/${id}.png`);
   uploaded.set(id, url);
   return url;

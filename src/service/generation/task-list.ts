@@ -1,7 +1,8 @@
 import { ObjectId } from "mongodb";
 import { charactersCollection, extendJobsCollection, generationJobsCollection, directorsCollection, videosCollection, postsCollection, productsCollection, jutsuJobsCollection, teleportJobsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
-import { postHeadline, toPublicPost } from "@/service/post/create-post";
+import { toPublicPost } from "@/model/post";
+import { postTaskTitle as postHeadline } from "@/service/post/prompts";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { ExtendJob } from "@/model/extend-job";

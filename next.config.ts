@@ -1,7 +1,30 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// Marketing files are served as static assets. Keeping them out of every
+// serverless trace is what makes "Deploying outputs" take most of a Vercel build.
+const PUBLIC_TRACE_EXCLUDES = [
+  "public/character-looks/**/*",
+  "public/landing/**/*",
+  "public/hero/**/*",
+  "public/showcase/**/*",
+  "public/pricing/**/*",
+  "public/posters/**/*",
+  "public/examples/**/*",
+  "public/flags/**/*",
+  "public/cta/**/*",
+  "public/life-templates/**/*",
+  "public/life-pose-previews/**/*",
+  "public/nav-tools/**/*",
+  "public/home/**/*",
+  "public/**/*.mp4",
+  "public/**/*.webm",
+];
+
 const nextConfig: NextConfig = {
+  outputFileTracingExcludes: {
+    "*": PUBLIC_TRACE_EXCLUDES,
+  },
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
