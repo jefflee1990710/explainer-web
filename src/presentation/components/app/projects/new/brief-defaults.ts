@@ -297,7 +297,7 @@ export function defaultCastIdsForStyle(
     id: string;
     name?: string;
     styleId: string;
-    styleIds?: string[];
+    styleIds?: readonly string[];
     previewUrl?: string | null;
   }>,
   styleId: string,

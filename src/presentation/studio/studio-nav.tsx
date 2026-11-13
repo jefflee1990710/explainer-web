@@ -240,7 +240,7 @@ function StudioToolTileLink({
       aria-current={active ? "page" : undefined}
       className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-2xl border font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "aspect-square w-full flex-col justify-end overflow-hidden p-0 text-center text-[11px] leading-tight"
+          ? "aspect-square w-full flex-col justify-end overflow-hidden p-0 text-center text-sm leading-tight"
           : "h-11 w-11 shrink-0 justify-center p-0 text-xs"
       } ${
         active
