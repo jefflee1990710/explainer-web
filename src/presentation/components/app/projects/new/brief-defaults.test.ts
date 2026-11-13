@@ -5,6 +5,7 @@ import {
   defaultSceneTextLanguageForLocale,
   defaultVoLanguageForLocale,
   pickerDefaultSkillSlug,
+  parseLastCharacterIds,
   resolveDefaultVideoQualityTier,
   resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
@@ -208,9 +209,53 @@ test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-se
       styleId: "papercraft-diorama",
       characters: readyChars,
       lastBrief: raw({ characterIds: ["scro-id"] }),
+      rememberedIds: ["scro-id"],
     }),
     [],
   );
+
+  // 4. Last picked character wins over this folder's brief and over Aera, on every director.
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "story-short-director",
+      styleId: "realistic",
+      characters: readyChars,
+      rememberedIds: ["scro-id"],
+      lastBrief: raw({ characterIds: ["aera-id"] }),
+    }),
+    ["scro-id"],
+  );
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "talking-head-director",
+      styleId: "realistic",
+      characters: readyChars,
+      rememberedIds: ["scro-id", "aera-id"],
+    }),
+    ["scro-id"],
+  );
+
+  // 5. A director that needs two people keeps the remembered one and fills the empty slot.
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "dialogue-qa-director",
+      styleId: "realistic",
+      characters: readyChars,
+      rememberedIds: ["scro-id"],
+    }),
+    ["scro-id", "aera-id"],
+  );
+});
+
+test("parseLastCharacterIds keeps up to four real ids", () => {
+  assert.deepEqual(parseLastCharacterIds(null), []);
+  assert.deepEqual(parseLastCharacterIds("nope"), []);
+  assert.deepEqual(parseLastCharacterIds(JSON.stringify(["cathy", "", "cathy", "cat", 3, "a", "b"])), [
+    "cathy",
+    "cat",
+    "a",
+    "b",
+  ]);
 });
 
 test("resolveDefaultVideoQualityTier reads economy or 2k_cinema and defaults to 2k_cinema", () => {

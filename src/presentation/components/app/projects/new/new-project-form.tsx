@@ -127,6 +127,7 @@ import { ProductDropdown } from "@/presentation/components/app/projects/new/prod
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
 import { DurationPicker } from "@/presentation/components/app/projects/new/duration-picker";
+import { storyFilmLengthCopy } from "@/presentation/components/app/projects/new/director-dock-story-length-pill";
 import { LogoPicker } from "@/presentation/components/app/projects/new/logo-picker";
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
@@ -135,6 +136,8 @@ import {
   defaultCastIdsForStyle,
   pickerDefaultSkillSlug,
   readBriefDefaults,
+  readLastCharacterIds,
+  writeLastCharacterIds,
   readDefaultVideoQualityTier,
   resolveInitialBriefCharacterIds,
   resolveInitialSceneTextLanguage,
@@ -417,12 +420,37 @@ export function NewProjectForm({
       initialCastCharacterIds: initialVideo
         ? initialVideo.cast.map((member) => member.characterId)
         : undefined,
-      lastBrief,
+      rememberedIds: [],
       ruleSlug,
       styleId,
       characters,
     }),
   );
+  // Read the shared cast after mount so the server HTML matches the first client render.
+  useEffect(() => {
+    if (initialVideo) return;
+    const remembered = readLastCharacterIds();
+    if (remembered.length === 0) return;
+    setCharacterIds((current) => {
+      const next = resolveInitialBriefCharacterIds({
+        rememberedIds: remembered,
+        lastBrief,
+        ruleSlug,
+        styleId,
+        characters,
+      });
+      return next.join("|") === current.join("|") ? current : next;
+    });
+    // Mount only. lastBrief and styleId are the values from this first render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  function selectCharacterIds(ids: string[]) {
+    const added = ids.filter((id) => !characterIds.includes(id));
+    const ordered =
+      added.length > 0 ? [...added, ...ids.filter((id) => !added.includes(id))] : ids;
+    setCharacterIds(ids);
+    writeLastCharacterIds(ordered);
+  }
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>(() => {
     const initialMap: CharacterSelectionMap = {};
     for (const member of initialVideo?.cast || []) {
@@ -482,6 +510,8 @@ export function NewProjectForm({
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const omitsSketch = directorOmitsSketch(ruleSlug, talkingHead);
+  const storyLengthKind =
+    ruleSlug === "one-take-director" ? "one-take" : ruleSlug === "story-short-director" ? "story" : null;
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
   const presetBackgrounds = directorPresetBackgrounds(ruleSlug);
   const allowsBgUpload = skillAllowsBackgroundUpload(ruleSlug);
@@ -1568,7 +1598,7 @@ export function NewProjectForm({
                   onStyleChange={onStyleChange}
                   characters={characters}
                   characterIds={characterIds}
-                  onCharacterIdsChange={setCharacterIds}
+                  onCharacterIdsChange={selectCharacterIds}
                   characterSelections={characterSelections}
                   onCharacterSelectionsChange={setCharacterSelections}
                   castNeed={castNeed}
@@ -1670,7 +1700,9 @@ export function NewProjectForm({
                       skillTitle,
                       LANGUAGE_PRESETS[language].label,
                       aspectRatio || "9:16",
-                      durationPresetLabel(t, durationPreset).label,
+                      storyLengthKind
+                        ? storyFilmLengthCopy(storyLengthKind, durationPreset, locale).label
+                        : durationPresetLabel(t, durationPreset).label,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
@@ -1803,7 +1835,7 @@ export function NewProjectForm({
                                 styles={styles}
                                 styleId={styleId}
                                 value={characterIds}
-                                onChange={setCharacterIds}
+                                onChange={selectCharacterIds}
                                 onSelectStyle={onStyleChange}
                                 selections={characterSelections}
                                 onSelectionsChange={setCharacterSelections}
@@ -2096,6 +2128,11 @@ export function NewProjectForm({
                               value={durationPreset}
                               onChange={setDurationPreset}
                               disabled={briefBusy}
+                              labelsFor={
+                                storyLengthKind
+                                  ? (preset) => storyFilmLengthCopy(storyLengthKind, preset, locale)
+                                  : undefined
+                              }
                             />
                           </Section>
                         </div>
@@ -2267,7 +2304,9 @@ export function NewProjectForm({
                     ? t("brief.summary.talkingHeadLength")
                     : isBookendSkill(project?.skillSlug || ruleSlug) && durationPreset === "auto"
                       ? t("brief.summary.bookendLength")
-                      : durationPresetLabel(t, durationPreset).label}
+                      : storyLengthKind
+                        ? storyFilmLengthCopy(storyLengthKind, durationPreset, locale).label
+                        : durationPresetLabel(t, durationPreset).label}
                 </span>
                 {project?.logoUrl ? (
                   <>

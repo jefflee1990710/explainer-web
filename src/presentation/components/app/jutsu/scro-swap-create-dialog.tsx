@@ -22,6 +22,7 @@ import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-re
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
+import { writeLastCharacterIds } from "@/presentation/components/app/projects/new/brief-defaults";
 import { BrandUploadDropzone } from "@/presentation/components/app/projects/new/brand-upload-dropzone";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -343,6 +344,7 @@ export function ScroSwapCreateDialog({
     }
     const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
+    writeLastCharacterIds([char.id]);
     setUploadedPhotoUrl("");
     setLookTab("presets");
     setSelectedLookKey("default");

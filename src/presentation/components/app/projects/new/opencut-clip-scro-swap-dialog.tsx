@@ -8,6 +8,7 @@ import {
 } from "@/model/jutsu-job";
 import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import { applyClipScroSwapAction } from "@/presentation/actions/opencut-clip-jutsu";
+import { writeLastCharacterIds } from "@/presentation/components/app/projects/new/brief-defaults";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -165,6 +166,7 @@ export function OpenCutClipScroSwapDialog({
       return;
     }
     setCharacterId(char.id);
+    writeLastCharacterIds([char.id]);
     setUploadedPhotoUrls([]);
     setSelectedLookKey("default");
     setSelectedLookUrl(defaultCharacterLookUrl(char));

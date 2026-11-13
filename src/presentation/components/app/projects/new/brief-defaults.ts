@@ -3,7 +3,11 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isSceneTextChoice } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isSpeechPace } from "@/service/director/speech-pace";
-import { isPapercraftDioramaSkill, requiredCastCount } from "@/service/director/skill-rules";
+import {
+  isPapercraftDioramaSkill,
+  requiredCastCount,
+  STORY_SHORT_SKILL_SLUG,
+} from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
 import { pickerDefaultStyleId } from "@/service/style";
 import {
@@ -19,6 +23,64 @@ import {
 } from "@/model/project";
 
 export const DEFAULT_VIDEO_QUALITY_TIER_STORAGE_KEY = "scro:default-video-quality-tier";
+// Last cast the user picked, shared by Story, Explainer, Talking, Simple, Life, and Poster.
+export const LAST_CHARACTER_IDS_STORAGE_KEY = "scro:last-character-ids";
+
+export function parseLastCharacterIds(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const ids = parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
+    return [...new Set(ids)].slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
+export function readLastCharacterIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return parseLastCharacterIds(window.localStorage.getItem(LAST_CHARACTER_IDS_STORAGE_KEY));
+  } catch {
+    return [];
+  }
+}
+
+// First remembered character that still exists and, when a style is set, can wear it.
+export function preferredCharacterId(
+  characters: ReadonlyArray<{
+    id: string;
+    styleId?: string;
+    styleIds?: readonly string[];
+    previewUrl?: string | null;
+  }>,
+  styleId?: string,
+): string | undefined {
+  return readLastCharacterIds().find((id) => {
+    const character = characters.find((item) => item.id === id);
+    if (!character) return false;
+    if ("previewUrl" in character && !character.previewUrl) return false;
+    if (!styleId) return true;
+    const styles = character.styleIds?.length
+      ? character.styleIds
+      : character.styleId
+        ? [character.styleId]
+        : [];
+    return styles.includes(styleId);
+  });
+}
+
+export function writeLastCharacterIds(ids: readonly string[]) {
+  if (typeof window === "undefined") return;
+  const next = [...new Set(ids.filter((id) => id.length > 0))].slice(0, 4);
+  if (next.length === 0) return;
+  try {
+    window.localStorage.setItem(LAST_CHARACTER_IDS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Private mode or a full quota should not block the form.
+  }
+}
 
 export function resolveDefaultVideoQualityTier(stored?: string | null): VideoQualityTier {
   if (isVideoQualityTier(stored)) return stored;
@@ -257,20 +319,53 @@ export function defaultCastIdsForStyle(
   return ordered.slice(0, requiredCount).map((character) => character.id);
 }
 
-// Resolve initial characterIds for NewProjectForm, restoring lastBrief characters when compatible
-// or auto-picking 1 starter character for single-slot explainers (while keeping papercraft-diorama at 0).
+type CastCharacter = {
+  id: string;
+  name?: string;
+  styleId: string;
+  styleIds?: readonly string[];
+  previewUrl?: string | null;
+};
+
+function castMatchesStyle(character: CastCharacter, styleId: string) {
+  if ("previewUrl" in character && !character.previewUrl) return false;
+  const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
+  return styles.includes(styleId);
+}
+
+// Keep a remembered cast that fits this director. Story may stay at one character.
+// A director that needs more slots keeps the remembered people and fills only the empty slots.
+function castFromRememberedIds(
+  ids: readonly string[],
+  input: {
+    ruleSlug: string;
+    styleId: string;
+    characters: ReadonlyArray<CastCharacter>;
+  },
+): string[] | undefined {
+  const matching = ids.filter((id) =>
+    input.characters.some((character) => character.id === id && castMatchesStyle(character, input.styleId)),
+  );
+  if (matching.length === 0) return undefined;
+  if (input.ruleSlug === STORY_SHORT_SKILL_SLUG) return matching.slice(0, 2);
+  const need = requiredCastCount(input.ruleSlug);
+  const slotCount = Math.max(1, need);
+  if (matching.length >= slotCount) return matching.slice(0, slotCount);
+  const filler = defaultCastIdsForStyle(input.characters, input.styleId, slotCount).filter(
+    (id) => !matching.includes(id),
+  );
+  return [...matching, ...filler].slice(0, slotCount);
+}
+
+// Resolve initial characterIds for NewProjectForm. A saved video keeps its cast.
+// Otherwise the last character picked anywhere wins, then this folder's last brief, then Aera.
 export function resolveInitialBriefCharacterIds(input: {
   initialCastCharacterIds?: readonly string[];
+  rememberedIds?: readonly string[];
   lastBrief?: BriefDefaults;
   ruleSlug: string;
   styleId: string;
-  characters: ReadonlyArray<{
-    id: string;
-    name?: string;
-    styleId: string;
-    styleIds?: string[];
-    previewUrl?: string | null;
-  }>;
+  characters: ReadonlyArray<CastCharacter>;
 }): string[] {
   if (input.initialCastCharacterIds !== undefined) {
     return [...input.initialCastCharacterIds];
@@ -278,19 +373,12 @@ export function resolveInitialBriefCharacterIds(input: {
   if (isPapercraftDioramaSkill(input.ruleSlug)) {
     return [];
   }
+  const fromGlobal = castFromRememberedIds(input.rememberedIds ?? [], input);
+  if (fromGlobal) return fromGlobal;
+  const fromFolder = castFromRememberedIds(input.lastBrief?.characterIds ?? [], input);
+  if (fromFolder) return fromFolder;
   const need = requiredCastCount(input.ruleSlug);
-  const slotCount = Math.max(1, need);
-  const remembered = (input.lastBrief?.characterIds ?? []).filter((id) =>
-    input.characters.some((character) => {
-      if ("previewUrl" in character && !character.previewUrl) return false;
-      const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
-      return character.id === id && styles.includes(input.styleId);
-    }),
-  );
-  if (remembered.length > 0 && remembered.length >= need) {
-    return remembered.slice(0, slotCount);
-  }
-  return defaultCastIdsForStyle(input.characters, input.styleId, slotCount);
+  return defaultCastIdsForStyle(input.characters, input.styleId, Math.max(1, need));
 }
 
 

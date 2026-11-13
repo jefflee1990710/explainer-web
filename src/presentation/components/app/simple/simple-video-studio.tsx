@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { AspectRatio, VideoQualityTier } from "@/model/project";
 import { createSimpleVideoAction } from "@/presentation/actions/projects";
 import { uploadSimpleMediaAction } from "@/presentation/actions/simple-media";
@@ -24,7 +24,11 @@ import {
   CharacterSelectDialog,
   defaultSheetForStyle,
 } from "@/presentation/components/app/projects/[id]/character-select-dialog";
-import { readDefaultVideoQualityTier } from "@/presentation/components/app/projects/new/brief-defaults";
+import {
+  preferredCharacterId,
+  readDefaultVideoQualityTier,
+  writeLastCharacterIds,
+} from "@/presentation/components/app/projects/new/brief-defaults";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
@@ -111,6 +115,12 @@ export function SimpleVideoStudio({
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>(
     characters[0]?.id ? [characters[0].id] : [],
   );
+  useEffect(() => {
+    const remembered = preferredCharacterId(characters, styleId);
+    if (remembered) setSelectedCharacterIds([remembered]);
+    // Mount only, so a later style change does not replace the character the user just picked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [characterSelections, setCharacterSelections] =
     useState<CharacterSelectionMap>({});
   const [firstFrameUrl, setFirstFrameUrl] = useState<string>("");
@@ -967,7 +977,10 @@ export function SimpleVideoStudio({
           selections={characterSelections}
           max={1}
           required={0}
-          onChange={setSelectedCharacterIds}
+          onChange={(ids) => {
+            setSelectedCharacterIds(ids);
+            writeLastCharacterIds(ids);
+          }}
           onSelectionsChange={setCharacterSelections}
           onClose={() => setCharacterDialogOpen(false)}
         />

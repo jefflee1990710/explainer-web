@@ -38,6 +38,10 @@ import {
   resolveCastSlotCount,
 } from "@/presentation/components/app/director-dock";
 import { LifeCharacterMenu } from "@/presentation/components/app/life/life-character-menu";
+import {
+  preferredCharacterId,
+  writeLastCharacterIds,
+} from "@/presentation/components/app/projects/new/brief-defaults";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
 import { LifePhotoEditor } from "@/presentation/components/app/life/life-photo-editor";
@@ -231,6 +235,12 @@ export function LifeDesk({
     characters.find((item) => item.id === initialCharacterId) || characters[0];
   const [people, setPeople] = useState(characters);
   const [characterId, setCharacterId] = useState(first?.id || "");
+  useEffect(() => {
+    if (initialCharacterId) return;
+    const remembered = preferredCharacterId(characters);
+    if (remembered) setCharacterId(remembered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [look, setLook] = useState<LifeLookSelection>(EMPTY_LIFE_LOOK);
   const [dressOpen, setDressOpen] = useState(false);
   // Default to the first tab: Post Type & Pose.
@@ -473,6 +483,7 @@ export function LifeDesk({
   function selectCharacter(id: string) {
     const next = people.find((item) => item.id === id);
     setCharacterId(id);
+    writeLastCharacterIds([id]);
     setLook(EMPTY_LIFE_LOOK);
     setDressOpen(false);
     if (next?.persona?.city) setPlace(next.persona.city);
@@ -1393,6 +1404,7 @@ export function LifeDesk({
             };
             setPeople((prev) => [newLifeChar, ...prev]);
             setCharacterId(created.id);
+            writeLastCharacterIds([created.id]);
             setLook(EMPTY_LIFE_LOOK);
             setCreateCharOpen(false);
           }}

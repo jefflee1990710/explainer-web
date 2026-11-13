@@ -38,6 +38,7 @@ import {
   type JutsuPersonSlotAssignment,
 } from "@/presentation/components/app/jutsu/jutsu-person-rle-mapper";
 import { ClipRangeTimelineSelector } from "@/presentation/components/app/jutsu/clip-range-timeline-selector";
+import { writeLastCharacterIds } from "@/presentation/components/app/projects/new/brief-defaults";
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
 import { AddCharacterStyleDialog } from "@/presentation/components/app/characters/[id]/add-character-style-dialog";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
@@ -585,6 +586,7 @@ export function JutsuStudio({
     }
     const defUrl = defaultCharacterLookUrl(char);
     setCharacterId(char.id);
+    writeLastCharacterIds([char.id]);
     setSyncedUploadedPhotoUrls([]);
     setLookTab("presets");
     setSelectedLookKey("default");

@@ -11,17 +11,20 @@ export function DurationPicker({
   value,
   onChange,
   disabled,
+  labelsFor,
 }: {
   value: DurationPreset;
   onChange: (value: DurationPreset) => void;
   disabled?: boolean;
+  // Story and one-take pass their own length names. Other directors keep the explainer copy.
+  labelsFor?: (preset: DurationPreset) => { label: string; hint: string };
 }) {
   const { t } = useI18n();
   return (
     <div role="radiogroup" aria-label={t("brief.duration.aria")} className="grid gap-2 sm:grid-cols-2">
       {Object.values(DURATION_PRESETS).map((preset) => {
         const active = preset.id === value;
-        const labels = durationPresetLabel(t, preset.id);
+        const labels = labelsFor ? labelsFor(preset.id) : durationPresetLabel(t, preset.id);
         const isAuto = preset.id === "auto";
         return (
           <motion.button

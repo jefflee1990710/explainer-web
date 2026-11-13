@@ -30,6 +30,10 @@ import {
 import { PostHistoryDialog } from "@/presentation/components/app/posts/post-history-dialog";
 import { CharacterSelectDialog } from "@/presentation/components/app/projects/[id]/character-select-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
+import {
+  preferredCharacterId,
+  writeLastCharacterIds,
+} from "@/presentation/components/app/projects/new/brief-defaults";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
@@ -123,6 +127,13 @@ export function PostStudio({
     styles[0]?.id ?? "",
   );
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
+  useEffect(() => {
+    const remembered = preferredCharacterId(characters, selectedStyleId);
+    if (remembered) {
+      setSelectedCharacterIds((current) => (current.length > 0 ? current : [remembered]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>({});
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
@@ -617,7 +628,10 @@ export function PostStudio({
           selections={characterSelections}
           max={2}
           required={0}
-          onChange={setSelectedCharacterIds}
+          onChange={(ids) => {
+            setSelectedCharacterIds(ids);
+            writeLastCharacterIds(ids);
+          }}
           onSelectionsChange={setCharacterSelections}
           onClose={() => setCharacterDialogOpen(false)}
         />

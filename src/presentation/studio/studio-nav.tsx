@@ -18,7 +18,7 @@ const GROUP_SECTIONS: StudioNavSection[] = [
 
 // OpenArt-inspired left side menu organized by the 3 Point-2 Creator IP Scenarios:
 // 1. Prominent Home pill at top
-// 2. CREATE VIDEO (2-column grid: Talking, Explainer, Story, Simple)
+// 2. CREATE VIDEO (2-column grid: Talking, Explainer)
 // 3. REMIX VIDEO (2-column grid: Swap, Teleport)
 // 4. SOCIAL IMAGE (2-column grid: Life, Poster)
 // 5. CHARACTER IP (indented tree items)
@@ -142,7 +142,7 @@ export function StudioNav({
                 <div
                   className={
                     forceExpanded
-                      ? "grid w-full grid-cols-2 gap-1.5"
+                      ? "grid w-full grid-cols-2 gap-2"
                       : "flex flex-col items-center gap-1.5"
                   }
                 >
@@ -238,10 +238,10 @@ function StudioToolTileLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-xl border text-xs font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+      className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-2xl border font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "min-h-10 w-full justify-start gap-2 px-2.5 py-2"
-          : "h-11 w-11 shrink-0 justify-center p-0"
+          ? "aspect-square w-full flex-col justify-end overflow-hidden p-0 text-center text-[11px] leading-tight"
+          : "h-11 w-11 shrink-0 justify-center p-0 text-xs"
       } ${
         active
           ? "border-[#c6f24b]/75 bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)] shadow-[0_0_12px_rgba(198,242,75,0.16)]"
@@ -249,24 +249,35 @@ function StudioToolTileLink({
       }`}
     >
       {item.imageUrl ? (
-        <span className="h-6 w-6 shrink-0 overflow-hidden rounded-md border border-[var(--studio-line)] bg-[#12141c]">
+        <span
+          className={`overflow-hidden bg-[#12141c] ${
+            forceExpanded ? "absolute inset-0" : "h-6 w-6 shrink-0 rounded-md"
+          }`}
+        >
+          {/* Full-bleed preview. Source art has a dark margin, so the expanded tile zooms in until the subject spans the tile width. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={item.imageUrl}
             alt=""
-            className="h-full w-full object-cover"
+            className={`h-full w-full object-cover ${forceExpanded ? "origin-center scale-[1.42]" : ""}`}
           />
         </span>
       ) : (
         <span
-          className={`grid h-5 w-5 shrink-0 place-items-center transition-colors ${
-            active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"
-          }`}
+          className={`grid shrink-0 place-items-center transition-colors ${
+            forceExpanded ? "h-10 w-10" : "h-5 w-5"
+          } ${active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"}`}
         >
           <RailIcon name={item.icon} />
         </span>
       )}
-      <span className={`min-w-0 flex-1 truncate ${forceExpanded ? "inline" : "hidden"}`}>
+      <span
+        className={`line-clamp-2 w-full shrink-0 ${
+          forceExpanded
+            ? "relative z-10 block bg-gradient-to-t from-[#0c0e14] via-[#0c0e14]/80 to-transparent px-1 pb-1.5 pt-5"
+            : "hidden"
+        }`}
+      >
         {item.label}
       </span>
       {item.tag ? (
