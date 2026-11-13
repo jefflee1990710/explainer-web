@@ -12,28 +12,15 @@ import {
 const SIGHTLINE_RULE =
   "Sightline: show only what this camera can see. A working face (a person's face, a screen, a page, a sign, a dial, a label) stays aimed at whoever uses it. Draw that content only on that side. If this camera cannot see that side, draw the blank side it does see. Never turn a person or a prop around, and never move the content onto the blank side, just to make it visible.";
 
-const EXPLAINER_GLIDE_MOTION_RULES = [
-  "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
-  "Never call that still a reference image.",
-  "Reply with the start scene and the motion. endScene is where this clip's one action lands: write that landing into the motion. Do not ask the video to match a second picture.",
-  "CAMERA LOCK (NO ZOOM-IN / NO PUSH-IN): keep the camera 100% locked and stationary square-on to the board for the entire clip — NEVER zoom in, push in, pull out, or pan the camera.",
-  "FAST, ACCELERATED, TIGHT PACING (NO SLOW MOTION): the move starts, accelerates through the change, then decelerates into the landing at a brisk, accelerated, high-energy pace (1.3x–1.5x snappy stop-motion / kinetic explainer speed) with zero sluggish glides and zero dead holds. Pack the clip with rapid-fire visual beats every 1.0–1.5 seconds (0.0–1.2s, 1.2–2.5s, 2.5–4.0s, 4.0–end): elements whip/slide in and out at high speed (快速滑入／滑出), folded paper cards snap and unfold flat in under 0.5s (快速摺開), top cover strips tear or peel away briskly to reveal the card underneath (快速撕開), connecting arrows/lines/circles draw themselves rapidly stroke-by-stroke across the board (快速畫出), two-sided cards flip briskly through their edge (快速翻轉), and takeaway badges stamp down with crisp impact while the character briskly points their hand and gaze from Focus Point 1 → Focus Point 2 → Focus Point 3.",
-  "Use at most ONE directional arrow per clip (never stack multiple arrows or spawn extra flying arrows if one is already on screen), and never slide blank grey slash strips or masking-tape stickers over headers.",
-  "Whiteboard cardboard physics: every prop, card, diagram block, arrow, chart bar, shape, and tag moves as a single rigid flat cardboard/paper cutout piece in one piece. Elements slide briskly in and out of the screen, unfold, tear open, or snap into place without bending, melting, dissolving, or morphing into another shape. Background and set layers stay 100% stationary and rigid.",
-  "Write high-velocity speed into every verb (whips in, snaps open, tears away briskly, zips across, flips rapidly, stamps down, points sharply). Never use slow, gentle, gradual, or leisurely verbs, and never leave the character or diagram holding still. Never skip a frame and never cut.",
-  "The character stays in their presenter corner keeping the same screen position and scale while pointing briskly at each active focus point. Eyes and hands stay on that element on every clip, including Clip 1. Lips and jaw stay sealed. No lip-sync and no look into the lens.",
-  "The written explanation is already drawn on the start frame. Keep those exact words sharp and in the same place while elements move. Do not morph, erase, rewrite, or duplicate that explanation.",
-].join(" ");
-
 const EXPLAINER_DUAL_KEYFRAME_MOTION_RULES = [
-  "The start and end storyboard images for this clip are the SAME SHOT, attached as first/last frames.",
-  "Never call those stills a reference image; MiniMax H3 receives them as first/last frames only.",
-  "They differ by a duration-scaled amount (see the clip's durationSeconds). Something moves through the FULL duration — do not hold the start pose then snap to the end in the last frames.",
-  "Give body motion real human timing, not one constant speed: a quick anticipation, then the main move snaps fast and decisive in well under a second, a small overshoot, then a clear settle and a short hold while props and the graph keep animating. When a character is on screen, the eyes and hands stay on the teaching element. Lips and jaw stay sealed. Never look into the lens.",
-  "Put a timestamp on each beat and write the speed into the verbs (snaps, flicks, whips, pops, darts). Never call the body motion smooth, slow, gentle, gradual, steady, sustained, or seamless, and never stretch one move evenly across the whole clip.",
-  "Use the seconds: short clips (3–4s) are one beat; longer clips (5–8s) are two beats that finish on the end still.",
-  "Interpolate element-by-element: start elements leave one by one; end elements pop or slide in. The character keeps roughly the same screen position and scale. Eyes and hands stay on the teaching element, including Clip 1. Lips and jaw stay sealed. No lip-sync and no look into the lens.",
-  "The written explanation is already drawn on the start frame. Keep those exact words sharp and in the same place while elements move. Do not morph, erase, rewrite, or duplicate that explanation.",
+  "Both START (State A) and END (State B) storyboard images for this clip are attached as first/last frames to MiniMax H3. Never call those stills a reference image.",
+  "CAMERA LOCK (2D PLANAR): keep the 2D planar camera locked and steady on the canvas/board across the whole clip — never tilt into 3D perspective, never orbit, and never zoom onto the character's face.",
+  "CONCRETE PHYSICAL TRANSFORMATION (State A -> State B): animate element-by-element across the FULL duration so State A transforms cleanly into State B — do not hold State A frozen and snap to State B on the final frames.",
+  "Use crisp physical transitions every 1.0–1.5 seconds: elements slide briskly in/out of frame (滑入／滑出), folded cards unfold flat (摺開), cover strips tear or peel open (撕開), arrows/lines/circles draw stroke-by-stroke (畫出), two-sided cards flip cleanly (翻轉), and meters fill or drain.",
+  "Use at most ONE directional arrow per clip (never stack multiple arrows or spawn extra flying arrows), and never slide blank grey slash strips or masking-tape stickers over headers.",
+  "Whiteboard cardboard physics: every prop, card, diagram block, arrow, chart bar, shape, and tag moves as a single rigid flat piece without melting or dissolving. Background and set layers stay 100% stationary.",
+  "Character acting: keep the character in their presenter corner at the same scale and screen position while briskly pointing/demonstrating toward each active focus point with vivid brow and eye focus. Eyes and hands stay on the teaching element on every clip, including Clip 1. Lips and jaw stay sealed (no lip-sync, no look into the lens).",
+  "Concise on-canvas labels: keep the concise 「」 keyword labels and optional short beat headline sharp and readable as drawn in the first and last frames. Never morph, scramble, or invent extra full-sentence text or Subtitle:.",
 ].join(" ");
 
 export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
@@ -62,7 +49,7 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
       "Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through motionCamera to the end still.",
       "The start and end still of one clip share the same light and the same place. endScene is the opening still after motionCamera has finished: its Camera line is the landed shot size, angle, and where subjects sit. If motionCamera keeps the camera locked, keep that Camera line. Write the landed picture, not the in-between path.",
       "Before returning, compare each clip's start and end still item by item: every difference appears in motionCamera, and every object motionCamera touches already exists in the start still or enters in a beat.",
-      "Mandatory on-screen explanation: every page has animated teaching elements the character handles (point, tap, place, slide, flip, or pick up) and a rich written explanation of this beat — one or two plain sentences in the configured scene-text language, the same meaning as englishVo. Draw those sentences onto the start still as artistic on-screen text in the user's chosen style. The off-screen voiceover speaks those sentences. Never write Subtitle:. Short labels on the elements stay. The video adds motion around that lettering; the explanation stays sharp, same words, same place. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync, no look into the lens, and no greeting wave. Never plan a text-free page and never turn on-screen text off.",
+      "Concise On-Canvas Text Budget: englishVo is spoken ONLY by the off-screen narrator — NEVER dump full voiceover sentences, paragraphs, or Subtitle: onto startScene or endScene. Keep on-canvas text strictly concise inside 「」 in the configured scene-text language: at most 1 short beat takeaway/headline (2–6 English words / 4–10 CJK chars; on Clip 1 the Big Bold Hook Title is the sole headline) plus 2–3 short node/object labels (1–3 words / 2–6 CJK chars). Stage startScene as State A (initial problem / folded card / low meter) and endScene as State B (landed outcome / unfolded card / filled meter), with motionCamera physically animating State A into State B. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync, no look into the lens, and no greeting wave.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock(options) {
@@ -83,10 +70,8 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
       realistic: options.realistic,
     });
   },
-  phaseBMotionRules(options) {
-    return options.smoothMotion === false
-      ? EXPLAINER_DUAL_KEYFRAME_MOTION_RULES
-      : EXPLAINER_GLIDE_MOTION_RULES;
+  phaseBMotionRules() {
+    return EXPLAINER_DUAL_KEYFRAME_MOTION_RULES;
   },
   phaseBDetailRules(options) {
     const base = options.realistic

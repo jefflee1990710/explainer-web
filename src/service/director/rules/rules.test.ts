@@ -146,6 +146,7 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(storySceneDetail, /parallax|spatial depth/i);
   assert.match(storyBlock, /spatialBlocking/i);
   assert.match(storyBlock, /no big title/i);
+  assert.match(storyBlock, /60 seconds/);
   assert.match(storyBlock, /opposite-seating|across the table/i);
   assert.match(storyBlock, /exact hair, gender, and outfit of that named cast member/i);
 

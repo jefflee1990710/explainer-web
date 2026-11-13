@@ -80,11 +80,21 @@ test("video prompt forbids a last-frame snap and asks for element-by-element int
 });
 
 test("video prompt asks for human timing, not one constant slow glide", () => {
-  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "story-short-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
   assert.match(prompt, /real human timing, not one constant speed/);
   assert.match(prompt, /snaps fast and decisive/);
   assert.match(prompt, /Never call the body motion smooth, slow/);
   assert.doesNotMatch(prompt, /interpolate that travel smoothly/);
+
+  const explainer = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.match(explainer, /State A -> State B/);
+  assert.match(explainer, /FULL duration/);
+  assert.match(explainer, /CAMERA LOCK \(2D PLANAR\)/);
 });
 
 test("talking-head Phase B uses speech motion instead of snap verbs", () => {
@@ -221,11 +231,11 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   );
 });
 
-test("diagram explainer lettering stays on the start frame and is not wiped", () => {
+test("diagram explainer lettering stays concise in 「」 labels without full VO dumps", () => {
   const lock = phaseBLetteringLock({ skillSlug: "cartoon-explainer-video-director", durationSeconds: 5 });
-  assert.match(lock, /start frame already draws the explanation/);
-  assert.match(lock, /Do not morph, erase, rewrite, or duplicate/);
-  assert.match(lock, /not a caption or subtitle/);
+  assert.match(lock, /concise 「」 labels and optional short beat headline/);
+  assert.match(lock, /Do not morph, scramble, or invent extra full-sentence text/);
+  assert.match(lock, /not a subtitle/);
   assert.doesNotMatch(lock, /wipes off/);
   assert.doesNotMatch(lock, /Subtitle:/);
   assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
@@ -233,25 +243,23 @@ test("diagram explainer lettering stays on the start frame and is not wiped", ()
     skillSlug: "paper-cutout-explainer-video-director",
     durationSeconds: 6,
   });
-  assert.match(paper, /second copy/);
+  assert.match(paper, /concise 「」 labels/);
   assert.doesNotMatch(paper, /wipes off/);
 });
 
-test("steady stills keep the lettering fixed and ask the move to accelerate then decelerate", () => {
+test("explainer dual-keyframe motion attaches first/last frames and keeps lettering crisp", () => {
   const fixed = phaseBLetteringLock({
-    skillSlug: "cartoon-explainer-video-director",
+    skillSlug: "workflow-promo-director",
     durationSeconds: 5,
     fixedLettering: true,
   });
-  assert.match(fixed, /start frame already draws the explanation/);
-  assert.match(fixed, /Do not morph, erase, rewrite, or duplicate/);
+  assert.match(fixed, /start frame carries the marker line/);
   assert.doesNotMatch(fixed, /wipes off/);
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
-  assert.match(prompt, /accelerates through the change, then decelerates into the landing/);
-  assert.match(prompt, /There is no end image and no last frame/);
-  assert.match(prompt, /endScene is where this clip's one action lands/);
-  assert.doesNotMatch(prompt, /snaps fast and decisive/);
-  assert.doesNotMatch(prompt, /element-by-element/);
+  assert.match(prompt, /first\/last frames/);
+  assert.match(prompt, /State A -> State B/);
+  assert.match(prompt, /CAMERA LOCK \(2D PLANAR\)/);
+  assert.doesNotMatch(prompt, /There is no end image and no last frame/);
 
   const realisticLiveAction = clipPhaseBUserPrompt({
     ...base,

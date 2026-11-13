@@ -62,8 +62,13 @@ if [ -n "${COMFY_PROXY_TOKEN:-}" ] && ! pgrep -f "vast-openjutsu-proxy.py" >/dev
   fi
 fi
 
-# 3. Restart the Explainer Worker daemon
-if [ -d /workspace/explainer-worker ]; then
+# 3. The claim loop runs only when Vercel has handed the queue to this box.
+#    Otherwise ComfyUI (and its proxy) is the GPU/CPU endpoint Vercel calls.
+if [ "${WORKER_QUEUE_ENABLED:-}" != "true" ] && [ "${WORKER_QUEUE_ENABLED:-}" != "1" ]; then
+  pkill -9 -f "worker-supervisor" >/dev/null 2>&1 || true
+  pkill -9 -f "worker/src/index.ts" >/dev/null 2>&1 || true
+  echo "[start-worker] WORKER_QUEUE_ENABLED is off. ComfyUI stays up; this box will not claim tasks."
+elif [ -d /workspace/explainer-worker ]; then
   cd /workspace/explainer-worker
   pkill -9 -f "worker-supervisor" >/dev/null 2>&1 || true
   pkill -9 -f "worker/src/index.ts" >/dev/null 2>&1 || true

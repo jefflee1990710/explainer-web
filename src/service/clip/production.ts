@@ -10,6 +10,8 @@ import {
 import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { videosCollection } from "@/dao";
 import { claimAndStartClipVideo } from "@/service/clip/auto-video";
+import { isStandaloneEngineSkillSlug } from "@/service/opencut/standalone-engine-slugs";
+import { resumeStandaloneEngineRender } from "@/service/opencut/resume-standalone-engine";
 import { cancelPendingClipVideo, markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
 import {
   enqueueClipFrameJobs,
@@ -63,6 +65,15 @@ async function enqueuedVideo(project: Project): Promise<PublicVideo> {
   return toPublicVideo(await markUnsentClipVideos(updated ?? project));
 }
 
+// A standalone swap or teleport clip is not a storyboard Hailuo job.
+async function renderStandaloneEngine(project: Project): Promise<EnqueueResult | null> {
+  if (!isStandaloneEngineSkillSlug(project.skillSlug)) return null;
+  const resumed = await resumeStandaloneEngineRender(project);
+  if (!resumed.ok) return { ok: false, error: resumed.error };
+  revalidateProject(project._id.toHexString());
+  return { ok: true, project: await enqueuedVideo(project) };
+}
+
 // Owner check + "storyboard approved" gate shared by every per-clip action.
 async function loadProduction(
   projectId: string,
@@ -91,6 +102,9 @@ export async function generateClipFramesAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
     const { project } = loaded;
+
+    const standaloneFrames = await renderStandaloneEngine(project);
+    if (standaloneFrames) return standaloneFrames;
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
@@ -162,6 +176,9 @@ export async function generateClipVideoAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
     const { project } = loaded;
+
+    const standaloneVideo = await renderStandaloneEngine(project);
+    if (standaloneVideo) return standaloneVideo;
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
@@ -259,6 +276,12 @@ export async function generateRemainingAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
 
+    const standaloneRemaining = await renderStandaloneEngine(loaded.project);
+    if (standaloneRemaining) {
+      if (!standaloneRemaining.ok) return standaloneRemaining;
+      return { ...standaloneRemaining, skipped: [] };
+    }
+
     const plan = planRemaining(loaded.project);
     if (plan.cost === 0) return { ok: false, error: "沒有需要補齊的段落" };
     // Upfront balance check only; each clip below charges itself.
@@ -307,6 +330,12 @@ export async function generateSelectedClipsAction(
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
+
+    const standaloneSelected = await renderStandaloneEngine(loaded.project);
+    if (standaloneSelected) {
+      if (!standaloneSelected.ok) return standaloneSelected;
+      return { ...standaloneSelected, skipped: [] };
+    }
 
     // Client input: keep unique integer clip numbers only.
     const picks = Array.isArray(clipNumbers)
@@ -361,6 +390,9 @@ export async function generateAllSceneImagesAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
 
+    const standaloneScenes = await renderStandaloneEngine(loaded.project);
+    if (standaloneScenes) return standaloneScenes;
+
     const plan = planGenerateAllScenes(loaded.project);
     if (plan.cost === 0) return { ok: false, error: "沒有可產生的分鏡圖" };
     const blocker = await stillBlocker(loaded.project);
@@ -400,6 +432,9 @@ export async function generateAllClipsAction(
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
+
+    const standaloneClips = await renderStandaloneEngine(loaded.project);
+    if (standaloneClips) return standaloneClips;
 
     const plan = planGenerateAllVideos(loaded.project);
     if (plan.videos.length === 0) return { ok: false, error: "畫格還沒全部完成，或沒有可產生的影片" };

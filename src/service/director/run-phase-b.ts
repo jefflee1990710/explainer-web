@@ -69,12 +69,13 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
   const silent =
     isSilentOutfitSkill(input.skill.slug) ||
     (input.narrationEnabled === false && !isTalkingHeadSkill(input.skill.slug) && !skillBansNarration(input.skill.slug));
+  const diagramExplainer = isDiagramExplainerSkill(input.skill.slug);
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
 ${
-  isDiagramExplainerSkill(input.skill.slug)
+  diagramExplainer
     ? "BOARD CAMERA: describe the board camera first. Do not point it at the character's face. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed. No lip-sync and no greeting wave."
     : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE
 }
@@ -97,12 +98,12 @@ ${directorRules.phaseBDetailRules({
 ${
     silent
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
-      : isDiagramExplainerSkill(input.skill.slug)
-        ? "Do not quote englishVo and do not ask anyone on screen to speak it. The voiceover is added after the picture. The on-screen character stays silent, with lips and jaw motionless, and only interacts with the elements on the board (point, tap, place, slide, flip, or pick up)."
+      : diagramExplainer
+        ? "Do not quote englishVo and do not ask anyone on screen to speak it. The voiceover is added after the picture. Keep the prompt concise and focused strictly on physical element transitions from State A (first frame) to State B (last frame). The on-screen character stays silent, with lips and jaw motionless, and only interacts with the elements on the board (point, tap, place, slide, flip, or pick up)."
         : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
   } ${
-    silent
-      ? "Do not copy a narrator voice."
+    silent || diagramExplainer
+      ? ""
       : lockedSpeakerLines(input.cast).length
         ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
         : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a timbre from the look or the keyframes.`
@@ -113,7 +114,7 @@ ${
     backgroundId: input.directorBackgroundId,
     customBackground: Boolean(input.backgroundImageUrls?.length),
   })} ${
-    silent ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
+    silent || diagramExplainer ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
     input.sceneTextOff
       ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers. The picture stays free of writing. "

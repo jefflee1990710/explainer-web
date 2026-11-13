@@ -26,6 +26,8 @@ import {
   STREET_LOOKBOOK_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
 } from "@/service/director/clip-continuity";
+import { oneTakeDurationHint } from "@/service/director/rules/one-take-director";
+import { storyShortDurationHint } from "@/service/director/rules/story-short-director";
 import { talkingHeadDurationHint, isTalkingHeadSkill } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
@@ -114,6 +116,8 @@ export function phaseADurationHint(input: {
   speechPace?: SpeechPace;
 }) {
   if (isTalkingHeadSkill(input.skillSlug)) return talkingHeadDurationHint(input.speechPace, input.skillSlug);
+  if (input.skillSlug === STORY_SHORT_SKILL_SLUG) return storyShortDurationHint(input.durationPreset);
+  if (input.skillSlug === ONE_TAKE_SKILL_SLUG) return oneTakeDurationHint(input.durationPreset);
   if (bookendLocksLength(input.skillSlug, input.durationPreset)) {
     return bookendDurationHint(input.skillSlug);
   }
@@ -631,7 +635,7 @@ export const DIAGRAM_LAYOUT_HIERARCHY_RULE =
   "70/30 Diagram-First Spatial Hierarchy: the explanation diagram occupies 70–80% of the canvas; stage any character in the 20–30% lower-left or lower-right presenter zone interacting with the nodes, never blocking the center.";
 
 export const COMPLETE_START_DIAGRAM_RULE =
-  "Complete Diagram Scaffold in `startScene`: stage the opening Beat-1 anchor of the chosen Diagram Archetype in `startScene` (such as the hook banner + the initial Node 1 card or a folded/covered card with clean open board space reserved for Beat 2 and Beat 3), and DO NOT draw all final end-state cards already sitting finished at t=0s — the remaining teaching elements MUST actively transit in and out during `motionCamera` (sliding in/out 滑入／滑出, unfolding flat 摺開, tearing/peeling open 撕開, drawing lines/arrows/circles stroke-by-stroke 畫出, or flipping 翻轉) to build toward `endScene`.";
+  "Dual-Keyframe Diagram Transformation (`startScene` = State A → `endScene` = State B): this director uses dual keyframes (`first_frame` + `last_frame`) on the exact same locked planar camera. `startScene` stages State A of the chosen Diagram Archetype (e.g. initial problem, folded card, sealed cover, empty 5% meter, or Beat-1 anchor node with clean open space on the board), and MUST NOT already show the finished end-state answers at t=0s. `endScene` stages State B on the exact same locked camera, lighting, and board surface after the physical transformation lands (card unfolded flat 摺開, cover torn/peeled open 撕開, arrow/circle drawn stroke-by-stroke 畫出, card flipped to Side B 翻轉, meter filled to 100%, or new takeaway card slid in 滑入). `motionCamera` scripts the concrete physical cause-and-effect motion interpolating `startScene` (State A) → `endScene` (State B).";
 
 export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
   "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): on-screen text cannot be turned off. The first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (2–6 words / 4–10 CJK characters summarizing the Reel hook), " +
@@ -645,7 +649,7 @@ export const EXPLAINER_VISUAL_TRANSFORMATION_RULE =
   "Visual Transformation Spine (Cause-and-Effect Clarity): every clip MUST visually demonstrate HOW and WHY the idea works through one clear state transformation (`State A: ❌ misconception / bottleneck / pain` → `physical mechanism / action` → `State B: ✅ truth / unlocked flow / solution`) so a muted viewer understands the logic at a glance — never stage a static collection of disconnected noun labels.";
 
 export const EXPLAINER_CONCRETE_METAPHOR_RULE =
-  "Animated Elements Plus Written Explanation: every teaching element is a recognizable everyday physical object or visual metaphor that shows its state (a clogged funnel vs an open filter, a 5% red battery vs a 100% green battery, a heavy boulder blocking a path vs a 3-step staircase, a leaking bucket vs a sealed valve), with a short colloquial label in 「」 (2–4 words / 2–6 CJK characters) in the configured scene-text language. Every clip ALSO carries a rich written explanation of this beat — one or two plain sentences that teach the idea, the same meaning as englishVo. Draw those sentences onto the start still as artistic on-screen text in the user's chosen style, spelled once among the teaching elements. Never write Subtitle:. The video adds motion around that lettering and keeps the words in place. The off-screen voiceover still speaks englishVo. On-screen text cannot be turned off. Never a board of objects with no explanation, and never a plain PowerPoint card that replaces the objects.";
+  "Animated Elements Plus Concise Key Takeaways (STRICT ON-CANVAS TEXT BUDGET): every teaching element is a recognizable everyday physical object or visual metaphor that visibly transforms from State A to State B (a clogged funnel → open filter, a 5% red battery → 100% green battery, a folded card → unfolded solution, a heavy boulder → 3-step staircase), with an ultra-short label inside 「」 (1–3 English words / 2–6 CJK characters) in the configured scene-text language. Off-screen `englishVo` is spoken ONLY in audio — NEVER dump `englishVo` sentences, full explanations, or voiceover transcripts onto the board! Each clip displays at most ONE short beat takeaway/headline inside 「」 (2–6 words / 4–10 CJK chars, e.g. 「DEEP WORK = 3X」 or 「先拆解再執行」) plus at most 2–3 short object/node labels inside 「」 (1–3 words / 2–6 CJK chars). On Clip 1, the single BIG, BOLD HOOK TITLE inside 「」 IS that beat's sole headline — never add a competing subtitle strip. Never write `Subtitle:`. Never a plain PowerPoint text card that replaces the physical objects.";
 
 export const EXPLAINER_FOCAL_CONTRAST_RULE =
   "1-2-3 Visual Reading Path & Single Hero Pop: stage a clear 1 → 2 → 3 eye path (left-to-right or top-to-bottom). Keep 70–80% of supporting context nodes in calm neutral/monochrome/kraft tones, and highlight ONLY the single active takeaway node of that beat in 1 vibrant high-contrast accent colour at 1.5x–2x scale, with the character's gaze/hand or the clip's single directional arrow pointing directly at that active takeaway node.";
@@ -761,7 +765,7 @@ export function cartoonExplainerDirectorBlock(options?: {
     // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
     cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
     flatBoard ? paperCutoutCameraRule(surfaceOpts) : "",
-    "On-canvas beat text: on-screen explanation is mandatory and cannot be turned off. englishVo is one or two plain sentences that explain this beat, spoken by the off-screen narrator and drawn on the start still as artistic on-screen text — never write Subtitle:. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object. The video adds motion around that lettering and keeps the words in place.",
+    "On-canvas beat text (CONCISE TEXT BUDGET — NO WALLS OF TEXT): on-screen text is mandatory and cannot be turned off, but `englishVo` is spoken ONLY by the off-screen narrator — NEVER transcribe or dump full `englishVo` sentences onto the still. Draw ONLY (1) at most ONE short beat headline/takeaway inside 「」 (2–6 words / 4–10 CJK chars; Clip 1 uses only its BIG, BOLD HOOK TITLE) plus (2) 2–3 ultra-short diagram/object labels inside 「」 (1–3 words / 2–6 CJK chars) on the pieces they belong to. Never write `Subtitle:`. Across the clip, `startScene` shows State A's elements & 「」 labels, `endScene` shows State B's transformed elements & updated 「」 labels, and the video interpolates cleanly between those two keyframes.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -819,8 +823,8 @@ export function cartoonNarratorFrameLock(
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? `HOOK CAMERA: Clip 1 keeps a 100% locked stationary square-on camera (no zoom-in or push-in). Eyes and hands stay on the teaching element. Lips and jaw stay sealed. Never look into the lens.${hookTitleStill}`
-        : `HOOK CAMERA: framing stays on the teaching element, not a close-up of the face. Eyes and hands stay on that element. Lips and jaw stay sealed. Never look into the lens.${hookTitleStill}`
+        ? `HOOK CAMERA: Clip 1 keeps a 100% locked stationary square-on camera (no zoom-in or push-in).${hookTitleStill}`
+        : `HOOK CAMERA: framing stays on the teaching element, not a close-up of the face.${hookTitleStill}`
       : "";
   const cameraMatch = steady
     ? "Camera angle, shot size, and side match the other still of this clip."
@@ -834,7 +838,7 @@ export function cartoonNarratorFrameLock(
       : WHITEBOARD_CANVAS_LOCK;
   const silent = `${whiteboard2dRule} Silent demonstrator on every clip, including Clip 1: the character does not talk or lip-sync (lips and jaw sealed; no greeting wave; eyes and hands stay on the teaching element; never look into the lens).${actingStill}`;
   const labels =
-    "Draw every beat title or diagram label in 「」 as readable writing on that object (use at most 1 directional arrow, never blank grey tape or unlabelled strips; not the subtitle).";
+    "Concise 「」 labels/headline only (max 1 arrow; no grey slash/tape strips; no full-sentence voiceover text).";
   if (options?.hasCharacter) {
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {
@@ -877,10 +881,10 @@ export function dropRepeatedSubtitleLabels(scene: string) {
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
 const SNAP_MOTION =
-  "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and clean explainer transition effects every 1.5–2 seconds — elements sliding briskly in and out (滑入／滑出), paper cards unfolding flat (摺開) or tearing/peeling open (撕開) to reveal answers underneath, arrows/lines/circles drawing themselves progressively stroke-by-stroke (畫出), cards flipping cleanly through their edge (翻轉), and chart bars or badges popping into place inside the central 70–80% diagram safe zone (at most one directional arrow in the clip; never push cards half-off the left/right screen edges, never pass cards across the character's face, and never use blank grey slash/tape strips) while the character in the presenter corner points their hand and gaze directly at each active focus point. Speed changes within the clip like a real person; never one constant slow glide.";
+  "Interpolate smoothly and decisively from the attached FIRST frame (State A) to the attached LAST frame (State B) in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and clean physical explainer transitions — elements sliding briskly in/out (滑入／滑出), paper cards unfolding flat (摺開) or tearing/peeling open (撕開) to reveal State B underneath, arrows/lines/circles drawing stroke-by-stroke (畫出), cards flipping cleanly through their edge (翻轉), and chart bars or badges popping into place inside the central 70–80% diagram safe zone (at most one directional arrow in the clip; never push cards half-off screen edges, never pass cards across the character's face, and never use blank grey slash/tape strips) while the character points their hand and gaze at each active focus point. Never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. CAMERA LOCK: keep the camera 100% stationary and locked square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan). The move has a fast, energetic, accelerated rhythm: it starts, accelerates rapidly through the change, then decelerates into a crisp landing; the middle of the move is sharp and quick. Show every in-between frame. Pack the clip with rapid-fire visual beats every 1.0–1.5 seconds where rigid flat cardboard/paper cutout pieces whip in/out (滑入／滑出), unfold flat (摺開), tear/peel open (撕開), draw arrows/lines stroke-by-stroke (畫出), or flip briskly — a card flip rotates briskly through its edge as a rigid card without morphing, warping, or melting (at most one directional arrow in the clip; no blank slash/tape strips; never push cards off screen edges or across the character's face). Do not stretch the action as one slow constant glide. Never skip a frame and never cut. Existing lettering on a card stays legible without duplicating that card twice, while new cutout pieces actively transit in and out across the beats as written in motionCamera.";
+  "Interpolate from the attached FIRST frame (State A) to the attached LAST frame (State B) with clear cause-and-effect motion. CAMERA LOCK: keep the camera 100% stationary and locked square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan). Play the transformation at a fast, energetic, speed-ramped pace: start with a crisp anticipation, accelerate rapidly through the physical state change, then decelerate into a clean settle on the exact LAST frame. Show every in-between frame across tight visual beats (1.0–1.5s): rigid flat cardboard/paper cutout pieces slide briskly in/out (滑入／滑出), unfold flat (摺開), tear/peel open (撕開), draw arrows/lines stroke-by-stroke (畫出), or flip briskly through their edge without morphing, warping, or melting (at most one directional arrow; no blank slash/tape strips; never push cards off screen edges or across the character's face). Keep existing 「」 labels sharp while State A transitions into State B's 「」 labels from the LAST frame. Never cut and never skip a frame.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
@@ -906,7 +910,7 @@ export function cartoonNarratorVideoLock(
         })
       : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
-    `Voiceover is mixed in later from an unseen off-screen narrator and is not performed in this picture. The on-screen character never speaks or lip-syncs — lips and jaw stay firmly closed with zero mouth or jaw speech movement for the entire clip, including Clip 1. Eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never look into the lens and never wave at the camera. The written explanation is already drawn on the start frame. Keep those exact words sharp and in the same place while elements move. Do not morph, erase, rewrite, or duplicate that explanation. ${canvasVoice}`;
+    `Silent visual-only video (off-screen narrator voiceover is muxed externally): the on-screen character never speaks or lip-syncs — lips and jaw stay firmly closed with zero mouth or jaw speech movement for the entire clip, including Clip 1. Eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never look into the lens and never wave at the camera. Keep all concise 「」 labels crisp and legible as State A in the first frame transforms into State B in the last frame; never invent extra subtitles or paragraphs. ${canvasVoice}`;
   const teachingMotion =
     "Animate every teaching element named in the Scene on its own beat, and do not leave the extra concept pieces as a frozen background.";
   if (!options?.hasCharacter) {

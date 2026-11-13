@@ -119,11 +119,9 @@ export function resolveOneTakeDurationSeconds(input: {
 }): number {
   const explicit = parseExplicitSecondsFromSource(input.source);
   if (explicit) return explicit;
+  // A dock length (6 / 18 / 36 / 60) is the clip. A written length in the source still wins above.
   if (input.durationPreset && input.durationPreset !== "auto") {
-    const presetTarget = presetOneTakeSeconds(input.durationPreset);
-    const planned = Math.round(input.plannedSeconds || 0);
-    if (planned <= CLIP_MIN_SECONDS) return presetTarget;
-    return Math.min(ONE_TAKE_MAX_SECONDS, Math.max(CLIP_MIN_SECONDS, Math.max(planned, presetTarget)));
+    return presetOneTakeSeconds(input.durationPreset);
   }
   const planned = Math.round(input.plannedSeconds || 0);
   if (planned > CLIP_MIN_SECONDS) {

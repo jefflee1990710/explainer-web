@@ -19,7 +19,7 @@ The fleet is only `4060`, `ada`, and `pro6000` in `scripts/comfy-gpus.json`. Nev
 
 A stopped Vast instance still bills its disk. Ada and PRO 6000 must not exist while idle. Do not stop-and-keep them, and do not rent them before a switch. Until `use ada` or `use pro6000`, those two cards cost $0.
 
-`use` rents the chosen expensive card and waits until that machine is running. It then installs OpenJutsu when `/workspace/openjutsu-setup.done` is missing, and it does not return until that file exists and the published port answers `/queue`. Only then does it rewrite `.env.local` `COMFY_BASE_URL`. A Vast port mapping is not enough: nothing may be listening yet. Switching away deletes that instance. The RTX 4060 Ti stays in the account; leaving it only stops it, so the weights remain and a small disk fee continues.
+`use` rents the chosen expensive card and waits until that machine is running. It then installs OpenJutsu when `/workspace/openjutsu-setup.done` is missing, and it does not return until that file exists and `GET /queue` returns HTTP 200 with the bearer token. HTTP 401 means the proxy token was empty; `use` rewrites it and restarts the proxy before publishing the URL. Only then does it rewrite `.env.local` `COMFY_BASE_URL`. A Vast port mapping is not enough: nothing may be listening yet. Switching away deletes that instance. The RTX 4060 Ti stays in the account; leaving it only stops it, so the weights remain and a small disk fee continues.
 
 If `list` shows a stopped, exited, or loading Ada or PRO 6000, run `close` before anything else.
 

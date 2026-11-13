@@ -81,9 +81,11 @@ export function compileDirectorPrompts(input: CompileDirectorInput): {
   const keyframeRule =
     b.keyframeMode === "end-is-next-start"
       ? "Keyframe continuity (`end-is-next-start`): each clip lands on the next clip's start still; only the final clip draws its own end still."
-      : b.dualBeat
-        ? "Dual-beat clips (`dualBeat: true`): every clip defines `startScene` + `endScene` and `startVo` + `endVo`."
-        : "Start-only keyframes (`start-only`): each clip defines its opening still and timed camera/subject motion in `motionCamera`.";
+      : b.keyframeMode === "start-end"
+        ? "Dual-keyframe interpolation (`start-end`): each clip generates both its own START still (State A) and END still (State B), and `motionCamera` interpolates the visual transformation between them."
+        : b.dualBeat
+          ? "Dual-beat clips (`dualBeat: true`): every clip defines `startScene` + `endScene` and `startVo` + `endVo`."
+          : "Start-only keyframes (`start-only`): each clip defines its opening still and timed camera/subject motion in `motionCamera`.";
 
   const wardrobeRule = b.wardrobeBuild
     ? "Wardrobe lookbook lock (`wardrobeBuild: true`): keep the character's face, hair, and skin texture 100% locked to the character blueprint, while copying worn garments 100% from the attached clothing reference images (`referenceImageIds`)."

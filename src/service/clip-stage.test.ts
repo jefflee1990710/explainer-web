@@ -98,22 +98,32 @@ test("one frame failed and none in flight → frames_failed", () => {
   assert.equal(clipStateFor(p, 1).stage, "frames_failed");
 });
 
-test("whiteboard is ready from the start still alone and ignores leftover end stills", () => {
+test("whiteboard requires both start and end stills (start-end dual keyframe) while start-only directors need start alone", () => {
   const p = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
-  assert.equal(clipStateFor(p, 1).frameCost, 4);
-  const tags = clipGenerationTags(p);
-  assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
-  const staleEnd = project({
+  assert.equal(clipStateFor(p, 1).stage, "no_frames");
+  assert.equal(clipStateFor(p, 1).frameCost, 8);
+
+  const ready = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
+    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+  });
+  assert.equal(clipStateFor(ready, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(ready, 1).frameCost, 8);
+  const tags = clipGenerationTags(ready);
+  assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
+
+  const startOnly = project({
+    skillSlug: "papercraft-diorama-director",
+    styleId: "papercraft-diorama",
     frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
   });
-  assert.equal(clipStateFor(staleEnd, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(startOnly, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(startOnly, 1).frameCost, 4);
 });
 
 test("both frames completed, no video → frames_ready", () => {

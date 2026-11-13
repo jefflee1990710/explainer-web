@@ -1432,7 +1432,8 @@ export async function startScroSwapJob(
       lane: "gpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly() && !canSubmitJutsuComfy(doc)) {
+    // Vercel owns the job. Comfy runs on Vast and is called over COMFY_BASE_URL.
+    if (!shouldUseWorkerQueueOnly()) {
       after(() =>
         runScroSwapJobInBackground(jobId).catch((error) => {
           console.error("[scro-swap] background job failed", { jobId: jobId.toHexString(), error });
@@ -1995,7 +1996,9 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
     active.map(async (job): Promise<number> => {
       try {
         if (!job.openRouterStatusUrl) {
-          if (job.createdAt.getTime() < staleCutoff) {
+          // A retry updates updatedAt. createdAt stays old and would fail the job
+          // before Comfy has a prompt id.
+          if (job.updatedAt.getTime() < staleCutoff) {
             const timeoutErr = "Scro Swap 處理逾時，請重試";
             await failJutsuJobAndRefund(job, timeoutErr);
             return 1;

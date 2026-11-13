@@ -6,6 +6,7 @@ import { chainsClipStarts } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
@@ -233,6 +234,7 @@ The user's note is what this clip shows and says. Do not replace that note with 
     language: input.language,
     skillSlug,
     lockedCamera: steadyStills,
+    diagramExplainer: isDiagramExplainerSkill(skillSlug),
   });
   return [
     withSpokenClipDuration(rewritten ?? row, input.speechPace, {

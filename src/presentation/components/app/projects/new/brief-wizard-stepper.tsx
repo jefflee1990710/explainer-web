@@ -11,6 +11,7 @@ export function BriefWizardStepper({
   currentStep,
   maxReachableStep,
   talkingHead,
+  hideDrafts,
   disabled,
   summaries,
   onSelectStep,
@@ -18,12 +19,13 @@ export function BriefWizardStepper({
   currentStep: BriefWizardStepIndex;
   maxReachableStep: BriefWizardStepIndex;
   talkingHead?: boolean;
+  hideDrafts?: boolean;
   disabled?: boolean;
   summaries?: Partial<Record<BriefWizardStepIndex, string>>;
   onSelectStep: (step: BriefWizardStepIndex) => void;
 }) {
   const { t } = useI18n();
-  const steps = visibleBriefWizardSteps(talkingHead);
+  const steps = visibleBriefWizardSteps(hideDrafts ?? talkingHead);
 
   return (
     <div className="border-b border-accent-ink/10 pb-5">

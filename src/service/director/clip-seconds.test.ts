@@ -163,3 +163,42 @@ test("normalizeOneTakePhaseA collapses multi-clip proposals into 1 silent clip u
   assert.match(normalized.clips[0]?.motionCamera ?? "", /leaps across the rocky ridge/);
 });
 
+test("one-take dock length is the clip, up to 60 seconds", () => {
+  const clip = {
+    clipNumber: 1,
+    timeRange: "0–40s",
+    durationSeconds: 40,
+    narrativeJob: "run",
+    explainerScene: "Scro running.",
+    motionCamera: "0–40s runs.",
+    englishVo: "(no dialogue)",
+    bgmSfx: "none",
+  };
+  const proposal: PhaseAProposal = {
+    englishTitle: "Run",
+    localizedTitle: "跑",
+    targetDuration: "40s",
+    clipCount: 1,
+    loopMode: "linear",
+    coreMessage: "Run.",
+    hookStrategy: "Start running.",
+    aspectRatio: "9:16",
+    visualWorld: "Hill.",
+    narrator: "No narrator — pure continuous motion and ambient sound.",
+    englishWordCount: 0,
+    characterLock: "Scro",
+    palette: "Green.",
+    bgmDirection: "none",
+    narrativeArc: "Run.",
+    clips: [clip],
+  };
+  assert.equal(
+    normalizeOneTakePhaseA(proposal, { durationPreset: "full" }).clips[0]?.durationSeconds,
+    60,
+  );
+  assert.equal(
+    normalizeOneTakePhaseA(proposal, { durationPreset: "micro" }).clips[0]?.durationSeconds,
+    6,
+  );
+});
+

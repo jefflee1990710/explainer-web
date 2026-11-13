@@ -1,5 +1,5 @@
 {
-  "active": "pro6000",
+  "active": "4060",
   "slots": [
     {
       "id": "4060",
@@ -19,7 +19,7 @@
       "id": "pro6000",
       "label": "scro-openjutsu-pro6000",
       "gpuName": "RTX PRO 6000 WS",
-      "instanceId": 60354480,
+      "instanceId": null,
       "keepRunningOnProvision": false
     }
   ]

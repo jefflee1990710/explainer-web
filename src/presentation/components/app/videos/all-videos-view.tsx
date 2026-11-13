@@ -152,6 +152,7 @@ export function AllVideosView({
       setDeletedSwapIds((prev) => ({ ...prev, [id]: true }));
       notifyTasksChanged();
     }
+    return res;
   }
 
   async function handleDeleteTeleport(id: string) {
@@ -160,6 +161,7 @@ export function AllVideosView({
       setDeletedTeleportIds((prev) => ({ ...prev, [id]: true }));
       notifyTasksChanged();
     }
+    return res;
   }
 
   function handlePosted(itemId: string, videoId?: string) {
@@ -321,8 +323,8 @@ export function AllVideosView({
                   onPosted={handlePosted}
                   onArchived={handleArchived}
                   onUnarchived={handleUnarchived}
-                  onDeleteSwap={(id) => void handleDeleteSwap(id)}
-                  onDeleteTeleport={(id) => void handleDeleteTeleport(id)}
+                  onDeleteSwap={handleDeleteSwap}
+                  onDeleteTeleport={handleDeleteTeleport}
                 />
               ))}
             </div>

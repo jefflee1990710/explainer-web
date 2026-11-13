@@ -80,6 +80,7 @@ import {
   lockedStyleIdForSkill,
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
+import { DirectorDockStoryLengthPill } from "./director-dock-story-length-pill";
 import { ExplainerOnScreenTextDialog } from "./explainer-on-screen-text-dialog";
 import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { systemTextStylePreview, type SubtitleLook } from "@/service/director/subtitle-look";
@@ -190,6 +191,8 @@ export function DirectorDockBrief({
   onOnScreenTextEnabledChange,
   aspectRatio,
   onAspectRatioSelect,
+  durationPreset,
+  onDurationPresetChange,
   credits,
   subscribed,
   briefBusy,
@@ -819,6 +822,16 @@ export function DirectorDockBrief({
                 }
               />
 
+              {isStory ? (
+                <DirectorDockStoryLengthPill
+                  preset={durationPreset || "auto"}
+                  kind={ruleSlug === "one-take-director" ? "one-take" : "story"}
+                  locale={locale}
+                  disabled={briefBusy || !onDurationPresetChange}
+                  onChange={(next) => onDurationPresetChange?.(next)}
+                />
+              ) : null}
+
               <DirectorDockPill
                 icon={
                   <svg
@@ -958,6 +971,8 @@ export function DirectorDockBrief({
                     disabled={briefBusy}
                     onClick={() => setRefDialogOpen(true)}
                   />
+                  {/* Story and one-take open on the shot, so they have no sketch pad. */}
+                  {isStory ? null : (
                   <DirectorDockPill
                     icon={
                       <svg
@@ -988,6 +1003,7 @@ export function DirectorDockBrief({
                     }
                     onClick={() => setDraftsDialogOpen(true)}
                   />
+                  )}
                 </>
               )}
             </>
@@ -1304,8 +1320,8 @@ export function DirectorDockBrief({
         </DialogBackdrop>
       ) : null}
 
-      {/* Storyboard Drafts Modal */}
-      {draftsDialogOpen ? (
+      {/* Storyboard Drafts Modal. Story directors do not use sketches. */}
+      {!isStory && draftsDialogOpen ? (
         <DialogBackdrop
           className="flex items-center justify-center bg-black/70 p-3 backdrop-blur-xs sm:p-5"
           onClick={() => setDraftsDialogOpen(false)}

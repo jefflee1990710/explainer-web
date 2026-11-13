@@ -10,6 +10,8 @@ import {
 } from "@/presentation/actions/video-archive";
 import { markVideoPostedAction } from "@/presentation/actions/video-post";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
+import { VideoListDeleteDialog } from "@/presentation/components/app/videos/video-list-delete-dialog";
+import { Spinner } from "@/presentation/components/spinner";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import { armBrowserNotifications } from "@/presentation/components/app/tasks/browser-generation-notice";
@@ -125,8 +127,8 @@ export function VideoListRow({
   onPosted: (itemId: string, videoId?: string) => void;
   onArchived: (itemId: string, videoId?: string) => void;
   onUnarchived: (itemId: string, videoId?: string) => void;
-  onDeleteSwap: (jobId: string) => void;
-  onDeleteTeleport: (jobId: string) => void;
+  onDeleteSwap: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  onDeleteTeleport: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const { t, locale } = useI18n();
   const isEn = locale === "en";
@@ -136,6 +138,8 @@ export function VideoListRow({
   const [posting, setPosting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [localError, setLocalError] = useState("");
 
   const studioVideo = item.studioVideo;
@@ -255,16 +259,22 @@ export function VideoListRow({
     }
   }
 
-  async function handleDelete() {
+  async function confirmDeleteRow() {
     if (deleting) return;
     setDeleting(true);
+    setDeleteError("");
     try {
-      if (item.swapJob) {
-        await onDeleteSwap(item.swapJob.id);
-      } else if (item.teleportJob) {
-        await onDeleteTeleport(item.teleportJob.id);
+      const result = item.swapJob
+        ? await onDeleteSwap(item.swapJob.id)
+        : item.teleportJob
+          ? await onDeleteTeleport(item.teleportJob.id)
+          : { ok: false as const, error: t("errors.genericRetry") };
+      if (!result.ok) {
+        setDeleteError(translateAppError(result.error || t("errors.genericRetry"), t));
+        setDeleting(false);
       }
-    } finally {
+    } catch {
+      setDeleteError(t("errors.genericRetry"));
       setDeleting(false);
     }
   }
@@ -464,12 +474,31 @@ export function VideoListRow({
           <button
             type="button"
             disabled={deleting}
-            onClick={() => void handleDelete()}
+            aria-busy={deleting}
+            onClick={() => {
+              setDeleteError("");
+              setConfirmDelete(true);
+            }}
             title={isEn ? "Delete" : "刪除"}
-            className="inline-flex cursor-pointer items-center rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {deleting ? <Spinner className="h-3.5 w-3.5" /> : null}
             {isEn ? "Delete" : "刪除"}
           </button>
+        ) : null}
+        {confirmDelete ? (
+          <VideoListDeleteDialog
+            title={item.title}
+            pending={deleting}
+            error={deleteError}
+            busy={item.isBusy}
+            onCancel={() => {
+              if (deleting) return;
+              setConfirmDelete(false);
+              setDeleteError("");
+            }}
+            onConfirm={() => void confirmDeleteRow()}
+          />
         ) : null}
       </div>
     </article>

@@ -326,11 +326,11 @@ export function sceneTextSkillHint(
   }
   if (options?.richExplanation) {
     return [
-      "On-screen text is REQUIRED and cannot be turned off. Every clip has animated teaching elements and a rich written explanation: one or two plain sentences that teach this beat, the same meaning as englishVo.",
-      "Draw those sentences on the start still as artistic on-screen text in the user's chosen style. Do not write Subtitle:. Short diagram labels inside 「」 stay on the objects. The video adds motion around that lettering and keeps the words in place.",
+      "On-screen text is REQUIRED and cannot be turned off, but follow a STRICT CONCISE TEXT BUDGET: off-screen `englishVo` is spoken ONLY in audio — NEVER write full `englishVo` sentences or voiceover transcripts onto the board.",
+      "Each clip draws at most ONE short beat takeaway/headline inside 「」 (2–6 words / 4–10 CJK characters) plus at most 2–3 ultra-short object/node labels inside 「」 (1–3 words / 2–6 CJK characters). Clip 1 shows ONLY its single BIG, BOLD HOOK TITLE inside 「」 (no competing second subtitle strip). Never write Subtitle:.",
       hookTitleRule,
-      `Explanation language: ${SCENE_TEXT_PRESETS[language].label}.`,
-      "The off-screen voiceover speaks the same explanation. The on-screen character never speaks.",
+      `On-canvas label language: ${SCENE_TEXT_PRESETS[language].label}.`,
+      "The off-screen voiceover speaks englishVo. The on-screen character never speaks.",
     ].join(" ");
   }
   if (options?.dualBeat) {
@@ -577,7 +577,17 @@ export function sceneTextFrameLines(
   ].filter(Boolean);
 }
 
-// Diagram explainer start stills: spell the explanation on the board, then the video moves around it.
+// Diagram explainer stills: enforce concise keyword/takeaway budget and apply chosen lettering look without dumping englishVo.
+export function diagramConciseTextLines(look?: SubtitleLook): string[] {
+  const lookLine = look ? lookLineForOnScreenVideo(subtitleLookLine(look)) : "";
+  return [
+    "ON-CANVAS TEXT: spell ONLY the concise 「」 labels/headline in Scene (max 1 headline + 2–3 labels); no full VO sentences or subtitle bars.",
+    lookLine,
+    look ? "Lettering follows that Look." : "",
+  ].filter(Boolean);
+}
+
+// Diagram explainer explicit headline helper (only when a concise headline string is passed explicitly).
 export function diagramStartFrameLetteringLines(narration: string, look?: SubtitleLook): string[] {
   const formatted = formatVoiceoverForMarker(narration);
   if (!formatted.line1) return [];
@@ -589,7 +599,7 @@ export function diagramStartFrameLetteringLines(narration: string, look?: Subtit
     : [`Board explanation (spell exactly): "${formatted.line1}"`];
   const lookLine = look ? lookLineForOnScreenVideo(subtitleLookLine(look)) : "";
   return [
-    "Draw this explanation on the start still. The video then moves around it.",
+    "Draw this concise headline on the still.",
     ...lines,
     lookLine,
     look

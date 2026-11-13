@@ -1,5 +1,6 @@
 import { drainPendingJobs } from "@/service/generation/task-runner";
 import { isCronAuthorized } from "@/service/generation/cron-auth";
+import { resumeStalePhaseAJobs } from "@/service/director/jobs";
 import {
   shouldUseWorkerQueueOnly,
   syncPendingDomainJobsToWorkerQueue,
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     const synced = await syncPendingDomainJobsToWorkerQueue();
     return Response.json({ workerQueueOnly: true, ...synced });
   }
+  const phaseA = await resumeStalePhaseAJobs();
   const result = await drainPendingJobs();
-  return Response.json(result);
+  return Response.json({ ...result, phaseA });
 }

@@ -45,7 +45,7 @@ import {
 } from "@/service/director/camera-move";
 import { frameEndMoment, frameStartMoment } from "@/service/director/keyframe-delta";
 import {
-  diagramStartFrameLetteringLines,
+  diagramConciseTextLines,
   comparisonOnCanvasLines,
   listicleOnCanvasLines,
   resolveSceneText,
@@ -194,9 +194,8 @@ function compositionLockLines(
   if (steadyLock) {
     return [
       `COMPOSITION LOCK: ${source}.`,
-      "Keep the same camera, shot size, angle, crop, set, lighting, character size, and screen position. No zoom, no reframe, no new angle.",
-      "Only this clip's one action changes: the acting hands, the moved element, the pose, and the expression.",
-      "The subtitle lettering stays identical: same words, same place, same size.",
+      "Keep the same 2D planar camera, shot size, angle, crop, board/background surface, lighting, and presenter character scale and corner position. No zoom, no reframe, no new angle.",
+      "Transform ONLY the teaching diagram and character acting from State A (this attached START frame) to State B (the Scene above): update the character's pose, pointing hand, eyeline, and expression, and execute the diagram state change (elements slid in/out, unfolded, torn open, drawn, flipped, or meter filled) along with the exact concise 「」 labels named in the Scene.",
     ];
   }
   // The narrator lock already states the action, side, and camera rules for this still.
@@ -491,7 +490,7 @@ function fitFramePrompt(
       renderDetail: p.renderDetail
         ? p.renderDetail.startsWith("Real human camera capture:")
           ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT) in an inviting 3400K–4200K warm golden-amber indoor colour temperature. Light faces with warm, soft, even, diffused ambient indoor light and a low, gradual tonal transition (soft minimal shadows under the chin and around the eyes, no cold blue/grey cast, no harsh side-light contrast, below pure-white clipping) and faithfully preserve the character portrait's raw unretouched non-reflective diffuse matte-natural skin pores, peach-fuzz, warm healthy skin undertones, and under-eye micro-texture (zero skin reflectivity, zero shiny hot spots, zero oily, waxy, or plastic sheen) with soft warm background bokeh."
-          : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); light faces and surfaces with soft diffused ambient room light or gentle window daylight and a low, gradual tonal transition across the face (no harsh side-light contrast, no half-dark face) and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with clean digital colour and no film grain, non-reflective diffuse matte-natural skin pores (zero skin reflectivity, zero oily sheen), keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
+          : "Realistic light & camera: light faces and surfaces with soft diffused ambient room light or gentle window daylight and a low, gradual tonal transition across the face (no harsh side-light contrast, no half-dark face; keep daytime and indoor scenes brightly well-exposed with clear midtones unless explicitly night) and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with clean digital colour and no film grain, non-reflective diffuse matte-natural skin pores (zero skin reflectivity, zero oily sheen), keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
         : "",
     }),
     ...(keepLight
@@ -995,9 +994,8 @@ export function buildFramePrompt(
   const paintSurpriseType = false;
   const chosenLetteringLook = project.onScreenTextStyleId || project.subtitleLook;
   const diagramStartLettering =
-    isDiagramExplainerSkill(project.skillSlug) && position === "start" && !silentClip
-      ? diagramStartFrameLetteringLines(
-          (row.englishVo || voForFrame || "").trim(),
+    isDiagramExplainerSkill(project.skillSlug) && !silentClip
+      ? diagramConciseTextLines(
           chosenLetteringLook ? resolveSubtitleLook(chosenLetteringLook) : undefined,
         )
       : [];
@@ -1144,7 +1142,7 @@ export function buildFramePrompt(
     ...(!sceneText.enabled || talkingHeadSkipsLettering
       ? ["Final check: no letters, no subtitle, no caption, no numbers, no sign, no watermark."]
       : diagramStartLettering.length
-      ? ["Final check: the board explanation is drawn on this start still and spelled exactly."]
+      ? ["Final check: spell only Scene's 「」 labels cleanly; no transcript or subtitle bar."]
       : overlay
       ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
       : listicle

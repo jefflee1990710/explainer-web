@@ -195,6 +195,7 @@ import {
 } from "@/presentation/components/app/projects/new/first-video-onboarding-modal";
 import {
   canAdvanceFromWizardStep,
+  directorOmitsSketch,
   maxReachableWizardStep,
   type BriefWizardStepIndex,
   type BriefWizardValidationState,
@@ -480,6 +481,7 @@ export function NewProjectForm({
   >(initialVideo?.uploadedVoDurationSeconds);
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
+  const omitsSketch = directorOmitsSketch(ruleSlug, talkingHead);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
   const presetBackgrounds = directorPresetBackgrounds(ruleSlug);
   const allowsBgUpload = skillAllowsBackgroundUpload(ruleSlug);
@@ -671,7 +673,7 @@ export function NewProjectForm({
       JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
         JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
       JSON.stringify(project.clipDrafts || []) ===
-        JSON.stringify(talkingHead ? [] : clipDrafts) &&
+        JSON.stringify(omitsSketch ? [] : clipDrafts) &&
       JSON.stringify(project.backgroundImageUrls || []) ===
         JSON.stringify(
           talkingHeadBackground || allowsBgUpload ? backgroundImageUrls : [],
@@ -739,7 +741,7 @@ export function NewProjectForm({
     formData.set("videoQualityTier", videoQualityTier);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
-    if (!talkingHead && clipDrafts.length > 0) {
+    if (!omitsSketch && clipDrafts.length > 0) {
       formData.set("clipDrafts", JSON.stringify(clipDrafts));
     }
     if (talkingHeadBackground) {
@@ -791,7 +793,7 @@ export function NewProjectForm({
       goToWizardStep(2);
       return;
     }
-    if (wizardStep === 2 && !talkingHead) {
+    if (wizardStep === 2 && !omitsSketch) {
       if (!aspectRatio) {
         setError(t("brief.error.aspectRatioRequired"));
         return;
@@ -1269,7 +1271,7 @@ export function NewProjectForm({
     } else {
       setDirectorBackgroundDialogOpen(false);
     }
-    if (isTalkingHeadSkill(nextRuleSlug) && wizardStep === 3) {
+    if (directorOmitsSketch(nextRuleSlug, isTalkingHeadSkill(nextRuleSlug)) && wizardStep === 3) {
       setWizardStep(2);
     }
     if (isDiagramExplainerSkill(nextRuleSlug)) {
@@ -1687,6 +1689,7 @@ export function NewProjectForm({
                     currentStep={wizardStep}
                     maxReachableStep={maxWizardStep}
                     talkingHead={talkingHead}
+                    hideDrafts={omitsSketch}
                     disabled={briefBusy}
                     summaries={wizardSummaries}
                     onSelectStep={goToWizardStep}
@@ -2099,7 +2102,7 @@ export function NewProjectForm({
                       )}
                     </div>
                   </motion.div>
-                ) : (
+                ) : !omitsSketch ? (
                   <motion.div
                     key="wizard-step-3"
                     initial={{ opacity: 0, x: -12 }}
@@ -2120,7 +2123,7 @@ export function NewProjectForm({
                       onChange={setClipDrafts}
                     />
                   </motion.div>
-                    )}
+                ) : null}
                   </AnimatePresence>
 
                   {error ? (
@@ -2161,7 +2164,7 @@ export function NewProjectForm({
                   <p className="text-xs text-muted">
                     {castNeed > 0 && !isCastCountValid(ruleSlug, characterIds.length)
                       ? t("brief.footer.castRequired", { n: ruleSlug === STORY_SHORT_SKILL_SLUG ? 1 : castNeed })
-                      : wizardStep === (talkingHead ? 2 : 3)
+                      : wizardStep === (omitsSketch ? 2 : 3)
                         ? restarting
                           ? t("brief.footer.restartWarning")
                           : project
@@ -2169,12 +2172,12 @@ export function NewProjectForm({
                             : null
                         : t("brief.wizard.stepCount", {
                             current: wizardStep + 1,
-                            total: talkingHead ? 3 : 4,
+                            total: omitsSketch ? 3 : 4,
                           })}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    {wizardStep < (talkingHead ? 2 : 3) ? (
+                    {wizardStep < (omitsSketch ? 2 : 3) ? (
                       <motion.button
                         key="wizard-next-button"
                         type="button"
@@ -2190,7 +2193,7 @@ export function NewProjectForm({
                       </motion.button>
                     ) : null}
 
-                    {restarting && wizardStep === (talkingHead ? 2 : 3) ? (
+                    {restarting && wizardStep === (omitsSketch ? 2 : 3) ? (
                       <button
                         type="button"
                         onClick={() => void submitCreateNew()}

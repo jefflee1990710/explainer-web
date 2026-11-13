@@ -201,22 +201,29 @@ describe("clipsShareContinuity", () => {
 });
 
 describe("per-clip stage and steady-stills resolution", () => {
-  it("computes frameCost and clipDrawsNoEndStill per clip when a talking-head video appends a start-only explainer clip", () => {
+  it("computes frameCost and clipDrawsNoEndStill per clip when a talking-head video appends start-only or dual-keyframe explainer clips", () => {
     const row1 = makeRow(1);
     const row2 = attachClipOverrides(makeRow(2), {
+      skillSlug: "papercraft-diorama-director",
+      styleId: "papercraft-diorama",
+    });
+    const row3 = attachClipOverrides(makeRow(3), {
       skillSlug: "cartoon-explainer-video-director",
       styleId: "doodle",
     });
-    const project = makeProject([row1, row2]);
+    const project = makeProject([row1, row2, row3]);
 
-    // Clip 1 (talking-head) followed by Clip 2 (cartoon-explainer) does not share continuity,
+    // Clip 1 (talking-head) followed by Clip 2 (papercraft-diorama) does not share continuity,
     // so Clip 1 cannot use Clip 2's start frame as its end frame and must draw both stills.
     assert.equal(clipEndIsNextStart(project, 1), false);
     assert.equal(clipDrawsNoEndStill(project, 1), false);
     assert.equal(clipFrameCost(project, 1), FRAMES_COST);
-    // Clip 2 is cartoon-explainer (start-only), so it draws no end still (1 frame = FRAME_COST).
+    // Clip 2 is papercraft-diorama (start-only), so it draws no end still (1 frame = FRAME_COST).
     assert.equal(clipDrawsNoEndStill(project, 2), true);
     assert.equal(clipFrameCost(project, 2), FRAME_COST);
+    // Clip 3 is cartoon-explainer (start-end dual keyframe), so it draws both start and end stills.
+    assert.equal(clipDrawsNoEndStill(project, 3), false);
+    assert.equal(clipFrameCost(project, 3), FRAMES_COST);
 
     const state2 = clipStateFor(project, 2);
     assert.equal(state2.frameCost, FRAME_COST);
@@ -274,12 +281,12 @@ describe("per-clip stage and steady-stills resolution", () => {
       const plan3 = frameSubmitPlan(project, 3, "start");
       assert.equal(plan3.anchor, undefined);
 
-      // framesWithClip for Clip 2 (cartoon-explainer) only queues a start frame.
+      // framesWithClip for Clip 2 (cartoon-explainer, start-end) queues both start and end frames.
       const rebuiltFrames = framesWithClip(project, 2);
       const clip2Frames = rebuiltFrames.filter((f) => f.clipNumber === 2);
       assert.deepEqual(
         clip2Frames.map((f) => f.position),
-        ["start"],
+        ["start", "end"],
       );
     } finally {
       uninstallTestStyles();

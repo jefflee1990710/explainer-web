@@ -117,10 +117,22 @@ test("step 3 requires aspectRatio and maxReachableWizardStep unlocks progressive
   assert.equal(maxReachableWizardStep(baseState({ source: "", aspectRatio: "" })), 2);
   // Step 1, Step 2 & Step 3 valid -> unlocks step 3 (storyboard drafts) for non-talking-head
   assert.equal(maxReachableWizardStep(baseState({ source: "", aspectRatio: "9:16" })), 3);
-  // Talking-head director omits Step 04 (Storyboard Drafts) and stops at step 2
+  // Talking-head, story, and one-take omit Step 04 (Storyboard Drafts) and stop at step 2
   assert.equal(
     maxReachableWizardStep(
       baseState({ talkingHead: true, spokenScript: "Hi there.", aspectRatio: "9:16" }),
+    ),
+    2,
+  );
+  assert.equal(
+    maxReachableWizardStep(
+      baseState({ skillSlug: "story-short-director", aspectRatio: "9:16" }),
+    ),
+    2,
+  );
+  assert.equal(
+    maxReachableWizardStep(
+      baseState({ skillSlug: "one-take-director", aspectRatio: "9:16" }),
     ),
     2,
   );

@@ -1,5 +1,6 @@
 // ISOLATED DIRECTOR RULES: 1 Director = 1 File. Do NOT share or import prompt rules from other directors. Modify only this file when tuning this director.
 
+import type { DurationPreset } from "@/model/project";
 import type { DirectorRuleModule } from "@/service/director/rules/types";
 import {
   REALISTIC_LIGHT_DIRECTOR_RULE,
@@ -30,6 +31,21 @@ const STORY_SINGLE_FRAME_MOTION_RULES = [
   "Follow the camera movement described in motionCamera (such as a smooth gimbal tracking shot, follow shot, pan, or steady framing) with natural optical depth of field. Layer diegetic environmental sound effects matched to each physical action in the beats.",
   "The opening frame has no big title, headline plate, or title card. Do not add, hold, or animate one.",
 ].join(" ");
+
+// Total film length for the dock. Each clip stays 5–12s; the clips add up to this target, never past 1 minute.
+export function storyShortDurationHint(preset: DurationPreset) {
+  const target =
+    preset === "micro"
+      ? "about 8 seconds, in one clip"
+      : preset === "short"
+        ? "about 20 seconds"
+        : preset === "punchy"
+          ? "about 45 seconds"
+          : preset === "full"
+            ? "about 60 seconds, and never longer than 1 minute"
+            : "whatever length the source needs between 8 and 60 seconds, and never longer than 1 minute";
+  return `SHORT FILM LENGTH: the whole film is ${target}. Each clip stays 5–12 seconds. Add clips until the total matches that length. Do not plan a film longer than 60 seconds.`;
+}
 
 export const storyShortDirectorRules: DirectorRuleModule = {
   slug: "story-short-director",
@@ -65,7 +81,7 @@ export const storyShortDirectorRules: DirectorRuleModule = {
       "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
       "GLOBAL SPATIAL BLOCKING & 180-DEGREE AXIS PLAN (`spatialBlocking`): Before writing clips, plan the exact 3D room geography and character seating/standing positions in `spatialBlocking` (e.g. Character A sits on the left side of the table facing frame-right; Character B sits opposite across the table on the right side facing frame-left; windows/background wall stay behind both characters on the far side of the 180-degree camera line). Every clip's `2) Set` and `4) Camera` MUST follow `spatialBlocking` identically.",
       "SPEAKER-DRIVEN MOVIE EDITING & SPATIAL DEPTH CAMERA (分鏡依說話者切換 + 3D 空間感運鏡): Direct multi-character dialogue like a narrative film. Cut between clips based on WHO IS SPEAKING and WHO IS REACTING: for single-speaker cuts use `Over-the-Shoulder (OTS)` medium close-ups that include the listener's blurred foreground shoulder/back-of-head on the opposite edge as a physical depth anchor and eyeline target — ALWAYS name the foreground listener by their exact cast name so the foreground back-of-head and shoulder match the exact hair, gender, and outfit of that named cast member from their attached blueprint (never an unnamed stranger or wrong-gender silhouette), and keep the speaker's eyes 100% locked on the listener (NEVER looking at the camera lens); for `Two-Shots` at a table, stage an `opposite-seating across-the-table two-shot` in profile/3-4 profile where characters face each other across the table (never side-by-side facing the camera). Choreograph 3D parallax camera movements (foreground-to-midground slider arc, push-in past foreground silhouettes, or tracking motion) in `motionCamera` to highlight 3D spatial depth.",
-      "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the dialogue lines, storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
+      "DURATION & PACING: The duration preset is the TOTAL film length (about 8s, 20s, 45s, or 60s; auto stays between 8 and 60 seconds). Never plan a film longer than 60 seconds. Set clipCount and each clip's durationSeconds (5–12 seconds) so the clips add up to that total — never force a silent or action clip down to 5 seconds when the action needs a longer 6–12s shot.",
       'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips firmly sealed shut (zero teeth showing). When the story or user prompt includes spoken lines, give ONE primary speaker per clip (or a tight exchange) written in englishVo as `NAME: "line"` spoken on screen by that character (with each supplied voice lock pasted verbatim), while any other on-screen listening character keeps their lips firmly sealed shut with zero teeth showing (closed-lip expression only) and reacts visually through eyes and brows.',
       "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
       "FIRST FRAME: Clip 1's opening still has no big title, no headline plate, and no title card. localizedTitle and englishTitle stay in the proposal fields and are never painted on the image. A small in-world sign the source itself names may stay in the set; never turn the video title into lettering.",

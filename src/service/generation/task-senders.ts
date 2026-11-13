@@ -43,6 +43,7 @@ import {
 import { sendPoseEdit } from "@/service/pose-edit/send";
 import { loadProduct, sendProductBlueprint } from "@/service/product/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
+import { isStandaloneEngineSkillSlug } from "@/service/opencut/standalone-engine-slugs";
 import { PermanentJobError } from "@/service/generation/task-policy";
 import { toSent, type Sent } from "@/service/generation/sent";
 import type { Character } from "@/model/character";
@@ -159,6 +160,9 @@ async function sendCharacter(job: GenerationJob) {
 // Phase B runs once: a retry reuses the prompt already written to the clip.
 async function sendVideo(project: Project, clipNumber: number) {
   project = resolveClipProject(project, clipNumber);
+  if (isStandaloneEngineSkillSlug(project.skillSlug)) {
+    throw new PermanentJobError("這段是 Scro Swap 或 Teleport，由 Vast ref2va 渲染");
+  }
   if (!project.phaseA) throw new PermanentJobError("找不到分鏡");
   // Missing keyframes will not fix themselves; stop before spending a Phase B call.
   const startOnly = clipSkipsEndStill(project);

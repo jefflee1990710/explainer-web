@@ -1,5 +1,6 @@
 // ISOLATED DIRECTOR RULES: 1 Director = 1 File. Do NOT share or import prompt rules from other directors. Modify only this file when tuning this director.
 
+import type { DurationPreset } from "@/model/project";
 import type { DirectorRuleModule } from "@/service/director/rules/types";
 import {
   REALISTIC_LIGHT_DIRECTOR_RULE,
@@ -20,6 +21,16 @@ const ONE_TAKE_SINGLE_FRAME_MOTION_RULES = [
   "Follow the continuous camera movement described in motionCamera (smooth gimbal tracking shot, follow shot, lead shot, or side-tracking shot) with natural optical depth of field. Layer diegetic environmental sound effects (footsteps, wind, gravel, ambient air) matched to each physical movement beat.",
   "The opening frame has no big title, headline plate, or title card. Do not add, hold, or animate one.",
 ].join(" ");
+
+// One continuous shot. The dock's 60s choice is the clip length, and it never goes past 1 minute.
+export function oneTakeDurationHint(preset: DurationPreset) {
+  const seconds =
+    preset === "micro" ? 6 : preset === "short" ? 18 : preset === "punchy" ? 36 : preset === "full" ? 60 : null;
+  if (!seconds) {
+    return "ONE-TAKE LENGTH: exactly 1 clip, between 6 and 60 seconds, chosen from the source. Never longer than 1 minute.";
+  }
+  return `ONE-TAKE LENGTH: EXACTLY 1 clip of ${seconds} seconds. Never longer than 1 minute.`;
+}
 
 export const oneTakeDirectorRules: DirectorRuleModule = {
   slug: "one-take-director",

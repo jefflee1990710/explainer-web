@@ -202,7 +202,8 @@ export async function startTeleportJob(
       lane: "gpu",
     }).catch(() => {});
 
-    if (!shouldUseWorkerQueueOnly() && !hasComfyEndpoint()) {
+    // Vercel owns the job. Comfy runs on Vast and is called over COMFY_BASE_URL.
+    if (!shouldUseWorkerQueueOnly()) {
       after(() =>
         runTeleportJobInBackground(jobId).catch((error) => {
           console.error("[teleport] background job failed", { jobId: jobId.toHexString(), error });
@@ -472,7 +473,9 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
     active.map(async (job): Promise<number> => {
       try {
         if (!job.openRouterStatusUrl) {
-          if (job.createdAt.getTime() < staleCutoff) {
+          // A retry updates updatedAt. createdAt stays old and would fail the job
+          // before Comfy has a prompt id.
+          if (job.updatedAt.getTime() < staleCutoff) {
             const timeoutErr = "Teleport 處理逾時，請重試";
             await failTeleportJobAndRefund(job, timeoutErr);
             return 1;

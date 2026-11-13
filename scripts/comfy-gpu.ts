@@ -230,11 +230,49 @@ function sshCode(ssh: string[], command: string) {
   });
 }
 
+function installProxyToken(ssh: string[]) {
+  const token = process.env.COMFY_API_KEY?.trim();
+  if (!token) throw new Error("缺少 COMFY_API_KEY，不能啟動 Comfy 代理");
+  // cat stays in the foreground. Backgrounding the whole && list makes cat read /dev/null.
+  return run("ssh", [...ssh, "cat > /workspace/.comfy-token && chmod 600 /workspace/.comfy-token"], token);
+}
+
+function restartProxy(ssh: string[]) {
+  return run("ssh", [
+    ...ssh,
+    `python3 - <<'PY'
+import os, pathlib, signal, subprocess, time
+token = open("/workspace/.comfy-token").read().strip()
+if not token:
+    raise SystemExit("empty token")
+me = os.getpid()
+python_bin = "/venv/main/bin/python"
+for proc in pathlib.Path("/proc").iterdir():
+    if not proc.name.isdigit() or int(proc.name) == me:
+        continue
+    try:
+        argv = (proc / "cmdline").read_bytes().split(b"\\0")
+    except Exception:
+        continue
+    if any(part.endswith(b"main.py") for part in argv):
+        python_bin = argv[0].decode()
+    if any(part.endswith(b"vast-openjutsu-proxy.py") for part in argv) and b"python" in argv[0]:
+        os.kill(int(proc.name), signal.SIGTERM)
+time.sleep(0.4)
+env = os.environ.copy()
+env["COMFY_PROXY_TOKEN"] = token
+log = open("/workspace/proxy.log", "ab")
+subprocess.Popen([python_bin, "/workspace/vast-openjutsu-proxy.py"], env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+PY`,
+  ]);
+}
+
 async function waitForOpenJutsu(instance: VastInstance, ssh: string[]) {
   const deadline = Date.now() + 45 * 60 * 1000;
   const base = comfyUrlFromPorts({ publicIp: instance.public_ipaddr, ports: instance.ports });
   const key = process.env.COMFY_API_KEY?.trim();
   let missed = 0;
+  let refreshedToken = false;
   while (Date.now() < deadline) {
     const done = (await sshCode(ssh, "test -f /workspace/openjutsu-setup.done")) === 0;
     if (done && base) {
@@ -242,12 +280,23 @@ async function waitForOpenJutsu(instance: VastInstance, ssh: string[]) {
         const response = await fetch(`${base}/queue`, {
           headers: key ? { Authorization: `Bearer ${key}` } : {},
         });
-        if (response.ok || response.status === 401) {
+        if (response.ok) {
           console.log("ComfyUI 已回應");
           return;
         }
-        console.log(`ComfyUI HTTP ${response.status}`);
+        if (response.status === 401) {
+          if (refreshedToken) {
+            throw new Error("Comfy 代理仍然拒絕 token。確認 COMFY_API_KEY 後再執行 use");
+          }
+          refreshedToken = true;
+          console.log("Comfy 代理拒絕了 token，正在寫回並重啟代理");
+          await installProxyToken(ssh);
+          await restartProxy(ssh);
+        } else {
+          console.log(`ComfyUI HTTP ${response.status}`);
+        }
       } catch (error) {
+        if (error instanceof Error && /拒絕 token|缺少 COMFY_API_KEY|empty token/.test(error.message)) throw error;
         const code = error instanceof Error && "cause" in error ? String((error.cause as { code?: string })?.code || "") : "";
         console.log(`ComfyUI 尚未接受連線${code ? `（${code}）` : ""}`);
       }
@@ -274,7 +323,6 @@ async function ensureOpenJutsu(instance: VastInstance) {
   if (!done) {
     const installing = (await sshCode(ssh, "pid=$(cat /workspace/openjutsu-setup.pid 2>/dev/null || true); [ -n \"$pid\" ] && kill -0 \"$pid\"")) === 0;
     if (!installing) {
-      const token = process.env.COMFY_API_KEY?.trim() || "";
       await run("ssh", [...ssh, "mkdir -p /workspace"]);
       await run("scp", [
         "-o",
@@ -287,13 +335,13 @@ async function ensureOpenJutsu(instance: VastInstance) {
         path.join(process.cwd(), "scripts/vast-openjutsu-proxy.py"),
         `root@${target.host}:/workspace/`,
       ]);
+      await installProxyToken(ssh);
       await run(
         "ssh",
         [
           ...ssh,
-          "cat > /workspace/.comfy-token && chmod 600 /workspace/.comfy-token && chmod +x /workspace/vast-openjutsu-setup.sh && nohup bash /workspace/vast-openjutsu-setup.sh >/tmp/openjutsu-bootstrap.log 2>&1 </dev/null & disown; exit 0",
+          "chmod +x /workspace/vast-openjutsu-setup.sh; nohup bash /workspace/vast-openjutsu-setup.sh >/tmp/openjutsu-bootstrap.log 2>&1 </dev/null & disown; exit 0",
         ],
-        token,
       );
       console.log("開始安裝 OpenJutsu");
     }

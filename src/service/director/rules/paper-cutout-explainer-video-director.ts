@@ -12,17 +12,14 @@ import {
 const SIGHTLINE_RULE =
   "Sightline: show only what this camera can see. A working face (a person's face, a screen, a page, a sign, a dial, a label) stays aimed at whoever uses it. Draw that content only on that side. If this camera cannot see that side, draw the blank side it does see. Never turn a person or a prop around, and never move the content onto the blank side, just to make it visible.";
 
-const PAPER_CUTOUT_GLIDE_MOTION_RULES = [
-  "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
-  "Never call that still a reference image.",
-  "Reply with the start scene and the motion. endScene is where this clip's action lands: write that landing into the motion. Do not ask the video to match a second picture.",
-  "CAMERA LOCK (NO ZOOM-IN / NO PUSH-IN): keep the camera 100% locked and stationary square-on to the board for the entire clip — NEVER zoom in, push in, pull out, or pan the camera.",
-  "FAST, ACCELERATED, TIGHT PACING (NO SLOW MOTION): play all character gestures and on-board element transitions at a brisk, accelerated, high-energy pace (1.3x–1.5x snappy stop-motion / kinetic explainer speed) with zero sluggish glides and zero dead holds. Pack the clip with rapid-fire visual beats every 1.0–1.5 seconds (0.0–1.2s, 1.2–2.5s, 2.5–4.0s, 4.0–end): elements whip/slide in and out at high speed (快速滑入／滑出), folded paper cards snap and unfold flat in under 0.5s (快速摺開), top cover strips tear or peel away briskly to reveal the card underneath (快速撕開), connecting arrows/lines/circles draw themselves rapidly stroke-by-stroke across the board (快速畫出), two-sided cards flip briskly through their edge (快速翻轉), and takeaway badges stamp down with crisp impact while the character briskly points their hand and gaze from Focus Point 1 → Focus Point 2 → Focus Point 3.",
-  "Use at most ONE directional arrow per clip (never stack multiple arrows or spawn extra flying arrows if one is already on screen), and never slide blank grey slash strips or masking-tape stickers over headers.",
-  "Whiteboard cardboard physics: every prop, card, diagram block, arrow, chart bar, shape, and tag moves as a single rigid flat cardboard/paper cutout piece in one piece. Elements slide briskly in and out of the screen, unfold, tear open, or snap into place without bending, melting, dissolving, or morphing into another shape. Background and set layers stay 100% stationary and rigid.",
-  "Write high-velocity speed into every verb (whips in, snaps open, tears away briskly, zips across, flips rapidly, stamps down, points sharply). Never use slow, gentle, gradual, or leisurely verbs, and never leave the character or diagram holding still. Never skip a frame and never cut.",
-  "The character stays in their presenter corner keeping the same screen position and scale while pointing briskly at each active focus point. Eyes and hands stay on that element on every clip, including Clip 1. Lips and jaw stay sealed. No lip-sync and no look into the lens.",
-  "The written explanation is already drawn on the start frame. Keep those exact words sharp and in the same place while elements move. Do not morph, erase, rewrite, or duplicate that explanation.",
+const PAPER_CUTOUT_DUAL_KEYFRAME_MOTION_RULES = [
+  "Both START (State A) and END (State B) storyboard images for this clip are attached as first/last frames to MiniMax H3. Never call those stills a reference image.",
+  "CAMERA LOCK (NO ZOOM-IN / NO PUSH-IN): keep the camera 100% locked and stationary square-on to the wooden craft board for the entire clip — NEVER zoom in, push in, pull out, or pan the camera.",
+  "FAST, ACCELERATED, TIGHT PACING (State A -> State B): interpolate element-by-element across the FULL duration with speed-ramped beats every 1.0–1.5 seconds (0.2s quick anticipation → 0.3s–0.4s high-speed 2x–3x transition → crisp sudden settle) so State A transforms cleanly into State B — never hold State A frozen and snap on the final frames: cutout cards whip/slide in and out at high speed (快速滑入／滑出), folded paper cards snap and unfold flat (快速摺開), top cover strips tear or peel away briskly (快速撕開), connecting arrows/lines/circles draw themselves rapidly stroke-by-stroke (快速畫出), and two-sided cards flip cleanly along their edge (快速翻轉).",
+  "Use at most ONE directional arrow per clip (never stack multiple arrows or spawn extra flying arrows), and never slide blank grey slash strips or masking-tape stickers over headers.",
+  "Whiteboard cardboard physics: every paper cutout, card, diagram block, arrow, chart bar, shape, and tag with its white scissor border moves as a single rigid flat cutout piece without bending, melting, or dissolving. Dark vertical wood-grain board stays 100% stationary.",
+  "Character acting: keep the cutout character in their presenter corner at the same screen position and scale while briskly pointing at each active focus point. Eyes and hands stay on that element on every clip, including Clip 1. Lips and jaw stay sealed. No lip-sync and no look into the lens.",
+  "Concise on-canvas labels: keep the concise 「」 cutout labels and optional short beat headline sharp and readable as shown in the first and last frames. Never morph, scramble, or invent extra full-sentence text or Subtitle:.",
 ].join(" ");
 
 export const paperCutoutExplainerVideoDirectorRules: DirectorRuleModule = {
@@ -51,7 +48,7 @@ export const paperCutoutExplainerVideoDirectorRules: DirectorRuleModule = {
       "Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through motionCamera to the end still.",
       "The start and end still of one clip share the same light and the same place. endScene is the opening still after motionCamera has finished: its Camera line is the landed shot size, angle, and where subjects sit. If motionCamera keeps the camera locked, keep that Camera line. Write the landed picture, not the in-between path.",
       "Before returning, compare each clip's start and end still item by item: every difference appears in motionCamera, and every object motionCamera touches already exists in the start still or enters in a beat.",
-      "Mandatory on-screen explanation: every page has animated teaching elements the character handles (point, tap, place, slide, flip, or pick up) and a rich written explanation of this beat — one or two plain sentences in the configured scene-text language, the same meaning as englishVo. Draw those sentences onto the start still as artistic on-screen text in the user's chosen style. The off-screen voiceover speaks those sentences. Never write Subtitle:. Short labels on the elements stay. The video adds motion around that lettering; the explanation stays sharp, same words, same place. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync, no look into the lens, and no greeting wave. Never plan a text-free page and never turn on-screen text off.",
+      "Concise On-Canvas Text Budget: englishVo is spoken ONLY by the off-screen narrator — NEVER dump full voiceover sentences, paragraphs, or Subtitle: onto startScene or endScene. Keep on-canvas text strictly concise inside 「」 in the configured scene-text language: at most 1 short beat takeaway/headline (2–6 English words / 4–10 CJK chars; on Clip 1 the Big Bold Hook Title cutout banner is the sole headline) plus 2–3 short cutout tag labels (1–3 words / 2–6 CJK chars). Stage startScene as State A (initial craft board / folded strip / low meter) and endScene as State B (landed outcome / unfolded flat card / torn-open reveal / filled meter), with motionCamera physically animating State A into State B. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync, no look into the lens, and no greeting wave.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock(options) {
@@ -73,7 +70,7 @@ export const paperCutoutExplainerVideoDirectorRules: DirectorRuleModule = {
     });
   },
   phaseBMotionRules() {
-    return PAPER_CUTOUT_GLIDE_MOTION_RULES;
+    return PAPER_CUTOUT_DUAL_KEYFRAME_MOTION_RULES;
   },
   phaseBDetailRules(options) {
     const base = options.realistic

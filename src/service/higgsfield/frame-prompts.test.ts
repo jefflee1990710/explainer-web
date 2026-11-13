@@ -159,7 +159,7 @@ test("any director's Clip 1 start still places the 「」 hook title slightly ab
   assert.doesNotMatch(explainer, /HOOK EXPRESSION/);
   assert.match(explainer, /lips and jaw sealed/i);
   assert.match(explainer, /teaching element/);
-  assert.match(explainer, /Board explanation/);
+  assert.match(explainer, /ON-CANVAS TEXT/);
   assert.doesNotMatch(explainer, /Subtitle:/);
 });
 
@@ -211,7 +211,7 @@ test("realistic paper-cutout Clip 1 start still with numbered Set cutouts fits F
   assert.match(prompt, /Realistic light & camera/);
 });
 
-test("whiteboard stills draw the spoken explanation on the start still and keep diagram labels", () => {
+test("whiteboard stills keep concise diagram labels and exclude full spoken VO sentences", () => {
   const cartoon = project("realistic");
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
@@ -225,28 +225,31 @@ test("whiteboard stills draw the spoken explanation on the start still and keep 
     englishVo: "Four lighting techniques you must know. Everything begins inside a dark studio.",
   };
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.match(prompt, /Board explanation/);
-  assert.match(prompt, /Four lighting techniques you must know/);
-  assert.match(prompt, /Everything begins inside a dark studio/);
+  assert.match(prompt, /ON-CANVAS TEXT/);
+  assert.doesNotMatch(prompt, /Four lighting techniques you must know/);
+  assert.doesNotMatch(prompt, /Everything begins inside a dark studio/);
   assert.doesNotMatch(prompt, /Subtitle:/);
   assert.match(prompt, /「LIGHT CONTROL」/);
 });
 
-test("cartoon stills keep bracket labels and draw the spoken explanation on the start still", () => {
+test("cartoon stills keep bracket labels and exclude full spoken VO text on both start and end", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
   cartoon.phaseA!.clips[0].startScene =
     'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
+  cartoon.phaseA!.clips[0].endScene = 'card flipped to 「3X VIEWS」.';
   cartoon.phaseA!.clips[0].englishVo = "Save it now!";
   cartoon.phaseA!.clips[0].startVo = "Save it now!";
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.match(prompt, /Board explanation/);
-  assert.match(prompt, /Save it now!/);
+  assert.match(prompt, /ON-CANVAS TEXT/);
+  assert.doesNotMatch(prompt, /Save it now!/);
   assert.doesNotMatch(prompt, /Subtitle:/);
-  assert.match(prompt, /Final check: the board explanation is drawn on this start still/);
+  assert.match(prompt, /Final check: spell only Scene's 「」 labels cleanly/);
   assert.match(prompt, /「VIRAL SHOTS」/);
-  assert.doesNotMatch(buildFramePrompt(cartoon, 1, "end"), /Board explanation/);
+  const endPrompt = buildFramePrompt(cartoon, 1, "end");
+  assert.match(endPrompt, /ON-CANVAS TEXT/);
+  assert.match(endPrompt, /「3X VIEWS」/);
   assert.doesNotMatch(prompt, /HOOK EXPRESSION/);
 });
 
@@ -325,7 +328,7 @@ test("whiteboard explainer stills keep the character silent and draw the mechani
   cartoon.skillSlug = "cartoon-explainer-video-director";
   assert.match(buildFramePrompt(cartoon, 1, "start"), /Silent demonstrator/);
   assert.match(buildFramePrompt(cartoon, 1, "end"), /explanation graph/);
-  assert.match(buildFramePrompt(cartoon, 1, "end"), /beat title/);
+  assert.match(buildFramePrompt(cartoon, 1, "end"), /Concise 「」 labels\/headline/);
   assert.doesNotMatch(buildFramePrompt(cartoon, 1, "end"), /STEP N|STEP 1/);
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
 });
@@ -349,7 +352,7 @@ test("whiteboard explainer with a cast locks the camera and keeps the 70/30 diag
   assert.match(end, /aims at the teaching element, never at the lens/);
   assert.match(end, /not a neutral stand/);
   assert.match(end, /70\/30 Diagram-First Spatial Hierarchy/);
-  assert.match(end, /Keep the same camera, shot size, angle, crop, set, lighting, character size, and screen position/);
+  assert.match(end, /Keep the same 2D planar camera, shot size, angle, crop, board\/background surface, lighting, and presenter character scale and corner position/);
   assert.match(end, /other side/);
   assert.equal(end.match(/same side/g)?.length, 1);
   assert.equal(end.match(/Camera angle/gi)?.length, 1);
@@ -888,7 +891,7 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(full, /Unused subscriptions/);
 });
 
-test("whiteboard queues a start still only in every visual style", () => {
+test("whiteboard queues both start and end stills in every visual style (dual-keyframe State A -> State B)", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.frames = [
@@ -897,7 +900,7 @@ test("whiteboard queues a start still only in every visual style", () => {
   const next = framesWithClips(steady, [1]);
   assert.deepEqual(
     next.map((frame) => `${frame.position}:${frame.status}`),
-    ["start:queued"],
+    ["start:queued", "end:queued"],
   );
 });
 

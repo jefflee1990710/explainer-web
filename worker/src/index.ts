@@ -1,7 +1,10 @@
 import os from "node:os";
 import { loadEnvConfig } from "@next/env";
 import { probeNvencSupport } from "@/service/ffmpeg/video-encoder";
-import { ensureWorkerTaskIndexes } from "@/service/worker/task-queue";
+import {
+  ensureWorkerTaskIndexes,
+  shouldUseWorkerQueueOnly,
+} from "@/service/worker/task-queue";
 import { WorkerApiClient } from "./api-client";
 import { checkLocalComfyUi } from "./comfy-local";
 import { runTwoLaneWorkerLoop } from "./runner";
@@ -12,6 +15,14 @@ async function main() {
   const workerId =
     process.env.WORKER_ID?.trim() ||
     `vast-${process.env.VAST_CONTAINERLABEL || os.hostname()}-${process.pid}`;
+
+  if (!shouldUseWorkerQueueOnly()) {
+    console.log(
+      `[worker:${workerId}] WORKER_QUEUE_ENABLED is off. Not claiming tasks. ComfyUI on this box stays the GPU/CPU endpoint.`,
+    );
+    return;
+  }
+
   const gpuConcurrency = Math.max(
     1,
     Number(process.env.WORKER_GPU_CONCURRENCY || 1),

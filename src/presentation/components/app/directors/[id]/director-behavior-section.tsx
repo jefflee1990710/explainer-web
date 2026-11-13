@@ -177,10 +177,11 @@ export function DirectorBehaviorSection({
           <span className="mb-1 block text-[11px] font-semibold text-foreground">
             {isZh ? "畫格模式 (Keyframes)" : "Keyframe Mode"}
           </span>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {(
               [
                 { id: "start-only", labelZh: "只畫首幀", labelEn: "Start Only" },
+                { id: "start-end", labelZh: "首尾雙幀", labelEn: "Start + End" },
                 { id: "end-is-next-start", labelZh: "首尾連貫", labelEn: "Chained" },
               ] as const
             ).map((opt) => (

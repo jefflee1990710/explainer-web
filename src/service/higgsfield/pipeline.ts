@@ -102,6 +102,7 @@ import {
   withSceneCharacterLocks,
 } from "@/service/higgsfield/scene-character-lock";
 import { resolveClipExtendReferences } from "@/service/opencut/clip-extend-refs";
+import { storyboardClipVideoEngine } from "@/service/comfy/clip-video-route";
 import { submitComfyStoryboardClipVideo } from "@/service/comfy/submit-clip-video";
 import {
   COMFY_H3_REF2VA_VIDEO_MODEL,
@@ -726,6 +727,16 @@ export async function sendClipVideo(
 ): Promise<Sent> {
   // Resolve per-clip director, style, cast, and voice overrides before submitting the video.
   project = resolveClipProject(project, clipNumber);
+  // Swap and Teleport already have an OpenJutsu job. This sender must not turn that clip into Hailuo.
+  if (
+    storyboardClipVideoEngine({
+      skillSlug: project.skillSlug,
+      videoEngine: project.videoEngine,
+      hookStrategy: project.phaseA?.hookStrategy,
+    }) === "standalone-engine"
+  ) {
+    throw new Error("這段是 Scro Swap 或 Teleport，由 Vast ref2va 渲染");
+  }
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
   // Seated talking-head sends the start still plus the ElevenLabs mp3 to HeyGen Avatar IV (up to 120s).
   const skill = await loadSkill(project);

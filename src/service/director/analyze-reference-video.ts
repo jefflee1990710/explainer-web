@@ -22,7 +22,7 @@ const analyzedDirectorSchema = z.object({
   speechMode: z.enum(["lip-sync", "narrator", "silent"]),
   audioFirstLipSync: z.boolean(),
   wardrobeBuild: z.boolean(),
-  keyframeMode: z.enum(["start-only", "end-is-next-start"]),
+  keyframeMode: z.enum(["start-only", "start-end", "end-is-next-start"]),
   chainsClipStarts: z.boolean(),
   anchorsFramesToFirstClip: z.boolean(),
   dualBeat: z.boolean(),
@@ -184,7 +184,7 @@ Decide the exact pipeline behavior:
   - "silent" if it is a pure fashion/lookbook/action showcase with music/SFX only and no spoken words.
 - audioFirstLipSync: true ONLY if the entire video is a continuous single-shot talking-head read without B-roll cutaways; false if it alternates A-roll and B-roll or multiple scene angles.
 - wardrobeBuild: true if the video's primary purpose is demonstrating clothing/outfits from reference photos.
-- keyframeMode: "end-is-next-start" for continuous single-camera reads; "start-only" for multi-angle / B-roll / explainer cuts.
+- keyframeMode: "end-is-next-start" for continuous single-camera reads; "start-end" for dual-keyframe start→end visual transformations or diagram explainers; "start-only" for multi-angle / B-roll cuts.
 
 Fill all 8 profile fields (bestFor, structure, hook, arc, narrator, visual, audio, rules) in clear, concrete Traditional Chinese, and include detailed shot-by-shot cinematography & editing rules in extraInstructions.`;
 

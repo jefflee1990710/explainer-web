@@ -44,8 +44,17 @@ export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   },
 ] as const;
 
-export function visibleBriefWizardSteps(talkingHead?: boolean): readonly BriefWizardStepMeta[] {
-  return talkingHead
+// Talking-head, story, and one-take skip the optional sketch step.
+export function directorOmitsSketch(skillSlug?: string, talkingHead?: boolean) {
+  return (
+    Boolean(talkingHead) ||
+    skillSlug === "story-short-director" ||
+    skillSlug === "one-take-director"
+  );
+}
+
+export function visibleBriefWizardSteps(hideDrafts?: boolean): readonly BriefWizardStepMeta[] {
+  return hideDrafts
     ? BRIEF_WIZARD_STEPS.filter((step) => step.id !== "drafts")
     : BRIEF_WIZARD_STEPS;
 }
@@ -93,7 +102,7 @@ export function maxReachableWizardStep(
   if (!isStep1Valid(state)) return 0;
   if (!isStep2Valid(state)) return 1;
   if (!isStep3Valid(state)) return 2;
-  return state.talkingHead ? 2 : 3;
+  return directorOmitsSketch(state.skillSlug, state.talkingHead) ? 2 : 3;
 }
 
 // Whether the user can advance from the given wizard step (or submit on the final step).

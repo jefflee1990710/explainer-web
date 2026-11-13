@@ -135,7 +135,7 @@ export function isDirectorSlug(value: string | undefined | null): value is Direc
   return Boolean(value && (DIRECTOR_SLUGS as readonly string[]).includes(value));
 }
 
-export type DirectorKeyframeMode = "start-only" | "end-is-next-start";
+export type DirectorKeyframeMode = "start-only" | "start-end" | "end-is-next-start";
 export type DirectorSpeechMode = "narrator" | "lip-sync" | "silent";
 
 /** Preset background option configured on a director (e.g., paper-cutout collage surfaces). */
@@ -162,6 +162,7 @@ export interface IDirectorBehavior {
   /**
    * Keyframe generation strategy:
    * - "start-only": only the start still is generated; video renders from start still + motion prompt.
+   * - "start-end": each clip generates both its own start still (State A) and end still (State B); video interpolates from start to end.
    * - "end-is-next-start": each clip generates a start still; clip N uses clip N+1's start still as its end keyframe (only the final clip generates its own end still).
    */
   keyframeMode: DirectorKeyframeMode;

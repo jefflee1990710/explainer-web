@@ -4,6 +4,7 @@ import type { StoryboardRow, VoLanguage } from "@/model/project";
 import { isFollowShotSkill, isSilentOutfitSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { clipEndScene, clipStartScene, isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import { endSceneModel } from "@/service/director/model";
@@ -25,7 +26,23 @@ export function shouldRewriteEndScenes(skillSlug?: string) {
   return !isTalkingHeadSkill(skillSlug) && !isSilentOutfitSkill(skillSlug) && !isSurpriseInterviewSkill(skillSlug);
 }
 
-export function endSceneRewriteSystem(language?: VoLanguage, options?: { lockedCamera?: boolean }) {
+export function endSceneRewriteSystem(
+  language?: VoLanguage,
+  options?: { lockedCamera?: boolean; diagramExplainer?: boolean },
+) {
+  if (options?.diagramExplainer) {
+    return [
+      "You rewrite only the end still (State B) of each diagram explainer clip.",
+      "endScene is one frozen picture of that clip's opening still (State A) after its physical transformation in motionCamera has landed.",
+      "Same place, same board/background surface, same light, and same 2D planar camera: copy the opening Camera line (same shot size, angle, side, crop). Keep any presenter character in their corner scale and position.",
+      "Transform the teaching diagram and character acting from State A to State B: execute the element transitions named in motionCamera (slid in/out, unfolded flat, torn/peeled open, stroke-by-stroke drawn arrow/circle, flipped card, or filled meter) and update the concise 「」 keyword labels to State B's outcome.",
+      "STRICT TEXT BUDGET: keep only concise 「」 keyword labels (1–3 words / 2–6 CJK chars) and at most one short beat headline (2–6 words / 4–10 CJK chars). NEVER write full voiceover sentences or Subtitle: on the still.",
+      "Write the landed picture, not the in-between path. Do not invent a new room or a new character.",
+      SIGHTLINE_RULE,
+      "endUsesStartStill is a boolean and is true for every clip: the image model anchors to the attached opening still.",
+      sceneDescriptionLanguageLock(language),
+    ].join(" ");
+  }
   // Cinematic realistic whiteboard: the end still is the opening still plus one action, same camera.
   if (options?.lockedCamera) {
     return [
@@ -125,13 +142,22 @@ async function generateEndScenes(input: { system: string; prompt: string }) {
 
 // One Pro call for every end still. A failure keeps the Flash draft.
 export async function rewriteEndScenes(
-  input: { clips: StoryboardRow[]; language?: VoLanguage; skillSlug?: string; lockedCamera?: boolean },
+  input: {
+    clips: StoryboardRow[];
+    language?: VoLanguage;
+    skillSlug?: string;
+    lockedCamera?: boolean;
+    diagramExplainer?: boolean;
+  },
   generate: EndSceneGenerate = generateEndScenes,
 ) {
   if (!shouldRewriteEndScenes(input.skillSlug) || input.clips.length === 0) return input.clips;
   try {
     const output = await generate({
-      system: endSceneRewriteSystem(input.language, { lockedCamera: input.lockedCamera }),
+      system: endSceneRewriteSystem(input.language, {
+        lockedCamera: input.lockedCamera,
+        diagramExplainer: input.diagramExplainer ?? isDiagramExplainerSkill(input.skillSlug),
+      }),
       prompt: endSceneRewritePrompt(input.clips),
     });
     if (!output) return input.clips;

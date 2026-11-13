@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { DEFAULT_HOT_TOPICS, type HotTopicItem } from "@/model/hot-topic";
 import { getOrGenerateUserHotTopicsAction } from "@/presentation/actions/hot-topics";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
+import { HomeInfluencerCreateForm } from "@/presentation/components/app/home-influencer-create-form";
+import { HomeToolPreview } from "@/presentation/components/app/home-tool-preview";
 import { VideoGridCard } from "@/presentation/components/app/projects/[id]/video-grid-card";
 import { Spinner } from "@/presentation/components/spinner";
 import type {
@@ -19,7 +20,6 @@ import { videoListStage } from "@/service/video/list-stage";
 export function HomeView({
   videos,
   characters,
-  styles,
   credits,
   subscribed,
   initialHotTopics,
@@ -35,7 +35,6 @@ export function HomeView({
 }) {
   const { locale } = useI18n();
   const router = useRouter();
-  const [createCharOpen, setCreateCharOpen] = useState(false);
   const [localCharacters, setLocalCharacters] = useState<PublicCharacter[]>(characters);
   const [postedIds, setPostedIds] = useState<Record<string, string>>({});
   const [archivedIds, setArchivedIds] = useState<Record<string, string | null>>({});
@@ -105,7 +104,6 @@ export function HomeView({
           influencerTitle: "AI 網紅工作室 · AI Influencer Studio",
           influencerSubtitle:
             "立即建立全新的專屬 AI 網紅角色（支援相片定裝或文字描述），或自訂 1x–10x 造型比例與專屬衣櫥。",
-          quickCreateBtn: "+ 立即建立 AI 網紅",
           customGeneratorBtn: "進階造型產生器",
           viewAllCharacters: "管理全部角色 →",
           recentVideosTitle: "最近製作短片 · Recent Videos",
@@ -140,7 +138,6 @@ export function HomeView({
             influencerTitle: "AI 网红工作室 · AI Influencer Studio",
             influencerSubtitle:
               "立即创建全新的专属 AI 网红角色（支持照片定装或文字描述），或自定义 1x–10x 造型比例与专属衣橱。",
-            quickCreateBtn: "+ 立即创建 AI 网红",
             customGeneratorBtn: "进阶造型生成器",
             viewAllCharacters: "管理全部角色 →",
             recentVideosTitle: "最近制作短片 · Recent Videos",
@@ -174,7 +171,6 @@ export function HomeView({
             influencerTitle: "AI Influencer Studio",
             influencerSubtitle:
               "Quickly create a brand-new AI Influencer from a photo or text prompt, or customize outfits in the look generator.",
-            quickCreateBtn: "+ Quick Create AI Influencer",
             customGeneratorBtn: "Look Generator",
             viewAllCharacters: "All Characters →",
             recentVideosTitle: "Recent Videos",
@@ -196,7 +192,8 @@ export function HomeView({
       title: copy.tool1Title,
       desc: copy.tool1Desc,
       cta: copy.tool1Cta,
-      imageUrl: "/home/tool-explainer.png",
+      posterUrl: "/hero/tools/explainer/center.webp",
+      videoUrl: "/hero/tools/explainer/center.mp4",
     },
     {
       href: "/app/talking-heads",
@@ -204,7 +201,8 @@ export function HomeView({
       title: copy.tool2Title,
       desc: copy.tool2Desc,
       cta: copy.tool2Cta,
-      imageUrl: "/home/tool-talking.png",
+      posterUrl: "/hero/tools/talking-head/center.webp",
+      videoUrl: "/hero/tools/talking-head/center.mp4",
     },
     {
       href: "/app/scroswap",
@@ -212,7 +210,8 @@ export function HomeView({
       title: copy.tool3Title,
       desc: copy.tool3Desc,
       cta: copy.tool3Cta,
-      imageUrl: "/home/tool-swap.png",
+      posterUrl: "/hero/tools/scroswap/center.webp",
+      videoUrl: "/hero/tools/scroswap/center.mp4",
     },
   ];
 
@@ -234,7 +233,7 @@ export function HomeView({
         </div>
       </header>
 
-      {/* 1. Shortcut for 3 Creation Tools (Seedream 5.0 Pro Previews) */}
+      {/* Each card loops the sample clip for that tool. */}
       <section aria-label={copy.shortcutsTitle} className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold text-[var(--studio-ink)]">
@@ -251,13 +250,12 @@ export function HomeView({
             >
               <div>
                 <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl border border-[var(--studio-line)] bg-[#12141c]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={tool.imageUrl}
-                    alt={tool.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  <HomeToolPreview
+                    videoUrl={tool.videoUrl}
+                    posterUrl={tool.posterUrl}
+                    title={tool.title}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10" />
                   <span className="absolute top-2.5 left-2.5 rounded-full bg-[#12141c]/90 px-2.5 py-0.5 font-display text-[10px] font-extrabold tracking-wider text-[#c6f24b] backdrop-blur-xs">
                     {tool.tag}
                   </span>
@@ -303,13 +301,6 @@ export function HomeView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setCreateCharOpen(true)}
-              className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl bg-[#c6f24b] px-4 py-2 font-display text-xs font-extrabold text-[#12141c] shadow-xs transition hover:bg-[#b6e23a]"
-            >
-              {copy.quickCreateBtn}
-            </button>
             <Link
               href="/app/characters/generate"
               className="inline-flex min-h-10 items-center rounded-xl border border-[var(--studio-line)] bg-[var(--studio-fill)] px-3.5 py-2 text-xs font-bold text-[var(--studio-ink)] transition hover:border-[#c6f24b]/60"
@@ -325,24 +316,16 @@ export function HomeView({
           </div>
         </div>
 
-        {/* Quick Create Card + Existing AI Influencers Strip */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-7">
-          <button
-            type="button"
-            onClick={() => setCreateCharOpen(true)}
-            className="group flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#c6f24b]/55 bg-[var(--studio-fill)]/60 p-3 text-center transition hover:border-[#c6f24b] hover:bg-[var(--studio-fill)]"
-          >
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-[#c6f24b] text-xl font-extrabold text-[#12141c] transition group-hover:scale-105">
-              +
-            </span>
-            <span className="font-display text-xs font-bold text-[var(--studio-ink)]">
-              {locale === "en" ? "New AI Influencer" : "新增 AI 網紅"}
-            </span>
-            <span className="text-[10px] text-[var(--studio-muted)]">
-              {locale === "en" ? "Photo or Text" : "相片或文字定裝"}
-            </span>
-          </button>
+        <HomeInfluencerCreateForm
+          credits={credits}
+          subscribed={subscribed}
+          onCreated={(created) => {
+            setLocalCharacters((prev) => [created, ...prev]);
+            router.push(`/app/characters/${created.id}`);
+          }}
+        />
 
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {displayCharacters.map((char) => (
             <Link
               key={char.id}
@@ -541,20 +524,6 @@ export function HomeView({
           })}
         </div>
       </section>
-
-      {createCharOpen ? (
-        <InlineCreateCharacterDialog
-          styles={styles}
-          credits={credits}
-          subscribed={subscribed}
-          onClose={() => setCreateCharOpen(false)}
-          onCreated={(created) => {
-            setLocalCharacters((prev) => [created, ...prev]);
-            setCreateCharOpen(false);
-            router.push(`/app/characters/${created.id}`);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

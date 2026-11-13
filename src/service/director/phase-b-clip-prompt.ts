@@ -60,7 +60,7 @@ export function phaseBLetteringLock(input: {
 }) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
   if (isDiagramExplainerSkill(input.skillSlug)) {
-    return "On-canvas lettering: the start frame already draws the explanation. Keep those exact words sharp and in the same place for the whole clip. Do not morph, erase, rewrite, or duplicate that explanation. Do not paint a second copy on an end frame. This is board lettering, not a caption or subtitle.";
+    return "On-canvas lettering: keep the concise 「」 labels and optional short beat headline sharp, spelled cleanly, and anchored to their objects as shown in the first and last frames. Do not morph, scramble, or invent extra full-sentence text or captions. This is in-world board lettering, not a subtitle.";
   }
   if (input.fixedLettering) {
     return "On-canvas lettering: the start frame carries the marker line and it stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. There is no end frame to match. This is in-scene lettering from the keyframe, not a caption or subtitle.";

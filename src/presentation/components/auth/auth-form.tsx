@@ -57,13 +57,17 @@ export function AuthForm({
   nextPath,
   onAuthSuccess,
   onSwitchMode,
+  tone = "light",
 }: {
   mode: "sign-in" | "sign-up";
   nextPath?: string;
   onAuthSuccess?: () => void | Promise<void>;
   onSwitchMode?: (nextMode: "sign-in" | "sign-up") => void;
+  // Sign-in pages sit on the dark site shell. The studio dialog stays light.
+  tone?: "light" | "dark";
 }) {
   const { t } = useI18n();
+  const dark = tone === "dark";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acceptedLegal, setAcceptedLegal] = useState(false);
@@ -228,7 +232,7 @@ export function AuthForm({
 
   return (
     <div className="w-full max-w-md">
-      <h1 className="text-3xl font-bold tracking-tight text-[#12141c]">
+      <h1 className={`text-3xl font-bold tracking-tight ${dark ? "text-white" : "text-[#12141c]"}`}>
         {register ? t("auth.signUpTitle") : t("auth.signInTitle")}
       </h1>
       <button
@@ -240,9 +244,11 @@ export function AuthForm({
         <GoogleMark />
         {t("auth.google")}
       </button>
-      <p className="my-6 text-center text-xs uppercase tracking-wide text-zinc-400">{t("auth.or")}</p>
+      <p className={`my-6 text-center text-xs uppercase tracking-wide ${dark ? "text-white" : "text-zinc-400"}`}>
+        {t("auth.or")}
+      </p>
       <form onSubmit={(event) => void onEmail(event)} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-[#12141c]">
+        <label className={`flex flex-col gap-1.5 text-sm font-medium ${dark ? "text-white" : "text-[#12141c]"}`}>
           {t("auth.email")}
           <input
             type="email"
@@ -258,7 +264,7 @@ export function AuthForm({
             className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-[#12141c]">
+        <label className={`flex flex-col gap-1.5 text-sm font-medium ${dark ? "text-white" : "text-[#12141c]"}`}>
           {t("auth.password")}
           <input
             type="password"
@@ -276,7 +282,13 @@ export function AuthForm({
           />
         </label>
         {register ? (
-          <div className="space-y-2.5 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3.5 text-xs leading-5 text-zinc-700">
+          <div
+            className={`space-y-2.5 rounded-2xl border p-3.5 text-xs leading-5 ${
+              dark
+                ? "border-white/15 bg-white/5 text-white"
+                : "border-zinc-200 bg-zinc-50/70 text-zinc-700"
+            }`}
+          >
             <label className="flex cursor-pointer items-start gap-2.5">
               <input
                 type="checkbox"
@@ -293,7 +305,7 @@ export function AuthForm({
                   href="/terms"
                   target="_blank"
                   onClick={() => track("legal_link_click", { target: "terms" })}
-                  className="font-semibold text-[#12141c] underline"
+                  className={`font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
                 >
                   {t("legal.terms")}
                 </Link>{" "}
@@ -302,14 +314,14 @@ export function AuthForm({
                   href="/privacy"
                   target="_blank"
                   onClick={() => track("legal_link_click", { target: "privacy" })}
-                  className="font-semibold text-[#12141c] underline"
+                  className={`font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
                 >
                   {t("legal.privacy")}
                 </Link>
                 .
               </span>
             </label>
-            <label className="flex cursor-pointer items-start gap-2.5 text-zinc-600">
+            <label className={`flex cursor-pointer items-start gap-2.5 ${dark ? "text-white" : "text-zinc-600"}`}>
               <input
                 type="checkbox"
                 checked={marketingOptIn}
@@ -320,16 +332,22 @@ export function AuthForm({
             </label>
           </div>
         ) : null}
-        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+        {error ? (
+          <p className={`text-sm font-medium ${dark ? "text-red-300" : "text-red-600"}`}>{error}</p>
+        ) : null}
         <button
           type="submit"
           disabled={pending}
-          className="rounded-full bg-[#12141c] px-6 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black disabled:opacity-60"
+          className={
+            dark
+              ? "rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 disabled:opacity-60"
+              : "rounded-full bg-[#12141c] px-6 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black disabled:opacity-60"
+          }
         >
           {pending ? t("common.loading") : register ? t("auth.signUpSubmit") : t("auth.signInSubmit")}
         </button>
       </form>
-      <p className="mt-6 text-sm text-zinc-600">
+      <p className={`mt-6 text-sm ${dark ? "text-white" : "text-zinc-600"}`}>
         {register ? (
           onSwitchMode ? (
             <button
@@ -342,7 +360,7 @@ export function AuthForm({
                 });
                 onSwitchMode("sign-in");
               }}
-              className="cursor-pointer font-semibold text-[#12141c] underline"
+              className={`cursor-pointer font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
             >
               {t("auth.haveAccount")}
             </button>
@@ -356,7 +374,7 @@ export function AuthForm({
                   nextPath: resolvedNext,
                 })
               }
-              className="font-semibold text-[#12141c] underline"
+              className={`font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
             >
               {t("auth.haveAccount")}
             </Link>
@@ -372,7 +390,7 @@ export function AuthForm({
               });
               onSwitchMode("sign-up");
             }}
-            className="cursor-pointer font-semibold text-[#12141c] underline"
+            className={`cursor-pointer font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
           >
             {t("auth.needAccount")}
           </button>
@@ -386,7 +404,7 @@ export function AuthForm({
                 nextPath: resolvedNext,
               })
             }
-            className="font-semibold text-[#12141c] underline"
+            className={`font-semibold underline ${dark ? "text-white" : "text-[#12141c]"}`}
           >
             {t("auth.needAccount")}
           </Link>

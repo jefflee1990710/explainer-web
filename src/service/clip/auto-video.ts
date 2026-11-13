@@ -17,6 +17,8 @@ import {
 } from "@/service/production-plan";
 import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
+import { isStandaloneEngineSkillSlug } from "@/service/opencut/standalone-engine-slugs";
+import { resumeStandaloneEngineRender } from "@/service/opencut/resume-standalone-engine";
 import type { Project, ProjectClip } from "@/model/project";
 import { collectClipVideoBlobUrls } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
@@ -50,6 +52,9 @@ export async function claimAndStartClipVideo(
   clipNumber: number,
 ): Promise<StartResult> {
   const projects = await videosCollection();
+  if (isStandaloneEngineSkillSlug(project.skillSlug)) {
+    return resumeStandaloneEngineRender(project);
+  }
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) return { ok: false, error: "找不到這段分鏡" };
   const clipProj = resolveClipProject(project, clipNumber);
@@ -225,6 +230,14 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
   const project = await projects.findOne({ _id: projectId });
   const pending = project?.autoVideoClips;
   if (!project || !pending?.length) return;
+  if (isStandaloneEngineSkillSlug(project.skillSlug)) {
+    await resumeStandaloneEngineRender(project);
+    await projects.updateOne(
+      { _id: projectId },
+      { $set: { autoVideoClips: [], updatedAt: new Date() } },
+    );
+    return;
+  }
 
   const remaining: number[] = [];
   for (const clipNumber of pending) {

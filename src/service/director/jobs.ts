@@ -8,6 +8,7 @@ import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { videosCollection } from "@/dao";
+import { shouldUseWorkerQueueOnly } from "@/service/worker/task-queue";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
@@ -49,7 +50,7 @@ export async function runPhaseAJob(
 ) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project) return;
+  if (!project || project.status !== "phase_a") return;
   // Prefer Mongo style fields over the repo catalog for this run.
   await hydrateStyles();
 
@@ -218,6 +219,29 @@ export async function runPhaseAJob(
       },
     );
   }
+}
+
+// Vercel cron picks up a storyboard the Vast claim loop never started.
+export async function resumeStalePhaseAJobs(limit = 1): Promise<number> {
+  if (shouldUseWorkerQueueOnly()) return 0;
+  const projects = await videosCollection();
+  const cutoff = new Date(Date.now() - 60_000);
+  const stale = await projects
+    .find({ status: "phase_a", updatedAt: { $lt: cutoff } })
+    .sort({ updatedAt: 1 })
+    .limit(Math.max(1, limit))
+    .toArray();
+  let started = 0;
+  for (const video of stale) {
+    const claimed = await projects.updateOne(
+      { _id: video._id, status: "phase_a", updatedAt: video.updatedAt },
+      { $set: { updatedAt: new Date() } },
+    );
+    if (claimed.modifiedCount !== 1) continue;
+    await runPhaseAJob(video._id);
+    started += 1;
+  }
+  return started;
 }
 
 // Character still after approval (free). Failure is recorded on the project
