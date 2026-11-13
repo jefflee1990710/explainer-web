@@ -14,10 +14,12 @@ import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/di
 import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
 import {
   HOOK_TITLE_PLACEMENT,
+  NO_FIRST_FRAME_HOOK_TITLE,
   firstClipHookPerformanceDirectorRule,
   resolveSceneText,
   SCENE_TEXT_PRESETS,
   sceneTextSkillHint,
+  skillOmitsFirstFrameHookTitle,
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
@@ -323,7 +325,11 @@ ${directorRules.phaseASceneDetailBlock({
 })}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: isDiagramExplainerSkill(input.skill.slug) }) : ""}
 ${
-  isDiagramExplainerSkill(input.skill.slug)
+  skillOmitsFirstFrameHookTitle(input.skill.slug)
+    ? sceneText.enabled
+      ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): ${NO_FIRST_FRAME_HOOK_TITLE} Short in-scene signs the source itself names are allowed. Never write Subtitle: or caption the spoken line on screen.`
+      : "On-canvas text is OFF: motion is pose and props only — no written labels and no Clip 1 hook title."
+    : isDiagramExplainerSkill(input.skill.slug)
     ? `On-screen text is REQUIRED (${SCENE_TEXT_PRESETS[sceneText.language].label}) and cannot be turned off. Every clip shows animated teaching elements plus a rich written explanation (one or two plain sentences, the same meaning as englishVo). Draw those sentences on the start still as artistic on-screen text. Do not write Subtitle:. Clip 1's startScene MUST open with a BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds, ${HOOK_TITLE_PLACEMENT}. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync and no look into the lens. Short labels on the elements stay.`
     : sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}, and a numbered item list must appear in item stills. Never write spoken subtitles.`
@@ -401,6 +407,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   look: subtitleLook,
   lookLine: sampleLookLine,
   richExplanation: isDiagramExplainerSkill(input.skill.slug),
+  omitHookTitle: skillOmitsFirstFrameHookTitle(input.skill.slug),
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.

@@ -18,6 +18,7 @@ const ONE_TAKE_SINGLE_FRAME_MOTION_RULES = [
   "Play body and object motion with authentic live-action physics and natural human timing: genuine weight transfer, full-body locomotion (running downhill, sprinting, striding, skating, climbing, or dodging obstacles), natural inertia, subtle chest/shoulder breathing, natural blinks, real cloth and hair movement in the wind, and focused closed-lip facial expression.",
   "Never use whiteboard cardboard cutout physics or cartoon snap/whip verbs for realistic people and sets. Background architecture and terrain scroll naturally past the moving camera without warping or morphing.",
   "Follow the continuous camera movement described in motionCamera (smooth gimbal tracking shot, follow shot, lead shot, or side-tracking shot) with natural optical depth of field. Layer diegetic environmental sound effects (footsteps, wind, gravel, ambient air) matched to each physical movement beat.",
+  "The opening frame has no big title, headline plate, or title card. Do not add, hold, or animate one.",
 ].join(" ");
 
 export const oneTakeDirectorRules: DirectorRuleModule = {
@@ -54,6 +55,7 @@ export const oneTakeDirectorRules: DirectorRuleModule = {
       "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS, ZERO INVENTED PLOTS): Stage ONLY the exact movement, terrain, locations, and objects explicitly written in the user's source prompt. NEVER invent symbolic props, metaphors, or extra objects. If the user asks for running down a mountain hill, stage ONLY that continuous downhill run.",
       'PURE MOTION, NO VO, NO DIALOGUE: There is NO narrator, NO voiceover, and NO spoken dialogue. `narrator` MUST be "No narrator — pure continuous motion and ambient sound." `englishVo` on Clip 1 MUST be "(no dialogue)". Keep the character\'s mouth naturally closed (zero lip-sync).',
       "CONTINUOUS 6-SECOND BEAT PROGRESSION: In `Clip 1.motionCamera`, break the full `durationSeconds` into sequential ~6-second windows (e.g. `0–6s: ...; 6–12s: ...; 12–18s: ...` up to `durationSeconds`) so the MiniMax H3 `ref2va` latent-extension loop can seamlessly chain each 6-second stage of the one-take camera and body movement without any cut.",
+      "FIRST FRAME: Clip 1's opening still has no big title, no headline plate, and no title card. localizedTitle and englishTitle stay in the proposal fields and are never painted on the image.",
     ].join(" ");
   },
   phaseBMotionRules() {

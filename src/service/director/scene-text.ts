@@ -2,10 +2,13 @@ import type { AspectRatio, VoLanguage } from "@/model/project";
 import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
 import {
   HOOK_TITLE_PLACEMENT,
+  NO_FIRST_FRAME_HOOK_TITLE,
   firstClipHookPerformanceDirectorRule,
   firstClipHookPerformanceFrameLine,
   firstClipHookPerformanceVideoLine,
   hookTitleFrameLine,
+  skillOmitsFirstFrameHookTitle,
+  stripFirstFrameHookTitle,
 } from "@/service/director/hook-title";
 import {
   comparisonPanels,
@@ -244,10 +247,13 @@ export function spokenSubtitleLock(aspectRatio?: string) {
 
 export {
   HOOK_TITLE_PLACEMENT,
+  NO_FIRST_FRAME_HOOK_TITLE,
   firstClipHookPerformanceDirectorRule,
   firstClipHookPerformanceFrameLine,
   firstClipHookPerformanceVideoLine,
   hookTitleFrameLine,
+  skillOmitsFirstFrameHookTitle,
+  stripFirstFrameHookTitle,
 };
 
 // Shared rule for the first 3-second big bold hook title in Clip 1's opening scene across all directors.
@@ -278,12 +284,16 @@ export function sceneTextSkillHint(
     lookLine?: string;
     // Whiteboard / paper-cutout: draw the explanation on the start still.
     richExplanation?: boolean;
+    // Story films: Clip 1 opens on the action, not a title plate.
+    omitHookTitle?: boolean;
   },
 ) {
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
-  const hookTitleRule = firstClipHookTitleDirectorRule(enabled, language, {
-    inWorldLabels: options?.inWorldLabels,
-  });
+  const hookTitleRule = options?.omitHookTitle
+    ? NO_FIRST_FRAME_HOOK_TITLE
+    : firstClipHookTitleDirectorRule(enabled, language, {
+        inWorldLabels: options?.inWorldLabels,
+      });
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED. The hook shows a large count. Each later clip introduces one item with its own camera angle and composition: its number, a short title, and one object.",

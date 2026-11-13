@@ -257,6 +257,8 @@ test("Clip 1 hook title sits slightly above center on a bordered high-contrast p
     assert.doesNotMatch(hint, /upper-middle focal safe zone/);
   }
   assert.doesNotMatch(sceneTextSkillHint(false, "en"), /thick solid border/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "zh-Hant", { omitHookTitle: true }), /BIG, BOLD HOOK TITLE/);
+  assert.match(sceneTextSkillHint(true, "zh-Hant", { omitHookTitle: true }), /NO big hook title/);
 
   const line = hookTitleFrameLine();
   assert.match(line, /slightly above the vertical center/);

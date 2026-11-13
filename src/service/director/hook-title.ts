@@ -2,6 +2,30 @@
 export const HOOK_TITLE_PLACEMENT =
   "centered, slightly above the vertical center (about 35–45% from the top; never at the top edge), on a high-contrast plate with a thick solid border, clear of the face";
 
+// Story and one-take open on the action. The proposal title stays in the title fields and is not painted on Clip 1.
+export const NO_FIRST_FRAME_HOOK_TITLE =
+  "Clip 1's first frame has NO big hook title, NO headline plate, and NO title card. Do not paint the proposal title (localizedTitle / englishTitle) onto the image, and do not write a 「」 hook headline into startScene, explainerScene, or the 0–3s beat.";
+
+export function skillOmitsFirstFrameHookTitle(skillSlug?: string) {
+  return skillSlug === "story-short-director" || skillSlug === "one-take-director";
+}
+
+// Drop a hook-title plate, and the quoted proposal title, from a story Clip 1 still.
+export function stripFirstFrameHookTitle(description: string, title?: string) {
+  let text = description;
+  text = text.replace(
+    /[^。.!?\n；;]*?(?:hook title|headline plate|title card|title banner|big[, ]+bold(?: hook)? title|thick solid border)[^。.!?\n；;]*[。.!?\n；;]?/gi,
+    " ",
+  );
+  text = text.replace(/[^。.!?\n；;]*?(?:大標題|標題牌|標題卡|粗邊框)[^。.!?\n；;]*[。.!?\n；;]?/g, " ");
+  const needle = sanitizeHookTitleFallback(title);
+  if (needle) {
+    const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`[「『"“]${escaped}[」』"”]`, "g"), "");
+  }
+  return text.replace(/[ \t]{2,}/g, " ").trim();
+}
+
 // Clean fallback hook headline when the Scene text forgot 「...」 quotes.
 function sanitizeHookTitleFallback(title?: string) {
   const cleaned = (title ?? "")

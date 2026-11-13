@@ -59,6 +59,8 @@ import {
 import {
   firstClipHookPerformanceFrameLine,
   hookTitleFrameLine,
+  skillOmitsFirstFrameHookTitle,
+  stripFirstFrameHookTitle,
 } from "@/service/director/hook-title";
 import {
   bookendLogoFrameLines,
@@ -960,6 +962,14 @@ export function buildFramePrompt(
     /\bcanvas\s+in\s+(?:the\s+)?middle\s+60%\s+safe\s+(?:zone|area)\b/gi,
     "full-bleed canvas (keep foreground subjects in the middle 60% safe zone)",
   );
+  // Story Clip 1 opens on the action. A proposal title must not become a headline plate.
+  const omitFirstFrameHookTitle =
+    skillOmitsFirstFrameHookTitle(project.skillSlug) && clipNumber === 1 && position === "start";
+  if (omitFirstFrameHookTitle) {
+    const proposalTitle = phaseA.localizedTitle || phaseA.englishTitle;
+    sceneDescription = stripFirstFrameHookTitle(sceneDescription, proposalTitle);
+    motionDescription = stripFirstFrameHookTitle(motionDescription, proposalTitle);
+  }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
@@ -1051,6 +1061,7 @@ export function buildFramePrompt(
   const hookTitleStill =
     clipNumber === 1 &&
     position === "start" &&
+    !omitFirstFrameHookTitle &&
     !narratorLock &&
     !overlay &&
     !talkingHeadSkipsLettering &&
@@ -1098,7 +1109,9 @@ export function buildFramePrompt(
             /「[^」]+」/.test(parts.scene) ? undefined : hookTitleFallback,
           ),
         ]
-      : []),
+      : omitFirstFrameHookTitle
+        ? ["No big hook title, headline plate, or title card on this first frame. Do not paint the video title as lettering."]
+        : []),
     ...(hookPerformanceStill ? [firstClipHookPerformanceFrameLine(realistic)] : []),
     ...(lockUrls.length
       ? [

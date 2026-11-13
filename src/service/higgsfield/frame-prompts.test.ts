@@ -382,6 +382,29 @@ test("stills strip the director's subtitle sentence and keep the 9:16 safe area"
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /9:16 IG Reel safe area/);
 });
 
+test("story and one-take Clip 1 start stills do not paint a big hook title", () => {
+  for (const skillSlug of ["story-short-director", "one-take-director"] as const) {
+    const story = project("realistic");
+    story.skillSlug = skillSlug;
+    story.sceneTextEnabled = true;
+    story.aspectRatio = "9:16";
+    story.phaseA!.localizedTitle = "傷心返工路";
+    story.phaseA!.englishTitle = "The Sad Commute";
+    story.phaseA!.clips[0].englishVo = "(no dialogue)";
+    story.phaseA!.clips[0].explainerScene =
+      "Cat1 walks toward the camera on a Hong Kong street. A big bold hook title 「傷心返工路」 sits on a thick solid border plate. A shop sign reads 茶餐廳.";
+    story.phaseA!.clips[0].motionCamera = "0–3s hold the hook title plate; 3–8s Cat1 keeps walking.";
+    const start = buildFramePrompt(story, 1, "start");
+    assert.match(start, /Cat1 walks toward the camera/, skillSlug);
+    assert.match(start, /茶餐廳/, skillSlug);
+    assert.match(start, /No big hook title/, skillSlug);
+    assert.doesNotMatch(start, /Clip 1 hook title/, skillSlug);
+    assert.doesNotMatch(start, /ONE BIG, BOLD/, skillSlug);
+    assert.doesNotMatch(start, /傷心返工路/, skillSlug);
+    assert.doesNotMatch(start, /The Sad Commute/, skillSlug);
+  }
+});
+
 test("story-short stills omit spoken subtitles and speaker names", () => {
   const story = project();
   story.skillSlug = "story-short-director";

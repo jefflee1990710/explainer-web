@@ -145,6 +145,7 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(storySceneDetail, /zero teeth|lips firmly sealed shut/i);
   assert.match(storySceneDetail, /parallax|spatial depth/i);
   assert.match(storyBlock, /spatialBlocking/i);
+  assert.match(storyBlock, /no big title/i);
   assert.match(storyBlock, /opposite-seating|across the table/i);
   assert.match(storyBlock, /exact hair, gender, and outfit of that named cast member/i);
 
@@ -154,6 +155,7 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
     realistic: true,
   });
   assert.match(oneTakeBlock, /clipCount = 1|EXACTLY 1 CLIP/i);
+  assert.match(oneTakeBlock, /no big title/i);
   assert.match(oneTakeBlock, /\(no dialogue\)/);
   assert.match(oneTakeBlock, /ZERO INVENTED PROPS/i);
 });

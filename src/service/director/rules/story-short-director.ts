@@ -18,6 +18,7 @@ const STORY_DUAL_KEYFRAME_MOTION_RULES = [
   "Put a timestamp on each beat and write the speed into the verbs (snaps, flicks, whips, pops, darts). Never call the body motion smooth, slow, gentle, gradual, steady, sustained, or seamless, and never stretch one move evenly across the whole clip.",
   "Use the seconds: short clips (3–4s) are one beat; longer clips (5–8s) are two beats that finish on the end still.",
   "Interpolate element-by-element: start elements leave one by one; end elements pop or slide in. The character keeps roughly the same screen position and scale.",
+  "The opening frame has no big title, headline plate, or title card. Do not add, hold, or animate one.",
 ].join(" ");
 const STORY_SINGLE_FRAME_MOTION_RULES = [
   "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
@@ -27,6 +28,7 @@ const STORY_SINGLE_FRAME_MOTION_RULES = [
   "Play body and object motion with authentic live-action physics and natural human timing: genuine weight transfer, full-body locomotion when the scene calls for running, walking, or striding, natural inertia, subtle breathing lifting the chest and shoulders, natural blinks and ocular micro-saccades, real cloth drape, and vivid, expressive facial acting synced to the beat.",
   "Never use whiteboard cardboard cutout physics or cartoon snap/whip verbs for realistic people and sets. Background architecture and set dressing stay physically grounded and never warp or morph.",
   "Follow the camera movement described in motionCamera (such as a smooth gimbal tracking shot, follow shot, pan, or steady framing) with natural optical depth of field. Layer diegetic environmental sound effects matched to each physical action in the beats.",
+  "The opening frame has no big title, headline plate, or title card. Do not add, hold, or animate one.",
 ].join(" ");
 
 export const storyShortDirectorRules: DirectorRuleModule = {
@@ -66,6 +68,7 @@ export const storyShortDirectorRules: DirectorRuleModule = {
       "DURATION & PACING: Set clipCount and each clip's durationSeconds (5–12 seconds) from the dialogue lines, storytelling beats, physical action progression, or the user's explicit request — never force a silent or action clip down to 5 seconds when the action or user prompt calls for a longer 6–12s continuous shot.",
       'There is NO narrator and NO third-person off-screen voiceover. The narrator field must start with "No narrator — characters speak when needed." If the user\'s source or a scene beat is pure physical action without spoken lines, set englishVo to "(no dialogue)" and keep the character\'s lips firmly sealed shut (zero teeth showing). When the story or user prompt includes spoken lines, give ONE primary speaker per clip (or a tight exchange) written in englishVo as `NAME: "line"` spoken on screen by that character (with each supplied voice lock pasted verbatim), while any other on-screen listening character keeps their lips firmly sealed shut with zero teeth showing (closed-lip expression only) and reacts visually through eyes and brows.',
       "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions matching the emotional beat.",
+      "FIRST FRAME: Clip 1's opening still has no big title, no headline plate, and no title card. localizedTitle and englishTitle stay in the proposal fields and are never painted on the image. A small in-world sign the source itself names may stay in the set; never turn the video title into lettering.",
     ].join(" ");
   },
   phaseBMotionRules(options) {
