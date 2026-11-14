@@ -79,6 +79,45 @@ test("submitClipVideo sends non-talking-head clips to OpenRouter minimax/hailuo-
   }
 });
 
+test("submitClipVideo preserves diagram explainer board camera prompt without character-pointing override", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  let postedPrompt = "";
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as { prompt?: string };
+    postedPrompt = body.prompt ?? "";
+    return new Response(
+      JSON.stringify({
+        id: "vid-hailuo-paper",
+        polling_url: "/api/v1/videos/vid-hailuo-paper",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+  try {
+    const prompt =
+      "SILENT ON-SCREEN CHARACTER: Board camera: locked stationary square-on shot of the wooden craft board. 0–2s card slides smoothly in from the left.";
+    await submitClipVideo(
+      {
+        prompt,
+        aspectRatio: "9:16",
+        durationSeconds: 6,
+        startImageUrl: "https://blob.example.com/start.jpg",
+        endImageUrl: "https://blob.example.com/end.jpg",
+        skillSlug: "paper-cutout-explainer-video-director",
+        styleId: "paper-cutout",
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(postedPrompt, prompt);
+    assert.doesNotMatch(postedPrompt, /pointing to character from high level/);
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});
+
 test("shouldUseComfyForClipVideo keeps storyboard clips off the Vast GPU", () => {
   const prevBase = process.env.COMFY_BASE_URL;
   const prevKey = process.env.COMFY_API_KEY;

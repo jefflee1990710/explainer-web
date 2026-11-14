@@ -7,6 +7,7 @@ import {
   isComfyPromptStatusUrl,
 } from "@/service/comfy/openjutsu-client";
 import { formatCameraFirstVideoPrompt } from "@/service/director/camera-first-prompt";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
@@ -279,7 +280,9 @@ export async function submitClipVideo(
     ? OPENROUTER_HAILUO_3_VIDEO_MODEL
     : OPENROUTER_WAN_3_VIDEO_MODEL;
   const effectiveVideoPrompt =
-    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL || Boolean(input.audioUrl)
+    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
+    Boolean(input.audioUrl) ||
+    isDiagramExplainerSkill(input.skillSlug)
       ? input.prompt
       : formatCameraFirstVideoPrompt({
           prompt: input.prompt,

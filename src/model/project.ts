@@ -533,6 +533,8 @@ export type Project = {
   // Real products. They are never restyled into the video's look.
   products?: ProductShot[];
   status: ProjectStatus | LegacyProjectStatus;
+  // Fences a running Phase A so a stale retry cannot overwrite it.
+  phaseALock?: { token: string; at: Date };
   phaseA?: PhaseAProposal;
   phaseB?: PhaseBPackage;
   characterStillUrl?: string;

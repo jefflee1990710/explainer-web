@@ -9,7 +9,7 @@ function styleForExplainerSkill<
   return {
     ...style,
     motion:
-      "100% locked stationary square-on camera on tripod (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO focal-length change, ZERO handheld drift) paired with fast, high-energy speed-ramped (變速) on-board cutout transitions and presenter pointing gestures: every 1.0–1.5s beat uses a quick 0.2s anticipation, a sharp 2x–3x high-velocity whip/snap acceleration (sliding in/out, unfolding flat 摺開, tearing/peeling open 撕開, rapid stroke-by-stroke drawing 畫出, or flipping 翻轉), and a crisp sudden stop at the focus point.",
+      "100% locked stationary square-on camera on tripod (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO focal-length change, ZERO handheld drift, ZERO jump cut) paired with smooth, fluid speed-ramped (變速) on-board cutout transitions and presenter pointing gestures: every 1.0–1.5s beat uses a smooth 0.2s anticipation, a fluid 2x–3x acceleration (gliding in/out, unfolding flat 摺開, tearing/peeling open 撕開, smooth stroke-by-stroke drawing 畫出, or flipping 翻轉), then a smooth eased deceleration into a steady landing. Zero sudden snaps, zero jerks, and zero frame-to-frame shake.",
   };
 }
 

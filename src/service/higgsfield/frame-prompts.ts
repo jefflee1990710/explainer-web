@@ -196,6 +196,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same 2D planar camera, shot size, angle, crop, board/background surface, lighting, and presenter character scale and corner position. No zoom, no reframe, no new angle.",
       "Transform ONLY the teaching diagram and character acting from State A (this attached START frame) to State B (the Scene above): update the character's pose, pointing hand, eyeline, and expression, and execute the diagram state change (elements slid in/out, unfolded, torn open, drawn, flipped, or meter filled) along with the exact concise 「」 labels named in the Scene.",
+      "SCAFFOLD LOCK: keep axes, grid, board, and the title plate fixed. Change title words in place; do not slide that plate away.",
     ];
   }
   // The narrator lock already states the action, side, and camera rules for this still.
@@ -280,6 +281,50 @@ function stripSceneSubtitleSentence(scene: string) {
     .trim();
 }
 
+const NUMBERED_PIECE = /(?=[①②③④⑤⑥⑦⑧⑨⑩]|(?:\(|（)\d+[)）])/u;
+
+function clipOutsideQuotes(text: string, max: number) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const open = clean.lastIndexOf("「", max);
+  const close = clean.lastIndexOf("」", max);
+  if (open !== -1 && open > close) {
+    const end = clean.indexOf("」", open);
+    if (end !== -1 && end + 1 <= max + 16) return clean.slice(0, end + 1).trim();
+    return clean.slice(0, open).trim();
+  }
+  return clean.slice(0, max).trim();
+}
+
+// A raw character clip drops later numbered pieces and the image model invents a different chart.
+export function compactNumberedSet(part: string, budget: number) {
+  const pieces = part
+    .split(NUMBERED_PIECE)
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+  if (pieces.length < 2) return "";
+  const [head, ...items] = pieces;
+  const full = [head, ...items].join(" ");
+  if (full.length <= budget) return full;
+  const fit = (headLimit: number, itemLimit: number) =>
+    [clipOutsideQuotes(head, headLimit), ...items.map((item) => clipOutsideQuotes(item, itemLimit))]
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  // Keep the noun after a leading label (「個人經驗」大腦剪紙). Shrink until the budget holds.
+  for (let itemLimit = 90; itemLimit >= 24; itemLimit -= 6) {
+    const body = fit(80, itemLimit);
+    if (body.length <= budget) return body;
+  }
+  const quotesOnly = items.map((item) => {
+    const marker = item.match(/^[①②③④⑤⑥⑦⑧⑨⑩]|^[(（]\d+[)）]/)?.[0] ?? "";
+    const labels = item.match(/「[^」]+」/g) || [];
+    return `${marker}${labels.join("")}`;
+  });
+  const minimal = [clipOutsideQuotes(head, 48), ...quotesOnly].join(" ").replace(/\s+/g, " ").trim();
+  return minimal.length <= budget ? minimal : clipOutsideQuotes(minimal, budget);
+}
+
 function trimSceneParts(
   scene: string,
   mode: "light-short" | "light-drop" | "set-short",
@@ -300,6 +345,21 @@ function trimSceneParts(
         return part;
       }
       if (mode !== "set-short" || !/^2\)\s/.test(part)) return part;
+      const numbered = compactNumberedSet(part, setBudget);
+      if (numbered) {
+        // A label already written on the character is not repeated on the diagram piece.
+        const shortened = numbered.length < part.trim().length;
+        const deduped = shortened
+          ? [...nonSetLabels]
+              .reduce((text, label) => text.replaceAll(label, ""), numbered)
+              .replace(/\s{2,}/g, " ")
+              .trim()
+          : numbered;
+        const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter(
+          (label) => !deduped.includes(label) && !nonSetLabels.has(label),
+        );
+        return `${deduped}${lost.length ? ` Also labeled ${lost.join(" ")}.` : ""} `;
+      }
       const baseText = setBudget > 200 ? part.trim() : firstSentence(part);
       const short = clipAt(baseText, setBudget);
       const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter(
@@ -997,6 +1057,7 @@ export function buildFramePrompt(
     isDiagramExplainerSkill(project.skillSlug) && !silentClip
       ? diagramConciseTextLines(
           chosenLetteringLook ? resolveSubtitleLook(chosenLetteringLook) : undefined,
+          sceneText.language,
         )
       : [];
   const onCanvasTextBlock = !sceneText.enabled || talkingHeadSkipsLettering
@@ -1138,6 +1199,11 @@ export function buildFramePrompt(
           steady && position === "end",
           solo && position === "end",
         ),
+    ...(isDiagramExplainerSkill(project.skillSlug)
+      ? [
+          "PIECE LOCK: draw only Scene's numbered pieces and 「」 labels.",
+        ]
+      : []),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(!sceneText.enabled || talkingHeadSkipsLettering
       ? ["Final check: no letters, no subtitle, no caption, no numbers, no sign, no watermark."]

@@ -4,7 +4,7 @@ import {
   formatCameraFirstVideoPrompt,
 } from "@/service/director/camera-first-prompt";
 import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipSkipsEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { getDirectorRuleModule } from "@/service/director/rules";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
@@ -62,8 +62,9 @@ type PhaseBInput = {
 };
 
 // Shared director contract for video prompts (batch and per-clip).
-function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
-  const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
+export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
+  const startOnly = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
+  const steady = usesSteadyStills(input.skill.slug, input.style);
   const realistic = isRealisticStyle(input.style);
   const directorRules = getDirectorRuleModule(input.skill.slug);
   const silent =
@@ -80,7 +81,7 @@ ${
     : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE
 }
 ${
-  steady
+  startOnly
     ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
     : "Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image."
 } ${directorRules.phaseBMotionRules({
@@ -138,8 +139,8 @@ export async function runPhaseBForClip(
 ): Promise<PhaseBPrompt> {
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const talkingHead = isTalkingHeadSkill(input.skill.slug);
-  // All non-talking-head directors generate video from the start still + camera motion only.
-  const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
+  // Diagram explainers keep steady locked camera + smooth speed-ramped motion even with start+end keyframes.
+  const steady = usesSteadyStills(input.skill.slug, input.style);
   let output = talkingHead
     ? talkingHeadPhaseBPrompt({
         phaseA: input.phaseA,

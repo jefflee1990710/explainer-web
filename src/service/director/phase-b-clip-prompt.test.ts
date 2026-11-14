@@ -7,6 +7,10 @@ import {
   phaseBLetteringLock,
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
+import type { Skill } from "@/model/skill";
+import { phaseBSystemPrompt } from "@/service/director/run-phase-b";
+import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
+import { STYLES_BY_ID } from "@/service/style/catalog";
 
 function proposal(loopMode: PhaseAProposal["loopMode"] = "linear"): PhaseAProposal {
   const row = (clipNumber: number, scene: string) => ({
@@ -316,4 +320,26 @@ test("Phase B character line never hands Wan a reference-image URL", () => {
     /https:\/\//,
   );
   assert.doesNotMatch(phaseBCharacterLine({ characterImageUrl: "https://blob/hero.png" }), /https:\/\//);
+});
+
+test("phaseBSystemPrompt enables smooth speed-ramped motion and dual-keyframe camera lock for diagram explainers", () => {
+  const style = STYLES_BY_ID["paper-cutout"]!;
+  const system = phaseBSystemPrompt(
+    {
+      phaseA: proposal(),
+      language: "en",
+      skill: paperCutoutExplainerVideoDirector as unknown as Skill,
+      style,
+      characterImageUrl: "https://blob/hero.png",
+    },
+    "English",
+    "American",
+  );
+  assert.match(system, /dual-keyframe image-to-video/);
+  assert.match(system, /CAMERA LOCK: keep the camera 100% stationary and locked square-on/);
+  assert.match(system, /smooth, fluid speed-ramping/);
+  assert.doesNotMatch(system, /snapping fast and sharp/);
+  assert.doesNotMatch(system, /sharp and fast in the first second/);
+  assert.doesNotMatch(system, /jitter|stop-motion paste feel|whip\/snap|crisp sudden stop/i);
+  assert.match(system, /fluid 2x–3x acceleration/);
 });

@@ -76,7 +76,12 @@ test("only cartoon-explainer and paper-cutout-explainer allow invented props and
 
     if (isExplainer) {
       assert.match(sceneDetail, /slid in from the frame edge, written on, wiped off/);
+      assert.match(sceneDetail, /Diagram scaffold/);
+      assert.match(sceneDetail, /Title plate/);
+      assert.match(sceneDetail, /Traditional Chinese 書面語/);
       assert.match(phaseBMotion, /Whiteboard cardboard physics/);
+      assert.match(phaseBMotion, /SCAFFOLD LOCK/);
+      assert.match(phaseBMotion, /TITLE PLATE/);
     } else {
       assert.doesNotMatch(
         sceneDetail,

@@ -45,7 +45,7 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
     label: "繁體中文",
     sublabel: "畫面文字",
     skillHint:
-      "On-canvas text language: Traditional Chinese (繁體中文). In-scene labels, signs, or short titles are in Traditional Chinese (繁體中文). Never generate spoken subtitles or voiceover captions on screen.",
+      "On-canvas text language: Traditional Chinese (繁體中文). Spell every 「」 label glyph-for-glyph in Traditional Chinese 書面語 (for example 變、體、經, never Simplified 变、体、经, and never colloquial particles 嘅、唔、喺、咗、㗎). Do not invent axis titles or extra captions. Never generate spoken subtitles or voiceover captions on screen.",
   },
   "zh-Hans": {
     id: "zh-Hans",
@@ -328,10 +328,16 @@ export function sceneTextSkillHint(
     return [
       "On-screen text is REQUIRED and cannot be turned off, but follow a STRICT CONCISE TEXT BUDGET: off-screen `englishVo` is spoken ONLY in audio — NEVER write full `englishVo` sentences or voiceover transcripts onto the board.",
       "Each clip draws at most ONE short beat takeaway/headline inside 「」 (2–6 words / 4–10 CJK characters) plus at most 2–3 ultra-short object/node labels inside 「」 (1–3 words / 2–6 CJK characters). Clip 1 shows ONLY its single BIG, BOLD HOOK TITLE inside 「」 (no competing second subtitle strip). Never write Subtitle:.",
+      "Do not invent axis titles, quadrant captions, or any words outside those 「」 labels.",
       hookTitleRule,
       `On-canvas label language: ${SCENE_TEXT_PRESETS[language].label}.`,
+      language === "zh-Hant"
+        ? "Every 「」 label is Traditional Chinese 書面語, glyph-for-glyph (繁體，例如 變、體、經). Never Simplified Chinese (变、体、经) and never colloquial particles (嘅、唔、喺、咗、㗎)."
+        : "",
       "The off-screen voiceover speaks englishVo. The on-screen character never speaks.",
-    ].join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
   if (options?.dualBeat) {
     return [
@@ -422,7 +428,7 @@ export function formatVoiceoverForMarker(line: string) {
 
 function markerLanguageHint(language: SceneTextLanguage) {
   if (language === "zh-Hant") {
-    return "On-canvas text language: Traditional Chinese (繁體中文). Do not transliterate that beat's line into English. Lettering follows the selected text style.";
+    return "On-canvas text language: Traditional Chinese (繁體中文). Spell every 「」 label glyph-for-glyph in Traditional Chinese 書面語 (for example 變、體、經, never Simplified 变、体、经, and never colloquial particles 嘅、唔、喺、咗、㗎). Do not invent axis titles or extra captions. Do not transliterate that beat's line into English. Lettering follows the selected text style.";
   }
   if (language === "zh-Hans") {
     return "On-canvas text language: Simplified Chinese (简体中文). Do not transliterate that beat's line into English. Lettering follows the selected text style.";
@@ -578,10 +584,17 @@ export function sceneTextFrameLines(
 }
 
 // Diagram explainer stills: enforce concise keyword/takeaway budget and apply chosen lettering look without dumping englishVo.
-export function diagramConciseTextLines(look?: SubtitleLook): string[] {
+export function diagramConciseTextLines(look?: SubtitleLook, language?: SceneTextLanguage): string[] {
   const lookLine = look ? lookLineForOnScreenVideo(subtitleLookLine(look)) : "";
+  const script =
+    language === "zh-Hant"
+      ? "Traditional Chinese lock: spell every 「」 label in Traditional Chinese glyphs (繁體，例如 變、體、經). Never Simplified Chinese and never colloquial particles (嘅、唔、喺、咗)."
+      : language === "zh-Hans"
+        ? "Simplified Chinese lock: spell every 「」 label in Simplified Chinese. Do not invent extra captions."
+        : "";
   return [
     "ON-CANVAS TEXT: spell ONLY the concise 「」 labels/headline in Scene (max 1 headline + 2–3 labels); no full VO sentences or subtitle bars.",
+    script,
     lookLine,
     look ? "Lettering follows that Look." : "",
   ].filter(Boolean);

@@ -82,7 +82,7 @@ function detectCameraMotionSummary(source: string): string {
 }
 
 const ALREADY_CAMERA_FIRST_RE =
-  /^(?:\[Shot\s+\d+\]\s*)?(?:Camera\s*:|\d{2,3}mm\s+camera\s+pointing\b)/i;
+  /^(?:\[Shot\s+\d+\]\s*)?(?:Camera\s*:|Board camera\s*:|\d{2,3}mm\s+camera\s+pointing\b|SILENT ON-SCREEN CHARACTER:|Silent visual-only video)/i;
 
 /**
  * Ensures any video/motion prompt begins with concrete camera details, pointing direction,

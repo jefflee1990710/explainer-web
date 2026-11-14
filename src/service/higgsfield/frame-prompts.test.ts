@@ -209,6 +209,32 @@ test("realistic paper-cutout Clip 1 start still with numbered Set cutouts fits F
   assert.match(prompt, /Clip 1 hook title/);
   assert.match(prompt, /overrides any top/i);
   assert.match(prompt, /Realistic light & camera/);
+  assert.match(prompt, /PIECE LOCK/);
+});
+
+test("a long Traditional Chinese diagram set keeps every numbered piece instead of dropping them for Also labeled", () => {
+  const cutout = project("realistic");
+  cutout.skillSlug = "paper-cutout-explainer-video-director";
+  cutout.aspectRatio = "9:16";
+  cutout.sceneTextLanguage = "zh-Hant";
+  cutout.sceneTextEnabled = true;
+  cutout.phaseA!.visualWorld = "深褐色垂直木紋工藝板。".repeat(80);
+  cutout.phaseA!.palette = "深褐色木紋、牛皮紙、亮綠。".repeat(40);
+  cutout.phaseA!.clips[0] = {
+    ...cutout.phaseA!.clips[0],
+    durationSeconds: 9,
+    startScene:
+      "1) Character: Scro 企在左下角，右手食指指向中央圖表，雙唇輕閉。2) Set: Split Matrix / Before-vs-After。深褐色垂直木紋工藝板。頂部標題卡「90%人唔知嘅變現超能力」。①「個人經驗」大腦剪紙，外層圍繞灰色鐵鏈剪紙；② 帶有紅色叉號的牛皮紙卡「$0」；③ 摺疊成三摺的牛皮紙卡「專業技能」；④ 灰色單向虛線箭嘴指向右方，坐標軸本身固定不移動。3) Light: 均勻無陰影頂部漫射柔光，色溫 5500K，沒有金屬反光。4) Camera: 9:16 垂直平面俯視固定機位。",
+    motionCamera: "0–2s：標題固定；2–5s：鐵鏈滑出。",
+  };
+  const prompt = buildFramePrompt(cutout, 1, "start");
+  assert.match(prompt, /大腦剪紙/);
+  assert.match(prompt, /鐵鏈/);
+  assert.match(prompt, /「\$0」/);
+  assert.match(prompt, /「專業技能」/);
+  assert.match(prompt, /Traditional Chinese lock/);
+  assert.match(prompt, /PIECE LOCK/);
+  assert.ok(prompt.length <= FRAME_PROMPT_BUDGET, `prompt is ${prompt.length} chars`);
 });
 
 test("whiteboard stills keep concise diagram labels and exclude full spoken VO sentences", () => {

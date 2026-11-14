@@ -1,4 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { ObjectId } from "mongodb";
+import {
+  PHASE_A_LOCK_STALE_MS,
+  phaseAFramesAlreadyDrawing,
+  phaseALockIsStale,
+  phaseAReclaimShouldKeepStoryboard,
+} from "@/service/director/phase-a-lock";
 import { characterLockFromCast, soloCharacterLock } from "@/service/character/cast-prompt";
 import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
 import { isOutfitChangeSkill, isOutfitReelSkill, isSurpriseInterviewSkill, isWardrobeBuildSkill } from "@/service/director/skill-rules";
@@ -49,8 +56,43 @@ export async function runPhaseAJob(
   options?: { clipsOnly?: boolean },
 ) {
   const projects = await videosCollection();
-  const project = await projects.findOne({ _id: projectId });
+  // One owner for this run. A cron retry cannot start a second storyboard
+  // while this lock is fresh, and a late writer cannot overwrite the winner.
+  const token = randomUUID();
+  const claimedAt = new Date();
+  const project = await projects.findOneAndUpdate(
+    {
+      _id: projectId,
+      status: "phase_a",
+      $or: [
+        { phaseALock: { $exists: false } },
+        { phaseALock: null },
+        { "phaseALock.at": { $lt: new Date(claimedAt.getTime() - PHASE_A_LOCK_STALE_MS) } },
+      ],
+    },
+    { $set: { phaseALock: { token, at: claimedAt }, updatedAt: claimedAt } },
+    { returnDocument: "before" },
+  );
   if (!project || project.status !== "phase_a") return;
+  if (
+    phaseAReclaimShouldKeepStoryboard({
+      revisionNote,
+      clipsOnly: options?.clipsOnly,
+      hadLock: Boolean(project.phaseALock),
+      lockStale: phaseALockIsStale(project.phaseALock, claimedAt),
+      hasPhaseA: Boolean(project.phaseA),
+      framesDrawing: phaseAFramesAlreadyDrawing(project.frames),
+    })
+  ) {
+    await projects.updateOne(
+      { _id: projectId, "phaseALock.token": token },
+      {
+        $set: { status: "production", updatedAt: new Date() },
+        $unset: { phaseALock: "" },
+      },
+    );
+    return;
+  }
   // Prefer Mongo style fields over the repo catalog for this run.
   await hydrateStyles();
 
@@ -63,8 +105,11 @@ export async function runPhaseAJob(
     : null;
   if (!skill) {
     await projects.updateOne(
-      { _id: projectId },
-      { $set: { status: "failed", error: "找不到風格", updatedAt: new Date() } },
+      { _id: projectId, "phaseALock.token": token },
+      {
+        $set: { status: "failed", error: "找不到風格", updatedAt: new Date() },
+        $unset: { phaseALock: "" },
+      },
     );
     return;
   }
@@ -162,8 +207,8 @@ export async function runPhaseAJob(
         ? [1]
         : undefined;
 
-    await projects.updateOne(
-      { _id: projectId },
+    const wrote = await projects.updateOne(
+      { _id: projectId, status: "phase_a", "phaseALock.token": token },
       {
         // `$set: { error: undefined }` would store null; clear the field instead.
         $set: {
@@ -178,6 +223,8 @@ export async function runPhaseAJob(
         },
       },
     );
+    // Lost the lock to a newer run. Do not enqueue frames for this storyboard.
+    if (wrote.matchedCount !== 1) return;
     // Same as the old approve action: lock the character still before frames.
     await runStillJob(projectId);
     // Inventory props and unique sets, then queue their reference stills.
@@ -199,23 +246,25 @@ export async function runPhaseAJob(
     // Flip to production after locks and initial frame jobs are queued so the
     // client poller immediately sees in-flight locks/frames and never stops early.
     await projects.updateOne(
-      { _id: projectId },
+      { _id: projectId, "phaseALock.token": token },
       {
         $set: {
           status: "production",
           updatedAt: new Date(),
         },
+        $unset: { phaseALock: "" },
       },
     );
   } catch (error) {
     await projects.updateOne(
-      { _id: projectId },
+      { _id: projectId, "phaseALock.token": token },
       {
         $set: {
           status: "failed",
           error: errorMessage(error, "解說提案失敗"),
           updatedAt: new Date(),
         },
+        $unset: { phaseALock: "" },
       },
     );
   }
@@ -233,6 +282,8 @@ export async function resumeStalePhaseAJobs(limit = 1): Promise<number> {
     .toArray();
   let started = 0;
   for (const video of stale) {
+    // A live storyboard call already holds this lock. Do not bump updatedAt or start another one.
+    if (video.phaseALock && !phaseALockIsStale(video.phaseALock)) continue;
     const claimed = await projects.updateOne(
       { _id: video._id, status: "phase_a", updatedAt: video.updatedAt },
       { $set: { updatedAt: new Date() } },
