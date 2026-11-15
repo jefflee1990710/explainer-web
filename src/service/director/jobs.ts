@@ -66,7 +66,8 @@ export async function runPhaseAJob(
       status: "phase_a",
       $or: [
         { phaseALock: { $exists: false } },
-        { phaseALock: null },
+        // Explicit BSON null is not the field's object type, so match it by type.
+        { phaseALock: { $type: "null" } },
         { "phaseALock.at": { $lt: new Date(claimedAt.getTime() - PHASE_A_LOCK_STALE_MS) } },
       ],
     },
