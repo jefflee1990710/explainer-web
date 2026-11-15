@@ -19,6 +19,10 @@ import {
   resolveImageRoute,
 } from "@/service/generation/image-backend";
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
+import {
+  diagramEndFrameUsesStartMotion,
+  writeEndFramePromptFromStart,
+} from "@/service/higgsfield/end-frame-from-start";
 import { resolveClipProject } from "@/service/clip/clip-context";
 import { frameSubmitPlan, framesWithClipsReady, resolveClipStyleId } from "@/service/higgsfield/frame-prompts";
 import {
@@ -282,11 +286,38 @@ export async function sendFrame(
   const canvasProject = await withWrittenCanvas(project);
   const plan = frameSubmitPlan(canvasProject, clipNumber, position, revision, style);
   // A chat edit is sent as stored. Other stills are rebuilt from the storyboard.
-  const promptSource = promptForFrameSubmit({
+  let promptSource = promptForFrameSubmit({
     storedPrompt: storedFrame?.prompt,
     promptEdited: storedFrame?.promptEdited,
     builtPrompt: plan.prompt,
   });
+  // Diagram end stills: look at the start image and motionCamera, then write a
+  // short landed-state prompt. The start image stays attached on the image request.
+  const startImageUrl = plan.anchor?.kind === "clip-start" ? plan.anchor.url : undefined;
+  const clipMotion = canvasProject.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)
+    ?.motionCamera;
+  if (
+    startImageUrl &&
+    clipMotion?.trim() &&
+    diagramEndFrameUsesStartMotion({
+      skillSlug: project.skillSlug,
+      position,
+      promptEdited: storedFrame?.promptEdited,
+      startImageUrl,
+      hasRevision: Boolean(revision?.remark?.trim() || revision?.annotatedUrl),
+    })
+  ) {
+    try {
+      promptSource = await writeEndFramePromptFromStart({
+        startImageUrl,
+        motionCamera: clipMotion,
+        aspectRatio: project.aspectRatio,
+        language: sceneText.language,
+      });
+    } catch (error) {
+      console.error("end frame prompt from start image failed", error);
+    }
+  }
   // Over the model's cap, Gemini compresses the prompt before the image request.
   const route = resolveImageRoute(sceneText.language);
   const prompt = route.model.startsWith("ideogram/")
