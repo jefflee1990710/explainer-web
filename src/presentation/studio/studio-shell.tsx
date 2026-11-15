@@ -204,8 +204,8 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
   return (
     <aside
       data-expanded={expanded ? "true" : "false"}
-      className={`group/rail relative z-50 flex h-full shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-sidebar,var(--studio-panel))] p-3 transition-[width] duration-200 ease-out ${
-        expanded ? "w-[252px]" : "w-[72px]"
+      className={`group/rail relative z-50 flex h-full shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-sidebar,var(--studio-panel))] py-3 transition-[width] duration-200 ease-out ${
+        expanded ? "w-[256px] px-2.5" : "w-[72px] px-2.5"
       }`}
     >
       <div

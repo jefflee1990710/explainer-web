@@ -87,7 +87,7 @@ export function StudioNav({
     <nav
       aria-label={t("production.shell.mainNavAria")}
       className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${
-        forceExpanded ? "gap-4 pr-0.5" : "items-center gap-2"
+        forceExpanded ? "gap-3 pr-0.5" : "items-center gap-2"
       }`}
     >
       {/* Top Home Pill Button */}
@@ -113,14 +113,14 @@ export function StudioNav({
             key={section}
             role="group"
             aria-labelledby={labelId}
-            className={`flex flex-col gap-1.5 ${forceExpanded ? "w-full" : "items-center"}`}
+            className={`flex flex-col gap-1 ${forceExpanded ? "w-full" : "items-center"}`}
           >
             <button
               type="button"
               id={labelId}
               onClick={() => toggleGroup(section)}
               aria-expanded={isOpen}
-              className={`cursor-pointer items-center gap-1.5 px-1.5 py-0.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--studio-muted)] transition hover:text-[var(--studio-ink)] ${
+              className={`cursor-pointer items-center gap-1.5 px-1.5 py-0.5 text-left text-[10.5px] font-bold uppercase tracking-[0.11em] text-[var(--studio-muted)]/85 transition hover:text-[var(--studio-ink)] ${
                 forceExpanded ? "flex" : "hidden"
               }`}
             >
@@ -142,7 +142,7 @@ export function StudioNav({
                 <div
                   className={
                     forceExpanded
-                      ? "grid w-full grid-cols-2 gap-2"
+                      ? "grid w-full grid-cols-2 gap-1.5"
                       : "flex flex-col items-center gap-1.5"
                   }
                 >
@@ -158,9 +158,7 @@ export function StudioNav({
               ) : (
                 <div
                   className={`flex flex-col gap-0.5 ${
-                    forceExpanded
-                      ? "ml-2 border-l border-[var(--studio-line)] pl-2.5"
-                      : "items-center"
+                    forceExpanded ? "w-full" : "items-center"
                   }`}
                 >
                   {group.map((item) => (
@@ -197,19 +195,23 @@ function StudioHomePillLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`studio-home-pill group relative flex cursor-pointer items-center rounded-xl border text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+      className={`studio-home-pill group relative flex cursor-pointer items-center rounded-[13px] border text-[13px] font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "min-h-11 w-full justify-start gap-2.5 px-3 py-2"
+          ? "w-full justify-start gap-2.5 p-[5px] pr-3"
           : "h-11 w-11 shrink-0 justify-center p-0"
       } ${
         active
-          ? "border-[#c6f24b]/80 bg-[var(--studio-fill)] text-[var(--studio-ink)] shadow-[0_0_18px_rgba(198,242,75,0.22)]"
-          : "border-[var(--studio-line)] bg-[var(--studio-fill)]/70 text-[var(--studio-ink)] hover:border-[#c6f24b]/45 hover:bg-[var(--studio-fill)]"
+          ? "border-[#c6f24b]/75 bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)] shadow-[0_0_16px_rgba(198,242,75,0.16)]"
+          : "border-[var(--studio-line)]/85 bg-[var(--studio-fill)]/65 text-[var(--studio-ink)] hover:border-[var(--studio-muted)]/45 hover:bg-[var(--studio-fill)]"
       }`}
     >
       <span
-        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors ${
-          active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"
+        className={`grid shrink-0 place-items-center rounded-[8px] transition-colors ${
+          forceExpanded ? "h-[30px] w-[30px]" : "h-7 w-7"
+        } ${
+          active
+            ? "bg-[#c6f24b]/18 text-[#c6f24b]"
+            : "bg-[var(--studio-panel)]/80 text-[var(--studio-ink)]/90"
         }`}
       >
         <RailIcon name={item.icon} />
@@ -238,44 +240,42 @@ function StudioToolTileLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-2xl border font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+      className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-[13px] border font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "aspect-square w-full flex-col justify-end overflow-hidden p-0 text-center text-sm leading-tight"
+          ? "w-full justify-start gap-2 p-[5px] pr-2 text-left text-xs leading-tight"
           : "h-11 w-11 shrink-0 justify-center p-0 text-xs"
       } ${
         active
-          ? "border-[#c6f24b]/75 bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)] shadow-[0_0_12px_rgba(198,242,75,0.16)]"
-          : "border-[var(--studio-line)] bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:border-[var(--studio-muted)]/50 hover:opacity-95"
+          ? "border-[#c6f24b]/75 bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)] shadow-[0_0_12px_rgba(198,242,75,0.14)]"
+          : "border-[var(--studio-line)]/85 bg-[var(--studio-fill)]/65 text-[var(--studio-ink)]/95 hover:border-[var(--studio-muted)]/45 hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)]"
       }`}
     >
       {item.imageUrl ? (
         <span
-          className={`overflow-hidden bg-[#12141c] ${
-            forceExpanded ? "absolute inset-0" : "h-6 w-6 shrink-0 rounded-md"
+          className={`shrink-0 overflow-hidden bg-[#0e1017] ring-1 ring-white/8 transition-transform duration-150 group-hover:scale-[1.03] ${
+            forceExpanded ? "h-[30px] w-[30px] rounded-[8px]" : "h-7 w-7 rounded-[7px]"
           }`}
         >
-          {/* Full-bleed preview. Source art has a dark margin, so the expanded tile zooms in until the subject spans the tile width. */}
+          {/* Compact rounded thumbnail inset 5px from the button border. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.imageUrl}
-            alt=""
-            className={`h-full w-full object-cover ${forceExpanded ? "origin-center scale-[1.42]" : ""}`}
-          />
+          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
         </span>
       ) : (
         <span
-          className={`grid shrink-0 place-items-center transition-colors ${
-            forceExpanded ? "h-10 w-10" : "h-5 w-5"
-          } ${active ? "text-[#c6f24b]" : "text-[var(--studio-ink)]"}`}
+          className={`grid shrink-0 place-items-center rounded-[8px] transition-colors ${
+            forceExpanded ? "h-[30px] w-[30px]" : "h-7 w-7"
+          } ${
+            active
+              ? "bg-[#c6f24b]/18 text-[#c6f24b]"
+              : "bg-[var(--studio-panel)]/80 text-[var(--studio-ink)]"
+          }`}
         >
           <RailIcon name={item.icon} />
         </span>
       )}
       <span
-        className={`line-clamp-2 w-full shrink-0 ${
-          forceExpanded
-            ? "relative z-10 block bg-gradient-to-t from-[#0c0e14] via-[#0c0e14]/80 to-transparent px-1 pb-1.5 pt-5"
-            : "hidden"
+        className={`min-w-0 truncate ${
+          forceExpanded ? "block" : "hidden"
         }`}
       >
         {item.label}
@@ -309,19 +309,23 @@ function StudioNavLink({
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`group flex cursor-pointer items-center rounded-xl text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+      className={`group flex cursor-pointer items-center rounded-[11px] border text-[12.5px] transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
-          ? "min-h-9 w-full justify-start gap-2.5 px-2 py-1.5"
+          ? "w-full justify-start gap-2.5 p-[5px] pr-2.5"
           : "h-10 w-10 shrink-0 justify-center p-0"
       } ${
         active
-          ? "bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
-          : "font-medium text-[var(--studio-ink)]/85 hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)]"
+          ? "border-[#c6f24b]/45 bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
+          : "border-transparent font-medium text-[var(--studio-ink)]/85 hover:border-[var(--studio-line)]/70 hover:bg-[var(--studio-fill)]/75 hover:text-[var(--studio-ink)]"
       }`}
     >
       <span
-        className={`relative grid h-6 w-6 shrink-0 place-items-center rounded-lg transition-colors duration-150 ${
-          active ? "text-[#c6f24b]" : "text-[var(--studio-muted)] group-hover:text-[var(--studio-ink)]"
+        className={`relative grid shrink-0 place-items-center rounded-[7px] transition-colors duration-150 ${
+          forceExpanded ? "h-[26px] w-[26px]" : "h-6 w-6"
+        } ${
+          active
+            ? "bg-[#c6f24b]/18 text-[#c6f24b]"
+            : "bg-[var(--studio-fill)]/75 text-[var(--studio-muted)] group-hover:bg-[var(--studio-panel)] group-hover:text-[var(--studio-ink)]"
         }`}
       >
         <RailIcon name={item.icon} />
@@ -340,7 +344,7 @@ function StudioNavLink({
       </span>
       {item.badge !== undefined ? (
         <span
-          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-extrabold tabular-nums ${
+          className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-extrabold leading-none tabular-nums ${
             forceExpanded ? "inline-flex" : "hidden"
           } ${
             item.badge > 0
