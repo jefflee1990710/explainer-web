@@ -942,7 +942,7 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(full, /Unused subscriptions/);
 });
 
-test("whiteboard queues both start and end stills in every visual style (dual-keyframe State A -> State B)", () => {
+test("whiteboard queues only the start still, even when an old end still exists", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.frames = [
@@ -951,7 +951,7 @@ test("whiteboard queues both start and end stills in every visual style (dual-ke
   const next = framesWithClips(steady, [1]);
   assert.deepEqual(
     next.map((frame) => `${frame.position}:${frame.status}`),
-    ["start:queued", "end:queued"],
+    ["start:queued"],
   );
 });
 
