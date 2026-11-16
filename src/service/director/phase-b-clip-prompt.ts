@@ -25,6 +25,12 @@ export function phaseBCharacterLine(input: {
   skillSlug?: string;
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
+  if (isDiagramExplainerSkill(input.skillSlug)) {
+    if (names) {
+      return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's attached first frame. There is no last frame. Never describe clothing, wardrobe, or gear (no "winter coat", "boots", "backpack"); say only that the outfit stays exactly as in the attached first frame.`;
+    }
+    return "Keep the Phase A characterLock. Do not mention reference images in the MiniMax H3 prompt — MiniMax H3 only receives this clip's attached first frame. There is no last frame.";
+  }
   if (names && isOutfitChangeSkill(input.skillSlug)) {
     return `Keep ${names}'s face, hair, and proportions as in the first and last frames. THIS clip's look is already complete in both frames and must stay identical, including style and colour. Do not dress her. Do not keep the previous clip's clothes. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
   }
@@ -126,6 +132,11 @@ export function clipPhaseBUserPrompt(input: {
     isDiagramExplainerSkill(input.skillSlug) ||
     isDiagramExplainerSkill(getDirectorRuleModule(input.skillSlug).slug);
   if (diagramExplainer) {
+    const diagramSlug =
+      input.skillSlug && isDiagramExplainerSkill(input.skillSlug)
+        ? input.skillSlug
+        : getDirectorRuleModule(input.skillSlug).slug;
+    const diagramCharacterLine = phaseBCharacterLine({ skillSlug: diagramSlug });
     const papercraftDiorama = explainerCanvasKind(input.skillSlug) === "papercraft-diorama";
     const clipSlice = {
       clipNumber: row.clipNumber,
@@ -138,10 +149,10 @@ export function clipPhaseBUserPrompt(input: {
     };
     return [
       `Target Clip Phase A JSON:\n${JSON.stringify(clipSlice, null, 2)}`,
-      input.characterLine,
+      diagramCharacterLine,
       `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
       papercraftDiorama
-        ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
+        ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set, locked to the attached first frame (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
         : "BOARD CAMERA: keep the board camera stationary. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.",
       getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
         smoothMotion: Boolean(input.smoothMotion),

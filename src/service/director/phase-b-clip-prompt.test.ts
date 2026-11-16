@@ -370,6 +370,26 @@ test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-
   assert.doesNotMatch(system, /jitter|stop-motion paste feel|whip\/snap|crisp sudden stop/i);
   assert.doesNotMatch(system, /fluid 2x–3x acceleration|0\.2s smooth anticipation/);
   assert.doesNotMatch(system, /Clean spoken voice only/);
+  assert.doesNotMatch(system, /both frames/i);
+  assert.doesNotMatch(system, /in the keyframes/i);
+  assert.match(system, /on the attached first frame/);
+});
+
+test("explainer assembled user and system prompts never claim dual frames", () => {
+  const user = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.doesNotMatch(user, /both frames/i);
+  assert.doesNotMatch(user, /first and last frames/i);
+  assert.match(user, /attached first frame/);
+  assert.match(phaseBCharacterLine({ skillSlug: "cartoon-explainer-video-director" }), /attached first frame/);
+  assert.doesNotMatch(phaseBCharacterLine({ skillSlug: "cartoon-explainer-video-director" }), /first and last frames/);
+
+  const story = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "story-short-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(story, /first and last frames/);
 });
 
 test("papercraft-diorama Phase B user prompt uses concise element-by-element motion with diorama camera (not 2D planar)", () => {
@@ -384,6 +404,9 @@ test("papercraft-diorama Phase B user prompt uses concise element-by-element mot
   assert.match(prompt, /written endScene/);
   assert.match(prompt, /Only the first frame is attached/);
   assert.match(prompt, /DIORAMA CAMERA/);
+  assert.match(prompt, /locked to the attached first frame/);
+  assert.doesNotMatch(prompt, /both frames/i);
+  assert.doesNotMatch(prompt, /first and last frames/i);
   assert.doesNotMatch(prompt, /CAMERA LOCK \(2D PLANAR\)/);
   assert.doesNotMatch(prompt, /Voiceover language/);
   assert.doesNotMatch(prompt, /No background music/);
