@@ -110,7 +110,7 @@ Write one concise, visual-only motion prompt per clip (350–800 characters, max
       "Visual style is fixed to 3D Papercraft Diorama. Optional character renders as a silent 3D cardstock miniature figurine; otherwise pure diorama objects. Alternate camera angles across interior diorama, 90° flat-lay, isometric street, and studio hero close-up.",
   },
   behavior: {
-    keyframeMode: "start-end",
+    keyframeMode: "start-only",
     chainsClipStarts: false,
     anchorsFramesToFirstClip: false,
     dualBeat: true,

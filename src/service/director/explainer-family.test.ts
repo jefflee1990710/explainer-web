@@ -22,7 +22,7 @@ test("paper-cutout explainer is a dual-beat diagram sibling of whiteboard", () =
   assert.equal(director.behavior.speechMode, "narrator");
   assert.equal(director.behavior.allowsInWorldLabels, true);
   assert.equal(director.behavior.maxBackgroundSets, 1);
-  assert.equal(director.behavior.keyframeMode, "start-end");
+  assert.equal(director.behavior.keyframeMode, "start-only");
   assert.equal(isDiagramExplainerSkill(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG), true);
   assert.equal(explainerCanvasKind(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG), "paper-cutout");
   assert.equal(explainerCanvasKind(CARTOON_EXPLAINER_SKILL_SLUG), "whiteboard");
@@ -225,7 +225,7 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   assert.equal(director.behavior.dualBeat, true);
   assert.equal(director.behavior.speechMode, "narrator");
   assert.equal(director.behavior.allowsInWorldLabels, true);
-  assert.equal(director.behavior.keyframeMode, "start-end");
+  assert.equal(director.behavior.keyframeMode, "start-only");
   assert.equal(isDiagramExplainerSkill(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), true);
   assert.equal(explainerCanvasKind(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), "papercraft-diorama");
 

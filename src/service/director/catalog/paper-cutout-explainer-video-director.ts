@@ -178,7 +178,7 @@ Start and end stills share the exact same locked stationary camera framing. Anim
       "Pick an aspect ratio. Keep the source's meaning. Every topic gets a pasted explanation collage. White borders on every cutout. Colour hero on mono background. Approve the storyboard before any video.",
   },
   behavior: {
-    keyframeMode: "start-end",
+    keyframeMode: "start-only",
     chainsClipStarts: false,
     anchorsFramesToFirstClip: false,
     dualBeat: true,

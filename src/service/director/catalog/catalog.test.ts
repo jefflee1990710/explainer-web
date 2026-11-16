@@ -37,8 +37,8 @@ test("all 18 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", (
 test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMode, and self-shot camera", () => {
   assert.equal(DIRECTORS_BY_SLUG["talking-head-director"].behavior.keyframeMode, "end-is-next-start");
   assert.equal(DIRECTORS_BY_SLUG["full-body-talking-head-director"].behavior.keyframeMode, "end-is-next-start");
-  assert.equal(DIRECTORS_BY_SLUG["cartoon-explainer-video-director"].behavior.keyframeMode, "start-end");
-  assert.equal(DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"].behavior.keyframeMode, "start-end");
+  assert.equal(DIRECTORS_BY_SLUG["cartoon-explainer-video-director"].behavior.keyframeMode, "start-only");
+  assert.equal(DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"].behavior.keyframeMode, "start-only");
   assert.equal(DIRECTORS_BY_SLUG["cartoon-explainer-video-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["dialogue-qa-director"].behavior.requiredCastCount, 2);
   assert.equal(DIRECTORS_BY_SLUG["dialogue-qa-director"].behavior.audioFirstLipSync, false);
@@ -56,7 +56,7 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.maxStyleCount, 1);
   assert.equal(DIRECTORS_BY_SLUG["style-switch-director"].behavior.maxStyleCount, 4);
-  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.keyframeMode, "start-end");
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.keyframeMode, "start-only");
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.requiredCastCount, 0);
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.lockedStyleId, "papercraft-diorama");

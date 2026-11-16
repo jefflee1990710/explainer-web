@@ -59,7 +59,7 @@ const raw = {
     "rules": "You must pick an aspect ratio. Keep the source's meaning and invent no facts. The explanation graph is the spine. With a character, do not walk left to right every clip. Alternate the starting side. About 80% of clips stay on that side (steps, a real jump, a point at the teaching element, push or pull). Only about 20% cross left-to-right or right-to-left. Change the camera every clip. A jump lifts the feet; never slide upward. No clip points toward the camera. Eyes and hands stay on the teaching element. Lips and jaw stay sealed, including Clip 1. The whiteboard style and character stay locked. Approve the storyboard before any video."
   },
     "behavior": {
-    "keyframeMode": "start-end",
+    "keyframeMode": "start-only",
     "chainsClipStarts": false,
     "anchorsFramesToFirstClip": false,
     "dualBeat": true,
