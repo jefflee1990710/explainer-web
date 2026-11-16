@@ -406,9 +406,34 @@ test("stills strip the director's subtitle sentence and keep the 9:16 safe area"
   assert.doesNotMatch(reel, /We made it\./);
   assert.doesNotMatch(reel, /Subtitle:/);
   assert.match(reel, /9:16 IG Reel safe area/);
-  assert.match(reel, /top 20%/);
-  assert.match(reel, /bottom 20%/);
+  assert.match(reel, /fill 100% of the 9:16 vertical frame edge-to-edge/i);
+  assert.match(reel, /NO top or bottom letterbox bars/i);
+  assert.match(reel, /middle 60%/);
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /9:16 IG Reel safe area/);
+});
+
+test("papercraft diorama 9:16 stills enforce full-bleed cardstock without padding bars and keep 3D diorama composition lock on end frame", () => {
+  const diorama = project();
+  diorama.skillSlug = "papercraft-diorama-director";
+  diorama.styleId = "papercraft-diorama";
+  diorama.aspectRatio = "9:16";
+  diorama.sceneTextEnabled = true;
+  diorama.phaseA!.clips[0].startScene =
+    "Camera: overhead macro shot. 1) Character: none. 2) Teaching element: 「對比」 stacked top-to-bottom on full-bleed cobalt cardstock.";
+  diorama.phaseA!.clips[0].endScene =
+    "Camera: overhead macro shot. 1) Character: none. 2) Teaching element: 「結果」 unfolded below on full-bleed cobalt cardstock.";
+
+  const start = buildFramePrompt(diorama, 1, "start");
+  assert.match(start, /Full-bleed 3D cardstock scene/);
+  assert.match(start, /NO dark\/navy top-and-bottom padding bands/);
+  assert.match(start, /9:16 IG Reel safe area/);
+
+  const end = buildFramePrompt(diorama, 1, "end", {
+    anchor: { kind: "clip-start" },
+  });
+  assert.match(end, /3D miniature cardstock diorama set/);
+  assert.match(end, /NO solid dark\/navy padding bars/);
+  assert.doesNotMatch(end, /2D planar camera/);
 });
 
 test("story and one-take Clip 1 start stills do not paint a big hook title", () => {

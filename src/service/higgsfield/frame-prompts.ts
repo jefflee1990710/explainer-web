@@ -34,7 +34,7 @@ import {
   isDualBeatSkill,
   joinVoBeats,
 } from "@/service/director/dual-beat";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import { explainerCanvasKind, isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { shouldPlanVideoLocks } from "@/service/director/video-locks";
 import { clipDrawsNoEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import {
@@ -68,6 +68,7 @@ import {
   cartoonNarratorFrameLock,
   isBookendSkill,
   PAPER_CUTOUT_FULL_BLEED,
+  PAPERCRAFT_DIORAMA_FULL_BLEED,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
   isOutfitChangeSkill,
@@ -167,6 +168,8 @@ function compositionLockLines(
   steadyLock = false,
   // Talking-head end still: attached frame is this same clip's start frame, so keep its exact subtitle strips.
   keepAttachedSubtitle = false,
+  // 3D papercraft diorama keeps its miniature tabletop stage rather than a 2D planar board.
+  papercraftDiorama = false,
 ) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
@@ -192,6 +195,14 @@ function compositionLockLines(
       ? `${slot} is THIS CLIP'S START frame`
       : `${slot} is this clip's END frame`;
   if (steadyLock) {
+    if (papercraftDiorama) {
+      return [
+        `COMPOSITION LOCK: ${source}.`,
+        "Keep the same 3D miniature cardstock diorama set, tabletop camera angle, shot size, crop, lighting, and any character figurine scale and position. No zoom, no reframe, no new angle, and NO solid dark/navy padding bars.",
+        "Transform ONLY the cardstock props/mechanisms and character figurine acting from State A (this attached START frame) to State B (the Scene above): update the moved/unfolded/opened/tipped cardstock elements along with the exact concise 「」 labels named in the Scene.",
+        "STAGE LOCK: keep the diorama table/wall backdrop, taped banner strip, and fixed structural set pieces in place; only the moving cardstock elements and active 「」 labels change.",
+      ];
+    }
     return [
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same 2D planar camera, shot size, angle, crop, board/background surface, lighting, and presenter character scale and corner position. No zoom, no reframe, no new angle.",
@@ -1198,6 +1209,7 @@ export function buildFramePrompt(
           position === "end" && !solo && !wardrobeBuild && !surprise && !steady,
           steady && position === "end",
           solo && position === "end",
+          explainerCanvasKind(project.skillSlug) === "papercraft-diorama",
         ),
     ...(isDiagramExplainerSkill(project.skillSlug)
       ? [
@@ -1233,7 +1245,11 @@ export function buildFramePrompt(
     ...(style.id === "paper-cutout" ||
     ("baseStyleId" in style && style.baseStyleId === "paper-cutout")
       ? [PAPER_CUTOUT_FULL_BLEED]
-      : []),
+      : style.id === "papercraft-diorama" ||
+          ("baseStyleId" in style && style.baseStyleId === "papercraft-diorama") ||
+          explainerCanvasKind(project.skillSlug) === "papercraft-diorama"
+        ? [PAPERCRAFT_DIORAMA_FULL_BLEED]
+        : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 

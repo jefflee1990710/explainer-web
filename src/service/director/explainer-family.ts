@@ -7,14 +7,17 @@ import { isSubtitleLook } from "@/service/director/subtitle-look";
 
 /** Paper-cutout collage explainer — sibling of the whiteboard concept explainer. */
 export const PAPER_CUTOUT_EXPLAINER_SKILL_SLUG = "paper-cutout-explainer-video-director";
+/** 3D papercraft diorama explainer — dual-beat tactile cardstock sibling in the explainer family. */
+export const PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG = "papercraft-diorama-director";
 
-export type ExplainerCanvasKind = "whiteboard" | "paper-cutout";
+export type ExplainerCanvasKind = "whiteboard" | "paper-cutout" | "papercraft-diorama";
 
-/** Dual-beat diagram explainers that share narrator / graph / action machinery. */
+/** Dual-beat diagram explainers that share narrator / concise-label / motion-prompt machinery. */
 export function isDiagramExplainerSkill(skillSlug?: string) {
   return (
     skillSlug === CARTOON_EXPLAINER_SKILL_SLUG ||
-    skillSlug === PAPER_CUTOUT_EXPLAINER_SKILL_SLUG
+    skillSlug === PAPER_CUTOUT_EXPLAINER_SKILL_SLUG ||
+    skillSlug === PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG
   );
 }
 
@@ -58,6 +61,7 @@ export function coerceDiagramExplainerOnScreenText(input: {
 
 export function explainerCanvasKind(skillSlug?: string): ExplainerCanvasKind | null {
   if (skillSlug === PAPER_CUTOUT_EXPLAINER_SKILL_SLUG) return "paper-cutout";
+  if (skillSlug === PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG) return "papercraft-diorama";
   if (skillSlug === CARTOON_EXPLAINER_SKILL_SLUG) return "whiteboard";
   return null;
 }

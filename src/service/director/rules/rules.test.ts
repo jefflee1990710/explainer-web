@@ -182,5 +182,13 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
     papercraftRules.phaseADirectorBlock({ hasCharacter: true }),
     /3D folded\/layered 300gsm matte cardstock miniature figurine/i,
   );
+  const verticalPapercraft = papercraftRules.phaseADirectorBlock({
+    hasCharacter: false,
+    aspectRatio: "9:16",
+  });
+  assert.match(verticalPapercraft, /PORTRAIT 9:16 COMPOSITION/);
+  assert.match(verticalPapercraft, /stack\/arrange items VERTICALLY \(top-to-bottom/i);
+  assert.match(papercraftRules.phaseBDetailRules({}), /State A -> State B|Start frame to the End frame/i);
+  assert.doesNotMatch(papercraftRules.phaseBDetailRules({}), /start-only/i);
 });
 

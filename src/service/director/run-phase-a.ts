@@ -47,7 +47,10 @@ import {
   isDualBeatSkill,
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+} from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { normalizeOneTakePhaseA, withSpokenClipDurations } from "@/service/director/clip-seconds";
@@ -330,6 +333,8 @@ ${
     ? sceneText.enabled
       ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): ${NO_FIRST_FRAME_HOOK_TITLE} Short in-scene signs the source itself names are allowed. Never write Subtitle: or caption the spoken line on screen.`
       : "On-canvas text is OFF: motion is pose and props only — no written labels and no Clip 1 hook title."
+    : explainerCanvasKind(input.skill.slug) === "papercraft-diorama"
+    ? `On-canvas text uses STRICT CONCISE BUDGET (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator — NEVER write full VO sentences, paragraphs, or Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT} (its sole headline). Each subsequent clip shows at most 1 short beat takeaway/headline inside 「...」 (2–6 English words / 4–10 CJK chars) plus 2–3 short cardstock object/set labels inside 「...」 (1–3 words / 2–6 CJK chars). Start + End dual keyframes: startScene is State A and endScene is State B on the same locked diorama camera and cardstock set; motionCamera physically animates the cardstock mechanism from State A into State B. If a 3D cardstock miniature character figurine is present, eyes and hands stay on the cardstock props; lips and jaw stay sealed.`
     : isDiagramExplainerSkill(input.skill.slug)
     ? `On-canvas text uses STRICT CONCISE BUDGET (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator — NEVER write full VO sentences, paragraphs, or Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT} (its sole headline). Each subsequent clip shows at most 1 short beat takeaway/headline inside 「...」 (2–6 English words / 4–10 CJK chars) plus 2–3 short node/object labels inside 「...」 (1–3 words / 2–6 CJK chars). Start + End dual keyframes: startScene is State A and endScene is State B on the same locked 2D planar camera; motionCamera physically animates State A into State B (slide, unfold, tear open, draw stroke-by-stroke, flip, or meter fill). On every clip, including Clip 1, eyes and hands stay on the teaching element; lips and jaw stay sealed.`
     : sceneText.enabled && skillForcesSceneText(input.skill.slug)

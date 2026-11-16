@@ -10,6 +10,7 @@ import {
   explainerCanvasKind,
   isDiagramExplainerSkill,
   PAPER_CUTOUT_EXPLAINER_SKILL_SLUG,
+  PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG,
 } from "@/service/director/explainer-family";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { DIRECTORS_BY_SLUG } from "@/service/director/catalog";
@@ -217,5 +218,46 @@ test("diagram explainers cannot choose none and always paint every clip", () => 
     })?.onScreenTextStyleId,
     "neon",
   );
+});
+
+test("papercraft-diorama-director belongs to the diagram explainer family with 3D diorama rules (not 2D whiteboard)", () => {
+  const director = DIRECTORS_BY_SLUG[PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG];
+  assert.equal(director.behavior.dualBeat, true);
+  assert.equal(director.behavior.speechMode, "narrator");
+  assert.equal(director.behavior.allowsInWorldLabels, true);
+  assert.equal(director.behavior.keyframeMode, "start-end");
+  assert.equal(isDiagramExplainerSkill(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), true);
+  assert.equal(explainerCanvasKind(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), "papercraft-diorama");
+
+  const coerced = coerceDiagramExplainerOnScreenText({
+    skillSlug: PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG,
+    language: "zh-Hant",
+    sceneTextLanguage: "none",
+    onScreenTextStyleId: "clean",
+  });
+  assert.deepEqual(coerced, {
+    sceneTextLanguage: "zh-Hant",
+    sceneTextEnabled: true,
+    onScreenTextStyleId: "clean",
+    onScreenTextCoverage: "all",
+  });
+
+  const verticalBlock = cartoonExplainerDirectorBlock({
+    hasCharacter: false,
+    canvas: "papercraft-diorama",
+    aspectRatio: "9:16",
+  });
+  assert.match(verticalBlock, /3D PAPERCRAFT DIORAMA EXPLAINER/);
+  assert.match(verticalBlock, /PORTRAIT 9:16 COMPOSITION/);
+  assert.match(verticalBlock, /top-to-bottom/i);
+  assert.doesNotMatch(verticalBlock, /Whole-canvas 2D whiteboard lock/);
+
+  const frame = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: false,
+    clipNumber: 2,
+    position: "start",
+  });
+  assert.match(frame, /3D Papercraft Diorama lock/);
+  assert.match(frame, /NO dark\/navy top-and-bottom padding bands/);
 });
 

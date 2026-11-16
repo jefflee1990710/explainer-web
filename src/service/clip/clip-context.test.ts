@@ -204,24 +204,24 @@ describe("per-clip stage and steady-stills resolution", () => {
   it("computes frameCost and clipDrawsNoEndStill per clip when a talking-head video appends start-only or dual-keyframe explainer clips", () => {
     const row1 = makeRow(1);
     const row2 = attachClipOverrides(makeRow(2), {
+      skillSlug: "one-take-director",
+      styleId: "realistic",
+    });
+    const row3 = attachClipOverrides(makeRow(3), {
       skillSlug: "papercraft-diorama-director",
       styleId: "papercraft-diorama",
     });
-    const row3 = attachClipOverrides(makeRow(3), {
-      skillSlug: "cartoon-explainer-video-director",
-      styleId: "doodle",
-    });
     const project = makeProject([row1, row2, row3]);
 
-    // Clip 1 (talking-head) followed by Clip 2 (papercraft-diorama) does not share continuity,
+    // Clip 1 (talking-head) followed by Clip 2 (one-take) does not share continuity,
     // so Clip 1 cannot use Clip 2's start frame as its end frame and must draw both stills.
     assert.equal(clipEndIsNextStart(project, 1), false);
     assert.equal(clipDrawsNoEndStill(project, 1), false);
     assert.equal(clipFrameCost(project, 1), FRAMES_COST);
-    // Clip 2 is papercraft-diorama (start-only), so it draws no end still (1 frame = FRAME_COST).
+    // Clip 2 is one-take (start-only), so it draws no end still (1 frame = FRAME_COST).
     assert.equal(clipDrawsNoEndStill(project, 2), true);
     assert.equal(clipFrameCost(project, 2), FRAME_COST);
-    // Clip 3 is cartoon-explainer (start-end dual keyframe), so it draws both start and end stills.
+    // Clip 3 is papercraft-diorama (start-end dual keyframe explainer), so it draws both start and end stills.
     assert.equal(clipDrawsNoEndStill(project, 3), false);
     assert.equal(clipFrameCost(project, 3), FRAMES_COST);
 

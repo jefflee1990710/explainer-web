@@ -117,9 +117,17 @@ test("whiteboard requires both start and end stills (start-end dual keyframe) wh
   const tags = clipGenerationTags(ready);
   assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
 
-  const startOnly = project({
+  const diorama = project({
     skillSlug: "papercraft-diorama-director",
     styleId: "papercraft-diorama",
+    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+  });
+  assert.equal(clipStateFor(diorama, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(diorama, 1).frameCost, 8);
+
+  const startOnly = project({
+    skillSlug: "one-take-director",
+    styleId: "realistic",
     frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
   });
   assert.equal(clipStateFor(startOnly, 1).stage, "frames_ready");

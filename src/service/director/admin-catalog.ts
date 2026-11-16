@@ -172,6 +172,7 @@ function runtimeBlocks(director: IDirector): DirectorTextBlock[] {
         canvas,
         realistic: false,
         smoothMotion: true,
+        aspectRatio: canvas === "papercraft-diorama" ? "9:16" : undefined,
       }),
       SAMPLE_NOTE,
     );
@@ -183,6 +184,7 @@ function runtimeBlocks(director: IDirector): DirectorTextBlock[] {
         canvas,
         realistic: false,
         smoothMotion: true,
+        aspectRatio: canvas === "papercraft-diorama" ? "9:16" : undefined,
       }),
       SAMPLE_NOTE,
     );

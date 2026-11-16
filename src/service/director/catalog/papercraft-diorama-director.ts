@@ -43,9 +43,12 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 - **Curated editorial cardstock palette**: Deep cobalt & navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper.
 - **Camera & Diorama Set Archetypes (vary across clips — never repeat the same framing twice in a row)**:
   1. \`diorama-interior\` (eye-level or slight 3/4 miniature interior): e.g., a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged-edge cream paper receipt, a yellow folded cardstock chair, and a deep-teal arched backdrop wall.
-  2. \`flat-lay-top-down\` (90° overhead flat-lay on solid mustard-yellow or teal cardstock): e.g., a folded navy cardstock envelope holding embossed gold paper coins beside a folded cream cardstock equity certificate with a blue-and-yellow cardstock pie chart, corner mounts, and a scalloped red paper wax seal with ribbon tails.
+  2. \`flat-lay-top-down\` (90° overhead flat-lay on full-bleed mustard-yellow or teal cardstock filling 100% of the frame edge-to-edge): e.g., a folded navy cardstock envelope holding embossed gold paper coins beside (16:9) or stacked vertically above/below (9:16) a folded cream cardstock equity certificate with a blue-and-yellow cardstock pie chart, corner mounts, and a scalloped red paper wax seal with ribbon tails.
   3. \`isometric-street\` (3/4 isometric miniature street / multi-unit diorama): e.g., a row of three side-by-side navy-blue cardstock shopfronts with terracotta scalloped awnings and miniature barber poles linked together by one continuous looping cream paper receipt ribbon.
-  4. \`studio-scale-closeup\` (straight-on studio hero object on a deep royal-blue cardstock stage): e.g., a 3D folded gold cardstock balance scale weighing a tall stack of red-and-cream receipt tickets on the left pan against a stack of gold paper coins on the right pan.
+  4. \`studio-scale-closeup\` (straight-on studio hero object on a full-bleed deep royal-blue cardstock stage): e.g., a 3D folded gold cardstock balance scale weighing a tall stack of red-and-cream receipt tickets on the left pan against a stack of gold paper coins on the right pan.
+- **Full-Bleed & Portrait (9:16) Composition Rule**:
+  - Every clip's cardstock backdrop or diorama environment MUST fill **100% of the frame edge-to-edge** from top to bottom and left to right — NEVER place a smaller horizontal mat/card floating inside dark navy or solid-color top-and-bottom padding bands.
+  - When \`aspectRatio\` is \`9:16\` (vertical portrait), compose \`flat-lay-top-down\` and multi-item comparisons **vertically (top-to-bottom / upper vs lower)** so the props naturally fill the portrait frame, NEVER side-by-side in a horizontal row (\`橫排\`, left vs right) squeezed across the middle!
 - **Chapter Banner & Beat Tag**:
   - When on-screen text or in-world labels are enabled, each clip's \`startScene\` may include one short chapter title inside 「...」 (2–4 words, e.g. 「One Paying Customer」, 「Venture-Backed」, 「One Product, More Shops」, 「Does It Scale?」) printed on a torn-edge warm cream cardstock banner strip taped at the top corners with two small kraft masking-tape tabs. Never write full voiceover sentences on the scene.
 
@@ -80,12 +83,11 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
       path: "references/papercraft-diorama-prompt-contract.md",
       content: `# 3D Papercraft Diorama Clip Prompt Contract (Phase B)
 
-Write one self-contained prompt per clip:
+Write one concise, visual-only motion prompt per clip (350–800 characters, max 1,000 characters):
 
-1. Output spec: duration (5–12s), aspect ratio, 24 FPS, synchronized narrator voiceover and tactile paper Foley.
-2. Style lock: 3D tactile 300gsm matte textured cardstock diorama with crisp scored and folded geometric bevel edges, visible paper fiber grain, soft studio tabletop lighting, shallow macro depth-of-field, and cobalt/mustard/terracotta/teal/cream palette. Zero white scissor borders. If a 3D cardstock character figurine is in the frame, keep their lips closed with zero lip-sync while they interact physically with the cardstock props; otherwise zero human characters.
-3. Scene at t=0: exact cardstock set, camera angle (\`diorama-interior\`, \`flat-lay-top-down\`, \`isometric-street\`, or \`studio-scale-closeup\`), and 3D folded paper props matching the start keyframe.
-4. Timed beats: Beat 1 (\`startVo\`) and Beat 2 (\`endVo\`) driven by physical papercraft mechanics (paper ribbon feeding, coins sliding, scale tipping, camera slow push-in or pan).
+1. Dual keyframes attached: START frame (State A) is attached as \`first_frame\` and END frame (State B) is attached as \`last_frame\`. Voiceover is muxed externally — do NOT include voice locks, spoken dialogue, BGM, or SFX lines.
+2. Camera & character (1 short clause): keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock character figurine is in frame, keep lips closed (zero lip-sync) while hands and gaze interact with the cardstock props.
+3. Element-by-element motion (State A -> State B): across timed beats, describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze smoothly moves from its START frame state to its END frame state (receipt ribbon feeding, coins sliding into envelope, lid opening, scale tipping and settling). Rigid 300gsm cardstock never morphs, melts, or dissolves.
 `,
     },
   ],
@@ -108,7 +110,7 @@ Write one self-contained prompt per clip:
       "Visual style is fixed to 3D Papercraft Diorama. Optional character renders as a silent 3D cardstock miniature figurine; otherwise pure diorama objects. Alternate camera angles across interior diorama, 90° flat-lay, isometric street, and studio hero close-up.",
   },
   behavior: {
-    keyframeMode: "start-only",
+    keyframeMode: "start-end",
     chainsClipStarts: false,
     anchorsFramesToFirstClip: false,
     dualBeat: true,

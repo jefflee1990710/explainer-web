@@ -3,7 +3,10 @@ import {
   CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
   formatCameraFirstVideoPrompt,
 } from "@/service/director/camera-first-prompt";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+} from "@/service/director/explainer-family";
 import { clipSkipsEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { getDirectorRuleModule } from "@/service/director/rules";
@@ -62,6 +65,9 @@ type PhaseBInput = {
 const DIAGRAM_EXPLAINER_VIDEO_GUARD =
   "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the first frame to the last frame.";
 
+const PAPERCRAFT_DIORAMA_VIDEO_GUARD =
+  "Keep the diorama camera steady, 300gsm cardstock set rigid, character figurine outfit fixed, and unchanged 「」 labels crisp without morphing; smoothly animate each changing cardstock mechanism from the first frame to the last frame.";
+
 function stripDiagramAudioParagraphs(text: string) {
   return text
     .split(/\n{2,}/)
@@ -85,12 +91,17 @@ export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, la
     isSilentOutfitSkill(input.skill.slug) ||
     (input.narrationEnabled === false && !isTalkingHeadSkill(input.skill.slug) && !skillBansNarration(input.skill.slug));
   const diagramExplainer = isDiagramExplainerSkill(input.skill.slug);
+  const papercraftDiorama = explainerCanvasKind(input.skill.slug) === "papercraft-diorama";
   if (diagramExplainer) {
     return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Each clip is dual-keyframe image-to-video: the approved START image is attached as the first frame and the approved END image is attached as the last frame. Describe ONLY the motion that smoothly transitions each element from the first frame to the last frame. Never call those stills a reference image.
-BOARD CAMERA: keep the camera stationary and locked. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.
+${
+  papercraftDiorama
+    ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
+    : "BOARD CAMERA: keep the camera stationary and locked. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync."
+}
 ${directorRules.phaseBMotionRules({
   smoothMotion: steady,
   realistic,
@@ -246,7 +257,13 @@ export async function runPhaseBForClip(
       });
   const prompt = (
     diagramExplainer
-      ? [input.sceneTextOff ? NO_ONSCREEN_WRITING : DIAGRAM_EXPLAINER_VIDEO_GUARD]
+      ? [
+          input.sceneTextOff
+            ? NO_ONSCREEN_WRITING
+            : explainerCanvasKind(input.skill.slug) === "papercraft-diorama"
+              ? PAPERCRAFT_DIORAMA_VIDEO_GUARD
+              : DIAGRAM_EXPLAINER_VIDEO_GUARD,
+        ]
       : [
           lock,
           phaseBWardrobeLock({

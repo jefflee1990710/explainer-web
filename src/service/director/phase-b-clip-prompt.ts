@@ -2,7 +2,10 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE } from "@/service/director/camera-first-prompt";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+} from "@/service/director/explainer-family";
 import { firstClipHookPerformanceVideoLine } from "@/service/director/hook-title";
 import { getDirectorRuleModule } from "@/service/director/rules";
 import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/service/director/skill-rules";
@@ -123,6 +126,7 @@ export function clipPhaseBUserPrompt(input: {
     isDiagramExplainerSkill(input.skillSlug) ||
     isDiagramExplainerSkill(getDirectorRuleModule(input.skillSlug).slug);
   if (diagramExplainer) {
+    const papercraftDiorama = explainerCanvasKind(input.skillSlug) === "papercraft-diorama";
     const clipSlice = {
       clipNumber: row.clipNumber,
       timeRange: row.timeRange,
@@ -136,7 +140,9 @@ export function clipPhaseBUserPrompt(input: {
       `Target Clip Phase A JSON:\n${JSON.stringify(clipSlice, null, 2)}`,
       input.characterLine,
       `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-      "BOARD CAMERA: keep the board camera stationary. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.",
+      papercraftDiorama
+        ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
+        : "BOARD CAMERA: keep the board camera stationary. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.",
       getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
         smoothMotion: Boolean(input.smoothMotion),
         realistic: Boolean(input.realistic),
@@ -152,7 +158,9 @@ export function clipPhaseBUserPrompt(input: {
           )
         : "",
       closing,
-      "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short stationary camera & silent-character clause, then simply describe how each element (the character's hand/gaze and each changing diagram piece or label) smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists.",
+      papercraftDiorama
+        ? "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short steady-diorama-camera & silent-figurine clause, then simply describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists."
+        : "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short stationary camera & silent-character clause, then simply describe how each element (the character's hand/gaze and each changing diagram piece or label) smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists.",
       "Return a single object { clipNumber, durationSeconds, prompt }.",
     ]
       .filter(Boolean)

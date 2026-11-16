@@ -136,3 +136,13 @@ test("a follow shot copies the new end into the next opening", async () => {
   assert.equal(next[1]?.startScene, "reaches the door");
   assert.equal(next[1]?.endUsesStartStill, undefined);
 });
+
+test("papercraft diorama end-scene rewrite keeps 3D cardstock stage and full-bleed framing (no 2D planar lock)", () => {
+  const system = endSceneRewriteSystem("zh", {
+    diagramExplainer: true,
+    papercraftDiorama: true,
+  });
+  assert.match(system, /3D papercraft diorama explainer/);
+  assert.match(system, /NO dark\/navy top or bottom padding bars/);
+  assert.doesNotMatch(system, /2D planar camera/);
+});

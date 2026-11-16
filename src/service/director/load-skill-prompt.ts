@@ -1,5 +1,5 @@
 import { styleBlockForDirector, type StylePromptSlice } from "@/service/style";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import { explainerCanvasKind, isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { isSelfShotCreatorSkill, styleForSelfShotSkill } from "@/service/style/realistic-light";
 import type { Skill, SkillReference } from "@/model/skill";
 
@@ -41,9 +41,10 @@ export function skillPromptForPhaseA(
     skill,
     (ref) => !isPhaseBRef(ref) && !isExampleRef(ref),
   );
+  const canvasKind = explainerCanvasKind(skill.slug);
   const effectiveStyle = isSelfShotCreatorSkill(skill.slug)
     ? styleForSelfShotSkill(style)
-    : isDiagramExplainerSkill(skill.slug)
+    : isDiagramExplainerSkill(skill.slug) && canvasKind !== "papercraft-diorama"
       ? styleForExplainerSkill(style)
       : style;
   return `${prompt}\n\n${styleBlockForDirector(effectiveStyle)}`;
@@ -53,8 +54,11 @@ export function skillPromptForPhaseB(
   skill: Skill,
   style: StylePromptSlice & { id?: string; baseStyleId?: string },
 ) {
+  const canvasKind = explainerCanvasKind(skill.slug);
   if (isDiagramExplainerSkill(skill.slug)) {
-    return styleBlockForDirector(styleForExplainerSkill(style));
+    return styleBlockForDirector(
+      canvasKind === "papercraft-diorama" ? style : styleForExplainerSkill(style),
+    );
   }
   const effectiveStyle = isSelfShotCreatorSkill(skill.slug)
     ? styleForSelfShotSkill(style)

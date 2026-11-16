@@ -95,13 +95,16 @@ export function isValidDirectorBackgroundId(skillSlug: string | undefined, backg
 export const PAPER_CUTOUT_FULL_BLEED =
   "Full-bleed collage: the scene paper reaches every edge of the frame. No dark mat, no outer torn-paper border, no floating sheet, no padding. White scissor borders stay on each cutout, not around the picture.";
 
+export const PAPERCRAFT_DIORAMA_FULL_BLEED =
+  "Full-bleed 3D cardstock scene: the background cardstock sheet or miniature diorama environment fills 100% of the frame edge-to-edge from the very top edge to the very bottom edge. Strictly NO smaller horizontal card/mat floating inside solid navy/dark/white top-and-bottom padding bands, and NO letterbox bars.";
+
 export const VERTICAL_FRAME_SAFE_AREA =
-  "9:16 IG Reel safe area: the photograph or scene must fill 100% of the 9:16 vertical frame edge-to-edge from the very top edge to the very bottom edge (strictly NO top or bottom letterbox bars, NO solid white/grey padding bands, and NO square/4:5 inner frame). Keep text, characters, or the main subject focal points in the middle 60% vertical safe zone so Reel UI overlays at the top 20% and the bottom 20% do not cover them.";
+  "9:16 IG Reel safe area: the photograph or scene must fill 100% of the 9:16 vertical frame edge-to-edge from the very top edge to the very bottom edge (strictly NO top or bottom letterbox bars, NO solid colored/navy/black/white/grey padding bands, NO horizontal inner card or floating mat, and NO square/4:5 inner frame). Arrange multi-item scenes vertically for 9:16 portrait framing, keeping text, characters, or the main subject focal points in the middle 60% vertical safe zone while the background surface/set extends uninterrupted to all four edges.";
 
 // Director plan for every skill. Empty unless the video is a vertical reel.
 export function verticalSafeAreaDirectorLine(aspectRatio?: string) {
   if (aspectRatio !== "9:16") return "";
-  return "This video is a full-bleed vertical 9:16 IG Reel. The background canvas or environment fills 100% of the 9:16 frame edge-to-edge (never add top/bottom letterbox bars or frame a horizontal or square box inside the vertical canvas). In every still, reserve the top 20% and the bottom 20% for UI safe margins: keep text, characters, or the main subject focal points in the middle 60%.";
+  return "This video is a full-bleed vertical 9:16 IG Reel. The background canvas or environment fills 100% of the 9:16 frame edge-to-edge (never add top/bottom letterbox or solid-color padding bands, and never stage a horizontal/landscape strip or floating mat inside the vertical canvas). Compose multi-item layouts vertically (top-to-bottom) rather than side-by-side horizontally. In every still, keep text, characters, or key focal points inside the middle 60% UI safe zone while the background set/surface continues uninterrupted to the top and bottom edges.";
 }
 
 // Auto on a bookend still follows that director's own short-sting plan.
@@ -697,11 +700,18 @@ export function cartoonExplainerDirectorBlock(options?: {
   canvas?: ExplainerCanvasKind;
   backgroundId?: string;
   customBackground?: boolean;
+  aspectRatio?: AspectRatio;
 }) {
   const hasCharacter = Boolean(options?.hasCharacter);
   const smooth = Boolean(options?.smoothMotion);
   const realistic = Boolean(options?.realistic);
   const canvas: ExplainerCanvasKind = options?.canvas ?? "whiteboard";
+  if (canvas === "papercraft-diorama") {
+    return papercraftDioramaDirectorBlock({
+      hasCharacter: options?.hasCharacter,
+      aspectRatio: options?.aspectRatio,
+    });
+  }
   const surfaceOpts = {
     backgroundId: options?.backgroundId,
     customBackground: options?.customBackground,
@@ -816,6 +826,24 @@ export function cartoonNarratorFrameLock(
     options?.clipNumber === 1 && (options?.position ?? "start") === "start"
       ? ` ${hookTitleFrameLine()}`
       : "";
+  if (canvas === "papercraft-diorama") {
+    const dioramaCharacter = options?.hasCharacter
+      ? "Silent 3D folded/layered 300gsm matte cardstock miniature figurine matching the attached blueprint (lips and jaw sealed with zero lip-sync, eyes and hands interacting with the cardstock props, never looking into the lens)."
+      : "No human characters — pure 3D 300gsm matte cardstock miniature diorama props and sets.";
+    const dioramaHook =
+      options?.clipNumber === 1
+        ? `HOOK CAMERA: Clip 1 keeps a steady diorama camera matching the Scene.${hookTitleStill}`
+        : "";
+    return [
+      "3D Papercraft Diorama lock: 100% full-bleed 300gsm matte textured cardstock diorama or overhead flat-lay filling the entire frame edge-to-edge (strictly NO 2D whiteboard, NO white scissor cutout borders, and NO dark/navy top-and-bottom padding bands).",
+      dioramaCharacter,
+      steady ? "Camera angle, shot size, and framing match the other still of this clip." : "",
+      "Concise 「」 labels/headline only (no full-sentence voiceover text).",
+      dioramaHook,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
   // Face and body follow the emotion the Scene wrote from this clip's spoken line.
   const actingStill = realistic
     ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face; never cartoon/illustration)."
@@ -902,6 +930,12 @@ export function cartoonNarratorVideoLock(
   const smooth = Boolean(options?.smoothMotion);
   const realistic = Boolean(options?.realistic);
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
+  if (canvas === "papercraft-diorama") {
+    const dioramaChar = options?.hasCharacter
+      ? "If a 3D cardstock miniature character figurine is on screen, their mouth stays softly closed with zero lip-sync while hands and gaze operate the cardstock props."
+      : "Pure 3D cardstock diorama objects with no human characters.";
+    return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): keep the diorama camera steady on the set matching both attached keyframes (first_frame State A -> last_frame State B). ${dioramaChar} Smoothly animate each folded 300gsm cardstock mechanism, prop, and 「」 label from State A to State B across the full clip while keeping cardstock geometry rigid (never morph, melt, or dissolve).`;
+  }
   const canvasVoice =
     canvas === "paper-cutout"
       ? paperCutoutVideoCanvasLock({
@@ -1073,15 +1107,23 @@ export function styleSwitchDirectorBlock(styles: Array<{ id: string; name: strin
   ].join(" ");
 }
 
-export function papercraftDioramaDirectorBlock(options?: { hasCharacter?: boolean }) {
+export function papercraftDioramaDirectorBlock(options?: {
+  hasCharacter?: boolean;
+  aspectRatio?: AspectRatio;
+}) {
   const characterRule = options?.hasCharacter
     ? "An attached cast character IS active: render them inside the diorama as a silent 3D folded/layered 300gsm matte cardstock miniature figurine matching the attached blueprint (never photorealistic skin, never a flat 2D white scissor-border cutout). Their mouth stays softly closed with zero lip-sync while they point at, hold, or operate the cardstock props and mechanisms. `characterLock` MUST name the cast and state their appearance follows the attached blueprint as a 3D matte cardstock miniature figurine."
     : "No cast character is attached: keep ZERO human characters (`characterLock` MUST be \"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets.\"). Never draw people, faces, or hands in any clip.";
+  const portraitRule =
+    options?.aspectRatio === "9:16"
+      ? "PORTRAIT 9:16 COMPOSITION (CRITICAL): Every clip MUST fill 100% of the vertical 9:16 frame edge-to-edge from top to bottom (NEVER place a smaller horizontal card/mat inside dark navy top-and-bottom padding bands). For `flat-lay-top-down` and multi-item comparisons, ALWAYS stack/arrange items VERTICALLY (top-to-bottom / upper half vs lower half) — NEVER arrange two items horizontally side-by-side (`橫排`, left vs right) in a middle horizontal strip!"
+      : "FULL-BLEED COMPOSITION: Every clip's cardstock backdrop or diorama environment fills 100% of the frame edge-to-edge with no outer mat or padding bands.";
   return [
     "This is a 3D PAPERCRAFT DIORAMA EXPLAINER (Founder Notes style), permanently locked to the `papercraft-diorama` visual style (300gsm heavy matte textured construction paper / cardstock, scored and folded geometric 3D miniature sets and props, visible paper fiber grain, crisp folded bevel edges, soft tabletop studio lighting with shallow macro depth-of-field, and a curated Wes Anderson craft palette of deep cobalt/navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory).",
     `${characterRule} Strictly NO 2D white scissor borders.`,
-    "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged cream paper receipt and a yellow cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on solid mustard-yellow or teal cardstock, e.g. a folded navy cardstock envelope holding embossed gold paper coins beside a folded cream cardstock certificate with a blue-and-yellow pie chart and a scalloped red paper wax seal), (3) `isometric-street` (3/4 isometric miniature street of multiple side-by-side navy cardstock shopfronts with terracotta scalloped awnings linked by one continuous looping cream paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on a deep cobalt cardstock stage, e.g. a 3D folded gold cardstock balance scale weighing a stack of receipt tickets against a stack of gold paper coins).",
-    "Each clip has two spoken beats (`startVo` + `endVo`) spoken by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, continuous receipt ribbon looping across shops, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",
+    portraitRule,
+    "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged cream paper receipt and a yellow cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on full-bleed mustard-yellow or teal cardstock filling 100% of the frame, e.g. a folded navy cardstock envelope holding embossed gold paper coins and a folded cream cardstock certificate with a pie chart and red paper wax seal — stacked vertically in 9:16), (3) `isometric-street` (3/4 isometric miniature street of miniature navy cardstock shopfronts with terracotta scalloped awnings linked by one continuous looping cream paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on a full-bleed deep cobalt cardstock stage, e.g. a 3D folded gold cardstock balance scale weighing a stack of receipt tickets against a stack of gold paper coins).",
+    "Each clip has two spoken beats (`startVo` + `endVo`) spoken by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism from `startScene` (State A) to `endScene` (State B) on the same locked diorama camera (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, lid opening, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",
   ].join(" ");
 }
 

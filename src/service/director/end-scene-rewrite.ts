@@ -4,7 +4,7 @@ import type { StoryboardRow, VoLanguage } from "@/model/project";
 import { isFollowShotSkill, isSilentOutfitSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { clipEndScene, clipStartScene, isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
-import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
+import { explainerCanvasKind, isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import { endSceneModel } from "@/service/director/model";
@@ -28,9 +28,22 @@ export function shouldRewriteEndScenes(skillSlug?: string) {
 
 export function endSceneRewriteSystem(
   language?: VoLanguage,
-  options?: { lockedCamera?: boolean; diagramExplainer?: boolean },
+  options?: { lockedCamera?: boolean; diagramExplainer?: boolean; papercraftDiorama?: boolean },
 ) {
   if (options?.diagramExplainer) {
+    if (options?.papercraftDiorama) {
+      return [
+        "You rewrite only the end still (State B) of each 3D papercraft diorama explainer clip.",
+        "endScene is one frozen picture of that clip's opening still (State A) after its physical papercraft transformation in motionCamera has landed.",
+        "Same miniature cardstock set, same tabletop studio light, same full-bleed edge-to-edge framing (NO dark/navy top or bottom padding bars), and same locked camera angle/shot size/crop: copy the opening Camera line. Keep any miniature cardstock character figurine in their same scale and side unless motionCamera moves them.",
+        "Transform the cardstock props, mechanism, and character figurine acting from State A to State B: execute the element transitions named in motionCamera (paper ribbon unrolled/fed, cardstock lid/envelope opened, folded flap unfolded, embossed paper coin slid into slot, balance scale tipped, or cardstock slider pushed) and update the concise 「」 keyword labels to State B's outcome.",
+        "STRICT TEXT BUDGET: keep only concise 「」 keyword labels (1–3 words / 2–6 CJK chars) and at most one short beat headline (2–6 words / 4–10 CJK chars). NEVER write full voiceover sentences or Subtitle: on the still.",
+        "Write the landed picture, not the in-between path. Do not invent a new room or a new character.",
+        SIGHTLINE_RULE,
+        "endUsesStartStill is a boolean and is true for every clip: the image model anchors to the attached opening still.",
+        sceneDescriptionLanguageLock(language),
+      ].join(" ");
+    }
     return [
       "You rewrite only the end still (State B) of each diagram explainer clip.",
       "endScene is one frozen picture of that clip's opening still (State A) after its physical transformation in motionCamera has landed.",
@@ -157,6 +170,7 @@ export async function rewriteEndScenes(
       system: endSceneRewriteSystem(input.language, {
         lockedCamera: input.lockedCamera,
         diagramExplainer: input.diagramExplainer ?? isDiagramExplainerSkill(input.skillSlug),
+        papercraftDiorama: explainerCanvasKind(input.skillSlug) === "papercraft-diorama",
       }),
       prompt: endSceneRewritePrompt(input.clips),
     });

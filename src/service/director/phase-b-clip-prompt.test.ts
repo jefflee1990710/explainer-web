@@ -364,3 +364,19 @@ test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-
   assert.doesNotMatch(system, /fluid 2x–3x acceleration|0\.2s smooth anticipation/);
   assert.doesNotMatch(system, /Clean spoken voice only/);
 });
+
+test("papercraft-diorama Phase B user prompt uses concise element-by-element motion with diorama camera (not 2D planar)", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "papercraft-diorama-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /Target Clip Phase A JSON/);
+  assert.match(prompt, /State A -> State B/);
+  assert.match(prompt, /DIORAMA CAMERA/);
+  assert.doesNotMatch(prompt, /CAMERA LOCK \(2D PLANAR\)/);
+  assert.doesNotMatch(prompt, /Voiceover language/);
+  assert.doesNotMatch(prompt, /No background music/);
+  assert.match(prompt, /350–800 characters/);
+});
