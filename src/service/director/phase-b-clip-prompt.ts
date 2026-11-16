@@ -63,7 +63,7 @@ export function phaseBLetteringLock(input: {
 }) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
   if (isDiagramExplainerSkill(input.skillSlug)) {
-    return "On-canvas lettering: keep the concise 「」 labels and optional short beat headline sharp, spelled cleanly, and anchored to their objects as shown in the first and last frames. Do not morph, scramble, or invent extra full-sentence text or captions. This is in-world board lettering, not a subtitle.";
+    return "On-canvas lettering: keep the concise 「」 labels and optional short beat headline sharp, spelled cleanly, and anchored as drawn on the first frame. There is no last-frame image. If endScene names a different short label, change it by one in-place flip or tear. Do not morph, scramble, or invent extra full-sentence text or captions. This is in-world board lettering, not a subtitle.";
   }
   if (input.fixedLettering) {
     return "On-canvas lettering: the start frame carries the marker line and it stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. There is no end frame to match. This is in-scene lettering from the keyframe, not a caption or subtitle.";
@@ -159,8 +159,8 @@ export function clipPhaseBUserPrompt(input: {
         : "",
       closing,
       papercraftDiorama
-        ? "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short steady-diorama-camera & silent-figurine clause, then simply describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists."
-        : "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short stationary camera & silent-character clause, then simply describe how each element (the character's hand/gaze and each changing diagram piece or label) smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists.",
+        ? "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Only the first frame is attached. There is no last frame. Lead with one short steady-diorama-camera & silent-figurine clause, then describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze moves from the attached start still toward the written endScene across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists."
+        : "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Only the first frame is attached. There is no last frame. Lead with one short stationary camera & silent-character clause, then describe how each element (the character's hand/gaze and each changing diagram piece or label) moves from the attached start still toward the written endScene across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists.",
       "Return a single object { clipNumber, durationSeconds, prompt }.",
     ]
       .filter(Boolean)

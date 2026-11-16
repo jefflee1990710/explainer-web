@@ -96,7 +96,7 @@ export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, la
     return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
-Each clip is dual-keyframe image-to-video: the approved START image is attached as the first frame and the approved END image is attached as the last frame. Describe ONLY the motion that smoothly transitions each element from the first frame to the last frame. Never call those stills a reference image.
+Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. endScene is the written landing the motion reaches; write that landing into the motion, and do not treat it as a frame the model can see. Never call the start still a reference image.
 ${
   papercraftDiorama
     ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
