@@ -72,11 +72,14 @@ test("the writer is told to stay inside the character cap and keep the landed st
   assert.match(system, new RegExp(String(END_FRAME_PROMPT_MAX)));
   assert.match(system, /landed picture/);
   assert.match(system, /START still/);
+  assert.match(system, /never add an extra white paper sheet/i);
   const user = endFrameFromStartUserText({
     motionCamera: motion,
+    endScene: "標題維持「知識變現密碼」，Scro 指向「解決方法」。",
     aspectRatio: "9:16",
     language: "zh-Hant",
   });
+  assert.match(user, /endScene:/);
   assert.match(user, /知識變現密碼/);
   assert.match(user, /Traditional Chinese/);
   assert.match(user, /Aspect ratio 9:16/);

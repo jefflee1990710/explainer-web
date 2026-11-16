@@ -178,9 +178,10 @@ test("last clip always ends clean — never loops back to clip 1", () => {
   assert.doesNotMatch(prompt, /matches clip 1's opening/);
 });
 
-test("Phase B user prompt locks narrator gender and forbids background music", () => {
+test("Phase B user prompt locks narrator gender and forbids background music for narrated non-diagram skills", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,
+    skillSlug: "listicle-director",
     speechPace: "fast",
     phaseA: proposal(),
     clipNumber: 2,
@@ -197,6 +198,7 @@ test("Phase B user prompt locks narrator gender and forbids background music", (
 test("story-short Phase B prompt uses the voice lock instead of guessing", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,
+    skillSlug: "story-short-director",
     bansNarration: true,
     phaseA: proposal(),
     clipNumber: 2,
@@ -206,6 +208,22 @@ test("story-short Phase B prompt uses the voice lock instead of guessing", () =>
   assert.match(prompt, /adult female/);
   assert.doesNotMatch(prompt, /same narrator on every clip/i);
   assert.doesNotMatch(prompt, /infer/i);
+});
+
+test("diagram explainer Phase B user prompt omits narrator voice locks and other clips, keeping only target clip element motion", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "paper-cutout-explainer-video-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /Target Clip Phase A JSON/);
+  assert.match(prompt, /jar fills/);
+  assert.doesNotMatch(prompt, /Voiceover language/);
+  assert.doesNotMatch(prompt, /adult female voice/);
+  assert.doesNotMatch(prompt, /No background music/);
+  assert.match(prompt, /350–800 characters/);
+  assert.match(prompt, /simply describe how each element/i);
 });
 
 test("unknown clip throws", () => {
@@ -322,7 +340,7 @@ test("Phase B character line never hands Wan a reference-image URL", () => {
   assert.doesNotMatch(phaseBCharacterLine({ characterImageUrl: "https://blob/hero.png" }), /https:\/\//);
 });
 
-test("phaseBSystemPrompt enables smooth speed-ramped motion and dual-keyframe camera lock for diagram explainers", () => {
+test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-keyframe camera lock for diagram explainers", () => {
   const style = STYLES_BY_ID["paper-cutout"]!;
   const system = phaseBSystemPrompt(
     {
@@ -336,10 +354,13 @@ test("phaseBSystemPrompt enables smooth speed-ramped motion and dual-keyframe ca
     "American",
   );
   assert.match(system, /dual-keyframe image-to-video/);
-  assert.match(system, /CAMERA LOCK: keep the camera 100% stationary and locked square-on/);
-  assert.match(system, /smooth, fluid speed-ramping/);
+  assert.match(system, /locked stationary square-on camera/i);
+  assert.match(system, /natural continuous ease-in-out motion/i);
+  assert.match(system, /350–800 characters/);
+  assert.match(system, /Visual-only clip: voiceover is muxed externally/);
   assert.doesNotMatch(system, /snapping fast and sharp/);
   assert.doesNotMatch(system, /sharp and fast in the first second/);
   assert.doesNotMatch(system, /jitter|stop-motion paste feel|whip\/snap|crisp sudden stop/i);
-  assert.match(system, /fluid 2x–3x acceleration/);
+  assert.doesNotMatch(system, /fluid 2x–3x acceleration|0\.2s smooth anticipation/);
+  assert.doesNotMatch(system, /Clean spoken voice only/);
 });

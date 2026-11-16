@@ -175,7 +175,7 @@ test("resolveInitialVoLanguage upgrades legacy unchosen 'en' defaults to 'yue' w
   );
 });
 
-test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-selects a default character for paper-cutout explainer while keeping papercraft-diorama empty", () => {
+test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-selects a default character for paper-cutout explainer and papercraft-diorama explainer", () => {
   const readyChars = [
     { id: "scro-id", name: "Scro", styleId: "realistic", styleIds: ["realistic", "paper-cutout"], previewUrl: "/scro.jpg" },
     { id: "aera-id", name: "Aera", styleId: "realistic", styleIds: ["realistic"], previewUrl: "/aera.jpg" },
@@ -202,7 +202,7 @@ test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-se
     ["aera-id"],
   );
 
-  // 3. Keeps papercraft-diorama-director at 0 characters
+  // 3. Keeps remembered/ready characters when switching to papercraft-diorama-director, and allows explicit empty cast []
   assert.deepEqual(
     resolveInitialBriefCharacterIds({
       ruleSlug: "papercraft-diorama-director",
@@ -210,6 +210,15 @@ test("resolveInitialBriefCharacterIds restores lastBrief characterIds or auto-se
       characters: readyChars,
       lastBrief: raw({ characterIds: ["scro-id"] }),
       rememberedIds: ["scro-id"],
+    }),
+    ["scro-id"],
+  );
+  assert.deepEqual(
+    resolveInitialBriefCharacterIds({
+      ruleSlug: "papercraft-diorama-director",
+      styleId: "papercraft-diorama",
+      characters: readyChars,
+      initialCastCharacterIds: [],
     }),
     [],
   );

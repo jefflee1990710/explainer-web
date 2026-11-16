@@ -322,6 +322,7 @@ ${firstClipHookPerformanceDirectorRule(realisticFlag, isDiagramExplainerSkill(in
 ${directorRules.phaseASceneDetailBlock({
   realistic: realisticFlag,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
+  hasCharacter,
 })}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: isDiagramExplainerSkill(input.skill.slug) }) : ""}
 ${

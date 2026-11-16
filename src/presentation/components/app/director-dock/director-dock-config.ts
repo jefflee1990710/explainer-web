@@ -361,16 +361,16 @@ export function computeSkillSwitchState<
   const targetStyleId = preferredStyleId || currentStyleId;
   const matchesStyle = (c: T) => {
     const styles = c.styleIds?.length ? c.styleIds : c.styleId ? [c.styleId] : [];
-    return Boolean(c.previewUrl) && styles.includes(targetStyleId);
+    return (
+      Boolean(c.previewUrl) &&
+      (targetStyleId === "papercraft-diorama" || styles.includes(targetStyleId))
+    );
   };
   const kept = currentCharacterIds.filter((cid) => {
     const found = characters.find((c) => c.id === cid);
     return found ? matchesStyle(found) : false;
   });
 
-  if (targetStyleId === "papercraft-diorama") {
-    return { styleId: targetStyleId, characterIds: [] };
-  }
   const targetCount =
     nextCastNeed > 0 ? nextCastNeed : currentCharacterIds.length > 0 ? 1 : 0;
   if (targetCount <= 0) {

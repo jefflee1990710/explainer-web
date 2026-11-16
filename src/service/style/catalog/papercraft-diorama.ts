@@ -8,7 +8,7 @@ export const papercraftDioramaStyle: IStyle = {
   canvas:
     "3D miniature tabletop stage or flat-lay backdrop built entirely from heavy 300gsm matte textured cardstock paper",
   canvasColor: "#1e3a6d",
-  look: "3D tactile cardstock papercraft diorama and miniature craft photography: every architectural wall, counter, furniture piece, envelope, coin, certificate, scale, and prop is constructed from thick matte 300gsm textured construction paper / heavy cardstock with crisp scored and folded geometric bevel edges, visible paper fiber grain, layered paper thickness, and soft studio tabletop key light with gentle contact shadows and shallow miniature macro depth-of-field (strictly NO white scissor borders and NO flat magazine photo cutouts)",
+  look: "3D tactile cardstock papercraft diorama and miniature craft photography: every miniature character figurine, architectural wall, counter, furniture piece, envelope, coin, certificate, scale, and prop is constructed from thick matte 300gsm textured construction paper / heavy cardstock with crisp scored and folded geometric bevel edges, visible paper fiber grain, layered paper thickness, and soft studio tabletop key light with gentle contact shadows and shallow miniature macro depth-of-field (strictly NO white scissor borders and NO flat magazine photo cutouts)",
   palette:
     "curated editorial craft cardstock palette: deep cobalt and navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper",
   typography:

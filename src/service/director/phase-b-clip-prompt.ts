@@ -122,6 +122,42 @@ export function clipPhaseBUserPrompt(input: {
   const diagramExplainer =
     isDiagramExplainerSkill(input.skillSlug) ||
     isDiagramExplainerSkill(getDirectorRuleModule(input.skillSlug).slug);
+  if (diagramExplainer) {
+    const clipSlice = {
+      clipNumber: row.clipNumber,
+      timeRange: row.timeRange,
+      durationSeconds: row.durationSeconds,
+      startScene: row.startScene,
+      endScene: row.endScene,
+      explainerScene: row.explainerScene,
+      motionCamera: row.motionCamera,
+    };
+    return [
+      `Target Clip Phase A JSON:\n${JSON.stringify(clipSlice, null, 2)}`,
+      input.characterLine,
+      `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
+      "BOARD CAMERA: keep the board camera stationary. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.",
+      getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
+        smoothMotion: Boolean(input.smoothMotion),
+        realistic: Boolean(input.realistic),
+        clipNumber: row.clipNumber,
+        performance: input.performance,
+      }),
+      opening,
+      row.clipNumber === 1
+        ? firstClipHookPerformanceVideoLine(
+            Boolean(input.realistic),
+            !input.bansNarration && !clipUsesTalkingPerformance(input.skillSlug),
+            true,
+          )
+        : "",
+      closing,
+      "OUTPUT CONTRACT: Write ONE concise visual-only motion prompt (target 350–800 characters, max 1,000 characters). Both first_frame (Start) and last_frame (End) are attached. Lead with one short stationary camera & silent-character clause, then simply describe how each element (the character's hand/gaze and each changing diagram piece or label) smoothly moves from Start to End across the clip duration. Do not include Voice lock, Spoken audio, wardrobe, lighting, or negative checklists.",
+      "Return a single object { clipNumber, durationSeconds, prompt }.",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   return [
     `Approved Phase A JSON:\n${JSON.stringify(input.phaseA, null, 2)}`,
     `${input.bansNarration ? "Dialogue language" : "Voiceover language"}: ${input.languageLabel} (${input.languageSublabel})`,
@@ -137,9 +173,7 @@ export function clipPhaseBUserPrompt(input: {
     input.characterLine,
     spatialBlockingLockParagraph(input.phaseA),
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-    diagramExplainer
-      ? "BOARD CAMERA: describe the board camera first. Do not point it at the character's face. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed. No lip-sync and no greeting wave."
-      : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
+    CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE,
     getDirectorRuleModule(input.skillSlug).phaseBMotionRules({
       smoothMotion: Boolean(input.smoothMotion),
       realistic: Boolean(input.realistic),
@@ -154,7 +188,7 @@ export function clipPhaseBUserPrompt(input: {
       ? firstClipHookPerformanceVideoLine(
           Boolean(input.realistic),
           !input.bansNarration && !clipUsesTalkingPerformance(input.skillSlug),
-          diagramExplainer,
+          false,
         )
       : "",
     closing,

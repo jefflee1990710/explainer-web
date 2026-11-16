@@ -518,7 +518,8 @@ test("Q&A director requires exactly two characters", () => {
   assert.equal(lockedStyleIdForSkill("papercraft-diorama-director"), "papercraft-diorama");
   assert.equal(lockedStyleIdForSkill("paper-cutout-explainer-video-director"), undefined);
   assert.match(papercraftDioramaDirectorBlock(), /300gsm/i);
-  assert.match(papercraftDioramaDirectorBlock(), /ZERO human characters/i);
+  assert.match(papercraftDioramaDirectorBlock({ hasCharacter: false }), /ZERO human characters/i);
+  assert.match(papercraftDioramaDirectorBlock({ hasCharacter: true }), /3D folded\/layered 300gsm matte cardstock miniature figurine/i);
   assert.match(briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: [] }) || "", /2/);
   assert.equal(
     briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: ["a", "b"] }),

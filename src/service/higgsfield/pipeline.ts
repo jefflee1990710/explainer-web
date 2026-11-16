@@ -31,6 +31,7 @@ import {
   clipSkipsEndStill,
 } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -294,8 +295,8 @@ export async function sendFrame(
   // Diagram end stills: look at the start image and motionCamera, then write a
   // short landed-state prompt. The start image stays attached on the image request.
   const startImageUrl = plan.anchor?.kind === "clip-start" ? plan.anchor.url : undefined;
-  const clipMotion = canvasProject.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)
-    ?.motionCamera;
+  const clipRow = canvasProject.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  const clipMotion = clipRow?.motionCamera;
   if (
     startImageUrl &&
     clipMotion?.trim() &&
@@ -311,6 +312,7 @@ export async function sendFrame(
       promptSource = await writeEndFramePromptFromStart({
         startImageUrl,
         motionCamera: clipMotion,
+        endScene: clipRow?.endScene || clipRow?.explainerScene,
         aspectRatio: project.aspectRatio,
         language: sceneText.language,
       });
@@ -807,9 +809,10 @@ export async function sendClipVideo(
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
   const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug) && !editorialInterviewBroll;
   const narratorOnly = !usesLipSync && !isSilentOutfitSkill(project.skillSlug);
-  const motionPrompt = isRealisticStyle(style)
-    ? lockRealisticVideoLight(subtitlePrompt, { selfShot, narratorOnly })
-    : subtitlePrompt;
+  const motionPrompt =
+    isRealisticStyle(style) && !isDiagramExplainerSkill(project.skillSlug)
+      ? lockRealisticVideoLight(subtitlePrompt, { selfShot, narratorOnly })
+      : subtitlePrompt;
   const currentCast = await withCurrentCharacterVoices(project.cast);
   let videoPrompt = withCantonesePronunciation(
     lockDialogueSpeech(

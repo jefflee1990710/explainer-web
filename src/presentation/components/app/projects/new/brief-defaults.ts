@@ -4,7 +4,6 @@ import { isSceneTextChoice } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import {
-  isPapercraftDioramaSkill,
   requiredCastCount,
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
@@ -251,7 +250,7 @@ export function sanitizeBriefDefaults(
     .filter((id) =>
       catalog.characters.some((character) => {
         const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
-        return character.id === id && styles.includes(styleId);
+        return character.id === id && (styleId === "papercraft-diorama" || styles.includes(styleId));
       }),
     );
   return {
@@ -306,6 +305,7 @@ export function defaultCastIdsForStyle(
   if (requiredCount <= 0) return [];
   const matching = characters.filter((character) => {
     if ("previewUrl" in character && !character.previewUrl) return false;
+    if (styleId === "papercraft-diorama") return true;
     const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
     return styles.includes(styleId);
   });
@@ -329,6 +329,7 @@ type CastCharacter = {
 
 function castMatchesStyle(character: CastCharacter, styleId: string) {
   if ("previewUrl" in character && !character.previewUrl) return false;
+  if (styleId === "papercraft-diorama") return true;
   const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
   return styles.includes(styleId);
 }
@@ -369,9 +370,6 @@ export function resolveInitialBriefCharacterIds(input: {
 }): string[] {
   if (input.initialCastCharacterIds !== undefined) {
     return [...input.initialCastCharacterIds];
-  }
-  if (isPapercraftDioramaSkill(input.ruleSlug)) {
-    return [];
   }
   const fromGlobal = castFromRememberedIds(input.rememberedIds ?? [], input);
   if (fromGlobal) return fromGlobal;

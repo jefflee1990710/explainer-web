@@ -1384,9 +1384,9 @@ export function NewProjectForm({
       const kept = ids.filter((cid) => {
         const character = characters.find((c) => c.id === cid);
         const styles = character?.styleIds?.length ? character.styleIds : [character?.styleId];
-        return styles.includes(id);
+        return id === "papercraft-diorama" || styles.includes(id);
       });
-      const targetCount = id === "papercraft-diorama" ? 0 : Math.max(castNeed, ids.length > 0 ? 1 : 0);
+      const targetCount = Math.max(castNeed, ids.length > 0 ? 1 : 0);
       if (kept.length >= targetCount) return kept.slice(0, Math.max(1, targetCount));
       return defaultCastIdsForStyle(characters, id, targetCount);
     });

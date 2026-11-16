@@ -9,8 +9,6 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { getDirectorRuleModule } from "@/service/director/rules";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
-  cartoonClipAction,
-  cartoonNarratorVideoLock,
   isOutfitChangeSkill,
   isOutfitReelSkill,
   isSilentOutfitSkill,
@@ -61,6 +59,22 @@ type PhaseBInput = {
   backgroundImageUrls?: string[];
 };
 
+const DIAGRAM_EXPLAINER_VIDEO_GUARD =
+  "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the first frame to the last frame.";
+
+function stripDiagramAudioParagraphs(text: string) {
+  return text
+    .split(/\n{2,}/)
+    .filter(
+      (para) =>
+        !/^\s*(?:Spoken audio|Voice lock|Narrator Voice Lock|Copy each voice lock|Off-screen narrator)\b/i.test(
+          para,
+        ),
+    )
+    .join("\n\n")
+    .trim();
+}
+
 // Shared director contract for video prompts (batch and per-clip).
 export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
   const startOnly = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
@@ -71,15 +85,32 @@ export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, la
     isSilentOutfitSkill(input.skill.slug) ||
     (input.narrationEnabled === false && !isTalkingHeadSkill(input.skill.slug) && !skillBansNarration(input.skill.slug));
   const diagramExplainer = isDiagramExplainerSkill(input.skill.slug);
+  if (diagramExplainer) {
+    return `${skillPromptForPhaseB(input.skill, input.style)}
+
+You are executing Phase B only after explicit approval of the current Phase A.
+Each clip is dual-keyframe image-to-video: the approved START image is attached as the first frame and the approved END image is attached as the last frame. Describe ONLY the motion that smoothly transitions each element from the first frame to the last frame. Never call those stills a reference image.
+BOARD CAMERA: keep the camera stationary and locked. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync.
+${directorRules.phaseBMotionRules({
+  smoothMotion: steady,
+  realistic,
+})}
+${directorRules.phaseBDetailRules({
+  realistic,
+  selfShot: false,
+  narratorOnly: true,
+})}
+Visual-only clip: voiceover is muxed externally after video generation. Do NOT write spoken dialogue, narrator voice locks, speaking pace, BGM, or SFX instructions. ${
+      input.sceneTextOff
+        ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers."
+        : "Keep only the concise 「」 labels already shown in the keyframes; do not invent subtitles or extra text."
+    }`;
+  }
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
-${
-  diagramExplainer
-    ? "BOARD CAMERA: describe the board camera first. Do not point it at the character's face. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed. No lip-sync and no greeting wave."
-    : CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE
-}
+${CAMERA_FIRST_AND_RELATIVE_DIRECTION_RULE}
 ${
   startOnly
     ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
@@ -99,23 +130,15 @@ ${directorRules.phaseBDetailRules({
 ${
     silent
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
-      : diagramExplainer
-        ? "Do not quote englishVo and do not ask anyone on screen to speak it. The voiceover is added after the picture. Keep the prompt concise and focused strictly on physical element transitions from State A (first frame) to State B (last frame). The on-screen character stays silent, with lips and jaw motionless, and only interacts with the elements on the board (point, tap, place, slide, flip, or pick up)."
-        : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
+      : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
   } ${
-    silent || diagramExplainer
+    silent
       ? ""
       : lockedSpeakerLines(input.cast).length
         ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
         : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a timbre from the look or the keyframes.`
-  } ${cartoonNarratorVideoLock(input.skill.slug, {
-    hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
-    smoothMotion: steady,
-    realistic,
-    backgroundId: input.directorBackgroundId,
-    customBackground: Boolean(input.backgroundImageUrls?.length),
-  })} ${
-    silent || diagramExplainer ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
+  } ${
+    silent ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
     input.sceneTextOff
       ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers. The picture stays free of writing. "
@@ -185,18 +208,21 @@ export async function runPhaseBForClip(
       throw new Error("產片 prompt 產生失敗");
     }
   }
+  const diagramExplainer = isDiagramExplainerSkill(input.skill.slug);
   const silent =
     isSilentOutfitSkill(input.skill.slug) ||
     (input.narrationEnabled === false && !talkingHead && !skillBansNarration(input.skill.slug));
-  const lock = phaseBAudioLock({
-    voiceGender: input.voiceGender,
-    languageLabel: language.label,
-    bansNarration: skillBansNarration(input.skill.slug) || talkingHead,
-    speechPace: input.speechPace,
-    speakers: input.cast,
-    silent,
-    noSfx: true,
-  });
+  const lock = diagramExplainer
+    ? ""
+    : phaseBAudioLock({
+        voiceGender: input.voiceGender,
+        languageLabel: language.label,
+        bansNarration: skillBansNarration(input.skill.slug) || talkingHead,
+        speechPace: input.speechPace,
+        speakers: input.cast,
+        silent,
+        noSfx: true,
+      });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Overlay-era talking-head stills say "no extra writing" and have no Subtitle sentence.
   // Do not put the spoken line back on screen in the video prompt.
@@ -207,40 +233,37 @@ export async function runPhaseBForClip(
   // Rewrite the model action first so "Never pull" locks appended below stay intact.
   const rawModelPrompt = isSilentOutfitSkill(input.skill.slug)
     ? rewriteOutfitSafetyText(output.prompt)
-    : output.prompt;
+    : diagramExplainer
+      ? stripDiagramAudioParagraphs(output.prompt)
+      : output.prompt;
   // Diagram explainers must not be rewritten into "pointing to character" / "toward camera".
-  const modelPrompt = talkingHead || isDiagramExplainerSkill(input.skill.slug)
+  const modelPrompt = talkingHead || diagramExplainer
     ? rawModelPrompt
     : formatCameraFirstVideoPrompt({
         prompt: rawModelPrompt,
         motionCamera: row?.motionCamera,
         startScene: row?.startScene || row?.explainerScene,
       });
-  const prompt = [
-    lock,
-    cartoonNarratorVideoLock(input.skill.slug, {
-      hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
-      action: cartoonClipAction(row?.motionCamera),
-      clipNumber: input.clipNumber,
-      smoothMotion: steady,
-      realistic: isRealisticStyle(input.style),
-      backgroundId: input.directorBackgroundId,
-      customBackground: Boolean(input.backgroundImageUrls?.length),
-    }),
-    phaseBWardrobeLock({
-      cast: input.cast,
-      characterImageUrl: input.characterImageUrl,
-      skillSlug: input.skill.slug,
-    }),
-    input.sceneTextOff || talkingHeadWithoutSubtitle || isTalkingHeadSkill(input.skill.slug)
-      ? NO_ONSCREEN_WRITING
-      : "No subtitles or voiceover captions on screen.",
-    isOutfitChangeSkill(input.skill.slug)
-      ? OUTFIT_CHANGE_COVERED_SWAP
-      : isOutfitReelSkill(input.skill.slug)
-        ? OUTFIT_COVERED_SWAP
-        : "",
-  ]
+  const prompt = (
+    diagramExplainer
+      ? [input.sceneTextOff ? NO_ONSCREEN_WRITING : DIAGRAM_EXPLAINER_VIDEO_GUARD]
+      : [
+          lock,
+          phaseBWardrobeLock({
+            cast: input.cast,
+            characterImageUrl: input.characterImageUrl,
+            skillSlug: input.skill.slug,
+          }),
+          input.sceneTextOff || talkingHeadWithoutSubtitle || isTalkingHeadSkill(input.skill.slug)
+            ? NO_ONSCREEN_WRITING
+            : "No subtitles or voiceover captions on screen.",
+          isOutfitChangeSkill(input.skill.slug)
+            ? OUTFIT_CHANGE_COVERED_SWAP
+            : isOutfitReelSkill(input.skill.slug)
+              ? OUTFIT_COVERED_SWAP
+              : "",
+        ]
+  )
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, modelPrompt);
   // The model may echo a wrong number; trust the caller.

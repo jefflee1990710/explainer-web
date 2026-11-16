@@ -9,7 +9,7 @@ function styleForExplainerSkill<
   return {
     ...style,
     motion:
-      "100% locked stationary square-on camera on tripod (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO focal-length change, ZERO handheld drift, ZERO jump cut) paired with smooth, fluid speed-ramped (變速) on-board cutout transitions and presenter pointing gestures: every 1.0–1.5s beat uses a smooth 0.2s anticipation, a fluid 2x–3x acceleration (gliding in/out, unfolding flat 摺開, tearing/peeling open 撕開, smooth stroke-by-stroke drawing 畫出, or flipping 翻轉), then a smooth eased deceleration into a steady landing. Zero sudden snaps, zero jerks, and zero frame-to-frame shake.",
+      "100% locked stationary square-on camera (no zoom, no pan, no tilt, no jump cut). Animate every element transition and pointing gesture smoothly and continuously from the start frame to the end frame with natural ease-in-out motion.",
   };
 }
 
@@ -53,10 +53,11 @@ export function skillPromptForPhaseB(
   skill: Skill,
   style: StylePromptSlice & { id?: string; baseStyleId?: string },
 ) {
+  if (isDiagramExplainerSkill(skill.slug)) {
+    return styleBlockForDirector(styleForExplainerSkill(style));
+  }
   const effectiveStyle = isSelfShotCreatorSkill(skill.slug)
     ? styleForSelfShotSkill(style)
-    : isDiagramExplainerSkill(skill.slug)
-      ? styleForExplainerSkill(style)
-      : style;
+    : style;
   return `${attachReferences(skill, isPhaseBRef)}\n\n${styleBlockForDirector(effectiveStyle)}`;
 }

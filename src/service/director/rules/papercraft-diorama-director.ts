@@ -13,7 +13,7 @@ const SINGLE_FRAME_MOTION_RULES = [
   "Never call that still a reference image.",
   "Reply with the start scene and the camera motion. endScene is where this clip's action lands: write that landing into the motion. Do not ask the video to match a second picture.",
   "Direct in timed beats across the full duration (see the clip's durationSeconds), with one clean continuous shot per beat and no repeats (never flash the same object or action twice).",
-  "Animate one physical papercraft mechanism with tactile cardstock weight and rigid paper geometry; cardstock pieces never morph, melt, or dissolve.",
+  "Animate one physical papercraft mechanism with tactile cardstock weight and rigid paper geometry; cardstock pieces never morph, melt, or dissolve. If a 3D cardstock miniature character figurine is present, keep their mouth softly closed (zero lip-sync) with subtle tactile gestures toward the cardstock props.",
   "Follow the camera movement described in motionCamera with shallow macro tabletop depth of field. Layer diegetic paper/craft sound effects matched to each physical action in the beats.",
 ].join(" ");
 
@@ -21,8 +21,11 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
   slug: "papercraft-diorama-director",
   allowsInventedProps: false,
   phaseASceneDetailBlock(options) {
+    const characterPart = options.hasCharacter
+      ? "1) Character (silent 3D folded/layered matte cardstock miniature figurine matching the attached blueprint — pose, expression with lips softly closed and zero lip-sync, eyeline, and hands interacting with the cardstock props)"
+      : "1) Character (none — pure 3D cardstock diorama)";
     return [
-      "Scene detail: write every explainerScene (and startScene / endScene) as four concrete parts: 1) Character (none — pure 3D cardstock diorama), 2) Set (miniature cardstock set and mechanisms from the topic), 3) Light (soft tabletop studio lighting), 4) Camera (macro angle and composition).",
+      `Scene detail: write every explainerScene (and startScene / endScene) as four concrete parts: ${characterPart}, 2) Set (miniature cardstock set and mechanisms from the topic), 3) Light (soft tabletop studio lighting), 4) Camera (macro angle and composition).`,
       ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
       "motionCamera describes the physical papercraft mechanism across timed beats.",
     ].join(" ");
@@ -30,10 +33,10 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
   phaseAKeyframeDeltaBlock() {
     return "startScene is the t=0 miniature cardstock still and endScene is the t=N landed cardstock state. Keep cardstock geometry rigid across the clip.";
   },
-  phaseADirectorBlock() {
+  phaseADirectorBlock(options) {
     return [
       "STRICT SOURCE FIDELITY (ZERO INVENTED PROPS): Stage the miniature cardstock sets around the user's source topic without unrelated filler objects.",
-      papercraftDioramaDirectorBlock(),
+      papercraftDioramaDirectorBlock({ hasCharacter: options.hasCharacter }),
     ].join(" ");
   },
   phaseBMotionRules() {

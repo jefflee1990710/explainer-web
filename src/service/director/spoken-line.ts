@@ -128,7 +128,7 @@ export function narratorSpeechLock(
 // Diagram explainers: the video model must not perform the voiceover.
 // The character only works the pieces already on the board.
 export function explainerInteractionLock() {
-  return "SILENT ON-SCREEN CHARACTER: nobody on screen speaks and there is no lip-sync. Lips and jaw stay sealed and completely motionless for the entire clip. Do not generate speech, mouth shapes, or talking. The character does not look at the camera to perform. They only interact with the elements already on screen — point at, tap, place, slide, flip, or pick up those pieces — and their eyes and hands stay on the element they are moving.";
+  return "SILENT ON-SCREEN CHARACTER: nobody on screen speaks and there is no lip-sync (lips and jaw stay closed). The character does not look at the camera; they only interact with the elements already on screen.";
 }
 
 export function talkingSpeakerSpeechLock(

@@ -239,13 +239,12 @@ export function AppendDirectorDialog({
     setStyleId(nextStyleId);
     setCharacterSelections({});
     setCharacterIds((ids) => {
-      if (nextStyleId === "papercraft-diorama") return [];
       const kept = ids.filter((cid) => {
         const character = characters.find((c) => c.id === cid);
         const charStyles = character?.styleIds?.length
           ? character.styleIds
           : [character?.styleId];
-        return charStyles.includes(nextStyleId);
+        return nextStyleId === "papercraft-diorama" || charStyles.includes(nextStyleId);
       });
       const targetCount = Math.max(castNeed, ids.length > 0 ? 1 : 0);
       if (kept.length >= targetCount) return kept.slice(0, Math.max(1, targetCount));

@@ -164,5 +164,23 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(oneTakeBlock, /no big title/i);
   assert.match(oneTakeBlock, /\(no dialogue\)/);
   assert.match(oneTakeBlock, /ZERO INVENTED PROPS/i);
+
+  const papercraftRules = getDirectorRuleModule("papercraft-diorama-director");
+  assert.match(
+    papercraftRules.phaseASceneDetailBlock({ hasCharacter: false }),
+    /none — pure 3D cardstock diorama/i,
+  );
+  assert.match(
+    papercraftRules.phaseASceneDetailBlock({ hasCharacter: true }),
+    /matte cardstock miniature figurine/i,
+  );
+  assert.match(
+    papercraftRules.phaseADirectorBlock({ hasCharacter: false }),
+    /ZERO human characters/i,
+  );
+  assert.match(
+    papercraftRules.phaseADirectorBlock({ hasCharacter: true }),
+    /3D folded\/layered 300gsm matte cardstock miniature figurine/i,
+  );
 });
 

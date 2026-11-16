@@ -333,7 +333,7 @@ export const briefEn = {
     "street-lookbook-director":
       "Editorial street-fashion clothing demo (Paris Fashion Week lookbook style): showcases uploaded outfits across architectural street spots in full-body, medium detail, and over-the-shoulder cuts.",
     "papercraft-diorama-director":
-      "Tactile 3D cardstock miniature diorama explainer (Founder Notes style, locked to 3D Papercraft Diorama with zero human characters): unpacks business & startup concepts through folded cardstock terminals, envelopes, isometric shops, and balance scales.",
+      "Tactile 3D cardstock miniature diorama explainer (Founder Notes style, locked to 3D Papercraft Diorama with optional 3D cardstock character figurine): unpacks business & startup concepts through folded cardstock terminals, envelopes, isometric shops, and balance scales.",
   },
   skillGuide: {
     labels: {
@@ -464,7 +464,7 @@ export const briefEn = {
         frames: "Each clip stages a distinct street spot and editorial pose showcasing the assigned clothing reference",
       },
       "papercraft-diorama-director": {
-        voice: "Narrator reads the VO across two beats per clip; zero on-screen characters",
+        voice: "Narrator reads the VO across two beats per clip (optional silent 3D cardstock character)",
         structure: "Unit example → capital/mechanism → multi-shop scale → balance-scale payoff",
         picture: "Locked to 3D Papercraft Diorama (300gsm textured cardstock, cobalt/mustard/terracotta/teal/cream)",
         frames: "Alternates interior diorama, 90° flat-lay, isometric street, and studio close-up",

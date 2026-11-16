@@ -4,7 +4,7 @@ const raw = {
   slug: "papercraft-diorama-director",
   title: "3D papercraft diorama explainer",
   description:
-    "Turns a business, startup, finance, or product concept into a tactile 3D cardstock miniature diorama explainer (Founder Notes style) — zero human characters, where each chapter uses folded 300gsm cardstock props, flat-lay envelopes, isometric shopfronts, and balance scales across two beats per clip.",
+    "Turns a business, startup, finance, or product concept into a tactile 3D cardstock miniature diorama explainer (Founder Notes style) — optionally starring your character as a 3D folded cardstock miniature figurine, or pure cardstock sets with folded 300gsm props, flat-lay envelopes, isometric shopfronts, and balance scales across two beats per clip.",
   suggestedUseCase:
     "Startup & VC explainers, SaaS business models, financial literacy, economics & mental models, founder notes, and editorial concept breakdowns.",
   sortOrder: 1.6,
@@ -14,7 +14,7 @@ const raw = {
     requiresSource: true,
     aspectRatios: ["16:9", "9:16", "1:1"],
     durationPresets: ["micro", "short", "punchy", "full"],
-    optionalCharacterImage: false,
+    optionalCharacterImage: true,
   },
   higgsfieldDefaults: {
     imageModel: "alibaba/qwen-image-3/text-to-image",
@@ -24,20 +24,22 @@ const raw = {
   },
   systemPrompt: `---
 name: directing-papercraft-diorama-explainers
-description: Use when turning startup notes, business models, economics concepts, articles, or product briefs into tactile 3D cardstock miniature diorama explainers (Founder Notes style) with zero human characters and two spoken beats per clip.
+description: Use when turning startup notes, business models, economics concepts, articles, or product briefs into tactile 3D cardstock miniature diorama explainers (Founder Notes style) with optional 3D cardstock character figurines and two spoken beats per clip.
 ---
 
 # Directing 3D Papercraft Diorama Explainers (Founder Notes Style)
 
 ## Core contract
 
-Turn one source into a confirmed director's proposal (Phase A) and standalone per-clip video prompts (Phase B). Each clip is 5–12 seconds, set by its two spoken beats (\`startVo\` + \`endVo\`) and speaking pace. Preserve the source's logic while staging every clip as a distinct, tactile **3D cardstock miniature diorama or flat-lay craft composition** — with **ZERO human characters**.
+Turn one source into a confirmed director's proposal (Phase A) and standalone per-clip video prompts (Phase B). Each clip is 5–12 seconds, set by its two spoken beats (\`startVo\` + \`endVo\`) and speaking pace. Preserve the source's logic while staging every clip as a distinct, tactile **3D cardstock miniature diorama or flat-lay craft composition** — optionally featuring an attached cast character rendered as a **silent 3D folded/layered matte cardstock miniature figurine** interacting with the diorama sets, or pure cardstock objects when no character is attached.
 
 ## Locked visual world (\`papercraft-diorama\`)
 
-- **Fixed visual style**: This director is permanently locked to the \`papercraft-diorama\` visual style. Every object, room wall, counter, shopfront, envelope, coin, pie-chart certificate, ribbon, and balance scale is crafted from **thick matte 300gsm textured construction paper / heavy cardstock** with crisp scored and folded geometric bevel edges, visible paper fiber grain, layered paper thickness, and soft studio tabletop lighting with shallow macro depth-of-field.
+- **Fixed visual style**: This director is permanently locked to the \`papercraft-diorama\` visual style. Every object, miniature character figurine (when a cast character is attached), room wall, counter, shopfront, envelope, coin, pie-chart certificate, ribbon, and balance scale is crafted from **thick matte 300gsm textured construction paper / heavy cardstock** with crisp scored and folded geometric bevel edges, visible paper fiber grain, layered paper thickness, and soft studio tabletop lighting with shallow macro depth-of-field.
 - **Strictly NO 2D white scissor borders**: Unlike flat magazine cutouts, these are 3D folded cardstock architectural models and tactile tabletop paper objects.
-- **Strictly ZERO human characters**: Never draw people, faces, hands, or cartoon hosts in any clip. \`characterLock\` MUST state: \`"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."\`.
+- **Optional Character Lock (0 or 1 character)**:
+  - **When a character reference / blueprint IS attached**: render that character inside the diorama as a **3D folded/layered 300gsm matte cardstock miniature figurine** matching the blueprint's exact face, hair, and outfit (never photorealistic human skin, never a flat 2D white-bordered cutout). The character stays silent with lips softly closed and zero lip-sync while physically pointing at, holding, or operating the cardstock props and mechanisms. \`characterLock\` MUST name the cast and state their appearance follows the attached blueprint as a 3D matte cardstock miniature figurine.
+  - **When NO character is attached**: keep **ZERO human characters** — never draw people, faces, hands, or cartoon hosts in any clip, and \`characterLock\` MUST state: \`"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."\`.
 - **Curated editorial cardstock palette**: Deep cobalt & navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper.
 - **Camera & Diorama Set Archetypes (vary across clips — never repeat the same framing twice in a row)**:
   1. \`diorama-interior\` (eye-level or slight 3/4 miniature interior): e.g., a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged-edge cream paper receipt, a yellow folded cardstock chair, and a deep-teal arched backdrop wall.
@@ -65,7 +67,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 3. Core thesis and how Clip 1's concrete cardstock object hooks the viewer before scaling the concept in later clips
 4. Aspect ratio + locked 3D 300gsm textured cardstock diorama world (cobalt blue, mustard yellow, terracotta red, deep teal, warm cream)
 5. Unseen off-screen narrator voice and word count
-6. Character lock: always "No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."
+6. Character lock: if a cast character is attached, name them and lock their 3D matte cardstock miniature figurine appearance to the attached blueprint (silent, zero lip-sync); if none is attached, "No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."
 7. Clip-by-clip progression alternating across the 4 Diorama Set Archetypes (\`diorama-interior\`, \`flat-lay-top-down\`, \`isometric-street\`, \`studio-scale-closeup\`)
 
 ## Per-clip dual-beat rules
@@ -81,7 +83,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 Write one self-contained prompt per clip:
 
 1. Output spec: duration (5–12s), aspect ratio, 24 FPS, synchronized narrator voiceover and tactile paper Foley.
-2. Style lock: 3D tactile 300gsm matte textured cardstock diorama with crisp scored and folded geometric bevel edges, visible paper fiber grain, soft studio tabletop lighting, shallow macro depth-of-field, and cobalt/mustard/terracotta/teal/cream palette. Zero human characters and zero white scissor borders.
+2. Style lock: 3D tactile 300gsm matte textured cardstock diorama with crisp scored and folded geometric bevel edges, visible paper fiber grain, soft studio tabletop lighting, shallow macro depth-of-field, and cobalt/mustard/terracotta/teal/cream palette. Zero white scissor borders. If a 3D cardstock character figurine is in the frame, keep their lips closed with zero lip-sync while they interact physically with the cardstock props; otherwise zero human characters.
 3. Scene at t=0: exact cardstock set, camera angle (\`diorama-interior\`, \`flat-lay-top-down\`, \`isometric-street\`, or \`studio-scale-closeup\`), and 3D folded paper props matching the start keyframe.
 4. Timed beats: Beat 1 (\`startVo\`) and Beat 2 (\`endVo\`) driven by physical papercraft mechanics (paper ribbon feeding, coins sliding, scale tipping, camera slow push-in or pan).
 `,
@@ -89,7 +91,7 @@ Write one self-contained prompt per clip:
   ],
   profile: {
     bestFor:
-      "Startup & VC concepts, SaaS business models, economics, financial literacy, and Founder Notes explainers taught through tactile 3D cardstock miniature dioramas with zero human characters.",
+      "Startup & VC concepts, SaaS business models, economics, financial literacy, and Founder Notes explainers taught through tactile 3D cardstock miniature dioramas (with an optional 3D cardstock character host).",
     structure:
       "Each clip is 5–12 seconds with two spoken beats (startVo + endVo) and one distinct 3D cardstock diorama set (4 clips for ~28–35s, 6–8 clips for 50–60s).",
     hook:
@@ -97,13 +99,13 @@ Write one self-contained prompt per clip:
     arc:
       "Builds from a single unit example (Clip 1 interior diorama) → capital or mechanism (Clip 2 overhead flat-lay envelope & chart) → replication at scale (Clip 3 isometric street of multiple shops) → final trade-off or payoff (Clip 4 cardstock balance scale).",
     narrator:
-      "An unseen off-screen narrator speaks every line across two beats per clip. Zero on-screen human characters.",
+      "An unseen off-screen narrator speaks every line across two beats per clip. Optional character appears as a silent 3D cardstock miniature figurine (no lip-sync).",
     visual:
       "Permanently locked to the 3D Papercraft Diorama style (300gsm matte textured cardstock, scored & folded 3D geometry, macro tabletop depth-of-field, cobalt blue / mustard yellow / terracotta red / deep teal / warm cream palette).",
     audio:
       "Crisp narrator voiceover paired with subtle tactile paper-craft Foley (paper sliding, ticket printing, gentle cardstock clicks).",
     rules:
-      "Visual style is fixed to 3D Papercraft Diorama. No characters or hands on screen. Alternate camera angles across interior diorama, 90° flat-lay, isometric street, and studio hero close-up.",
+      "Visual style is fixed to 3D Papercraft Diorama. Optional character renders as a silent 3D cardstock miniature figurine; otherwise pure diorama objects. Alternate camera angles across interior diorama, 90° flat-lay, isometric street, and studio hero close-up.",
   },
   behavior: {
     keyframeMode: "start-only",

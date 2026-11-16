@@ -150,15 +150,25 @@ test("computeSkillSwitchState updates styleId and filters/fills characterIds aga
   assert.equal(optionalExplainerSwitchedStyle.styleId, "realistic");
   assert.deepEqual(optionalExplainerSwitchedStyle.characterIds, ["real-1"]);
 
-  const zeroCast = computeSkillSwitchState({
+  const papercraftWithCast = computeSkillSwitchState({
     currentStyleId: "realistic",
     preferredStyleId: "papercraft-diorama",
     nextCastNeed: 0,
     characters,
     currentCharacterIds: ["real-1"],
   });
-  assert.equal(zeroCast.styleId, "papercraft-diorama");
-  assert.deepEqual(zeroCast.characterIds, []);
+  assert.equal(papercraftWithCast.styleId, "papercraft-diorama");
+  assert.deepEqual(papercraftWithCast.characterIds, ["real-1"]);
+
+  const papercraftNoCast = computeSkillSwitchState({
+    currentStyleId: "realistic",
+    preferredStyleId: "papercraft-diorama",
+    nextCastNeed: 0,
+    characters,
+    currentCharacterIds: [],
+  });
+  assert.equal(papercraftNoCast.styleId, "papercraft-diorama");
+  assert.deepEqual(papercraftNoCast.characterIds, []);
 });
 
 test("resolveModeSwitchSkillSlug picks talking-head-director, story-short-director, and paper-cutout/explainer across all modes", () => {

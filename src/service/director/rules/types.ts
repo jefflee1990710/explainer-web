@@ -29,7 +29,11 @@ export type DirectorPhaseBMotionInput = {
 export type DirectorRuleModule = {
   slug: DirectorSlug;
   allowsInventedProps: boolean;
-  phaseASceneDetailBlock(options: { realistic?: boolean; selfShot?: boolean }): string;
+  phaseASceneDetailBlock(options: {
+    realistic?: boolean;
+    selfShot?: boolean;
+    hasCharacter?: boolean;
+  }): string;
   phaseAKeyframeDeltaBlock(options: {
     language?: VoLanguage;
     hasCharacter?: boolean;

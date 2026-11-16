@@ -487,17 +487,15 @@ export function DirectorDockBrief({
             />
           ) : null}
 
-          {/* Left Icon 2: Cast Avatar Slots (hidden for zero-character directors like papercraft-diorama-director) */}
-          {!lockedStyleIdForSkill(ruleSlug) || castNeed > 0 ? (
-            <DirectorDockCastGroup
-              tourId="character-card"
-              slots={castSlots}
-              disabled={briefBusy}
-              badgeLabel={t("brief.cast.title")}
-              onOpenPicker={() => setCharDialogOpen(true)}
-              onManageActive={() => setCharDialogOpen(true)}
-            />
-          ) : null}
+          {/* Left Icon 2: Cast Avatar Slots */}
+          <DirectorDockCastGroup
+            tourId="character-card"
+            slots={castSlots}
+            disabled={briefBusy}
+            badgeLabel={t("brief.cast.title")}
+            onOpenPicker={() => setCharDialogOpen(true)}
+            onManageActive={() => setCharDialogOpen(true)}
+          />
 
           <DirectorDockDivider />
 

@@ -5,8 +5,6 @@ import { cartoonExplainerDirectorBlock } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import {
   REALISTIC_LIGHT_DIRECTOR_RULE,
-  REALISTIC_NARRATOR_VIDEO_DETAIL_RULE,
-  REALISTIC_VIDEO_DETAIL_RULE,
 } from "@/service/style/realistic-light";
 
 const SIGHTLINE_RULE =
@@ -14,16 +12,10 @@ const SIGHTLINE_RULE =
 
 const EXPLAINER_DUAL_KEYFRAME_MOTION_RULES = [
   "Both START (State A) and END (State B) storyboard images for this clip are attached as first/last frames to MiniMax H3. Never call those stills a reference image.",
-  "CAMERA LOCK (2D PLANAR): keep the 2D planar camera locked and steady on the canvas/board across the whole clip — never tilt into 3D perspective, never orbit, never zoom in/out, never push in, and never pull out.",
-  "CONCRETE PHYSICAL TRANSFORMATION (State A -> State B): animate smoothly and continuously element-by-element across the FULL duration using fluid speed-ramped easing (0.2s smooth anticipation → 0.3s–0.4s fluid 2x–3x accelerated transition → smooth eased deceleration into a steady settle; zero sudden snaps, zero jerks, and zero jump cuts) so State A transforms cleanly into State B — do not hold State A frozen and snap to State B on the final frames.",
-  "Use smooth, fluid speed-ramped transitions every 1.0–1.5 seconds: elements glide and slide briskly in/out of frame (滑入／滑出), folded cards unfold flat smoothly (摺開), cover strips tear or peel open cleanly (撕開), arrows/lines/circles draw smoothly stroke-by-stroke (畫出), two-sided cards flip smoothly along their edge (翻轉), and meters fill or drain smoothly.",
-  "Use at most ONE directional arrow per clip (never stack multiple arrows or spawn extra flying arrows), and never slide blank grey slash strips or masking-tape stickers over headers.",
-  "Whiteboard cardboard physics: every prop, card, diagram block, arrow, chart bar, shape, and tag moves as a single rigid flat piece without melting or dissolving. Background and set layers stay 100% stationary.",
-  "Character acting: keep the character in their presenter corner at the same scale and screen position while smoothly and briskly pointing/demonstrating toward each active focus point with vivid brow and eye focus and fluid speed-ramping. Eyes and hands stay on the teaching element on every clip, including Clip 1. Lips and jaw stay sealed (no lip-sync, no look into the lens).",
-  "Concise on-canvas labels: keep the concise 「」 keyword labels and optional short beat headline sharp and readable as drawn in the first and last frames. Never morph, scramble, or invent extra full-sentence text or Subtitle:.",
-  "SCAFFOLD LOCK: X axis, Y axis, grid lines, chart frame, board, scale beam, and pipeline housing stay the same shape and the same screen position from the first frame to the last. They never slide off, shrink, or disappear. Only payload pieces move (cards, badges, curves, chains, folds, stamps).",
-  "TITLE PLATE: one title plate stays in the same rectangle for the whole clip. If its words change between the frames, switch them with one in-place flip or tear during the middle of the clip, after the opening hook. Never slide the title off screen and never change it in the first second.",
-  "GLYPH LOCK: keep every 「」 label crisp. Do not morph strokes and do not turn Traditional Chinese characters into Simplified characters.",
+  "LENGTH & FOCUS (STRICT): write a short, focused visual-only prompt (350–800 characters, max 1,000 characters). Do NOT write voice locks, narrator/audio/SFX rules, wardrobe essays, lighting descriptions, or long negative lists.",
+  "CAMERA LOCK (2D PLANAR) & CHARACTER (1 short clause): keep the 2D planar camera locked and steady on the canvas (no zoom, pan, tilt, or cut); silent closed-lip character stays in their presenter corner with eyes and hands following each active element.",
+  "ELEMENT MOTION (State A -> State B): across the FULL duration, simply describe element-by-element how the character's hand/gaze and each changing diagram element or label smoothly transition from its START frame state to its END frame state with natural continuous ease-in-out motion (glide smoothly in/out, unfold flat, peel/tear open, draw stroke-by-stroke, or flip cleanly along an edge — do not hold State A frozen and snap on the final frames, and avoid jerky speed jumps).",
+  "Whiteboard cardboard physics & SCAFFOLD LOCK / TITLE PLATE: fixed canvas/board, axes, grid, and unchanged 「」 labels stay locked in place without morphing or dissolving; only the changing diagram pieces and presenter hand/gaze move cleanly.",
 ].join(" ");
 
 export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
@@ -79,11 +71,7 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
   phaseBMotionRules() {
     return EXPLAINER_DUAL_KEYFRAME_MOTION_RULES;
   },
-  phaseBDetailRules(options) {
-    const base = options.realistic
-      ? "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST, then describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action with directions relative to the teaching element (e.g. the hand moving toward that element, the element sliding to the left of the frame, a card entering from the right of the frame). Never walk the character toward the camera and never turn the face toward the lens, a calm, relaxed, unforced real-person facial expression (lips softly closed at natural rest with zero mouth or jaw speech articulation, natural blinks, and attentive eye focus on the element they are handling; the character never speaks and never lip-syncs, and every beat is an interaction with an on-screen element (point, tap, place, slide, flip, or pick up) rather than a performance to the camera; never write a forced closed-lip smile or tight smirk; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction relative to the teaching element, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes."
-      : "Detail: ALWAYS state camera details, pointing direction, and camera motion FIRST, then describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action with directions relative to the teaching element (e.g. the hand moving toward that element, the element sliding to the left of the frame, a card entering from the right of the frame). Never walk the character toward the camera and never turn the face toward the lens, the expression change, and the camera start and end framing. Whenever a character is on screen, they only interact with an on-screen element (point, tap, place, slide, flip, or pick up). Lips and jaw stay sealed and motionless — no lip-sync, no mouth shapes, and no talking to the camera. Eyes and hands stay on that element. Name which hand, which direction relative to the teaching element, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
-    if (!options.realistic) return base;
-    return `${base} ${options.narratorOnly ? REALISTIC_NARRATOR_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE}`;
+  phaseBDetailRules() {
+    return "Detail: first state the locked stationary camera in one short clause, then list element-by-element across timed beats (e.g. 0.0–2.0s …; 2.0–4.0s …) how the character's hand/gaze and each changing diagram element or label smoothly move from the Start frame to the End frame. Keep lips closed with no lip-sync, and never re-describe character appearance, outfit, lighting, background texture, or spoken voiceover.";
   },
 };

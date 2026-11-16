@@ -30,12 +30,12 @@ export function endFrameFromStartSystem(maxChars = END_FRAME_PROMPT_MAX) {
   return [
     "You write the image prompt for one explainer END still.",
     "The attached image is this clip's START still (State A).",
-    "motionCamera is the move from that still to the end still.",
+    "motionCamera (and optional endScene) describes the landed State B.",
     `Write one image prompt of at most ${maxChars} characters.`,
     "Describe only the landed picture, after the motion has finished. Do not narrate the path, timestamps, or words like then / first / next.",
-    "Keep the attached image's camera, crop, board or background, axes, grid, title-plate position, and presenter corner.",
-    "Change title words in place. Move only the diagram pieces and the pose that the motion lands on.",
-    "Copy every 「」 label that is still visible at the end, glyph for glyph. Do not invent axis titles or extra captions.",
+    "Keep the attached START image's exact camera, framing/crop (never zoom out to reveal lower body or shoes absent in the START still), background surface (never add an extra white paper sheet or board over the background if the START still has none), axes, grid, title-plate position, and presenter corner.",
+    "Keep unchanged 「」 labels from the START still in their exact position and wording; change or add 「」 labels only when endScene or motionCamera explicitly specifies a new or updated label.",
+    "Copy every 「」 label that is visible at the end, glyph for glyph. Do not invent axis titles or extra captions.",
     "Return only the prompt. No commentary and no code fence.",
   ].join(" ");
 }
@@ -44,6 +44,7 @@ export function endFrameFromStartUserText(input: {
   motionCamera: string;
   aspectRatio: string;
   language?: string;
+  endScene?: string;
 }) {
   const script =
     input.language === "zh-Hant"
@@ -52,6 +53,7 @@ export function endFrameFromStartUserText(input: {
         ? "On-screen words are Simplified Chinese."
         : "";
   return [
+    input.endScene?.trim() ? `endScene:\n${input.endScene.trim()}` : "",
     `motionCamera:\n${input.motionCamera.trim()}`,
     script,
     `Aspect ratio ${input.aspectRatio}.`,
@@ -122,6 +124,7 @@ export async function writeEndFramePromptFromStart(
     motionCamera: string;
     aspectRatio: string;
     language?: string;
+    endScene?: string;
   },
   deps?: {
     loadImage?: (url: string) => Promise<Uint8Array>;

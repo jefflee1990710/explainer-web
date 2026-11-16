@@ -59,7 +59,6 @@ import {
   briefSkillError,
   defaultDirectorBackgroundId,
   isBookendSkill,
-  isPapercraftDioramaSkill,
   isValidDirectorBackgroundId,
   lockedStyleIdForSkill,
   maxStyleCountForSkill,
@@ -256,16 +255,14 @@ async function readVideoBrief(
         ? "hook"
         : undefined;
   const textStyleRaw = String(formData.get("textStyleId") || formData.get("subtitleLook") || "");
-  const characterIds = isPapercraftDioramaSkill(ruleSlug)
-    ? []
-    : Array.from(
-        new Set(
-          formData
-            .getAll("characterIds")
-            .map(String)
-            .filter((id) => ObjectId.isValid(id)),
-        ),
-      );
+  const characterIds = Array.from(
+    new Set(
+      formData
+        .getAll("characterIds")
+        .map(String)
+        .filter((id) => ObjectId.isValid(id)),
+    ),
+  );
   if (characterIds.length > CAST_MAX) {
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
   }
