@@ -61,7 +61,9 @@ export function ScroVideoAiEntry({
 						)}
 					</div>
 					<span className="px-2 py-1 text-[0.65rem] font-medium">
-						{singleFrameOnly ? oc.inspector.redrawAvatarFrame : oc.inspector.redrawStart}
+						{clip.inspectorKind === "talking-head"
+							? oc.inspector.redrawAvatarFrame
+							: oc.inspector.redrawStart}
 					</span>
 				</button>
 				{!singleFrameOnly ? (
