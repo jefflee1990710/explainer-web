@@ -1141,9 +1141,7 @@ export const zhHant: Messages = {
     voiceUnset: "尚未鎖定。所有導演都會改用專案的旁白聲線鎖定，聲線不會每段不同。",
     voiceAutoUnset:
       "維持關閉即可。建立時會用 AI 讀描述和參考圖，並自動打開聲線鎖定。只有想自己選時才打開。",
-    voicePreview: "ElevenLabs 聲線",
-    voiceLockSpeakerMale: "男聲。廣東話用 Alan，其他語言用 Brian。",
-    voiceLockSpeakerFemale: "女聲。廣東話用 Cathy，其他語言用 Bella。",
+    voicePreview: "每段都會原樣貼上的句子",
     voiceSave: "儲存聲線",
     voiceSaved: "已儲存。下一段會用這把 ElevenLabs 聲線。",
     voiceFill: "用藍圖填寫",

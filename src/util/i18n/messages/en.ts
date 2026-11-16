@@ -1150,9 +1150,7 @@ export const en: Messages = {
     voiceUnset: "Not locked. Every director uses the project narrator voice lock, so the timbre stays the same.",
     voiceAutoUnset:
       "Leave this off. Creating the character runs AI on the description and photos, then turns the lock on. Turn it on only to choose the voice yourself.",
-    voicePreview: "ElevenLabs speaker",
-    voiceLockSpeakerMale: "Male. Cantonese uses Alan. Every other language uses Brian.",
-    voiceLockSpeakerFemale: "Female. Cantonese uses Cathy. Every other language uses Bella.",
+    voicePreview: "Pasted into every clip",
     voiceSave: "Save voice",
     voiceSaved: "Saved. The next clip uses this ElevenLabs speaker.",
     voiceFill: "Fill from blueprint",

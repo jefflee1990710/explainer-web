@@ -669,8 +669,6 @@ export type Messages = {
     voiceUnset: string;
     voiceAutoUnset: string;
     voicePreview: string;
-    voiceLockSpeakerMale: string;
-    voiceLockSpeakerFemale: string;
     voiceSave: string;
     voiceSaved: string;
     voiceFill: string;

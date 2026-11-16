@@ -28,10 +28,6 @@ export function CharacterVoiceFields({
 }) {
   const { t } = useI18n();
   const showFields = hideEnableCheckbox ? true : enabled;
-  const speaker =
-    value.gender === "female"
-      ? t("characters.voiceLockSpeakerFemale")
-      : t("characters.voiceLockSpeakerMale");
 
   return (
     <fieldset className="space-y-3">
@@ -57,10 +53,6 @@ export function CharacterVoiceFields({
             ariaLabel={t("characters.voiceGender")}
             onChange={(gender) => onChange(characterVoiceGenderLock(gender))}
           />
-          <p className="text-xs font-semibold">{t("characters.voicePreview")}</p>
-          <p className="rounded-lg border border-accent-ink/10 bg-[var(--studio-fill)] px-3 py-2 text-xs leading-5 text-muted">
-            {speaker}
-          </p>
         </>
       ) : (
         <p className="text-xs leading-5 text-muted">

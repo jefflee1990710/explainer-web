@@ -46,12 +46,15 @@ export function VoicePicker({
             {active ? (
               <motion.span
                 layoutId={layoutId}
-                className="absolute inset-0 rounded-xl bg-accent-ink shadow-[3px_3px_0_0_rgba(255,77,46,0.9)]"
+                // Avoid the bg-accent-ink utility. Studio dark mode repaints that
+                // class to the same dark ink as text-paper, so the label disappears.
+                className="absolute inset-0 rounded-xl shadow-[3px_3px_0_0_rgba(255,77,46,0.9)]"
+                style={{ backgroundColor: "var(--accent-ink)" }}
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
-            <span className="relative block font-display text-sm font-bold">{preset.label}</span>
-            <span className={`relative block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
+            <span className="relative z-10 block font-display text-sm font-bold">{preset.label}</span>
+            <span className={`relative z-10 block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
               {preset.sublabel}
             </span>
           </button>
