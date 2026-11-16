@@ -303,6 +303,8 @@ export function DirectorDockBrief({
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const [refDialogOpen, setRefDialogOpen] = useState(false);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
+  // The scene dialog only shows the current swatch. This opens the colour grid on top.
+  const [presetBgPickerOpen, setPresetBgPickerOpen] = useState(false);
   const [voDialogOpen, setVoDialogOpen] = useState(false);
   const [draftsDialogOpen, setDraftsDialogOpen] = useState(false);
   const [actingNoteOpen, setActingNoteOpen] = useState(false);
@@ -1203,7 +1205,10 @@ export function DirectorDockBrief({
       {bgDialogOpen ? (
         <DialogBackdrop
           className="flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
-          onClick={() => setBgDialogOpen(false)}
+          onClick={() => {
+            setPresetBgPickerOpen(false);
+            setBgDialogOpen(false);
+          }}
         >
           <div
             role="dialog"
@@ -1217,7 +1222,10 @@ export function DirectorDockBrief({
               </h3>
               <button
                 type="button"
-                onClick={() => setBgDialogOpen(false)}
+                onClick={() => {
+                  setPresetBgPickerOpen(false);
+                  setBgDialogOpen(false);
+                }}
                 className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold text-muted hover:text-foreground"
               >
                 ✕
@@ -1229,13 +1237,10 @@ export function DirectorDockBrief({
                 selectedId={activeDirectorBgId}
                 customUrls={backgroundImageUrls}
                 allowsUpload={allowsBgUpload}
-                open={false}
+                open={presetBgPickerOpen}
                 disabled={briefBusy}
-                onOpenChange={() => {}}
-                onSelectPreset={(id) => {
-                  onDirectorBackgroundChange(id);
-                  setBgDialogOpen(false);
-                }}
+                onOpenChange={setPresetBgPickerOpen}
+                onSelectPreset={onDirectorBackgroundChange}
                 onChangeCustomUrls={onBackgroundImageUrlsChange}
                 onError={onError}
               />
