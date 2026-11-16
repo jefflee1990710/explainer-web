@@ -100,8 +100,8 @@ export function CharacterVoiceModeSwitcher({
             </div>
             <p className="mt-1 text-xs leading-5 text-muted">
               {isZh
-                ? "使用性別、年齡、音高與音色描述鎖定 AI 聲線（不額外扣點）"
-                : "Lock AI voice timbre by gender, age, pitch, and resonance (included)"}
+                ? "只選男聲或女聲。ElevenLabs 用這把固定聲線（不額外扣點）"
+                : "Choose male or female. ElevenLabs keeps that one speaker (included)"}
             </p>
           </div>
         </button>

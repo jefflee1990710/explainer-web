@@ -77,6 +77,7 @@ import { listSelectableStyles } from "@/service/style/list";
 import type { PlanId } from "@/model/subscription";
 import type { Character, CharacterVersion, CharacterVoiceMode } from "@/model/character";
 import { characterVoiceForStorage, parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
+import { characterVoiceGenderLock } from "@/service/director/character-voice";
 import { characterBlueprintVoiceInput, inferCharacterVoice } from "@/service/character/infer-voice";
 import { VOICE_FILL_LIMIT, VOICE_FILL_WINDOW_MS } from "@/service/character/voice-fill-rate";
 
@@ -170,7 +171,7 @@ export async function createCharacterAction(
       chosen ? Promise.resolve(chosen) : inferCharacterVoice({ name, description: prompt, referenceImageUrls }),
       extractCharacterSpec({ name, description: prompt, referenceImageUrls }),
     ]);
-    const voice = characterVoiceForStorage(inferredVoice);
+    const voice = characterVoiceForStorage(characterVoiceGenderLock(inferredVoice.gender));
 
     await assertCanSpendCredits(user, BLUEPRINT_COST);
     const spendKey = await consumeCredits(user.clerkUserId, BLUEPRINT_COST);
@@ -677,7 +678,8 @@ export async function suggestCharacterVoiceAction(characterId: string): Promise<
     if (!source) return { ok: false, error: "還沒有完成的藍圖" };
     const reserved = await reserveVoiceFill(user.clerkUserId, new Date());
     if (!reserved) return { ok: false, error: "聲線填寫太頻繁，請 5 分鐘後再試" };
-    const voice = characterVoiceForStorage(await inferCharacterVoice(source));
+    const inferred = await inferCharacterVoice(source);
+    const voice = characterVoiceForStorage(characterVoiceGenderLock(inferred.gender));
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },
@@ -718,7 +720,7 @@ export async function saveCharacterVoiceAction(
     if (voice !== null && !parsed) {
       return { ok: false, error: "聲線設定無效" };
     }
-    const stored = parsed ? characterVoiceForStorage(parsed) : null;
+    const stored = parsed ? characterVoiceForStorage(characterVoiceGenderLock(parsed.gender)) : null;
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },

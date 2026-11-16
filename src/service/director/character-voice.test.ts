@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { parseCharacterVoice } from "@/model/character-voice";
 import {
   characterVoiceFingerprint,
+  characterVoiceGenderLock,
   dialogueVoiceLock,
   lockedSpeakerLines,
 } from "@/service/director/character-voice";
@@ -30,6 +31,15 @@ const amy = {
     weight: "light" as const,
   },
 };
+
+test("a voice lock keeps only the male or female ElevenLabs speaker", () => {
+  const male = characterVoiceGenderLock("male");
+  const female = characterVoiceGenderLock("female");
+  assert.equal(male.gender, "male");
+  assert.equal(female.gender, "female");
+  assert.equal(male.pitch, "mid");
+  assert.equal(female.note, undefined);
+});
 
 test("a null extra note still counts as a voice lock", () => {
   const parsed = parseCharacterVoice({ ...fred.voice, weight: "medium", note: null });

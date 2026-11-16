@@ -11,16 +11,21 @@ export function VoicePicker({
   value,
   onChange,
   disabled,
+  layoutId = "voice-highlight",
+  ariaLabel,
 }: {
   value: VoiceGender;
   onChange: (value: VoiceGender) => void;
   disabled?: boolean;
+  // Separate highlight motion when more than one picker is mounted.
+  layoutId?: string;
+  ariaLabel?: string;
 }) {
   const { t } = useI18n();
   return (
     <div
       role="radiogroup"
-      aria-label={t("brief.voice.aria")}
+      aria-label={ariaLabel ?? t("brief.voice.aria")}
       className="grid grid-cols-2 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {VOICE_IDS.map((id) => {
@@ -40,7 +45,7 @@ export function VoicePicker({
           >
             {active ? (
               <motion.span
-                layoutId="voice-highlight"
+                layoutId={layoutId}
                 className="absolute inset-0 rounded-xl bg-accent-ink shadow-[3px_3px_0_0_rgba(255,77,46,0.9)]"
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />

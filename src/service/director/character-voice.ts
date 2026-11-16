@@ -15,6 +15,12 @@ export const DEFAULT_CHARACTER_VOICE: CharacterVoice = {
   weight: "medium",
 };
 
+// Voice lock only chooses the ElevenLabs speaker. Age, pitch, and notes stay at
+// these defaults so a saved lock cannot drift away from that male or female voice.
+export function characterVoiceGenderLock(gender: "male" | "female"): CharacterVoice {
+  return { ...DEFAULT_CHARACTER_VOICE, gender };
+}
+
 // Pure fallback voice lock inferred from character name/identity/description when no explicit voice lock is stored.
 export function inferFallbackCharacterVoice(description: string): CharacterVoice {
   const text = description.toLowerCase();
