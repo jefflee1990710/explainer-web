@@ -17,8 +17,11 @@ import {
   whiteboardSubmitDurationSeconds,
 } from "@/service/voice/voice-swap-args";
 import {
-  CANTONESE_VOICE_ID,
+  FEMALE_NARRATOR_VOICE_ID,
+  MALE_NARRATOR_VOICE_ID,
   resolveVoiceSwapId,
+  YUE_FEMALE_NARRATOR_VOICE_ID,
+  YUE_MALE_NARRATOR_VOICE_ID,
 } from "@/service/voice/voice-swap-target";
 
 test("normalizeVoiceSampleClips and voiceSampleUrls handle single and multi-file samples", () => {
@@ -76,10 +79,30 @@ test("voice swap runs only for a one-character cast with a demo voice and prefer
 
 test("All languages convert on ElevenLabs first, and a cloned demo voice wins", () => {
   const yue = { skillSlug: "talking-head-director", language: "yue" };
-  assert.equal(resolveVoiceSwapId(yue), CANTONESE_VOICE_ID);
+  assert.equal(resolveVoiceSwapId(yue), YUE_MALE_NARRATOR_VOICE_ID);
   assert.equal(
     resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "yue" }),
-    CANTONESE_VOICE_ID,
+    YUE_MALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "papercraft-diorama-director",
+      language: "yue",
+      voiceGender: "male",
+    }),
+    YUE_MALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "papercraft-diorama-director",
+      language: "yue",
+      voiceGender: "female",
+    }),
+    YUE_FEMALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "en", voiceGender: "female" }),
+    FEMALE_NARRATOR_VOICE_ID,
   );
   assert.equal(
     resolveVoiceSwapId({ ...yue, cast: [{ voiceSample: { elevenVoiceId: "clone" } }] }),
@@ -87,9 +110,9 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
   );
   assert.equal(
     resolveVoiceSwapId({ skillSlug: "dialogue-qa-director", language: "yue" }),
-    CANTONESE_VOICE_ID,
+    YUE_MALE_NARRATOR_VOICE_ID,
   );
-  assert.equal(resolveVoiceSwapId({ skillSlug: "opening-director", language: "yue" }), CANTONESE_VOICE_ID);
+  assert.equal(resolveVoiceSwapId({ skillSlug: "opening-director", language: "yue" }), YUE_MALE_NARRATOR_VOICE_ID);
   assert.equal(
     resolveVoiceSwapId({
       skillSlug: "talking-head-director",
@@ -111,7 +134,26 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
       skillSlug: "cartoon-explainer-video-director",
       language: "en",
     }),
-    CANTONESE_VOICE_ID,
+    MALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "dialogue-qa-director",
+      language: "yue",
+      spokenLine: 'Joyce: "你好。"',
+      cast: [
+        { name: "Joyce", voice: { gender: "female" } },
+        { name: "Scro", voice: { gender: "male" } },
+      ],
+    }),
+    YUE_FEMALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      language: "yue",
+      cast: [{ name: "Ada", voice: { gender: "female" } }],
+    }),
+    YUE_FEMALE_NARRATOR_VOICE_ID,
   );
   assert.equal(
     resolveVoiceSwapId({

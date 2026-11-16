@@ -3,6 +3,10 @@ const BASE_URL = "https://api.elevenlabs.io/v1";
 const STS_MODEL = "eleven_multilingual_sts_v2";
 export const ELEVENLABS_TTS_MODEL = "eleven_v4";
 
+// Same seed on every narrator request. eleven_v4 is nondeterministic; without this,
+// one voice id still comes back as a different speaker on each clip.
+export const NARRATOR_TTS_SEED = 42110;
+
 // Lock stability and similarity to 1.0 (100%) so ElevenLabs STS
 // preserves Cantonese 9-tone contours and cloned voice fidelity verbatim.
 export const STS_VOICE_SETTINGS = {
@@ -442,6 +446,8 @@ export async function synthesizeSpeechWithTimestamps(
   options?: FetchOptions & {
     modelId?: string;
     conversational?: boolean;
+    // Off-screen narration: lock stability, similarity, and seed so every clip is the same person.
+    lockedSpeaker?: boolean;
     language?: VoiceSampleLanguage | string;
   },
 ): Promise<{ audio: Buffer; alignment?: ElevenLabsAlignment }> {
@@ -454,9 +460,11 @@ export async function synthesizeSpeechWithTimestamps(
       ? normalizeCantoneseTtsPhonetics(rawCleaned)
       : rawCleaned;
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
-  const voiceSettings = options?.conversational
-    ? talkingHeadTtsVoiceSettings(options.language)
-    : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
+  const voiceSettings = options?.lockedSpeaker
+    ? STS_VOICE_SETTINGS
+    : options?.conversational
+      ? talkingHeadTtsVoiceSettings(options.language)
+      : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
   const languageCode = elevenLabsLanguageCode(options?.language);
   const response = await fetchWithRateLimitRetry(
     fetchFn,
@@ -471,6 +479,7 @@ export async function synthesizeSpeechWithTimestamps(
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
         ...(languageCode ? { language_code: languageCode } : {}),
+        ...(options?.lockedSpeaker ? { seed: NARRATOR_TTS_SEED } : {}),
         voice_settings: voiceSettings,
       }),
       signal: AbortSignal.timeout(120_000),
@@ -664,6 +673,7 @@ export async function synthesizeSpeech(
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
         ...(languageCode ? { language_code: languageCode } : {}),
+        seed: NARRATOR_TTS_SEED,
         voice_settings: STS_VOICE_SETTINGS,
       }),
       signal: AbortSignal.timeout(120_000),

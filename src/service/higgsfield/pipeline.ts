@@ -87,7 +87,7 @@ import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import { probeAudioSeconds, stripVideoAudio, swapClipVoice } from "@/service/voice/voice-swap";
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
-import { CANTONESE_VOICE_ID, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
+import { narratorVoiceId, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import {
   heyGenAvatarIvMotionPrompt,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
@@ -848,7 +848,7 @@ export async function sendClipVideo(
     !isSilentOutfitSkill(project.skillSlug)
       ? resolveVoiceSwapId({ ...project, cast: currentCast, spokenLine }) ||
         voiceSwapVoiceId(currentCast, project.language) ||
-        CANTONESE_VOICE_ID
+        narratorVoiceId(project.language, project.voiceGender)
       : null;
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo =
@@ -890,6 +890,8 @@ export async function sendClipVideo(
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
         conversational: audioFirstTalkingHead,
+        // Explainer and other off-screen narrators stay one speaker across clips.
+        lockedSpeaker: !audioFirstTalkingHead && !usesLipSync,
         language: project.language,
       });
       if (audioFirstTalkingHead) {
@@ -1326,7 +1328,7 @@ export async function applyJobStatus(input: {
             ...clipProject,
             spokenLine,
             cast: await withCurrentCharacterVoices(clipProject.cast),
-          }) || CANTONESE_VOICE_ID
+          }) || narratorVoiceId(clipProject.language, clipProject.voiceGender)
         : null;
     const editorialInterviewBrollJob = Boolean(
       clipProject &&

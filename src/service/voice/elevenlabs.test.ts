@@ -12,6 +12,7 @@ import {
   groupAlignmentTokens,
   matchClauseWindows,
   normalizeCantoneseTtsPhonetics,
+  NARRATOR_TTS_SEED,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
@@ -77,6 +78,7 @@ test("synthesizeSpeech calls ElevenLabs text-to-speech with eleven_v4 and 100% s
   assert.equal(ELEVENLABS_TTS_MODEL, "eleven_v4");
   assert.equal(capturedBody?.model_id, "eleven_v4");
   assert.equal(capturedBody?.text, "有無諗過你個Instagram都可以變成你嘅生財工具？");
+  assert.equal(capturedBody?.seed, NARRATOR_TTS_SEED);
   assert.deepEqual(capturedBody?.voice_settings, STS_VOICE_SETTINGS);
 });
 
@@ -183,6 +185,7 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
 
   assert.match(capturedUrl, /\/v1\/text-to-speech\/AlY88XuxqPLuBzrEimDn\/with-timestamps\?output_format=mp3_44100_128$/);
   assert.deepEqual(capturedBody?.voice_settings, TTS_WITH_TIMESTAMPS_VOICE_SETTINGS);
+  assert.equal(capturedBody?.seed, undefined);
   assert.equal(TTS_WITH_TIMESTAMPS_VOICE_SETTINGS.stability, 0.7);
   assert.equal(TTS_WITH_TIMESTAMPS_VOICE_SETTINGS.similarity_boost, 1);
   assert.equal(res.audio.toString(), "mp3-bytes");
@@ -340,4 +343,26 @@ test("conversational synthesizeSpeechWithTimestamps uses expressive voice settin
   assert.equal(talkingHeadTtsVoiceSettings("yue").style, 0);
   assert.deepEqual(talkingHeadTtsVoiceSettings("en"), TALKING_HEAD_TTS_VOICE_SETTINGS);
   assert.deepEqual(talkingHeadTtsVoiceSettings("zh"), TALKING_HEAD_TTS_VOICE_SETTINGS);
+});
+
+test("locked narrator TTS uses full stability and a fixed seed so every clip stays the same speaker", async () => {
+  let capturedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    capturedBody = JSON.parse(String(init?.body));
+    return new Response(
+      JSON.stringify({ audio_base64: Buffer.from("mp3-bytes").toString("base64") }),
+      { status: 200 },
+    );
+  };
+
+  await synthesizeSpeechWithTimestamps("voice123", "九十秒內教你砌好個人品牌。", {
+    apiKey: "test-xi-key",
+    fetch: fakeFetch,
+    lockedSpeaker: true,
+    language: "yue",
+  });
+
+  assert.equal(capturedBody?.seed, NARRATOR_TTS_SEED);
+  assert.deepEqual(capturedBody?.voice_settings, STS_VOICE_SETTINGS);
+  assert.equal(capturedBody?.language_code, "yue");
 });
