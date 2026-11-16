@@ -693,7 +693,7 @@ export function frameSceneReferenceUrls(
     project.skillSlug === TALKING_HEAD_SKILL_SLUG || skillAllowsBackgroundUpload(project.skillSlug);
   const backgrounds = allowsBackground ? project.backgroundImageUrls || [] : [];
   const urls = backgrounds.length ? backgrounds : clipReferenceImageUrls(project, clipNumber);
-  const route = imageRouteForSceneText(resolveSceneText(project).language);
+  const route = imageRouteForSceneText(resolveSceneText(project).language, project.skillSlug);
   const room = referenceLimitForModel(route.editModel) - otherRefCount;
   return urls.slice(0, Math.max(0, room));
 }
@@ -1255,7 +1255,7 @@ export function buildFramePrompt(
 
   // Ideogram rejects anything over 2048 characters. Soft sections trim first;
   // the spelled subtitle line is outside those sections and stays whole.
-  const routeModel = imageRouteForSceneText(sceneText.language).model;
+  const routeModel = imageRouteForSceneText(sceneText.language, project.skillSlug).model;
   const ideogram = routeModel.startsWith("ideogram/");
   const budget = ideogram ? IDEOGRAM_PROMPT_MAX : FRAME_PROMPT_BUDGET;
   const prompt = fitFramePrompt(

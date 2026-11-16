@@ -21,6 +21,7 @@ import { isRealisticStyle } from "@/service/style/realistic-light";
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
   IDEOGRAM_PROMPT_MAX,
+  NANO_BANANA_2_1_IMAGE_MODEL,
   SEEDREAM_5_PRO_IMAGE_MODEL,
   imageModelForSubmit,
   resolveImageRoute,
@@ -105,14 +106,17 @@ export async function submitImage(input: {
   negativePrompt?: string;
   // 畫面文字語系；model 以 IMAGE_ROUTE_BY_SCENE_TEXT 為準。
   sceneTextLanguage?: SceneTextLanguage;
+  // 導演 slug；Explainer 類型分鏡畫格改走 Nano Banana 2.1。
+  skillSlug?: string;
 }, options: { webhook?: boolean } = {}) {
-  const route = resolveImageRoute(input.sceneTextLanguage);
+  const route = resolveImageRoute(input.sceneTextLanguage, input.skillSlug);
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
-  // Explicit Seedream 5.0 Pro is kept. Other callers follow the scene route.
+  // Explicit Seedream 5.0 Pro or Nano Banana 2.1 is kept. Other callers follow the scene route.
   const model =
-    input.model === SEEDREAM_5_PRO_IMAGE_MODEL
+    input.model === SEEDREAM_5_PRO_IMAGE_MODEL ||
+    input.model === NANO_BANANA_2_1_IMAGE_MODEL
       ? input.model
       : imageModelForSubmit(route, refs.length > 0);
   // Ideogram takes one image. The first URL is the composition lock, or the

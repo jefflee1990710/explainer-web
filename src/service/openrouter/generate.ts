@@ -11,6 +11,7 @@ export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
+export const OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL = "google/gemini-nano-banana-2.1";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
 export const OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL = "heygen/avatar-iv";
@@ -119,15 +120,19 @@ export function openRouterImageBody(input: {
 }) {
   const refs = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
   const isOpenAiImage = /^openai\//i.test(input.model);
-  // Seedream 5.0 Lite only accepts 2K / 4K; Seedream 5.0 Pro accepts 1K / 2K.
+  // Seedream 5.0 Lite only accepts 2K / 4K; Seedream 5.0 Pro accepts 1K / 2K;
+  // Nano Banana 2.1 accepts 1K / 2K / 4K.
   const isSeedreamLite = input.model === OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL;
+  const isNanoBanana21 = input.model === OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL;
   const resolution = isSeedreamLite
     ? input.resolution === "4k"
       ? ("4K" as const)
       : ("2K" as const)
-    : input.resolution === "2k" || input.resolution === "4k"
-      ? ("2K" as const)
-      : ("1K" as const);
+    : isNanoBanana21 && input.resolution === "4k"
+      ? ("4K" as const)
+      : input.resolution === "2k" || input.resolution === "4k"
+        ? ("2K" as const)
+        : ("1K" as const);
   return {
     model: input.model,
     prompt: input.prompt,

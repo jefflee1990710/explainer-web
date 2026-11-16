@@ -98,6 +98,40 @@ test("openRouterImageBody formats /api/v1/images payload with input_references",
 
   assert.deepEqual(
     openRouterImageBody({
+      model: "google/gemini-nano-banana-2.1",
+      prompt: "draw an explainer diagram",
+      aspectRatio: "9:16",
+      resolution: "1k",
+      referenceImageUrls: ["https://blob/start.png"],
+    }),
+    {
+      model: "google/gemini-nano-banana-2.1",
+      prompt: "draw an explainer diagram",
+      aspect_ratio: "9:16",
+      resolution: "1K",
+      input_references: [
+        { type: "image_url", image_url: { url: "https://blob/start.png" } },
+      ],
+    },
+  );
+
+  assert.deepEqual(
+    openRouterImageBody({
+      model: "google/gemini-nano-banana-2.1",
+      prompt: "draw a 4K explainer diagram",
+      aspectRatio: "16:9",
+      resolution: "4k",
+    }),
+    {
+      model: "google/gemini-nano-banana-2.1",
+      prompt: "draw a 4K explainer diagram",
+      aspect_ratio: "16:9",
+      resolution: "4K",
+    },
+  );
+
+  assert.deepEqual(
+    openRouterImageBody({
       model: "openai/gpt-5-image",
       prompt: "draw a scene",
       aspectRatio: "16:9",

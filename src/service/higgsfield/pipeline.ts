@@ -321,7 +321,7 @@ export async function sendFrame(
     }
   }
   // Over the model's cap, Gemini compresses the prompt before the image request.
-  const route = resolveImageRoute(sceneText.language);
+  const route = resolveImageRoute(sceneText.language, project.skillSlug);
   const prompt = route.model.startsWith("ideogram/")
     ? await ensureFramePromptFits(promptSource, undefined, IDEOGRAM_PROMPT_MAX)
     : await ensureFramePromptFits(promptSource);
@@ -359,6 +359,7 @@ export async function sendFrame(
     resolution: realistic ? "2k" : skill.higgsfieldDefaults.imageResolution || "1k",
     negativePrompt: sceneTextNegativePrompt(sceneText.enabled, sceneText.inWorldLabels),
     sceneTextLanguage: sceneText.language,
+    skillSlug: project.skillSlug,
     referenceImageUrls: refs,
   });
   return toSent(model, submitted);
