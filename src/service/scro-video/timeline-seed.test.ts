@@ -187,6 +187,8 @@ describe("diffScroSeedClips", () => {
     assert.equal(seeded[0]?.inspectorKind, "explainer");
     assert.equal(seeded[0]?.styleId, "doodle");
     assert.equal(seeded[1]?.styleId, "japanese-anime");
+    assert.equal(seeded[0]?.singleFrame, true);
+    assert.equal(seeded[1]?.singleFrame, true);
 
     const swapSeeded = buildSeedClips({
       ...sampleProject,
@@ -200,6 +202,21 @@ describe("diffScroSeedClips", () => {
     const changed = diffScroSeedClips({ previous: seeded, next });
     assert.equal(changed.length, 1);
     assert.equal(changed[0]?.clipNumber, 1);
+  });
+
+  it("marks talking-head middle clips singleFrame and leaves the last clip drawable", () => {
+    const talking = buildSeedClips({
+      ...sampleProject,
+      skillSlug: "talking-head-director",
+      phaseA: {
+        clips: [
+          { clipNumber: 1, durationSeconds: 5 },
+          { clipNumber: 2, durationSeconds: 6 },
+        ],
+      },
+    });
+    assert.equal(talking[0]?.singleFrame, true);
+    assert.equal(talking[1]?.singleFrame, false);
   });
 
   it("detects motionCamera, startVo, and endVo edits from AI scene chat", () => {

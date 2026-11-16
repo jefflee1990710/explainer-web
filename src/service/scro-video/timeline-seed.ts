@@ -2,7 +2,7 @@ import { mediaSrc } from "@/util/media-src";
 import { clipStateFor } from "@/service/clip-stage";
 import { resolveClipProject } from "@/service/clip/clip-context";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { clipEndIsNextStart } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill, clipEndIsNextStart } from "@/service/director/steady-stills";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 import { resolveClipInspectorKind } from "@/service/opencut/clip-inspector-kind";
 import {
@@ -75,6 +75,7 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       error: view.error,
       hasStartFrame: Boolean(start && start.status === "completed"),
       hasEndFrame: Boolean(end && end.status === "completed"),
+      singleFrame: clipDrawsNoEndStill(project, view.clipNumber),
       dualBeat,
       frameCost: state.frameCost,
       videoCost: state.videoCost,
@@ -156,6 +157,7 @@ export function diffScroSeedClips({
       before.stage !== clip.stage ||
       before.inspectorKind !== clip.inspectorKind ||
       before.styleId !== clip.styleId ||
+      before.singleFrame !== clip.singleFrame ||
       before.videoQualityTier !== clip.videoQualityTier ||
       before.videoCost !== clip.videoCost ||
       before.posterUrl !== clip.posterUrl ||

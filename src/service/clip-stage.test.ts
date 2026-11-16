@@ -98,32 +98,29 @@ test("one frame failed and none in flight → frames_failed", () => {
   assert.equal(clipStateFor(p, 1).stage, "frames_failed");
 });
 
-test("whiteboard requires both start and end stills (start-end dual keyframe) while start-only directors need start alone", () => {
+test("explainer directors need the start still only", () => {
   const p = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).stage, "no_frames");
-  assert.equal(clipStateFor(p, 1).frameCost, 8);
+  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(p, 1).frameCost, 4);
 
-  const ready = project({
+  const missing = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
-    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+    frames: [],
   });
-  assert.equal(clipStateFor(ready, 1).stage, "frames_ready");
-  assert.equal(clipStateFor(ready, 1).frameCost, 8);
-  const tags = clipGenerationTags(ready);
-  assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
+  assert.notEqual(clipStateFor(missing, 1).stage, "frames_ready");
 
   const diorama = project({
     skillSlug: "papercraft-diorama-director",
     styleId: "papercraft-diorama",
-    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+    frames: [frame(1, "start", "completed")],
   });
   assert.equal(clipStateFor(diorama, 1).stage, "frames_ready");
-  assert.equal(clipStateFor(diorama, 1).frameCost, 8);
+  assert.equal(clipStateFor(diorama, 1).frameCost, 4);
 
   const startOnly = project({
     skillSlug: "one-take-director",

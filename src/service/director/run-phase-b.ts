@@ -62,11 +62,12 @@ type PhaseBInput = {
   backgroundImageUrls?: string[];
 };
 
-const DIAGRAM_EXPLAINER_VIDEO_GUARD =
-  "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the first frame to the last frame.";
+// Appended onto the Hailuo clip prompt. Start still only; endScene is written, not an image.
+export const DIAGRAM_EXPLAINER_VIDEO_GUARD =
+  "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the attached first frame toward the written endScene. There is no last-frame image.";
 
-const PAPERCRAFT_DIORAMA_VIDEO_GUARD =
-  "Keep the diorama camera steady, 300gsm cardstock set rigid, character figurine outfit fixed, and unchanged 「」 labels crisp without morphing; smoothly animate each changing cardstock mechanism from the first frame to the last frame.";
+export const PAPERCRAFT_DIORAMA_VIDEO_GUARD =
+  "Keep the diorama camera steady, 300gsm cardstock set rigid, character figurine outfit fixed, and unchanged 「」 labels crisp without morphing; smoothly animate each changing cardstock mechanism from the attached first frame toward the written endScene. There is no last-frame image.";
 
 function stripDiagramAudioParagraphs(text: string) {
   return text
@@ -96,10 +97,10 @@ export function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, la
     return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
-Each clip is dual-keyframe image-to-video: the approved START image is attached as the first frame and the approved END image is attached as the last frame. Describe ONLY the motion that smoothly transitions each element from the first frame to the last frame. Never call those stills a reference image.
+Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. endScene is the written landing the motion reaches; write that landing into the motion, and do not treat it as a frame the model can see. Never call the start still a reference image.
 ${
   papercraftDiorama
-    ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
+    ? "DIORAMA CAMERA: keep the diorama camera steady on the cardstock set, locked to the attached first frame (no jump cut). If a 3D cardstock miniature character figurine is present, their eyes and hands stay on the cardstock props with lips and jaw sealed (zero lip-sync)."
     : "BOARD CAMERA: keep the camera stationary and locked. On every clip, including Clip 1, the character's eyes and hands stay on the teaching element (point, tap, place, slide, flip, or pick up). Never walk toward the lens, never look into the lens, and never turn the face toward the camera. Lips and jaw stay sealed with zero lip-sync."
 }
 ${directorRules.phaseBMotionRules({
@@ -114,7 +115,7 @@ ${directorRules.phaseBDetailRules({
 Visual-only clip: voiceover is muxed externally after video generation. Do NOT write spoken dialogue, narrator voice locks, speaking pace, BGM, or SFX instructions. ${
       input.sceneTextOff
         ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers."
-        : "Keep only the concise 「」 labels already shown in the keyframes; do not invent subtitles or extra text."
+        : "Keep only the concise 「」 labels already shown on the attached first frame; do not invent subtitles or extra text."
     }`;
   }
   return `${skillPromptForPhaseB(input.skill, input.style)}

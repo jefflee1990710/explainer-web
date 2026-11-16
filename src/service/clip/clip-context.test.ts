@@ -221,9 +221,9 @@ describe("per-clip stage and steady-stills resolution", () => {
     // Clip 2 is one-take (start-only), so it draws no end still (1 frame = FRAME_COST).
     assert.equal(clipDrawsNoEndStill(project, 2), true);
     assert.equal(clipFrameCost(project, 2), FRAME_COST);
-    // Clip 3 is papercraft-diorama (start-end dual keyframe explainer), so it draws both start and end stills.
-    assert.equal(clipDrawsNoEndStill(project, 3), false);
-    assert.equal(clipFrameCost(project, 3), FRAMES_COST);
+    // Clip 3 is papercraft-diorama (start-only explainer), so it draws no end still.
+    assert.equal(clipDrawsNoEndStill(project, 3), true);
+    assert.equal(clipFrameCost(project, 3), FRAME_COST);
 
     const state2 = clipStateFor(project, 2);
     assert.equal(state2.frameCost, FRAME_COST);
@@ -281,12 +281,12 @@ describe("per-clip stage and steady-stills resolution", () => {
       const plan3 = frameSubmitPlan(project, 3, "start");
       assert.equal(plan3.anchor, undefined);
 
-      // framesWithClip for Clip 2 (cartoon-explainer, start-end) queues both start and end frames.
+      // framesWithClip for Clip 2 (cartoon-explainer, start-only) queues only the start frame.
       const rebuiltFrames = framesWithClip(project, 2);
       const clip2Frames = rebuiltFrames.filter((f) => f.clipNumber === 2);
       assert.deepEqual(
         clip2Frames.map((f) => f.position),
-        ["start", "end"],
+        ["start"],
       );
     } finally {
       uninstallTestStyles();

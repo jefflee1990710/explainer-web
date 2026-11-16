@@ -8,7 +8,12 @@ import {
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import type { Skill } from "@/model/skill";
-import { phaseBSystemPrompt } from "@/service/director/run-phase-b";
+import {
+  DIAGRAM_EXPLAINER_VIDEO_GUARD,
+  PAPERCRAFT_DIORAMA_VIDEO_GUARD,
+  phaseBSystemPrompt,
+} from "@/service/director/run-phase-b";
+import { papercraftDioramaDirector } from "@/service/director/catalog/papercraft-diorama-director";
 import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
 import { STYLES_BY_ID } from "@/service/style/catalog";
 
@@ -54,10 +59,10 @@ const base = {
 test("middle clip quotes both neighbours and asks for that clip only", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
   assert.match(prompt, /clip 2 ONLY/);
-  assert.match(prompt, /first\/last frames/);
+  assert.match(prompt, /Only the first frame is attached/);
   assert.match(prompt, /follows clip 1, which ends on: coin drops/);
   assert.match(prompt, /hands off to clip 3, which opens with: house appears/);
-  assert.match(prompt, /first and last frames/);
+  assert.match(prompt, /There is no last frame/);
   assert.doesNotMatch(prompt, /Character reference image:/);
   assert.doesNotMatch(prompt, /HOOK RETENTION \(Clip 1/);
 
@@ -72,14 +77,14 @@ test("middle clip quotes both neighbours and asks for that clip only", () => {
 
 test("Phase B motion rules never call start/end stills a reference image", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
-  assert.match(prompt, /first\/last frames/);
-  assert.match(prompt, /Never call those stills a reference image/);
+  assert.match(prompt, /Only the START still \(State A\) is attached as the first frame/);
+  assert.match(prompt, /Never call the start still a reference image/);
 });
 
 test("video prompt forbids a last-frame snap and asks for element-by-element interpolation", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
   assert.match(prompt, /FULL duration/);
-  assert.match(prompt, /element-by-element/);
+  assert.match(prompt, /each changing diagram element or label/);
   assert.match(prompt, /do not .*snap/i);
 });
 
@@ -96,7 +101,7 @@ test("video prompt asks for human timing, not one constant slow glide", () => {
   assert.doesNotMatch(prompt, /interpolate that travel smoothly/);
 
   const explainer = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
-  assert.match(explainer, /State A -> State B/);
+  assert.match(explainer, /State A -> written State B/);
   assert.match(explainer, /FULL duration/);
   assert.match(explainer, /CAMERA LOCK \(2D PLANAR\)/);
 });
@@ -223,7 +228,7 @@ test("diagram explainer Phase B user prompt omits narrator voice locks and other
   assert.doesNotMatch(prompt, /adult female voice/);
   assert.doesNotMatch(prompt, /No background music/);
   assert.match(prompt, /350–800 characters/);
-  assert.match(prompt, /simply describe how each element/i);
+  assert.match(prompt, /describe how each element/i);
 });
 
 test("unknown clip throws", () => {
@@ -267,9 +272,12 @@ test("diagram explainer lettering stays concise in 「」 labels without full VO
   });
   assert.match(paper, /concise 「」 labels/);
   assert.doesNotMatch(paper, /wipes off/);
+  assert.match(lock, /There is no last-frame image/);
+  assert.doesNotMatch(lock, /last frame/);
+  assert.match(paper, /There is no last-frame image/);
 });
 
-test("explainer dual-keyframe motion attaches first/last frames and keeps lettering crisp", () => {
+test("explainer motion attaches the start still and lands on the written endScene", () => {
   const fixed = phaseBLetteringLock({
     skillSlug: "workflow-promo-director",
     durationSeconds: 5,
@@ -278,10 +286,12 @@ test("explainer dual-keyframe motion attaches first/last frames and keeps letter
   assert.match(fixed, /start frame carries the marker line/);
   assert.doesNotMatch(fixed, /wipes off/);
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
-  assert.match(prompt, /first\/last frames/);
-  assert.match(prompt, /State A -> State B/);
+  assert.match(prompt, /There is no end image and no last frame/);
+  assert.match(prompt, /written endScene/);
   assert.match(prompt, /CAMERA LOCK \(2D PLANAR\)/);
-  assert.doesNotMatch(prompt, /There is no end image and no last frame/);
+  assert.match(prompt, /Only the first frame is attached/);
+  assert.doesNotMatch(prompt, /first\/last frames/);
+  assert.doesNotMatch(prompt, /last_frame \(End\) are attached/);
 
   const realisticLiveAction = clipPhaseBUserPrompt({
     ...base,
@@ -353,16 +363,42 @@ test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-
     "English",
     "American",
   );
-  assert.match(system, /dual-keyframe image-to-video/);
+  assert.match(system, /There is no end image/);
+  assert.match(system, /written endScene/);
   assert.match(system, /locked stationary square-on camera/i);
   assert.match(system, /natural continuous ease-in-out motion/i);
   assert.match(system, /350–800 characters/);
+  assert.doesNotMatch(system, /END image is attached as the last frame/);
   assert.match(system, /Visual-only clip: voiceover is muxed externally/);
   assert.doesNotMatch(system, /snapping fast and sharp/);
   assert.doesNotMatch(system, /sharp and fast in the first second/);
   assert.doesNotMatch(system, /jitter|stop-motion paste feel|whip\/snap|crisp sudden stop/i);
   assert.doesNotMatch(system, /fluid 2x–3x acceleration|0\.2s smooth anticipation/);
   assert.doesNotMatch(system, /Clean spoken voice only/);
+  assert.doesNotMatch(system, /both frames/i);
+  assert.doesNotMatch(system, /in the keyframes/i);
+  assert.match(system, /on the attached first frame/);
+  assert.match(system, /from the attached first frame toward the written endScene/);
+  assert.match(system, /There is no last-frame image/);
+  assert.match(system, /no zoom, no pan, no tilt, no jump cut/);
+  assert.doesNotMatch(system, /from the start frame to the end frame/);
+});
+
+test("explainer assembled user and system prompts never claim dual frames", () => {
+  const user = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.doesNotMatch(user, /both frames/i);
+  assert.doesNotMatch(user, /first and last frames/i);
+  assert.match(user, /attached first frame/);
+  assert.match(phaseBCharacterLine({ skillSlug: "cartoon-explainer-video-director" }), /attached first frame/);
+  assert.doesNotMatch(phaseBCharacterLine({ skillSlug: "cartoon-explainer-video-director" }), /first and last frames/);
+
+  const story = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "story-short-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(story, /first and last frames/);
 });
 
 test("papercraft-diorama Phase B user prompt uses concise element-by-element motion with diorama camera (not 2D planar)", () => {
@@ -373,10 +409,52 @@ test("papercraft-diorama Phase B user prompt uses concise element-by-element mot
     clipNumber: 2,
   });
   assert.match(prompt, /Target Clip Phase A JSON/);
-  assert.match(prompt, /State A -> State B/);
+  assert.match(prompt, /There is no end image and no last frame/);
+  assert.match(prompt, /written endScene/);
+  assert.match(prompt, /Only the first frame is attached/);
   assert.match(prompt, /DIORAMA CAMERA/);
+  assert.match(prompt, /locked to the attached first frame/);
+  assert.doesNotMatch(prompt, /both frames/i);
+  assert.doesNotMatch(prompt, /first and last frames/i);
   assert.doesNotMatch(prompt, /CAMERA LOCK \(2D PLANAR\)/);
   assert.doesNotMatch(prompt, /Voiceover language/);
   assert.doesNotMatch(prompt, /No background music/);
   assert.match(prompt, /350–800 characters/);
+});
+
+test("diagram video guards move toward the written endScene and do not name a last frame", () => {
+  for (const guard of [DIAGRAM_EXPLAINER_VIDEO_GUARD, PAPERCRAFT_DIORAMA_VIDEO_GUARD]) {
+    assert.equal(guard.includes("last frame"), false);
+    assert.match(guard, /written endScene/);
+    assert.match(guard, /no last-frame image/);
+  }
+});
+
+test("a named diagram speaker stays on the attached first frame", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal(),
+    clipNumber: 2,
+    skillSlug: "cartoon-explainer-video-director",
+    speakers: [{ name: "Ada" }],
+  });
+  assert.match(prompt, /Keep Ada/);
+  assert.match(prompt, /attached first frame/);
+  assert.doesNotMatch(prompt, /first and last frames/);
+});
+
+test("papercraft Phase B keeps its own motion and does not use the whiteboard frame override", () => {
+  const system = phaseBSystemPrompt(
+    {
+      phaseA: proposal(),
+      language: "en",
+      skill: papercraftDioramaDirector as unknown as Skill,
+      style: STYLES_BY_ID["papercraft-diorama"]!,
+    },
+    "English",
+    "American",
+  );
+  assert.match(system, /tactile stop-motion papercraft mechanics/);
+  assert.doesNotMatch(system, /100% locked stationary square-on camera/);
+  assert.doesNotMatch(system, /from the start frame to the end frame/);
 });

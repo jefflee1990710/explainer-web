@@ -79,7 +79,11 @@ test("only cartoon-explainer and paper-cutout-explainer allow invented props and
       assert.match(sceneDetail, /Diagram scaffold/);
       assert.match(sceneDetail, /Title plate/);
       assert.match(sceneDetail, /Traditional Chinese 書面語/);
-      assert.match(phaseBMotion, /Whiteboard cardboard physics/);
+      if (director.slug === "cartoon-explainer-video-director") {
+        assert.match(phaseBMotion, /Whiteboard cardboard physics/);
+      } else {
+        assert.match(phaseBMotion, /Cutout physics/);
+      }
       assert.match(phaseBMotion, /SCAFFOLD LOCK/);
       assert.match(phaseBMotion, /TITLE PLATE/);
     } else {
@@ -194,7 +198,31 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(mustardPapercraft, /warm mustard yellow 300gsm/);
   assert.match(verticalPapercraft, /PORTRAIT 9:16 COMPOSITION/);
   assert.match(verticalPapercraft, /stack\/arrange items VERTICALLY \(top-to-bottom/i);
-  assert.match(papercraftRules.phaseBDetailRules({}), /State A -> State B|Start frame to the End frame/i);
-  assert.doesNotMatch(papercraftRules.phaseBDetailRules({}), /start-only/i);
+  assert.match(papercraftRules.phaseBDetailRules({}), /written endScene/i);
+  assert.match(papercraftRules.phaseBMotionRules({}), /There is no end image and no last frame/);
+  assert.match(papercraftRules.phaseBMotionRules({}), /diorama camera/i);
+  assert.doesNotMatch(papercraftRules.phaseBMotionRules({}), /first\/last frames/);
+});
+
+test("explainer motion rules attach the start still and land on the written endScene", () => {
+  const whiteboard = getDirectorRuleModule("cartoon-explainer-video-director");
+  const cutout = getDirectorRuleModule("paper-cutout-explainer-video-director");
+  const papercraft = getDirectorRuleModule("papercraft-diorama-director");
+
+  assert.match(whiteboard.phaseBMotionRules({}), /There is no end image and no last frame/);
+  assert.match(whiteboard.phaseBMotionRules({}), /CAMERA LOCK \(2D PLANAR\)/);
+  assert.match(whiteboard.phaseBMotionRules({}), /written endScene/);
+  assert.doesNotMatch(whiteboard.phaseBMotionRules({}), /first\/last frames/);
+
+  assert.match(cutout.phaseBMotionRules({}), /There is no end image and no last frame/);
+  assert.match(cutout.phaseBMotionRules({}), /locked stationary square-on camera/i);
+  assert.match(cutout.phaseBMotionRules({}), /written endScene/);
+  assert.doesNotMatch(cutout.phaseBMotionRules({}), /first\/last frames/);
+
+  assert.match(
+    whiteboard.phaseASceneDetailBlock({ realistic: false, hasCharacter: true }),
+    /written landing/i,
+  );
+  assert.match(papercraft.phaseAKeyframeDeltaBlock({}), /written landing/i);
 });
 

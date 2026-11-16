@@ -24,7 +24,7 @@ export function ScroVideoAiEntry({
 	// Talking-head: the video ends on the next clip's start, so the end tile edits that still.
 	const endClipNumber = clip.endFromClipNumber ?? clip.clipNumber;
 	const endPosition = clip.endFromClipNumber ? "start" : "end";
-	const singleFrameOnly = clip.inspectorKind === "talking-head";
+	const singleFrameOnly = clip.inspectorKind === "talking-head" || clip.singleFrame === true;
 
 	return (
 		<div className="space-y-2">
@@ -61,7 +61,9 @@ export function ScroVideoAiEntry({
 						)}
 					</div>
 					<span className="px-2 py-1 text-[0.65rem] font-medium">
-						{singleFrameOnly ? oc.inspector.redrawAvatarFrame : oc.inspector.redrawStart}
+						{clip.inspectorKind === "talking-head"
+							? oc.inspector.redrawAvatarFrame
+							: oc.inspector.redrawStart}
 					</span>
 				</button>
 				{!singleFrameOnly ? (
