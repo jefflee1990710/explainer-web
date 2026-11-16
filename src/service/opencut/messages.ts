@@ -36,6 +36,8 @@ export type ScroVideoSeedClip = {
   hasStartFrame?: boolean;
   /** End still exists when dual-beat / end required. */
   hasEndFrame?: boolean;
+  /** This clip draws no end still of its own. The inspector hides Redraw end. */
+  singleFrame?: boolean;
   dualBeat?: boolean;
   frameCost?: number;
   videoCost?: number;

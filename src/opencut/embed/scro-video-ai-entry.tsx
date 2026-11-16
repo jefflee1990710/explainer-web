@@ -24,7 +24,7 @@ export function ScroVideoAiEntry({
 	// Talking-head: the video ends on the next clip's start, so the end tile edits that still.
 	const endClipNumber = clip.endFromClipNumber ?? clip.clipNumber;
 	const endPosition = clip.endFromClipNumber ? "start" : "end";
-	const singleFrameOnly = clip.inspectorKind === "talking-head";
+	const singleFrameOnly = clip.inspectorKind === "talking-head" || clip.singleFrame === true;
 
 	return (
 		<div className="space-y-2">
