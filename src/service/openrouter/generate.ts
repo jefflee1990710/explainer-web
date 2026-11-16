@@ -11,6 +11,7 @@ export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
+// OpenRouter slug. Explainer frames call Google AI Studio `gemini-nano-banana-2.1` instead.
 export const OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL = "google/gemini-nano-banana-2.1";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";

@@ -20,6 +20,10 @@ import {
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
+  googleStudioImageModel,
+  submitGoogleStudioImage,
+} from "@/service/google/studio-image";
+import {
   IDEOGRAM_PROMPT_MAX,
   NANO_BANANA_2_1_IMAGE_MODEL,
   SEEDREAM_5_PRO_IMAGE_MODEL,
@@ -113,12 +117,13 @@ export async function submitImage(input: {
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
-  // Explicit Seedream 5.0 Pro or Nano Banana 2.1 is kept. Other callers follow the scene route.
+  // Explicit Seedream stays on OpenRouter. Explicit Nano Banana, including the
+  // old OpenRouter slug, is sent to Google AI Studio. Other callers follow the route.
+  const studioModel = googleStudioImageModel(input.model);
   const model =
-    input.model === SEEDREAM_5_PRO_IMAGE_MODEL ||
-    input.model === NANO_BANANA_2_1_IMAGE_MODEL
+    input.model === SEEDREAM_5_PRO_IMAGE_MODEL
       ? input.model
-      : imageModelForSubmit(route, refs.length > 0);
+      : studioModel || imageModelForSubmit(route, refs.length > 0);
   // Ideogram takes one image. The first URL is the composition lock, or the
   // character blueprint when this still has no lock yet. A contact sheet would
   // be drawn as a row of pictures.
@@ -126,7 +131,18 @@ export async function submitImage(input: {
     ? refs.slice(0, 1)
     : await referenceUrlsForModel(model, refs);
 
-  if (route.backend === "openrouter") {
+  const studio = googleStudioImageModel(model);
+  if (model !== SEEDREAM_5_PRO_IMAGE_MODEL && (studio || route.backend === "google")) {
+    return submitGoogleStudioImage({
+      model: studio || NANO_BANANA_2_1_IMAGE_MODEL,
+      prompt: input.prompt,
+      aspectRatio: input.aspectRatio,
+      resolution: input.resolution || "1k",
+      referenceImageUrls: imageUrls,
+    });
+  }
+
+  if (route.backend === "openrouter" || model === SEEDREAM_5_PRO_IMAGE_MODEL) {
     return submitOpenRouterImage({
       model,
       prompt: input.prompt,

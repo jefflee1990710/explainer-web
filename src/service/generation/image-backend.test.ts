@@ -44,37 +44,52 @@ test("realistic and illustrated stills both use Seedream 5.0 Pro", () => {
   assert.equal(imageModelForRealism(false), "bytedance-seed/seedream-5-0-pro");
 });
 
-test("resolveImageRoute requires OPENROUTER_API_KEY for OpenRouter routes", () => {
-  const prev = process.env.OPENROUTER_API_KEY;
+test("resolveImageRoute requires the key for the chosen backend", () => {
+  const prevOpenRouter = process.env.OPENROUTER_API_KEY;
+  const prevGoogle = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   try {
     delete process.env.OPENROUTER_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     assert.throws(() => resolveImageRoute("en"), /OPENROUTER_API_KEY/);
+    assert.throws(
+      () => resolveImageRoute("zh-Hant", "cartoon-explainer-video-director"),
+      /GOOGLE_GENERATIVE_AI_API_KEY/,
+    );
 
     process.env.OPENROUTER_API_KEY = "sk-or-test";
     assert.equal(resolveImageRoute("en").model, "bytedance-seed/seedream-5-0-pro");
+
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = "studio-test";
     assert.equal(
       resolveImageRoute("zh-Hant", "cartoon-explainer-video-director").model,
-      "google/gemini-nano-banana-2.1",
+      "gemini-nano-banana-2.1",
+    );
+    assert.equal(
+      resolveImageRoute("zh-Hant", "cartoon-explainer-video-director").backend,
+      "google",
     );
   } finally {
-    if (prev === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = prev;
+    if (prevOpenRouter === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevOpenRouter;
+    if (prevGoogle === undefined) delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    else process.env.GOOGLE_GENERATIVE_AI_API_KEY = prevGoogle;
   }
 });
 
 test("explainer-type directors route frame images to Nano Banana 2.1 while others stay on Seedream 5.0 Pro", () => {
-  assert.equal(NANO_BANANA_2_1_IMAGE_MODEL, "google/gemini-nano-banana-2.1");
-  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.backend, "openrouter");
-  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.model, "google/gemini-nano-banana-2.1");
-  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.editModel, "google/gemini-nano-banana-2.1");
+  assert.equal(NANO_BANANA_2_1_IMAGE_MODEL, "gemini-nano-banana-2.1");
+  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.backend, "google");
+  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.model, "gemini-nano-banana-2.1");
+  assert.equal(EXPLAINER_FRAME_IMAGE_ROUTE.editModel, "gemini-nano-banana-2.1");
 
   for (const slug of [
     "cartoon-explainer-video-director",
     "paper-cutout-explainer-video-director",
     "papercraft-diorama-director",
   ]) {
-    assert.equal(imageRouteForSceneText("en", slug).model, "google/gemini-nano-banana-2.1");
-    assert.equal(imageRouteForSceneText("zh-Hant", slug).editModel, "google/gemini-nano-banana-2.1");
+    assert.equal(imageRouteForSceneText("en", slug).model, "gemini-nano-banana-2.1");
+    assert.equal(imageRouteForSceneText("zh-Hant", slug).backend, "google");
+    assert.equal(imageRouteForSceneText("zh-Hant", slug).editModel, "gemini-nano-banana-2.1");
   }
 
   for (const slug of ["talking-head-director", "story-short-director", "one-take-director"]) {
@@ -83,15 +98,31 @@ test("explainer-type directors route frame images to Nano Banana 2.1 while other
   }
 });
 
-test("submitImage preserves Nano Banana 2.1 for explainer frames and falls back to explainer route when skillSlug is an explainer", async () => {
-  const prevKey = process.env.OPENROUTER_API_KEY;
+test("submitImage sends explainer frames to Google AI Studio and other frames to OpenRouter", async () => {
+  const prevOpenRouter = process.env.OPENROUTER_API_KEY;
+  const prevGoogle = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const originalFetch = globalThis.fetch;
-  const postedModels: string[] = [];
+  const posted: Array<{ provider: string; model: string }> = [];
 
   process.env.OPENROUTER_API_KEY = "sk-or-test";
-  globalThis.fetch = (async (_input, init) => {
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY = "studio-test";
+  globalThis.fetch = (async (input, init) => {
+    const url = String(input);
+    if (url.includes("generativelanguage.googleapis.com")) {
+      const model = url.match(/models\/([^:]+):generateContent/)?.[1] || "";
+      posted.push({ provider: "google", model });
+      return new Response(
+        JSON.stringify({
+          responseId: "studio-1",
+          candidates: [
+            { content: { parts: [{ inlineData: { mimeType: "image/png", data: "aGVsbG8=" } }] } },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
     const payload = JSON.parse(String(init?.body)) as { model: string };
-    postedModels.push(payload.model);
+    posted.push({ provider: "openrouter", model: payload.model });
     return new Response(
       JSON.stringify({
         id: "img-job-1",
@@ -117,7 +148,7 @@ test("submitImage preserves Nano Banana 2.1 for explainer frames and falls back 
       skillSlug: "papercraft-diorama-director",
     });
     await submitImage({
-      model: NANO_BANANA_2_1_IMAGE_MODEL,
+      model: "google/gemini-nano-banana-2.1",
       prompt: "explicit nano banana call",
       aspectRatio: "16:9",
       sceneTextLanguage: "en",
@@ -130,15 +161,17 @@ test("submitImage preserves Nano Banana 2.1 for explainer frames and falls back 
       skillSlug: "talking-head-director",
     });
 
-    assert.deepEqual(postedModels, [
-      "google/gemini-nano-banana-2.1",
-      "google/gemini-nano-banana-2.1",
-      "google/gemini-nano-banana-2.1",
-      "bytedance-seed/seedream-5-0-pro",
+    assert.deepEqual(posted, [
+      { provider: "google", model: "gemini-nano-banana-2.1" },
+      { provider: "google", model: "gemini-nano-banana-2.1" },
+      { provider: "google", model: "gemini-nano-banana-2.1" },
+      { provider: "openrouter", model: "bytedance-seed/seedream-5-0-pro" },
     ]);
   } finally {
     globalThis.fetch = originalFetch;
-    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = prevKey;
+    if (prevOpenRouter === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevOpenRouter;
+    if (prevGoogle === undefined) delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    else process.env.GOOGLE_GENERATIVE_AI_API_KEY = prevGoogle;
   }
 });

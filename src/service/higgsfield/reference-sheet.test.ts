@@ -10,6 +10,7 @@ import {
 test("language models accept more than one blueprint reference", () => {
   assert.equal(referenceLimitForModel("bytedance-seed/seedream-5-0-pro"), 14);
   assert.equal(referenceLimitForModel("google/gemini-nano-banana-2.1"), 14);
+  assert.equal(referenceLimitForModel("gemini-nano-banana-2.1"), 14);
   assert.equal(referenceLimitForModel("openai/gpt-5-image"), 16);
   assert.equal(referenceLimitForModel("marketing-studio/image/flare"), 16);
   assert.equal(referenceLimitForModel("marketing-studio/image/sunburst"), 16);
