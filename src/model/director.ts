@@ -154,8 +154,10 @@ export interface DirectorPresetBackground {
   forbidSurfaces: string;
   /** Prompt used to generate the preview card image. */
   previewPrompt: string;
-  /** Public preview URL under `public/director-backgrounds/...`. */
+  /** Public preview URL under `public/director-backgrounds/...`. Empty when `swatch` is the preview. */
   previewUrl: string;
+  /** Solid cardstock colour. When set, the creation picker shows a swatch instead of a photo. */
+  swatch?: string;
 }
 
 export interface IDirectorBehavior {

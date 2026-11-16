@@ -60,6 +60,8 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.requiredCastCount, 0);
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].behavior.lockedStyleId, "papercraft-diorama");
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].defaultBackgroundId, "cobalt");
+  assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].presetBackgrounds?.length, 6);
   assert.equal(DIRECTORS_BY_SLUG["papercraft-diorama-director"].inputSchema.optionalCharacterImage, true);
   assert.equal(DIRECTORS_BY_SLUG["story-short-director"].behavior.requiredCastCount, 2);
   assert.equal(DIRECTORS_BY_SLUG["one-take-director"].behavior.keyframeMode, "start-only");

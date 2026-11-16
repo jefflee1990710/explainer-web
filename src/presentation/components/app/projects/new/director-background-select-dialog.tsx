@@ -4,6 +4,7 @@ import { useEffect, useId } from "react";
 import type { DirectorPresetBackground } from "@/model/director";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
+import { DirectorBackgroundSwatch } from "@/presentation/components/app/projects/new/director-background-swatch";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MAX_BACKGROUND_IMAGES } from "@/service/project/background-images";
 
@@ -33,6 +34,7 @@ export function localizedDirectorBackground(
 
 // Popup modal dialog for choosing a preset background or uploading custom reference images.
 export function DirectorBackgroundSelectDialog({
+  colorMode = false,
   presets,
   selectedId,
   customUrls,
@@ -42,6 +44,7 @@ export function DirectorBackgroundSelectDialog({
   onError,
   onClose,
 }: {
+  colorMode?: boolean;
   presets: readonly DirectorPresetBackground[];
   selectedId: string;
   customUrls: string[];
@@ -81,12 +84,22 @@ export function DirectorBackgroundSelectDialog({
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-accent-ink/10 px-6 py-4">
           <div>
             <h2 id={titleId} className="font-display text-xl font-bold">
-              {isEn ? "Choose Collage Background" : "選擇剪紙拼貼背景底板"}
+              {colorMode
+                ? isEn
+                  ? "Choose papercraft background"
+                  : "選擇摺紙背景色"
+                : isEn
+                  ? "Choose Collage Background"
+                  : "選擇剪紙拼貼背景底板"}
             </h2>
             <p className="mt-0.5 text-xs text-muted">
-              {isEn
-                ? "Pick a preset surface texture or upload your own reference background image."
-                : "選擇預設底板材質（預設為木紋底板），或上傳自訂背景參考圖。"}
+              {colorMode
+                ? isEn
+                  ? "Pick one cardstock colour. Every frame uses that full-bleed sheet."
+                  : "選一種卡紙底色。所有畫格都會用這張滿版底紙。"
+                : isEn
+                  ? "Pick a preset surface texture or upload your own reference background image."
+                  : "選擇預設底板材質（預設為木紋底板），或上傳自訂背景參考圖。"}
             </p>
           </div>
           <button
@@ -104,7 +117,7 @@ export function DirectorBackgroundSelectDialog({
           {/* Preset Grid */}
           <section>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-muted">
-              {isEn ? "Preset Surfaces" : "預設底板材質"}
+              {colorMode ? (isEn ? "Cardstock colours" : "卡紙底色") : isEn ? "Preset Surfaces" : "預設底板材質"}
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {presets.map((preset) => {
@@ -126,12 +139,16 @@ export function DirectorBackgroundSelectDialog({
                     }`}
                   >
                     <div className="relative aspect-video w-full overflow-hidden border-b border-accent-ink/10 bg-[var(--studio-fill)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={preset.previewUrl}
-                        alt={copy.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
+                      {preset.swatch ? (
+                        <DirectorBackgroundSwatch color={preset.swatch} className="block h-full w-full" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={preset.previewUrl}
+                          alt={copy.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      )}
                       {active ? (
                         <span className="absolute top-2 right-2 rounded-full bg-accent-ink/90 px-2.5 py-0.5 text-[10px] font-bold text-paper shadow-sm">
                           ✓ {isEn ? "Selected" : "已選擇"}

@@ -234,6 +234,7 @@ export function DirectorDockCastGroup({
 
 export function DirectorDockStepperCell({
   thumbUrl,
+  thumbColor,
   icon,
   label,
   value,
@@ -244,6 +245,7 @@ export function DirectorDockStepperCell({
   tourId,
 }: {
   thumbUrl?: string;
+  thumbColor?: string;
   icon?: ReactNode;
   label: string;
   value: string;
@@ -265,7 +267,13 @@ export function DirectorDockStepperCell({
         title={`${label}: ${value}`}
         className="director-dock-cell flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {thumbUrl ? (
+        {thumbColor ? (
+          <span
+            aria-hidden
+            className="h-9 w-9 shrink-0 rounded-xl border border-zinc-200"
+            style={{ backgroundColor: thumbColor }}
+          />
+        ) : thumbUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbUrl}

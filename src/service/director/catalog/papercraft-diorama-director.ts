@@ -1,4 +1,8 @@
 import type { IDirector } from "@/model/director";
+import {
+  DEFAULT_PAPERCRAFT_BACKGROUND_ID,
+  PAPERCRAFT_PRESET_BACKGROUNDS,
+} from "@/model/papercraft-backgrounds";
 
 const raw = {
   slug: "papercraft-diorama-director",
@@ -40,12 +44,13 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 - **Optional Character Lock (0 or 1 character)**:
   - **When a character reference / blueprint IS attached**: render that character inside the diorama as a **3D folded/layered 300gsm matte cardstock miniature figurine** matching the blueprint's exact face, hair, and outfit (never photorealistic human skin, never a flat 2D white-bordered cutout). The character stays silent with lips softly closed and zero lip-sync while physically pointing at, holding, or operating the cardstock props and mechanisms. \`characterLock\` MUST name the cast and state their appearance follows the attached blueprint as a 3D matte cardstock miniature figurine.
   - **When NO character is attached**: keep **ZERO human characters** — never draw people, faces, hands, or cartoon hosts in any clip, and \`characterLock\` MUST state: \`"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."\`.
-- **Curated editorial cardstock palette**: Deep cobalt & navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper.
+- **Curated editorial cardstock palette**: Deep cobalt & navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper. These colours are for props and accents.
+- **Selected background colour**: the full-bleed sheet behind every set is the cardstock colour the user picked at creation. Every clip shares that one sheet. Do not invent a second backdrop colour.
 - **Camera & Diorama Set Archetypes (vary across clips — never repeat the same framing twice in a row)**:
   1. \`diorama-interior\` (eye-level or slight 3/4 miniature interior): e.g., a ribbed navy cardstock counter with a folded terracotta-red payment terminal printing a jagged-edge cream paper receipt, a yellow folded cardstock chair, and a deep-teal arched backdrop wall.
-  2. \`flat-lay-top-down\` (90° overhead flat-lay on full-bleed mustard-yellow or teal cardstock filling 100% of the frame edge-to-edge): e.g., a folded navy cardstock envelope holding embossed gold paper coins beside (16:9) or stacked vertically above/below (9:16) a folded cream cardstock equity certificate with a blue-and-yellow cardstock pie chart, corner mounts, and a scalloped red paper wax seal with ribbon tails.
+  2. \`flat-lay-top-down\` (90° overhead flat-lay on the user-selected full-bleed cardstock background colour filling 100% of the frame edge-to-edge): e.g., a folded navy cardstock envelope holding embossed gold paper coins beside (16:9) or stacked vertically above/below (9:16) a folded cream cardstock equity certificate with a blue-and-yellow cardstock pie chart, corner mounts, and a scalloped red paper wax seal with ribbon tails.
   3. \`isometric-street\` (3/4 isometric miniature street / multi-unit diorama): e.g., a row of three side-by-side navy-blue cardstock shopfronts with terracotta scalloped awnings and miniature barber poles linked together by one continuous looping cream paper receipt ribbon.
-  4. \`studio-scale-closeup\` (straight-on studio hero object on a full-bleed deep royal-blue cardstock stage): e.g., a 3D folded gold cardstock balance scale weighing a tall stack of red-and-cream receipt tickets on the left pan against a stack of gold paper coins on the right pan.
+  4. \`studio-scale-closeup\` (straight-on studio hero object on the user-selected full-bleed cardstock background colour): e.g., a 3D folded gold cardstock balance scale weighing a tall stack of red-and-cream receipt tickets on the left pan against a stack of gold paper coins on the right pan.
 - **Full-Bleed & Portrait (9:16) Composition Rule**:
   - Every clip's cardstock backdrop or diorama environment MUST fill **100% of the frame edge-to-edge** from top to bottom and left to right — NEVER place a smaller horizontal mat/card floating inside dark navy or solid-color top-and-bottom padding bands.
   - When \`aspectRatio\` is \`9:16\` (vertical portrait), compose \`flat-lay-top-down\` and multi-item comparisons **vertically (top-to-bottom / upper vs lower)** so the props naturally fill the portrait frame, NEVER side-by-side in a horizontal row (\`橫排\`, left vs right) squeezed across the middle!
@@ -130,6 +135,8 @@ Write one concise, visual-only motion prompt per clip (350–800 characters, max
     lockedStyleId: "papercraft-diorama",
     hiddenInPicker: false,
   },
+  presetBackgrounds: PAPERCRAFT_PRESET_BACKGROUNDS,
+  defaultBackgroundId: DEFAULT_PAPERCRAFT_BACKGROUND_ID,
 } as const;
 
 // Hardcoded director definition for "papercraft-diorama-director".

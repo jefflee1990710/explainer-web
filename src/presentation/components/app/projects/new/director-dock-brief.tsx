@@ -547,7 +547,14 @@ export function DirectorDockBrief({
 
           {/* Cell 4: Scene & Background */}
           <DirectorDockStepperCell
-            thumbUrl={activeBgThumbUrl || (!talkingHead ? firstRefThumbUrl : "")}
+            thumbUrl={
+              activeDirectorBg?.swatch && backgroundImageUrls.length === 0
+                ? undefined
+                : activeBgThumbUrl || (!talkingHead ? firstRefThumbUrl : "")
+            }
+            thumbColor={
+              backgroundImageUrls.length === 0 ? activeDirectorBg?.swatch : undefined
+            }
             icon={
               <svg
                 aria-hidden="true"
@@ -565,11 +572,15 @@ export function DirectorDockBrief({
               </svg>
             }
             label={
-              locale === "zh-Hant"
-                ? "場景背景"
-                : locale === "zh-Hans"
-                  ? "场景背景"
-                  : "Scene"
+              activeDirectorBg?.swatch && backgroundImageUrls.length === 0
+                ? locale === "en"
+                  ? "Background"
+                  : "背景色"
+                : locale === "zh-Hant"
+                  ? "場景背景"
+                  : locale === "zh-Hans"
+                    ? "场景背景"
+                    : "Scene"
             }
             value={sceneValueLabel}
             disabled={briefBusy}

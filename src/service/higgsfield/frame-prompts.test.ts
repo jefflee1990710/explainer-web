@@ -425,6 +425,10 @@ test("papercraft diorama 9:16 stills enforce full-bleed cardstock without paddin
 
   const start = buildFramePrompt(diorama, 1, "start");
   assert.match(start, /Full-bleed 3D cardstock scene/);
+  assert.doesNotMatch(start, /BACKGROUND COLOR LOCK/);
+  diorama.directorBackgroundId = "terracotta";
+  const colored = buildFramePrompt(diorama, 1, "start");
+  assert.match(colored, /terracotta coral 300gsm matte cardstock sheet/);
   assert.match(start, /NO dark\/navy top-and-bottom padding bands/);
   assert.match(start, /9:16 IG Reel safe area/);
 

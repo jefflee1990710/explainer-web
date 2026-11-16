@@ -186,6 +186,12 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
     hasCharacter: false,
     aspectRatio: "9:16",
   });
+  const mustardPapercraft = papercraftRules.phaseADirectorBlock({
+    hasCharacter: false,
+    backgroundId: "mustard",
+  });
+  assert.match(mustardPapercraft, /BACKGROUND COLOR LOCK/);
+  assert.match(mustardPapercraft, /warm mustard yellow 300gsm/);
   assert.match(verticalPapercraft, /PORTRAIT 9:16 COMPOSITION/);
   assert.match(verticalPapercraft, /stack\/arrange items VERTICALLY \(top-to-bottom/i);
   assert.match(papercraftRules.phaseBDetailRules({}), /State A -> State B|Start frame to the End frame/i);

@@ -228,6 +228,12 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   assert.equal(director.behavior.keyframeMode, "start-end");
   assert.equal(isDiagramExplainerSkill(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), true);
   assert.equal(explainerCanvasKind(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG), "papercraft-diorama");
+  assert.equal(director.defaultBackgroundId, "cobalt");
+  assert.deepEqual(
+    director.presetBackgrounds?.map((bg) => bg.id),
+    ["cobalt", "cream", "mustard", "terracotta", "teal", "kraft"],
+  );
+  assert.ok(director.presetBackgrounds?.every((bg) => Boolean(bg.swatch)));
 
   const coerced = coerceDiagramExplainerOnScreenText({
     skillSlug: PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG,
@@ -251,6 +257,14 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   assert.match(verticalBlock, /PORTRAIT 9:16 COMPOSITION/);
   assert.match(verticalBlock, /top-to-bottom/i);
   assert.doesNotMatch(verticalBlock, /Whole-canvas 2D whiteboard lock/);
+  assert.doesNotMatch(verticalBlock, /BACKGROUND COLOR LOCK/);
+
+  const mustard = cartoonExplainerDirectorBlock({
+    hasCharacter: false,
+    canvas: "papercraft-diorama",
+    backgroundId: "mustard",
+  });
+  assert.match(mustard, /warm mustard yellow 300gsm matte cardstock sheet/);
 
   const frame = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
     hasCharacter: false,
@@ -259,5 +273,20 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   });
   assert.match(frame, /3D Papercraft Diorama lock/);
   assert.match(frame, /NO dark\/navy top-and-bottom padding bands/);
+  assert.doesNotMatch(frame, /BACKGROUND COLOR LOCK/);
+
+  const creamFrame = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: false,
+    clipNumber: 2,
+    position: "end",
+    backgroundId: "cream",
+  });
+  assert.match(creamFrame, /warm cream ivory 300gsm matte cardstock sheet/);
+
+  const tealVideo = cartoonNarratorVideoLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: false,
+    backgroundId: "teal",
+  });
+  assert.match(tealVideo, /deep teal 300gsm matte cardstock sheet/);
 });
 

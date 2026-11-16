@@ -35,6 +35,7 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
       papercraftDioramaDirectorBlock({
         hasCharacter: options.hasCharacter,
         aspectRatio: options.aspectRatio,
+        backgroundId: options.backgroundId,
       }),
     ].join(" ");
   },
