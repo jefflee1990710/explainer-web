@@ -8,8 +8,9 @@ function styleForExplainerSkill<
 >(style: T): T {
   return {
     ...style,
+    // Shared by Phase A style text and Phase B for whiteboard and paper-cutout. Papercraft keeps its own motion.
     motion:
-      "100% locked stationary square-on camera (no zoom, no pan, no tilt, no jump cut). Animate every element transition and pointing gesture smoothly and continuously from the start frame to the end frame with natural ease-in-out motion.",
+      "100% locked stationary square-on camera (no zoom, no pan, no tilt, no jump cut). Animate every element transition and pointing gesture from the attached first frame toward the written endScene. There is no last-frame image. Use natural ease-in-out motion.",
   };
 }
 

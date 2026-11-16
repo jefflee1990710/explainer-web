@@ -8,7 +8,12 @@ import {
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import type { Skill } from "@/model/skill";
-import { phaseBSystemPrompt } from "@/service/director/run-phase-b";
+import {
+  DIAGRAM_EXPLAINER_VIDEO_GUARD,
+  PAPERCRAFT_DIORAMA_VIDEO_GUARD,
+  phaseBSystemPrompt,
+} from "@/service/director/run-phase-b";
+import { papercraftDioramaDirector } from "@/service/director/catalog/papercraft-diorama-director";
 import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
 import { STYLES_BY_ID } from "@/service/style/catalog";
 
@@ -373,6 +378,10 @@ test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-
   assert.doesNotMatch(system, /both frames/i);
   assert.doesNotMatch(system, /in the keyframes/i);
   assert.match(system, /on the attached first frame/);
+  assert.match(system, /from the attached first frame toward the written endScene/);
+  assert.match(system, /There is no last-frame image/);
+  assert.match(system, /no zoom, no pan, no tilt, no jump cut/);
+  assert.doesNotMatch(system, /from the start frame to the end frame/);
 });
 
 test("explainer assembled user and system prompts never claim dual frames", () => {
@@ -411,4 +420,41 @@ test("papercraft-diorama Phase B user prompt uses concise element-by-element mot
   assert.doesNotMatch(prompt, /Voiceover language/);
   assert.doesNotMatch(prompt, /No background music/);
   assert.match(prompt, /350–800 characters/);
+});
+
+test("diagram video guards move toward the written endScene and do not name a last frame", () => {
+  for (const guard of [DIAGRAM_EXPLAINER_VIDEO_GUARD, PAPERCRAFT_DIORAMA_VIDEO_GUARD]) {
+    assert.equal(guard.includes("last frame"), false);
+    assert.match(guard, /written endScene/);
+    assert.match(guard, /no last-frame image/);
+  }
+});
+
+test("a named diagram speaker stays on the attached first frame", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal(),
+    clipNumber: 2,
+    skillSlug: "cartoon-explainer-video-director",
+    speakers: [{ name: "Ada" }],
+  });
+  assert.match(prompt, /Keep Ada/);
+  assert.match(prompt, /attached first frame/);
+  assert.doesNotMatch(prompt, /first and last frames/);
+});
+
+test("papercraft Phase B keeps its own motion and does not use the whiteboard frame override", () => {
+  const system = phaseBSystemPrompt(
+    {
+      phaseA: proposal(),
+      language: "en",
+      skill: papercraftDioramaDirector as unknown as Skill,
+      style: STYLES_BY_ID["papercraft-diorama"]!,
+    },
+    "English",
+    "American",
+  );
+  assert.match(system, /tactile stop-motion papercraft mechanics/);
+  assert.doesNotMatch(system, /100% locked stationary square-on camera/);
+  assert.doesNotMatch(system, /from the start frame to the end frame/);
 });

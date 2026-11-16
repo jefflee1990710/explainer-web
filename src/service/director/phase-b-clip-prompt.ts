@@ -136,7 +136,11 @@ export function clipPhaseBUserPrompt(input: {
       input.skillSlug && isDiagramExplainerSkill(input.skillSlug)
         ? input.skillSlug
         : getDirectorRuleModule(input.skillSlug).slug;
-    const diagramCharacterLine = phaseBCharacterLine({ skillSlug: diagramSlug });
+    // Named speakers stay on the diagram lock. This user prompt has no character image URL.
+    const diagramCharacterLine = phaseBCharacterLine({
+      skillSlug: diagramSlug,
+      cast: input.speakers,
+    });
     const papercraftDiorama = explainerCanvasKind(input.skillSlug) === "papercraft-diorama";
     const clipSlice = {
       clipNumber: row.clipNumber,

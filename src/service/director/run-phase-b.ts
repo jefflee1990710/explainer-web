@@ -62,11 +62,12 @@ type PhaseBInput = {
   backgroundImageUrls?: string[];
 };
 
-const DIAGRAM_EXPLAINER_VIDEO_GUARD =
-  "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the first frame to the last frame.";
+// Appended onto the Hailuo clip prompt. Start still only; endScene is written, not an image.
+export const DIAGRAM_EXPLAINER_VIDEO_GUARD =
+  "Keep the camera locked and stationary, background, axes, character outfit, and unchanged 「」 labels fixed without morphing; smoothly animate each changing element from the attached first frame toward the written endScene. There is no last-frame image.";
 
-const PAPERCRAFT_DIORAMA_VIDEO_GUARD =
-  "Keep the diorama camera steady, 300gsm cardstock set rigid, character figurine outfit fixed, and unchanged 「」 labels crisp without morphing; smoothly animate each changing cardstock mechanism from the first frame to the last frame.";
+export const PAPERCRAFT_DIORAMA_VIDEO_GUARD =
+  "Keep the diorama camera steady, 300gsm cardstock set rigid, character figurine outfit fixed, and unchanged 「」 labels crisp without morphing; smoothly animate each changing cardstock mechanism from the attached first frame toward the written endScene. There is no last-frame image.";
 
 function stripDiagramAudioParagraphs(text: string) {
   return text

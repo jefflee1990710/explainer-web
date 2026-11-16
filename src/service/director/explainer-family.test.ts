@@ -128,7 +128,13 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.match(block, /Iceberg \/ Layered Stack/);
     assert.match(block, /Quantitative Chart \/ Annotated Curve/);
     assert.match(block, /70\/30 Diagram-First Spatial Hierarchy/);
-    assert.match(block, /Dual-Keyframe Diagram Transformation/);
+    assert.match(block, /Start-Still Diagram Transformation/);
+    assert.match(block, /There is no last-frame image/);
+    assert.match(block, /toward the written endScene/);
+    assert.doesNotMatch(block, /first_frame/);
+    assert.doesNotMatch(block, /last_frame/);
+    assert.doesNotMatch(block, /uses dual keyframes/);
+    assert.doesNotMatch(block, /interpolates cleanly between those two keyframes/);
     assert.match(block, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
     assert.match(block, /Animated Elements Plus Concise Key Takeaways/);
     assert.match(block, /1-2-3 Visual Reading Path & Single Hero Pop/);
@@ -138,7 +144,24 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.match(director.systemPrompt, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
     assert.match(director.systemPrompt, /Animated Elements Plus Concise/);
     assert.match(director.systemPrompt, /1-2-3 Visual Reading Path & Single Hero Pop/);
+    assert.doesNotMatch(director.systemPrompt, /Start \+ End dual keyframes/);
   }
+  const cartoon = DIRECTORS_BY_SLUG["cartoon-explainer-video-director"];
+  assert.match(cartoon.systemPrompt, /There is no last-frame image/);
+  assert.match(cartoon.systemPrompt, /written endScene/);
+  const storyboard = cartoon.references.find((ref) => ref.path.endsWith("storyboard-template.md"));
+  assert.ok(storyboard);
+  assert.match(storyboard.content, /start still plus this motion text/);
+  assert.match(storyboard.content, /written landing/);
+  assert.doesNotMatch(storyboard.content, /only gets those two frames/);
+  assert.ok(cartoon.profile);
+  assert.match(cartoon.profile.hook, /Start \+ End dual keyframes/);
+
+  const cutout = DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"];
+  assert.match(cutout.systemPrompt, /There is no end still/);
+  assert.match(cutout.systemPrompt, /written endScene/);
+  assert.ok(cutout.profile);
+  assert.match(cutout.profile.hook, /Start \+ End dual keyframes/);
 });
 
 test("paper-cutout director defines preset backgrounds on IDirector and resolves surface locks", () => {
