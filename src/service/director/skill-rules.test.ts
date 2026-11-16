@@ -365,7 +365,8 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
     smoothMotion: true,
   });
   assert.match(smoothVideo, /accelerate rapidly through the physical state change, then decelerate into a clean settle/);
-  assert.match(smoothVideo, /attached FIRST frame \(State A\) to the attached LAST frame \(State B\)/);
+  assert.match(smoothVideo, /There is no last-frame image/);
+  assert.match(smoothVideo, /written State B/);
   assert.match(smoothVideo, /flip briskly through their edge/);
   assert.match(smoothVideo, /This clip's action is a FLIP/);
   assert.doesNotMatch(smoothVideo, /snapping fast and sharp/);
@@ -424,8 +425,8 @@ test("Cinematic realistic locks the camera and forbids spoken subtitles on still
     clipNumber: 2,
     smoothMotion: true,
   });
-  assert.match(video, /attached FIRST frame \(State A\) to the attached LAST frame \(State B\)/);
-  assert.doesNotMatch(video, /There is no end image/);
+  assert.match(video, /There is no last-frame image/);
+  assert.match(video, /written State B/);
   assert.match(video, /slide briskly in\/out/);
 });
 
