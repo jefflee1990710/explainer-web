@@ -15,6 +15,7 @@ import {
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { DIRECTORS_BY_SLUG } from "@/service/director/catalog";
 import { videoLocksSystem } from "@/service/director/video-locks";
+import { getDirectorRuleModule } from "@/service/director/rules";
 
 test("paper-cutout explainer is a dual-beat diagram sibling of whiteboard", () => {
   const director = DIRECTORS_BY_SLUG["paper-cutout-explainer-video-director"];
@@ -94,11 +95,14 @@ test("explainer hook title sits slightly above center on a bordered plate, not p
     const canvas = explainerCanvasKind(slug) ?? "whiteboard";
     const block = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas });
     assert.match(block, /slightly above the vertical center/);
+    assert.match(block, /42–46% from the top/);
     assert.match(block, /thick solid border/);
+    assert.doesNotMatch(block, /35–45%/);
     assert.doesNotMatch(block, /spanning the upper-center/);
 
     const still = cartoonNarratorFrameLock(slug, { hasCharacter: true, clipNumber: 1, position: "start" });
     assert.match(still, /slightly above the vertical center/);
+    assert.match(still, /42–46% from the top/);
     assert.match(still, /thick solid border/);
     assert.doesNotMatch(still, /centered at the top/);
 
@@ -107,6 +111,31 @@ test("explainer hook title sits slightly above center on a bordered plate, not p
 
     const director = DIRECTORS_BY_SLUG[slug];
     assert.doesNotMatch(director.systemPrompt, /centered at the top of the explanation/);
+  }
+
+  const papercraft = cartoonExplainerDirectorBlock({ hasCharacter: true, canvas: "papercraft-diorama" });
+  assert.match(papercraft, /vertical center, shifted slightly upward/);
+  const papercraftStill = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 1,
+    position: "start",
+  });
+  assert.match(papercraftStill, /42–46% from the top/);
+  assert.match(papercraftStill, /thick solid border/);
+  assert.doesNotMatch(papercraftStill, /35–45%/);
+
+  for (const slug of [
+    "cartoon-explainer-video-director",
+    "paper-cutout-explainer-video-director",
+    "papercraft-diorama-director",
+  ] as const) {
+    const detail = getDirectorRuleModule(slug).phaseASceneDetailBlock({
+      realistic: false,
+      selfShot: false,
+      hasCharacter: true,
+    });
+    assert.match(detail, /vertical center, shifted slightly upward/);
+    assert.match(detail, /never pin it to the top edge/);
   }
 });
 
@@ -136,7 +165,7 @@ test("both diagram explainers enforce 6 diagram archetypes, 70/30 hierarchy, com
     assert.doesNotMatch(block, /uses dual keyframes/);
     assert.doesNotMatch(block, /interpolates cleanly between those two keyframes/);
     assert.match(block, /Visual Transformation Spine \(Cause-and-Effect Clarity\)/);
-    assert.match(block, /Animated Elements Plus Concise Key Takeaways/);
+    assert.match(block, /On-canvas beat text \(EXPLAIN THE BEAT ON THE BOARD\)/);
     assert.match(block, /1-2-3 Visual Reading Path & Single Hero Pop/);
   }
   for (const slug of ["paper-cutout-explainer-video-director", "cartoon-explainer-video-director"] as const) {

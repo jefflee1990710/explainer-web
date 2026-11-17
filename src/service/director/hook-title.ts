@@ -2,6 +2,10 @@
 export const HOOK_TITLE_PLACEMENT =
   "centered, slightly above the vertical center (about 35–45% from the top; never at the top edge), on a high-contrast plate with a thick solid border, clear of the face";
 
+// Diagram explainers only. Clip 1's title stays on the vertical center, nudged up.
+export const EXPLAINER_CLIP1_TITLE_PLACEMENT =
+  "ALWAYS horizontally centered on the vertical center, shifted slightly upward (slightly above the vertical center, about 42–46% from the top; never at the top edge, never in the lower half), on a high-contrast plate with a thick solid border, clear of the face";
+
 // Story and one-take open on the action. The proposal title stays in the title fields and is not painted on Clip 1.
 export const NO_FIRST_FRAME_HOOK_TITLE =
   "Clip 1's first frame has NO big hook title, NO headline plate, and NO title card. Do not paint the proposal title (localizedTitle / englishTitle) onto the image, and do not write a 「」 hook headline into startScene, explainerScene, or the 0–3s beat.";
@@ -37,12 +41,13 @@ function sanitizeHookTitleFallback(title?: string) {
 }
 
 // Still-prompt line for Clip 1's opening frame: uses the Scene's 「」 hook or falls back to the proposal title.
-export function hookTitleFrameLine(fallbackTitle?: string) {
+export function hookTitleFrameLine(fallbackTitle?: string, options?: { explainer?: boolean }) {
   const fallback = sanitizeHookTitleFallback(fallbackTitle);
   const subject = fallback
     ? `the Scene's 「...」 hook (or 「${fallback}」 if none is quoted in Scene)`
     : "the Scene's 「...」 hook";
-  return `Clip 1 hook title (overrides any top-edge/top-center placement in Scene): ${subject} is ONE BIG, BOLD headline, ${HOOK_TITLE_PLACEMENT}. Spell it exactly.`;
+  const placement = options?.explainer ? EXPLAINER_CLIP1_TITLE_PLACEMENT : HOOK_TITLE_PLACEMENT;
+  return `Clip 1 hook title (overrides any top-edge/top-center placement in Scene): ${subject} is ONE BIG, BOLD headline, ${placement}. Spell it exactly.`;
 }
 
 // Phase A director instruction: Clip 1 always gets extra facial expression, body energy, and motion to retain viewers.

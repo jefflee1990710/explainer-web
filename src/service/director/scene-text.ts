@@ -1,6 +1,7 @@
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
 import {
+  EXPLAINER_CLIP1_TITLE_PLACEMENT,
   HOOK_TITLE_PLACEMENT,
   NO_FIRST_FRAME_HOOK_TITLE,
   firstClipHookPerformanceDirectorRule,
@@ -246,6 +247,7 @@ export function spokenSubtitleLock(aspectRatio?: string) {
 }
 
 export {
+  EXPLAINER_CLIP1_TITLE_PLACEMENT,
   HOOK_TITLE_PLACEMENT,
   NO_FIRST_FRAME_HOOK_TITLE,
   firstClipHookPerformanceDirectorRule,
@@ -269,7 +271,8 @@ export function firstClipHookTitleDirectorRule(
   const length = options?.explainer
     ? "4–8 words / 6–12 CJK characters that state the Reel hook"
     : "2–6 words / 4–10 CJK characters summarizing the core Reel hook";
-  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (${length}), ${HOOK_TITLE_PLACEMENT}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
+  const placement = options?.explainer ? EXPLAINER_CLIP1_TITLE_PLACEMENT : HOOK_TITLE_PLACEMENT;
+  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (${length}), ${placement}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
 }
 
 export function sceneTextSkillHint(

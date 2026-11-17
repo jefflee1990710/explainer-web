@@ -24,7 +24,7 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
       `Scene detail: write every explainerScene (and startScene / endScene) as four concrete parts: ${characterPart}, 2) Set (miniature cardstock set and mechanisms from the topic, filling 100% of the frame edge-to-edge with no top/bottom padding bands), 3) Light (soft tabletop studio lighting), 4) Camera (macro angle and vertical/horizontal composition matching the aspect ratio).`,
       ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
       "motionCamera describes the physical papercraft mechanism animating from the start still (startScene) toward the written landing (endScene) across timed beats. endScene is not a generated still.",
-      "On-canvas explanation: the unseen narrator speaks briskly and is never pasted as a full paragraph onto the set. Each clip shows ONE explanatory 「」 headline (4–8 English words / 6–12 CJK characters; Clip 1 uses the BIG, BOLD HOOK TITLE) plus 2–3 short cardstock captions inside 「」 (3–6 words / 4–8 CJK characters) that explain each prop. Lips stay closed.",
+      "On-canvas explanation: the unseen narrator speaks briskly and is never pasted as a full paragraph onto the set. Each clip shows ONE explanatory 「」 headline (4–8 English words / 6–12 CJK characters; Clip 1 uses the BIG, BOLD HOOK TITLE) plus 2–3 short cardstock captions inside 「」 (3–6 words / 4–8 CJK characters) that explain each prop. Clip 1's hook title is always horizontally centered and sits on the vertical center, shifted slightly upward; hold that spot for the first 3 seconds and never pin it to the top edge. Lips stay closed.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock() {

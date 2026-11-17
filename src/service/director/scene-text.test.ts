@@ -268,7 +268,16 @@ test("Clip 1 hook title sits slightly above center on a bordered high-contrast p
   const fallback = hookTitleFrameLine("3 AI Hacks That Doubled My Sales");
   assert.match(fallback, /「3 AI Hacks That Doubled My Sales」/);
   assert.match(fallback, /slightly above the vertical center/);
+  assert.match(fallback, /35–45%/);
   assert.match(fallback, /thick solid border/);
+
+  const explainerLine = hookTitleFrameLine(undefined, { explainer: true });
+  assert.match(explainerLine, /vertical center, shifted slightly upward/);
+  assert.match(explainerLine, /42–46% from the top/);
+  assert.doesNotMatch(explainerLine, /35–45%/);
+  const explainerHint = sceneTextSkillHint(true, "zh-Hant", { richExplanation: true });
+  assert.match(explainerHint, /42–46% from the top/);
+  assert.doesNotMatch(explainerHint, /35–45%/);
 
   assert.match(firstClipHookPerformanceDirectorRule(false), /Clip 1 Hook Retention/i);
   assert.match(firstClipHookPerformanceDirectorRule(true), /natural real-person intensity/i);

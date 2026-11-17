@@ -12,7 +12,7 @@ import {
   WHITEBOARD_CANVAS_LOCK,
   type ExplainerCanvasKind,
 } from "@/service/director/explainer-family";
-import { HOOK_TITLE_PLACEMENT, hookTitleFrameLine } from "@/service/director/hook-title";
+import { EXPLAINER_CLIP1_TITLE_PLACEMENT, hookTitleFrameLine } from "@/service/director/hook-title";
 import {
   FOLLOW_SHOT_SKILL_SLUG,
   isFollowShotSkill,
@@ -643,11 +643,11 @@ export const COMPLETE_START_DIAGRAM_RULE =
 
 export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
   "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): on-screen text cannot be turned off. The first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (4–8 words / 6–12 CJK characters that state the Reel hook), " +
-  HOOK_TITLE_PLACEMENT +
-  " — NEVER split the hook into two small left/right header stickers that compete with each other — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title clearly visible on screen for the first 3 seconds while the opening hook camera and diagram animation play out.";
+  EXPLAINER_CLIP1_TITLE_PLACEMENT +
+  " — NEVER split the hook into two small left/right header stickers that compete with each other — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title in that same vertical-center spot for the first 3 seconds while the opening hook camera and diagram animation play out.";
 
 export const EXPLAINER_CLEAN_VISUAL_HYGIENE_RULE =
-  "Arrow, Symbol & Safe-Margin Hygiene (STRICT): (1) MAX ONE ARROW PER CLIP — use at most 1 directional arrow in the entire clip (across both `startScene` and `motionCamera`), never stack 2–4 arrows in one frame, and if `startScene` already has an arrow, never spawn another arrow in `motionCamera`; (2) NO BLANK SLASH STRIPS OR CONTRADICTORY 🚫 SIGNS — never use a grey paper slash strip or masking tape over a header, and NEVER draw a red prohibition circle-slash (`🚫`) or red `✕` over a positive solution/action label (e.g. never put `🚫` over `WAIT 90 MIN`; red `✕` only marks the bad myth/problem, while positive solutions use a clean card or green `✓`); (3) OBJECT & ICON DIAGRAMS ONLY — represent all diagram nodes using inanimate objects, icons, maps, charts, and paper cards (only the single presenter character is a person); (4) SAFE MARGIN — keep at least 18–22% open background margin at top/bottom and 10% at left/right so the top headline banner and side cards are never clipped by the frame edges.";
+  "Arrow, Symbol & Safe-Margin Hygiene (STRICT): (1) MAX ONE ARROW PER CLIP — use at most 1 directional arrow in the entire clip (across both `startScene` and `motionCamera`), never stack 2–4 arrows in one frame, and if `startScene` already has an arrow, never spawn another arrow in `motionCamera`; (2) NO BLANK SLASH STRIPS OR CONTRADICTORY 🚫 SIGNS — never use a grey paper slash strip or masking tape over a header, and NEVER draw a red prohibition circle-slash (`🚫`) or red `✕` over a positive solution/action label (e.g. never put `🚫` over `WAIT 90 MIN`; red `✕` only marks the bad myth/problem, while positive solutions use a clean card or green `✓`); (3) OBJECT & ICON DIAGRAMS ONLY — represent all diagram nodes using inanimate objects, icons, maps, charts, and paper cards (only the single presenter character is a person); (4) SAFE MARGIN — keep at least 18–22% open background margin at top/bottom and 10% at left/right so the Clip 1 hook title and the side cards are never clipped by the frame edges.";
 
 export const EXPLAINER_VISUAL_TRANSFORMATION_RULE =
   "Visual Transformation Spine (Cause-and-Effect Clarity): every clip MUST visually demonstrate HOW and WHY the idea works through one clear state transformation (`State A: ❌ misconception / bottleneck / pain` → `physical mechanism / action` → `State B: ✅ truth / unlocked flow / solution`) so a muted viewer understands the logic at a glance — never stage a static collection of disconnected noun labels.";
@@ -826,7 +826,7 @@ export function cartoonNarratorFrameLock(
   const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
   const hookTitleStill =
     options?.clipNumber === 1 && (options?.position ?? "start") === "start"
-      ? ` ${hookTitleFrameLine()}`
+      ? ` ${hookTitleFrameLine(undefined, { explainer: true })}`
       : "";
   if (canvas === "papercraft-diorama") {
     const dioramaCharacter = options?.hasCharacter
@@ -1131,7 +1131,7 @@ export function papercraftDioramaDirectorBlock(options?: {
     portraitRule,
     "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed cardstock counter with a folded payment terminal printing a jagged paper receipt and a cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on the selected full-bleed cardstock background colour filling 100% of the frame, e.g. a folded cardstock envelope holding embossed paper coins and a folded certificate with a pie chart and a paper wax seal — stacked vertically in 9:16), (3) `isometric-street` (3/4 isometric miniature street of cardstock shopfronts with scalloped awnings linked by one continuous looping paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on the selected full-bleed cardstock background colour, e.g. a 3D folded cardstock balance scale weighing a stack of receipt tickets against a stack of paper coins).",
     "Each clip has two spoken beats (`startVo` + `endVo`) spoken briskly by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism from `startScene` (State A) to `endScene` (State B) on the same locked diorama camera (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, lid opening, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",
-    "On-canvas explanation: do not paste the full voiceover onto the cardstock. Each set shows ONE explanatory 「」 headline (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short 「」 captions (3–6 words / 4–8 CJK characters) that explain each prop.",
+    "On-canvas explanation: do not paste the full voiceover onto the cardstock. Each set shows ONE explanatory 「」 headline (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short 「」 captions (3–6 words / 4–8 CJK characters) that explain each prop. Clip 1's hook title is always horizontally centered and sits on the vertical center, shifted slightly upward.",
   ]
     .filter(Boolean)
     .join(" ");
