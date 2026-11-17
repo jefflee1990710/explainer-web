@@ -24,10 +24,13 @@ function spokenBody(text: string) {
 }
 
 // Seconds the line takes at this pace, clamped to 5–12. No speech stays at 5.
-export function spokenClipSeconds(text: string, pace?: SpeechPace) {
+// tempo > 1 shortens the clip (diagram explainers speak at 1.25×).
+export function spokenClipSeconds(text: string, pace?: SpeechPace, tempo = 1) {
   const { cjk, words } = spokenUnits(spokenBody(text));
   if (cjk + words === 0) return CLIP_MIN_SECONDS;
-  const raw = (cjk / CJK_CHARS_PER_SECOND + words / ENGLISH_WORDS_PER_SECOND) / paceDivisor(pace);
+  const speed = Number.isFinite(tempo) && tempo > 0 ? tempo : 1;
+  const raw =
+    (cjk / CJK_CHARS_PER_SECOND + words / ENGLISH_WORDS_PER_SECOND) / paceDivisor(pace) / speed;
   return Math.min(CLIP_MAX_SECONDS, Math.max(CLIP_MIN_SECONDS, Math.round(raw)));
 }
 
@@ -53,10 +56,10 @@ type TimedClip = SpokenClip & {
 function resolvedSeconds<T extends TimedClip>(
   clip: T,
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number; tempo?: number },
 ) {
   const cap = options?.maxSeconds ?? CLIP_MAX_SECONDS;
-  const spoken = spokenClipSeconds(clipSpokenText(clip), pace);
+  const spoken = spokenClipSeconds(clipSpokenText(clip), pace, options?.tempo);
   if (!options?.preservePlannedDuration) return spoken;
   const planned = Math.min(
     cap,
@@ -69,7 +72,7 @@ function resolvedSeconds<T extends TimedClip>(
 export function withSpokenClipDuration<T extends TimedClip>(
   clip: T,
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number; tempo?: number },
 ): T {
   const seconds = resolvedSeconds(clip, pace, options);
   return { ...clip, durationSeconds: seconds, timeRange: `0–${seconds}s` };
@@ -79,7 +82,7 @@ export function withSpokenClipDuration<T extends TimedClip>(
 export function withSpokenClipDurations<T extends TimedClip>(
   clips: T[],
   pace?: SpeechPace,
-  options?: { preservePlannedDuration?: boolean; maxSeconds?: number },
+  options?: { preservePlannedDuration?: boolean; maxSeconds?: number; tempo?: number },
 ): T[] {
   let cursor = 0;
   return clips.map((clip) => {

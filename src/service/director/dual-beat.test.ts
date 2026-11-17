@@ -116,10 +116,10 @@ test("dual-beat director block allows diagram labels when on-screen text is on a
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });
 
-test("diagram explainer dual-beat block requires concise 「」 labels and off-screen voiceover", () => {
+test("diagram explainer dual-beat block requires explanatory 「」 captions and off-screen voiceover", () => {
   const block = dualBeatDirectorBlock(true, { richOnScreenText: true, steadyStills: true });
   assert.match(block, /cannot be turned off/);
-  assert.match(block, /concise visual text inside 「」/);
+  assert.match(block, /explanatory visual text inside 「」/);
   assert.match(block, /NEVER dump full `englishVo` sentences/);
   assert.match(block, /Do not write Subtitle:/);
   assert.match(block, /State A/);

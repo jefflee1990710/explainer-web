@@ -10,6 +10,7 @@ import {
   fitOffscreenVoiceDuration,
   mixVoiceArgs,
   padAudioLeadingSilenceArgs,
+  speedNarrationArgs,
   stripVideoAudioArgs,
   trimLeadingVideoArgs,
   videoPadSeconds,
@@ -243,4 +244,10 @@ test("stripVideoAudioArgs copies the video stream and removes any audio track", 
   const args = stripVideoAudioArgs("bridge.mp4", "silent.mp4");
   assert.equal(args[args.indexOf("-c:v") + 1], "copy");
   assert.ok(args.includes("-an"));
+});
+
+test("explainer narration tempo uses atempo 1.25", () => {
+  const args = speedNarrationArgs("in.mp3", "out.mp3", 1.25);
+  assert.equal(args[args.indexOf("-af") + 1], "atempo=1.25");
+  assert.equal(args[args.indexOf("-c:a") + 1], "libmp3lame");
 });

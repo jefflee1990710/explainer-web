@@ -563,14 +563,14 @@ export function FirstVideoOnboardingModal({
               {explainerTextRequired ? (
                 <div className="mt-4 border-t border-[#12141c]/10 pt-4">
                   <p className="font-display text-sm font-bold text-[#12141c]">
-                    {isZhHant ? "AI 畫面藝術字" : isZhHans ? "AI 画面艺术字" : "Artistic on-screen text"}
+                    {isZhHant ? "畫面說明文字" : isZhHans ? "画面说明文字" : "On-screen explanation"}
                   </p>
                   <p className="mt-1 text-xs text-[#5c6170]">
                     {isZhHant
-                      ? "一定要有。每個分鏡都會用這個藝術字寫上解釋，再加上旁白。"
+                      ? "每個分鏡都要有。畫面會用這個藝術字寫一個標題，再加幾句短說明解釋每個元件，並配上較快的旁白。畫面上的字不是整段旁白逐字稿。"
                       : isZhHans
-                        ? "一定要有。每个分镜都会用这个艺术字写上解释，再加上旁白。"
-                        : "Required. Every clip gets a written explanation in this font, plus the voiceover."}
+                        ? "每个分镜都要有。画面会用这个艺术字写一个标题，再加几句短说明解释每个元件，并配上较快的旁白。画面上的字不是整段旁白逐字稿。"
+                        : "Required on every clip. The picture shows one headline and several short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice."}
                   </p>
                   <div className="mt-3">
                     <ExplainerArtisticFontGrid

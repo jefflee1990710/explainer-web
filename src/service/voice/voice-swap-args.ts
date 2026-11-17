@@ -4,6 +4,13 @@
 export const HEYGEN_WARMUP_PAD_MS = 450;
 export const HEYGEN_WARMUP_TRIM_SECONDS = 0.4;
 
+// Speed a narration mp3. Diagram explainers use 1.25 so the voice is brisk.
+export function speedNarrationArgs(inPath: string, outPath: string, tempo: number) {
+  const clamped = Math.min(1.45, Math.max(0.75, tempo));
+  const rate = clamped.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  return ["-y", "-i", inPath, "-af", `atempo=${rate}`, "-c:a", "libmp3lame", "-ar", "44100", "-b:a", "128k", outPath];
+}
+
 export function padAudioLeadingSilenceArgs(inPath: string, outPath: string, delayMs = HEYGEN_WARMUP_PAD_MS) {
   const ms = Math.max(0, Math.round(delayMs));
   return [

@@ -22,6 +22,8 @@ test("a short line stays at 5 seconds and a longer line follows the pace", () =>
   assert.equal(spokenClipSeconds(line, "medium"), 10);
   assert.equal(spokenClipSeconds(line, "fast"), 8);
   assert.equal(spokenClipSeconds(line, "slow"), 12);
+  // Diagram explainers divide again by 1.25, so the same 10s line lands at 8s.
+  assert.equal(spokenClipSeconds(line, "medium", 1.25), 8);
   // 32 Chinese characters / 4 = 8s.
   assert.equal(spokenClipSeconds("一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二", "medium"), 8);
 });

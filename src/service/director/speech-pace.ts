@@ -2,6 +2,10 @@ import type { SpeechPace } from "@/model/project";
 
 export const DEFAULT_SPEECH_PACE: SpeechPace = "medium";
 
+// Diagram explainers (whiteboard, paper-cutout, papercraft) speak this much faster
+// than the pace the user picked. Duration math and the muxed mp3 both use it.
+export const EXPLAINER_NARRATION_TEMPO = 1.25;
+
 export type SpeechPacePreset = {
   id: SpeechPace;
   label: string;
@@ -51,13 +55,19 @@ export function speechPaceDelivery(value?: string) {
 }
 
 // Phase A: duration follows the line at this pace. Do not stretch the line to fill 5s.
-export function speechPaceSkillHint(value?: string) {
+export function speechPaceSkillHint(value?: string, options?: { explainer?: boolean }) {
   const preset = SPEECH_PACE_PRESETS[resolveSpeechPace(value)];
   return [
     `Speaking pace: ${preset.id} — ${preset.delivery}.`,
     "Set every clip's durationSeconds from its own spoken line.",
     "Count about 4 Chinese or Cantonese characters, or 2.4 English words, per second,",
     `then divide by ${preset.budget} (slow 0.8 is longer, medium 1 stays, fast 1.2 is shorter).`,
+    ...(options?.explainer
+      ? [
+          `Explainer narration is faster: divide that duration by ${EXPLAINER_NARRATION_TEMPO} again.`,
+          "Write a tight spoken line with few pauses. Put the extra explanation on the board as short 「」 captions, not in the voiceover.",
+        ]
+      : []),
     "Clamp every clip to 5–12 seconds.",
     "A short line stays 5 seconds. A longer line is 6–12 seconds.",
     "Do not pad, expand, or cut the line to force a 5-second clip.",

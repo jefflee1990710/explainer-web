@@ -260,13 +260,16 @@ export {
 export function firstClipHookTitleDirectorRule(
   enabled: boolean,
   language: SceneTextLanguage,
-  options?: { inWorldLabels?: boolean },
+  options?: { inWorldLabels?: boolean; explainer?: boolean },
 ) {
   if (!enabled && !options?.inWorldLabels) {
     return "First 3-Second Hook Title: OFF (on-canvas text is turned off, so Clip 1's startScene, explainerScene, and 0–3s motionCamera must contain NO hook title, written words, or 「」 labels).";
   }
   const langLabel = SCENE_TEXT_PRESETS[language].label;
-  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (2–6 words / 4–10 CJK characters summarizing the core Reel hook), ${HOOK_TITLE_PLACEMENT}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
+  const length = options?.explainer
+    ? "6–12 words / 10–20 CJK characters that state the Reel hook"
+    : "2–6 words / 4–10 CJK characters summarizing the core Reel hook";
+  return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (${length}), ${HOOK_TITLE_PLACEMENT}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
 }
 
 export function sceneTextSkillHint(
@@ -293,6 +296,7 @@ export function sceneTextSkillHint(
     ? NO_FIRST_FRAME_HOOK_TITLE
     : firstClipHookTitleDirectorRule(enabled, language, {
         inWorldLabels: options?.inWorldLabels,
+        explainer: options?.richExplanation,
       });
   if (options?.listicle) {
     return [
@@ -326,9 +330,9 @@ export function sceneTextSkillHint(
   }
   if (options?.richExplanation) {
     return [
-      "On-screen text is REQUIRED and cannot be turned off, but follow a STRICT CONCISE TEXT BUDGET: off-screen `englishVo` is spoken ONLY in audio — NEVER write full `englishVo` sentences or voiceover transcripts onto the board.",
-      "Each clip draws at most ONE short beat takeaway/headline inside 「」 (2–6 words / 4–10 CJK characters) plus at most 2–3 ultra-short object/node labels inside 「」 (1–3 words / 2–6 CJK characters). Clip 1 shows ONLY its single BIG, BOLD HOOK TITLE inside 「」 (no competing second subtitle strip). Never write Subtitle:.",
-      "Do not invent axis titles, quadrant captions, or any words outside those 「」 labels.",
+      "On-screen text is REQUIRED and cannot be turned off. The off-screen voiceover speaks `englishVo` briskly and is never written out as a full transcript.",
+      "Each clip draws ONE explanatory headline inside 「」 (6–12 words / 10–20 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 4–6 short captions inside 「」 (4–10 words / 8–16 CJK characters) that explain what each piece means.",
+      "Do not invent a Subtitle: line, and do not paste the voiceover paragraph. Every extra word must be one of those 「」 captions.",
       hookTitleRule,
       `On-canvas label language: ${SCENE_TEXT_PRESETS[language].label}.`,
       language === "zh-Hant"
@@ -593,7 +597,7 @@ export function diagramConciseTextLines(look?: SubtitleLook, language?: SceneTex
         ? "Simplified Chinese lock: spell every 「」 label in Simplified Chinese. Do not invent extra captions."
         : "";
   return [
-    "ON-CANVAS TEXT: spell ONLY the concise 「」 labels/headline in Scene (max 1 headline + 2–3 labels); no full VO sentences or subtitle bars.",
+    "ON-CANVAS TEXT: spell Scene's 「」 headline and 4–6 short captions. No voiceover transcript or subtitle bar.",
     script,
     lookLine,
     look ? "Lettering follows that Look." : "",

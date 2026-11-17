@@ -260,7 +260,7 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
 
 test("diagram explainer lettering stays concise in 「」 labels without full VO dumps", () => {
   const lock = phaseBLetteringLock({ skillSlug: "cartoon-explainer-video-director", durationSeconds: 5 });
-  assert.match(lock, /concise 「」 labels and optional short beat headline/);
+  assert.match(lock, /explanatory 「」 headline and short captions/);
   assert.match(lock, /Do not morph, scramble, or invent extra full-sentence text/);
   assert.match(lock, /not a subtitle/);
   assert.doesNotMatch(lock, /wipes off/);
@@ -270,7 +270,7 @@ test("diagram explainer lettering stays concise in 「」 labels without full VO
     skillSlug: "paper-cutout-explainer-video-director",
     durationSeconds: 6,
   });
-  assert.match(paper, /concise 「」 labels/);
+  assert.match(paper, /explanatory 「」 headline and short captions/);
   assert.doesNotMatch(paper, /wipes off/);
   assert.match(lock, /There is no last-frame image/);
   assert.doesNotMatch(lock, /last frame/);

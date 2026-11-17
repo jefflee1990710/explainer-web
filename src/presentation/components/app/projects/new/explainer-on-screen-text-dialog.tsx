@@ -94,13 +94,9 @@ export function ExplainerOnScreenTextDialog({
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {required ? (
             <div className="rounded-xl border border-[var(--studio-line)] bg-[var(--studio-canvas)] p-4">
-              <p className="text-sm font-semibold">
-                {isEn ? "On-screen explanation is required" : "畫面解釋文字一定要有"}
-              </p>
+              <p className="text-sm font-semibold">{t("brief.section04.explainerArtTitle")}</p>
               <p className="mt-1 text-xs text-[var(--studio-muted)]">
-                {isEn
-                  ? "Every clip keeps the animated elements, a written explanation in the font below, and the voiceover. You cannot turn this off."
-                  : "每個分鏡都保留動畫元素、用下面的藝術字寫上解釋，再加上旁白。不能選關閉。"}
+                {t("brief.section04.explainerArtHint")}
               </p>
             </div>
           ) : (

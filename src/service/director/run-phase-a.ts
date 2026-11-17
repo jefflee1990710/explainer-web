@@ -11,7 +11,12 @@ import {
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
-import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
+import {
+  EXPLAINER_NARRATION_TEMPO,
+  SPEECH_PACE_PRESETS,
+  resolveSpeechPace,
+  speechPaceSkillHint,
+} from "@/service/director/speech-pace";
 import {
   HOOK_TITLE_PLACEMENT,
   NO_FIRST_FRAME_HOOK_TITLE,
@@ -294,6 +299,7 @@ export async function runPhaseA(input: {
     baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
   });
   const directorRules = getDirectorRuleModule(input.skill.slug);
+  const diagramExplainer = isDiagramExplainerSkill(input.skill.slug);
   const realisticFlag = isRealisticStyle({
     id: input.style.id,
     baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
@@ -327,16 +333,16 @@ ${directorRules.phaseASceneDetailBlock({
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
   hasCharacter,
 })}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: isDiagramExplainerSkill(input.skill.slug) }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills, richOnScreenText: diagramExplainer }) : ""}
 ${
   skillOmitsFirstFrameHookTitle(input.skill.slug)
     ? sceneText.enabled
       ? `On-canvas text is ON (${SCENE_TEXT_PRESETS[sceneText.language].label}): ${NO_FIRST_FRAME_HOOK_TITLE} Short in-scene signs the source itself names are allowed. Never write Subtitle: or caption the spoken line on screen.`
       : "On-canvas text is OFF: motion is pose and props only — no written labels and no Clip 1 hook title."
     : explainerCanvasKind(input.skill.slug) === "papercraft-diorama"
-    ? `On-canvas text uses STRICT CONCISE BUDGET (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator — NEVER write full VO sentences, paragraphs, or Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT} (its sole headline). Each subsequent clip shows at most 1 short beat takeaway/headline inside 「...」 (2–6 English words / 4–10 CJK chars) plus 2–3 short cardstock object/set labels inside 「...」 (1–3 words / 2–6 CJK chars). Start + End dual keyframes: startScene is State A and endScene is State B on the same locked diorama camera and cardstock set; motionCamera physically animates the cardstock mechanism from State A into State B. If a 3D cardstock miniature character figurine is present, eyes and hands stay on the cardstock props; lips and jaw stay sealed.`
+    ? `On-canvas text EXPLAINS THE BEAT (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator, briskly — NEVER paste the full voiceover or write Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}. That title is the clip's headline. Every clip, including Clip 1, also shows 4–6 short captions inside 「...」 (4–10 English words / 8–16 CJK characters) that explain each prop. Later clips use ONE explanatory headline inside 「...」 (6–12 English words / 10–20 CJK characters) plus those captions. Start + End dual keyframes: startScene is State A and endScene is the written State B on the same locked diorama camera and cardstock set; motionCamera physically animates the cardstock mechanism from State A into State B. If a 3D cardstock miniature character figurine is present, eyes and hands stay on the cardstock props; lips and jaw stay sealed.`
     : isDiagramExplainerSkill(input.skill.slug)
-    ? `On-canvas text uses STRICT CONCISE BUDGET (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator — NEVER write full VO sentences, paragraphs, or Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT} (its sole headline). Each subsequent clip shows at most 1 short beat takeaway/headline inside 「...」 (2–6 English words / 4–10 CJK chars) plus 2–3 short node/object labels inside 「...」 (1–3 words / 2–6 CJK chars). Start + End dual keyframes: startScene is State A and endScene is State B on the same locked 2D planar camera; motionCamera physically animates State A into State B (slide, unfold, tear open, draw stroke-by-stroke, flip, or meter fill). On every clip, including Clip 1, eyes and hands stay on the teaching element; lips and jaw stay sealed.`
+    ? `On-canvas text EXPLAINS THE BEAT (${SCENE_TEXT_PRESETS[sceneText.language].label}): englishVo is spoken ONLY by the off-screen narrator, briskly — NEVER paste the full voiceover or write Subtitle: on the canvas. Clip 1's startScene MUST open with ONE BIG, BOLD HOOK TITLE inside 「...」 in ${SCENE_TEXT_PRESETS[sceneText.language].label} held for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}. That title is the clip's headline. Every clip, including Clip 1, also shows 4–6 short captions inside 「...」 (4–10 English words / 8–16 CJK characters) that explain each piece. Later clips use ONE explanatory headline inside 「...」 (6–12 English words / 10–20 CJK characters) plus those captions. Start + End dual keyframes: startScene is State A and endScene is the written State B on the same locked 2D planar camera; motionCamera physically animates State A into State B (slide, unfold, tear open, draw stroke-by-stroke, flip, or meter fill). On every clip, including Clip 1, eyes and hands stay on the teaching element; lips and jaw stay sealed.`
     : sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? `On-canvas text is required: Clip 1's startScene opens with a BIG, BOLD HOOK TITLE in ${SCENE_TEXT_PRESETS[sceneText.language].label} for the first 3 seconds (0–3s), ${HOOK_TITLE_PLACEMENT}, and a numbered item list must appear in item stills. Never write spoken subtitles.`
     : sceneText.enabled
@@ -394,7 +400,7 @@ ${language.skillHint}
 ${
   talkingHead
     ? "Speaking pace changes each sentence's durationSeconds. Do not keep a fixed clip length."
-    : speechPaceSkillHint(input.speechPace)
+    : speechPaceSkillHint(input.speechPace, { explainer: diagramExplainer })
 }
 ${phaseAAudioHint(input.voiceGender, {
   bansNarration: dialogueOnly,
@@ -412,7 +418,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   aspectRatio: input.aspectRatio,
   look: subtitleLook,
   lookLine: sampleLookLine,
-  richExplanation: isDiagramExplainerSkill(input.skill.slug),
+  richExplanation: diagramExplainer,
   omitHookTitle: skillOmitsFirstFrameHookTitle(input.skill.slug),
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
@@ -437,7 +443,7 @@ Aspect ratio: ${input.aspectRatio}
 Duration preset: ${durationHint}
 ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} (${language.sublabel})
 ${sceneDescriptionLanguageLock(input.language)}
-Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
+Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})${diagramExplainer ? `. Explainer voiceover is then ${EXPLAINER_NARRATION_TEMPO}× faster. Keep each spoken line tight, and put the extra explanation on the board.` : ""}
 ${
   isSilentOutfitSkill(input.skill.slug) ||
   (input.narrationEnabled === false && !talkingHead && !dialogueOnly)
@@ -636,6 +642,7 @@ Produce a complete Phase A director proposal now.`,
     const clips = withSpokenClipDurations(next.clips, input.speechPace, {
       preservePlannedDuration: input.skill.slug === "story-short-director",
       maxSeconds: isOneTakeSkill(input.skill.slug) ? ONE_TAKE_MAX_SECONDS : undefined,
+      tempo: isDiagramExplainerSkill(input.skill.slug) ? EXPLAINER_NARRATION_TEMPO : undefined,
     });
     const totalSeconds = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     next = { ...next, clips, targetDuration: `${totalSeconds}s` };

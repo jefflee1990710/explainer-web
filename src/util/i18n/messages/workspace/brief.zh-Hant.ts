@@ -154,6 +154,8 @@ export const briefZhHant = {
   speechPaceSection: {
     title: "語速",
     hint: "影響每段講多少字：慢速字數較少、句間有停頓；快速字數較多、停頓較少。",
+    hintExplainer:
+      "解說旁白會比這個語速再快大約四分之一，停頓較少。多出來的解釋寫在畫面上，所以旁白句子保持短。",
   },
   voiceSection: {
     title: "旁白聲線",
@@ -163,6 +165,9 @@ export const briefZhHant = {
     title: "畫面文字",
     hintListicle: "清單式導演會在畫面列出項目文字，選擇文字語言。",
     hintDefault: "選擇場景圖與影片是否允許出現該語言的畫面文字，或選「無」讓場景圖和影片都不要出現文字（不會生成旁白／對白字幕）。",
+    explainerArtTitle: "畫面說明文字",
+    explainerArtHint:
+      "每個分鏡都要有。畫面會用這個藝術字寫一個標題，再加幾句短說明解釋每個元件，並配上較快的旁白。畫面上的字不是整段旁白逐字稿。",
     lookTitle: "字幕外觀",
     lookHint: "只改字體。字幕放在哪裡由導演決定。",
     lookAria: "字幕外觀",

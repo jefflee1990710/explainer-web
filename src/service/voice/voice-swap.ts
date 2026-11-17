@@ -19,6 +19,7 @@ import {
   HEYGEN_WARMUP_TRIM_SECONDS,
   mixVoiceArgs,
   padAudioLeadingSilenceArgs,
+  speedNarrationArgs,
   stripVideoAudioArgs,
   trimLeadingVideoArgs,
 } from "@/service/voice/voice-swap-args";
@@ -30,6 +31,19 @@ export async function stripVideoAudio(videoBuffer: Buffer): Promise<Buffer> {
     await writeFile(join(dir, "in.mp4"), videoBuffer);
     await runFfmpeg(dir, stripVideoAudioArgs("in.mp4", "out.mp4"));
     return await readFile(join(dir, "out.mp4"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// Replay an mp3 faster. Used for diagram-explainer narration (atempo 1.25).
+export async function speedNarrationMp3(buffer: Buffer, tempo: number): Promise<Buffer> {
+  if (!Number.isFinite(tempo) || Math.abs(tempo - 1) < 0.01) return buffer;
+  const dir = await mkdtemp(join(tmpdir(), "vo-tempo-"));
+  try {
+    await writeFile(join(dir, "in.mp3"), buffer);
+    await runFfmpeg(dir, speedNarrationArgs("in.mp3", "out.mp3", tempo));
+    return await readFile(join(dir, "out.mp3"));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -26,6 +26,9 @@ test("Phase A hint sets clip length from the spoken line and pace", () => {
   assert.match(speechPaceSkillHint("fast"), /1\.2/);
   assert.match(speechPaceSkillHint("fast"), /5–12/);
   assert.match(speechPaceSkillHint("medium"), /Do not pad/);
+  assert.match(speechPaceSkillHint("medium", { explainer: true }), /1\.25/);
+  assert.match(speechPaceSkillHint("medium", { explainer: true }), /short 「」 captions/);
+  assert.doesNotMatch(speechPaceSkillHint("medium"), /1\.25/);
 });
 
 test("Phase B lock carries the chosen delivery pace for narrator and dialogue", () => {

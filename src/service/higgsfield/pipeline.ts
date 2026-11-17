@@ -85,7 +85,8 @@ import {
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 import { voiceSwapVoiceId } from "@/model/character-voice-sample";
-import { probeAudioSeconds, stripVideoAudio, swapClipVoice } from "@/service/voice/voice-swap";
+import { probeAudioSeconds, speedNarrationMp3, stripVideoAudio, swapClipVoice } from "@/service/voice/voice-swap";
+import { EXPLAINER_NARRATION_TEMPO } from "@/service/director/speech-pace";
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
 import { narratorVoiceId, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import {
@@ -888,12 +889,26 @@ export async function sendClipVideo(
     );
   } else if (voiceId && hasSpokenLine && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
-      const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
+      const synthesized = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
         conversational: audioFirstTalkingHead,
         // Explainer and other off-screen narrators stay one speaker across clips.
         lockedSpeaker: !audioFirstTalkingHead && !usesLipSync,
         language: project.language,
       });
+      let audio = synthesized.audio;
+      const alignment = synthesized.alignment;
+      // Diagram explainers speak faster than the raw ElevenLabs take.
+      if (isDiagramExplainerSkill(project.skillSlug) && !audioFirstTalkingHead && !usesLipSync) {
+        try {
+          audio = await speedNarrationMp3(audio, EXPLAINER_NARRATION_TEMPO);
+        } catch (tempoError) {
+          console.error("[higgsfield] explainer narration tempo failed; keeping the original take", {
+            projectId: project._id.toHexString(),
+            clipNumber,
+            tempoError,
+          });
+        }
+      }
       if (audioFirstTalkingHead) {
         const voicedSeconds = (await probeAudioSeconds(audio, "mp3")) ?? prompt.durationSeconds;
         durationSeconds = Math.min(

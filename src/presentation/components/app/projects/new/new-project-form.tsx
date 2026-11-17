@@ -2047,7 +2047,9 @@ export function NewProjectForm({
                             <div>
                               <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
                               <p className="mt-1 text-xs text-muted">
-                                {t("brief.speechPaceSection.hint")}
+                                {explainerTextRequired
+                                  ? t("brief.speechPaceSection.hintExplainer")
+                                  : t("brief.speechPaceSection.hint")}
                               </p>
                               <div className="mt-2.5">
                                 <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
@@ -2089,14 +2091,8 @@ export function NewProjectForm({
                           />
                           {explainerTextRequired ? (
                             <div className="mt-4">
-                              <p className="text-sm font-semibold">
-                                {locale === "en" ? "Artistic on-screen text" : "AI 畫面藝術字"}
-                              </p>
-                              <p className="mt-1 text-xs text-muted">
-                                {locale === "en"
-                                  ? "Required. Every clip gets a written explanation in this font, plus the voiceover."
-                                  : "一定要有。每個分鏡都會用這個藝術字寫上解釋，再加上旁白。"}
-                              </p>
+                              <p className="text-sm font-semibold">{t("brief.section04.explainerArtTitle")}</p>
+                              <p className="mt-1 text-xs text-muted">{t("brief.section04.explainerArtHint")}</p>
                               <div className="mt-3">
                                 <ExplainerArtisticFontGrid
                                   selectedStyleId={onScreenTextStyleId || "clean"}

@@ -155,6 +155,8 @@ export const briefEn = {
   speechPaceSection: {
     title: "Speaking pace",
     hint: "Affects how many words fit each clip: slower uses fewer words with pauses; faster uses more.",
+    hintExplainer:
+      "Explainer voiceover is about 25% faster than this pace, with fewer pauses. The picture carries the extra explanation, so keep the spoken line short.",
   },
   voiceSection: {
     title: "Narrator voice",
@@ -164,6 +166,9 @@ export const briefEn = {
     title: "On-screen text",
     hintListicle: "Listicle directors show item titles on screen — pick the text language.",
     hintDefault: "Choose whether scene images and videos allow on-screen text in this language, or None so the picture and the video have no writing (subtitles are never burned into scene images or videos).",
+    explainerArtTitle: "On-screen explanation",
+    explainerArtHint:
+      "Required on every clip. The picture shows one headline and several short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice.",
     lookTitle: "Subtitle look",
     lookHint: "Lettering only. Where the subtitle sits depends on the director.",
     lookAria: "Subtitle look",
