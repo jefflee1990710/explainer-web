@@ -23,6 +23,8 @@ import {
   resolveVoiceSwapId,
   YUE_FEMALE_NARRATOR_VOICE_ID,
   YUE_MALE_NARRATOR_VOICE_ID,
+  ZH_FEMALE_NARRATOR_VOICE_ID,
+  ZH_MALE_NARRATOR_VOICE_ID,
 } from "@/service/voice/voice-swap-target";
 
 test("normalizeVoiceSampleClips and voiceSampleUrls handle single and multi-file samples", () => {
@@ -104,6 +106,14 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
   assert.equal(
     resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "en", voiceGender: "female" }),
     FEMALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "zh", voiceGender: "male" }),
+    ZH_MALE_NARRATOR_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "zh", voiceGender: "female" }),
+    ZH_FEMALE_NARRATOR_VOICE_ID,
   );
   assert.equal(
     resolveVoiceSwapId({ ...yue, cast: [{ voiceSample: { elevenVoiceId: "clone" } }] }),

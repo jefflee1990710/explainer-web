@@ -309,6 +309,8 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   assert.match(verticalBlock, /3D PAPERCRAFT DIORAMA EXPLAINER/);
   assert.match(verticalBlock, /PORTRAIT 9:16 COMPOSITION/);
   assert.match(verticalBlock, /top-to-bottom/i);
+  assert.match(verticalBlock, /fully inside the frame/);
+  assert.match(verticalBlock, /both pans/);
   assert.doesNotMatch(verticalBlock, /Whole-canvas 2D whiteboard lock/);
   assert.doesNotMatch(verticalBlock, /BACKGROUND COLOR LOCK/);
 
@@ -325,6 +327,8 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
     position: "start",
   });
   assert.match(frame, /3D Papercraft Diorama lock/);
+  assert.match(frame, /IN-FRAME/);
+  assert.match(frame, /both pans fit/);
   assert.match(frame, /NO dark\/navy top-and-bottom padding bands/);
   assert.doesNotMatch(frame, /BACKGROUND COLOR LOCK/);
 
@@ -341,5 +345,6 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
     backgroundId: "teal",
   });
   assert.match(tealVideo, /deep teal 300gsm matte cardstock sheet/);
+  assert.match(tealVideo, /fully inside the frame/);
 });
 

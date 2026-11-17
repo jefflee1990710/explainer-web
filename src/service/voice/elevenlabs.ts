@@ -16,6 +16,19 @@ export const STS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const;
 
+// Traditional Chinese (zh) off-screen narration. Lower stability and a higher
+// style keep Yu / Una clear and energetic, while the fixed seed keeps one speaker.
+export const ZH_NARRATOR_VOICE_SETTINGS = {
+  stability: 0.45,
+  similarity_boost: 0.85,
+  style: 0.45,
+  use_speaker_boost: true,
+} as const;
+
+export function narratorVoiceSettings(language?: string) {
+  return language === "zh" ? ZH_NARRATOR_VOICE_SETTINGS : STS_VOICE_SETTINGS;
+}
+
 // Pre-video TTS (`with-timestamps`) uses 0.70 stability so spoken lines keep
 // natural conversational prosody and breathing rhythm for lip-sync models
 // while 1.0 similarity_boost locks the cloned voice timbre and Cantonese tones.
@@ -461,7 +474,7 @@ export async function synthesizeSpeechWithTimestamps(
       : rawCleaned;
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
   const voiceSettings = options?.lockedSpeaker
-    ? STS_VOICE_SETTINGS
+    ? narratorVoiceSettings(options.language)
     : options?.conversational
       ? talkingHeadTtsVoiceSettings(options.language)
       : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
@@ -674,7 +687,7 @@ export async function synthesizeSpeech(
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
         ...(languageCode ? { language_code: languageCode } : {}),
         seed: NARRATOR_TTS_SEED,
-        voice_settings: STS_VOICE_SETTINGS,
+        voice_settings: narratorVoiceSettings(options?.language),
       }),
       signal: AbortSignal.timeout(120_000),
     },

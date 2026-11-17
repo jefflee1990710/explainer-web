@@ -15,6 +15,7 @@ import {
   NARRATOR_TTS_SEED,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
+  ZH_NARRATOR_VOICE_SETTINGS,
   synthesizeSpeech,
   synthesizeSpeechWithTimestamps,
   TALKING_HEAD_TTS_VOICE_SETTINGS,
@@ -365,4 +366,28 @@ test("locked narrator TTS uses full stability and a fixed seed so every clip sta
   assert.equal(capturedBody?.seed, NARRATOR_TTS_SEED);
   assert.deepEqual(capturedBody?.voice_settings, STS_VOICE_SETTINGS);
   assert.equal(capturedBody?.language_code, "yue");
+});
+
+test("Traditional Chinese locked narration stays one energetic speaker", async () => {
+  let capturedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    capturedBody = JSON.parse(String(init?.body));
+    return new Response(
+      JSON.stringify({ audio_base64: Buffer.from("mp3-bytes").toString("base64") }),
+      { status: 200 },
+    );
+  };
+
+  await synthesizeSpeechWithTimestamps("voice123", "九十秒內教你做好個人品牌。", {
+    apiKey: "test-xi-key",
+    fetch: fakeFetch,
+    lockedSpeaker: true,
+    language: "zh",
+  });
+
+  assert.equal(capturedBody?.seed, NARRATOR_TTS_SEED);
+  assert.equal(capturedBody?.language_code, "zh");
+  assert.deepEqual(capturedBody?.voice_settings, ZH_NARRATOR_VOICE_SETTINGS);
+  assert.ok((capturedBody?.voice_settings as { stability: number }).stability < 1);
+  assert.ok((capturedBody?.voice_settings as { style: number }).style > 0);
 });

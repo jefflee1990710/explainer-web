@@ -10,6 +10,9 @@ export const FEMALE_NARRATOR_VOICE_ID = "hpp4J3VqNfWAUOO0d1Us"; // Bella
 // Cantonese accent per request.
 export const YUE_MALE_NARRATOR_VOICE_ID = "kWb73BrEnNOO40EVbd2k"; // Alan
 export const YUE_FEMALE_NARRATOR_VOICE_ID = "pyCpQJNpFBywhVAwOzn6"; // Cathy
+// Traditional Chinese Mandarin (zh). Clear, energetic Taiwanese voices.
+export const ZH_MALE_NARRATOR_VOICE_ID = "fQj4gJSexpu8RDE2Ii5m"; // Yu
+export const ZH_FEMALE_NARRATOR_VOICE_ID = "9nJyLyjf2107MwFprjsl"; // Una
 
 type NarratorGender = "male" | "female";
 
@@ -57,6 +60,9 @@ export function narratorVoiceId(language?: string, voiceGender?: string): string
   const gender = asNarratorGender(voiceGender) ?? "male";
   if (language === "yue") {
     return gender === "female" ? YUE_FEMALE_NARRATOR_VOICE_ID : YUE_MALE_NARRATOR_VOICE_ID;
+  }
+  if (language === "zh") {
+    return gender === "female" ? ZH_FEMALE_NARRATOR_VOICE_ID : ZH_MALE_NARRATOR_VOICE_ID;
   }
   return gender === "female" ? FEMALE_NARRATOR_VOICE_ID : MALE_NARRATOR_VOICE_ID;
 }
