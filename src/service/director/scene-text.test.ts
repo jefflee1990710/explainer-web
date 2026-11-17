@@ -87,6 +87,7 @@ test("diagram explainer hint asks for explanatory 「」 captions plus a brisk o
   const hint = sceneTextSkillHint(true, "en", { dualBeat: true, richExplanation: true });
   assert.match(hint, /cannot be turned off/);
   assert.match(hint, /2–3 short captions/);
+  assert.match(hint, /exactly ONE on-screen text/);
   assert.match(hint, /BIG, BOLD HOOK TITLE/);
   assert.match(hint, /off-screen voiceover/);
   assert.doesNotMatch(hint, /Subtitle \(spell exactly\)/);

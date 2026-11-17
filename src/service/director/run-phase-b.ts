@@ -115,7 +115,7 @@ ${directorRules.phaseBDetailRules({
 Visual-only clip: voiceover is muxed externally after video generation. Do NOT write spoken dialogue, narrator voice locks, speaking pace, BGM, or SFX instructions. ${
       input.sceneTextOff
         ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers."
-        : "Keep the explanatory 「」 headline and captions already shown on the attached first frame; do not invent a voiceover transcript or extra paragraphs."
+        : "Keep the 「」 text already shown on the attached first frame. Clip 1 stays one hook title. Later clips keep the explanatory headline and short captions. Do not invent a voiceover transcript or extra paragraphs."
     }`;
   }
   return `${skillPromptForPhaseB(input.skill, input.style)}

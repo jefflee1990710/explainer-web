@@ -1069,6 +1069,7 @@ export function buildFramePrompt(
       ? diagramConciseTextLines(
           chosenLetteringLook ? resolveSubtitleLook(chosenLetteringLook) : undefined,
           sceneText.language,
+          clipNumber,
         )
       : [];
   const onCanvasTextBlock = !sceneText.enabled || talkingHeadSkipsLettering

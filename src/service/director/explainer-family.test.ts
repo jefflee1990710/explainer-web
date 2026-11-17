@@ -136,6 +136,7 @@ test("explainer hook title sits slightly above center on a bordered plate, not p
     });
     assert.match(detail, /vertical center, shifted slightly upward/);
     assert.match(detail, /never pin it to the top edge/);
+    assert.match(detail, /exactly ONE on-screen text/);
   }
 });
 

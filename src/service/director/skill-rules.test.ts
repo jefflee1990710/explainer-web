@@ -180,6 +180,10 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(still, /explanation graph/);
   assert.match(still, /every teaching element named in the Scene/);
   assert.match(still, /Explanatory 「」 headline and short captions/);
+  assert.match(
+    cartoonNarratorFrameLock("cartoon-explainer-video-director", { clipNumber: 1, position: "start" }),
+    /ONE hook title only/,
+  );
   assert.doesNotMatch(still, /STEP N|STEP 1/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /off-screen narrator/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /never speaks or lip-syncs/);

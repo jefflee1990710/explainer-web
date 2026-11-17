@@ -69,7 +69,7 @@ export function phaseBLetteringLock(input: {
 }) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
   if (isDiagramExplainerSkill(input.skillSlug)) {
-    return "On-canvas lettering: keep the explanatory 「」 headline and short captions sharp, spelled cleanly, and anchored as drawn on the first frame. There is no last-frame image. If endScene names a different short label, change it by one in-place flip or tear. Do not morph, scramble, or invent extra full-sentence text or a voiceover transcript. This is in-world board lettering, not a subtitle.";
+    return "On-canvas lettering: Clip 1 keeps only its one hook title. Later clips keep the explanatory 「」 headline and short captions sharp, spelled cleanly, and anchored as drawn on the first frame. There is no last-frame image. If endScene names a different short label, change it by one in-place flip or tear. Do not morph, scramble, or invent extra full-sentence text or a voiceover transcript. This is in-world board lettering, not a subtitle.";
   }
   if (input.fixedLettering) {
     return "On-canvas lettering: the start frame carries the marker line and it stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. There is no end frame to match. This is in-scene lettering from the keyframe, not a caption or subtitle.";

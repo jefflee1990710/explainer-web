@@ -334,7 +334,7 @@ export function sceneTextSkillHint(
   if (options?.richExplanation) {
     return [
       "On-screen text is REQUIRED and cannot be turned off. The off-screen voiceover speaks `englishVo` briskly and is never written out as a full transcript.",
-      "Each clip draws ONE explanatory headline inside 「」 (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short captions inside 「」 (3–6 words / 4–8 CJK characters) that explain what each piece means.",
+      "Clip 1 draws exactly ONE on-screen text, the BIG, BOLD HOOK TITLE inside 「」 (4–8 words / 6–12 CJK characters), and no other captions, so the viewer focuses on that title. Clips 2+ may show more elements and draw ONE explanatory headline inside 「」 (4–8 words / 6–12 CJK characters) plus 2–3 short captions inside 「」 (3–6 words / 4–8 CJK characters) that explain what each piece means.",
       "Do not invent a Subtitle: line, and do not paste the voiceover paragraph. Every extra word must be one of those 「」 captions.",
       hookTitleRule,
       `On-canvas label language: ${SCENE_TEXT_PRESETS[language].label}.`,
@@ -591,7 +591,11 @@ export function sceneTextFrameLines(
 }
 
 // Diagram explainer stills: enforce concise keyword/takeaway budget and apply chosen lettering look without dumping englishVo.
-export function diagramConciseTextLines(look?: SubtitleLook, language?: SceneTextLanguage): string[] {
+export function diagramConciseTextLines(
+  look?: SubtitleLook,
+  language?: SceneTextLanguage,
+  clipNumber?: number,
+): string[] {
   const lookLine = look ? lookLineForOnScreenVideo(subtitleLookLine(look)) : "";
   const script =
     language === "zh-Hant"
@@ -600,7 +604,9 @@ export function diagramConciseTextLines(look?: SubtitleLook, language?: SceneTex
         ? "Simplified Chinese lock: spell every 「」 label in Simplified Chinese. Do not invent extra captions."
         : "";
   return [
-    "ON-CANVAS TEXT: spell Scene's 「」 headline and 2–3 short captions. No voiceover transcript or subtitle bar.",
+    clipNumber === 1
+      ? "ON-CANVAS TEXT: spell only Clip 1's one 「」 hook title. No extra captions or subtitle bar."
+      : "ON-CANVAS TEXT: spell Scene's 「」 headline and 2–3 short captions. No voiceover transcript or subtitle bar.",
     script,
     lookLine,
     look ? "Lettering follows that Look." : "",
