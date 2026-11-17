@@ -267,7 +267,7 @@ export function firstClipHookTitleDirectorRule(
   }
   const langLabel = SCENE_TEXT_PRESETS[language].label;
   const length = options?.explainer
-    ? "6–12 words / 10–20 CJK characters that state the Reel hook"
+    ? "4–8 words / 6–12 CJK characters that state the Reel hook"
     : "2–6 words / 4–10 CJK characters summarizing the core Reel hook";
   return `First 3-Second Hook Title (Clip 1 startScene REQUIRED): the first 3 seconds (0–3s of Clip 1) MUST feature a BIG, BOLD HOOK TITLE for the Reel content. Clip 1's opening scene (startScene and explainerScene) MUST always open with a prominent, big bold hook title inside 「...」 written in ${langLabel} (${length}), ${HOOK_TITLE_PLACEMENT}. Write that placement and the bordered plate into Clip 1's startScene, and Clip 1's motionCamera (0–3s beat) must hold this big bold hook title clearly on screen for the first 3 seconds.`;
 }
@@ -331,7 +331,7 @@ export function sceneTextSkillHint(
   if (options?.richExplanation) {
     return [
       "On-screen text is REQUIRED and cannot be turned off. The off-screen voiceover speaks `englishVo` briskly and is never written out as a full transcript.",
-      "Each clip draws ONE explanatory headline inside 「」 (6–12 words / 10–20 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 4–6 short captions inside 「」 (4–10 words / 8–16 CJK characters) that explain what each piece means.",
+      "Each clip draws ONE explanatory headline inside 「」 (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short captions inside 「」 (3–6 words / 4–8 CJK characters) that explain what each piece means.",
       "Do not invent a Subtitle: line, and do not paste the voiceover paragraph. Every extra word must be one of those 「」 captions.",
       hookTitleRule,
       `On-canvas label language: ${SCENE_TEXT_PRESETS[language].label}.`,
@@ -597,7 +597,7 @@ export function diagramConciseTextLines(look?: SubtitleLook, language?: SceneTex
         ? "Simplified Chinese lock: spell every 「」 label in Simplified Chinese. Do not invent extra captions."
         : "";
   return [
-    "ON-CANVAS TEXT: spell Scene's 「」 headline and 4–6 short captions. No voiceover transcript or subtitle bar.",
+    "ON-CANVAS TEXT: spell Scene's 「」 headline and 2–3 short captions. No voiceover transcript or subtitle bar.",
     script,
     lookLine,
     look ? "Lettering follows that Look." : "",

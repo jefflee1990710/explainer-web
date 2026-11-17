@@ -642,7 +642,7 @@ export const COMPLETE_START_DIAGRAM_RULE =
   "Start-Still Diagram Transformation (`startScene` = State A → `endScene` = written State B landing): only the start still is drawn, on the exact same locked planar camera. There is no last-frame image. `startScene` stages State A of the chosen Diagram Archetype (e.g. initial problem, folded card, sealed cover, empty 5% meter, or Beat-1 anchor node with clean open space on the board), and MUST NOT already show the finished end-state answers at t=0s. `endScene` is the written State B landing on the exact same locked camera, lighting, and board surface after the physical transformation lands (card unfolded flat 摺開, cover torn/peeled open 撕開, arrow/circle drawn stroke-by-stroke 畫出, card flipped to Side B 翻轉, meter filled to 100%, or new takeaway card slid in 滑入). `motionCamera` moves from the start still toward the written endScene with concrete physical cause-and-effect motion.";
 
 export const EXPLAINER_FIRST_3S_HOOK_TITLE_RULE =
-  "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): on-screen text cannot be turned off. The first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (6–12 words / 10–20 CJK characters that state the Reel hook), " +
+  "First 3-Second Big Bold Hook Title (Clip 1 `startScene` & `0–3s`): on-screen text cannot be turned off. The first 3 seconds (0–3s of Clip 1) MUST feature ONE single BIG, BOLD HOOK TITLE for the Reel content in the user's configured on-screen text language. In Clip 1's `startScene` (`2) Set`), stage one large, high-impact hook title banner/headline inside 「...」 (4–8 words / 6–12 CJK characters that state the Reel hook), " +
   HOOK_TITLE_PLACEMENT +
   " — NEVER split the hook into two small left/right header stickers that compete with each other — and in Clip 1's `motionCamera` (`0–3s` beat), keep that big bold hook title clearly visible on screen for the first 3 seconds while the opening hook camera and diagram animation play out.";
 
@@ -653,7 +653,7 @@ export const EXPLAINER_VISUAL_TRANSFORMATION_RULE =
   "Visual Transformation Spine (Cause-and-Effect Clarity): every clip MUST visually demonstrate HOW and WHY the idea works through one clear state transformation (`State A: ❌ misconception / bottleneck / pain` → `physical mechanism / action` → `State B: ✅ truth / unlocked flow / solution`) so a muted viewer understands the logic at a glance — never stage a static collection of disconnected noun labels.";
 
 export const EXPLAINER_CONCRETE_METAPHOR_RULE =
-  "Animated Elements Plus Written Explanations: every teaching element is a recognizable everyday physical object or visual metaphor that visibly transforms from State A to State B (a clogged funnel → open filter, a 5% red battery → 100% green battery, a folded card → unfolded solution, a heavy boulder → 3-step staircase). Each piece carries a short explanatory caption inside 「」 (4–10 English words / 8–16 CJK characters) in the configured scene-text language that says what that piece means. Off-screen `englishVo` is spoken ONLY in audio, at a brisk pace — NEVER dump the full `englishVo` paragraph or a voiceover transcript onto the board. Each clip displays ONE short beat takeaway/headline inside 「」 (6–12 words / 10–20 CJK characters, e.g. 「DEEP WORK TURNS ONE HOUR INTO THREE」 or 「先拆開問題，再做第一步」) plus 4–6 short captions inside 「」. On Clip 1, the BIG, BOLD HOOK TITLE inside 「」 is that headline, and the captions sit with it. Never write `Subtitle:`. Never a plain PowerPoint text card that replaces the physical objects.";
+  "Animated Elements Plus Written Explanations: every teaching element is a recognizable everyday physical object or visual metaphor that visibly transforms from State A to State B (a clogged funnel → open filter, a 5% red battery → 100% green battery, a folded card → unfolded solution, a heavy boulder → 3-step staircase). Each piece carries a short explanatory caption inside 「」 (3–6 English words / 4–8 CJK characters) in the configured scene-text language that says what that piece means. Off-screen `englishVo` is spoken ONLY in audio, at a brisk pace — NEVER dump the full `englishVo` paragraph or a voiceover transcript onto the board. Each clip displays ONE short beat takeaway/headline inside 「」 (4–8 words / 6–12 CJK characters, e.g. 「DEEP WORK TURNS ONE HOUR INTO THREE」 or 「先拆開問題，再做第一步」) plus 2–3 short captions inside 「」. On Clip 1, the BIG, BOLD HOOK TITLE inside 「」 is that headline, and the captions sit with it. Never write `Subtitle:`. Never a plain PowerPoint text card that replaces the physical objects.";
 
 export const EXPLAINER_FOCAL_CONTRAST_RULE =
   "1-2-3 Visual Reading Path & Single Hero Pop: stage a clear 1 → 2 → 3 eye path (left-to-right or top-to-bottom). Keep 70–80% of supporting context nodes in calm neutral/monochrome/kraft tones, and highlight ONLY the single active takeaway node of that beat in 1 vibrant high-contrast accent colour at 1.5x–2x scale, with the character's gaze/hand or the clip's single directional arrow pointing directly at that active takeaway node.";
@@ -777,7 +777,7 @@ export function cartoonExplainerDirectorBlock(options?: {
     // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
     cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
     flatBoard ? paperCutoutCameraRule(surfaceOpts) : "",
-    "On-canvas beat text (EXPLAIN THE BEAT ON THE BOARD): on-screen text is mandatory and cannot be turned off. `englishVo` is spoken ONLY by the off-screen narrator at a brisk pace — NEVER transcribe or dump the full `englishVo` paragraph onto the still. Draw (1) ONE short beat takeaway/headline inside 「」 (6–12 words / 10–20 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus (2) 4–6 short explanatory captions inside 「」 (4–10 words / 8–16 CJK characters) on the pieces they explain. Never write `Subtitle:`. Across the clip, `startScene` shows State A's elements & 「」 labels, `endScene` is the written State B landing with transformed elements & updated 「」 labels, and motion moves from the start still toward that written endScene. There is no last-frame image.",
+    "On-canvas beat text (EXPLAIN THE BEAT ON THE BOARD): on-screen text is mandatory and cannot be turned off. `englishVo` is spoken ONLY by the off-screen narrator at a brisk pace — NEVER transcribe or dump the full `englishVo` paragraph onto the still. Draw (1) ONE short beat takeaway/headline inside 「」 (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus (2) 2–3 short explanatory captions inside 「」 (3–6 words / 4–8 CJK characters) on the pieces they explain. Never write `Subtitle:`. Across the clip, `startScene` shows State A's elements & 「」 labels, `endScene` is the written State B landing with transformed elements & updated 「」 labels, and motion moves from the start still toward that written endScene. There is no last-frame image.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -841,7 +841,7 @@ export function cartoonNarratorFrameLock(
       papercraftBackdropLock(options?.backgroundId),
       dioramaCharacter,
       steady ? "Camera angle, shot size, and framing match the other still of this clip." : "",
-      "Explanatory 「」 headline and short captions (1 headline + 4–6; no voiceover transcript).",
+      "Explanatory 「」 headline and short captions (1 headline + 2–3; no voiceover transcript).",
       dioramaHook,
     ]
       .filter(Boolean)
@@ -869,7 +869,7 @@ export function cartoonNarratorFrameLock(
       : WHITEBOARD_CANVAS_LOCK;
   const silent = `${whiteboard2dRule} Silent demonstrator on every clip, including Clip 1: the character does not talk or lip-sync (lips and jaw sealed; no greeting wave; eyes and hands stay on the teaching element; never look into the lens).${actingStill}`;
   const labels =
-    "Explanatory 「」 headline and short captions (1 + 4–6; max 1 arrow; no slash strips; no voiceover transcript).";
+    "Explanatory 「」 headline and short captions (1 + 2–3; max 1 arrow; no slash strips; no voiceover transcript).";
   if (options?.hasCharacter) {
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {
@@ -1131,7 +1131,7 @@ export function papercraftDioramaDirectorBlock(options?: {
     portraitRule,
     "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed cardstock counter with a folded payment terminal printing a jagged paper receipt and a cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on the selected full-bleed cardstock background colour filling 100% of the frame, e.g. a folded cardstock envelope holding embossed paper coins and a folded certificate with a pie chart and a paper wax seal — stacked vertically in 9:16), (3) `isometric-street` (3/4 isometric miniature street of cardstock shopfronts with scalloped awnings linked by one continuous looping paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on the selected full-bleed cardstock background colour, e.g. a 3D folded cardstock balance scale weighing a stack of receipt tickets against a stack of paper coins).",
     "Each clip has two spoken beats (`startVo` + `endVo`) spoken briskly by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism from `startScene` (State A) to `endScene` (State B) on the same locked diorama camera (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, lid opening, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",
-    "On-canvas explanation: do not paste the full voiceover onto the cardstock. Each set shows ONE explanatory 「」 headline (6–12 words / 10–20 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 4–6 short 「」 captions (4–10 words / 8–16 CJK characters) that explain each prop.",
+    "On-canvas explanation: do not paste the full voiceover onto the cardstock. Each set shows ONE explanatory 「」 headline (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short 「」 captions (3–6 words / 4–8 CJK characters) that explain each prop.",
   ]
     .filter(Boolean)
     .join(" ");

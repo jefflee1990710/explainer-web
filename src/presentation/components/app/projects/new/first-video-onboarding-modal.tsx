@@ -567,10 +567,10 @@ export function FirstVideoOnboardingModal({
                   </p>
                   <p className="mt-1 text-xs text-[#5c6170]">
                     {isZhHant
-                      ? "每個分鏡都要有。畫面會用這個藝術字寫一個標題，再加幾句短說明解釋每個元件，並配上較快的旁白。畫面上的字不是整段旁白逐字稿。"
+                      ? "每個分鏡都要有。畫面會用這個藝術字寫一句較短的標題，再加兩到三句短說明解釋元件，並配上較快的旁白。畫面上的字不是整段旁白逐字稿。"
                       : isZhHans
-                        ? "每个分镜都要有。画面会用这个艺术字写一个标题，再加几句短说明解释每个元件，并配上较快的旁白。画面上的字不是整段旁白逐字稿。"
-                        : "Required on every clip. The picture shows one headline and several short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice."}
+                        ? "每个分镜都要有。画面会用这个艺术字写一句较短的标题，再加两到三句短说明解释元件，并配上较快的旁白。画面上的字不是整段旁白逐字稿。"
+                        : "Required on every clip. The picture shows one short headline and two or three short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice."}
                   </p>
                   <div className="mt-3">
                     <ExplainerArtisticFontGrid

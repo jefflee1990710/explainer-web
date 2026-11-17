@@ -86,7 +86,7 @@ test("diagram explainers stay on when the brief says none", () => {
 test("diagram explainer hint asks for explanatory 「」 captions plus a brisk off-screen voiceover", () => {
   const hint = sceneTextSkillHint(true, "en", { dualBeat: true, richExplanation: true });
   assert.match(hint, /cannot be turned off/);
-  assert.match(hint, /4–6 short captions/);
+  assert.match(hint, /2–3 short captions/);
   assert.match(hint, /BIG, BOLD HOOK TITLE/);
   assert.match(hint, /off-screen voiceover/);
   assert.doesNotMatch(hint, /Subtitle \(spell exactly\)/);

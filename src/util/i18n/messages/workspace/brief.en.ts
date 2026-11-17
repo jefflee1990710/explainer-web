@@ -168,7 +168,7 @@ export const briefEn = {
     hintDefault: "Choose whether scene images and videos allow on-screen text in this language, or None so the picture and the video have no writing (subtitles are never burned into scene images or videos).",
     explainerArtTitle: "On-screen explanation",
     explainerArtHint:
-      "Required on every clip. The picture shows one headline and several short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice.",
+      "Required on every clip. The picture shows one short headline and two or three short captions that explain each piece, in this font, plus a faster voiceover. The captions are not a transcript of the voice.",
     lookTitle: "Subtitle look",
     lookHint: "Lettering only. Where the subtitle sits depends on the director.",
     lookAria: "Subtitle look",

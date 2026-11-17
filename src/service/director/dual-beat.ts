@@ -167,13 +167,13 @@ export function dualBeatDirectorBlock(
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
     rich
-      ? "On-screen text is REQUIRED and cannot be turned off, but NEVER dump full `englishVo` sentences onto the board. `englishVo` is spoken ONLY off-screen, at a brisk pace. Every clip draws explanatory visual text inside 「」: ONE explanatory headline (6–12 words / 10–20 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 4–6 short captions (4–10 words / 8–16 CJK characters) that explain what each piece means. `startScene` stages State A's elements and those 「」 lines; `endScene` is the written State B landing with the updated 「」 lines on the same locked camera. Do not write Subtitle:. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync and no look into the lens."
+      ? "On-screen text is REQUIRED and cannot be turned off, but NEVER dump full `englishVo` sentences onto the board. `englishVo` is spoken ONLY off-screen, at a brisk pace. Every clip draws explanatory visual text inside 「」: ONE explanatory headline (4–8 words / 6–12 CJK characters; Clip 1's BIG, BOLD HOOK TITLE is that headline) plus 2–3 short captions (3–6 words / 4–8 CJK characters) that explain what each piece means. `startScene` stages State A's elements and those 「」 lines; `endScene` is the written State B landing with the updated 「」 lines on the same locked camera. Do not write Subtitle:. On every clip, including Clip 1, eyes and hands stay on the teaching element. Lips and jaw stay sealed. No lip-sync and no look into the lens."
       : sceneTextEnabled || inWorldLabels
         ? `Voiceover captions OFF: no subtitle band and no Subtitle sentence on either still; never transcribe the voiceover on canvas. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
         : "On-canvas text OFF: no writing on either still.",
     "Do not take lettering from the visual style.",
     rich
-      ? "englishVo is the brisk off-screen narration; on-canvas 「」 lines are one explanatory headline plus 4–6 short captions (never a transcript of englishVo)."
+      ? "englishVo is the brisk off-screen narration; on-canvas 「」 lines are one explanatory headline plus 2–3 short captions (never a transcript of englishVo)."
       : sceneTextEnabled || inWorldLabels
         ? "Labels must name a step, mechanism, or part of the diagram inside 「」; never transcribe the voiceover."
         : "Do not invent extra titles besides the beat voiceover.",
