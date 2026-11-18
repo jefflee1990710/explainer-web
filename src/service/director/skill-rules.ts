@@ -830,7 +830,7 @@ export function cartoonNarratorFrameLock(
       : "";
   if (canvas === "papercraft-diorama") {
     const dioramaCharacter = options?.hasCharacter
-      ? "Silent 3D folded/layered 300gsm matte cardstock miniature figurine matching the attached blueprint (lips and jaw sealed with zero lip-sync, eyes and hands interacting with the cardstock props, never looking into the lens)."
+      ? "Silent 3D folded/layered 300gsm matte cardstock miniature figurine matching the attached blueprint (lips and jaw sealed with zero lip-sync, eyes and hands interacting with the cardstock props, never looking into the lens). GROUND CONTACT: unless this Scene is a 90-degree overhead flat-lay, draw a cardstock floor that meets the backdrop at a clear horizon. The floor is part of the full-bleed set, not a letterbox bar. Both shoes rest on that floor with a contact shadow, and shopfronts, tables, and scale bases sit on the same floor. Never float the figurine in an endless backdrop. A 90-degree overhead flat-lay has no horizon: the figurine lies flat on the sheet."
       : "No human characters — pure 3D 300gsm matte cardstock miniature diorama props and sets.";
     const dioramaHook =
       options?.clipNumber === 1
@@ -943,7 +943,11 @@ export function cartoonNarratorVideoLock(
       ? "If a 3D cardstock miniature character figurine is on screen, their mouth stays softly closed with zero lip-sync while hands and gaze operate the cardstock props."
       : "Pure 3D cardstock diorama objects with no human characters.";
     const backdrop = papercraftBackdropLock(options?.backgroundId);
-    return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): only the first frame is attached. There is no last-frame image. Keep the diorama camera steady on the set. ${dioramaChar} ${backdrop} Smoothly animate each folded 300gsm cardstock mechanism, prop, and 「」 label from the first frame toward the written State B landing while keeping cardstock geometry rigid (never morph, melt, or dissolve). Keep every prop, label, and pan fully inside the frame; do not slide them off an edge.`;
+    const feetStay =
+      options?.hasCharacter
+        ? " If the figurine is standing, both feet stay planted on that floor for the whole clip; do not lift or float them. A 90-degree overhead flat-lay keeps the figurine flat on the sheet."
+        : "";
+    return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): only the first frame is attached. There is no last-frame image. Keep the diorama camera steady on the set. ${dioramaChar}${feetStay} ${backdrop} Smoothly animate each folded 300gsm cardstock mechanism, prop, and 「」 label from the first frame toward the written State B landing while keeping cardstock geometry rigid (never morph, melt, or dissolve). Keep every prop, label, and pan fully inside the frame; do not slide them off an edge.`;
   }
   const canvasVoice =
     canvas === "paper-cutout"
@@ -1125,6 +1129,10 @@ export function papercraftDioramaDirectorBlock(options?: {
   const characterRule = options?.hasCharacter
     ? "An attached cast character IS active: render them inside the diorama as a silent 3D folded/layered 300gsm matte cardstock miniature figurine matching the attached blueprint (never photorealistic skin, never a flat 2D white scissor-border cutout). Their mouth stays softly closed with zero lip-sync while they point at, hold, or operate the cardstock props and mechanisms. `characterLock` MUST name the cast and state their appearance follows the attached blueprint as a 3D matte cardstock miniature figurine."
     : "No cast character is attached: keep ZERO human characters (`characterLock` MUST be \"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets.\"). Never draw people, faces, or hands in any clip.";
+  // Standing shots need a real floor. Overhead flat-lay (Clip 2's archetype) stays flat on the sheet.
+  const groundRule = options?.hasCharacter
+    ? "GROUND CONTACT: On diorama-interior, isometric-street, and studio-scale-closeup, the figurine stands on a visible cardstock floor or tabletop that meets the backdrop at a clear horizon. The floor is part of the full-bleed set, not a letterbox bar. Both shoes touch that plane, with a contact shadow under the soles, and shopfronts, tables, and the scale base sit on the same plane. Never float the body in the backdrop colour with feet in empty space. flat-lay-top-down is the only exception: the figurine lies flat on the sheet with the paper pieces, with no standing floor and no horizon."
+    : "";
   const portraitRule =
     options?.aspectRatio === "9:16"
       ? "PORTRAIT 9:16 COMPOSITION (CRITICAL): The background sheet fills 100% of the vertical 9:16 frame edge-to-edge (NEVER place a smaller horizontal card/mat inside dark navy top-and-bottom padding bands). For `flat-lay-top-down` and multi-item comparisons, stack/arrange items VERTICALLY (top-to-bottom). IN-FRAME: every prop, label, pan, and the character stays fully inside the frame. Never crop a sign, pan, hand, or head. A wide mechanism such as a balance scale is scaled down until the whole beam, both pans, and both labels fit, with margin on the left and right."
@@ -1133,6 +1141,7 @@ export function papercraftDioramaDirectorBlock(options?: {
     "This is a 3D PAPERCRAFT DIORAMA EXPLAINER (Founder Notes style), permanently locked to the `papercraft-diorama` visual style (300gsm heavy matte textured construction paper / cardstock, scored and folded geometric 3D miniature sets and props, visible paper fiber grain, crisp folded bevel edges, soft tabletop studio lighting with shallow macro depth-of-field, and a curated Wes Anderson craft palette of deep cobalt/navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory).",
     backdrop,
     `${characterRule} Strictly NO 2D white scissor borders.`,
+    groundRule,
     portraitRule,
     "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed cardstock counter with a folded payment terminal printing a jagged paper receipt and a cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on the selected full-bleed cardstock background colour filling 100% of the frame, e.g. a folded cardstock envelope holding embossed paper coins and a folded certificate with a pie chart and a paper wax seal — stacked vertically in 9:16), (3) `isometric-street` (3/4 isometric miniature street of cardstock shopfronts with scalloped awnings linked by one continuous looping paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on the selected full-bleed cardstock background colour, e.g. a 3D folded cardstock balance scale scaled so the whole beam, both pans, and both labels sit fully inside the frame).",
     "Each clip has two spoken beats (`startVo` + `endVo`) spoken briskly by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism from `startScene` (State A) to `endScene` (State B) on the same locked diorama camera (paper receipt ribbon feeding and unrolling, embossed paper coins sliding into an envelope, lid opening, or a cardstock balance scale tipping and settling with physical weight) — cardstock pieces stay rigid and never morph, melt, or dissolve.",

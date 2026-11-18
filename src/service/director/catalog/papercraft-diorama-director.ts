@@ -43,6 +43,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 - **Strictly NO 2D white scissor borders**: Unlike flat magazine cutouts, these are 3D folded cardstock architectural models and tactile tabletop paper objects.
 - **Optional Character Lock (0 or 1 character)**:
   - **When a character reference / blueprint IS attached**: render that character inside the diorama as a **3D folded/layered 300gsm matte cardstock miniature figurine** matching the blueprint's exact face, hair, and outfit (never photorealistic human skin, never a flat 2D white-bordered cutout). The character stays silent with lips softly closed and zero lip-sync while physically pointing at, holding, or operating the cardstock props and mechanisms. \`characterLock\` MUST name the cast and state their appearance follows the attached blueprint as a 3D matte cardstock miniature figurine.
+  - **Ground contact**: On \`diorama-interior\`, \`isometric-street\`, and \`studio-scale-closeup\`, the figurine stands on a visible cardstock floor or tabletop that meets the backdrop at a clear horizon. The floor is part of the full-bleed set, not a letterbox bar. Both shoes touch that plane, with a contact shadow under the soles. Shopfronts, tables, and the scale base sit on the same plane. Never float the body in the backdrop colour with feet in empty space. \`flat-lay-top-down\` is the only exception: the figurine lies flat on the sheet with the paper pieces, with no standing floor and no horizon.
   - **When NO character is attached**: keep **ZERO human characters** — never draw people, faces, hands, or cartoon hosts in any clip, and \`characterLock\` MUST state: \`"No on-screen characters — pure 3D cardstock diorama objects and miniature architectural sets."\`.
 - **Curated editorial cardstock palette**: Deep cobalt & navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper. These colours are for props and accents.
 - **Selected background colour**: the full-bleed sheet behind every set is the cardstock colour the user picked at creation. Every clip shares that one sheet. Do not invent a second backdrop colour.
@@ -82,6 +83,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 
 - Each clip row defines \`startScene\`, \`endScene\`, \`startVo\`, \`endVo\`, and \`motionCamera\`.
 - \`startScene\` and \`endScene\` share the same cardstock diorama set and camera angle for that clip, describing the physical before-and-after state of the cardstock mechanism (e.g. receipt strip half-printed vs. fully extended; balance scale tipping vs. settled).
+- On every archetype except \`flat-lay-top-down\`, plant both of the figurine's shoes on a visible cardstock floor the set shares, with a horizon and a contact shadow. \`flat-lay-top-down\` lays the figurine flat on the sheet, with no standing floor.
 `,
     },
     {
@@ -91,7 +93,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 Write one concise, visual-only motion prompt per clip (350–800 characters, max 1,000 characters):
 
 1. Dual keyframes attached: START frame (State A) is attached as \`first_frame\` and END frame (State B) is attached as \`last_frame\`. Voiceover is muxed externally — do NOT include voice locks, spoken dialogue, BGM, or SFX lines.
-2. Camera & character (1 short clause): keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock character figurine is in frame, keep lips closed (zero lip-sync) while hands and gaze interact with the cardstock props.
+2. Camera & character (1 short clause): keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock character figurine is in frame, keep lips closed (zero lip-sync) while hands and gaze interact with the cardstock props. On a standing shot both feet stay planted on the floor; do not float the figurine. A 90-degree overhead flat-lay keeps the figurine flat on the sheet.
 3. Element-by-element motion (State A -> State B): across timed beats, describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze smoothly moves from its START frame state to its END frame state (receipt ribbon feeding, coins sliding into envelope, lid opening, scale tipping and settling). Rigid 300gsm cardstock never morphs, melts, or dissolves.
 `,
     },

@@ -321,6 +321,15 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   });
   assert.match(mustard, /warm mustard yellow 300gsm matte cardstock sheet/);
 
+  const standingFrame = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 3,
+    position: "start",
+  });
+  assert.match(standingFrame, /GROUND CONTACT/);
+  assert.match(standingFrame, /90-degree overhead flat-lay/);
+  assert.match(standingFrame, /contact shadow/);
+
   const frame = cartoonNarratorFrameLock(PAPERCRAFT_DIORAMA_EXPLAINER_SKILL_SLUG, {
     hasCharacter: false,
     clipNumber: 2,

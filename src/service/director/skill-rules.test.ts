@@ -525,6 +525,9 @@ test("Q&A director requires exactly two characters", () => {
   assert.match(papercraftDioramaDirectorBlock(), /300gsm/i);
   assert.match(papercraftDioramaDirectorBlock({ hasCharacter: false }), /ZERO human characters/i);
   assert.match(papercraftDioramaDirectorBlock({ hasCharacter: true }), /3D folded\/layered 300gsm matte cardstock miniature figurine/i);
+  assert.match(papercraftDioramaDirectorBlock({ hasCharacter: true }), /GROUND CONTACT/);
+  assert.match(papercraftDioramaDirectorBlock({ hasCharacter: true }), /flat-lay-top-down is the only exception/);
+  assert.doesNotMatch(papercraftDioramaDirectorBlock({ hasCharacter: false }), /GROUND CONTACT/);
   assert.match(briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: [] }) || "", /2/);
   assert.equal(
     briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: ["a", "b"] }),

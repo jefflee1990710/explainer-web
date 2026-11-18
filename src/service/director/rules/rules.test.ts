@@ -186,6 +186,22 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
     papercraftRules.phaseADirectorBlock({ hasCharacter: true }),
     /3D folded\/layered 300gsm matte cardstock miniature figurine/i,
   );
+  assert.match(
+    papercraftRules.phaseADirectorBlock({ hasCharacter: true }),
+    /GROUND CONTACT/,
+  );
+  assert.match(
+    papercraftRules.phaseADirectorBlock({ hasCharacter: true }),
+    /flat-lay-top-down is the only exception/,
+  );
+  assert.doesNotMatch(
+    papercraftRules.phaseADirectorBlock({ hasCharacter: false }),
+    /GROUND CONTACT/,
+  );
+  assert.match(
+    papercraftRules.phaseASceneDetailBlock({ hasCharacter: true }),
+    /both feet stand on a visible cardstock floor/,
+  );
   const verticalPapercraft = papercraftRules.phaseADirectorBlock({
     hasCharacter: false,
     aspectRatio: "9:16",
@@ -201,6 +217,7 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(papercraftRules.phaseBDetailRules({}), /written endScene/i);
   assert.match(papercraftRules.phaseBMotionRules({}), /There is no end image and no last frame/);
   assert.match(papercraftRules.phaseBMotionRules({}), /diorama camera/i);
+  assert.match(papercraftRules.phaseBMotionRules({}), /both feet stay planted on the floor/);
   assert.doesNotMatch(papercraftRules.phaseBMotionRules({}), /first\/last frames/);
 });
 
