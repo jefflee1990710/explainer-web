@@ -425,6 +425,9 @@ test("papercraft diorama 9:16 stills enforce full-bleed cardstock without paddin
 
   const start = buildFramePrompt(diorama, 1, "start");
   assert.match(start, /Full-bleed 3D cardstock scene/);
+  assert.match(start, /TEXT LAYOUT/);
+  assert.match(start, /around the center of the frame/);
+  assert.doesNotMatch(start, /taped banner strip/);
   assert.doesNotMatch(start, /BACKGROUND COLOR LOCK/);
   diorama.directorBackgroundId = "terracotta";
   const colored = buildFramePrompt(diorama, 1, "start");

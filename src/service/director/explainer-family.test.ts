@@ -122,6 +122,8 @@ test("explainer hook title sits slightly above center on a bordered plate, not p
   });
   assert.match(papercraftStill, /42–46% from the top/);
   assert.match(papercraftStill, /thick solid border/);
+  assert.match(papercraftStill, /TEXT LAYOUT/);
+  assert.match(papercraftStill, /around the center of the frame/);
   assert.doesNotMatch(papercraftStill, /35–45%/);
 
   for (const slug of [
@@ -137,6 +139,10 @@ test("explainer hook title sits slightly above center on a bordered plate, not p
     assert.match(detail, /vertical center, shifted slightly upward/);
     assert.match(detail, /never pin it to the top edge/);
     assert.match(detail, /exactly ONE on-screen text/);
+    if (slug === "papercraft-diorama-director") {
+      assert.match(detail, /TEXT LAYOUT/);
+      assert.match(detail, /畫面中央/);
+    }
   }
 });
 
@@ -337,6 +343,8 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   });
   assert.match(frame, /3D Papercraft Diorama lock/);
   assert.match(frame, /IN-FRAME/);
+  assert.match(frame, /TEXT LAYOUT/);
+  assert.match(frame, /around the center of the frame/);
   assert.match(frame, /both pans fit/);
   assert.match(frame, /NO dark\/navy top-and-bottom padding bands/);
   assert.doesNotMatch(frame, /BACKGROUND COLOR LOCK/);
@@ -355,5 +363,6 @@ test("papercraft-diorama-director belongs to the diagram explainer family with 3
   });
   assert.match(tealVideo, /deep teal 300gsm matte cardstock sheet/);
   assert.match(tealVideo, /fully inside the frame/);
+  assert.match(tealVideo, /center cluster/);
 });
 

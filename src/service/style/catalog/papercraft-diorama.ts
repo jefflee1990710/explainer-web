@@ -12,21 +12,21 @@ export const papercraftDioramaStyle: IStyle = {
   palette:
     "curated editorial craft cardstock palette: deep cobalt and navy blue, warm mustard yellow, terracotta coral red, deep teal, and warm cream/ivory paper",
   typography:
-    "bold dark-navy editorial serif or clean geometric sans printed on a torn-edge warm cream cardstock banner strip taped at the top corners with small kraft masking-tape tabs, plus a small burnt-orange cardstock tag strip for beat labels",
+    "bold dark-navy editorial serif or clean geometric sans printed on a torn-edge warm cream cardstock strip, with small kraft tape tabs on the strip itself, plus a small burnt-orange cardstock tag for a nearby prop. The strip floats in the center of the frame, clear of every edge",
   motion:
     "fast tactile papercraft: each ribbon feed, coin slide, lid open, and scale tip finishes in under 0.6 seconds, then holds. Folded cardstock stays rigid and never morphs, melts, or dissolves. Do not stretch one move slowly across the clip",
   negatives:
     "white scissor cutout borders, flat 2D magazine photo collage, photorealistic human skin, plastic or glossy 3D CGI, neon cyberpunk, marker whiteboard doodles, chalkboard, watercolor washes, morphing shapes",
   letteringLayout:
-    "Layout: place the main chapter banner near the upper safe zone (16%–24% of frame height) on a torn-edge cream cardstock strip taped at both top corners, and keep beat tags on a small burnt-orange cardstock strip above the lower third.",
+    "Layout: cluster the main title and captions around the center of the frame with the teaching prop. The main title is horizontally centered, slightly above the vertical center, on a torn-edge cream cardstock strip that is narrower than the frame. Visible background stays above the strip and on both sides. Captions sit beside the prop in that same cluster. Never glue the strip to an edge and never crop a glyph.",
   letteringLine1:
     "Line 1 is bold dark-navy editorial display type printed on a torn-edge warm cream cardstock strip with two angled kraft tape tabs at the top corners.",
   letteringLine2:
     "When a beat tag exists, set it in crisp cream serif type on a small rectangular burnt-orange cardstock tag strip.",
   beatTitleLayout:
-    "Place a short chapter or beat title on a torn-edge warm cream cardstock banner strip near the upper safe zone (16%–24% of frame height) with two small angled kraft masking-tape tabs on the top corners.",
+    "Place the short chapter title on a torn-edge warm cream cardstock strip in the center of the frame, slightly above the vertical center. Kraft tape tabs stick to the strip itself. Do not pin the strip to the top edge.",
   reelLayout:
-    "Layout: vertical reel safe zone. Keep the top cardstock banner below the top 14% and the burnt-orange subtitle band above the bottom 18% so app chrome never covers the papercraft scene.",
+    "Layout: vertical reel. The cardstock background fills the frame edge to edge. Every title and caption stays in the central cluster, with background visible above, below, and on both sides.",
   previewUrl: "/hero/styles/papercraft-diorama-preview.webp",
   previewFullUrl: "/hero/styles/papercraft-diorama.webp",
   behavior: {

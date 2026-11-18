@@ -99,6 +99,10 @@ export const PAPER_CUTOUT_FULL_BLEED =
 export const PAPERCRAFT_DIORAMA_FULL_BLEED =
   "Full-bleed 3D cardstock scene: the background cardstock sheet or miniature diorama environment fills 100% of the frame edge-to-edge from the very top edge to the very bottom edge. Strictly NO smaller horizontal card/mat floating inside solid navy/dark/white top-and-bottom padding bands, and NO letterbox bars.";
 
+// Still layout for papercraft explainer frames. Background may bleed; the writing stays in the middle.
+export const PAPERCRAFT_TEXT_LAYOUT =
+  "TEXT LAYOUT (higher priority than the Scene): cluster every 「」 title, headline, and caption around the center of the frame with the teaching prop. Visible cardstock background stays above the highest strip, below the lowest strip, and on both sides of every strip. The main title is large and horizontally centered, slightly above the vertical center, and narrower than the frame. Short captions sit beside the prop in that same central cluster. No strip touches the top, bottom, left, or right edge, and no glyph is cropped. Ignore Scene words that pin text to an edge, including 上方, 頂部, top, or a header bar.";
+
 export const VERTICAL_FRAME_SAFE_AREA =
   "9:16 IG Reel safe area: the photograph or scene must fill 100% of the 9:16 vertical frame edge-to-edge from the very top edge to the very bottom edge (strictly NO top or bottom letterbox bars, NO solid colored/navy/black/white/grey padding bands, NO horizontal inner card or floating mat, and NO square/4:5 inner frame). Arrange multi-item scenes vertically for 9:16 portrait framing, keeping text, characters, or the main subject focal points in the middle 60% vertical safe zone while the background surface/set extends uninterrupted to all four edges.";
 
@@ -845,6 +849,7 @@ export function cartoonNarratorFrameLock(
         ? "Clip 1 on-canvas text: ONE hook title only. No extra captions, labels, or stickers."
         : "Explanatory 「」 headline and short captions (1 headline + 2–3; no voiceover transcript).",
       "IN-FRAME: every prop, label, pan, and the character is fully inside the frame. Never crop a sign, pan, hand, or head. On 9:16, shrink a wide scale until both pans fit.",
+      PAPERCRAFT_TEXT_LAYOUT,
       dioramaHook,
     ]
       .filter(Boolean)
@@ -947,7 +952,7 @@ export function cartoonNarratorVideoLock(
       options?.hasCharacter
         ? " If the figurine is standing, both feet stay planted on that floor for the whole clip; do not lift or float them. A 90-degree overhead flat-lay keeps the figurine flat on the sheet."
         : "";
-    return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): only the first frame is attached. There is no last-frame image. Keep the diorama camera steady on the set. ${dioramaChar}${feetStay} ${backdrop} FAST PACING: each folded 300gsm cardstock mechanism, prop, and 「」 label move finishes in under 0.6 seconds on the way from the first frame toward the written State B landing, then the next beat starts at once. Do not stretch one glide across the clip. Cardstock geometry stays rigid (never morph, melt, or dissolve). Keep every prop, label, and pan fully inside the frame; do not slide them off an edge.`;
+    return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): only the first frame is attached. There is no last-frame image. Keep the diorama camera steady on the set. ${dioramaChar}${feetStay} ${backdrop} FAST PACING: each folded 300gsm cardstock mechanism, prop, and 「」 label move finishes in under 0.6 seconds on the way from the first frame toward the written State B landing, then the next beat starts at once. Do not stretch one glide across the clip. Cardstock geometry stays rigid (never morph, melt, or dissolve). Keep every prop, label, and pan fully inside the frame; do not slide them off an edge. Keep every 「」 strip in the center cluster from the first frame; do not park a label against an edge.`;
   }
   const canvasVoice =
     canvas === "paper-cutout"
@@ -1146,6 +1151,8 @@ export function papercraftDioramaDirectorBlock(options?: {
     "Stage each clip around one concrete 3D cardstock metaphor set and alternate across 4 Diorama Set Archetypes so neighbouring clips never share the same camera angle: (1) `diorama-interior` (eye-level or slight 3/4 miniature interior, e.g. a ribbed cardstock counter with a folded payment terminal printing a jagged paper receipt and a cardstock chair), (2) `flat-lay-top-down` (90-degree overhead flat-lay on the selected full-bleed cardstock background colour filling 100% of the frame, e.g. a folded cardstock envelope holding embossed paper coins and a folded certificate with a pie chart and a paper wax seal — stacked vertically in 9:16), (3) `isometric-street` (3/4 isometric miniature street of cardstock shopfronts with scalloped awnings linked by one continuous looping paper receipt ribbon), and (4) `studio-scale-closeup` (straight-on studio hero object on the selected full-bleed cardstock background colour, e.g. a 3D folded cardstock balance scale scaled so the whole beam, both pans, and both labels sit fully inside the frame).",
     "Each clip has two spoken beats (`startVo` + `endVo`) spoken briskly by an unseen off-screen narrator, and `motionCamera` animates one physical papercraft mechanism from `startScene` (State A) to `endScene` (State B) on the same locked diorama camera. FAST PACING: each ribbon feed, coin slide, lid open, or scale tip finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Cardstock pieces stay rigid and never morph, melt, or dissolve.",
     "On-canvas explanation: do not paste the full voiceover onto the cardstock. Clip 1 shows exactly ONE on-screen text, the BIG, BOLD HOOK TITLE, and no other captions, so the viewer focuses on that title; one hero prop is enough. Clips 2+ may show more props, each with ONE explanatory 「」 headline (4–8 words / 6–12 CJK characters) plus 2–3 short 「」 captions (3–6 words / 4–8 CJK characters). Clip 1's hook title is always horizontally centered and sits on the vertical center, shifted slightly upward.",
+    PAPERCRAFT_TEXT_LAYOUT,
+    "In every startScene, write that center placement (for example 畫面中央，標題與標籤聚在主體四周). Never write 上方, 頂部, a top banner, or tape on the frame corners.",
   ]
     .filter(Boolean)
     .join(" ");

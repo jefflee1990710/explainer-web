@@ -56,7 +56,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
   - Every clip's cardstock backdrop or diorama environment MUST fill **100% of the frame edge-to-edge** from top to bottom and left to right — NEVER place a smaller horizontal mat/card floating inside dark navy or solid-color top-and-bottom padding bands.
   - When \`aspectRatio\` is \`9:16\` (vertical portrait), compose \`flat-lay-top-down\` and multi-item comparisons **vertically (top-to-bottom / upper vs lower)**. The background fills the edges, but every prop, label, pan, and the character stays fully inside the frame. Never crop a sign, pan, hand, or head. A wide mechanism such as a balance scale is scaled down until both pans and both labels fit, with margin on the left and right.
 - **Chapter Banner & Beat Tag**:
-  - When on-screen text or in-world labels are enabled, each clip's \`startScene\` may include one short chapter title inside 「...」 (2–4 words, e.g. 「One Paying Customer」, 「Venture-Backed」, 「One Product, More Shops」, 「Does It Scale?」) printed on a torn-edge warm cream cardstock banner strip taped at the top corners with two small kraft masking-tape tabs. Never write full voiceover sentences on the scene.
+  - When on-screen text or in-world labels are enabled, each clip's \`startScene\` places its 「...」 title and captions in the center of the frame, clustered with the teaching prop (for example 畫面中央，標題與標籤聚在主體四周). The main title is a torn-edge warm cream cardstock strip, horizontally centered and slightly above the vertical center, narrower than the frame, with visible background above it and on both sides. Short captions sit beside the prop in that same cluster. Kraft tape tabs, if any, stick to the strip itself, never to the frame edge. Never write 上方, 頂部, a top banner, or a strip taped to the frame corners. Never write full voiceover sentences on the scene.
 
 ## Dual-Beat Rhythm & Tactile Mechanics
 
@@ -104,7 +104,7 @@ Write one concise, visual-only motion prompt per clip (350–800 characters, max
     structure:
       "Each clip is 5–12 seconds with two spoken beats (startVo + endVo) and one distinct 3D cardstock diorama set (4 clips for ~28–35s, 6–8 clips for 50–60s).",
     hook:
-      "Opens on a concrete, tactile 3D cardstock miniature scene (such as a folded red cardstock terminal printing a paper receipt inside a miniature shop) with a taped torn-paper chapter banner at the top.",
+      "Opens on a concrete, tactile 3D cardstock miniature scene (such as a folded red cardstock terminal printing a paper receipt inside a miniature shop) with the chapter title on a torn-paper strip in the center of the frame, clear of every edge.",
     arc:
       "Builds from a single unit example (Clip 1 interior diorama) → capital or mechanism (Clip 2 overhead flat-lay envelope & chart) → replication at scale (Clip 3 isometric street of multiple shops) → final trade-off or payoff (Clip 4 cardstock balance scale).",
     narrator:

@@ -1,7 +1,7 @@
 // ISOLATED DIRECTOR RULES: 1 Director = 1 File. Do NOT share or import prompt rules from other directors. Modify only this file when tuning this director.
 
 import type { DirectorRuleModule } from "@/service/director/rules/types";
-import { papercraftDioramaDirectorBlock } from "@/service/director/skill-rules";
+import { PAPERCRAFT_TEXT_LAYOUT, papercraftDioramaDirectorBlock } from "@/service/director/skill-rules";
 import {
   REALISTIC_LIGHT_DIRECTOR_RULE,
 } from "@/service/style/realistic-light";
@@ -25,6 +25,8 @@ export const papercraftDioramaDirectorRules: DirectorRuleModule = {
       ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
       "motionCamera describes the physical papercraft mechanism animating from the start still (startScene) toward the written landing (endScene) in short fast beats (e.g. 0.0–0.6s …; 0.6–1.2s …). Each move finishes in under 0.6 seconds. Do not write a slow glide. endScene is not a generated still.",
       "On-canvas explanation: the unseen narrator speaks briskly and is never pasted as a full paragraph onto the set. Clip 1 shows exactly ONE on-screen text, the BIG, BOLD HOOK TITLE (4–8 English words / 6–12 CJK characters), and no other captions, so the viewer focuses on that title; one hero prop is enough. Clips 2+ may show more props: ONE explanatory 「」 headline (4–8 English words / 6–12 CJK characters) plus 2–3 short cardstock captions inside 「」 (3–6 words / 4–8 CJK characters) that explain each prop. Clip 1's hook title is always horizontally centered and sits on the vertical center, shifted slightly upward; hold that spot for the first 3 seconds and never pin it to the top edge. In-frame lock: every cardstock prop, 「」 label, pan, and the character stays fully inside the frame. Never crop a sign, pan, hand, or head off any edge. On 9:16, shrink a wide mechanism such as a balance scale until both pans and both labels fit; the background sheet still fills the frame. Lips stay closed.",
+      PAPERCRAFT_TEXT_LAYOUT,
+      "In every startScene, write that center placement (for example 畫面中央，標題與標籤聚在主體四周). Never write 上方, 頂部, a top banner, or tape on the frame corners.",
     ].join(" ");
   },
   phaseAKeyframeDeltaBlock() {

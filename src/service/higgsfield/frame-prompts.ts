@@ -69,6 +69,7 @@ import {
   isBookendSkill,
   PAPER_CUTOUT_FULL_BLEED,
   PAPERCRAFT_DIORAMA_FULL_BLEED,
+  PAPERCRAFT_TEXT_LAYOUT,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
   isOutfitChangeSkill,
@@ -200,7 +201,7 @@ function compositionLockLines(
         `COMPOSITION LOCK: ${source}.`,
         "Keep the same 3D miniature cardstock diorama set, tabletop camera angle, shot size, crop, lighting, and any character figurine scale and position. No zoom, no reframe, no new angle, and NO solid dark/navy padding bars.",
         "Transform ONLY the cardstock props/mechanisms and character figurine acting from State A (this attached START frame) to State B (the Scene above): update the moved/unfolded/opened/tipped cardstock elements along with the exact concise 「」 labels named in the Scene.",
-        "STAGE LOCK: keep the diorama table/wall backdrop, taped banner strip, and fixed structural set pieces in place; only the moving cardstock elements and active 「」 labels change.",
+        "STAGE LOCK: keep the diorama table/wall backdrop and the center title strip in place. Do not move that strip to an edge. Only the moving cardstock elements and active 「」 labels change.",
       ];
     }
     return [
@@ -1249,7 +1250,7 @@ export function buildFramePrompt(
       : style.id === "papercraft-diorama" ||
           ("baseStyleId" in style && style.baseStyleId === "papercraft-diorama") ||
           explainerCanvasKind(project.skillSlug) === "papercraft-diorama"
-        ? [PAPERCRAFT_DIORAMA_FULL_BLEED]
+        ? [PAPERCRAFT_DIORAMA_FULL_BLEED, PAPERCRAFT_TEXT_LAYOUT]
         : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
