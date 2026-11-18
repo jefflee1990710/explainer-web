@@ -62,7 +62,7 @@ Turn one source into a confirmed director's proposal (Phase A) and standalone pe
 
 - **Dual-Beat Cause-and-Effect Transformation**: Every clip has two spoken beats (\`startVo\` for Beat 1, \`endVo\` for Beat 2) spoken by a calm, clear unseen off-screen narrator, staging one clear physical state transformation (\`State A: ❌ bottleneck / problem / unit input\` → \`tactile cardstock mechanism\` → \`State B: ✅ unlocked scale / payoff / output\`) so a viewer with sound off immediately grasps the cause-and-effect logic.
 - **Concrete Physical Metaphors & Single Hero Accent**: Never use plain flat text cards to explain an idea; represent every concept as a concrete 3D folded cardstock object showing its physical state (e.g. a jammed vs flowing receipt printer, a tipping vs balanced scale, an empty vs coin-filled envelope), with 70–80% of supporting set pieces in calm navy/teal/cream tones and the single active takeaway object highlighted in warm mustard yellow or terracotta coral red at 1.5x focal prominence.
-- \`motionCamera\` animates one physical papercraft mechanism across the clip: a jagged paper receipt ribbon feeding upward out of a cardstock slot, embossed gold paper coins sliding into a cardstock envelope while a pie-chart wedge settles, a continuous paper ribbon looping across multiple miniature shopfronts, or a folded gold cardstock balance scale tipping and settling with physical weight. Cardstock pieces stay rigid and never morph, melt, or dissolve.
+- \`motionCamera\` animates one physical papercraft mechanism across the clip at a fast pace: each ribbon feed, coin slide, lid open, or scale tip finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Cardstock pieces stay rigid and never morph, melt, or dissolve.
 `,
   references: [
     {
@@ -94,7 +94,7 @@ Write one concise, visual-only motion prompt per clip (350–800 characters, max
 
 1. Dual keyframes attached: START frame (State A) is attached as \`first_frame\` and END frame (State B) is attached as \`last_frame\`. Voiceover is muxed externally — do NOT include voice locks, spoken dialogue, BGM, or SFX lines.
 2. Camera & character (1 short clause): keep the diorama camera steady on the cardstock set matching both frames (no jump cut). If a 3D cardstock character figurine is in frame, keep lips closed (zero lip-sync) while hands and gaze interact with the cardstock props. On a standing shot both feet stay planted on the floor; do not float the figurine. A 90-degree overhead flat-lay keeps the figurine flat on the sheet.
-3. Element-by-element motion (State A -> State B): across timed beats, describe how each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze smoothly moves from its START frame state to its END frame state (receipt ribbon feeding, coins sliding into envelope, lid opening, scale tipping and settling). Rigid 300gsm cardstock never morphs, melts, or dissolves.
+3. Element-by-element motion (State A -> State B): each 3D folded cardstock prop, mechanism, label, and optional figurine hand/gaze move finishes in under 0.6 seconds on the way from the start still toward the written endScene (ribbon feeding, coins sliding, lid opening, scale tipping). Do not stretch one glide across the clip. Rigid 300gsm cardstock never morphs, melts, or dissolves.
 `,
     },
   ],

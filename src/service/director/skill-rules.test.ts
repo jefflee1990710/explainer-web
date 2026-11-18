@@ -368,7 +368,7 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
     clipNumber: 2,
     smoothMotion: true,
   });
-  assert.match(smoothVideo, /accelerate rapidly through the physical state change, then decelerate into a clean settle/);
+  assert.match(smoothVideo, /each piece and pointing gesture finishes in under 0\.6 seconds/);
   assert.match(smoothVideo, /There is no last-frame image/);
   assert.match(smoothVideo, /written State B/);
   assert.match(smoothVideo, /flip briskly through their edge/);
@@ -380,7 +380,7 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
     clipNumber: 1,
     smoothMotion: true,
   });
-  assert.match(smoothHook, /accelerating rapidly at 2x–3x speed/);
+  assert.match(smoothHook, /each move finishes in under 0\.6 seconds/);
   assert.doesNotMatch(smoothHook, /no slow glide/);
   const doodle = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
     hasCharacter: true,
@@ -391,7 +391,7 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
   assert.match(doodle, /never one constant slow glide/i);
   assert.doesNotMatch(doodle, /accelerate rapidly through the physical state change/);
   const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
-  assert.match(block, /SPEED-RAMPING/);
+  assert.match(block, /FAST PACING/);
   assert.doesNotMatch(block, /three beats/);
   assert.doesNotMatch(block, /Never describe the body as moving smoothly/);
   assert.doesNotMatch(block, /no slow glide/);
@@ -431,7 +431,7 @@ test("Cinematic realistic locks the camera and forbids spoken subtitles on still
   });
   assert.match(video, /There is no last-frame image/);
   assert.match(video, /written State B/);
-  assert.match(video, /slide briskly in\/out/);
+  assert.match(video, /slide in\/out/);
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {

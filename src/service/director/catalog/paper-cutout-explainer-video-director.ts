@@ -73,8 +73,8 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 ## Output rules
 
 - Each clip is 5–12 seconds from its spoken line (about 2.4 English words per second). A short line stays 5 seconds at medium pace (~2.5 words/s).
-- Smooth, Fluid Speed-Ramped Pacing (Every 1.0–1.5s): direct all character gestures and cutout transitions with smooth, fluid speed-ramping (0.2s smooth anticipation → 0.3s–0.4s fluid 2x–3x acceleration → smooth eased deceleration into a steady landing; zero sudden snaps, zero jerks, zero dead holds). Break each 5–6s clip into 3–4 continuous micro-beats (e.g. 0.0–1.2s, 1.2–2.5s, 2.5–4.0s, 4.0–5.5s) where cutout pieces glide/slide briskly in and out (快速滑入／滑出), unfold flat smoothly in under 0.5s (流暢摺開), tear/peel open cleanly (撕開), draw arrows/lines/circles smoothly stroke-by-stroke (畫出), flip smoothly along their edge (翻轉), or settle into place while the character smoothly glides their hand to point from Focus Point 1 → Focus Point 2 → Focus Point 3.
-- Clip 1 stacks at least 2 hook types with a 100% locked stationary square-on camera (NO zoom-in, NO push-in, NO pull-out, NO orbit, NO jump cut) — driving retention through immediate smooth speed-ramped cutout transitions and fluid presenter pointing in the first 0–2s. Later clips keep the same locked square-on camera.
+- Fast pacing (each move under 0.6s): direct every gesture and cutout transition to finish in under 0.6 seconds, then start the next beat at once (e.g. 0.0–0.6s, 0.6–1.2s, 1.2–1.8s, 1.8–2.4s). Cutout pieces slide in and out (快速滑入／滑出), unfold (摺開), tear open (撕開), draw stroke-by-stroke (畫出), or flip along their edge (翻轉) while the character points quickly from Focus Point 1 → Focus Point 2 → Focus Point 3. Do not stretch one glide across the clip.
+- Clip 1 stacks at least 2 hook types with a 100% locked stationary square-on camera (NO zoom-in, NO push-in, NO pull-out, NO orbit, NO jump cut) — driving retention through fast cutout moves in the first 0.6s. Later clips keep the same locked square-on camera.
 - Delayed payoff: do not reveal the core punchline in the opening clip.
 - Always narrated: an unseen off-screen narrator speaks every line in the third person. On screen the character never speaks and never lip-syncs. No first-person character intros.
 - Content-driven acting: the character's facial expression and body language act out the emotion of that clip's spoken line (exciting line → bright eyes, lifted brows, closed-lip smile, energetic open arms; problem → knitted brows, tense or slumped shoulders; reveal → raised brows, leaning in; payoff → proud closed-lip smile, confident stance), and the gaze and hands direct attention to the teaching cutout the narrator is naming at that moment. Name the emotion in each still's Character line and in every motionCamera beat. Never repeat the previous clip's expression.
@@ -124,11 +124,11 @@ Narrator is always unseen third-person off-screen. Character is a silent paper d
 
 | Clip # & Time | Narrative job | Explainer scene | Motion, camera & transition | VO | Reference | BGM / SFX |
 
-Every row: timed beats; 2-second visual rule; explanation collage as spine; at least four cutout teaching elements paste / slide / flip / stack. When a character is on, one primary action from the director list; start/end are before/after of that action.
+Every row: fast beats under 0.6 seconds; explanation collage as spine; at least four cutout teaching elements paste / slide / flip / stack. When a character is on, one primary action from the director list; start/end are before/after of that action.
 
 ## Scene detail
 
-Write startScene / endScene as: Character → Set (collage graph + cutouts) → Light → Camera. In Set, number at least four teaching cutouts: what each piece is, which part of the concept it explains, and where it sits. Never restate wardrobe appearance (follows character lock). In motionCamera, keep the camera 100% locked and stationary (NO zoom-in, NO push-in, NO pan, NO jump cut) and give each of those cutouts its own smooth speed-ramped timed beat (變速: 0.2s smooth anticipation → 0.3s–0.4s fluid 2x–3x slide 滑入／滑出, smooth unfold 摺開, clean tear-open 撕開, smooth stroke-by-stroke draw-on 畫出, or smooth flip 翻轉 → smooth eased settle) while the character smoothly glides their hand with speed-ramping to point at that focus point.
+Write startScene / endScene as: Character → Set (collage graph + cutouts) → Light → Camera. In Set, number at least four teaching cutouts: what each piece is, which part of the concept it explains, and where it sits. Never restate wardrobe appearance (follows character lock). In motionCamera, keep the camera 100% locked and stationary (NO zoom-in, NO push-in, NO pan, NO jump cut) and give each cutout its own fast beat that finishes in under 0.6 seconds (slide 滑入／滑出, unfold 摺開, tear-open 撕開, draw-on 畫出, or flip 翻轉) while the character points quickly at that focus point. Do not write a slow glide.
 
 ## Confirmation
 
@@ -144,21 +144,21 @@ Use only after Phase A approval. One self-contained prompt per clip.
 ## Prompt order
 
 1. Output: 5–12s from the spoken line, aspect ratio, 720p, 24 FPS, synced audio
-2. Collage lock: dark warm-brown vertically-grained wooden craft board (identical wood-grain surface in every clip; no grid mat or tiles), thick white scissor borders on every piece, colour hero on mono/kraft background layers, soft shadows, smooth fluid craft motion with continuous frames
+2. Collage lock: dark warm-brown vertically-grained wooden craft board (identical wood-grain surface in every clip; no grid mat or tiles), thick white scissor borders on every piece, colour hero on mono/kraft background layers, soft shadows, fast craft motion with each move finishing in under 0.6 seconds
 3. Character lock: colour paper cutout following the guideline (or locked host); silent, closed mouth
 4. Palette in ordinary colour names
 5. Composition for the ratio
 6. First-frame state inherited from previous clip
-7. Timed speed-ramped beats (變速): keep the camera 100% locked and stationary on tripod (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO pan, ZERO focal-length change). Every 1.0–1.5s, a teaching cutout executes a smooth, fluid speed-ramped transition (0.2s smooth anticipation → 0.3s–0.4s fluid 2x–3x slide in/out, smooth unfold 摺開, clean tear/peel open 撕開, smooth stroke-by-stroke draw-on 畫出, or smooth flip 翻轉 → smooth eased settle; zero sudden snaps or jerks) while the character smoothly glides their arm/finger with speed-ramped ease-in-out to point directly at that focus point
+7. Fast beats: keep the camera 100% locked and stationary on tripod (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO pan, ZERO focal-length change). Each teaching cutout move finishes in under 0.6 seconds (slide in/out, unfold 摺開, tear/peel open 撕開, stroke-by-stroke draw-on 畫出, or flip 翻轉), then the next beat starts at once, while the character points quickly at that focus point. Do not stretch one glide across the clip.
 8. Exact audio-only dialogue once
 9. Identical narrator description
 10. No BGM in the prompt — short SFX only (paper slide, slap, pop)
 11. Final-frame handoff or resting payoff
-12. Negatives: no photoreal room, no visible board edges / wall / board shadow, no tilted three-quarter or side angle on the board, no camera zoom-in or push-in, no slow constant-speed motion, no sudden jump cuts or snaps, no missing white borders, no morphing melt, no lip-sync, no captions of the VO, no technical colour codes
+12. Negatives: no photoreal room, no visible board edges / wall / board shadow, no tilted three-quarter or side angle on the board, no camera zoom-in or push-in, no slow glide, no sudden jump cuts, no missing white borders, no morphing melt, no lip-sync, no captions of the VO, no technical colour codes
 
 ## Dual-keyframe
 
-Start and end stills share the exact same locked stationary camera framing. Animate every gesture and cutout transition smoothly and continuously with fluid speed-ramping (變速: smooth anticipation → fluid 2x–3x acceleration → smooth eased settle; zero sudden snaps or jerks) while collage pieces transit in and out as rigid paper. Never morph or dissolve pieces, and never zoom the camera.
+Start and end stills share the exact same locked stationary camera framing. Animate every gesture and cutout transition at a fast pace: each move finishes in under 0.6 seconds while collage pieces transit in and out as rigid paper. Do not stretch one glide across the clip. Never morph or dissolve pieces, and never zoom the camera.
 `,
     },
   ],

@@ -83,9 +83,9 @@ test("Phase B motion rules never call start/end stills a reference image", () =>
 
 test("video prompt forbids a last-frame snap and asks for element-by-element interpolation", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
-  assert.match(prompt, /FULL duration/);
-  assert.match(prompt, /each changing diagram element or label/);
-  assert.match(prompt, /do not .*snap/i);
+  assert.match(prompt, /under 0\.6 seconds/);
+  assert.match(prompt, /diagram piece, and label/);
+  assert.match(prompt, /Do not freeze State A/);
 });
 
 test("video prompt asks for human timing, not one constant slow glide", () => {
@@ -102,7 +102,7 @@ test("video prompt asks for human timing, not one constant slow glide", () => {
 
   const explainer = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
   assert.match(explainer, /State A -> written State B/);
-  assert.match(explainer, /FULL duration/);
+  assert.match(explainer, /under 0\.6 seconds/);
   assert.match(explainer, /CAMERA LOCK \(2D PLANAR\)/);
 });
 
@@ -366,7 +366,7 @@ test("phaseBSystemPrompt uses concise element-by-element smooth motion and dual-
   assert.match(system, /There is no end image/);
   assert.match(system, /written endScene/);
   assert.match(system, /locked stationary square-on camera/i);
-  assert.match(system, /natural continuous ease-in-out motion/i);
+  assert.match(system, /each move finishes in under 0\.6 seconds/i);
   assert.match(system, /350–800 characters/);
   assert.doesNotMatch(system, /END image is attached as the last frame/);
   assert.match(system, /Visual-only clip: voiceover is muxed externally/);
@@ -454,7 +454,7 @@ test("papercraft Phase B keeps its own motion and does not use the whiteboard fr
     "English",
     "American",
   );
-  assert.match(system, /tactile stop-motion papercraft mechanics/);
+  assert.match(system, /fast tactile papercraft/);
   assert.doesNotMatch(system, /100% locked stationary square-on camera/);
   assert.doesNotMatch(system, /from the start frame to the end frame/);
 });

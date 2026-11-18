@@ -14,7 +14,7 @@ const EXPLAINER_START_STILL_MOTION_RULES = [
   "Only the START still (State A) is attached as the first frame. There is no end image and no last frame. endScene is the written State B landing the motion reaches. Never call the start still a reference image.",
   "LENGTH & FOCUS (STRICT): write a short, focused visual-only prompt (350–800 characters, max 1,000 characters). Do NOT write voice locks, narrator/audio/SFX rules, wardrobe essays, lighting descriptions, or long negative lists.",
   "CAMERA LOCK (2D PLANAR) & CHARACTER (1 short clause): keep the 2D planar camera locked and steady on the canvas (no zoom, pan, tilt, or cut); silent closed-lip character stays in their presenter corner with eyes and hands following each active element.",
-  "ELEMENT MOTION (State A -> written State B): across the FULL duration, follow motionCamera beat by beat. Describe how the character's hand/gaze and each changing diagram element or label move from the attached start still toward the written endScene with natural continuous ease-in-out motion (glide smoothly in/out, unfold flat, peel/tear open, draw stroke-by-stroke, or flip cleanly along an edge — do not hold State A frozen and snap on the final frames, and avoid jerky speed jumps).",
+  "ELEMENT MOTION (State A -> written State B): FAST PACING. Follow motionCamera beat by beat, but play every hand, gaze, diagram piece, and label move quickly from the attached start still toward the written endScene — each move finishes in under 0.6 seconds (quick slide in/out, snap unfold, brisk tear, rapid stroke draw, or quick edge flip), then the next beat starts at once. Do not stretch one glide across the full clip, and do not write slow, gentle, gradual, or ease-in-out. Do not freeze State A and only change on the last frames. Camera stays locked.",
   "Whiteboard cardboard physics & SCAFFOLD LOCK / TITLE PLATE: fixed canvas/board, axes, grid, and unchanged 「」 labels stay locked in place without morphing or dissolving; only the changing diagram pieces and presenter hand/gaze move cleanly. If endScene changes a 「」 label, change it by one mid-clip in-place flip or tear.",
 ].join(" ");
 
@@ -34,7 +34,7 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
       "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
       "Be specific (a chipped blue mug, warm side light from a window on the left), not generic (a nice room).",
       SIGHTLINE_RULE,
-      "motionCamera is the transition script from the start still to the end still, written as timed beats across the clip (e.g. 0–2s …; 2–5s …).",
+      "motionCamera is the transition script from the start still to the end still, written as short fast beats (e.g. 0.0–0.6s …; 0.6–1.2s …; 1.2–1.8s …). Each move finishes in under 0.6 seconds. Do not write a slow glide.",
       options.realistic
         ? "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the normal, alive facial expression shift (engaged real-person brow and eye focus when a character is present; never a blank or deadpan stare; never exaggerated cartoon faces) and the camera framing."
         : "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the hands working that element, with lips sealed and no speech (vivid brow and eye focus when a character is present) and the camera framing.",
@@ -72,6 +72,6 @@ export const cartoonExplainerVideoDirectorRules: DirectorRuleModule = {
     return EXPLAINER_START_STILL_MOTION_RULES;
   },
   phaseBDetailRules() {
-    return "Detail: first state the locked stationary camera in one short clause, then list element-by-element across timed beats (e.g. 0.0–2.0s …; 2.0–4.0s …) how the character's hand/gaze and each changing diagram element or label move from the attached start still toward the written endScene. Keep lips closed with no lip-sync, and never re-describe character appearance, outfit, lighting, background texture, or spoken voiceover.";
+    return "Detail: first state the locked stationary camera in one short clause, then list element-by-element across short fast beats (e.g. 0.0–0.6s …; 0.6–1.2s …) how the character's hand/gaze and each changing diagram element or label move from the attached start still toward the written endScene. Each move finishes in under 0.6 seconds. Keep lips closed with no lip-sync, and never re-describe character appearance, outfit, lighting, background texture, or spoken voiceover.";
   },
 };

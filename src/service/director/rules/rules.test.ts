@@ -218,6 +218,7 @@ test("story-short-director directs speaker-driven movie cuts and one-take-direct
   assert.match(papercraftRules.phaseBMotionRules({}), /There is no end image and no last frame/);
   assert.match(papercraftRules.phaseBMotionRules({}), /diorama camera/i);
   assert.match(papercraftRules.phaseBMotionRules({}), /both feet stay planted on the floor/);
+  assert.match(papercraftRules.phaseBMotionRules({}), /under 0\.6 seconds/);
   assert.doesNotMatch(papercraftRules.phaseBMotionRules({}), /first\/last frames/);
 });
 
@@ -229,11 +230,13 @@ test("explainer motion rules attach the start still and land on the written endS
   assert.match(whiteboard.phaseBMotionRules({}), /There is no end image and no last frame/);
   assert.match(whiteboard.phaseBMotionRules({}), /CAMERA LOCK \(2D PLANAR\)/);
   assert.match(whiteboard.phaseBMotionRules({}), /written endScene/);
+  assert.match(whiteboard.phaseBMotionRules({}), /under 0\.6 seconds/);
   assert.doesNotMatch(whiteboard.phaseBMotionRules({}), /first\/last frames/);
 
   assert.match(cutout.phaseBMotionRules({}), /There is no end image and no last frame/);
   assert.match(cutout.phaseBMotionRules({}), /locked stationary square-on camera/i);
   assert.match(cutout.phaseBMotionRules({}), /written endScene/);
+  assert.match(cutout.phaseBMotionRules({}), /under 0\.6 seconds/);
   assert.doesNotMatch(cutout.phaseBMotionRules({}), /first\/last frames/);
 
   assert.match(

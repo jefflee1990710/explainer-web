@@ -14,7 +14,7 @@ export const papercraftDioramaStyle: IStyle = {
   typography:
     "bold dark-navy editorial serif or clean geometric sans printed on a torn-edge warm cream cardstock banner strip taped at the top corners with small kraft masking-tape tabs, plus a small burnt-orange cardstock tag strip for beat labels",
   motion:
-    "tactile stop-motion papercraft mechanics: folded cardstock parts stay rigid while paper receipt ribbons feed and unroll smoothly from slots, embossed paper coins slide into cardstock envelopes, and cardstock balance scales tip and settle with physical weight; never morph, melt, or dissolve",
+    "fast tactile papercraft: each ribbon feed, coin slide, lid open, and scale tip finishes in under 0.6 seconds, then holds. Folded cardstock stays rigid and never morphs, melts, or dissolves. Do not stretch one move slowly across the clip",
   negatives:
     "white scissor cutout borders, flat 2D magazine photo collage, photorealistic human skin, plastic or glossy 3D CGI, neon cyberpunk, marker whiteboard doodles, chalkboard, watercolor washes, morphing shapes",
   letteringLayout:
