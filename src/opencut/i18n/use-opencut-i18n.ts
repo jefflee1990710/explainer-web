@@ -484,6 +484,8 @@ export function getOpencutMessages(locale?: string | null) {
 			rendering: pick({ en: "Rendering…", zhHant: "產生影片中…", zhHans: "生成视频中…", ja: "レンダリング中…", ko: "렌더링 중…" }),
 			renderingVideo: pick({ en: "Generating video…", zhHant: "正在產生影片…", zhHans: "正在生成视频…", ja: "動画を生成中…", ko: "동영상 생성 중…" }),
 			queuedVideo: pick({ en: "Queued video…", zhHant: "影片排隊中…", zhHans: "视频排队中…", ja: "動画キュー待機中…", ko: "동영상 대기열…" }),
+			statusPending: pick({ en: "Pending", zhHant: "等待中", zhHans: "等待中", ja: "待機中", ko: "대기" }),
+			statusRendering: pick({ en: "Rendering", zhHant: "渲染中", zhHans: "渲染中", ja: "レンダリング中", ko: "렌더링" }),
 			cancelQueuedVideo: pick({ en: "Cancel queued video", zhHant: "取消排隊中嘅影片", zhHans: "取消排队中的视频", ja: "待機中の動画をキャンセル", ko: "대기 중인 동영상 취소" }),
 			relocateOrSwap: pick({
 				en: "Character & Scene",

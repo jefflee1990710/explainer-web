@@ -64,11 +64,19 @@ export function scroClipIsGeneratingVideo(
 	return clip.stage === "video_generating";
 }
 
-/** Human-readable status label for a clip whose video is currently generating. */
+export type ScroVideoActivity = "pending" | "rendering";
+
+// Provider has the job but has not started it yet (`queued`). `running` means the file is being made.
+export function scroVideoActivity(
+	clip?: Pick<ScroVideoSeedClip, "stage" | "wait"> | null,
+): ScroVideoActivity | null {
+	if (!clip || clip.stage !== "video_generating") return null;
+	return clip.wait === "running" ? "rendering" : "pending";
+}
+
+/** Pending while the provider has not started; Rendering once it is producing the clip. */
 export function scroVideoGeneratingLabel(
 	clip?: Pick<ScroVideoSeedClip, "stage" | "wait"> | null,
 ): string {
-	if (!clip) return "Generating video…";
-	if (clip.wait === "queued") return "Queued video…";
-	return "Generating video…";
+	return scroVideoActivity(clip) === "rendering" ? "Rendering" : "Pending";
 }

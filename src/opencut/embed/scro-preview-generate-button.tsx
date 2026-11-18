@@ -8,6 +8,7 @@ import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
 import {
 	scroClipIsGeneratingVideo,
 	scroPreviewCanStartVideo,
+	scroVideoActivity,
 } from "@/opencut/embed/scro-preview-generate";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
@@ -57,9 +58,9 @@ export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox })
 
 	if (isGeneratingVideo) {
 		const statusLabel =
-			clip.wait === "queued"
-				? oc.inspector.queuedVideo
-				: oc.inspector.renderingVideo;
+			scroVideoActivity(clip) === "rendering"
+				? oc.inspector.statusRendering
+				: oc.inspector.statusPending;
 		return (
 			<div
 				className="pointer-events-none absolute z-30 flex items-center justify-center"

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/opencut/components/ui/button";
+import { ScroActivityStatus } from "@/opencut/embed/scro-activity-status";
 import { scroClipPrimaryKind } from "@/opencut/embed/scro-preview-generate";
 import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
 import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
@@ -96,14 +97,19 @@ export function ScroVideoPrimaryActions({
 						})
 					}
 				>
-					{busy && clip.stage === "video_generating" ? oc.inspector.rendering : videoLabel}
+					{busy && clip.stage === "video_generating" ? (
+						<ScroActivityStatus clip={clip} />
+					) : (
+						videoLabel
+					)}
 				</Button>
 			) : busy ? (
 				<p className="text-muted-foreground text-xs">
-					{clip.stage === "frames_generating"
-						? oc.inspector.drawingFrames
-						: oc.inspector.renderingVideo}
-					{clip.wait ? ` (${clip.wait})` : ""}
+					{clip.stage === "frames_generating" ? (
+						oc.inspector.drawingFrames
+					) : (
+						<ScroActivityStatus clip={clip} />
+					)}
 				</p>
 			) : null}
 			{clip.error ? (

@@ -9,6 +9,8 @@ import {
 	resolveElementScroClipNumber,
 } from "@/opencut/embed/scro-clip-number";
 import { scroAssetPreviewSrc, scroStartStillPending } from "@/opencut/embed/scro-video-assets";
+import { scroVideoActivity } from "@/opencut/embed/scro-preview-generate";
+import { useOpencutI18n } from "@/opencut/i18n/use-opencut-i18n";
 import {
 	MediaLoadingMark,
 	useMediaImageReady,
@@ -1214,15 +1216,17 @@ function TiledMediaContent({
 			: freshStill ??
 				(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
 	const imageReady = useMediaImageReady(imageUrl);
+	const { oc } = useOpencutI18n();
 	const isVideoGenerating = clip?.stage === "video_generating";
 	const isGenerating = isVideoGenerating || isOnscreenTextGenerating;
+	const videoActivity = scroVideoActivity(clip);
 	const generatingBadgeText = isOnscreenTextGenerating
 		? onscreenItem?.status === "queued"
 			? "Queued…"
 			: "Generating…"
-		: clip?.wait === "queued"
-			? "Queued…"
-			: "Generating…";
+		: videoActivity === "rendering"
+			? oc.inspector.statusRendering
+			: oc.inspector.statusPending;
 
 	if (waitingForStill) {
 		return (
@@ -1240,8 +1244,9 @@ function TiledMediaContent({
 					{element.name || mediaAsset?.name || "Clip"}
 				</span>
 				{isGenerating ? (
-					<span className="ml-auto shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-						{generatingBadgeText}
+					<span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+						<Spinner className="size-2.5 shrink-0 text-amber-400" />
+						<span>{generatingBadgeText}</span>
 					</span>
 				) : null}
 			</div>

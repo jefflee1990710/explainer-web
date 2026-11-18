@@ -19,6 +19,7 @@ import { showScroClipInPreview } from "@/opencut/embed/scro-clip-preview";
 import type { EditorCore } from "@/opencut/core";
 import type { MediaAsset } from "@/opencut/media/types";
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
+import { ScroActivityStatus } from "@/opencut/embed/scro-activity-status";
 import { cn } from "@/opencut/utils/ui";
 
 export const SCRO_STAGE_LABEL: Record<ScroVideoUiStage, string> = {
@@ -343,7 +344,11 @@ export function ScroMediaOverlays({
 						scroStageTone(clip.stage),
 					)}
 				>
-					{SCRO_STAGE_LABEL[clip.stage]}
+					{clip.stage === "video_generating" ? (
+						<ScroActivityStatus clip={clip} spinnerClassName="size-2.5 text-white" />
+					) : (
+						SCRO_STAGE_LABEL[clip.stage]
+					)}
 				</span>
 			) : null}
 		</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/opencut/components/ui/button";
+import { ScroActivityStatus } from "@/opencut/embed/scro-activity-status";
 import { ScroClipTextField } from "@/opencut/embed/scro-clip-text-field";
 import { ScroSceneEditInput } from "@/opencut/embed/scro-scene-edit-input";
 import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
@@ -90,8 +91,12 @@ export function ScroVideoProperties({
 						<span className="text-foreground text-[13px] font-semibold tracking-tight">
 							{oc.inspector.title}
 						</span>
-						<span className="bg-muted text-muted-foreground rounded-lg px-2 py-0.5 text-[10px] font-medium">
-							{oc.inspector.stageLabels[clip.stage]}
+						<span className="bg-muted text-muted-foreground inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-medium">
+							{clip.stage === "video_generating" ? (
+								<ScroActivityStatus clip={clip} spinnerClassName="size-2.5" />
+							) : (
+								oc.inspector.stageLabels[clip.stage]
+							)}
 						</span>
 					</div>
 					<div className="border-border space-y-1 border-b px-3.5 py-2.5">
@@ -121,8 +126,12 @@ export function ScroVideoProperties({
 						<span className="text-muted-foreground text-[11px] font-medium">
 							{oc.inspector.stage}
 						</span>
-						<span className="bg-muted text-foreground rounded-lg px-2 py-0.5 text-[11px] font-medium">
-							{oc.inspector.stageLabels[clip.stage]}
+						<span className="bg-muted text-foreground inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-medium">
+							{clip.stage === "video_generating" ? (
+								<ScroActivityStatus clip={clip} spinnerClassName="size-3" />
+							) : (
+								oc.inspector.stageLabels[clip.stage]
+							)}
 						</span>
 					</div>
 
@@ -149,11 +158,15 @@ export function ScroVideoProperties({
 									})
 								}
 							>
-								{clip.stage === "video_generating" || clip.stage === "frames_generating"
-									? oc.inspector.renderingVideo
-									: isStandaloneSwap
-										? oc.inspector.reSwapCharacter
-										: oc.inspector.reTeleportScene}
+								{clip.stage === "video_generating" ? (
+									<ScroActivityStatus clip={clip} />
+								) : clip.stage === "frames_generating" ? (
+									oc.inspector.drawingFrames
+								) : isStandaloneSwap ? (
+									oc.inspector.reSwapCharacter
+								) : (
+									oc.inspector.reTeleportScene
+								)}
 							</Button>
 							<Button
 								type="button"

@@ -116,11 +116,11 @@ describe("scro preview generate button", () => {
 		);
 		assert.equal(
 			scroVideoGeneratingLabel({ stage: "video_generating", wait: "running" }),
-			"Generating video…",
+			"Rendering",
 		);
 		assert.equal(
 			scroVideoGeneratingLabel({ stage: "video_generating", wait: "queued" }),
-			"Queued video…",
+			"Pending",
 		);
 	});
 });
