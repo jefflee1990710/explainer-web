@@ -691,3 +691,129 @@ export async function fetchOpenRouterStatus(
   }
   return resultFromVideoJob(body, statusUrl);
 }
+
+export type OpenRouterCanvasVideoInput = {
+  model: string;
+  prompt?: string;
+  aspectRatio: AspectRatio;
+  durationSeconds?: number;
+  startImageUrl?: string;
+  endImageUrl?: string;
+  referenceImageUrls?: Array<string | undefined>;
+  audioUrl?: string;
+  callbackUrl?: string;
+};
+
+// Builds an OpenRouter /api/v1/videos payload for the Interactive Node Canvas Editor.
+// Supports pure text-to-video, first/last frame_images, reference input_references,
+// and HeyGen Avatar IV audio-driven video without altering Storyboard/Talking Head adapters.
+export function openRouterCanvasVideoBody(
+  input: OpenRouterCanvasVideoInput,
+): OpenRouterClipVideoRequestBody {
+  const model = input.model;
+  const isHeyGenAudioModel =
+    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
+    model === OPENROUTER_HEYGEN_VIDEO_1_MODEL;
+
+  if (isHeyGenAudioModel) {
+    const startImageUrl = input.startImageUrl?.trim();
+    const audioUrl = input.audioUrl?.trim();
+    if (!startImageUrl || !audioUrl) {
+      throw new Error("HeyGen Avatar IV 需要同時連接起始圖與參考音訊");
+    }
+    const cleanPrompt = input.prompt?.trim() || "";
+    return openRouterHeyGenAudioVideoBody({
+      model,
+      prompt: cleanPrompt,
+      motionPrompt: cleanPrompt || undefined,
+      aspectRatio: input.aspectRatio,
+      durationSeconds: input.durationSeconds,
+      startImageUrl,
+      audioUrl,
+      callbackUrl: input.callbackUrl,
+    });
+  }
+
+  const configured = clipVideoResolution();
+  const resolution =
+    model === OPENROUTER_HAILUO_3_VIDEO_MODEL && configured !== "2K"
+      ? "2K"
+      : model === OPENROUTER_WAN_3_VIDEO_MODEL
+        ? "480p"
+        : configured;
+
+  const frameImages: OpenRouterVideoFrameImage[] = [];
+  if (input.startImageUrl?.trim()) {
+    frameImages.push({
+      type: "image_url",
+      image_url: { url: input.startImageUrl.trim() },
+      frame_type: "first_frame",
+    });
+  }
+  if (input.endImageUrl?.trim()) {
+    frameImages.push({
+      type: "image_url",
+      image_url: { url: input.endImageUrl.trim() },
+      frame_type: "last_frame",
+    });
+  }
+
+  const refs: OpenRouterVideoInputReference[] = (input.referenceImageUrls || [])
+    .filter((url): url is string => Boolean(url && url.trim()))
+    .map((url) => ({
+      type: "image_url" as const,
+      image_url: { url: url.trim() },
+    }));
+  if (input.audioUrl?.trim()) {
+    refs.push({
+      type: "audio_url",
+      audio_url: { url: input.audioUrl.trim() },
+    });
+  }
+
+  return {
+    model,
+    prompt: capOpenRouterVideoPrompt((input.prompt || "").trim()),
+    aspect_ratio: input.aspectRatio,
+    duration: clampVideoDurationSeconds(input.durationSeconds ?? 5),
+    resolution,
+    generate_audio: true,
+    ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
+    ...(frameImages.length > 0 ? { frame_images: frameImages } : {}),
+    ...(refs.length > 0 ? { input_references: refs } : {}),
+  };
+}
+
+// Submits a Canvas video job to OpenRouter /api/v1/videos with flexible optional inputs.
+export async function submitOpenRouterCanvasVideo(
+  input: OpenRouterCanvasVideoInput,
+  options?: FetchOptions & { callbackUrl?: string | null },
+): Promise<GenerationSubmitResult> {
+  const key = assertOpenRouterKey();
+  const fetchFn = options?.fetch ?? fetch;
+  const callbackUrl =
+    options && "callbackUrl" in options
+      ? options.callbackUrl || undefined
+      : input.callbackUrl;
+  const reqBody = openRouterCanvasVideoBody({ ...input, callbackUrl });
+
+  const response = await fetchFn(OPENROUTER_VIDEOS_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(reqBody),
+  });
+
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) {
+    throw new Error(
+      openRouterError(body) || `OpenRouter 影片產生送出失敗（${response.status}）`,
+    );
+  }
+  if (typeof body.id !== "string" || !body.id) {
+    throw new Error(openRouterError(body) || "OpenRouter 未回傳影片任務 id");
+  }
+  return resultFromVideoJob(body, undefined, input.model);
+}

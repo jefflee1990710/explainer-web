@@ -1,0 +1,387 @@
+// Multi-project MongoDB CRUD, DTO serialization, and Scro library asset aggregation
+// for the Interactive Node Canvas Editor (/app/canvas).
+
+import { ObjectId } from "mongodb";
+import { z } from "zod";
+import {
+  canvasJobsCollection,
+  canvasProjectsCollection,
+  charactersCollection,
+  productsCollection,
+} from "@/dao";
+import {
+  type CanvasEdge,
+  type CanvasJob,
+  type CanvasJobStatus,
+  type CanvasNode,
+  type CanvasOutputKind,
+  type CanvasProject,
+  type CanvasViewport,
+  canvasEdgeSchema,
+  canvasNodeSchema,
+  canvasViewportSchema,
+} from "@/model/canvas";
+import type { Character } from "@/model/character";
+import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
+
+export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
+export const CANVAS_TITLE_MAX_LENGTH = 120;
+export const DEFAULT_CANVAS_VIEWPORT: CanvasViewport = { x: 0, y: 0, zoom: 1 };
+
+export type CanvasProjectSummaryDto = {
+  id: string;
+  title: string;
+  thumbnailUrl?: string;
+  nodeCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CanvasProjectDto = {
+  id: string;
+  title: string;
+  thumbnailUrl?: string;
+  viewport: CanvasViewport;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CanvasJobDto = {
+  id: string;
+  canvasId: string;
+  nodeId: string;
+  flowRunId?: string;
+  provider: CanvasModelProvider;
+  modelId: string;
+  providerModelId: string;
+  presetId?: string;
+  status: CanvasJobStatus;
+  externalJobId?: string;
+  chargedUsd: number;
+  refundedAt?: string;
+  outputUrl?: string;
+  outputKind?: CanvasOutputKind;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CanvasLibraryAsset = {
+  id: string;
+  source: "character" | "product" | "canvas_output";
+  name: string;
+  mediaKind: "image" | "video";
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+};
+
+export type CanvasLibraryAssetsResult = {
+  characters: CanvasLibraryAsset[];
+  products: CanvasLibraryAsset[];
+  recentOutputs: CanvasLibraryAsset[];
+};
+
+export type CreateCanvasProjectInput = {
+  title?: string;
+  nodes?: CanvasNode[];
+  edges?: CanvasEdge[];
+  viewport?: CanvasViewport;
+  thumbnailUrl?: string;
+};
+
+export type SaveCanvasProjectPatch = {
+  title?: string;
+  nodes?: CanvasNode[];
+  edges?: CanvasEdge[];
+  viewport?: CanvasViewport;
+  thumbnailUrl?: string;
+};
+
+const nodesArraySchema = z.array(canvasNodeSchema);
+const edgesArraySchema = z.array(canvasEdgeSchema);
+
+function normalizeCanvasTitle(raw?: string): string {
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return DEFAULT_CANVAS_TITLE;
+  return trimmed.slice(0, CANVAS_TITLE_MAX_LENGTH);
+}
+
+// Serializes a MongoDB CanvasProject into a plain JSON-safe DTO for Client Components.
+export function serializeCanvasProject(project: CanvasProject): CanvasProjectDto {
+  return {
+    id: project._id.toHexString(),
+    title: project.title,
+    ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
+    viewport: project.viewport,
+    nodes: project.nodes,
+    edges: project.edges,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  };
+}
+
+// Serializes a CanvasProject into a lightweight list item for the project switcher dropdown.
+export function serializeCanvasProjectSummary(
+  project: CanvasProject,
+): CanvasProjectSummaryDto {
+  return {
+    id: project._id.toHexString(),
+    title: project.title,
+    ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
+    nodeCount: project.nodes.length,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  };
+}
+
+// Serializes a MongoDB CanvasJob into a plain JSON-safe DTO for Server Actions.
+export function serializeCanvasJob(job: CanvasJob): CanvasJobDto {
+  return {
+    id: job._id.toHexString(),
+    canvasId: job.canvasId.toHexString(),
+    nodeId: job.nodeId,
+    ...(job.flowRunId ? { flowRunId: job.flowRunId } : {}),
+    provider: job.provider,
+    modelId: job.modelId,
+    providerModelId: job.providerModelId,
+    ...(job.presetId ? { presetId: job.presetId } : {}),
+    status: job.status,
+    ...(job.externalJobId ? { externalJobId: job.externalJobId } : {}),
+    chargedUsd: job.chargedUsd,
+    ...(job.refundedAt ? { refundedAt: job.refundedAt.toISOString() } : {}),
+    ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
+    ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+    ...(job.error ? { error: job.error } : {}),
+    createdAt: job.createdAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
+  };
+}
+
+// Lists all canvas projects owned by the user, newest updated first.
+export async function listCanvasProjects(
+  clerkUserId: string,
+): Promise<CanvasProject[]> {
+  const projects = await canvasProjectsCollection();
+  return projects.find({ clerkUserId }).sort({ updatedAt: -1 }).toArray();
+}
+
+// Creates a new canvas project owned by `clerkUserId`.
+export async function createCanvasProject(
+  clerkUserId: string,
+  input?: CreateCanvasProjectInput,
+): Promise<CanvasProject> {
+  const projects = await canvasProjectsCollection();
+  const now = new Date();
+  const nodes = input?.nodes ? nodesArraySchema.parse(input.nodes) : [];
+  const edges = input?.edges ? edgesArraySchema.parse(input.edges) : [];
+  const viewport = input?.viewport
+    ? canvasViewportSchema.parse(input.viewport)
+    : { ...DEFAULT_CANVAS_VIEWPORT };
+
+  const doc: CanvasProject = {
+    _id: new ObjectId(),
+    clerkUserId,
+    title: normalizeCanvasTitle(input?.title),
+    ...(input?.thumbnailUrl?.trim()
+      ? { thumbnailUrl: input.thumbnailUrl.trim() }
+      : {}),
+    viewport,
+    nodes,
+    edges,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await projects.insertOne(doc);
+  return doc;
+}
+
+// Loads a specific canvas project by ID (if valid and owned), or falls back to the
+// user's most recently updated project, creating a default canvas if none exist yet.
+export async function getOrCreateDefaultCanvasProject(
+  clerkUserId: string,
+  canvasId?: string,
+): Promise<CanvasProject> {
+  const projects = await canvasProjectsCollection();
+
+  if (canvasId && ObjectId.isValid(canvasId)) {
+    const requested = await projects.findOne({
+      _id: new ObjectId(canvasId),
+      clerkUserId,
+    });
+    if (requested) {
+      return requested;
+    }
+  }
+
+  const latest = await projects
+    .find({ clerkUserId })
+    .sort({ updatedAt: -1 })
+    .limit(1)
+    .toArray();
+  if (latest[0]) {
+    return latest[0];
+  }
+
+  return createCanvasProject(clerkUserId);
+}
+
+// Saves partial updates (title, nodes, edges, viewport, thumbnailUrl) to an owned canvas.
+export async function saveCanvasProject(
+  clerkUserId: string,
+  canvasId: string,
+  patch: SaveCanvasProjectPatch,
+): Promise<CanvasProject | null> {
+  if (!ObjectId.isValid(canvasId)) {
+    return null;
+  }
+
+  const setFields: Partial<CanvasProject> = {
+    updatedAt: new Date(),
+  };
+
+  if (patch.title !== undefined) {
+    setFields.title = normalizeCanvasTitle(patch.title);
+  }
+  if (patch.nodes !== undefined) {
+    setFields.nodes = nodesArraySchema.parse(patch.nodes);
+  }
+  if (patch.edges !== undefined) {
+    setFields.edges = edgesArraySchema.parse(patch.edges);
+  }
+  if (patch.viewport !== undefined) {
+    setFields.viewport = canvasViewportSchema.parse(patch.viewport);
+  }
+  if (patch.thumbnailUrl !== undefined && patch.thumbnailUrl.trim()) {
+    setFields.thumbnailUrl = patch.thumbnailUrl.trim();
+  }
+
+  const projects = await canvasProjectsCollection();
+  return projects.findOneAndUpdate(
+    { _id: new ObjectId(canvasId), clerkUserId },
+    { $set: setFields },
+    { returnDocument: "after" },
+  );
+}
+
+// Deletes an owned canvas project. Execution audit records in `canvas_jobs` are preserved.
+export async function deleteCanvasProject(
+  clerkUserId: string,
+  canvasId: string,
+): Promise<{ deleted: boolean }> {
+  if (!ObjectId.isValid(canvasId)) {
+    return { deleted: false };
+  }
+  const projects = await canvasProjectsCollection();
+  const result = await projects.deleteOne({
+    _id: new ObjectId(canvasId),
+    clerkUserId,
+  });
+  return { deleted: result.deletedCount === 1 };
+}
+
+function resolveCharacterPreviewUrl(character: Character): string | undefined {
+  const versions = character.versions ?? [];
+  const defaultVersion = character.defaultVersionId
+    ? versions.find((v) => v.id.equals(character.defaultVersionId!))
+    : undefined;
+
+  const pickUrl = (v?: Character["versions"][number]) =>
+    v?.profileUrl?.trim() || v?.blueprintUrl?.trim() || v?.portraitUrl?.trim();
+
+  const defaultUrl = pickUrl(defaultVersion);
+  if (defaultUrl) return defaultUrl;
+
+  for (let i = versions.length - 1; i >= 0; i -= 1) {
+    const version = versions[i];
+    if (version?.status === "completed") {
+      const url = pickUrl(version);
+      if (url) return url;
+    }
+  }
+  for (let i = versions.length - 1; i >= 0; i -= 1) {
+    const url = pickUrl(versions[i]);
+    if (url) return url;
+  }
+  return undefined;
+}
+
+// Aggregates the user's Scro Characters, Products, and recent completed Canvas outputs
+// for drag-and-drop placement from the Assets drawer.
+export async function listCanvasLibraryAssets(
+  clerkUserId: string,
+): Promise<CanvasLibraryAssetsResult> {
+  const [charactersCol, productsCol, jobsCol] = await Promise.all([
+    charactersCollection(),
+    productsCollection(),
+    canvasJobsCollection(),
+  ]);
+
+  const [characterDocs, productDocs, recentJobs] = await Promise.all([
+    charactersCol.find({ clerkUserId }).sort({ updatedAt: -1 }).limit(50).toArray(),
+    productsCol.find({ clerkUserId }).sort({ updatedAt: -1 }).limit(50).toArray(),
+    jobsCol
+      .find({
+        clerkUserId,
+        status: "completed",
+        outputUrl: { $exists: true, $ne: "" },
+      })
+      .sort({ updatedAt: -1 })
+      .limit(30)
+      .toArray(),
+  ]);
+
+  const characters: CanvasLibraryAsset[] = [];
+  for (const doc of characterDocs) {
+    const character = doc as Character;
+    if (!character._id) continue;
+    const url = resolveCharacterPreviewUrl(character);
+    if (!url) continue;
+    characters.push({
+      id: character._id.toHexString(),
+      source: "character",
+      name: character.name || "Character",
+      mediaKind: "image",
+      url,
+      thumbnailUrl: url,
+      createdAt: (character.updatedAt ?? character.createdAt ?? new Date()).toISOString(),
+    });
+  }
+
+  const products: CanvasLibraryAsset[] = [];
+  for (const doc of productDocs) {
+    if (!doc._id) continue;
+    const url = doc.blueprintUrl?.trim() || doc.referenceImageUrls?.[0]?.trim();
+    if (!url) continue;
+    products.push({
+      id: doc._id.toHexString(),
+      source: "product",
+      name: doc.name || "Product",
+      mediaKind: "image",
+      url,
+      thumbnailUrl: url,
+      createdAt: (doc.updatedAt ?? doc.createdAt ?? new Date()).toISOString(),
+    });
+  }
+
+  const recentOutputs: CanvasLibraryAsset[] = [];
+  for (const job of recentJobs) {
+    const url = job.outputUrl?.trim();
+    if (!url) continue;
+    const mediaKind = job.outputKind === "video" ? "video" : "image";
+    recentOutputs.push({
+      id: job._id.toHexString(),
+      source: "canvas_output",
+      name: job.providerModelId || job.modelId,
+      mediaKind,
+      url,
+      ...(mediaKind === "image" ? { thumbnailUrl: url } : {}),
+      createdAt: job.updatedAt.toISOString(),
+    });
+  }
+
+  return { characters, products, recentOutputs };
+}

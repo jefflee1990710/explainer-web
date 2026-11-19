@@ -6,10 +6,12 @@ import {
   heyGenAvatarIvMotionPrompt,
   isOpenRouterStatusUrl,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+  openRouterCanvasVideoBody,
   openRouterClipVideoBody,
   openRouterHeyGenAudioVideoBody,
   openRouterImageAspectRatio,
   openRouterImageBody,
+  submitOpenRouterCanvasVideo,
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
@@ -579,4 +581,92 @@ test("heyGenAvatarIvMotionPrompt and openRouterHeyGenAudioVideoBody pass speakin
   });
   assert.match(selfiePrompt, /occasional slight handheld camera shake/i);
   assert.match(selfiePrompt, /extended selfie arm/i);
+});
+
+test("openRouterCanvasVideoBody supports text-only, first/last frames, references, and HeyGen Avatar IV", () => {
+  // Pure text-to-video omits frame_images and input_references.
+  const t2v = openRouterCanvasVideoBody({
+    model: "minimax/hailuo-3",
+    prompt: "A neon cyber city in the rain",
+    aspectRatio: "16:9",
+    durationSeconds: 6,
+  });
+  assert.equal(t2v.model, "minimax/hailuo-3");
+  assert.equal(t2v.resolution, "2K");
+  assert.equal(t2v.duration, 6);
+  assert.equal("frame_images" in t2v, false);
+  assert.equal("input_references" in t2v, false);
+
+  // First/last frame + reference images.
+  const framed = openRouterCanvasVideoBody({
+    model: "bytedance/seedance-2.0",
+    prompt: "Smooth camera push in",
+    aspectRatio: "9:16",
+    durationSeconds: 8,
+    startImageUrl: "https://blob/start.png",
+    endImageUrl: "https://blob/end.png",
+    referenceImageUrls: ["https://blob/ref1.png", undefined, "https://blob/ref2.png"],
+  });
+  assert.deepEqual(framed.frame_images, [
+    { type: "image_url", image_url: { url: "https://blob/start.png" }, frame_type: "first_frame" },
+    { type: "image_url", image_url: { url: "https://blob/end.png" }, frame_type: "last_frame" },
+  ]);
+  assert.deepEqual(framed.input_references, [
+    { type: "image_url", image_url: { url: "https://blob/ref1.png" } },
+    { type: "image_url", image_url: { url: "https://blob/ref2.png" } },
+  ]);
+
+  // HeyGen Avatar IV delegates to openRouterHeyGenAudioVideoBody.
+  const heygen = openRouterCanvasVideoBody({
+    model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+    prompt: "Warm confident delivery",
+    aspectRatio: "9:16",
+    startImageUrl: "https://blob/avatar.png",
+    audioUrl: "https://blob/speech.mp3",
+  });
+  assert.equal(heygen.model, OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL);
+  assert.equal("duration" in heygen, false);
+  assert.deepEqual(heygen.input_references, [
+    { type: "image_url", image_url: { url: "https://blob/avatar.png" } },
+    { type: "audio_url", audio_url: { url: "https://blob/speech.mp3" } },
+  ]);
+  assert.equal(heygen.motion_prompt, "Warm confident delivery");
+});
+
+test("submitOpenRouterCanvasVideo posts canvas video request and returns polling state", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  let postedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    postedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(
+      JSON.stringify({
+        id: "canvas-vid-1",
+        polling_url: "/api/v1/videos/canvas-vid-1",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  try {
+    const result = await submitOpenRouterCanvasVideo(
+      {
+        model: "minimax/hailuo-3",
+        prompt: "Drone shot over mountains",
+        aspectRatio: "16:9",
+        durationSeconds: 5,
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(postedBody?.model, "minimax/hailuo-3");
+    assert.equal("frame_images" in (postedBody || {}), false);
+    assert.equal("callback_url" in (postedBody || {}), false);
+    assert.equal(result.request_id, "canvas-vid-1");
+    assert.equal(result.status, "queued");
+    assert.equal(result.status_url, "https://openrouter.ai/api/v1/videos/canvas-vid-1");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
 });

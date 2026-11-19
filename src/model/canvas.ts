@@ -93,6 +93,7 @@ export type CanvasJob = {
   statusUrl?: string;
   inputSnapshot: Record<string, unknown>;
   chargedUsd: number;
+  spendEventKey?: string;
   refundedAt?: Date;
   outputUrl?: string;
   outputKind?: CanvasOutputKind;
@@ -200,6 +201,7 @@ export const canvasJobSchema: z.ZodType<CanvasJob> = z.object({
   statusUrl: z.string().optional(),
   inputSnapshot: z.record(z.string(), z.unknown()),
   chargedUsd: z.number().finite().nonnegative(),
+  spendEventKey: z.string().optional(),
   refundedAt: z.date().optional(),
   outputUrl: z.string().optional(),
   outputKind: canvasOutputKindSchema.optional(),
