@@ -50,6 +50,7 @@ export type PoseEditDraft = {
   aspect: PoseEditAspect;
   status: "pending";
   spendKey: string;
+  chargedUsd: number;
   freeTier?: boolean;
 };
 
@@ -213,6 +214,7 @@ export async function createPoseEdit(input: {
       aspect,
       status: "pending",
       spendKey,
+      chargedUsd: FRAME_COST_USD,
       ...(freeTier ? { freeTier: true } : {}),
     });
   } catch (insertError) {

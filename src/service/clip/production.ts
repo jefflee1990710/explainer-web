@@ -94,7 +94,7 @@ async function loadProduction(
   return { ok: true, project: project as Project & { phaseA: NonNullable<Project["phaseA"]> } };
 }
 
-// Draw (or redraw) both frames of one clip. Cost: FRAMES_COST.
+// Draw (or redraw) both frames of one clip. Cost: clipFrameCost (USD Credit, up to FRAMES_COST_USD).
 export async function generateClipFramesAction(
   projectId: string,
   clipNumber: number,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId } from "mongodb";
 import type { PoseEdit } from "@/model/pose-edit";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { PoseEditSyncDeps } from "@/service/pose-edit/sync";
 import { failPoseEdit, refundFailedPoseEdit } from "@/service/pose-edit/sync";
 
@@ -194,4 +195,25 @@ test("refundFailedPoseEdit puts the spend key back when the refund throws", asyn
   assert.equal(rows.current().error, "這張圖無法產生");
   assert.equal(rows.current().spendKey, "spend-1");
   assertStaysFailed(rows);
+});
+
+test("failPoseEdit and refundFailedPoseEdit refund persisted chargedUsd or fall back to FRAME_COST_USD", async () => {
+  const withCharged = { ...editDoc("pending", "spend-custom"), chargedUsd: 0.25 };
+  const refundedAmounts: number[] = [];
+  await failPoseEdit(withCharged._id, "改圖失敗", {
+    rows: async () => memoryRows(withCharged),
+    refund: async (_clerkUserId, cost) => {
+      refundedAmounts.push(cost);
+    },
+  });
+
+  const legacyFailed = editDoc("failed", "spend-legacy");
+  await refundFailedPoseEdit(legacyFailed._id, {
+    rows: async () => memoryRows(legacyFailed),
+    refund: async (_clerkUserId, cost) => {
+      refundedAmounts.push(cost);
+    },
+  });
+
+  assert.deepEqual(refundedAmounts, [0.25, FRAME_COST_USD]);
 });

@@ -157,7 +157,7 @@ export async function enqueueSubtitlePlateJobs(
 }
 
 // Fail a completed plate whose clip line changed, and drop its job. No charge, no refund:
-// the plate was already paid for and delivered; the user retries it for FRAME_COST.
+// the plate was already paid for and delivered; the user retries it for FRAME_COST_USD.
 export async function invalidatePlatesForChangedVo(
   projectId: ObjectId,
   clipNumbers: number[],

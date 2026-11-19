@@ -222,6 +222,7 @@ test("createPoseEdit blocks free-tier user after 3 non-failed pose edits", async
 test("createPoseEdit marks freeTier true for free users and false for pack buyers", async () => {
   let freeInsertedDraftFreeTier: boolean | undefined;
   let paidInsertedDraftFreeTier: boolean | undefined;
+  let insertedChargedUsd: number | undefined;
 
   await createPoseEdit({
     user: { clerkUserId: "free-uid", email: "user@gmail.com", credits: 20 } as AppUser,
@@ -234,6 +235,7 @@ test("createPoseEdit marks freeTier true for free users and false for pack buyer
       consume: async () => "spend-1",
       insert: async (draft) => {
         freeInsertedDraftFreeTier = draft.freeTier;
+        insertedChargedUsd = draft.chargedUsd;
         return {
           ...draft,
           _id: new ObjectId(),
@@ -278,4 +280,5 @@ test("createPoseEdit marks freeTier true for free users and false for pack buyer
 
   assert.equal(freeInsertedDraftFreeTier, true);
   assert.equal(paidInsertedDraftFreeTier, undefined);
+  assert.equal(insertedChargedUsd, FRAME_COST_USD);
 });

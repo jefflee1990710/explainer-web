@@ -19,6 +19,8 @@ export type PoseEdit = {
   resultUrl?: string;
   error?: string;
   spendKey?: string;
+  /** USD credit charged for this pose edit; used for exact refund on failure. */
+  chargedUsd?: number;
   /** True when created on the free welcome tier (1k resolution + Scro.io watermark). */
   freeTier?: boolean;
   createdAt: Date;

@@ -393,7 +393,7 @@ async function insertFrameJobs(
   ids.slice(0, ready.length).forEach((id) => kickJob(id));
 }
 
-// Queue one or more frames (caller already charged FRAME_COST each). Each old
+// Queue one or more frames (caller already charged FRAME_COST_USD each). Each old
 // job is replaced, the frame is stamped `submittedAt`, and the project sits in
 // `production` until the jobs settle. `project` must carry the storyboard the
 // prompts should be built from, and the DB must hold the same storyboard and

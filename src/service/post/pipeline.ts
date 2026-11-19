@@ -379,6 +379,7 @@ export async function createPostJob(
       currentImageUrl: "",
       detectedElements: [],
       revisions: [],
+      chargedUsd: FRAME_COST_USD,
       createdAt: now,
       updatedAt: now,
     };
@@ -394,6 +395,7 @@ export async function createPostJob(
       aspectRatio,
       referenceUrls,
       spendKey,
+      chargedUsd: FRAME_COST_USD,
     };
 
     try {
@@ -430,6 +432,7 @@ export async function runPostCreateInBackground(input: {
   aspectRatio: PostAspectRatio;
   referenceUrls: string[];
   spendKey: string;
+  chargedUsd?: number;
 }): Promise<void> {
   const posts = await postsCollection();
   try {
@@ -485,7 +488,16 @@ export async function runPostCreateInBackground(input: {
       error,
     });
     if (input.spendKey && input.clerkUserId) {
-      await refundCreditUsd(input.clerkUserId, FRAME_COST_USD, input.spendKey).catch(() => {});
+      const stored = await posts
+        .findOne({ _id: input.postId }, { projection: { chargedUsd: 1 } })
+        .catch(() => null);
+      const refundUsd =
+        typeof stored?.chargedUsd === "number" && Number.isFinite(stored.chargedUsd)
+          ? stored.chargedUsd
+          : typeof input.chargedUsd === "number" && Number.isFinite(input.chargedUsd)
+            ? input.chargedUsd
+            : FRAME_COST_USD;
+      await refundCreditUsd(input.clerkUserId, refundUsd, input.spendKey).catch(() => {});
     }
     await posts.updateOne(
       { _id: input.postId },

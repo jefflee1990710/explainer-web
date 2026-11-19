@@ -1,4 +1,4 @@
-import { formatUsd } from "@/service/billing/usd";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
 import { IMAGE_COST_USD } from "@/service/credit-costs";
 
 // Pure UX funnel & drop-off classifier used by `/scroadmin/analytics` and unit tests.
@@ -81,7 +81,8 @@ export function classifyUserStuckStage(
 
   if (
     !hasProducedOutput &&
-    (snapshot.credits < MIN_ACTIONABLE_CREDIT_USD || snapshot.creditBlockCount > 0)
+    (toUsdUnits(snapshot.credits) < toUsdUnits(MIN_ACTIONABLE_CREDIT_USD) ||
+      snapshot.creditBlockCount > 0)
   ) {
     return {
       stageId: "blocked_insufficient_credits",

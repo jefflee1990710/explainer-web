@@ -84,6 +84,8 @@ export type Post = {
   currentImageUrl?: string;
   detectedElements?: DetectedPostElement[];
   revisions: PostRevision[];
+  // USD credit charged for initial AI post generation; used for exact refund on failure.
+  chargedUsd?: number;
   error?: string;
   createdAt: Date;
   updatedAt: Date;

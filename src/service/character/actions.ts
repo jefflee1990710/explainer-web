@@ -9,7 +9,7 @@ import {
   refundCreditUsd,
 } from "@/service/billing/credits";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
-import { BLUEPRINT_COST_USD } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion, isBoardVersion } from "@/service/character/generate";
 import {
@@ -37,7 +37,7 @@ import {
   parseValidCharacterObjectIds,
   videoCharacterBlobUrls,
 } from "@/service/character/storage";
-import { failCharacterVersion, versionChargedUsd } from "@/service/character/sync";
+import { failCharacterVersion } from "@/service/character/sync";
 import { cumulativeWardrobeEdit, specAfterWardrobeEdit } from "@/service/character/wardrobe-edit";
 import { canSetDefault } from "@/service/character/versions";
 import {
@@ -230,7 +230,7 @@ export async function createCharacterAction(
   }
 }
 
-// Branch a new version off an existing one with a text edit (FRAME_COST credits).
+// Branch a new version off an existing one with a text edit (BLUEPRINT_COST_USD for boards, FRAME_COST_USD for legacy sheets).
 export async function editCharacterVersionAction(
   characterId: string,
   fromVersionId: string,
@@ -252,7 +252,7 @@ export async function editCharacterVersionAction(
     }
     // A sheet parent keeps the legacy single-image edit; a board parent edits both images.
     const board = isBoardVersion(parent);
-    const cost = board ? BLUEPRINT_COST_USD : versionChargedUsd(parent);
+    const cost = board ? BLUEPRINT_COST_USD : FRAME_COST_USD;
 
     await assertCanSpendCreditUsd(user, cost);
     const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
@@ -399,7 +399,7 @@ export async function addCharacterStyleAction(
   }
 }
 
-// Re-run a failed version in place (the same credits it was first charged).
+// Re-run a failed version in place (BLUEPRINT_COST_USD for boards, FRAME_COST_USD for legacy sheets).
 export async function retryCharacterVersionAction(
   characterId: string,
   versionId: string,
@@ -418,7 +418,7 @@ export async function retryCharacterVersionAction(
     // Capture for nested helpers (TS narrowing doesn't flow into nested functions).
     const doc = character;
     const ver = version;
-    const cost = isBoardVersion(ver) ? BLUEPRINT_COST_USD : versionChargedUsd(ver);
+    const cost = isBoardVersion(ver) ? BLUEPRINT_COST_USD : FRAME_COST_USD;
 
     const characters = await charactersCollection();
     const jobs = await generationJobsCollection();

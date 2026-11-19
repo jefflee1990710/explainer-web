@@ -19,7 +19,7 @@ import {
   refundCreditUsd,
 } from "@/service/billing/credits";
 import { legacyCreditsToUsd } from "@/service/billing/usd";
-import { teleportCostUsd } from "@/service/credit-costs";
+import { videoCostUsd } from "@/service/credit-costs";
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
@@ -43,6 +43,24 @@ import {
 type ExtendJobDoc = ExtendJob & { _id: ObjectId };
 
 export const EXTEND_CLIP_DURATION_SECONDS = 6;
+
+// Standard Extend video cost in USD ($0.60 for 6s at $0.10/s).
+export function extendJobCostUsd(): number {
+  return videoCostUsd(EXTEND_CLIP_DURATION_SECONDS);
+}
+
+// Resolve exact USD refund for a failed Extend job, falling back to legacy credits or the default extend cost.
+export function resolveExtendRefundUsd(
+  job: Pick<ExtendJob, "chargedUsd" | "creditsCharged">,
+): number {
+  if (typeof job.chargedUsd === "number" && Number.isFinite(job.chargedUsd)) {
+    return job.chargedUsd;
+  }
+  if (typeof job.creditsCharged === "number" && Number.isFinite(job.creditsCharged)) {
+    return legacyCreditsToUsd(job.creditsCharged);
+  }
+  return extendJobCostUsd();
+}
 
 export function shouldUseComfyForExtend(): boolean {
   // Extend continues from the last frame on OpenRouter MiniMax H3. Vast stays on Swap and Teleport.
@@ -88,7 +106,7 @@ export async function startExtendJob(input: {
       return { ok: false, error: "目標專案不存在" };
     }
 
-    const cost = teleportCostUsd({ durationSeconds: EXTEND_CLIP_DURATION_SECONDS });
+    const cost = extendJobCostUsd();
     await assertCanSpendCreditUsd(user, cost);
     const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
 
@@ -234,12 +252,7 @@ async function failExtendJobAndRefund(job: ExtendJobDoc, error: string): Promise
       },
     },
   );
-  const refundUsd =
-    typeof job.chargedUsd === "number" && Number.isFinite(job.chargedUsd)
-      ? job.chargedUsd
-      : typeof job.creditsCharged === "number" && Number.isFinite(job.creditsCharged)
-        ? legacyCreditsToUsd(job.creditsCharged)
-        : 0;
+  const refundUsd = resolveExtendRefundUsd(job);
   if (
     updateRes.modifiedCount > 0 &&
     !job.creditsRefunded &&

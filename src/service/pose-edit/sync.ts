@@ -43,6 +43,13 @@ async function poseEditRows(deps?: PoseEditSyncDeps): Promise<PoseEditRows> {
   };
 }
 
+// Resolve exact USD refund for a pose edit, falling back to FRAME_COST_USD for older rows.
+function resolvePoseEditRefundUsd(edit: Pick<PoseEdit, "chargedUsd">): number {
+  return typeof edit.chargedUsd === "number" && Number.isFinite(edit.chargedUsd)
+    ? edit.chargedUsd
+    : FRAME_COST_USD;
+}
+
 // The generation job is already finished, so a failed refund must leave the edit failed.
 async function restoreFailedSpendKey(rows: PoseEditRows, id: ObjectId, spendKey: string) {
   await rows.updateOne(poseEditRefundRestoreFilter(id), {
@@ -57,13 +64,14 @@ export async function failPoseEdit(id: ObjectId, error: string, deps?: PoseEditS
   const existing = await rows.findOne({ _id: id });
   if (!existing || existing.status === "completed") return;
   const spendKey = existing.spendKey;
+  const refundUsd = resolvePoseEditRefundUsd(existing);
   const claimed = await rows.updateOne(poseEditFailureFilter(id), {
     $set: { status: "failed", error, updatedAt: new Date() },
     $unset: { spendKey: "" },
   });
   if (!poseEditShouldRefund(claimed.modifiedCount) || !spendKey) return;
   try {
-    await refund(existing.clerkUserId, FRAME_COST_USD, spendKey);
+    await refund(existing.clerkUserId, refundUsd, spendKey);
   } catch {
     await restoreFailedSpendKey(rows, id, spendKey);
     await refundFailedPoseEdit(id, deps);
@@ -77,13 +85,14 @@ export async function refundFailedPoseEdit(id: ObjectId, deps?: PoseEditSyncDeps
   const existing = await rows.findOne(poseEditFailedSpendQuery(id));
   if (!existing || existing.status !== "failed" || !existing.spendKey) return;
   const spendKey = existing.spendKey;
+  const refundUsd = resolvePoseEditRefundUsd(existing);
   const claimed = await rows.updateOne(poseEditFailedSpendFilter(id, spendKey), {
     $unset: { spendKey: "" },
     $set: { updatedAt: new Date() },
   });
   if (!poseEditShouldRefund(claimed.modifiedCount)) return;
   try {
-    await refund(existing.clerkUserId, FRAME_COST_USD, spendKey);
+    await refund(existing.clerkUserId, refundUsd, spendKey);
   } catch (refundError) {
     await restoreFailedSpendKey(rows, id, spendKey);
     throw refundError;

@@ -140,6 +140,30 @@ describe("User Stuck Stage Classifier & Funnel", () => {
     assert.equal(res.stageId, "blocked_insufficient_credits");
   });
 
+  it("compares actionable USD credit threshold using integer USD units to avoid float drift", () => {
+    const exactEnough = classifyUserStuckStage({
+      ...baseSnapshot,
+      hasAcceptedLegal: true,
+      credits: 0.1 + 0.05,
+      videoCount: 1,
+      storyboardReadyCount: 1,
+      keyframeReadyCount: 1,
+      clipVideoReadyCount: 0,
+    });
+    assert.equal(exactEnough.stageId, "stuck_keyframes_no_clip");
+
+    const justBelow = classifyUserStuckStage({
+      ...baseSnapshot,
+      hasAcceptedLegal: true,
+      credits: 0.1499,
+      videoCount: 1,
+      storyboardReadyCount: 1,
+      keyframeReadyCount: 1,
+      clipVideoReadyCount: 0,
+    });
+    assert.equal(justBelow.stageId, "blocked_insufficient_credits");
+  });
+
   it("identifies activated users who produced video clips or Life photos", () => {
     const res = classifyUserStuckStage({
       ...baseSnapshot,
