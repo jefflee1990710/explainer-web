@@ -367,7 +367,9 @@ export type ProjectClip = {
   error?: string;
   // ISO time the video was requested (Phase B + submit happen in a job).
   submittedAt?: string;
-  // Credits taken for the current attempt, so a refund returns the same amount.
+  // USD credit taken for the current attempt, so a refund returns the exact same amount.
+  chargedUsd?: number;
+  // Legacy integer credits taken for the current attempt (kept for in-flight refund fallback).
   creditsCharged?: number;
   // True while the video job is still in our queue and has not been sent.
   unsent?: boolean;
@@ -392,6 +394,7 @@ export type SubtitlePlate = {
   blobUrl?: string;
   error?: string;
   submittedAt?: string;
+  chargedUsd?: number;
   creditsCharged?: number;
   // The spoken line this plate was drawn for; a later edit makes the plate stale.
   line?: string;
@@ -421,6 +424,7 @@ export type OnscreenTextItem = {
   blobUrl?: string;
   error?: string;
   submittedAt?: string;
+  chargedUsd?: number;
   creditsCharged?: number;
 };
 
@@ -620,6 +624,7 @@ const subtitlePlateSchema = z.object({
   blobUrl: z.string().optional(),
   error: z.string().optional(),
   submittedAt: z.string().optional(),
+  chargedUsd: z.number().optional(),
   creditsCharged: z.number().optional(),
   line: z.string().optional(),
 });
@@ -643,6 +648,7 @@ const onscreenTextItemSchema = z.object({
   blobUrl: z.string().optional(),
   error: z.string().optional(),
   submittedAt: z.string().optional(),
+  chargedUsd: z.number().optional(),
   creditsCharged: z.number().optional(),
 });
 
@@ -886,6 +892,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
       blobUrl: z.string().optional(),
       error: z.string().optional(),
       submittedAt: z.string().optional(),
+      chargedUsd: z.number().optional(),
       creditsCharged: z.number().optional(),
       unsent: z.boolean().optional(),
       mergedKeyframes: z.boolean().optional(),

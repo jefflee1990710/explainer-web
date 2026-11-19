@@ -22,6 +22,9 @@ export type ExtendJob = {
   outputVideoUrl?: string;
   targetVideoId: ObjectId;
   targetClipNumber: number;
+  // USD credit charged for this job; used for exact refund on failure.
+  chargedUsd?: number;
+  // Legacy integer credits charged (kept optional for in-flight refund fallback).
   creditsCharged?: number;
   creditsRefunded?: boolean;
   error?: string;

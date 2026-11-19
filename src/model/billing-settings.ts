@@ -13,7 +13,9 @@ export type CreditPackPrice = {
   priceId: string;
   productId: string;
   amountUsd: number;
-  // Credits last written to Stripe; a change rotates the price and product name.
+  // Canonical USD credit last written to Stripe; a change rotates the price and product name.
+  creditUsd?: number;
+  // Legacy integer credits last written to Stripe.
   credits?: number;
 };
 
@@ -36,10 +38,11 @@ export type BillingSettings = {
   updatedAt: Date;
 };
 
-const creditPackPriceSchema = z.object({
+export const creditPackPriceSchema = z.object({
   priceId: z.string(),
   productId: z.string(),
   amountUsd: z.number(),
+  creditUsd: z.number().optional(),
   credits: z.number().optional(),
 });
 

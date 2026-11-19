@@ -4,15 +4,15 @@ import { CREDIT_PACKS } from "@/service/billing/packs";
 import { PLANS } from "@/service/billing/plans";
 import {
   adhocBonusPercent,
-  packCreditsWithBonus,
+  packCreditUsdWithBonus,
   payPercent,
   signupDiscountPercent,
   signupPromoEnabled,
   signupPromoFold,
 } from "@/service/billing/promo";
 import { IMAGE_COGS_USD, typicalCogsUsd, typicalGrossMargin } from "@/service/billing/unit-economics";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
+import { IMAGE_COST_USD } from "@/service/credit-costs";
 
 const env = process.env;
 
@@ -45,13 +45,13 @@ test("signup promo defaults on and can be switched off", () => {
   });
 });
 
-test("adhoc bonus defaults to 5 percent and scales pack credits", () => {
+test("adhoc bonus defaults to 5 percent and scales pack USD credit cleanly", () => {
   withEnv({ ADHOC_CREDIT_BONUS_PERCENT: undefined }, () => {
     assert.equal(adhocBonusPercent(), 5);
   });
   withEnv({ ADHOC_CREDIT_BONUS_PERCENT: "0" }, () => {
     assert.equal(adhocBonusPercent(), 0);
-    assert.equal(packCreditsWithBonus(900, 0), 900);
+    assert.equal(packCreditUsdWithBonus(50, 0), 50);
   });
   withEnv({ SIGNUP_PROMO_FOLD: undefined }, () => {
     assert.equal(signupPromoFold(), 85);
@@ -65,35 +65,35 @@ test("adhoc bonus defaults to 5 percent and scales pack credits", () => {
     assert.equal(signupPromoFold(), 85);
   });
   assert.equal(payPercent(15), 85);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack10.credits, 5), 158);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack20.credits, 5), 326);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack50.credits, 5), 840);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack100.credits, 5), 1733);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack500.credits, 5), 8925);
-  assert.equal(packCreditsWithBonus(CREDIT_PACKS.pack1000.credits, 5), 18375);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack10.creditUsd, 5), 10.5);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack20.creditUsd, 5), 21);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack50.creditUsd, 5), 52.5);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack100.creditUsd, 5), 105);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack500.creditUsd, 5), 525);
+  assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack1000.creditUsd, 5), 1050);
 });
 
-test("permanent 85 percent pricing stays above the plan margin targets before affiliate", () => {
+test("permanent 85 percent pricing keeps healthy gross margin on 1:1 USD plans", () => {
   for (const plan of Object.values(PLANS)) {
-    const list = typicalGrossMargin(plan.amountUsd, plan.monthlyCredits);
-    const discounted = typicalGrossMargin(plan.amountUsd * 0.85, plan.monthlyCredits);
+    const list = typicalGrossMargin(plan.amountUsd, plan.monthlyCreditUsd);
+    const discounted = typicalGrossMargin(plan.amountUsd * 0.85, plan.monthlyCreditUsd);
     assert.equal(discounted < list, true, plan.id);
-    assert.equal(discounted > 0.45, true, `${plan.id} ${discounted}`);
+    assert.equal(discounted > 0.55, true, `${plan.id} ${discounted}`);
   }
 });
 
-test("a 5 percent pack bonus lowers margin and stays profitable", () => {
+test("a 5 percent pack bonus lowers margin slightly and stays highly profitable", () => {
   for (const pack of Object.values(CREDIT_PACKS)) {
-    const base = typicalGrossMargin(pack.amountUsd, pack.credits);
-    const bonus = typicalGrossMargin(pack.amountUsd, packCreditsWithBonus(pack.credits, 5));
+    const base = typicalGrossMargin(pack.amountUsd, pack.creditUsd);
+    const bonus = typicalGrossMargin(pack.amountUsd, packCreditUsdWithBonus(pack.creditUsd, 5));
     assert.equal(bonus < base, true, pack.id);
-    assert.equal(bonus > 0.7, true, `${pack.id} ${bonus}`);
+    assert.equal(bonus > 0.6, true, `${pack.id} ${bonus}`);
   }
 });
 
-test("welcome credits cover a 10-clip board and one realistic preview", () => {
-  assert.equal(WELCOME_CREDITS, 145);
+test("welcome USD credit covers a 10-clip board and preview clips with bounded COGS", () => {
+  assert.equal(WELCOME_CREDIT_USD, 6);
   assert.equal(10 * IMAGE_COGS_USD <= 1, true);
-  assert.equal((WELCOME_CREDITS / FRAME_COST) * IMAGE_COGS_USD < 3, true);
-  assert.equal(typicalCogsUsd(WELCOME_CREDITS) < 2.5, true);
+  assert.equal((WELCOME_CREDIT_USD / IMAGE_COST_USD) * IMAGE_COGS_USD < 3, true);
+  assert.equal(typicalCogsUsd(WELCOME_CREDIT_USD) < 2.5, true);
 });

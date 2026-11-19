@@ -23,6 +23,8 @@ export type Product = {
   status: ProductStatus;
   error?: string;
   creditsCharged: boolean;
+  // USD credit charged for this product blueprint; used for exact refund on failure.
+  chargedUsd?: number;
   createdAt: Date;
   updatedAt: Date;
 };

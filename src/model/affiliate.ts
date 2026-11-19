@@ -30,8 +30,13 @@ export type AffiliateLedgerEntry = {
   // Positive for earn; negative for reverse / payout.
   amountCents: number;
   rate: number;
-  // Buy: Stripe amount; consume: credits * usdPerCredit.
+  // Buy: Stripe amount; consume: creditUsd * cashCentsPerUsd (or legacy credits * usdPerCredit).
   baseAmountCents: number;
+  // Canonical USD credit amount for this ledger event.
+  creditUsd?: number;
+  // Cash cents paid per $1.00 of USD credit in the consumed lot.
+  cashCentsPerUsd?: number;
+  // Legacy integer credit fields kept optional for historical ledger entries.
   credits?: number;
   usdPerCreditCents?: number;
   // Idempotency / reverse link.
@@ -42,16 +47,22 @@ export type AffiliateLedgerEntry = {
 
 export type CreditLotSource = "subscription" | "pack" | "bonus" | "manual";
 
-// FIFO batch of purchased credits with a fixed USD/credit price.
+// FIFO batch of purchased USD credit with a fixed real-cash cents per USD credit rate.
 export type CreditLot = {
   _id: ObjectId;
   clerkUserId: string;
   source: CreditLotSource;
   sourceId: string;
-  creditsRemaining: number;
-  creditsOriginal: number;
-  // Price paid per credit in USD cents (integer).
-  usdPerCreditCents: number;
+  // Canonical USD credit fields for FIFO lot accounting.
+  creditUsdRemaining?: number;
+  creditUsdOriginal?: number;
+  // Real cash cents paid per $1.00 of granted USD credit (e.g., 85 for 15%-off promo).
+  cashCentsPerUsd?: number;
+  // Legacy integer credit fields kept optional for unmigrated lots.
+  creditsRemaining?: number;
+  creditsOriginal?: number;
+  // Price paid per legacy credit in USD cents (integer).
+  usdPerCreditCents?: number;
   amountPaidCents: number;
   createdAt: Date;
 };
@@ -89,6 +100,8 @@ export const affiliateLedgerEntrySchema: z.ZodType<AffiliateLedgerEntry> = z.obj
   amountCents: z.number(),
   rate: z.number(),
   baseAmountCents: z.number(),
+  creditUsd: z.number().optional(),
+  cashCentsPerUsd: z.number().optional(),
   credits: z.number().optional(),
   usdPerCreditCents: z.number().optional(),
   eventKey: z.string(),
@@ -101,9 +114,12 @@ export const creditLotSchema: z.ZodType<CreditLot> = z.object({
   clerkUserId: z.string(),
   source: z.enum(["subscription", "pack", "bonus", "manual"]),
   sourceId: z.string(),
-  creditsRemaining: z.number(),
-  creditsOriginal: z.number(),
-  usdPerCreditCents: z.number(),
+  creditUsdRemaining: z.number().optional(),
+  creditUsdOriginal: z.number().optional(),
+  cashCentsPerUsd: z.number().optional(),
+  creditsRemaining: z.number().optional(),
+  creditsOriginal: z.number().optional(),
+  usdPerCreditCents: z.number().optional(),
   amountPaidCents: z.number(),
   createdAt: z.date(),
 });

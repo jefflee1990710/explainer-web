@@ -1,27 +1,24 @@
 import type { VideoQualityTier } from "@/model/project";
+import { addUsd, legacyCreditsToUsd, mulUsd, roundUsd4, toUsdUnits } from "@/service/billing/usd";
 
-// Credits per action. Each image is 4; a clip's two frames are 8.
-export const FRAME_COST = 4;
-export const FRAMES_COST = 8;
-// A character blueprint board is two images: identity portrait + full-body standing.
-export const BLUEPRINT_COST = FRAME_COST * 2;
+// Canonical USD credit pricing per action ($0.0001 precision).
+// Single image / scene frame / cover / lock / plate / repaint: $0.15.
+export const IMAGE_COST_USD = 0.15;
+export const FRAME_COST_USD = IMAGE_COST_USD;
+export const FRAMES_COST_USD = mulUsd(FRAME_COST_USD, 2);
+// A character blueprint board is two images: identity portrait + full-body standing ($0.30).
+export const BLUEPRINT_COST_USD = mulUsd(IMAGE_COST_USD, 2);
 
-// All non-talking-head videos run on OpenRouter `minimax/hailuo-3` at 2 credits/s (voice included), 5–15 billed seconds.
-export const VIDEO_CREDITS_PER_SECOND = 2;
-export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 2;
-export const ECONOMY_VIDEO_CREDITS_PER_SECOND = 2;
-// ElevenLabs voice track is included in the 2 credits/s rate across all clips.
-export const VOICE_SWAP_CREDITS_PER_SECOND = 0;
+// Standard video (minimax/hailuo-3, ComfyUI ref2va, Extend; voice included): $0.10/s, 5-15 billed seconds.
+export const VIDEO_COST_PER_SECOND_USD = 0.1;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
 // OpenRouter `minimax/hailuo-3` clamps a clip to 15s, so one-take bills `MAX_VIDEO_SECONDS`.
 export const ONE_TAKE_MAX_VIDEO_SECONDS = 60;
 export const TALKING_HEAD_MAX_VIDEO_SECONDS = 120;
-// HeyGen Avatar IV costs $0.05/s. 4 credits/s is about a 70% gross margin
-// at the Studio list price ($249 / 5,938 credits ≈ $0.042 per credit).
-// The ElevenLabs track is the video's own audio, so voice is included.
-export const TALKING_HEAD_CREDITS_PER_SECOND = 4;
-export const MIN_VIDEO_COST = VIDEO_CREDITS_PER_SECOND * MIN_VIDEO_SECONDS;
+// Sitting talking-head (heygen/avatar-iv; voice included): $0.18/s up to 120s.
+export const TALKING_HEAD_COST_PER_SECOND_USD = 0.18;
+export const MIN_VIDEO_COST_USD = mulUsd(VIDEO_COST_PER_SECOND_USD, MIN_VIDEO_SECONDS);
 
 // Seconds the provider renders (and we bill) for a clip of this length.
 export function billedVideoSeconds(seconds: number, maxSeconds = MAX_VIDEO_SECONDS) {
@@ -29,59 +26,114 @@ export function billedVideoSeconds(seconds: number, maxSeconds = MAX_VIDEO_SECON
   return Math.min(maxSeconds, Math.max(MIN_VIDEO_SECONDS, rounded));
 }
 
-export function videoCreditsPerSecond(styleId?: string, videoQualityTier?: VideoQualityTier) {
+export function videoCostPerSecondUsd(styleId?: string, videoQualityTier?: VideoQualityTier) {
   void styleId;
   void videoQualityTier;
-  return VIDEO_CREDITS_PER_SECOND;
+  return VIDEO_COST_PER_SECOND_USD;
 }
 
-export function videoCost(
+// Standard non-talking-head clip cost in USD (5-15s minimum $0.50).
+export function videoCostUsd(
   seconds: number,
   styleId?: string,
   voiceSwap = false,
   maxSeconds = MAX_VIDEO_SECONDS,
   videoQualityTier?: VideoQualityTier,
-) {
-  const perSecond = videoCreditsPerSecond(styleId, videoQualityTier) + (voiceSwap ? VOICE_SWAP_CREDITS_PER_SECOND : 0);
-  return perSecond * billedVideoSeconds(seconds, maxSeconds);
+): number {
+  void voiceSwap;
+  const perSecond = videoCostPerSecondUsd(styleId, videoQualityTier);
+  return mulUsd(perSecond, billedVideoSeconds(seconds, maxSeconds));
 }
 
-// Sitting talking-head only. Flat rate up to 120s, with no style or voice surcharge.
-export function talkingHeadVideoCost(seconds: number) {
-  return TALKING_HEAD_CREDITS_PER_SECOND * billedVideoSeconds(seconds, TALKING_HEAD_MAX_VIDEO_SECONDS);
+// Sitting talking-head clip cost in USD: flat $0.18/s up to 120s, voice included.
+export function talkingHeadVideoCostUsd(seconds: number): number {
+  return mulUsd(
+    TALKING_HEAD_COST_PER_SECOND_USD,
+    billedVideoSeconds(seconds, TALKING_HEAD_MAX_VIDEO_SECONDS),
+  );
 }
 
 /**
- * Credits for one Scro Swap job:
- * - Static image swap: `FRAME_COST` (`4` credits)
- * - Video / GIF swap (`2s..15s`): `FRAME_COST` (`4` credits for keyframe prepare) + `2 credits/s` (`VIDEO_CREDITS_PER_SECOND`).
+ * USD credit cost for one Scro Swap job:
+ * - Static image swap: `IMAGE_COST_USD` (`$0.15`)
+ * - Video / GIF swap (`2s..15s`): `IMAGE_COST_USD` (`$0.15` for keyframe prepare) + `$0.10/s` (`VIDEO_COST_PER_SECOND_USD`).
  */
-export function scroSwapCost(input?: {
+export function scroSwapCostUsd(input?: {
   durationSeconds?: number;
   mediaKind?: "video" | "gif" | "image";
 }): number {
-  if (input?.mediaKind === "image") return FRAME_COST;
+  if (input?.mediaKind === "image") return IMAGE_COST_USD;
   const raw = Number(input?.durationSeconds);
-  const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
-  return FRAME_COST + VIDEO_CREDITS_PER_SECOND * clamped;
+  const clamped =
+    Number.isFinite(raw) && raw > 0
+      ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw)))
+      : 6;
+  return addUsd(IMAGE_COST_USD, mulUsd(VIDEO_COST_PER_SECOND_USD, clamped));
 }
 
 /**
- * Credits for one Teleport job (`2s..15s`):
- * `FRAME_COST` (`4` credits for relocated keyframe prepare) + `2 credits/s` (`VIDEO_CREDITS_PER_SECOND`).
+ * USD credit cost for one Teleport job (`2s..15s`):
+ * `IMAGE_COST_USD` (`$0.15` for relocated keyframe prepare) + `$0.10/s` (`VIDEO_COST_PER_SECOND_USD`).
  */
-export function teleportCost(input?: { durationSeconds?: number }): number {
+export function teleportCostUsd(input?: { durationSeconds?: number }): number {
   const raw = Number(input?.durationSeconds);
-  const clamped = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw))) : 6;
-  return FRAME_COST + VIDEO_CREDITS_PER_SECOND * clamped;
+  const clamped =
+    Number.isFinite(raw) && raw > 0
+      ? Math.min(MAX_VIDEO_SECONDS, Math.max(2, Math.round(raw)))
+      : 6;
+  return addUsd(IMAGE_COST_USD, mulUsd(VIDEO_COST_PER_SECOND_USD, clamped));
 }
 
-// What a clip video attempt was charged. Older clips predate `creditsCharged`.
-export function chargedVideoCredits(clip?: { creditsCharged?: number; durationSeconds?: number }) {
-  return clip?.creditsCharged ?? videoCost(clip?.durationSeconds ?? MIN_VIDEO_SECONDS);
+// Exact USD amount charged for a clip video attempt; falls back to legacy integer credits or duration estimate.
+export function chargedClipUsd(clip?: {
+  chargedUsd?: number;
+  creditsCharged?: number;
+  durationSeconds?: number;
+}): number {
+  if (typeof clip?.chargedUsd === "number" && Number.isFinite(clip.chargedUsd)) {
+    return roundUsd4(clip.chargedUsd);
+  }
+  if (typeof clip?.creditsCharged === "number" && Number.isFinite(clip.creditsCharged)) {
+    return legacyCreditsToUsd(clip.creditsCharged);
+  }
+  return videoCostUsd(clip?.durationSeconds ?? MIN_VIDEO_SECONDS);
 }
 
-// True when the wallet cannot pay for the video (defaults to the shortest one).
-export function needsVideoUpgrade(credits: number, cost = MIN_VIDEO_COST) {
-  return credits < cost;
+// True when remaining USD credit cannot pay for the video (defaults to the shortest one).
+export function needsVideoUpgradeUsd(creditUsd: number, costUsd = MIN_VIDEO_COST_USD): boolean {
+  return toUsdUnits(creditUsd) < toUsdUnits(costUsd);
 }
+
+// Transitional aliases mapped directly to USD values until downstream service/UI callers migrate in Tasks 4-6.
+/** @deprecated Use `FRAME_COST_USD` / `IMAGE_COST_USD`. */
+export const FRAME_COST = FRAME_COST_USD;
+/** @deprecated Use `FRAMES_COST_USD`. */
+export const FRAMES_COST = FRAMES_COST_USD;
+/** @deprecated Use `BLUEPRINT_COST_USD`. */
+export const BLUEPRINT_COST = BLUEPRINT_COST_USD;
+/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
+export const VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
+/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
+export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
+/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
+export const ECONOMY_VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
+/** @deprecated Voice is always included in video pricing. */
+export const VOICE_SWAP_CREDITS_PER_SECOND = 0;
+/** @deprecated Use `TALKING_HEAD_COST_PER_SECOND_USD`. */
+export const TALKING_HEAD_CREDITS_PER_SECOND = TALKING_HEAD_COST_PER_SECOND_USD;
+/** @deprecated Use `MIN_VIDEO_COST_USD`. */
+export const MIN_VIDEO_COST = MIN_VIDEO_COST_USD;
+/** @deprecated Use `videoCostPerSecondUsd`. */
+export const videoCreditsPerSecond = videoCostPerSecondUsd;
+/** @deprecated Use `videoCostUsd`. */
+export const videoCost = videoCostUsd;
+/** @deprecated Use `talkingHeadVideoCostUsd`. */
+export const talkingHeadVideoCost = talkingHeadVideoCostUsd;
+/** @deprecated Use `scroSwapCostUsd`. */
+export const scroSwapCost = scroSwapCostUsd;
+/** @deprecated Use `teleportCostUsd`. */
+export const teleportCost = teleportCostUsd;
+/** @deprecated Use `chargedClipUsd`. */
+export const chargedVideoCredits = chargedClipUsd;
+/** @deprecated Use `needsVideoUpgradeUsd`. */
+export const needsVideoUpgrade = needsVideoUpgradeUsd;

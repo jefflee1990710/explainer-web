@@ -2,13 +2,13 @@ import { mediaSrc } from "@/util/media-src";
 import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
-
+import { addUsd, mulUsd } from "@/service/billing/usd";
 import {
-  FRAME_COST,
-  MIN_VIDEO_COST,
+  FRAME_COST_USD,
+  MIN_VIDEO_COST_USD,
   MIN_VIDEO_SECONDS,
-  talkingHeadVideoCost,
-  videoCost,
+  talkingHeadVideoCostUsd,
+  videoCostUsd,
 } from "@/service/credit-costs";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
@@ -17,13 +17,13 @@ import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
 
-// Video credits for one storyboard clip, from its planned duration.
+// Video USD credit cost for one storyboard clip, from its planned duration.
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const clipProj = resolveClipProject(project, clipNumber);
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const seconds = row?.durationSeconds ?? MIN_VIDEO_SECONDS;
-  if (clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCost(seconds);
-  return videoCost(
+  if (clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCostUsd(seconds);
+  return videoCostUsd(
     seconds,
     clipProj.styleId,
     Boolean(resolveVoiceSwapId(clipProj)),
@@ -32,9 +32,12 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   );
 }
 
-// Scene-image credits. Talking-head clips pay for their start; the last clip pays for its end too.
+// Scene-image USD credit cost. Talking-head clips pay for their start; the last clip pays for its end too.
 export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) {
-  return clipNumbers.reduce((sum, clipNumber) => sum + clipFrameCost(project, clipNumber), 0);
+  return clipNumbers.reduce(
+    (sum, clipNumber) => addUsd(sum, clipFrameCost(project, clipNumber)),
+    0,
+  );
 }
 
 // One keyed subtitle plate per storyboard clip when overlay is on.
@@ -55,17 +58,17 @@ export function subtitlePlateCost(project: {
   ) {
     return 0;
   }
-  return FRAME_COST * (project.phaseA?.clips.length ?? 0);
+  return mulUsd(FRAME_COST_USD, project.phaseA?.clips.length ?? 0);
 }
 
-// Sum of video credits for these clips.
+// Sum of video USD credit costs for these clips.
 function videosCost(project: ClipStageSource, clipNumbers: number[]) {
-  return clipNumbers.reduce((sum, clipNumber) => sum + clipVideoCost(project, clipNumber), 0);
+  return clipNumbers.reduce((sum, clipNumber) => addUsd(sum, clipVideoCost(project, clipNumber)), 0);
 }
 
 // Cheapest video among these clips, so the upgrade prompt fires only when none fit.
 export function cheapestVideoCost(project: ClipStageSource, clipNumbers: number[]) {
-  if (clipNumbers.length === 0) return MIN_VIDEO_COST;
+  if (clipNumbers.length === 0) return MIN_VIDEO_COST_USD;
   return Math.min(...clipNumbers.map((clipNumber) => clipVideoCost(project, clipNumber)));
 }
 
@@ -99,7 +102,7 @@ export function planRemaining(project: ClipStageSource): RemainingPlan {
   return {
     frames,
     videos,
-    cost: sceneImageCost(project, frames) + videosCost(project, videos),
+    cost: addUsd(sceneImageCost(project, frames), videosCost(project, videos)),
   };
 }
 
@@ -143,7 +146,7 @@ export function planGenerateAllScenes(project: ClipStageSource): BulkGeneratePla
   return {
     frames,
     videos: [],
-    cost: sceneImageCost(project, frames) + subtitlePlateCost(project),
+    cost: addUsd(sceneImageCost(project, frames), subtitlePlateCost(project)),
   };
 }
 

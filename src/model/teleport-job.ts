@@ -32,6 +32,9 @@ export type TeleportJob = {
   targetVideoId?: ObjectId;
   targetClipNumber?: number;
   previousClipVideoUrl?: string;
+  // USD credit charged for this job; used for exact refund on failure.
+  chargedUsd?: number;
+  // Legacy integer credits charged (kept optional for in-flight refund fallback).
   creditsCharged?: number;
   creditsRefunded?: boolean;
   notifiedAt?: Date;

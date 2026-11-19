@@ -11,12 +11,19 @@ export type AppUser = {
   email: string;
   name: string;
   stripeCustomerId?: string;
-  credits: number;
-  // Unspent one-time packs that survive monthly refill.
+  // Canonical USD credit balance ($0.0001 precision).
+  creditUsd?: number;
+  // Unspent one-time pack USD credit that survives monthly refill.
+  bonusCreditUsd?: number;
+  // Current period bar denominator in USD (monthly allowance + packs).
+  creditLimitUsd?: number;
+  // Timestamp set once the account is migrated from legacy integer credits.
+  creditMigratedAt?: Date;
+  // Legacy integer credit fields kept optional for lazy read fallback and migration.
+  credits?: number;
   bonusCredits?: number;
   // Permanent subscription percent off, locked when the account was created during a signup promo.
   signupDiscountPercent?: number;
-  // Current period bar denominator (monthly allotment + packs).
   creditLimit?: number;
   processedCheckoutIds?: string[];
   // Operator switch. Only true accounts see and use Affiliate.
@@ -58,7 +65,11 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
   email: z.string(),
   name: z.string(),
   stripeCustomerId: z.string().optional(),
-  credits: z.number(),
+  creditUsd: z.number().optional(),
+  bonusCreditUsd: z.number().optional(),
+  creditLimitUsd: z.number().optional(),
+  creditMigratedAt: z.date().optional(),
+  credits: z.number().optional(),
   bonusCredits: z.number().optional(),
   signupDiscountPercent: z.number().optional(),
   creditLimit: z.number().optional(),

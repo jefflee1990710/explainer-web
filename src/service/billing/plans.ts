@@ -6,7 +6,8 @@ export type PlanDefinition = {
   id: PlanId;
   name: string;
   nameZh: string;
-  monthlyCredits: number;
+  // 1:1 monthly USD credit allowance granted each billing cycle.
+  monthlyCreditUsd: number;
   amountUsd: number;
   blurb: string;
   highlight?: boolean;
@@ -21,16 +22,13 @@ export const PLAN_RANK: Record<PlanId, number> = {
   scale: 3,
 };
 
-// Monthly credits are the largest whole number that still leaves the target
-// worst-case cash margin. Worst case is list price after a 20% discount and the
-// full affiliate stack (buy 20.5% + consume 4.5%), i.e. 60% of list price.
-// Targets: Starter 30%, Pro 35%, Studio 40%, Scale 45%.
+// 1:1 USD credit subscription plans: each plan grants its full monthly price in USD credit.
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
     name: "Starter",
     nameZh: "入門",
-    monthlyCredits: 1641,
+    monthlyCreditUsd: 59,
     amountUsd: 59,
     blurb: "適合先試用 Scro。",
   },
@@ -38,7 +36,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "pro",
     name: "Pro",
     nameZh: "專業",
-    monthlyCredits: 3333,
+    monthlyCreditUsd: 129,
     amountUsd: 129,
     blurb: "適合自己在做生意的人。",
   },
@@ -46,7 +44,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "studio",
     name: "Studio",
     nameZh: "工作室",
-    monthlyCredits: 5938,
+    monthlyCreditUsd: 249,
     amountUsd: 249,
     blurb: "適合用 Scro 接案賺錢的人。",
     highlight: true,
@@ -55,7 +53,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "scale",
     name: "Scale",
     nameZh: "規模",
-    monthlyCredits: 8723,
+    monthlyCreditUsd: 399,
     amountUsd: 399,
     blurb: "適合幫很多客戶做片的團隊。",
   },
@@ -71,7 +69,7 @@ export function upgradeablePlans(current?: PlanId | null) {
 export const ENTERPRISE = {
   name: "Enterprise",
   nameZh: "企業",
-  blurb: "自訂 credits、發票請款、專人支援與用量合約。",
+  blurb: "自訂 USD Credit、發票請款、專人支援與用量合約。",
 };
 
 export function salesEmail() {
@@ -84,7 +82,7 @@ export function salesMailto() {
 }
 
 export function planMarginPct(plan: PlanDefinition) {
-  return Math.round(typicalGrossMargin(plan.amountUsd, plan.monthlyCredits) * 100);
+  return Math.round(typicalGrossMargin(plan.amountUsd, plan.monthlyCreditUsd) * 100);
 }
 
 export function priceIdForPlan(planId: PlanId, prices: BillingSettings) {

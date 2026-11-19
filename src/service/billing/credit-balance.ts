@@ -1,39 +1,75 @@
-export type CreditBalance = {
-  credits: number;
-  bonusCredits: number;
-  creditLimit: number;
+import type { AppUser } from "@/model/user";
+import { addUsd, legacyCreditsToUsd, roundUsd4, subUsd } from "@/service/billing/usd";
+
+// Canonical USD credit wallet state ($0.0001 precision).
+export type UsdCreditBalance = {
+  creditUsd: number;
+  bonusCreditUsd: number;
+  creditLimitUsd: number;
 };
 
-export function applyMonthlyRefill(input: {
-  monthlyCredits: number;
-  bonusCredits: number;
-}): CreditBalance {
-  const bonusCredits = Math.max(0, input.bonusCredits || 0);
-  const credits = input.monthlyCredits + bonusCredits;
-  return { credits, bonusCredits, creditLimit: credits };
+// Resolves canonical USD credit balances, lazily converting unmigrated legacy integer credit fields.
+export function resolveUserUsdBalance(
+  user: Pick<
+    AppUser,
+    "creditUsd" | "bonusCreditUsd" | "creditLimitUsd" | "credits" | "bonusCredits" | "creditLimit"
+  >,
+): UsdCreditBalance {
+  if (typeof user.creditUsd === "number" && Number.isFinite(user.creditUsd)) {
+    const creditUsd = roundUsd4(user.creditUsd);
+    const bonusCreditUsd = roundUsd4(user.bonusCreditUsd ?? 0);
+    const creditLimitUsd = roundUsd4(user.creditLimitUsd ?? creditUsd);
+    return { creditUsd, bonusCreditUsd, creditLimitUsd };
+  }
+  const creditUsd = legacyCreditsToUsd(user.credits ?? 0);
+  const bonusCreditUsd = legacyCreditsToUsd(user.bonusCredits ?? 0);
+  const creditLimitUsd = legacyCreditsToUsd(user.creditLimit ?? user.credits ?? 0);
+  return { creditUsd, bonusCreditUsd, creditLimitUsd };
 }
 
-export function applySpend(state: CreditBalance, cost: number): CreditBalance {
-  const credits = state.credits - cost;
+// Resets monthly USD credit allowance on billing renewal while preserving leftover bonus pack USD.
+export function applyMonthlyRefillUsd(input: {
+  monthlyCreditUsd: number;
+  bonusCreditUsd: number;
+}): UsdCreditBalance {
+  const monthlyCreditUsd = Math.max(0, roundUsd4(input.monthlyCreditUsd || 0));
+  const bonusCreditUsd = Math.max(0, roundUsd4(input.bonusCreditUsd || 0));
+  const creditUsd = addUsd(monthlyCreditUsd, bonusCreditUsd);
+  return { creditUsd, bonusCreditUsd, creditLimitUsd: creditUsd };
+}
+
+// Consumes monthly USD allowance first and only touches bonusCreditUsd once monthly USD is exhausted.
+export function applySpendUsd(state: UsdCreditBalance, costUsd: number): UsdCreditBalance {
+  const cost = Math.max(0, roundUsd4(costUsd || 0));
+  const creditUsd = subUsd(state.creditUsd, cost);
+  const currentBonus = Math.max(0, roundUsd4(state.bonusCreditUsd || 0));
   return {
-    credits,
-    bonusCredits: Math.min(state.bonusCredits || 0, credits),
-    creditLimit: state.creditLimit,
+    creditUsd,
+    bonusCreditUsd: Math.max(0, Math.min(currentBonus, creditUsd)),
+    creditLimitUsd: roundUsd4(state.creditLimitUsd),
   };
 }
 
-export function applyPackPurchase(state: CreditBalance, packCredits: number): CreditBalance {
-  const baseLimit = Math.max(state.creditLimit || 0, state.credits);
+// Adds a one-time top-up pack to spendable USD, permanent bonusCreditUsd, and the period denominator.
+export function applyPackPurchaseUsd(
+  state: UsdCreditBalance,
+  packCreditUsd: number,
+): UsdCreditBalance {
+  const pack = Math.max(0, roundUsd4(packCreditUsd || 0));
+  const currentCredit = roundUsd4(state.creditUsd || 0);
+  const currentBonus = roundUsd4(state.bonusCreditUsd || 0);
+  const baseLimit = Math.max(roundUsd4(state.creditLimitUsd || 0), currentCredit);
   return {
-    credits: state.credits + packCredits,
-    bonusCredits: (state.bonusCredits || 0) + packCredits,
-    creditLimit: baseLimit + packCredits,
+    creditUsd: addUsd(currentCredit, pack),
+    bonusCreditUsd: addUsd(currentBonus, pack),
+    creditLimitUsd: addUsd(baseLimit, pack),
   };
 }
 
-export function creditProgress(credits: number, creditLimit: number) {
-  const remaining = Math.max(0, credits);
-  const limit = Math.max(0, creditLimit);
+// Progress meter: remaining USD credit ratio against current period limit.
+export function creditProgressUsd(creditUsd: number, creditLimitUsd: number) {
+  const remaining = Math.max(0, roundUsd4(creditUsd));
+  const limit = Math.max(0, roundUsd4(creditLimitUsd));
   return {
     remaining,
     limit,
@@ -41,11 +77,12 @@ export function creditProgress(credits: number, creditLimit: number) {
   };
 }
 
-// Header meter: how much of this period's allowance is already spent.
-export function creditsUsed(credits: number, creditLimit: number) {
-  const limit = Math.max(0, creditLimit, credits);
-  const remaining = Math.max(0, Math.min(credits, limit));
-  const used = limit - remaining;
+// Header meter: how much of this period's USD credit allowance has been spent.
+export function creditsUsedUsd(creditUsd: number, creditLimitUsd: number) {
+  const safeCredit = roundUsd4(creditUsd);
+  const limit = Math.max(0, roundUsd4(creditLimitUsd), safeCredit);
+  const remaining = Math.max(0, Math.min(safeCredit, limit));
+  const used = subUsd(limit, remaining);
   return {
     used,
     remaining,

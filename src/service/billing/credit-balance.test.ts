@@ -1,73 +1,79 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  applyMonthlyRefill,
-  applyPackPurchase,
-  applySpend,
-  creditProgress,
-  creditsUsed,
+  applyMonthlyRefillUsd,
+  applyPackPurchaseUsd,
+  applySpendUsd,
+  creditProgressUsd,
+  creditsUsedUsd,
+  resolveUserUsdBalance,
 } from "@/service/billing/credit-balance";
 
-test("monthly refill keeps leftover bonus and resets unused monthly", () => {
-  const next = applyMonthlyRefill({ monthlyCredits: 90, bonusCredits: 30 });
+test("monthly refill resets monthly USD allowance while keeping leftover bonus pack USD", () => {
+  const next = applyMonthlyRefillUsd({ monthlyCreditUsd: 59, bonusCreditUsd: 10.5 });
   assert.deepEqual(next, {
-    credits: 120,
-    bonusCredits: 30,
-    creditLimit: 120,
+    creditUsd: 69.5,
+    bonusCreditUsd: 10.5,
+    creditLimitUsd: 69.5,
   });
 });
 
-test("spend consumes monthly first so bonus only shrinks after monthly is gone", () => {
-  const afterMonthly = applySpend(
-    { credits: 120, bonusCredits: 30, creditLimit: 120 },
-    40,
+test("spend consumes monthly USD first before touching bonusCreditUsd without floating-point drift", () => {
+  const afterMonthly = applySpendUsd(
+    { creditUsd: 69.5, bonusCreditUsd: 10.5, creditLimitUsd: 69.5 },
+    0.15,
   );
   assert.deepEqual(afterMonthly, {
-    credits: 80,
-    bonusCredits: 30,
-    creditLimit: 120,
+    creditUsd: 69.35,
+    bonusCreditUsd: 10.5,
+    creditLimitUsd: 69.5,
   });
 
-  const afterBonus = applySpend(
-    { credits: 120, bonusCredits: 30, creditLimit: 120 },
-    100,
+  const afterBonus = applySpendUsd(
+    { creditUsd: 69.5, bonusCreditUsd: 10.5, creditLimitUsd: 69.5 },
+    65,
   );
   assert.deepEqual(afterBonus, {
-    credits: 20,
-    bonusCredits: 20,
-    creditLimit: 120,
+    creditUsd: 4.5,
+    bonusCreditUsd: 4.5,
+    creditLimitUsd: 69.5,
   });
 });
 
-test("pack purchase stacks onto remaining and raises the period limit", () => {
-  const next = applyPackPurchase(
-    { credits: 20, bonusCredits: 0, creditLimit: 90 },
-    30,
+test("pack purchase adds to remaining and bonusCreditUsd and raises period limit", () => {
+  const next = applyPackPurchaseUsd(
+    { creditUsd: 5.85, bonusCreditUsd: 0, creditLimitUsd: 6 },
+    10.5,
   );
   assert.deepEqual(next, {
-    credits: 50,
-    bonusCredits: 30,
-    creditLimit: 120,
+    creditUsd: 16.35,
+    bonusCreditUsd: 10.5,
+    creditLimitUsd: 16.5,
   });
 });
 
-test("progress uses remaining over limit and clamps ratio", () => {
-  assert.deepEqual(creditProgress(45, 90), {
-    remaining: 45,
-    limit: 90,
-    ratio: 0.5,
-  });
-  assert.equal(creditProgress(0, 0).ratio, 0);
-  assert.equal(creditProgress(120, 90).ratio, 1);
+test("resolveUserUsdBalance reads canonical USD fields and lazily falls back from legacy integer credits", () => {
+  assert.deepEqual(
+    resolveUserUsdBalance({ creditUsd: 12.34, bonusCreditUsd: 2.5, creditLimitUsd: 59, credits: 9999 }),
+    { creditUsd: 12.34, bonusCreditUsd: 2.5, creditLimitUsd: 59 },
+  );
+  assert.deepEqual(
+    resolveUserUsdBalance({ credits: 145, bonusCredits: 25, creditLimit: 200 }),
+    { creditUsd: 5.8, bonusCreditUsd: 1, creditLimitUsd: 8 },
+  );
 });
 
-test("used credits fill the bar from the period limit", () => {
-  assert.deepEqual(creditsUsed(994, 1000), {
-    used: 6,
-    remaining: 994,
-    limit: 1000,
-    ratio: 0.006,
+test("progress and used USD ratios compute accurately", () => {
+  assert.deepEqual(creditProgressUsd(29.5, 59), { remaining: 29.5, limit: 59, ratio: 0.5 });
+  assert.equal(creditProgressUsd(0, 0).ratio, 0);
+  assert.equal(creditProgressUsd(70, 59).ratio, 1);
+
+  assert.deepEqual(creditsUsedUsd(58.85, 59), {
+    used: 0.15,
+    remaining: 58.85,
+    limit: 59,
+    ratio: 0.15 / 59,
   });
-  assert.equal(creditsUsed(0, 0).ratio, 0);
-  assert.equal(creditsUsed(120, 90).used, 0);
+  assert.equal(creditsUsedUsd(0, 0).ratio, 0);
+  assert.equal(creditsUsedUsd(70, 59).used, 0);
 });

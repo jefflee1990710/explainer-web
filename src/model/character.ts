@@ -64,7 +64,9 @@ export type CharacterVersion = {
   status: CharacterVersionStatus;
   error?: string;
   creditsCharged: boolean;
-  // Credits taken for this version. Missing on rows charged before boards (FRAME_COST).
+  // USD credit charged for this version; used for exact refund on failure.
+  chargedUsd?: number;
+  // Legacy integer credits taken for this version. Missing on rows charged before boards.
   creditsCost?: number;
   createdAt: Date;
   // When the current generation attempt was sent to the provider.
@@ -169,6 +171,7 @@ export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   status: characterVersionStatusSchema,
   error: z.string().optional(),
   creditsCharged: z.boolean(),
+  chargedUsd: z.number().optional(),
   creditsCost: z.number().optional(),
   createdAt: z.date(),
   submittedAt: z.date().optional(),

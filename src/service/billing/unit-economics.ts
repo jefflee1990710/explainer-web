@@ -1,22 +1,23 @@
-import { FRAMES_COST, MIN_VIDEO_SECONDS } from "@/service/credit-costs";
+import { FRAMES_COST_USD, MIN_VIDEO_COST_USD, MIN_VIDEO_SECONDS } from "@/service/credit-costs";
 
-// Provider COGS used to set list prices (checked 2026-09).
-// Image: Marketing Studio Flare ~$0.075 (Qwen Image 3 is $0.04).
-// Video: MiniMax H3 image-to-video at 2K, $0.13 per second.
-// Cinematic realistic uses Seedance 2.0 at 1080p, about $0.68 per second.
-export const IMAGE_COGS_USD = 0.075;
-export const VIDEO_COGS_PER_SECOND_USD = 0.13;
+// Provider COGS used to evaluate USD credit unit economics (aligned with pipeline-models.md).
+// Image: Seedream 5.0 Pro ~$0.04/image.
+// Video: blended standard video COGS ~$0.04/s across Hailuo 3 / self-hosted ComfyUI ref2va (HeyGen Avatar IV is $0.05/s).
+export const IMAGE_COGS_USD = 0.04;
+export const VIDEO_COGS_PER_SECOND_USD = 0.04;
 
-// Baseline credit COGS anchor used to size monthly subscription credits (checked 2026-09).
-export const TYPICAL_COGS_PER_CREDIT_USD =
+// Baseline provider COGS per $1.00 of USD credit spent on a typical 2-frame + 5s video clip ($0.28 / $0.80 = 0.35).
+export const TYPICAL_COGS_PER_USD_CREDIT =
   (2 * IMAGE_COGS_USD + MIN_VIDEO_SECONDS * VIDEO_COGS_PER_SECOND_USD) /
-  (FRAMES_COST + 45);
+  (FRAMES_COST_USD + MIN_VIDEO_COST_USD);
 
-export function typicalCogsUsd(credits: number) {
-  return credits * TYPICAL_COGS_PER_CREDIT_USD;
+// Expected provider COGS in USD when a customer consumes `creditUsd` of balance.
+export function typicalCogsUsd(creditUsd: number) {
+  return creditUsd * TYPICAL_COGS_PER_USD_CREDIT;
 }
 
-export function typicalGrossMargin(amountUsd: number, credits: number) {
+// Expected gross margin ratio given real cash collected (`amountUsd`) and granted USD credit (`creditUsd`).
+export function typicalGrossMargin(amountUsd: number, creditUsd: number) {
   if (amountUsd <= 0) return 0;
-  return (amountUsd - typicalCogsUsd(credits)) / amountUsd;
+  return (amountUsd - typicalCogsUsd(creditUsd)) / amountUsd;
 }

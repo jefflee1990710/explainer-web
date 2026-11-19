@@ -39,6 +39,8 @@ export type UserStyleDoc = {
   previewStatus: PreviewStatus;
   /** Set when preview credits were consumed; used for one-time refund on failure. */
   previewCreditsCharged?: boolean;
+  /** USD credit charged for the active preview; used for exact refund on failure. */
+  chargedUsd?: number;
   /** When the in-flight preview job started (for stale-job detection). */
   previewStartedAt?: Date;
   /** Assistant chat turn that requested this preview, if any. */

@@ -1,3 +1,5 @@
+import { roundUsd4 } from "@/service/billing/usd";
+
 // Signup offer and one-time pack bonus. Both are env-controlled.
 // A discount locked onto a user at creation stays after the flag is turned off.
 
@@ -38,7 +40,7 @@ export function signupDiscountPercent() {
   return 100 - signupPromoFold();
 }
 
-// Extra credits on an adhoc pack, as a whole percent. Current default is 5.
+// Extra USD credit on an adhoc pack, as a whole percent. Current default is 5.
 export function adhocBonusPercent() {
   const raw = readEnv("ADHOC_CREDIT_BONUS_PERCENT");
   if (raw == null || raw.trim() === "") return 5;
@@ -47,10 +49,11 @@ export function adhocBonusPercent() {
   return Math.min(100, Math.round(value));
 }
 
-// Credits actually granted for a pack after the bonus. Price stays the list amount.
-export function packCreditsWithBonus(baseCredits: number, percent: number) {
-  if (percent <= 0 || baseCredits <= 0) return baseCredits;
-  return Math.round((baseCredits * (100 + percent)) / 100);
+// USD credit actually granted for a pack after the bonus. Price stays the list amount.
+export function packCreditUsdWithBonus(baseCreditUsd: number, percent: number): number {
+  if (!Number.isFinite(baseCreditUsd) || baseCreditUsd <= 0) return 0;
+  if (!Number.isFinite(percent) || percent <= 0) return roundUsd4(baseCreditUsd);
+  return roundUsd4((baseCreditUsd * (100 + percent)) / 100);
 }
 
 // Share of list price the customer pays. 15% off is 85.

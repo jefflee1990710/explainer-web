@@ -22,7 +22,10 @@ export type Subscription = {
   stripePriceId: string;
   planId: PlanId;
   status: SubscriptionStatus;
-  monthlyCredits: number;
+  // Canonical monthly USD credit allowance granted on each billing cycle.
+  monthlyCreditUsd?: number;
+  // Legacy monthly integer credit allowance kept optional for historical records.
+  monthlyCredits?: number;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   createdAt: Date;
@@ -50,7 +53,8 @@ export const subscriptionSchema: z.ZodType<Subscription> = z.object({
   stripePriceId: z.string(),
   planId: planIdSchema,
   status: subscriptionStatusSchema,
-  monthlyCredits: z.number(),
+  monthlyCreditUsd: z.number().optional(),
+  monthlyCredits: z.number().optional(),
   currentPeriodStart: z.date(),
   currentPeriodEnd: z.date(),
   createdAt: z.date(),

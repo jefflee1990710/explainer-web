@@ -2,18 +2,19 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import type { ClipStageSource } from "@/service/clip-stage";
+import { addUsd, mulUsd } from "@/service/billing/usd";
 import {
   autoVideoDecision,
   cheapestVideoCost,
   clipVideoCost,
-  FRAMES_COST,
-  planGenerateAllVideos,
+  FRAMES_COST_USD,
+  MIN_VIDEO_COST_USD,
   planGenerateAllScenes,
+  planGenerateAllVideos,
   planRemaining,
   planSelected,
   sceneImageCost,
   subtitlePlateCost,
-  MIN_VIDEO_COST,
 } from "@/service/production-plan";
 
 function frame(
@@ -56,10 +57,11 @@ test("fills gaps only: frames for empty/failed, video for frames_ready/video_fai
     ],
     clips: [clip(1, "completed"), clip(4, "failed")],
   };
+  assert.equal(FRAMES_COST_USD, 0.3);
   assert.deepEqual(planRemaining(project), {
     frames: [5, 6],
     videos: [2, 4],
-    cost: sceneImageCost(project, [5, 6]) + 2 * MIN_VIDEO_COST,
+    cost: addUsd(sceneImageCost(project, [5, 6]), mulUsd(MIN_VIDEO_COST_USD, 2)),
   });
 });
 
@@ -111,11 +113,11 @@ test("generate all videos waits until every frame is ready", () => {
   assert.deepEqual(planGenerateAllVideos(ready), {
     frames: [],
     videos: [2],
-    cost: MIN_VIDEO_COST,
+    cost: MIN_VIDEO_COST_USD,
   });
 });
 
-test("video cost follows each clip's storyboard duration", () => {
+test("video cost follows each clip's storyboard duration in USD", () => {
   const project: ClipStageSource = {
     status: "production",
     phaseA: {
@@ -127,8 +129,8 @@ test("video cost follows each clip's storyboard duration", () => {
     frames: [],
     clips: [],
   };
-  assert.equal(clipVideoCost(project, 2), 16);
-  assert.equal(cheapestVideoCost(project, [1, 2]), 10);
+  assert.equal(clipVideoCost(project, 2), 0.8);
+  assert.equal(cheapestVideoCost(project, [1, 2]), 0.5);
   assert.deepEqual(planGenerateAllVideos(project), { frames: [], videos: [], cost: 0 });
 });
 
@@ -215,7 +217,7 @@ test("selected videos need fresh, finished frames", () => {
   assert.deepEqual(planSelected(project, [1, 2, 3, 4], "videos"), {
     frames: [],
     videos: [1, 2],
-    cost: 2 * MIN_VIDEO_COST,
+    cost: mulUsd(MIN_VIDEO_COST_USD, 2),
   });
 });
 
@@ -252,7 +254,7 @@ test("overlay video waits until the subtitle is burned onto both stills", () => 
   assert.equal(autoVideoDecision(frames, [], 1, { merged: true }), "start");
 });
 
-test("clipVideoCost bills up to 120 seconds for talking-head-director and caps other directors at 15 seconds", () => {
+test("clipVideoCost bills up to 120 seconds at $0.18/s for talking-head-director and caps other directors at 15 seconds ($0.10/s)", () => {
   const talkingHead60s: ClipStageSource = {
     status: "production",
     skillSlug: "talking-head-director",
@@ -262,9 +264,14 @@ test("clipVideoCost bills up to 120 seconds for talking-head-director and caps o
     frames: [],
     clips: [],
   };
-  // HeyGen Avatar IV is $0.05/s. 4 credits/s * 60s = 240, about a 70% Studio margin.
-  // Realistic style and Cantonese voice do not add a surcharge.
-  assert.equal(planGenerateAllVideos({ ...talkingHead60s, frames: [frame(1, "start", "completed"), frame(1, "end", "completed")] }).cost, 240);
+  // HeyGen Avatar IV is $0.05/s COGS; $0.18/s * 60s = $10.80 USD credit.
+  assert.equal(
+    planGenerateAllVideos({
+      ...talkingHead60s,
+      frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+    }).cost,
+    10.8,
+  );
 
   const cartoon60s: ClipStageSource = {
     status: "production",
@@ -274,6 +281,6 @@ test("clipVideoCost bills up to 120 seconds for talking-head-director and caps o
     frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
     clips: [],
   };
-  // non-talking-head remains capped at 15s: 2 credits/s * 15s = 30
-  assert.equal(planGenerateAllVideos(cartoon60s).cost, 30);
+  // non-talking-head remains capped at 15s: $0.10/s * 15s = $1.50 USD credit.
+  assert.equal(planGenerateAllVideos(cartoon60s).cost, 1.5);
 });
