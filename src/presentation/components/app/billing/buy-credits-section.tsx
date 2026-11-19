@@ -102,7 +102,9 @@ export function BuyCreditsSection() {
           className="mt-5 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {submitting ? <Spinner className="h-4 w-4" /> : null}
-          {t("billing.continueCheckoutPack", { amount: selected.amountUsd })}
+          {t("billing.continueCheckoutPack", {
+            amount: selected.amountUsd.toLocaleString("en-US"),
+          })}
         </button>
       </div>
     </section>

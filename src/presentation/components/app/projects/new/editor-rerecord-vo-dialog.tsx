@@ -8,6 +8,7 @@ import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicVideo } from "@/presentation/serialize";
+import { formatUsd } from "@/service/billing/usd";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { clipVideoCost } from "@/service/production-plan";
 
@@ -28,6 +29,7 @@ export function EditorReRecordVoDialog({
 }) {
   const { locale } = useI18n();
   const isEn = locale === "en";
+  const isZhHans = locale === "zh-Hans";
   const titleId = useId();
   const [open, setOpen] = useState(false);
 
@@ -245,8 +247,10 @@ export function EditorReRecordVoDialog({
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-accent-ink/10 bg-paper/90 px-6 py-3.5">
               <span className="text-[11px] font-medium text-muted">
                 {isEn
-                  ? `Video generation cost: ~${estimatedCost} credits (Remaining: ${credits})`
-                  : `重新生成影片約需 ${estimatedCost} 點（目前餘額：${credits} 點）`}
+                  ? `Video generation cost: ~${formatUsd(estimatedCost)} (Remaining: ${formatUsd(credits)} USD Credit)`
+                  : isZhHans
+                    ? `重新生成影片约需 ${formatUsd(estimatedCost)}（当前余额：${formatUsd(credits)} USD Credit）`
+                    : `重新生成影片約需 ${formatUsd(estimatedCost)}（目前餘額：${formatUsd(credits)} USD Credit）`}
               </span>
               <div className="flex items-center gap-2">
                 <button

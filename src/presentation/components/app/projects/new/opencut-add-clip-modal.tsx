@@ -27,6 +27,8 @@ import type {
   PublicStyle,
   PublicVideo,
 } from "@/presentation/serialize";
+import { addUsd, formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD, videoCostUsd } from "@/service/credit-costs";
 import { Cancel01Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -591,7 +593,8 @@ export function OpenCutAddClipModal({
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-[var(--studio-line)] px-6 py-4 bg-[var(--studio-fill)]">
           <div className="text-xs text-muted-foreground">
-            {selectedMode === "simple" && `${simpleDuration * 2} credits`}
+            {selectedMode === "simple" &&
+              `${formatUsd(addUsd(FRAME_COST_USD, videoCostUsd(simpleDuration)))} USD Credit`}
             {selectedMode === "swap" && "Scro Swap"}
             {selectedMode === "teleport" && "Teleport"}
           </div>

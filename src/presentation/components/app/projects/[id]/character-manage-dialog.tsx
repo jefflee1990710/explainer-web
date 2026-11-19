@@ -14,6 +14,7 @@ import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
@@ -46,14 +47,16 @@ export function CharacterManageDialog({
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     initialSelection?.versionId ?? null,
   );
-  const [credits, setCredits] = useState(100);
-  const [subscribed, setSubscribed] = useState(true);
+  const [credits, setCredits] = useState(0);
+  const [subscribed, setSubscribed] = useState(false);
+  const [loadedCharacterId, setLoadedCharacterId] = useState<string | null>(null);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [creditGate, setCreditGate] = useState<{
     needed: number;
     resume: () => void;
   } | null>(null);
+  const workspaceLoading = loadedCharacterId !== initialCharacter.id;
 
   const syncCharacter = useCallback(
     (next: PublicCharacter) => {
@@ -65,14 +68,18 @@ export function CharacterManageDialog({
 
   useEffect(() => {
     let cancelled = false;
-    void loadCharacterWorkspaceAction(initialCharacter.id).then((res) => {
-      if (cancelled) return;
-      if (res.ok) {
-        syncCharacter(res.character);
-        setCredits(res.credits);
-        setSubscribed(res.subscribed);
-      }
-    });
+    void loadCharacterWorkspaceAction(initialCharacter.id)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          syncCharacter(res.character);
+          setCredits(res.credits);
+          setSubscribed(res.subscribed);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadedCharacterId(initialCharacter.id);
+      });
     return () => {
       cancelled = true;
     };
@@ -223,7 +230,11 @@ export function CharacterManageDialog({
 
         {/* Main Wardrobe & Preset Editor Body */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {selectedVersion ? (
+          {workspaceLoading ? (
+            <div className="grid h-full min-h-[16rem] place-items-center p-6">
+              <Spinner className="h-6 w-6" />
+            </div>
+          ) : selectedVersion ? (
             <VersionDetail
               key={selectedVersion.id}
               character={character}

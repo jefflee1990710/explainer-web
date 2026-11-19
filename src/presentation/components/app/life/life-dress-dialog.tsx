@@ -194,7 +194,7 @@ function LifeDressStudio({
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
-          setCreditGate({ needed: BLUEPRINT_COST_USD, resume: () => void run(key, action) });
+          setCreditGate({ needed: cost, resume: () => void run(key, action) });
         }
         return undefined;
       }

@@ -24,7 +24,14 @@ export function SignupPromoBanner({
 }) {
   const { t } = useI18n();
   const pay = payPercent(discountPercent);
-  const welcomeCredit = formatUsd(creditUsd ?? credits ?? WELCOME_CREDIT_USD);
+  // Treat zero/non-positive values as unset so the banner falls back to the default welcome bonus.
+  const resolvedWelcomeUsd =
+    typeof creditUsd === "number" && Number.isFinite(creditUsd) && creditUsd > 0
+      ? creditUsd
+      : typeof credits === "number" && Number.isFinite(credits) && credits > 0
+        ? credits
+        : WELCOME_CREDIT_USD;
+  const welcomeCredit = formatUsd(resolvedWelcomeUsd);
   const message =
     variant === "locked"
       ? t("signupPromo.locked", { pay, bonus: bonusPercent })

@@ -2,9 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCreditSnapshotAction } from "@/presentation/actions/billing";
-import { CREDITS_CHANGED_EVENT } from "@/presentation/components/app/billing/credits-changed";
+import {
+  CREDITS_CHANGED_EVENT,
+  type CreditsChangedDetail,
+} from "@/presentation/components/app/billing/credits-changed";
 
 const POLL_MS = 5_000;
+
+// Validates a CustomEvent detail payload before optimistically applying it to wallet state.
+function parseCreditsChangedDetail(event: Event): { creditUsd: number; creditLimitUsd: number } | null {
+  const detail = (event as CustomEvent<Partial<CreditsChangedDetail> | undefined>).detail;
+  if (
+    !detail ||
+    typeof detail.creditUsd !== "number" ||
+    !Number.isFinite(detail.creditUsd) ||
+    typeof detail.creditLimitUsd !== "number" ||
+    !Number.isFinite(detail.creditLimitUsd)
+  ) {
+    return null;
+  }
+  return { creditUsd: detail.creditUsd, creditLimitUsd: detail.creditLimitUsd };
+}
 
 // Live remaining USD Credit balance for the rail ring. Refreshes on spend and on a short poll.
 export function useCreditSnapshot(initialCreditUsd: number, initialLimitUsd: number) {
@@ -14,7 +32,6 @@ export function useCreditSnapshot(initialCreditUsd: number, initialLimitUsd: num
     creditUsd: number;
     creditLimitUsd: number;
   } | null>(null);
-  const inFlight = useRef(false);
   const latestInitialRef = useRef({ initialCreditUsd, initialLimitUsd });
 
   useEffect(() => {
@@ -23,12 +40,20 @@ export function useCreditSnapshot(initialCreditUsd: number, initialLimitUsd: num
 
   useEffect(() => {
     let alive = true;
+    let inFlight = false;
+    let pendingRefresh = false;
+    let epoch = 0;
+
     async function tick() {
-      if (inFlight.current) return;
-      inFlight.current = true;
+      if (inFlight) {
+        pendingRefresh = true;
+        return;
+      }
+      inFlight = true;
+      const requestEpoch = epoch;
       try {
         const result = await getCreditSnapshotAction();
-        if (!alive || !result.ok) return;
+        if (!alive || !result.ok || requestEpoch !== epoch) return;
         const base = latestInitialRef.current;
         setLive({
           baseCredit: base.initialCreditUsd,
@@ -37,14 +62,37 @@ export function useCreditSnapshot(initialCreditUsd: number, initialLimitUsd: num
           creditLimitUsd: result.creditLimitUsd,
         });
       } finally {
-        inFlight.current = false;
+        inFlight = false;
+        if (alive && pendingRefresh) {
+          pendingRefresh = false;
+          void tick();
+        }
       }
     }
-    function onCreditsChanged() {
+
+    function onCreditsChanged(event: Event) {
+      const detail = parseCreditsChangedDetail(event);
+      if (detail) {
+        epoch += 1;
+        const base = latestInitialRef.current;
+        setLive({
+          baseCredit: base.initialCreditUsd,
+          baseLimit: base.initialLimitUsd,
+          creditUsd: detail.creditUsd,
+          creditLimitUsd: detail.creditLimitUsd,
+        });
+      }
+      if (inFlight) {
+        pendingRefresh = true;
+        return;
+      }
       void tick();
     }
+
     void tick();
-    const timer = window.setInterval(tick, POLL_MS);
+    const timer = window.setInterval(() => {
+      if (!inFlight) void tick();
+    }, POLL_MS);
     window.addEventListener(CREDITS_CHANGED_EVENT, onCreditsChanged);
     return () => {
       alive = false;
