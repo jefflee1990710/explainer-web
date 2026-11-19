@@ -7,8 +7,9 @@ import {
 } from "@/dao";
 import { generateAffiliateCode, normalizeAffiliateCode } from "@/service/affiliate/code";
 import {
-  planFifoSpend,
-  usdPerCreditCents,
+  cashCentsPerUsd,
+  planFifoSpendUsd,
+  resolveLotUsdRemaining,
   type NewLotInput,
 } from "@/service/affiliate/lots";
 import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
@@ -17,6 +18,7 @@ import {
   CONSUME_RATES,
   commissionCents,
 } from "@/service/affiliate/rates";
+import { legacyCreditsToUsd, roundUsd4, subUsd, toUsdUnits } from "@/service/billing/usd";
 import type {
   AffiliateLedgerEntry,
   AffiliateProfile,
@@ -174,11 +176,11 @@ async function uplineClerkIds(source: AppUser): Promise<
   return result;
 }
 
-// Record purchase commission + create FIFO credit lot.
+// Record purchase commission + create FIFO USD credit lot.
 export async function recordPurchaseCommission(input: {
   buyerClerkUserId: string;
   amountPaidCents: number;
-  credits: number;
+  creditUsd: number;
   lot: NewLotInput;
   eventKey: string;
 }) {
@@ -187,19 +189,21 @@ export async function recordPurchaseCommission(input: {
   const buyer = await users.findOne({ clerkUserId: input.buyerClerkUserId });
   if (!buyer) return;
 
-  // Create credit lot for FIFO consume pricing.
-  if (input.credits > 0) {
+  const creditUsd = Math.max(0, roundUsd4(input.creditUsd));
+  const ratePerUsd = cashCentsPerUsd(input.amountPaidCents, creditUsd);
+
+  // Create USD credit lot for FIFO consume pricing.
+  if (toUsdUnits(creditUsd) > 0) {
     const lots = await creditLotsCollection();
     await lots.createIndex({ sourceId: 1 }, { unique: true }).catch(() => {});
     await lots.createIndex({ clerkUserId: 1, createdAt: 1 }).catch(() => {});
-    const perCredit = usdPerCreditCents(input.amountPaidCents, input.credits);
     const doc: OptionalId<CreditLot> = {
       clerkUserId: input.buyerClerkUserId,
       source: input.lot.source,
       sourceId: input.lot.sourceId,
-      creditsRemaining: input.credits,
-      creditsOriginal: input.credits,
-      usdPerCreditCents: perCredit,
+      creditUsdRemaining: creditUsd,
+      creditUsdOriginal: creditUsd,
+      cashCentsPerUsd: ratePerUsd,
       amountPaidCents: input.amountPaidCents,
       createdAt: new Date(),
     };
@@ -226,20 +230,23 @@ export async function recordPurchaseCommission(input: {
       amountCents,
       rate,
       baseAmountCents: input.amountPaidCents,
-      credits: input.credits,
+      creditUsd,
+      cashCentsPerUsd: ratePerUsd,
       eventKey,
     });
     if (inserted) await creditAffiliate(clerkUserId, amountCents);
   }
 }
 
+// Deduct FIFO USD credit lots and pay consume commissions to uplines.
 export async function recordConsumeCommission(
   spenderClerkUserId: string,
-  credits: number,
+  creditUsd: number,
   eventKey: string,
 ) {
   if (!AFFILIATE_ENABLED) return;
-  if (credits <= 0) return;
+  const spend = Math.max(0, roundUsd4(creditUsd));
+  if (toUsdUnits(spend) <= 0) return;
 
   const users = await usersCollection();
   const spender = await users.findOne({ clerkUserId: spenderClerkUserId });
@@ -247,22 +254,47 @@ export async function recordConsumeCommission(
 
   const lotsCol = await creditLotsCollection();
   const lots = await lotsCol
-    .find({ clerkUserId: spenderClerkUserId, creditsRemaining: { $gt: 0 } })
+    .find({
+      clerkUserId: spenderClerkUserId,
+      $or: [
+        { creditUsdRemaining: { $gt: 0 } },
+        { creditUsdRemaining: { $exists: false }, creditsRemaining: { $gt: 0 } },
+      ],
+    })
     .sort({ createdAt: 1 })
     .toArray();
 
-  const plan = planFifoSpend(lots, credits);
+  const plan = planFifoSpendUsd(lots, spend);
+  const lotsById = new Map(lots.map((l) => [l._id.toHexString(), l]));
 
-  // Persist FIFO decrements.
+  // Persist FIFO decrements using exact 4-decimal subtraction (lazily migrating legacy lots).
   for (const slice of plan.slices) {
-    await lotsCol.updateOne(
-      { _id: new ObjectId(slice.lotId), creditsRemaining: { $gte: slice.credits } },
-      { $inc: { creditsRemaining: -slice.credits } },
-    );
+    const lot = lotsById.get(slice.lotId);
+    if (!lot) continue;
+    const nextRemaining = Math.max(0, subUsd(resolveLotUsdRemaining(lot), slice.creditUsd));
+    if (!slice.isLegacy) {
+      await lotsCol.updateOne(
+        { _id: new ObjectId(slice.lotId), creditUsdRemaining: lot.creditUsdRemaining },
+        { $set: { creditUsdRemaining: nextRemaining } },
+      );
+    } else {
+      const origUsd = legacyCreditsToUsd(lot.creditsOriginal ?? lot.creditsRemaining ?? 0);
+      await lotsCol.updateOne(
+        { _id: new ObjectId(slice.lotId), creditUsdRemaining: { $exists: false } },
+        {
+          $set: {
+            creditUsdRemaining: nextRemaining,
+            creditUsdOriginal: origUsd,
+            cashCentsPerUsd: slice.cashCentsPerUsd,
+          },
+        },
+      );
+    }
   }
 
   if (plan.totalAmountCents <= 0) return;
 
+  const effectiveRate = cashCentsPerUsd(plan.totalAmountCents, spend);
   const uplines = await uplineClerkIds(spender);
   for (const { tier, clerkUserId } of uplines) {
     const rate = CONSUME_RATES[tier];
@@ -277,21 +309,23 @@ export async function recordConsumeCommission(
       amountCents,
       rate,
       baseAmountCents: plan.totalAmountCents,
-      credits,
+      creditUsd: spend,
+      cashCentsPerUsd: effectiveRate,
       eventKey: key,
     });
     if (inserted) await creditAffiliate(clerkUserId, amountCents);
   }
 }
 
-// Reverse consume commissions for a failed generation refund.
+// Reverse consume commissions for a failed generation refund and restore a FIFO USD lot.
 export async function reverseConsumeCommission(
   spenderClerkUserId: string,
-  credits: number,
+  creditUsd: number,
   originalEventKey?: string,
 ) {
   if (!AFFILIATE_ENABLED) return;
-  if (credits <= 0) return;
+  const refunded = Math.max(0, roundUsd4(creditUsd));
+  if (toUsdUnits(refunded) <= 0) return;
 
   const ledger = await affiliateLedgerCollection();
   let originals =
@@ -307,14 +341,13 @@ export async function reverseConsumeCommission(
           .toArray()
       : [];
 
-  // Async refunds (webhook) may lack the spend key — reverse a matching
-  // recent consume by credit count instead.
+  // Async refunds (webhook) may lack the spend key — reverse a matching recent consume by USD amount.
   if (originals.length === 0) {
     const recent = await ledger
       .find({
         sourceClerkUserId: spenderClerkUserId,
         kind: "consume",
-        credits,
+        creditUsd: refunded,
       })
       .sort({ createdAt: -1 })
       .limit(3)
@@ -340,7 +373,8 @@ export async function reverseConsumeCommission(
       amountCents: -original.amountCents,
       rate: original.rate,
       baseAmountCents: original.baseAmountCents,
-      credits: original.credits,
+      creditUsd: original.creditUsd ?? refunded,
+      cashCentsPerUsd: original.cashCentsPerUsd,
       eventKey: reverseKey,
       reversesEventKey: original.eventKey,
     });
@@ -349,7 +383,7 @@ export async function reverseConsumeCommission(
     }
   }
 
-  // Restore a FIFO lot so later spends still price correctly.
+  // Restore a FIFO USD lot so later spends still price correctly.
   if (originals.length > 0) {
     const base = originals[0]!.baseAmountCents;
     const sourceId = `refund:${originalEventKey || originals[0]!.eventKey}`;
@@ -359,9 +393,9 @@ export async function reverseConsumeCommission(
         clerkUserId: spenderClerkUserId,
         source: "bonus",
         sourceId,
-        creditsRemaining: credits,
-        creditsOriginal: credits,
-        usdPerCreditCents: usdPerCreditCents(base, credits),
+        creditUsdRemaining: refunded,
+        creditUsdOriginal: refunded,
+        cashCentsPerUsd: cashCentsPerUsd(base, refunded),
         amountPaidCents: base,
         createdAt: new Date(),
       } as OptionalId<CreditLot>);

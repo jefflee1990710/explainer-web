@@ -4,9 +4,11 @@ import {
   getStripe,
 } from "@/service/billing/stripe";
 import { isPlanId, planByPriceId, PLANS } from "@/service/billing/plans";
-import { grantPackCredits, resetMonthlyCredits } from "@/service/billing/credits";
-import { adhocBonusPercent, packCreditsWithBonus } from "@/service/billing/promo";
+import { grantPackCreditUsd, resetMonthlyCreditUsd } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { adhocBonusPercent, packCreditUsdWithBonus } from "@/service/billing/promo";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
+import { toUsdUnits } from "@/service/billing/usd";
 import { recordPurchaseCommission } from "@/service/affiliate/engine";
 import { scheduleOperatorSubscriptionEmail } from "@/service/notify/operator-email";
 import { paidPlanNotice } from "@/service/notify/operator-notice";
@@ -82,7 +84,7 @@ export async function syncStripeSubscription(
         stripePriceId: priceId,
         planId: plan.id,
         status,
-        monthlyCredits: plan.monthlyCredits,
+        monthlyCreditUsd: plan.monthlyCreditUsd,
         currentPeriodStart,
         currentPeriodEnd,
         updatedAt: new Date(),
@@ -115,7 +117,7 @@ export async function syncStripeSubscription(
         planName: plan.name,
         planNameZh: plan.nameZh,
         amountUsd: plan.amountUsd,
-        monthlyCredits: plan.monthlyCredits,
+        monthlyCreditUsd: plan.monthlyCreditUsd,
         status,
         at: new Date(),
       });
@@ -124,8 +126,8 @@ export async function syncStripeSubscription(
 
   if (status === "active" || status === "trialing") {
     const current = await users.findOne({ _id: user._id });
-    if (current && current.credits < plan.monthlyCredits && current.credits === 0) {
-      await resetMonthlyCredits(user.clerkUserId, plan.monthlyCredits);
+    if (current && toUsdUnits(resolveUserUsdBalance(current).creditUsd) === 0) {
+      await resetMonthlyCreditUsd(user.clerkUserId, plan.monthlyCreditUsd);
     }
   }
 }
@@ -149,18 +151,18 @@ export async function grantCreditsFromInvoice(invoice: Stripe.Invoice) {
 
   const prices = await getOrCreateStripePrices();
   const plan = resolvePlan(subscription, prices);
-  await resetMonthlyCredits(user.clerkUserId, plan.monthlyCredits);
+  await resetMonthlyCreditUsd(user.clerkUserId, plan.monthlyCreditUsd);
 
-  // Commission + FIFO lot from the paid invoice amount.
+  // Commission + USD FIFO lot from the paid invoice amount.
   const amountPaidCents = invoice.amount_paid || Math.round(plan.amountUsd * 100);
   await recordPurchaseCommission({
     buyerClerkUserId: user.clerkUserId,
     amountPaidCents,
-    credits: plan.monthlyCredits,
+    creditUsd: plan.monthlyCreditUsd,
     lot: {
       source: "subscription",
       sourceId: invoice.id || `sub:${subscriptionId}:${invoice.created}`,
-      credits: plan.monthlyCredits,
+      creditUsd: plan.monthlyCreditUsd,
       amountPaidCents,
     },
     eventKey: `invoice:${invoice.id || `${subscriptionId}:${invoice.created}`}`,
@@ -174,8 +176,8 @@ export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
   const clerkUserId = session.metadata?.clerkUserId;
   if (!isPackId(packId) || !clerkUserId) return;
   const pack = CREDIT_PACKS[packId];
-  const grantedCredits = packCreditsWithBonus(pack.credits, adhocBonusPercent());
-  await grantPackCredits(clerkUserId, grantedCredits, session.id);
+  const grantedUsd = packCreditUsdWithBonus(pack.creditUsd, adhocBonusPercent());
+  await grantPackCreditUsd(clerkUserId, grantedUsd, session.id);
 
   const amountPaidCents =
     typeof session.amount_total === "number"
@@ -184,11 +186,11 @@ export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
   await recordPurchaseCommission({
     buyerClerkUserId: clerkUserId,
     amountPaidCents,
-    credits: grantedCredits,
+    creditUsd: grantedUsd,
     lot: {
       source: "pack",
       sourceId: session.id,
-      credits: grantedCredits,
+      creditUsd: grantedUsd,
       amountPaidCents,
     },
     eventKey: `pack:${session.id}`,

@@ -5,6 +5,7 @@ import {
   accountEventKind,
   operatorAccountHtml,
   operatorAccountSubject,
+  operatorSubscriptionHtml,
   operatorSubscriptionSubject,
   operatorSubscriptionText,
   paidPlanNotice,
@@ -59,30 +60,24 @@ test("operator mail names the person and escapes html", () => {
   assert.match(html, /登入/);
   assert.match(html, /A&lt;da&gt;/);
   assert.doesNotMatch(html, /A<da>/);
-  assert.match(
-    operatorSubscriptionText({
-      name: "Ada",
-      email: "ada@example.com",
-      planName: "Pro",
-      planNameZh: "專業",
-      amountUsd: 129,
-      monthlyCredits: 2400,
-      status: "active",
-      at,
-    }),
-    /專業（Pro）/,
-  );
+
+  const subCopy = {
+    name: "Ada",
+    email: "ada@example.com",
+    planName: "Pro",
+    planNameZh: "專業",
+    amountUsd: 129,
+    monthlyCreditUsd: 129,
+    status: "active",
+    at,
+  };
+  const subText = operatorSubscriptionText(subCopy);
+  assert.match(subText, /專業（Pro）/);
+  assert.match(subText, /每月 USD Credit：\$129\.00/);
+  assert.match(operatorSubscriptionHtml(subCopy), /每月 USD Credit/);
+  assert.match(operatorSubscriptionHtml(subCopy), /\$129\.00/);
   assert.equal(
-    operatorSubscriptionSubject({
-      name: "Ada",
-      email: "ada@example.com",
-      planName: "Pro",
-      planNameZh: "專業",
-      amountUsd: 129,
-      monthlyCredits: 2400,
-      status: "active",
-      at,
-    }),
+    operatorSubscriptionSubject(subCopy),
     "訂閱付費方案 · Pro · ada@example.com",
   );
 });

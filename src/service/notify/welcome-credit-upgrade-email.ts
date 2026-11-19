@@ -1,28 +1,33 @@
-// HTML + plain-text email template for notifying early users that their free welcome credits have been topped up.
+import { formatUsd, subUsd } from "@/service/billing/usd";
+
+// HTML + plain-text email template for notifying early users that their free welcome USD Credit has been topped up.
 export type CreditUpgradeEmailInput = {
   recipientName?: string;
-  previousCredits: number;
-  newCredits: number;
+  previousCreditUsd: number;
+  newCreditUsd: number;
   studioHref?: string;
 };
 
 export const CREDIT_UPGRADE_FROM_EMAIL = "noreply@scro.io";
 
-export function creditUpgradeEmailSubject(newCredits: number): string {
-  return `🎁 你的 Scro 免費體驗點數已升級至 ${newCredits} Credits！`;
+export function creditUpgradeEmailSubject(newCreditUsd: number): string {
+  return `🎁 你的 Scro 免費體驗額度已升級至 ${formatUsd(newCreditUsd)} USD Credit！`;
 }
 
 export function creditUpgradeEmailText(input: CreditUpgradeEmailInput): string {
   const studioHref = input.studioHref || "https://www.scro.io/app";
   const greeting = input.recipientName ? `Hi ${input.recipientName}，` : "Hi 創作者，";
-  const added = Math.max(0, input.newCredits - input.previousCredits);
+  const addedUsd = Math.max(0, subUsd(input.newCreditUsd, input.previousCreditUsd));
+  const prevLabel = formatUsd(input.previousCreditUsd);
+  const newLabel = formatUsd(input.newCreditUsd);
+  const addedLabel = formatUsd(addedUsd);
 
   return [
     greeting,
     "",
     "感謝你早期加入 Scro。",
     "",
-    `你註冊時，免費體驗是 ${input.previousCredits} Credits。我們希望初期用戶能更從容地把系統試一遍，而不是點數太快用完就停下來，所以這次直接把免費點數補到 ${input.newCredits} Credits（+${added} 已入帳），不用另外申請。`,
+    `你註冊時，免費體驗是 ${prevLabel} USD Credit。我們希望初期用戶能更從容地把系統試一遍，而不是額度太快用完就停下來，所以這次直接把免費額度補到 ${newLabel} USD Credit（+${addedLabel} 已入帳），不用另外申請。`,
     "",
     "歡迎再進工作室試試看。",
     "",
@@ -38,14 +43,17 @@ export function creditUpgradeEmailHtml(input: CreditUpgradeEmailInput): string {
   const greeting = input.recipientName
     ? `Hi ${escapeHtml(input.recipientName)}，`
     : "Hi 創作者，";
-  const added = Math.max(0, input.newCredits - input.previousCredits);
+  const addedUsd = Math.max(0, subUsd(input.newCreditUsd, input.previousCreditUsd));
+  const prevLabel = formatUsd(input.previousCreditUsd);
+  const newLabel = formatUsd(input.newCreditUsd);
+  const addedLabel = formatUsd(addedUsd);
 
   return `<!DOCTYPE html>
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(creditUpgradeEmailSubject(input.newCredits))}</title>
+    <title>${escapeHtml(creditUpgradeEmailSubject(input.newCreditUsd))}</title>
   </head>
   <body style="margin:0;padding:0;background:#fff6eb;color:#12141c;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff6eb;background-image:radial-gradient(ellipse 80% 55% at 12% -10%, rgba(198,242,75,0.45), transparent 55%),radial-gradient(ellipse 70% 50% at 92% 8%, rgba(255,77,46,0.22), transparent 50%),linear-gradient(180deg,#fff8ef 0%,#fff3e4 48%,#ffe9d6 100%);">
@@ -61,13 +69,13 @@ export function creditUpgradeEmailHtml(input: CreditUpgradeEmailInput): string {
                       <span style="display:inline-block;background:#c6f24b;color:#12141c;font-family:Syne,'Noto Sans TC',Helvetica,Arial,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.06em;border-radius:999px;padding:5px 14px;">SCRO STUDIO</span>
                     </td>
                     <td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:0.04em;">
-                      CREDITS TOP-UP
+                      USD CREDIT TOP-UP
                     </td>
                   </tr>
                   <tr>
                     <td colspan="2" style="padding-top:18px;">
                       <h1 style="margin:0;font-family:Syne,'Noto Sans TC',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.3;font-weight:800;color:#ffffff;">
-                        你的免費體驗點數已升級至 <span style="color:#c6f24b;">${input.newCredits} Credits</span>
+                        你的免費體驗額度已升級至 <span style="color:#c6f24b;">${newLabel} USD Credit</span>
                       </h1>
                     </td>
                   </tr>
@@ -83,7 +91,7 @@ export function creditUpgradeEmailHtml(input: CreditUpgradeEmailInput): string {
                   感謝你早期加入 Scro。
                 </p>
                 <p style="margin:0;">
-                  你註冊時，免費體驗是 <strong>${input.previousCredits} Credits</strong>。我們希望初期用戶能更從容地把系統試一遍，而不是點數太快用完就停下來，所以這次直接把免費點數補上，不用另外申請。
+                  你註冊時，免費體驗是 <strong>${prevLabel} USD Credit</strong>。我們希望初期用戶能更從容地把系統試一遍，而不是額度太快用完就停下來，所以這次直接把免費額度補上，不用另外申請。
                 </p>
               </td>
             </tr>
@@ -94,15 +102,15 @@ export function creditUpgradeEmailHtml(input: CreditUpgradeEmailInput): string {
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#12141c;border-radius:20px;padding:22px 24px;">
                   <tr>
                     <td width="42%" align="center" style="border-right:1px solid rgba(255,255,255,0.12);padding-right:12px;">
-                      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.55);">原本點數</div>
-                      <div style="margin-top:6px;font-family:Syne,monospace;font-size:24px;font-weight:700;color:rgba(255,255,255,0.65);text-decoration:line-through;">${input.previousCredits} cr</div>
+                      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.55);">原本額度</div>
+                      <div style="margin-top:6px;font-family:Syne,monospace;font-size:24px;font-weight:700;color:rgba(255,255,255,0.65);text-decoration:line-through;">${prevLabel}</div>
                     </td>
                     <td width="58%" align="center" style="padding-left:12px;">
                       <div style="display:inline-block;background:rgba(198,242,75,0.16);color:#c6f24b;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;letter-spacing:0.04em;">
-                        +${added} CREDITS 已入帳
+                        +${addedLabel} USD CREDIT 已入帳
                       </div>
                       <div style="margin-top:6px;font-family:Syne,monospace;font-size:32px;font-weight:800;color:#c6f24b;">
-                        ${input.newCredits} Credits
+                        ${newLabel}
                       </div>
                     </td>
                   </tr>
@@ -134,7 +142,7 @@ export function creditUpgradeEmailHtml(input: CreditUpgradeEmailInput): string {
 </html>`;
 }
 
-function escapeHtml(value: string): string {
+function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

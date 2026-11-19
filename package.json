@@ -26,6 +26,7 @@
     "seed:new-year-guides": "tsx scripts/seed-season-guides.ts new-year",
     "seed:lunar-new-year-guides": "tsx scripts/seed-season-guides.ts lunar",
     "migrate:folders": "tsx scripts/migrate-project-folders.ts",
+    "migrate:usd-credits": "tsx scripts/migrate-credits-to-usd.ts",
     "worker:start": "tsx worker/src/index.ts",
     "worker:deploy": "bash worker/scripts/deploy-vast.sh",
     "comfy:gpu": "tsx scripts/comfy-gpu.ts"

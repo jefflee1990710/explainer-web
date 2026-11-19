@@ -1,17 +1,31 @@
-// Server actions throw these when a paid generate cannot run.
+import { toUsdUnits } from "@/service/billing/usd";
 
+// Server actions throw these when a paid generate cannot run.
 export function isCreditGateError(error?: string) {
   const detail = error || "";
-  return detail.includes("訂閱") || detail.includes("credits 不足");
+  const lower = detail.toLowerCase();
+  return (
+    detail.includes("訂閱") ||
+    detail.includes("餘額不足") ||
+    detail.includes("USD Credit") ||
+    detail.includes("credits 不足") ||
+    lower.includes("insufficient")
+  );
 }
 
-// Snapshot moved after a pack, a new subscription, or a plan upgrade landed.
+export type CreditSnapshotMarker = {
+  creditUsd: number;
+  subscribed: boolean;
+  planId?: string | null;
+};
+
+// Snapshot moved after a pack top-up, a new subscription, or a plan upgrade landed.
 export function creditGrantLanded(
-  previous: { credits: number; subscribed: boolean; planId?: string | null },
-  next: { credits: number; subscribed: boolean; planId?: string | null },
+  previous: CreditSnapshotMarker,
+  next: CreditSnapshotMarker,
 ) {
   return (
-    next.credits > previous.credits ||
+    toUsdUnits(next.creditUsd) > toUsdUnits(previous.creditUsd) ||
     (!previous.subscribed && next.subscribed) ||
     Boolean(previous.planId && next.planId && previous.planId !== next.planId)
   );

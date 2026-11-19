@@ -107,7 +107,10 @@ export async function upsertAppUserFromIdentity(
       $set: { email, name, updatedAt: now },
       $setOnInsert: {
         clerkUserId: uid,
-        credits: grant.credits,
+        creditUsd: grant.creditUsd,
+        bonusCreditUsd: 0,
+        creditLimitUsd: grant.creditUsd,
+        creditMigratedAt: now,
         createdAt: now,
         ...(promoOn && discountPercent > 0 ? { signupDiscountPercent: discountPercent } : {}),
       },

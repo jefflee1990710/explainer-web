@@ -63,7 +63,7 @@ async function ensureCreditPackPrices(
       });
       productId = product.id;
     } else {
-      // Keep the checkout label in step with the new credit amount.
+      // Keep the checkout label in step with the USD credit amount.
       await stripe.products.update(productId, { name: packProductName(pack) });
     }
 
@@ -74,7 +74,7 @@ async function ensureCreditPackPrices(
       metadata: {
         app: "explainer-web",
         packId,
-        credits: String(pack.credits),
+        creditUsd: String(pack.creditUsd),
       },
     });
     // Open checkout sessions keep working on an archived price; new ones use the new id.
@@ -85,7 +85,7 @@ async function ensureCreditPackPrices(
       priceId: price.id,
       productId,
       amountUsd: pack.amountUsd,
-      credits: pack.credits,
+      creditUsd: pack.creditUsd,
     };
   }
   return packs;
@@ -223,7 +223,11 @@ export async function getOrCreateStripePrices(): Promise<BillingSettings> {
       currency: "usd",
       unit_amount: plan.amountUsd * 100,
       recurring: { interval: "month" },
-      metadata: { app: "explainer-web", planId },
+      metadata: {
+        app: "explainer-web",
+        planId,
+        monthlyCreditUsd: String(plan.monthlyCreditUsd),
+      },
     });
 
     rememberLegacy(doc.legacyPriceIds, planId, storedPrice);

@@ -7,7 +7,7 @@ import {
   normalizeEmail,
   type WelcomeGrantStore,
 } from "@/service/billing/welcome-guard";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
 function createFakeGrantStore(): WelcomeGrantStore {
   const rows: Array<{
@@ -65,7 +65,8 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(res.credits, 0);
+    assert.equal(res.creditUsd, 0);
+    assert.equal(res.granted, false);
     assert.equal(res.reason, "email_unverified");
   });
 
@@ -79,11 +80,12 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(res.credits, 0);
+    assert.equal(res.creditUsd, 0);
+    assert.equal(res.granted, false);
     assert.equal(res.reason, "disposable_email");
   });
 
-  it("grants once per normalized email and blocks Gmail alias farming", async () => {
+  it("grants $6.00 once per normalized email and blocks Gmail alias farming", async () => {
     const store = createFakeGrantStore();
     const first = await evaluateWelcomeGrant(
       {
@@ -93,7 +95,8 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(first.credits, WELCOME_CREDITS);
+    assert.equal(first.creditUsd, WELCOME_CREDIT_USD);
+    assert.equal(first.granted, true);
 
     const alias = await evaluateWelcomeGrant(
       {
@@ -103,7 +106,8 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(alias.credits, 0);
+    assert.equal(alias.creditUsd, 0);
+    assert.equal(alias.granted, false);
     assert.equal(alias.reason, "duplicate_email");
   });
 
@@ -118,7 +122,8 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(first.credits, WELCOME_CREDITS);
+    assert.equal(first.creditUsd, WELCOME_CREDIT_USD);
+    assert.equal(first.granted, true);
 
     const second = await evaluateWelcomeGrant(
       {
@@ -129,7 +134,8 @@ describe("evaluateWelcomeGrant", () => {
       },
       store,
     );
-    assert.equal(second.credits, 0);
+    assert.equal(second.creditUsd, 0);
+    assert.equal(second.granted, false);
     assert.equal(second.reason, "duplicate_device");
   });
 
@@ -151,9 +157,9 @@ describe("evaluateWelcomeGrant", () => {
       store,
     );
 
-    assert.equal(g1.credits, WELCOME_CREDITS);
-    assert.equal(g2.credits, WELCOME_CREDITS);
-    assert.equal(g3.credits, 0);
+    assert.equal(g1.creditUsd, WELCOME_CREDIT_USD);
+    assert.equal(g2.creditUsd, WELCOME_CREDIT_USD);
+    assert.equal(g3.creditUsd, 0);
     assert.equal(g3.reason, "ip_rate_limit");
   });
 });

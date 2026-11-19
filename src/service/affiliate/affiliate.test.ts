@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
-import { planFifoSpend, usdPerCreditCents } from "@/service/affiliate/lots";
+import { cashCentsPerUsd, planFifoSpendUsd } from "@/service/affiliate/lots";
 import {
   BUY_RATES,
   CONSUME_RATES,
@@ -24,35 +24,106 @@ describe("affiliate rates", () => {
   });
 
   it("prices consume against paid base", () => {
-    const base = 1000; // $10 of credits spent
+    const base = 1000; // $10 cash base spent
     assert.equal(commissionCents(base, CONSUME_RATES[1]), 30);
     assert.equal(commissionCents(base, CONSUME_RATES[2]), 10);
     assert.equal(commissionCents(base, CONSUME_RATES[3]), 5);
   });
 });
 
-describe("FIFO lots", () => {
-  it("spends oldest lots first", () => {
-    const a = new ObjectId();
-    const b = new ObjectId();
-    const plan = planFifoSpend(
-      [
-        { _id: a, creditsRemaining: 2, usdPerCreditCents: 100 },
-        { _id: b, creditsRemaining: 5, usdPerCreditCents: 200 },
-      ],
-      4,
-    );
-    assert.equal(plan.slices.length, 2);
-    assert.equal(plan.slices[0]!.lotId, a.toHexString());
-    assert.equal(plan.slices[0]!.credits, 2);
-    assert.equal(plan.slices[0]!.amountCents, 200);
-    assert.equal(plan.slices[1]!.credits, 2);
-    assert.equal(plan.slices[1]!.amountCents, 400);
-    assert.equal(plan.totalAmountCents, 600);
+describe("USD FIFO lots", () => {
+  it("computes exact cash cents per USD credit for discounted plans and bonus packs", () => {
+    // $59.00 Starter plan at 85% signup promo ($50.15 paid) -> 85 cents per $1.00 USD credit
+    assert.equal(cashCentsPerUsd(5015, 59), 85);
+    // $10.00 pack with 5% adhoc bonus ($10.50 granted) -> 1000 / 10.5 cents per $1.00 USD credit
+    assert.equal(cashCentsPerUsd(1000, 10.5), 1000 / 10.5);
+    // Guard non-positive inputs
+    assert.equal(cashCentsPerUsd(1000, 0), 0);
+    assert.equal(cashCentsPerUsd(0, 10), 0);
   });
 
-  it("computes per-credit cents", () => {
-    assert.equal(usdPerCreditCents(5900, 30), 196);
+  it("spends oldest USD lots first and computes exact consume commission and reversal cents", () => {
+    const subLotId = new ObjectId();
+    const packLotId = new ObjectId();
+    const subRate = cashCentsPerUsd(5015, 59); // 85
+    const packRate = cashCentsPerUsd(1000, 10.5); // 95.238095...
+
+    const plan = planFifoSpendUsd(
+      [
+        {
+          _id: subLotId,
+          creditUsdRemaining: 59,
+          cashCentsPerUsd: subRate,
+          amountPaidCents: 5015,
+        },
+        {
+          _id: packLotId,
+          creditUsdRemaining: 10.5,
+          cashCentsPerUsd: packRate,
+          amountPaidCents: 1000,
+        },
+      ],
+      69.5,
+    );
+
+    assert.equal(plan.slices.length, 2);
+    assert.equal(plan.slices[0]!.lotId, subLotId.toHexString());
+    assert.equal(plan.slices[0]!.creditUsd, 59);
+    assert.equal(plan.slices[0]!.cashCentsPerUsd, 85);
+    assert.equal(plan.slices[0]!.amountCents, 5015);
+
+    assert.equal(plan.slices[1]!.lotId, packLotId.toHexString());
+    assert.equal(plan.slices[1]!.creditUsd, 10.5);
+    assert.equal(plan.slices[1]!.cashCentsPerUsd, 1000 / 10.5);
+    assert.equal(plan.slices[1]!.amountCents, 1000);
+    assert.equal(plan.totalAmountCents, 6015);
+
+    // Verify exact commission cents across tiers and exact reversal symmetry
+    const l1 = commissionCents(plan.totalAmountCents, CONSUME_RATES[1]);
+    const l2 = commissionCents(plan.totalAmountCents, CONSUME_RATES[2]);
+    const l3 = commissionCents(plan.totalAmountCents, CONSUME_RATES[3]);
+    assert.equal(l1, 180); // floor(6015 * 0.03) = 180
+    assert.equal(l2, 60); // floor(6015 * 0.01) = 60
+    assert.equal(l3, 30); // floor(6015 * 0.005) = 30
+    // Reversal negates exact earned commission cents and restores lot at original cash rate
+    const restoredRate = cashCentsPerUsd(plan.totalAmountCents, 69.5);
+    const replay = planFifoSpendUsd(
+      [
+        {
+          _id: new ObjectId(),
+          creditUsdRemaining: 69.5,
+          cashCentsPerUsd: restoredRate,
+          amountPaidCents: plan.totalAmountCents,
+        },
+      ],
+      69.5,
+    );
+    assert.equal(replay.totalAmountCents, 6015);
+    assert.equal(-l1 + commissionCents(replay.totalAmountCents, CONSUME_RATES[1]), 0);
+  });
+
+  it("lazily resolves unmigrated legacy integer credit lots via legacyCreditsToUsd", () => {
+    const legacyLotId = new ObjectId();
+    // 50 legacy credits remaining * $0.04 = $2.00 remaining; 100 original = $4.00 original for $4.00 paid (100 cents/USD)
+    const plan = planFifoSpendUsd(
+      [
+        {
+          _id: legacyLotId,
+          creditsRemaining: 50,
+          creditsOriginal: 100,
+          usdPerCreditCents: 4,
+          amountPaidCents: 400,
+        },
+      ],
+      1.25,
+    );
+
+    assert.equal(plan.slices.length, 1);
+    assert.equal(plan.slices[0]!.lotId, legacyLotId.toHexString());
+    assert.equal(plan.slices[0]!.creditUsd, 1.25);
+    assert.equal(plan.slices[0]!.cashCentsPerUsd, 100);
+    assert.equal(plan.slices[0]!.amountCents, 125);
+    assert.equal(plan.totalAmountCents, 125);
   });
 });
 

@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { welcomeCreditGrantsCollection } from "@/dao";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
 // Max number of welcome credit grants allowed from the same IP hash within 24 hours.
 export const MAX_WELCOME_GRANTS_PER_IP_24H = 2;
@@ -114,8 +114,8 @@ export type WelcomeGrantDenialReason =
   | "ip_rate_limit";
 
 export type WelcomeGrantDecision =
-  | { credits: number; granted: true; reason?: undefined; normalizedEmail: string }
-  | { credits: 0; granted: false; reason: WelcomeGrantDenialReason; normalizedEmail: string };
+  | { creditUsd: number; granted: true; reason?: undefined; normalizedEmail: string }
+  | { creditUsd: 0; granted: false; reason: WelcomeGrantDenialReason; normalizedEmail: string };
 
 export type WelcomeGrantStore = {
   hasNormalizedEmail(normalizedEmail: string): Promise<boolean>;
@@ -155,7 +155,7 @@ export function mongoWelcomeGrantStore(): WelcomeGrantStore {
   };
 }
 
-// Evaluate whether a newly created user should receive WELCOME_CREDITS, and record the grant when approved.
+// Evaluate whether a newly created user should receive WELCOME_CREDIT_USD, and record the grant when approved.
 export async function evaluateWelcomeGrant(
   input: {
     clerkUserId: string;
@@ -169,22 +169,22 @@ export async function evaluateWelcomeGrant(
   const rawEmail = (input.email || "").trim();
   const normalizedEmail = normalizeEmail(rawEmail);
   if (!rawEmail || !normalizedEmail.includes("@")) {
-    return { credits: 0, granted: false, reason: "email_missing", normalizedEmail };
+    return { creditUsd: 0, granted: false, reason: "email_missing", normalizedEmail };
   }
   // Default emailVerified to true only when callers did not pass boolean false explicitly.
   if (input.emailVerified === false) {
-    return { credits: 0, granted: false, reason: "email_unverified", normalizedEmail };
+    return { creditUsd: 0, granted: false, reason: "email_unverified", normalizedEmail };
   }
   if (isDisposableEmail(rawEmail)) {
-    return { credits: 0, granted: false, reason: "disposable_email", normalizedEmail };
+    return { creditUsd: 0, granted: false, reason: "disposable_email", normalizedEmail };
   }
   if (await store.hasNormalizedEmail(normalizedEmail)) {
-    return { credits: 0, granted: false, reason: "duplicate_email", normalizedEmail };
+    return { creditUsd: 0, granted: false, reason: "duplicate_email", normalizedEmail };
   }
 
   const deviceId = sanitizeDeviceId(input.deviceId);
   if (deviceId && (await store.hasDeviceId(deviceId))) {
-    return { credits: 0, granted: false, reason: "duplicate_device", normalizedEmail };
+    return { creditUsd: 0, granted: false, reason: "duplicate_device", normalizedEmail };
   }
 
   const ipHash = hashClientIp(input.clientIp);
@@ -192,7 +192,7 @@ export async function evaluateWelcomeGrant(
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentCount = await store.countRecentByIpHash(ipHash, since);
     if (recentCount >= MAX_WELCOME_GRANTS_PER_IP_24H) {
-      return { credits: 0, granted: false, reason: "ip_rate_limit", normalizedEmail };
+      return { creditUsd: 0, granted: false, reason: "ip_rate_limit", normalizedEmail };
     }
   }
 
@@ -203,5 +203,5 @@ export async function evaluateWelcomeGrant(
     ...(ipHash ? { ipHash } : {}),
   });
 
-  return { credits: WELCOME_CREDITS, granted: true, normalizedEmail };
+  return { creditUsd: WELCOME_CREDIT_USD, granted: true, normalizedEmail };
 }

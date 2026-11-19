@@ -1,10 +1,13 @@
 import { randomBytes } from "crypto";
 import { subscriptionsCollection, usersCollection } from "@/dao";
 import {
-  applyMonthlyRefill,
-  applyPackPurchase,
-  applySpend,
+  applyMonthlyRefillUsd,
+  applyPackPurchaseUsd,
+  applySpendUsd,
+  resolveUserUsdBalance,
 } from "@/service/billing/credit-balance";
+import { PLANS } from "@/service/billing/plans";
+import { addUsd, roundUsd4, toUsdUnits } from "@/service/billing/usd";
 import {
   recordConsumeCommission,
   reverseConsumeCommission,
@@ -14,6 +17,8 @@ import type { Subscription } from "@/model/subscription";
 import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
+// Max retries when an optimistic balance filter loses a concurrent write race.
+const MAX_WALLET_RETRIES = 2;
 
 export function isSubscriptionActive(sub: Subscription | null) {
   return Boolean(sub && ACTIVE_STATUSES.has(sub.status));
@@ -29,145 +34,221 @@ export async function getActiveSubscription(
   });
 }
 
-// Pure credit & subscription gate check so unit tests can verify free welcome-credit behavior without DB calls.
+// Resolves canonical monthly USD credit allowance for a subscription record.
+export function resolveSubscriptionMonthlyUsd(sub: Subscription): number {
+  if (typeof sub.monthlyCreditUsd === "number" && Number.isFinite(sub.monthlyCreditUsd)) {
+    return roundUsd4(sub.monthlyCreditUsd);
+  }
+  return PLANS[sub.planId].monthlyCreditUsd;
+}
+
+// Pure USD credit & subscription gate check so unit tests can verify welcome-credit behavior without DB calls.
 export function evaluateCreditSpendGate({
   email,
-  credits,
-  cost,
+  creditUsd,
+  costUsd,
   sub,
 }: {
   email?: string | null;
-  credits: number;
-  cost: number;
+  creditUsd: number;
+  costUsd: number;
   sub: Subscription | null;
 }): Subscription | null {
   if (hasUnlimitedCredits(email)) {
     return sub;
   }
-  // Users who have enough credits in their wallet (including the free welcome grant)
-  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4, one preview clip).
-  if (credits >= cost) {
+  // Users who have enough USD credit in their wallet (including the $6.00 free welcome grant)
+  // can spend it on affordable actions (blueprint $0.30, image $0.15, preview clip $0.50+).
+  if (toUsdUnits(creditUsd) >= toUsdUnits(costUsd)) {
     return sub;
   }
   if (!sub || !isSubscriptionActive(sub)) {
     throw new Error("請先訂閱方案才能產片");
   }
-  throw new Error("credits 不足，請加購或升級方案");
+  throw new Error("USD Credit 餘額不足，請加值或升級方案");
 }
 
-// True when the user has an active subscription, has purchased a credit pack, or has credits available.
+// True when the user has an active subscription, has purchased a top-up pack, or has USD credit available.
 export function hasPaidOrCreditAccess(
-  user: Pick<AppUser, "email" | "credits" | "bonusCredits" | "processedCheckoutIds">,
+  user: Pick<
+    AppUser,
+    | "email"
+    | "creditUsd"
+    | "bonusCreditUsd"
+    | "creditLimitUsd"
+    | "credits"
+    | "bonusCredits"
+    | "creditLimit"
+    | "processedCheckoutIds"
+  >,
   sub: Subscription | null,
 ): boolean {
   if (hasUnlimitedCredits(user.email)) return true;
   if (isSubscriptionActive(sub)) return true;
-  if ((user.bonusCredits ?? 0) > 0) return true;
+  const balance = resolveUserUsdBalance(user);
+  if (toUsdUnits(balance.bonusCreditUsd) > 0) return true;
   if (user.processedCheckoutIds && user.processedCheckoutIds.length > 0) return true;
-  if ((user.credits ?? 0) > 0) return true;
+  if (toUsdUnits(balance.creditUsd) > 0) return true;
   return false;
 }
 
-// Accounts with an active subscription, a credit top-up, or sufficient credits may render any clip.
+// Accounts with an active subscription, a USD credit top-up, or an already-paid clip may render any clip.
 export function assertFreeTrialClipAllowed({
   email,
   sub,
   clipNumber,
-  bonusCredits,
+  bonusCreditUsd,
   processedCheckoutIds,
   hasPaidForClip,
 }: {
   email?: string | null;
   sub: Subscription | null;
   clipNumber: number;
-  bonusCredits?: number;
+  bonusCreditUsd?: number;
   processedCheckoutIds?: string[];
   hasPaidForClip?: boolean;
 }): void {
   if (hasUnlimitedCredits(email)) return;
   if (isSubscriptionActive(sub)) return;
-  if ((bonusCredits ?? 0) > 0) return;
+  if (toUsdUnits(bonusCreditUsd ?? 0) > 0) return;
   if (processedCheckoutIds && processedCheckoutIds.length > 0) return;
   if (hasPaidForClip) return;
   if (clipNumber <= 1) return;
-  throw new Error("免費體驗僅支援預覽第 1 段動態影片，請先加購 credits 或訂閱方案以解鎖完整影片");
+  throw new Error(
+    "免費體驗僅支援預覽第 1 段動態影片，請先加值 USD Credit 或訂閱方案以解鎖完整影片",
+  );
 }
 
-export async function assertCanSpendCredits(
+export async function assertCanSpendCreditUsd(
   user: AppUser,
-  cost: number,
+  costUsd: number,
 ): Promise<Subscription | null> {
   const sub = await getActiveSubscription(user.clerkUserId);
+  const balance = resolveUserUsdBalance(user);
   return evaluateCreditSpendGate({
     email: user.email,
-    credits: user.credits,
-    cost,
+    creditUsd: balance.creditUsd,
+    costUsd,
     sub,
   });
-}
-
-function balanceOf(user: Pick<AppUser, "credits" | "bonusCredits" | "creditLimit">) {
-  return {
-    credits: user.credits,
-    bonusCredits: user.bonusCredits || 0,
-    creditLimit: user.creditLimit || 0,
-  };
 }
 
 function newSpendEventKey(clerkUserId: string) {
   return `spend:${clerkUserId}:${Date.now()}:${randomBytes(4).toString("hex")}`;
 }
 
-// Deduct credits and pay consume commissions. Returns eventKey for refunds.
-export async function consumeCredits(
-  clerkUserId: string,
-  cost: number,
-): Promise<string> {
-  const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId });
-  if (!user) {
-    throw new Error("credits 不足，無法扣款");
+// Optimistic filter matching the balance snapshot read before mutation (supports lazy legacy migration).
+function walletConcurrencyFilter(
+  user: Pick<AppUser, "clerkUserId" | "creditUsd" | "credits">,
+) {
+  if (typeof user.creditUsd === "number") {
+    return { clerkUserId: user.clerkUserId, creditUsd: user.creditUsd };
   }
-  // This account is not billed. Skip the affiliate commission too, since nothing was spent.
-  if (hasUnlimitedCredits(user.email)) return newSpendEventKey(clerkUserId);
-  if (user.credits < cost) {
-    throw new Error("credits 不足，無法扣款");
-  }
-  const next = applySpend(balanceOf(user), cost);
-  const result = await users.updateOne(
-    { clerkUserId, credits: user.credits },
-    { $set: { ...next, updatedAt: new Date() } },
-  );
-  if (result.modifiedCount !== 1) {
-    throw new Error("credits 不足，無法扣款");
-  }
-
-  const eventKey = newSpendEventKey(clerkUserId);
-  if (cost > 0) {
-    try {
-      await recordConsumeCommission(clerkUserId, cost, eventKey);
-    } catch (error) {
-      console.error("affiliate consume commission failed", error);
-    }
-  }
-  return eventKey;
+  return {
+    clerkUserId: user.clerkUserId,
+    creditUsd: { $exists: false },
+    ...(user.credits === undefined
+      ? { credits: { $exists: false } }
+      : { credits: user.credits }),
+  };
 }
 
-export async function refundCredits(
+// Deduct USD credit atomically (with optimistic concurrency retries & lazy migration) and pay consume commissions.
+export async function consumeCreditUsd(
   clerkUserId: string,
-  cost: number,
-  spendEventKey?: string,
-) {
+  costUsd: number,
+): Promise<string> {
+  const cost = Math.max(0, roundUsd4(costUsd));
   const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId }, { projection: { email: 1 } });
-  // Nothing was deducted, so a failure must not add credits either.
-  if (hasUnlimitedCredits(user?.email)) return;
-  await users.updateOne(
-    { clerkUserId },
-    { $inc: { credits: cost }, $set: { updatedAt: new Date() } },
-  );
 
-  if (cost > 0 && spendEventKey) {
+  for (let attempt = 0; attempt <= MAX_WALLET_RETRIES; attempt++) {
+    const user = await users.findOne({ clerkUserId });
+    if (!user) {
+      throw new Error("USD Credit 餘額不足，無法扣款");
+    }
+    // Unlimited operator account is never billed and generates no affiliate commission.
+    if (hasUnlimitedCredits(user.email)) {
+      return newSpendEventKey(clerkUserId);
+    }
+
+    const balance = resolveUserUsdBalance(user);
+    if (toUsdUnits(balance.creditUsd) < toUsdUnits(cost)) {
+      throw new Error("USD Credit 餘額不足，無法扣款");
+    }
+
+    const isMigrated = typeof user.creditUsd === "number";
+    if (toUsdUnits(cost) === 0 && isMigrated) {
+      return newSpendEventKey(clerkUserId);
+    }
+
+    const next = applySpendUsd(balance, cost);
+    const now = new Date();
+    const result = await users.updateOne(walletConcurrencyFilter(user), {
+      $set: {
+        ...next,
+        ...(isMigrated ? {} : { creditMigratedAt: now }),
+        updatedAt: now,
+      },
+    });
+
+    if (result.modifiedCount === 1) {
+      const eventKey = newSpendEventKey(clerkUserId);
+      if (toUsdUnits(cost) > 0) {
+        try {
+          await recordConsumeCommission(clerkUserId, cost, eventKey);
+        } catch (error) {
+          console.error("affiliate consume commission failed", error);
+        }
+      }
+      return eventKey;
+    }
+  }
+
+  throw new Error("USD Credit 餘額不足，無法扣款");
+}
+
+// Refund USD credit atomically (with optimistic retries & lazy migration) and reverse affiliate commission.
+export async function refundCreditUsd(
+  clerkUserId: string,
+  costUsd: number,
+  spendEventKey?: string,
+): Promise<void> {
+  const cost = Math.max(0, roundUsd4(costUsd));
+  if (toUsdUnits(cost) <= 0) return;
+
+  const users = await usersCollection();
+  let refunded = false;
+
+  for (let attempt = 0; attempt <= MAX_WALLET_RETRIES; attempt++) {
+    const user = await users.findOne({ clerkUserId });
+    if (!user) return;
+    // Nothing was deducted for unlimited accounts, so a failure must not add balance either.
+    if (hasUnlimitedCredits(user.email)) return;
+
+    const balance = resolveUserUsdBalance(user);
+    const nextCreditUsd = addUsd(balance.creditUsd, cost);
+    const now = new Date();
+    const isMigrated = typeof user.creditUsd === "number";
+
+    const result = await users.updateOne(walletConcurrencyFilter(user), {
+      $set: isMigrated
+        ? { creditUsd: nextCreditUsd, updatedAt: now }
+        : {
+            creditUsd: nextCreditUsd,
+            bonusCreditUsd: balance.bonusCreditUsd,
+            creditLimitUsd: balance.creditLimitUsd,
+            creditMigratedAt: now,
+            updatedAt: now,
+          },
+    });
+
+    if (result.modifiedCount === 1) {
+      refunded = true;
+      break;
+    }
+  }
+
+  if (refunded && spendEventKey) {
     try {
       await reverseConsumeCommission(clerkUserId, cost, spendEventKey);
     } catch (error) {
@@ -176,39 +257,66 @@ export async function refundCredits(
   }
 }
 
-export async function resetMonthlyCredits(
+// Reset monthly USD credit allowance while preserving unspent permanent bonusCreditUsd.
+export async function resetMonthlyCreditUsd(
   clerkUserId: string,
-  monthlyCredits: number,
-) {
+  monthlyCreditUsd: number,
+): Promise<void> {
   const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId });
-  const next = applyMonthlyRefill({
-    monthlyCredits,
-    bonusCredits: user?.bonusCredits || 0,
-  });
-  await users.updateOne(
-    { clerkUserId },
-    { $set: { ...next, updatedAt: new Date() } },
-  );
+
+  for (let attempt = 0; attempt <= MAX_WALLET_RETRIES; attempt++) {
+    const user = await users.findOne({ clerkUserId });
+    if (!user) return;
+
+    const balance = resolveUserUsdBalance(user);
+    const next = applyMonthlyRefillUsd({
+      monthlyCreditUsd,
+      bonusCreditUsd: balance.bonusCreditUsd,
+    });
+    const now = new Date();
+    const result = await users.updateOne(walletConcurrencyFilter(user), {
+      $set: {
+        ...next,
+        creditMigratedAt: user.creditMigratedAt ?? now,
+        updatedAt: now,
+      },
+    });
+    if (result.modifiedCount === 1 || result.matchedCount === 1) return;
+  }
 }
 
-export async function grantPackCredits(
+// Idempotently grant a one-time top-up pack in USD credit and record the processed checkout id.
+export async function grantPackCreditUsd(
   clerkUserId: string,
-  packCredits: number,
+  packCreditUsd: number,
   checkoutId: string,
-) {
+): Promise<void> {
   const users = await usersCollection();
-  const user = await users.findOne({
-    clerkUserId,
-    processedCheckoutIds: { $nin: [checkoutId] },
-  });
-  if (!user) return;
-  const next = applyPackPurchase(balanceOf(user), packCredits);
-  await users.updateOne(
-    { clerkUserId, processedCheckoutIds: { $nin: [checkoutId] } },
-    {
-      $set: { ...next, updatedAt: new Date() },
-      $addToSet: { processedCheckoutIds: checkoutId },
-    },
-  );
+
+  for (let attempt = 0; attempt <= MAX_WALLET_RETRIES; attempt++) {
+    const user = await users.findOne({
+      clerkUserId,
+      processedCheckoutIds: { $nin: [checkoutId] },
+    });
+    if (!user) return;
+
+    const balance = resolveUserUsdBalance(user);
+    const next = applyPackPurchaseUsd(balance, packCreditUsd);
+    const now = new Date();
+    const result = await users.updateOne(
+      {
+        ...walletConcurrencyFilter(user),
+        processedCheckoutIds: { $nin: [checkoutId] },
+      },
+      {
+        $set: {
+          ...next,
+          creditMigratedAt: user.creditMigratedAt ?? now,
+          updatedAt: now,
+        },
+        $addToSet: { processedCheckoutIds: checkoutId },
+      },
+    );
+    if (result.modifiedCount === 1 || result.matchedCount === 1) return;
+  }
 }

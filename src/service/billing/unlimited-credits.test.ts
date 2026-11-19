@@ -4,13 +4,15 @@ import { ObjectId } from "mongodb";
 import type { AppUser } from "@/model/user";
 import { hasUnlimitedCredits, withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 
-function user(email: string, credits: number): AppUser {
+function user(email: string, creditUsd: number, legacyCredits?: number): AppUser {
   return {
     _id: new ObjectId(),
     clerkUserId: "uid",
     email,
     name: "Jeff",
-    credits,
+    creditUsd,
+    creditLimitUsd: creditUsd,
+    ...(legacyCredits !== undefined ? { credits: legacyCredits } : {}),
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -25,9 +27,11 @@ test("only one email has unlimited credits", () => {
   assert.equal(hasUnlimitedCredits(""), false);
 });
 
-test("unlimited credits are shown without changing anyone else", () => {
-  const owner = withUnlimitedCredits(user("jeff.lee.1990710@gmail.com", 12));
-  assert.equal(owner.credits, 1_000_000_000);
-  const other = user("other@gmail.com", 12);
+test("unlimited USD credits are shown without changing anyone else or legacy credits", () => {
+  const owner = withUnlimitedCredits(user("jeff.lee.1990710@gmail.com", 6, 12));
+  assert.equal(owner.creditUsd, 1_000_000);
+  assert.equal(owner.creditLimitUsd, 1_000_000);
+  assert.equal(owner.credits, 12);
+  const other = user("other@gmail.com", 6, 12);
   assert.equal(withUnlimitedCredits(other), other);
 });

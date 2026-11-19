@@ -1,17 +1,19 @@
 import type Stripe from "stripe";
 import { requireAppUser } from "@/service/auth";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
-import { adhocBonusPercent, packCreditsWithBonus } from "@/service/billing/promo";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { adhocBonusPercent, packCreditUsdWithBonus } from "@/service/billing/promo";
 import { ensureSignupCoupon } from "@/service/billing/signup-coupon";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { isPlanId, PLAN_RANK, PLANS, priceIdForPlan } from "@/service/billing/plans";
 import {
   getActiveSubscription,
   isSubscriptionActive,
-  resetMonthlyCredits,
+  resetMonthlyCreditUsd,
 } from "@/service/billing/credits";
 import { getOrCreateStripePrices, getStripe } from "@/service/billing/stripe";
 import { syncStripeSubscription } from "@/service/billing/sync-subscription";
+import { formatUsd } from "@/service/billing/usd";
 import { getAppUrl } from "@/util/app-url";
 import { usersCollection } from "@/dao";
 import type { PackId } from "@/model/billing-settings";
@@ -53,6 +55,7 @@ export async function startCheckoutAction(planId: PlanId, options: CheckoutOptio
   const urls = checkoutUrls({ planId }, options.popup);
   const discount = user.signupDiscountPercent ?? 0;
   const coupon = discount > 0 ? await ensureSignupCoupon(stripe, discount) : null;
+  const monthlyCreditUsd = String(PLANS[planId].monthlyCreditUsd);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
@@ -60,9 +63,9 @@ export async function startCheckoutAction(planId: PlanId, options: CheckoutOptio
     success_url: urls.success_url,
     cancel_url: urls.cancel_url,
     ...(coupon ? { discounts: [{ coupon }] } : {}),
-    metadata: { clerkUserId: user.clerkUserId, planId },
+    metadata: { clerkUserId: user.clerkUserId, planId, monthlyCreditUsd },
     subscription_data: {
-      metadata: { clerkUserId: user.clerkUserId, planId },
+      metadata: { clerkUserId: user.clerkUserId, planId, monthlyCreditUsd },
     },
   });
 
@@ -107,9 +110,14 @@ export async function startPlanUpgradeAction(planId: PlanId, options: CheckoutOp
   try {
     const discount = user.signupDiscountPercent ?? 0;
     const coupon = discount > 0 ? await ensureSignupCoupon(stripe, discount) : null;
+    const monthlyCreditUsd = PLANS[planId].monthlyCreditUsd;
     const updated = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
       items: [{ id: itemId, price: priceId }],
-      metadata: { clerkUserId: user.clerkUserId, planId },
+      metadata: {
+        clerkUserId: user.clerkUserId,
+        planId,
+        monthlyCreditUsd: String(monthlyCreditUsd),
+      },
       ...(coupon ? { discounts: [{ coupon }] } : {}),
       proration_behavior: "always_invoice",
       payment_behavior: "pending_if_incomplete",
@@ -119,7 +127,7 @@ export async function startPlanUpgradeAction(planId: PlanId, options: CheckoutOp
 
     const invoice = invoiceObject(updated.latest_invoice);
     if (invoice?.status === "paid") {
-      await resetMonthlyCredits(user.clerkUserId, PLANS[planId].monthlyCredits);
+      await resetMonthlyCreditUsd(user.clerkUserId, monthlyCreditUsd);
       return { ok: true as const, url: null };
     }
     if (invoice?.hosted_invoice_url) {
@@ -147,16 +155,16 @@ export async function startPortalAction() {
 export async function startPackCheckoutAction(packId: PackId, options: CheckoutOptions = {}) {
   const user = await requireAppUser();
   if (!isPackId(packId)) {
-    return { ok: false as const, error: "找不到加購包" };
+    return { ok: false as const, error: "找不到儲值包" };
   }
 
   const pack = CREDIT_PACKS[packId];
-  const grantedCredits = packCreditsWithBonus(pack.credits, adhocBonusPercent());
+  const grantedUsd = packCreditUsdWithBonus(pack.creditUsd, adhocBonusPercent());
   const stripe = getStripe();
   const prices = await getOrCreateStripePrices();
   const priceId = prices.creditPacks[packId]?.priceId;
   if (!priceId) {
-    return { ok: false as const, error: "加購尚未開放" };
+    return { ok: false as const, error: "儲值尚未開放" };
   }
 
   let customerId = user.stripeCustomerId;
@@ -181,11 +189,11 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: urls.success_url,
     cancel_url: urls.cancel_url,
-    ...(grantedCredits > pack.credits
+    ...(grantedUsd > pack.creditUsd
       ? {
           custom_text: {
             submit: {
-              message: `This pack adds ${grantedCredits} credits, including the extra bonus.`,
+              message: `This pack adds ${formatUsd(grantedUsd)} USD Credit, including the extra bonus.`,
             },
           },
         }
@@ -193,7 +201,7 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
     metadata: {
       clerkUserId: user.clerkUserId,
       packId,
-      credits: String(grantedCredits),
+      creditUsd: String(grantedUsd),
     },
   });
 
@@ -204,26 +212,33 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
 }
 
 export type CreditSnapshotResult =
-  | { ok: true; credits: number; creditLimit: number; subscribed: boolean; planId: PlanId | null }
+  | {
+      ok: true;
+      creditUsd: number;
+      creditLimitUsd: number;
+      subscribed: boolean;
+      planId: PlanId | null;
+    }
   | { ok: false; error: string };
 
-// Header meter poll: just the wallet, no page revalidate.
+// Header meter poll: just the USD credit wallet, no page revalidate.
 export async function getCreditSnapshotAction(): Promise<CreditSnapshotResult> {
   try {
     const user = await requireAppUser();
     const sub = await getActiveSubscription(user.clerkUserId);
     const subscribed = isSubscriptionActive(sub);
+    const balance = resolveUserUsdBalance(user);
     return {
       ok: true,
-      credits: user.credits,
-      creditLimit: user.creditLimit || 0,
+      creditUsd: balance.creditUsd,
+      creditLimitUsd: balance.creditLimitUsd,
       subscribed,
       planId: subscribed && sub ? sub.planId : null,
     };
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "讀取 credits 失敗",
+      error: error instanceof Error ? error.message : "讀取 USD Credit 失敗",
     };
   }
 }

@@ -5,42 +5,45 @@ import { creditGrantLanded, isCreditGateError } from "@/service/billing/credit-g
 import {
   assertFreeTrialClipAllowed,
   evaluateCreditSpendGate,
+  hasPaidOrCreditAccess,
 } from "@/service/billing/credits";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
 import { upgradeablePlans } from "@/service/billing/plans";
 import {
-  FRAME_COST,
-  FRAMES_COST,
-  MIN_VIDEO_COST,
-} from "@/service/production-plan";
+  FRAME_COST_USD,
+  FRAMES_COST_USD,
+  MIN_VIDEO_COST_USD,
+} from "@/service/credit-costs";
 
 test("isCreditGateError matches subscribe and short-wallet copy", () => {
   assert.equal(isCreditGateError("請先訂閱方案才能產片"), true);
+  assert.equal(isCreditGateError("USD Credit 餘額不足，請加值或升級方案"), true);
+  assert.equal(isCreditGateError("USD Credit 餘額不足，無法扣款"), true);
   assert.equal(isCreditGateError("credits 不足，請加購或升級方案"), true);
-  assert.equal(isCreditGateError("credits 不足，無法扣款"), true);
+  assert.equal(isCreditGateError("Insufficient USD Credit balance"), true);
   assert.equal(isCreditGateError("產生失敗"), false);
   assert.equal(isCreditGateError(undefined), false);
 });
 
 test("creditGrantLanded detects a pack top-up or a new subscription", () => {
   assert.equal(
-    creditGrantLanded({ credits: 8, subscribed: true }, { credits: 908, subscribed: true }),
+    creditGrantLanded({ creditUsd: 0.5, subscribed: true }, { creditUsd: 11.0, subscribed: true }),
     true,
   );
   assert.equal(
-    creditGrantLanded({ credits: 20, subscribed: false }, { credits: 1000, subscribed: true }),
+    creditGrantLanded({ creditUsd: 6.0, subscribed: false }, { creditUsd: 65.0, subscribed: true }),
     true,
   );
   assert.equal(
     creditGrantLanded(
-      { credits: 20, subscribed: true, planId: "starter" },
-      { credits: 20, subscribed: true, planId: "pro" },
+      { creditUsd: 59, subscribed: true, planId: "starter" },
+      { creditUsd: 59, subscribed: true, planId: "pro" },
     ),
     true,
   );
   assert.equal(
-    creditGrantLanded({ credits: 20, subscribed: false }, { credits: 20, subscribed: false }),
+    creditGrantLanded({ creditUsd: 6.0, subscribed: false }, { creditUsd: 6.0, subscribed: false }),
     false,
   );
 });
@@ -67,13 +70,13 @@ test("checkoutUrls send popup returns to the done page", () => {
   assert.match(page.cancel_url, /\/app\/billing\?checkout=cancel/);
 });
 
-test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed users to spend welcome credits on images and Clip 1 preview, then prompt subscription on Clip 2+", () => {
-  // Unsubscribed user with welcome credits can create a character (8 cr), life photo (4 cr), or Clip 1 preview
+test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed users to spend welcome USD credit on images and Clip 1 preview, then prompt subscription on Clip 2+", () => {
+  // Unsubscribed user with $6.00 welcome credit can create a blueprint ($0.30), frame ($0.15), or Clip 1 preview ($0.50)
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",
-      credits: WELCOME_CREDITS,
-      cost: FRAMES_COST,
+      creditUsd: WELCOME_CREDIT_USD,
+      costUsd: FRAMES_COST_USD,
       sub: null,
     }),
     null,
@@ -81,8 +84,8 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",
-      credits: WELCOME_CREDITS,
-      cost: FRAME_COST,
+      creditUsd: WELCOME_CREDIT_USD,
+      costUsd: FRAME_COST_USD,
       sub: null,
     }),
     null,
@@ -90,8 +93,8 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",
-      credits: WELCOME_CREDITS,
-      cost: MIN_VIDEO_COST,
+      creditUsd: WELCOME_CREDIT_USD,
+      costUsd: MIN_VIDEO_COST_USD,
       sub: null,
     }),
     null,
@@ -114,16 +117,16 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
         sub: null,
         clipNumber: 2,
       }),
-    /加購 credits 或訂閱方案/,
+    /加值 USD Credit 或訂閱方案/,
   );
 
-  // Unsubscribed user who topped up credits is allowed to render Clip 2+ without subscribing
+  // Unsubscribed user who topped up USD credit is allowed to render Clip 2+ without subscribing
   assert.doesNotThrow(() =>
     assertFreeTrialClipAllowed({
       email: "newuser@example.com",
       sub: null,
       clipNumber: 2,
-      bonusCredits: 158,
+      bonusCreditUsd: 10.5,
     }),
   );
   assert.doesNotThrow(() =>
@@ -135,25 +138,25 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
     }),
   );
 
-  // Unsubscribed user after exhausting welcome credits gets subscription prompt
+  // Unsubscribed user after exhausting welcome USD credit gets subscription prompt
   assert.throws(
     () =>
       evaluateCreditSpendGate({
         email: "newuser@example.com",
-        credits: 9,
-        cost: MIN_VIDEO_COST,
+        creditUsd: 0.2,
+        costUsd: MIN_VIDEO_COST_USD,
         sub: null,
       }),
     /請先訂閱方案才能產片/,
   );
 
-  // Subscribed user with insufficient credits gets top-up prompt
+  // Subscribed user with insufficient USD credit gets top-up prompt
   assert.throws(
     () =>
       evaluateCreditSpendGate({
         email: "pro@example.com",
-        credits: 2,
-        cost: FRAME_COST,
+        creditUsd: 0.1,
+        costUsd: FRAME_COST_USD,
         sub: {
           _id: new ObjectId(),
           userId: new ObjectId(),
@@ -163,13 +166,32 @@ test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed 
           stripePriceId: "price_1",
           planId: "pro",
           status: "active",
-          monthlyCredits: 3333,
+          monthlyCreditUsd: 129,
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
       }),
-    /credits 不足，請加購或升級方案/,
+    /USD Credit 餘額不足，請加值或升級方案/,
+  );
+});
+
+test("hasPaidOrCreditAccess checks USD balance and lazy legacy fallback", () => {
+  assert.equal(
+    hasPaidOrCreditAccess({ email: "a@example.com", creditUsd: 0.15, bonusCreditUsd: 0 }, null),
+    true,
+  );
+  assert.equal(
+    hasPaidOrCreditAccess({ email: "a@example.com", creditUsd: 0, bonusCreditUsd: 10.5 }, null),
+    true,
+  );
+  assert.equal(
+    hasPaidOrCreditAccess({ email: "a@example.com", credits: 10 }, null),
+    true,
+  );
+  assert.equal(
+    hasPaidOrCreditAccess({ email: "a@example.com", creditUsd: 0, bonusCreditUsd: 0 }, null),
+    false,
   );
 });

@@ -1,6 +1,7 @@
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { isPlanId, PLANS } from "@/service/billing/plans";
 import { getStripe } from "@/service/billing/stripe";
+import { formatUsd, legacyCreditsToUsd } from "@/service/billing/usd";
 
 export type SavedPaymentCard = {
   id: string;
@@ -63,7 +64,7 @@ export async function listCustomerPaymentCards(
 }
 
 /**
- * Fetch all paid/open invoices and one-time credit pack payments for a Stripe customer,
+ * Fetch all paid/open invoices and one-time USD credit pack payments for a Stripe customer,
  * sorted newest first, plus total USD paid.
  */
 export async function listCustomerInvoicesAndPayments(
@@ -115,7 +116,7 @@ export async function listCustomerInvoicesAndPayments(
       });
     }
 
-    // Include one-time Checkout Sessions (`mode: "payment"`) for credit pack top-ups
+    // Include one-time Checkout Sessions (`mode: "payment"`) for USD credit pack top-ups.
     for (const sess of sessions.data) {
       if (sess.mode !== "payment" || sess.payment_status !== "paid") continue;
       const piId =
@@ -126,15 +127,22 @@ export async function listCustomerInvoicesAndPayments(
 
       const packId = sess.metadata?.packId;
       const planId = sess.metadata?.planId;
-      const creditsMeta = sess.metadata?.credits;
-      let description = "Credits Top-up";
+      const creditUsdMeta = sess.metadata?.creditUsd;
+      const legacyCreditsMeta = sess.metadata?.credits;
+      let description = "USD Credit Top-up";
       if (isPackId(packId)) {
         const pack = CREDIT_PACKS[packId];
-        description = `${pack.nameZh} (${creditsMeta || pack.credits} credits)`;
+        const parsedUsd = creditUsdMeta ? Number(creditUsdMeta) : Number.NaN;
+        const labelUsd = Number.isFinite(parsedUsd) ? parsedUsd : pack.creditUsd;
+        description = `${pack.nameZh} (${formatUsd(labelUsd)} USD Credit)`;
       } else if (isPlanId(planId)) {
         description = `Scro ${PLANS[planId].name}`;
-      } else if (creditsMeta) {
-        description = `Top-up · ${creditsMeta} credits`;
+      } else if (creditUsdMeta) {
+        const parsedUsd = Number(creditUsdMeta);
+        description = `Top-up · ${formatUsd(Number.isFinite(parsedUsd) ? parsedUsd : 0)} USD Credit`;
+      } else if (legacyCreditsMeta) {
+        const parsedLegacy = Number(legacyCreditsMeta);
+        description = `Top-up · ${formatUsd(legacyCreditsToUsd(parsedLegacy))} USD Credit`;
       }
 
       const amountPaidUsd =

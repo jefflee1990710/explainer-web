@@ -1,4 +1,5 @@
 import type { PlanId, SubscriptionStatus } from "@/model/subscription";
+import { formatUsd } from "@/service/billing/usd";
 
 // Inbox for new accounts, sign-ins, and paid subscriptions.
 export const OPERATOR_NOTIFY_EMAIL = "jeff.lee@thenovax.com";
@@ -50,7 +51,7 @@ export type OperatorSubscriptionCopy = {
   planName: string;
   planNameZh: string;
   amountUsd: number;
-  monthlyCredits: number;
+  monthlyCreditUsd: number;
   status: string;
   at: Date;
 };
@@ -100,7 +101,7 @@ export function operatorSubscriptionText(copy: OperatorSubscriptionCopy) {
     `電郵：${copy.email}`,
     `方案：${copy.planNameZh}（${copy.planName}）`,
     `月費：USD ${copy.amountUsd}`,
-    `每月 credits：${copy.monthlyCredits}`,
+    `每月 USD Credit：${formatUsd(copy.monthlyCreditUsd)}`,
     `狀態：${copy.status}`,
     `時間：${formatWhen(copy.at)}（香港）`,
   ].join("\n");
@@ -122,7 +123,7 @@ export function operatorSubscriptionHtml(copy: OperatorSubscriptionCopy) {
     ["電郵", copy.email],
     ["方案", `${copy.planNameZh}（${copy.planName}）`],
     ["月費", `USD ${copy.amountUsd}`],
-    ["每月 credits", String(copy.monthlyCredits)],
+    ["每月 USD Credit", formatUsd(copy.monthlyCreditUsd)],
     ["狀態", copy.status],
     ["時間", `${formatWhen(copy.at)}（香港）`],
   ]);
