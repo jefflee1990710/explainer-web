@@ -115,7 +115,7 @@ export function LifeShotGrid({
                     生成失敗
                   </span>
                   <p className="line-clamp-2 text-[10px] font-medium text-red-600">
-                    {shot.error || "點數已自動退回"}
+                    {shot.error || "USD Credit 已自動退回"}
                   </p>
                 </div>
               ) : (

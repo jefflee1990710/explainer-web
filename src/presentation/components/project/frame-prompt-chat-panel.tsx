@@ -12,7 +12,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicVideo } from "@/presentation/serialize";
 import { openingSummaryFresh } from "@/service/clip/frame-prompt-chat";
 import { sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { FramePosition } from "@/model/project";
 
@@ -39,10 +39,19 @@ export function FramePromptChatPanel({
   const { t, locale } = useI18n();
   const listRef = useRef<HTMLDivElement>(null);
   const onProjectRef = useRef(onProject);
-  onProjectRef.current = onProject;
+  useEffect(() => {
+    onProjectRef.current = onProject;
+  }, [onProject]);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [openingNow, setOpeningNow] = useState(false);
+  const targetKey = `${clipNumber}:${position}`;
+  const [prevTargetKey, setPrevTargetKey] = useState(targetKey);
+  if (prevTargetKey !== targetKey) {
+    setPrevTargetKey(targetKey);
+    setPending("");
+    setError("");
+  }
   const messages =
     project.sceneChats?.find((thread) => thread.clipNumber === clipNumber && thread.position === position)
       ?.messages ?? [];
@@ -53,11 +62,6 @@ export function FramePromptChatPanel({
   const latestChanged = messages.findLastIndex(
     (message) => message.role === "assistant" && message.promptChanged,
   );
-
-  useEffect(() => {
-    setPending("");
-    setError("");
-  }, [clipNumber, position]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -136,7 +140,7 @@ export function FramePromptChatPanel({
               changedNote={message.promptChanged ? t("production.frameChat.changed") : undefined}
               regenerating={index === latestChanged && (regenerating || framesBusy || redraw === "running")}
               redrawAt={redraw === "done" ? sceneRedrawFinishedAt(redrawInput) : undefined}
-              credits={FRAME_COST}
+              credits={FRAME_COST_USD}
               onRegenerate={
                 index === latestChanged
                   ? () => {

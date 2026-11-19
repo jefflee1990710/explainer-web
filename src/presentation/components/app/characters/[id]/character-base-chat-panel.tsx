@@ -15,7 +15,8 @@ import type {
   PublicCharacter,
   PublicCharacterVersion,
 } from "@/presentation/serialize";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 export function CharacterBaseChatPanel({
@@ -383,7 +384,7 @@ export function CharacterBaseChatPanel({
                             <Spinner className="h-3 w-3" />
                           ) : null}
                           <span>
-                            {t("characters.retryCredits", { cost: BLUEPRINT_COST })}
+                            {t("characters.retryCredits", { cost: formatUsd(BLUEPRINT_COST_USD) })}
                           </span>
                         </button>
                       </div>
@@ -487,17 +488,17 @@ export function CharacterBaseChatPanel({
             ) : null}
             <span>
               {isEn
-                ? `Send (${BLUEPRINT_COST})`
-                : `送出 (${BLUEPRINT_COST}點)`}
+                ? `Send (${formatUsd(BLUEPRINT_COST_USD)})`
+                : `送出 (${formatUsd(BLUEPRINT_COST_USD)})`}
             </span>
           </button>
         </div>
 
         <p className="text-[10px] text-muted">
-          {subscribed || credits >= BLUEPRINT_COST
+          {subscribed || toUsdUnits(credits) >= toUsdUnits(BLUEPRINT_COST_USD)
             ? t("characters.costLine", {
-                cost: BLUEPRINT_COST,
-                remaining: credits,
+                cost: formatUsd(BLUEPRINT_COST_USD),
+                remaining: formatUsd(credits),
               })
             : t("characters.subscribeRequired")}
         </p>

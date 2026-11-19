@@ -7,6 +7,7 @@ import type {
   UserDiagnosticRow,
   UxDiagnosticsReport,
 } from "@/service/analytics/ux-diagnostics";
+import { formatUsd } from "@/service/billing/usd";
 
 function severityBadgeClass(
   severity: "high" | "medium" | "low" | "healthy",
@@ -283,7 +284,7 @@ export function UxAnalyticsDashboard({
                 UX 阻斷與錯誤排行 (Top Blockers)
               </h3>
               <p className="mt-1 text-xs text-zinc-500">
-                記錄點數不足彈窗、分鏡失敗、生圖/生片失敗等阻礙用戶繼續使用的事件。
+                記錄 USD Credit 餘額不足彈窗、分鏡失敗、生圖/生片失敗等阻礙用戶繼續使用的事件。
               </p>
               {report.blockers.length === 0 ? (
                 <p className="mt-4 text-sm text-zinc-500">
@@ -323,7 +324,7 @@ export function UxAnalyticsDashboard({
                 用戶旅程與卡關明細 ({filteredUsers.length} 人)
               </h2>
               <p className="mt-1 text-xs text-zinc-500">
-                整合每位用戶的點數、角色、影片分鏡、首尾幀、成片與失敗任務數量，直接定位停止使用的原因。
+                整合每位用戶的 USD Credit 餘額、角色、影片分鏡、首尾幀、成片與失敗任務數量，直接定位停止使用的原因。
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -356,7 +357,7 @@ export function UxAnalyticsDashboard({
                   {selectedStage === "activated_producing" ? (
                     <th className="whitespace-nowrap px-3 py-3">產出後動作</th>
                   ) : null}
-                  <th className="whitespace-nowrap px-3 py-3">剩餘點數</th>
+                  <th className="whitespace-nowrap px-3 py-3">剩餘 USD Credit</th>
                   <th className="whitespace-nowrap px-3 py-3">角色 (完成/總數)</th>
                   <th className="whitespace-nowrap px-3 py-3">影片進度 (草稿→分鏡→圖→片)</th>
                   <th className="whitespace-nowrap px-3 py-3">Life 照片</th>
@@ -433,7 +434,7 @@ export function UxAnalyticsDashboard({
                       </td>
                     ) : null}
                     <td className="whitespace-nowrap px-3 py-3 font-mono font-semibold text-zinc-800">
-                      {u.credits}
+                      {formatUsd(u.credits)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 font-mono text-zinc-700">
                       {u.completedCharacterCount} / {u.characterCount}

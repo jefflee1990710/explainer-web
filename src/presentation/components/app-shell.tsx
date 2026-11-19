@@ -10,11 +10,11 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 import { POSTS_FEATURE_ENABLED } from "@/service/post/feature";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 // Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
-  credits,
-  creditLimit,
+  creditUsd,
+  creditLimitUsd,
   activeTasks,
   email,
   name,
@@ -24,8 +24,8 @@ export function AppShell({
   promoBonusPercent = 0,
   children,
 }: {
-  credits: number;
-  creditLimit: number;
+  creditUsd: number;
+  creditLimitUsd: number;
   // Generation tasks still queued or running (top banner).
   activeTasks: number;
   email: string;
@@ -136,7 +136,7 @@ export function AppShell({
           <SignupPromoBanner
             variant="locked"
             discountPercent={signupDiscountPercent}
-            credits={WELCOME_CREDITS}
+            creditUsd={WELCOME_CREDIT_USD}
             bonusPercent={promoBonusPercent}
           />
         ) : null
@@ -149,14 +149,14 @@ export function AppShell({
           avatarUrl={avatarUrl}
           signOutLabel={t("auth.signOut")}
           settingsLabel={t("nav.settings")}
-          usageLabel={locale === "en" ? "Usage & Credits" : "用量與儲值 Usage"}
+          usageLabel={locale === "en" ? "Usage & USD Credit" : "用量與儲值 Usage"}
           billingLabel={locale === "en" ? "Billing & Card" : "信用卡與付款 Billing"}
           invoicesLabel={locale === "en" ? "Invoices" : "帳單紀錄 Invoices"}
           mcpLabel={locale === "en" ? "API Keys & Docs" : "API 金鑰與文件"}
           affiliateLabel={affiliateEnabled ? t("nav.affiliate") : undefined}
-          credits={credits}
-          creditLimit={creditLimit}
-          creditsLabel={t("common.credits")}
+          creditUsd={creditUsd}
+          creditLimitUsd={creditLimitUsd}
+          creditsLabel="USD Credit"
         />
       }
     >

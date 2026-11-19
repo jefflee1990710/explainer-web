@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getVideoAction } from "@/service/project/actions";
 import { loadOwnedFolder, loadStudioPickers, loadFolderOptions } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
@@ -32,7 +33,7 @@ export default async function FolderVideoPage({
       folderName={folder.name}
       folders={await loadFolderOptions(user.clerkUserId)}
       initialVideo={loaded.project}
-      credits={user.credits}
+      credits={resolveUserUsdBalance(user).creditUsd}
       {...pickers}
     />
   );

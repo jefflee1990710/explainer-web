@@ -3,6 +3,8 @@
 import { useEffect, useId } from "react";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { formatUsd, formatUsdRate } from "@/service/billing/usd";
+import { FRAME_COST_USD, VIDEO_COST_PER_SECOND_USD } from "@/service/credit-costs";
 import type { OpenCutAddClipMode } from "./opencut-add-clip-types";
 import {
   SparklesIcon,
@@ -55,7 +57,7 @@ export function OpenCutAddClipSelectionDialog({
       mode: "simple",
       title: isEn ? "Simple Video" : "簡易影片 (Simple Video)",
       badge: isEn ? "Fast Generation" : "提示詞生片",
-      cost: "2 credits/s",
+      cost: formatUsdRate(VIDEO_COST_PER_SECOND_USD),
       desc: isEn
         ? "Fast text-to-video prompt generation with optional character face and style stills via ComfyUI ref2va."
         : "輸入提示詞快速生成單一分鏡，可搭配角色面部或參考圖片（ComfyUI ref2va / MiniMax H3）。",
@@ -66,7 +68,7 @@ export function OpenCutAddClipSelectionDialog({
       mode: "explainer",
       title: isEn ? "Explainer Director" : "AI 導演解說分鏡",
       badge: isEn ? "Voice & Continuity" : "腳本語音分鏡",
-      cost: "2 credits/s",
+      cost: formatUsdRate(VIDEO_COST_PER_SECOND_USD),
       desc: isEn
         ? "Scripted story beat with voiceover, character locking, style direction, and auto on-screen text."
         : "輸入文案腳本與台詞，自動合成高傳真擬真語音、角色連續性與分鏡畫面。",
@@ -77,7 +79,7 @@ export function OpenCutAddClipSelectionDialog({
       mode: "swap",
       title: isEn ? "Scro Swap" : "Scro Swap 角色動態換角",
       badge: isEn ? "Motion Replacement" : "動作替換",
-      cost: "Jutsu",
+      cost: `${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
       desc: isEn
         ? "Replace character motion from an existing clip or an uploaded video, creating a fresh clip."
         : "選取時間軸既有片段或上傳新影片，將人物肢體與動態置換為指定角色，新增為獨立分鏡。",
@@ -88,7 +90,7 @@ export function OpenCutAddClipSelectionDialog({
       mode: "teleport",
       title: isEn ? "Teleport" : "Teleport AI 換場景",
       badge: isEn ? "Scene Background" : "背景穿越",
-      cost: "Teleport",
+      cost: `${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
       desc: isEn
         ? "Preserve subject motion while teleporting the background to a new environment or prompt plate."
         : "保留人物主體動作與語音，將背景無縫替換為全新場景圖片或提示詞背景，新增為獨立分鏡。",

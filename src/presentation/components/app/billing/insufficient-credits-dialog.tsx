@@ -23,7 +23,13 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { creditGrantLanded } from "@/service/billing/credit-gate";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
-import { packCreditsWithBonus } from "@/service/billing/promo";
+import { packCreditUsdWithBonus } from "@/service/billing/promo";
+import { formatUsd, formatUsdRate, toUsdUnits } from "@/service/billing/usd";
+import {
+  FRAME_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import {
   CREDIT_PACKS,
   localizedPackBlurb,
@@ -110,7 +116,7 @@ export function InsufficientCreditsDialog({
       return;
     }
     notifyCreditsChanged(snap);
-    if (!creditGrantLanded(previous, snap) && snap.credits < needed) {
+    if (!creditGrantLanded(previous, snap) && toUsdUnits(snap.creditUsd) < toUsdUnits(needed)) {
       setError(t("billing.checkoutPending"));
       return;
     }
@@ -232,11 +238,25 @@ export function InsufficientCreditsDialog({
           {subscribed ? t("billing.topUpTitle") : t("billing.subscribeTitle")}
         </h2>
         <p className="mt-2 text-sm text-muted">
-          {subscribed
-            ? t("billing.topUpBody", { credits: needed })
-            : t("billing.subscribeBody", { credits: needed })}
+          {locale === "en"
+            ? subscribed
+              ? `This action requires ${formatUsd(needed)} USD Credit. Top up or upgrade to continue automatically.`
+              : `This action requires ${formatUsd(needed)} USD Credit. Top up or subscribe to continue automatically.`
+            : locale === "zh-Hans"
+              ? subscribed
+                ? `这次需要 ${formatUsd(needed)} USD Credit。充值或升级方案后会自动继续生成。`
+                : `这次需要 ${formatUsd(needed)} USD Credit。充值或订阅方案后会自动继续生成。`
+              : subscribed
+                ? `這次需要 ${formatUsd(needed)} USD Credit。加值或升級方案後會自動繼續產生。`
+                : `這次需要 ${formatUsd(needed)} USD Credit。加值或訂閱方案後會自動繼續產生。`}
         </p>
-        <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
+        <p className="mt-1 text-xs text-muted">
+          {locale === "en"
+            ? `${formatUsd(FRAME_COST_USD)}/image · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} video · ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} talking-head (voice included).`
+            : locale === "zh-Hans"
+              ? `图片 ${formatUsd(FRAME_COST_USD)}/张 · 标准影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（含语音）。`
+              : `圖片 ${formatUsd(FRAME_COST_USD)}/張 · 標準影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（含語音）。`}
+        </p>
         {bonusPercent > 0 ? (
           <p className="mt-1 text-xs font-semibold text-[#3d4a12]">
             {t("signupPromo.packBonus", { bonus: bonusPercent })}
@@ -251,9 +271,9 @@ export function InsufficientCreditsDialog({
             onChange={(id) => setOffer({ kind: "pack", id })}
             items={Object.values(CREDIT_PACKS).map((pack) => ({
               id: pack.id,
-              title: `${localizedPackName(pack, locale)} · ${packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits`,
+              title: `${localizedPackName(pack, locale)} · ${formatUsd(packCreditUsdWithBonus(pack.creditUsd, bonusPercent))} USD Credit`,
               blurb: localizedPackBlurb(pack, locale),
-              price: `$${pack.amountUsd}`,
+              price: `$${pack.amountUsd.toLocaleString("en-US")}`,
             }))}
           />
           {subscribed && planLoading ? (
@@ -279,9 +299,9 @@ export function InsufficientCreditsDialog({
                 onChange={(id) => setOffer({ kind: "plan", id })}
                 items={upgrades.map((plan) => ({
                   id: plan.id,
-                  title: `${t(`plans.${plan.id}.name`)} · ${plan.monthlyCredits} credits`,
+                  title: `${t(`plans.${plan.id}.name`)} · ${formatUsd(plan.monthlyCreditUsd)} USD Credit`,
                   blurb: t(`plans.${plan.id}.blurb`),
-                  price: `$${plan.amountUsd}`,
+                  price: formatUsd(plan.amountUsd),
                   priceHint: t("common.perMonth"),
                 }))}
               />

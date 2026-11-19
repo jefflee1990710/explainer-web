@@ -137,15 +137,15 @@ export function BillingView({
                 </p>
                 <p className="mt-0.5 text-xs text-muted">
                   {isEn
-                    ? "Your card will be saved automatically the first time you top up credits or subscribe."
-                    : "當你首次儲值 Credits 或訂閱方案時，系統會透過 Stripe 安全記錄你嘅付款方式。"}
+                    ? "Your card will be saved automatically the first time you top up USD Credit or subscribe."
+                    : "當你首次加值 USD Credit 或訂閱方案時，系統會透過 Stripe 安全記錄你嘅付款方式。"}
                 </p>
               </div>
               <Link
                 href="/app/usage"
                 className="inline-flex min-h-[40px] items-center rounded-full bg-accent px-5 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c]"
               >
-                {isEn ? "Top Up Credits →" : "前往儲值 Credits →"}
+                {isEn ? "Top Up USD Credit →" : "前往加值 USD Credit →"}
               </Link>
             </div>
           )}
@@ -180,8 +180,8 @@ export function BillingView({
           <div className="flex flex-col justify-between gap-3">
             <p className="text-xs text-muted">
               {isEn
-                ? "Need to top up credits, switch plans, or download past receipts?"
-                : "需要加購 Credits、切換月費計劃或下載過往收據？"}
+                ? "Need to top up USD Credit, switch plans, or download past receipts?"
+                : "需要加購 USD Credit、切換月費計劃或下載過往收據？"}
             </p>
             <div className="flex flex-wrap gap-2">
               {hasStripeCustomer ? (

@@ -17,7 +17,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Large modal dialog opened from CharacterSelectDialog ("Manage") so the user can change clothes,
@@ -113,7 +113,7 @@ export function CharacterManageDialog({
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
           setCreditGate({
-            needed: BLUEPRINT_COST,
+            needed: BLUEPRINT_COST_USD,
             resume: () => {
               void run(key, action);
             },
@@ -256,7 +256,7 @@ export function CharacterManageDialog({
             subscribed={subscribed}
             onClose={() => setCreditGate(null)}
             onPaid={(snap) => {
-              setCredits(snap.credits);
+              setCredits(snap.creditUsd);
               setSubscribed(snap.subscribed);
               const resume = creditGate.resume;
               setCreditGate(null);

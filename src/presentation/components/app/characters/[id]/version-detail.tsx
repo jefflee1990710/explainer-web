@@ -27,7 +27,8 @@ import {
 import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Root version holds the uploaded photos. Later versions point at a parent sheet.
@@ -90,8 +91,8 @@ export function VersionDetail({
   } | null>(null);
   const busy = version.status === "queued" || version.status === "in_progress";
   const board = version.blueprintKind === "board";
-  const cost = board ? BLUEPRINT_COST : FRAME_COST;
-  const short = credits < cost;
+  const cost = board ? BLUEPRINT_COST_USD : FRAME_COST_USD;
+  const short = toUsdUnits(credits) < toUsdUnits(cost);
   const blueprintAlt = t("characters.versionBlueprintAlt", {
     name: character.name,
     n: version.number,
@@ -170,7 +171,7 @@ export function VersionDetail({
               className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-3.5 text-xs font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
             >
               {pending === "retry" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {t("characters.retryCredits", { cost })}
+              {t("characters.retryCredits", { cost: formatUsd(cost) })}
             </button>
           ) : null}
         </div>
@@ -315,9 +316,9 @@ export function VersionDetail({
             <span className="text-[11px] text-muted">
               {short
                 ? subscribed
-                  ? t("characters.creditsShortSubscribed", { remaining: credits })
+                  ? t("characters.creditsShortSubscribed", { remaining: formatUsd(credits) })
                   : t("characters.creditsNeedSubscribe")
-                : t("characters.creditsRemaining", { remaining: credits })}
+                : t("characters.creditsRemaining", { remaining: formatUsd(credits) })}
             </span>
           </div>
 
@@ -425,7 +426,7 @@ export function VersionDetail({
               className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {t("characters.generateNewVersion", { cost })}
+              {t("characters.generateNewVersion", { cost: formatUsd(cost) })}
             </button>
           </div>
         </form>

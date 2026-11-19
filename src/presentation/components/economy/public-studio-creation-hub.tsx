@@ -17,12 +17,13 @@ import { AuthForm } from "@/presentation/components/auth/auth-form";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicStyle } from "@/presentation/serialize";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
+import { addUsd, formatUsd, formatUsdRate, mulUsd } from "@/service/billing/usd";
 import {
-  FRAME_COST,
-  VIDEO_CREDITS_PER_SECOND,
-  scroSwapCost,
-  teleportCost,
+  FRAME_COST_USD,
+  VIDEO_COST_PER_SECOND_USD,
+  scroSwapCostUsd,
+  teleportCostUsd,
 } from "@/service/credit-costs";
 
 export type PublicCreationMode = "simple" | "economy" | "explainer" | "scroswap" | "teleport";
@@ -136,16 +137,19 @@ export function PublicStudioCreationHub({
   const [error, setError] = useState("");
   const autoTriggeredRef = useRef(false);
 
-  const perSecondCost = VIDEO_CREDITS_PER_SECOND;
+  const perSecondCostUsd = VIDEO_COST_PER_SECOND_USD;
+  const welcomeUsdLabel = formatUsd(WELCOME_CREDIT_USD);
+  const perSecondRateLabel = formatUsdRate(perSecondCostUsd);
 
-  const estimatedCost =
+  const estimatedCostUsd =
     mode === "scroswap"
-      ? scroSwapCost({ mediaKind: "video", durationSeconds })
+      ? scroSwapCostUsd({ mediaKind: "video", durationSeconds })
       : mode === "teleport"
-        ? teleportCost({ durationSeconds })
+        ? teleportCostUsd({ durationSeconds })
         : mode === "explainer"
-          ? FRAME_COST * 3 + perSecondCost * 15
-          : (firstFrameDataUrl ? 0 : FRAME_COST) + perSecondCost * durationSeconds;
+          ? addUsd(mulUsd(FRAME_COST_USD, 3), mulUsd(perSecondCostUsd, 15))
+          : addUsd(firstFrameDataUrl ? 0 : FRAME_COST_USD, mulUsd(perSecondCostUsd, durationSeconds));
+  const estimatedCostLabel = formatUsd(estimatedCostUsd);
 
   function readFileAsDataUrl(
     e: ChangeEvent<HTMLInputElement>,
@@ -407,8 +411,8 @@ export function PublicStudioCreationHub({
       : "Scro Simple 極簡生片工作台 · 鏡頭優先單鏡電影",
     title: isEn ? "Bring Your Shot to Life in One Pass" : "一鍵生成單鏡高畫質電影短片",
     sub: isEn
-      ? `Generate 6–12s cinematic video clips with First/Last Frame latent lock & reference images at just 2 credits/s. Sign up to get ${WELCOME_CREDITS} Free Credits and generate right now!`
-      : `每秒只需 2 credits（支援首尾幀 Latent 鎖定與參考圖，純視覺無 Lip-Sync）。新註冊即送 ${WELCOME_CREDITS} Free Credits 免費生片！`,
+      ? `Generate 6–12s cinematic video clips with First/Last Frame latent lock & reference images at just ${perSecondRateLabel}. Sign up to get ${welcomeUsdLabel} Free USD Credit and generate right now!`
+      : `每秒只需 ${perSecondRateLabel}（支援首尾幀 Latent 鎖定與參考圖，純視覺無 Lip-Sync）。新註冊即送 ${welcomeUsdLabel} 免費 USD Credit 立即生片！`,
   };
 
   const modeTabs: Array<{ id: PublicCreationMode; href: string; label: string; badge: string }> = [
@@ -416,7 +420,7 @@ export function PublicStudioCreationHub({
       id: "simple",
       href: "/simple",
       label: isEn ? "⚡ Simple Video" : "⚡ Simple 極簡生片",
-      badge: "2 cr/s",
+      badge: perSecondRateLabel,
     },
     {
       id: "explainer",
@@ -447,8 +451,8 @@ export function PublicStudioCreationHub({
         : "AI 概念解說片導演 · 一鍵生成結構化圖表動畫",
       title: isEn ? "Turn Any Topic Into a Viral Explainer Reel" : "輸入主題或文章，一鍵生成高留存解說短片",
       sub: isEn
-        ? `Choose Paper-Cutout Collage, Whiteboard Doodle, or 3D Papercraft Diorama with ${WELCOME_CREDITS} Free Welcome Credits!`
-        : `內建剪紙拼貼、白板手繪與 3D 紙雕模型三大解說導演，新註冊即送 ${WELCOME_CREDITS} Free Credits！`,
+        ? `Choose Paper-Cutout Collage, Whiteboard Doodle, or 3D Papercraft Diorama with ${welcomeUsdLabel} Free Welcome USD Credit!`
+        : `內建剪紙拼貼、白板手繪與 3D 紙雕模型三大解說導演，新註冊即送 ${welcomeUsdLabel} 免費 USD Credit！`,
     },
     scroswap: {
       kicker: isEn
@@ -456,8 +460,8 @@ export function PublicStudioCreationHub({
         : "Scro Swap 影片換角與換裝 · SAM 3 動作鎖定",
       title: isEn ? "Swap Any Character or Outfit While Keeping Exact Motion" : "保留原片 100% 動作與光影，一鍵替換主角與穿搭",
       sub: isEn
-        ? `Upload a source video (or use our sample kick clip) and drop in 1–4 character reference photos. Sign up to get ${WELCOME_CREDITS} Free Credits and run your first swap free!`
-        : `上傳來源影片（或直接使用範例動作片）並放入角色／穿搭照片即可換角。新註冊即送 ${WELCOME_CREDITS} Free Credits 免費體驗！`,
+        ? `Upload a source video (or use our sample kick clip) and drop in 1–4 character reference photos. Sign up to get ${welcomeUsdLabel} Free USD Credit and run your first swap free!`
+        : `上傳來源影片（或直接使用範例動作片）並放入角色／穿搭照片即可換角。新註冊即送 ${welcomeUsdLabel} 免費 USD Credit 體驗！`,
     },
     teleport: {
       kicker: isEn
@@ -465,8 +469,8 @@ export function PublicStudioCreationHub({
         : "Scro Teleport 影片換場 · 鎖定人物與動作，一鍵瞬移場景",
       title: isEn ? "Teleport Any Video Subject Into a Brand-New Scene" : "保留原片人物與動作，一鍵放進全新電影場景",
       sub: isEn
-        ? `Describe your new destination or upload a scene photo. Sign up to claim ${WELCOME_CREDITS} Free Credits and teleport your first video free!`
-        : `輸入新場景描述或上傳場景照片，即可將原片人物無縫移入新世界。新註冊即送 ${WELCOME_CREDITS} Free Credits 免費體驗！`,
+        ? `Describe your new destination or upload a scene photo. Sign up to claim ${welcomeUsdLabel} Free USD Credit and teleport your first video free!`
+        : `輸入新場景描述或上傳場景照片，即可將原片人物無縫移入新世界。新註冊即送 ${welcomeUsdLabel} 免費 USD Credit 體驗！`,
     },
   }[mode];
 
@@ -540,15 +544,15 @@ export function PublicStudioCreationHub({
                 </h2>
                 <p className="text-xs text-zinc-400">
                   {isEn
-                    ? `Configure your video below and click Generate — new users get ${WELCOME_CREDITS} Free Credits on sign-up!`
-                    : `先喺下面輸入設定再撳生成 —— 未登入會彈出登入／註冊視窗，新註冊即用 ${WELCOME_CREDITS} Free Credits 免費生片！`}
+                    ? `Configure your video below and click Generate — new users get ${welcomeUsdLabel} Free USD Credit on sign-up!`
+                    : `先喺下面輸入設定再撳生成 —— 未登入會彈出登入／註冊視窗，新註冊即送 ${welcomeUsdLabel} 免費 USD Credit 立即生片！`}
                 </p>
               </div>
             </div>
 
             {isSimple || mode === "explainer" ? (
               <div className="inline-flex items-center rounded-full border border-[#A3FF47]/30 bg-[#A3FF47]/15 px-3.5 py-1.5 text-xs font-bold text-[#A3FF47]">
-                ⚡ 2 cr/s
+                ⚡ {perSecondRateLabel}
               </div>
             ) : null}
           </div>
@@ -785,7 +789,7 @@ export function PublicStudioCreationHub({
                     >
                       {DURATION_OPTIONS.map((d) => (
                         <option key={d} value={d}>
-                          {d}s ({perSecondCost * d} credits)
+                          {d}s ({formatUsd(mulUsd(perSecondCostUsd, d))})
                         </option>
                       ))}
                     </select>
@@ -935,11 +939,11 @@ export function PublicStudioCreationHub({
             <p className="text-xs text-zinc-400">
               {signedIn
                 ? isEn
-                  ? `Estimated cost: ${estimatedCost} credits`
-                  : `預計扣除：${estimatedCost} credits`
+                  ? `Estimated cost: ${estimatedCostLabel}`
+                  : `預計扣除：${estimatedCostLabel}`
                 : isEn
-                  ? `🎁 Sign up to get ${WELCOME_CREDITS} Free Credits — this job (${estimatedCost} cr) runs FREE after sign-up!`
-                  : `🎁 新帳號免費獲贈 ${WELCOME_CREDITS} Credits —— 本次生成（${estimatedCost} cr）註冊後即刻免費扣點生成！`}
+                  ? `🎁 Sign up to get ${welcomeUsdLabel} Free USD Credit — this job (${estimatedCostLabel}) runs FREE after sign-up!`
+                  : `🎁 新帳號免費獲贈 ${welcomeUsdLabel} USD Credit —— 本次生成（${estimatedCostLabel}）註冊後即刻免費體驗！`}
             </p>
             <button
               type="button"
@@ -954,11 +958,11 @@ export function PublicStudioCreationHub({
                     : "正在生成影片..."
                   : signedIn
                     ? isEn
-                      ? `Generate Now · ${estimatedCost} credits`
-                      : `立即生成 · ${estimatedCost} credits`
+                      ? `Generate Now · ${estimatedCostLabel}`
+                      : `立即生成 · ${estimatedCostLabel}`
                     : isEn
-                      ? `Generate Video with Free Credits (${estimatedCost} cr)`
-                      : `用 Free Credits 免費生成影片 (${estimatedCost} cr)`}
+                      ? `Generate Video with Free Credit (${estimatedCostLabel})`
+                      : `用免費 USD Credit 立即生成 (${estimatedCostLabel})`}
               </span>
             </button>
           </div>
@@ -985,8 +989,8 @@ export function PublicStudioCreationHub({
             <div className="mb-4 rounded-2xl bg-[#12141c] px-4 py-3 text-xs font-bold text-[#A3FF47]">
               🎁{" "}
               {isEn
-                ? `Sign up or sign in to start generating your video right now! New accounts receive ${WELCOME_CREDITS} Free Credits.`
-                : `登入或免費註冊即可立即生成你剛才設定好嘅影片！新註冊即送 ${WELCOME_CREDITS} Free Credits。`}
+                ? `Sign up or sign in to start generating your video right now! New accounts receive ${welcomeUsdLabel} Free USD Credit.`
+                : `登入或免費註冊即可立即生成你剛才設定好嘅影片！新註冊即送 ${welcomeUsdLabel} 免費 USD Credit。`}
             </div>
             <AuthForm
               mode={authMode}

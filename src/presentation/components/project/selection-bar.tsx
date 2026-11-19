@@ -3,6 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { formatUsd } from "@/service/billing/usd";
 import { planSelected } from "@/service/production-plan";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -34,7 +35,7 @@ export function SelectionBar({
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs">
       <span className="font-semibold">
-        {t("production.selection.summary", { n: clipNumbers.length, credits })}
+        {t("production.selection.summary", { n: clipNumbers.length, credits: formatUsd(credits) })}
       </span>
       {skippedVideos > 0 ? (
         <span className="text-[var(--studio-muted)]">
@@ -52,14 +53,14 @@ export function SelectionBar({
           disabled={busy || frames.frames.length === 0}
           className="min-h-9 px-3 text-xs"
         >
-          {t("production.selection.framesButton", { cost: frames.cost })}
+          {t("production.selection.framesButton", { cost: formatUsd(frames.cost) })}
         </StudioButton>
         <StudioButton
           onClick={() => onVideos(videos.videos)}
           disabled={busy || videos.videos.length === 0}
           className="min-h-9 px-3 text-xs"
         >
-          {t("production.selection.videosButton", { cost: videos.cost })}
+          {t("production.selection.videosButton", { cost: formatUsd(videos.cost) })}
         </StudioButton>
         <button
           type="button"

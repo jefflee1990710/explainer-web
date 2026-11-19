@@ -5,7 +5,8 @@ import { RefreshIcon } from "@/presentation/components/project/production-icons"
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { canRedrawFrames, clipNextAction, clipNextActionText } from "@/service/clip-next-action";
-import { FRAMES_COST, needsVideoUpgrade } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { FRAMES_COST_USD, needsVideoUpgradeUsd } from "@/service/production-plan";
 import type { ClipState } from "@/service/clip-stage";
 
 export function ClipPrimaryAction({
@@ -34,8 +35,8 @@ export function ClipPrimaryAction({
   const { t } = useI18n();
   const action = clipNextAction(state, nextUnfinished);
   const text = clipNextActionText(t, action);
-  const videoUpgrade = action.kind === "video" && needsVideoUpgrade(credits, action.cost);
-  const short = action.cost > 0 && credits < action.cost && !videoUpgrade;
+  const videoUpgrade = action.kind === "video" && needsVideoUpgradeUsd(credits, action.cost);
+  const short = action.cost > 0 && toUsdUnits(credits) < toUsdUnits(action.cost) && !videoUpgrade;
   const cancellable = Boolean(state.videoUnsent);
   const busy = (action.kind === "busy" && !cancellable) || pending;
   const disabled = cancellable ? pending : busy || !idle || action.kind === "done";
@@ -59,7 +60,9 @@ export function ClipPrimaryAction({
           className="w-full justify-center gap-2"
         >
           <RefreshIcon className="h-3.5 w-3.5" />
-          {t("production.action.rerenderFrame", { cost: state.frameCost ?? FRAMES_COST })}
+          {t("production.action.rerenderFrame", {
+            cost: formatUsd(state.frameCost ?? FRAMES_COST_USD),
+          })}
         </StudioButton>
       ) : null}
       <StudioButton
@@ -70,7 +73,7 @@ export function ClipPrimaryAction({
       >
         {busy ? <Spinner className="h-4 w-4" /> : null}
         {cancellable ? t("production.video.cancelQueued") : text.label}
-        {!cancellable && action.cost > 0 ? ` · ${action.cost}` : ""}
+        {!cancellable && action.cost > 0 ? ` · ${formatUsd(action.cost)}` : ""}
       </StudioButton>
       <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
         {cancellable

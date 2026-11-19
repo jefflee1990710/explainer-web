@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getAdminUserCreationsAction } from "@/presentation/actions/analytics";
 import type { AdminUserCreationsDetail } from "@/service/analytics/user-creations";
 import type { UserDiagnosticRow } from "@/service/analytics/ux-diagnostics";
+import { formatUsd } from "@/service/billing/usd";
 
 function formatDateTime(iso: string): string {
   const date = new Date(iso);
@@ -118,7 +119,7 @@ export function UserCreationsDialog({
                 {detail?.name || user.name || "User"}
               </h2>
               <span className="rounded-full bg-[#12141c] px-3 py-0.5 font-mono text-xs font-semibold text-[#c6f24b]">
-                剩餘 {detail?.credits ?? user.credits} Credits
+                剩餘 {formatUsd(detail?.credits ?? user.credits)} USD Credit
               </span>
               {detail ? (
                 <>

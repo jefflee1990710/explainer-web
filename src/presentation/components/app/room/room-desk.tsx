@@ -20,7 +20,7 @@ import { RoomWardrobePanel } from "@/presentation/components/app/room/room-wardr
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Fitting room for one character (/app/room/[characterId]).
@@ -117,7 +117,7 @@ export function RoomDesk({
             subscribed={walletSubscribed}
             onClose={() => setCreditGate(null)}
             onPaid={(snap) => {
-              setWalletCredits(snap.credits);
+              setWalletCredits(snap.creditUsd);
               setWalletSubscribed(snap.subscribed);
               const resume = creditGate.resume;
               setCreditGate(null);
@@ -139,7 +139,7 @@ export function RoomDesk({
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
-          setCreditGate({ needed: BLUEPRINT_COST, resume: () => void run(key, action) });
+          setCreditGate({ needed: BLUEPRINT_COST_USD, resume: () => void run(key, action) });
         }
         return undefined;
       }
@@ -201,7 +201,7 @@ function RoomStudio({
     [character.versions, currentStyleId],
   );
   const version = styleVersions.find((ver) => ver.id === selectedVersionId) || styleVersions[0] || null;
-  const cost = version?.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
+  const cost = version?.blueprintKind === "board" ? BLUEPRINT_COST_USD : FRAME_COST_USD;
 
   async function onEdit(instruction: string) {
     if (!version) return;

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { generateUserStylePreviewAction } from "@/presentation/actions/styles";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { PreviewStatus } from "@/model/user-style";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -62,7 +63,7 @@ export function StylePreviewButton({
 
   const label = generating
     ? t("styles.previewGenerating")
-    : t("styles.generatePreview", { credits: FRAME_COST });
+    : t("styles.generatePreview", { credits: formatUsd(FRAME_COST_USD) });
 
   return (
     <div className={`flex flex-wrap items-center ${compact ? "gap-2" : "mt-4 gap-3"}`}>

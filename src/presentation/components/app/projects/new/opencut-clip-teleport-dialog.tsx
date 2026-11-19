@@ -8,7 +8,8 @@ import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicVideo } from "@/presentation/serialize";
-import { teleportCost } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { teleportCostUsd } from "@/service/credit-costs";
 
 /** Focused modal to apply Teleport scene relocation directly to one completed OpenEdit clip. */
 export function OpenCutClipTeleportDialog({
@@ -221,7 +222,7 @@ export function OpenCutClipTeleportDialog({
             {submitting ? <Spinner className="h-3.5 w-3.5" /> : null}
             <span>
               {isEn ? "Apply Teleport" : "套用 Teleport 換場"} ·{" "}
-              {teleportCost({ durationSeconds })}
+              {formatUsd(teleportCostUsd({ durationSeconds }))}
             </span>
           </button>
         </div>

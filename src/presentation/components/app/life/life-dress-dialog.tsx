@@ -19,7 +19,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
 import { isStyleId, type StyleId } from "@/model/style-id";
@@ -183,7 +183,7 @@ function LifeDressStudio({
     [character.versions, currentStyleId],
   );
   const version = styleVersions.find((item) => item.id === selectedVersionId) || styleVersions[0] || null;
-  const cost = version?.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
+  const cost = version?.blueprintKind === "board" ? BLUEPRINT_COST_USD : FRAME_COST_USD;
 
   async function run(key: string, action: () => Promise<CharacterResult>) {
     setPending(key);
@@ -194,7 +194,7 @@ function LifeDressStudio({
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
-          setCreditGate({ needed: BLUEPRINT_COST, resume: () => void run(key, action) });
+          setCreditGate({ needed: BLUEPRINT_COST_USD, resume: () => void run(key, action) });
         }
         return undefined;
       }
@@ -324,7 +324,7 @@ function LifeDressStudio({
           subscribed={subscribed}
           onClose={() => setCreditGate(null)}
           onPaid={(snap) => {
-            setCredits(snap.credits);
+            setCredits(snap.creditUsd);
             setSubscribed(snap.subscribed);
             const resume = creditGate.resume;
             setCreditGate(null);

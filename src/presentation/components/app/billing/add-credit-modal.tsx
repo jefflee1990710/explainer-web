@@ -7,7 +7,13 @@ import { startPackCheckoutAction } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
-import { packCreditsWithBonus } from "@/service/billing/promo";
+import { packCreditUsdWithBonus } from "@/service/billing/promo";
+import { formatUsd, formatUsdRate } from "@/service/billing/usd";
+import {
+  FRAME_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import {
   CREDIT_PACKS,
   localizedPackBlurb,
@@ -97,8 +103,14 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
         <p className="mt-2 text-sm text-muted">
           {t("billing.addCreditsBlurb")}
         </p>
-        {/* Same per-image / per-second rates as the billing page. */}
-        <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
+        {/* Same per-image / per-second USD rates as the usage page. */}
+        <p className="mt-1 text-xs text-muted">
+          {locale === "en"
+            ? `${formatUsd(FRAME_COST_USD)}/image · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} video · ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} talking-head. One-time top-ups never expire.`
+            : locale === "zh-Hans"
+              ? `图片 ${formatUsd(FRAME_COST_USD)}/张 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}。单次充值永久保留。`
+              : `圖片 ${formatUsd(FRAME_COST_USD)}/張 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}。單次加值永久保留。`}
+        </p>
         {bonusPercent > 0 ? (
           <p className="mt-1 text-xs font-semibold text-[#c6f24b]">
             {t("signupPromo.packBonus", { bonus: bonusPercent })}
@@ -129,14 +141,14 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
                 <span className="flex-1">
                   <span className="block text-sm font-semibold">
                     {localizedPackName(pack, locale)} ·{" "}
-                    {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
+                    {formatUsd(packCreditUsdWithBonus(pack.creditUsd, bonusPercent))} USD Credit
                   </span>
                   <span className="mt-0.5 block text-xs text-muted">
                     {localizedPackBlurb(pack, locale)}
                   </span>
                 </span>
                 <span className="font-display text-lg font-bold">
-                  ${pack.amountUsd}
+                  ${pack.amountUsd.toLocaleString("en-US")}
                 </span>
               </label>
             ))}

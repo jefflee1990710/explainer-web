@@ -12,6 +12,7 @@ import {
   getGenerationApiDocs,
   type GenerationApiFeatureId,
 } from "@/service/api/generation-docs";
+import { formatUsd } from "@/service/billing/usd";
 
 type KeyRow = {
   id: string;
@@ -25,7 +26,7 @@ type ToolStat = {
   tool: string;
   calls: number;
   errors: number;
-  credits: number;
+  costUsd: number;
 };
 
 export function McpView({
@@ -37,7 +38,7 @@ export function McpView({
   keys: KeyRow[];
   usage: {
     total: number;
-    credits: number;
+    costUsd: number;
     errorRate: number;
     byTool: ToolStat[];
   };
@@ -433,7 +434,11 @@ export function McpView({
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <McpStatChip label={t("mcp.calls30d", { count: String(usage.total) })} />
           <McpStatChip
-            label={t("mcp.credits30d", { credits: String(usage.credits) })}
+            label={tr(
+              `經 MCP 消耗 ${formatUsd(usage.costUsd)} USD Credit`,
+              `经 MCP 消耗 ${formatUsd(usage.costUsd)} USD Credit`,
+              `${formatUsd(usage.costUsd)} USD Credit via MCP`,
+            )}
           />
           <McpStatChip
             label={t("mcp.errorRate", { rate: String(usage.errorRate) })}
@@ -453,7 +458,7 @@ export function McpView({
                 >
                   <span className="font-mono">{row.tool}</span>
                   <span className="text-muted">
-                    {row.calls} calls · {row.credits} credits · {row.errors} err
+                    {row.calls} calls · {formatUsd(row.costUsd)} · {row.errors} err
                   </span>
                 </li>
               ))}

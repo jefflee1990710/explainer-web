@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { charactersCollection, videosCollection } from "@/dao";
 import {
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
         videos={cards}
         characters={publicCharacters}
         styles={styles}
-        credits={user.credits}
+        credits={resolveUserUsdBalance(user).creditUsd}
         subscribed={subscribed}
         initialHotTopics={user.hotTopicsCache?.topics}
         hotTopicsNeedRefresh={!cacheFresh}

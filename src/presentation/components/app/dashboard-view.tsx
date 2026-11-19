@@ -9,6 +9,7 @@ import { OnboardingHeroCards } from "@/presentation/components/app/onboarding-he
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { ProjectPicker, type ProjectOption } from "@/presentation/components/app/project-picker";
 import { folderVideoPath } from "@/service/folder-video-path";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
 import {
   newVideoPathForUseCase,
   USE_CASE_LIST_PATH,
@@ -104,13 +105,17 @@ export function DashboardView({
           </div>
           <p className="mt-2 text-sm text-muted">
             {subscribed
-              ? t("dashboard.subscribed", { credits })
-              : credits > 0
+              ? locale === "en"
+                ? `Active plan ready to render · ${formatUsd(credits)} USD Credit remaining.`
+                : locale === "zh-Hans"
+                  ? `当前方案可产片，剩余 ${formatUsd(credits)} USD Credit。`
+                  : `目前方案可產片，剩餘 ${formatUsd(credits)} USD Credit。`
+              : toUsdUnits(credits) > 0
                 ? locale === "zh-Hant"
-                  ? `目前已領取 ${credits} 免費體驗 credits（可直接用於免費寫分鏡、建立角色、拍 Life 日常照與產生場景圖）。`
+                  ? `目前已領取 ${formatUsd(credits)} 免費體驗 USD Credit（可直接用於免費寫分鏡、建立角色、拍 Life 日常照與產生場景圖）。`
                   : locale === "zh-Hans"
-                    ? `目前已领取 ${credits} 免费体验 credits（可直接用于免费写分镜、创建角色、拍 Life 日常照与生成场景图）。`
-                    : `You have ${credits} free trial credits ready to draft storyboards, create characters, snap Life photos, and generate scene frames.`
+                    ? `目前已领取 ${formatUsd(credits)} 免费体验 USD Credit（可直接用于免费写分镜、创建角色、拍 Life 日常照与生成场景图）。`
+                    : `You have ${formatUsd(credits)} free trial USD Credit ready to draft storyboards, create characters, snap Life photos, and generate scene frames.`
                 : t("dashboard.notSubscribed")}
           </p>
         </div>
@@ -122,7 +127,7 @@ export function DashboardView({
         </Link>
       </div>
 
-      {!subscribed && credits <= 0 ? (
+      {!subscribed && toUsdUnits(credits) <= 0 ? (
         <div className="mt-6 rounded-lg bg-[var(--studio-cyan-soft)] px-4 py-3 text-sm">
           {t("dashboard.noSubscriptionBanner")}
           <Link href="/app/billing" className="ml-2 font-semibold underline">

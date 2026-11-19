@@ -1,7 +1,8 @@
 "use client";
 
 import { Spinner } from "@/presentation/components/spinner";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // One-click Life generate: fixed street OOTD or random post template.
@@ -48,7 +49,7 @@ export function LifeQuickGenerate({
             {pending ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
             {pending ? "排入背景佇列中..." : t("life.generate")}
             <span className="ml-2 font-medium opacity-85">
-              · {t("life.cost", { cost: FRAME_COST })}
+              · {t("life.cost", { cost: formatUsd(FRAME_COST_USD) })}
             </span>
           </button>
           <button
@@ -59,7 +60,7 @@ export function LifeQuickGenerate({
           >
             隨機 · Random
             <span className="ml-2 font-medium text-muted">
-              · {t("life.cost", { cost: FRAME_COST })}
+              · {t("life.cost", { cost: formatUsd(FRAME_COST_USD) })}
             </span>
           </button>
         </div>

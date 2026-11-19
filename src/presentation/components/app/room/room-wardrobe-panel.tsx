@@ -24,6 +24,7 @@ import {
   type CharacterWardrobeColorPicks,
 } from "@/service/character/wardrobe-colors";
 import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
 
 // Left column: hair / top / pants / shoes / accessory pickers stacked top to bottom, a free-text note, and Generate at the bottom.
 export function RoomWardrobePanel({
@@ -50,7 +51,7 @@ export function RoomWardrobePanel({
   const { byOptionId, promptMap } = useCustomWardrobeItems();
   const ready = version.status === "completed";
   const locked = !ready || pending !== "";
-  const short = credits < cost;
+  const short = toUsdUnits(credits) < toUsdUnits(cost);
   const versionText = [version.prompt, version.editInstruction].filter(Boolean).join("\n");
   const current = detectCharacterWardrobePicks(versionText);
   const wornColors = detectCharacterWardrobeColors(versionText);
@@ -190,9 +191,9 @@ export function RoomWardrobePanel({
             ? t("characters.roomWardrobeWaiting")
             : short
               ? subscribed
-                ? t("characters.creditsShortSubscribed", { remaining: credits })
+                ? t("characters.creditsShortSubscribed", { remaining: formatUsd(credits) })
                 : t("characters.creditsNeedSubscribe")
-              : t("characters.creditsRemaining", { remaining: credits })}
+              : t("characters.creditsRemaining", { remaining: formatUsd(credits) })}
         </p>
         <button
           type="submit"
@@ -202,7 +203,7 @@ export function RoomWardrobePanel({
           className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
         >
           {pending === "edit" ? <Spinner className="h-4 w-4" /> : null}
-          {t("characters.generateNewVersion", { cost })}
+          {t("characters.generateNewVersion", { cost: formatUsd(cost) })}
         </button>
       </div>
 

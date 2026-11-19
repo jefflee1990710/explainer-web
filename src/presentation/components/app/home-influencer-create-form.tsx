@@ -9,8 +9,9 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
 import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
@@ -37,11 +38,11 @@ export function HomeInfluencerCreateForm({
   const [creditGate, setCreditGate] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [paidSnap, setPaidSnap] = useState<{
-    credits: number;
+    creditUsd: number;
     subscribed: boolean;
   } | null>(null);
 
-  const walletCredits = paidSnap?.credits ?? credits;
+  const walletCreditUsd = paidSnap?.creditUsd ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
   const photoTab =
     locale === "zh-Hant" ? "上傳相片" : locale === "zh-Hans" ? "上传照片" : "Photo";
@@ -227,8 +228,12 @@ export function HomeInfluencerCreateForm({
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-[var(--studio-muted)]">
-            {walletSubscribed || walletCredits >= BLUEPRINT_COST
-              ? t("characters.costLine", { cost: BLUEPRINT_COST, remaining: walletCredits })
+            {walletSubscribed || toUsdUnits(walletCreditUsd) >= toUsdUnits(BLUEPRINT_COST_USD)
+              ? locale === "en"
+                ? `Cost ${formatUsd(BLUEPRINT_COST_USD)} (Remaining ${formatUsd(walletCreditUsd)})`
+                : locale === "zh-Hans"
+                  ? `扣 ${formatUsd(BLUEPRINT_COST_USD)}（剩余 ${formatUsd(walletCreditUsd)}）`
+                  : `扣 ${formatUsd(BLUEPRINT_COST_USD)}（剩餘 ${formatUsd(walletCreditUsd)}）`
               : t("characters.subscribeRequired")}
           </p>
           <button
@@ -257,7 +262,7 @@ export function HomeInfluencerCreateForm({
 
       {creditGate ? (
         <InsufficientCreditsDialog
-          needed={BLUEPRINT_COST}
+          needed={BLUEPRINT_COST_USD}
           subscribed={walletSubscribed}
           onClose={() => setCreditGate(false)}
           onPaid={(snap) => {

@@ -3,27 +3,32 @@
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { payPercent } from "@/service/billing/promo";
+import { formatUsd } from "@/service/billing/usd";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
 // Top strip for the current signup offer, or the rate already locked on this account.
 export function SignupPromoBanner({
   variant,
   signedIn = false,
   discountPercent,
+  creditUsd,
   credits,
   bonusPercent,
 }: {
   variant: "public" | "locked";
   signedIn?: boolean;
   discountPercent: number;
-  credits: number;
+  creditUsd?: number;
+  credits?: number;
   bonusPercent: number;
 }) {
   const { t } = useI18n();
   const pay = payPercent(discountPercent);
+  const welcomeCredit = formatUsd(creditUsd ?? credits ?? WELCOME_CREDIT_USD);
   const message =
     variant === "locked"
       ? t("signupPromo.locked", { pay, bonus: bonusPercent })
-      : t("signupPromo.banner", { pay, credits, bonus: bonusPercent });
+      : t("signupPromo.banner", { pay, credits: welcomeCredit, bonus: bonusPercent });
 
   return (
     <div className="bg-[#12141c] text-white">

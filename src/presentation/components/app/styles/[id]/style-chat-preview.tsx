@@ -2,7 +2,8 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 
 // Generate / regenerate control inside an AI reply. Shows a live status while the job runs.
 export function StyleChatPreview({
@@ -39,8 +40,8 @@ export function StyleChatPreview({
       className="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
     >
       {generated
-        ? t("styles.chatPreviewRegenerate", { credits: FRAME_COST })
-        : t("styles.chatPreviewGenerate", { credits: FRAME_COST })}
+        ? t("styles.chatPreviewRegenerate", { credits: formatUsd(FRAME_COST_USD) })
+        : t("styles.chatPreviewGenerate", { credits: formatUsd(FRAME_COST_USD) })}
     </button>
   );
 }

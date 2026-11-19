@@ -20,7 +20,8 @@ import type {
   PublicVideo,
 } from "@/presentation/serialize";
 import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
-import { scroSwapCost } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { scroSwapCostUsd } from "@/service/credit-costs";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -482,7 +483,7 @@ export function OpenCutClipScroSwapDialog({
             {submitting ? <Spinner className="h-3.5 w-3.5" /> : null}
             <span>
               {isEn ? "Apply Scro Swap" : "套用 Scro Swap 換角"} ·{" "}
-              {scroSwapCost({ durationSeconds, mediaKind: "video" })}
+              {formatUsd(scroSwapCostUsd({ durationSeconds, mediaKind: "video" }))}
             </span>
           </button>
         </div>

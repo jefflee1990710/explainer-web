@@ -1,4 +1,5 @@
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { charactersCollection } from "@/dao";
@@ -22,12 +23,13 @@ export default async function CharactersPage() {
   ]);
   const styles = [...selectableStyles.system, ...selectableStyles.mine];
   const subscribed = isSubscriptionActive(sub);
+  const creditUsd = resolveUserUsdBalance(user).creditUsd;
   const characterLimit = characterAllowance(subscribed && sub ? sub.planId : null, user.email);
 
   return (
     <div>
       <CharactersHeader
-        credits={user.credits}
+        credits={creditUsd}
         subscribed={subscribed}
         styles={styles}
         characterCount={characterCount}
@@ -36,7 +38,7 @@ export default async function CharactersPage() {
       <div className="mt-8">
         <CharacterGrid
           characters={docs.map(toPublicCharacter)}
-          credits={user.credits}
+          credits={creditUsd}
           subscribed={subscribed}
           styles={styles}
           atCharacterLimit={characterLimit != null && characterCount >= characterLimit}

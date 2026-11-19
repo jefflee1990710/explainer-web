@@ -12,7 +12,8 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { FRAME_COST_USD, FRAMES_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
@@ -85,7 +86,7 @@ export function ClipEditDialog({
           draft.endVo?.trim(),
       )
     : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
-  const enoughCredits = credits >= FRAMES_COST;
+  const enoughCredits = toUsdUnits(credits) >= toUsdUnits(FRAMES_COST_USD);
   const canSave = valid && dirty && !busy;
   const canRedraw = valid && !busy && canRegenerate;
 
@@ -260,9 +261,9 @@ export function ClipEditDialog({
           <footer className="space-y-2 border-t border-accent-ink/10 px-6 py-4">
             <p className="text-xs text-muted">
               {t("production.clipEdit.costNote", {
-                cost: FRAMES_COST,
-                frameCost: FRAME_COST,
-                remaining: credits,
+                cost: formatUsd(FRAMES_COST_USD),
+                frameCost: formatUsd(FRAME_COST_USD),
+                remaining: formatUsd(credits),
               })}
             </p>
             {!valid ? (
@@ -305,7 +306,7 @@ export function ClipEditDialog({
                 {pending === "regenerate" ? <Spinner /> : <RefreshIcon />}
                 {pending === "regenerate"
                   ? t("production.action.submitting")
-                  : t("production.clipEdit.saveAndRedrawBoth", { cost: FRAMES_COST })}
+                  : t("production.clipEdit.saveAndRedrawBoth", { cost: formatUsd(FRAMES_COST_USD) })}
               </button>
             </div>
           </footer>

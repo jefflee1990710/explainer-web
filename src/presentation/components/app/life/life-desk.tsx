@@ -61,7 +61,8 @@ import { InlineCreateCharacterDialog } from "@/presentation/components/app/proje
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import type {
   PublicLifeCharacter,
@@ -238,7 +239,9 @@ export function LifeDesk({
   useEffect(() => {
     if (initialCharacterId) return;
     const remembered = preferredCharacterId(characters);
-    if (remembered) setCharacterId(remembered);
+    if (!remembered) return;
+    const id = window.setTimeout(() => setCharacterId(remembered), 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [look, setLook] = useState<LifeLookSelection>(EMPTY_LIFE_LOOK);
@@ -1272,7 +1275,7 @@ export function LifeDesk({
                 ? "Generate"
                 : "生成"
           }
-          creditBadge={FRAME_COST}
+          creditBadge={formatUsd(FRAME_COST_USD)}
           error={error}
         />
       </DirectorDockStage>
@@ -1552,7 +1555,7 @@ export function LifeDesk({
                   {pending === "regenerate" ? (
                     <Spinner className="mr-1.5 h-3.5 w-3.5" />
                   ) : null}
-                  AI 重新生成 · {t("life.cost", { cost: FRAME_COST })}
+                  AI 重新生成 · {t("life.cost", { cost: formatUsd(FRAME_COST_USD) })}
                 </button>
               </div>
 
@@ -1723,7 +1726,7 @@ export function LifeDesk({
 
       {creditGate ? (
         <InsufficientCreditsDialog
-          needed={FRAME_COST}
+          needed={FRAME_COST_USD}
           subscribed={subscribed}
           onClose={() => setCreditGate(false)}
           onPaid={() => setCreditGate(false)}

@@ -49,7 +49,8 @@ import {
 import { LookSilhouetteChips } from "@/presentation/components/app/characters/look-silhouette-chips";
 import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 import { emptyPersonaDraft, personaFromFields, type PersonaDraft } from "@/service/character/persona";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import type { PublicStyle } from "@/presentation/serialize";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -98,10 +99,10 @@ export function CharacterGeneratorForm({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [creditGate, setCreditGate] = useState(false);
-  const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
+  const [paidSnap, setPaidSnap] = useState<{ creditUsd: number; subscribed: boolean } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const walletCredits = paidSnap?.credits ?? credits;
+  const walletCredits = paidSnap?.creditUsd ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
   const blocked = atCharacterLimit || submitting || busy !== "";
 
@@ -629,8 +630,11 @@ export function CharacterGeneratorForm({
               className="h-9 w-full rounded-full border border-accent-ink/20 bg-white px-3.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
             <p className="text-[11px] text-muted">
-              {walletSubscribed || walletCredits >= BLUEPRINT_COST
-                ? t("characters.costLine", { cost: BLUEPRINT_COST, remaining: walletCredits })
+              {walletSubscribed || toUsdUnits(walletCredits) >= toUsdUnits(BLUEPRINT_COST_USD)
+                ? t("characters.costLine", {
+                    cost: formatUsd(BLUEPRINT_COST_USD),
+                    remaining: formatUsd(walletCredits),
+                  })
                 : t("characters.subscribeRequired")}
             </p>
             <button
@@ -647,11 +651,11 @@ export function CharacterGeneratorForm({
 
       {creditGate ? (
         <InsufficientCreditsDialog
-          needed={BLUEPRINT_COST}
+          needed={BLUEPRINT_COST_USD}
           subscribed={walletSubscribed}
           onClose={() => setCreditGate(false)}
           onPaid={(snap) => {
-            setPaidSnap(snap);
+            setPaidSnap({ creditUsd: snap.creditUsd, subscribed: snap.subscribed });
             setCreditGate(false);
             formRef.current?.requestSubmit();
           }}

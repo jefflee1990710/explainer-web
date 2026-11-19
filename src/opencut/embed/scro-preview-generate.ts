@@ -1,4 +1,5 @@
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
+import { formatUsd } from "@/service/billing/usd";
 
 type ScroClipActionClip = Pick<
 	ScroVideoSeedClip,
@@ -46,7 +47,7 @@ export function scroVideoActionLabel(
 ) {
 	const again = clip.stage === "video_ready" || clip.staleVideo || clip.retryVideo;
 	const name = again ? "Regenerate video" : "Generate video";
-	return clip.videoCost ? `${name} · ${clip.videoCost}` : name;
+	return clip.videoCost ? `${name} · ${formatUsd(clip.videoCost)}` : name;
 }
 
 /** Start still is on screen and this clip can take a video, including a failed retry. */

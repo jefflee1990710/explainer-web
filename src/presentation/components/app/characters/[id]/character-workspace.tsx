@@ -16,7 +16,7 @@ import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/use-character-poll";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import { DeleteCharacterDialog } from "@/presentation/components/app/characters/[id]/delete-character-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -113,7 +113,7 @@ export function CharacterWorkspace({
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
           setCreditGate({
-            needed: BLUEPRINT_COST,
+            needed: BLUEPRINT_COST_USD,
             resume: () => {
               void run(key, action);
             },
@@ -360,7 +360,7 @@ export function CharacterWorkspace({
           onPaid={(snap) => {
             const rawPlan = snap.planId ?? undefined;
             setPaidSnap({
-              credits: snap.credits,
+              credits: snap.creditUsd,
               subscribed: snap.subscribed,
               planId: isPlanId(rawPlan) ? rawPlan : walletPlanId,
             });

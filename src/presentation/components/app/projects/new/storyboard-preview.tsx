@@ -14,7 +14,8 @@ import {
   phaseAToEditInput,
 } from "@/service/director/phase-a-edit";
 import type { PublicProject } from "@/presentation/serialize";
-import { FRAMES_COST, MIN_VIDEO_COST, VIDEO_CREDITS_PER_SECOND } from "@/service/production-plan";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAMES_COST_USD } from "@/service/production-plan";
 import type { PhaseAEditInput } from "@/model/project";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { StoryboardClipRow } from "@/presentation/components/app/projects/new/storyboard-clip-row";
@@ -214,8 +215,10 @@ export function StoryboardPreview({
             <>
               <p className="font-display text-sm font-bold">{t("brief.storyboard.approveTitle")}</p>
               <p className="mt-2 text-sm">
-                {t("brief.storyboard.approvePricing", { frameCost: FRAMES_COST })}
-                <span className="text-muted">{t("brief.storyboard.approveRemaining", { remaining: credits })}</span>
+                {t("brief.storyboard.approvePricing", { frameCost: formatUsd(FRAMES_COST_USD) })}
+                <span className="text-muted">
+                  {t("brief.storyboard.approveRemaining", { remaining: formatUsd(credits) })}
+                </span>
               </p>
               <p className="mt-1 text-xs text-muted">{t("brief.storyboard.approveTip")}</p>
               {!subscribed ? (

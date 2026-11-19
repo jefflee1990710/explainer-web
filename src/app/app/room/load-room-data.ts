@@ -2,6 +2,7 @@ import { charactersCollection } from "@/dao";
 import type { Character } from "@/model/character";
 import { toPublicCharacter } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { listSelectableStyles } from "@/service/style/list";
 
@@ -19,7 +20,7 @@ export async function loadRoomData() {
   ]);
   return {
     characters: docs.map(toPublicCharacter),
-    credits: user.credits,
+    credits: resolveUserUsdBalance(user).creditUsd,
     subscribed: isSubscriptionActive(sub),
     styles: [...selectableStyles.system, ...selectableStyles.mine],
   };

@@ -56,7 +56,8 @@ import type {
 } from "@/presentation/serialize";
 import type { CharacterPresetSelection } from "@/service/character/character-presets";
 import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
-import { scroSwapCost } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { scroSwapCostUsd } from "@/service/credit-costs";
 import type { DetectedSourcePerson } from "@/service/fal/sam3-image";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { STYLES } from "@/service/style/catalog";
@@ -1450,10 +1451,12 @@ export function JutsuStudio({
                   <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" />
                 </svg>
                 <span>
-                  {scroSwapCost({
-                    durationSeconds: sectionLength,
-                    mediaKind: sourceMediaKind,
-                  })}
+                  {formatUsd(
+                    scroSwapCostUsd({
+                      durationSeconds: sectionLength,
+                      mediaKind: sourceMediaKind,
+                    }),
+                  )}
                 </span>
               </span>
             </button>

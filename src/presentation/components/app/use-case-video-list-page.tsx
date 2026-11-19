@@ -1,4 +1,5 @@
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { videosCollection } from "@/dao";
 import { toPublicVideoCard, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import type { Project } from "@/model/project";
@@ -38,7 +39,7 @@ export async function UseCaseVideoListPage({
       folderName=""
       folders={folderOptions}
       initialVideo={null}
-      credits={user.credits}
+      credits={resolveUserUsdBalance(user).creditUsd}
       useCase={useCase}
       historyVideos={matching}
       allHistoryVideos={cards}

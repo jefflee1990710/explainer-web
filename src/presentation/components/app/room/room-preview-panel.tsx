@@ -7,6 +7,7 @@ import { CharacterSpecList } from "@/presentation/components/app/characters/[id]
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
+import { formatUsd } from "@/service/billing/usd";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Center column: identity portrait and full body for the selected look, with appearance notes and retry.
@@ -76,7 +77,7 @@ export function RoomPreviewPanel({
               className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-3.5 text-xs font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
             >
               {pending === "retry" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {t("characters.retryCredits", { cost })}
+              {t("characters.retryCredits", { cost: formatUsd(cost) })}
             </button>
           ) : null}
         </div>

@@ -4,6 +4,7 @@ import { AppShell } from "@/presentation/components/app-shell";
 import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-policies-dialog";
 import { isAffiliateAccount } from "@/service/affiliate/enabled";
 import { getAuthSession, requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { countActiveTasks } from "@/service/generation/task-list";
 import { adhocBonusPercent } from "@/service/billing/promo";
 import { needsPolicyAcceptance } from "@/service/legal/versions";
@@ -37,12 +38,13 @@ export default async function AppLayout({
   const session = await getAuthSession();
   if (!session) redirect("/sign-in?next=/app");
   const user = await requireAppUser();
+  const balance = resolveUserUsdBalance(user);
   const activeTasks = await safeCountActiveTasks(user.clerkUserId);
   return (
     <>
       <AppShell
-        credits={user.credits}
-        creditLimit={user.creditLimit || 0}
+        creditUsd={balance.creditUsd}
+        creditLimitUsd={balance.creditLimitUsd}
         activeTasks={activeTasks}
         email={user.email}
         name={user.name}

@@ -5,7 +5,8 @@ import { startPackCheckoutAction } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
-import { packCreditsWithBonus } from "@/service/billing/promo";
+import { packCreditUsdWithBonus } from "@/service/billing/promo";
+import { formatUsd } from "@/service/billing/usd";
 import {
   CREDIT_PACKS,
   localizedPackBlurb,
@@ -17,7 +18,7 @@ import type { PackId } from "@/model/billing-settings";
 const DEFAULT_PACK: PackId = "pack50";
 
 /** Inline one-time credit pack picker (available to all accounts, with or without a subscription). */
-export function BuyCreditsSection(_?: { subscribed?: boolean }) {
+export function BuyCreditsSection() {
   const { t, locale } = useI18n();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");
@@ -75,13 +76,13 @@ export function BuyCreditsSection(_?: { subscribed?: boolean }) {
               <span className="flex-1">
                 <span className="block text-sm font-semibold">
                   {localizedPackName(pack, locale)} ·{" "}
-                  {packCreditsWithBonus(pack.credits, bonusPercent).toLocaleString()} credits
+                  {formatUsd(packCreditUsdWithBonus(pack.creditUsd, bonusPercent))} USD Credit
                 </span>
                 <span className="mt-0.5 block text-xs text-muted">
                   {localizedPackBlurb(pack, locale)}
                 </span>
               </span>
-              <span className="font-display text-lg font-bold">${pack.amountUsd}</span>
+              <span className="font-display text-lg font-bold">${pack.amountUsd.toLocaleString("en-US")}</span>
             </label>
           ))}
         </fieldset>

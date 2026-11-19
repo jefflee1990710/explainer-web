@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
+import { formatUsd } from "@/service/billing/usd";
 
 export type OpencutLocaleGroup = "en" | "zh-Hant" | "zh-Hans" | "ja" | "ko";
 
@@ -447,40 +448,48 @@ export function getOpencutMessages(locale?: string | null) {
 			send: pick({ en: "Send", zhHant: "送出", zhHans: "发送", ja: "送信", ko: "보내기" }),
 			updated: pick({ en: "Updated", zhHant: "已更新", zhHans: "已更新", ja: "更新しました", ko: "업데이트됨" }),
 			updateFailed: pick({ en: "Could not update this clip", zhHant: "無法更新呢段分鏡", zhHans: "无法更新这段分镜", ja: "更新できませんでした", ko: "클립을 업데이트할 수 없습니다" }),
-			generateFrames: (cost?: number) =>
-				pick({
-					en: `Generate frames${cost ? ` · ${cost}` : ""}`,
-					zhHant: `產生場景圖${cost ? ` · ${cost}` : ""}`,
-					zhHans: `生成场景图${cost ? ` · ${cost}` : ""}`,
-					ja: `フレーム生成${cost ? ` · ${cost}` : ""}`,
-					ko: `프레임 생성${cost ? ` · ${cost}` : ""}`,
-				}),
-			redrawFrames: (cost?: number) =>
-				pick({
-					en: `Redraw frames${cost ? ` · ${cost}` : ""}`,
-					zhHant: `重畫場景圖${cost ? ` · ${cost}` : ""}`,
-					zhHans: `重画场景图${cost ? ` · ${cost}` : ""}`,
-					ja: `フレーム再生成${cost ? ` · ${cost}` : ""}`,
-					ko: `프레임 다시 그리기${cost ? ` · ${cost}` : ""}`,
-				}),
+			generateFrames: (cost?: number) => {
+				const badge = cost ? ` · ${formatUsd(cost)}` : "";
+				return pick({
+					en: `Generate frames${badge}`,
+					zhHant: `產生場景圖${badge}`,
+					zhHans: `生成场景图${badge}`,
+					ja: `フレーム生成${badge}`,
+					ko: `프레임 생성${badge}`,
+				});
+			},
+			redrawFrames: (cost?: number) => {
+				const badge = cost ? ` · ${formatUsd(cost)}` : "";
+				return pick({
+					en: `Redraw frames${badge}`,
+					zhHant: `重畫場景圖${badge}`,
+					zhHans: `重画场景图${badge}`,
+					ja: `フレーム再生成${badge}`,
+					ko: `프레임 다시 그리기${badge}`,
+				});
+			},
 			drawing: pick({ en: "Drawing…", zhHant: "繪製中…", zhHans: "绘制中…", ja: "描画中…", ko: "그리는 중…" }),
 			drawingFrames: pick({ en: "Drawing frames…", zhHant: "正在繪製場景圖…", zhHans: "正在绘制场景图…", ja: "フレームを描画中…", ko: "프레임 그리는 중…" }),
-			generateVideo: (cost?: number) =>
-				pick({
-					en: `Generate video${cost ? ` · ${cost}` : ""}`,
-					zhHant: `產生影片${cost ? ` · ${cost}` : ""}`,
-					zhHans: `生成视频${cost ? ` · ${cost}` : ""}`,
-					ja: `動画を生成${cost ? ` · ${cost}` : ""}`,
-					ko: `동영상 생성${cost ? ` · ${cost}` : ""}`,
-				}),
-			regenerateVideo: (cost?: number) =>
-				pick({
-					en: `Regenerate video${cost ? ` · ${cost}` : ""}`,
-					zhHant: `重新產生影片${cost ? ` · ${cost}` : ""}`,
-					zhHans: `重新生成视频${cost ? ` · ${cost}` : ""}`,
-					ja: `動画を再生成${cost ? ` · ${cost}` : ""}`,
-					ko: `동영상 다시 생성${cost ? ` · ${cost}` : ""}`,
-				}),
+			generateVideo: (cost?: number) => {
+				const badge = cost ? ` · ${formatUsd(cost)}` : "";
+				return pick({
+					en: `Generate video${badge}`,
+					zhHant: `產生影片${badge}`,
+					zhHans: `生成视频${badge}`,
+					ja: `動画を生成${badge}`,
+					ko: `동영상 생성${badge}`,
+				});
+			},
+			regenerateVideo: (cost?: number) => {
+				const badge = cost ? ` · ${formatUsd(cost)}` : "";
+				return pick({
+					en: `Regenerate video${badge}`,
+					zhHant: `重新產生影片${badge}`,
+					zhHans: `重新生成视频${badge}`,
+					ja: `動画を再生成${badge}`,
+					ko: `동영상 다시 생성${badge}`,
+				});
+			},
 			rendering: pick({ en: "Rendering…", zhHant: "產生影片中…", zhHans: "生成视频中…", ja: "レンダリング中…", ko: "렌더링 중…" }),
 			renderingVideo: pick({ en: "Generating video…", zhHant: "正在產生影片…", zhHans: "正在生成视频…", ja: "動画を生成中…", ko: "동영상 생성 중…" }),
 			queuedVideo: pick({ en: "Queued video…", zhHant: "影片排隊中…", zhHans: "视频排队中…", ja: "動画キュー待機中…", ko: "동영상 대기열…" }),

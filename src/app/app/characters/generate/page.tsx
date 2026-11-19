@@ -1,4 +1,5 @@
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { charactersCollection } from "@/dao";
@@ -19,7 +20,7 @@ export default async function CharacterGeneratorPage() {
 
   return (
     <CharacterGeneratorForm
-      credits={user.credits}
+      credits={resolveUserUsdBalance(user).creditUsd}
       subscribed={subscribed}
       styles={styles}
       atCharacterLimit={characterLimit != null && characterCount >= characterLimit}

@@ -11,7 +11,8 @@ import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
-import { BLUEPRINT_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
@@ -51,12 +52,12 @@ export function InlineCreateCharacterDialog({
   const [submitting, setSubmitting] = useState(false);
   const [creditGate, setCreditGate] = useState(false);
   const [paidSnap, setPaidSnap] = useState<{
-    credits: number;
+    creditUsd: number;
     subscribed: boolean;
   } | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
 
-  const walletCredits = paidSnap?.credits ?? credits;
+  const walletCredits = paidSnap?.creditUsd ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
 
   useEffect(() => {
@@ -292,10 +293,10 @@ export function InlineCreateCharacterDialog({
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-accent-ink/10 pt-4">
             <p className="text-xs text-muted">
-              {walletSubscribed || walletCredits >= BLUEPRINT_COST
+              {walletSubscribed || toUsdUnits(walletCredits) >= toUsdUnits(BLUEPRINT_COST_USD)
                 ? t("characters.costLine", {
-                    cost: BLUEPRINT_COST,
-                    remaining: walletCredits,
+                    cost: formatUsd(BLUEPRINT_COST_USD),
+                    remaining: formatUsd(walletCredits),
                   })
                 : t("characters.subscribeRequired")}
             </p>
@@ -336,11 +337,11 @@ export function InlineCreateCharacterDialog({
 
       {creditGate ? (
         <InsufficientCreditsDialog
-          needed={BLUEPRINT_COST}
+          needed={BLUEPRINT_COST_USD}
           subscribed={walletSubscribed}
           onClose={() => setCreditGate(false)}
           onPaid={(snap) => {
-            setPaidSnap(snap);
+            setPaidSnap({ creditUsd: snap.creditUsd, subscribed: snap.subscribed });
             setCreditGate(false);
             formRef.current?.requestSubmit();
           }}

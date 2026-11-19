@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { AvatarCreditRing } from "@/presentation/components/auth/avatar-credit-ring";
 import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
 import { useCreditSnapshot } from "@/presentation/studio/use-credit-snapshot";
-import { creditProgress } from "@/service/billing/credit-balance";
+import { creditProgressUsd } from "@/service/billing/credit-balance";
+import { formatUsd } from "@/service/billing/usd";
 
 // Rail footer. Clicking the signed-in row opens Account links (Usage, Billing, Invoices, MCP, Affiliate, Settings) and sign out.
 export function SignedInAccount({
@@ -19,9 +20,9 @@ export function SignedInAccount({
   invoicesLabel = "帳單紀錄 Invoices",
   mcpLabel = "MCP",
   affiliateLabel,
-  credits: initialCredits,
-  creditLimit: initialLimit,
-  creditsLabel,
+  creditUsd: initialCreditUsd,
+  creditLimitUsd: initialLimitUsd,
+  creditsLabel = "USD Credit",
 }: {
   email: string;
   name: string;
@@ -33,17 +34,17 @@ export function SignedInAccount({
   invoicesLabel?: string;
   mcpLabel?: string;
   affiliateLabel?: string;
-  credits: number;
-  creditLimit: number;
-  creditsLabel: string;
+  creditUsd: number;
+  creditLimitUsd: number;
+  creditsLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const showPhoto = Boolean(avatarUrl) && !photoFailed;
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
-  const { credits, creditLimit } = useCreditSnapshot(initialCredits, initialLimit);
-  const { ratio } = creditProgress(credits, Math.max(creditLimit, credits));
+  const { creditUsd, creditLimitUsd } = useCreditSnapshot(initialCreditUsd, initialLimitUsd);
+  const { ratio } = creditProgressUsd(creditUsd, Math.max(creditLimitUsd, creditUsd));
   const avatar = showPhoto ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -108,7 +109,7 @@ export function SignedInAccount({
             ) : null}
             <p className="truncate text-[11px] text-[var(--studio-muted)]">{email}</p>
             <p className="mt-1 text-[11px] font-semibold text-[var(--studio-ink)]">
-              {credits.toLocaleString()} {creditsLabel}
+              {formatUsd(creditUsd)} {creditsLabel}
             </p>
           </div>
 

@@ -1,38 +1,44 @@
 "use client";
 
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { creditProgress } from "@/service/billing/credit-balance";
+import { creditProgressUsd } from "@/service/billing/credit-balance";
+import { addUsd, formatUsd, formatUsdRate, subUsd, toUsdUnits } from "@/service/billing/usd";
+import {
+  FRAME_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import { AddCreditButton } from "@/presentation/components/app/billing/add-credit-modal";
 import { PortalButton } from "@/presentation/components/app/billing/billing-actions";
 import type { PlanId } from "@/model/subscription";
 
-/** Top overview card: plan, balance, period usage summary, Stripe portal links. */
+/** Top overview card: plan, USD credit balance, period usage summary, Stripe portal links. */
 export function CreditsTiersOverview({
-  credits,
-  creditLimit,
-  monthlyCredits,
-  bonusCredits,
+  creditUsd,
+  creditLimitUsd,
+  monthlyCreditUsd,
+  bonusCreditUsd,
   periodEnd,
   subscribed,
   activePlanId,
   subscriptionStatus,
   dateLocale,
 }: {
-  credits: number;
-  creditLimit: number;
-  monthlyCredits: number;
-  bonusCredits: number;
+  creditUsd: number;
+  creditLimitUsd: number;
+  monthlyCreditUsd: number;
+  bonusCreditUsd: number;
   periodEnd?: Date;
   subscribed: boolean;
   activePlanId?: PlanId;
   subscriptionStatus?: string;
   dateLocale: string;
 }) {
-  const { t } = useI18n();
-  const limit = Math.max(creditLimit, monthlyCredits, credits);
-  const { remaining, ratio } = creditProgress(credits, limit);
+  const { t, locale } = useI18n();
+  const limit = Math.max(creditLimitUsd, addUsd(monthlyCreditUsd, bonusCreditUsd), creditUsd);
+  const { remaining, ratio } = creditProgressUsd(creditUsd, limit);
   const percent = Math.round(ratio * 100);
-  const used = Math.max(0, limit - remaining);
+  const used = Math.max(0, subUsd(limit, remaining));
 
   const planLabel = subscribed && activePlanId
     ? t("billing.currentPlanBadge", {
@@ -64,16 +70,16 @@ export function CreditsTiersOverview({
             {t("billing.currentBalanceLabel")}
           </p>
           <p className="font-display mt-2 text-3xl font-bold">
-            {remaining}
-            <span className="text-lg font-medium text-muted"> / {limit}</span>
+            {formatUsd(remaining)}
+            <span className="text-lg font-medium text-muted"> / {formatUsd(limit)}</span>
           </p>
           <div
             className="mt-3 h-3 overflow-hidden rounded-full bg-accent-ink/10"
             role="progressbar"
             aria-label={t("billing.remainingAria")}
             aria-valuemin={0}
-            aria-valuemax={limit}
-            aria-valuenow={remaining}
+            aria-valuemax={toUsdUnits(limit)}
+            aria-valuenow={toUsdUnits(remaining)}
           >
             <div
               className="h-full rounded-full bg-[var(--studio-teal)] transition-[width] duration-200 motion-reduce:transition-none"
@@ -84,7 +90,11 @@ export function CreditsTiersOverview({
             <AddCreditButton />
           </div>
           <p className="mt-2 text-xs text-muted">
-            {t("billing.bonusRollsOver")}
+            {locale === "en"
+              ? "One-time top-up USD Credit never expires and rolls over permanently."
+              : locale === "zh-Hans"
+                ? "单次充值的 USD Credit 永久保留，不会随月费周期清零。"
+                : "單次加值的 USD Credit 永久保留，不會隨月費週期清零。"}
           </p>
         </div>
 
@@ -92,11 +102,19 @@ export function CreditsTiersOverview({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             {t("billing.usageThisMonthLabel")}
           </p>
-          <p className="font-display mt-2 text-3xl font-bold">{used}</p>
+          <p className="font-display mt-2 text-3xl font-bold">{formatUsd(used)}</p>
           <p className="mt-2 text-sm text-muted">
-            {monthlyCredits > 0
-              ? t("billing.usageMonthlyDetail", { monthly: monthlyCredits, bonus: bonusCredits })
-              : t("billing.usageFreeDetail")}
+            {toUsdUnits(monthlyCreditUsd) > 0
+              ? locale === "en"
+                ? `Monthly refill: ${formatUsd(monthlyCreditUsd)} · Permanent top-up: ${formatUsd(bonusCreditUsd)}`
+                : locale === "zh-Hans"
+                  ? `每月重置额度 ${formatUsd(monthlyCreditUsd)} · 单次充值余额 ${formatUsd(bonusCreditUsd)}`
+                  : `每月重置額度 ${formatUsd(monthlyCreditUsd)} · 單次加值餘額 ${formatUsd(bonusCreditUsd)}`
+              : locale === "en"
+                ? "Pay-as-you-go balance only."
+                : locale === "zh-Hans"
+                  ? "未订阅时仅计算账户内剩余 USD Credit。"
+                  : "未訂閱時僅計算帳戶內剩餘 USD Credit。"}
           </p>
           {periodEnd ? (
             <p className="mt-1 text-xs text-muted">
@@ -108,7 +126,13 @@ export function CreditsTiersOverview({
         </div>
       </div>
 
-      <p className="mt-5 text-xs text-muted">{t("billing.clipCostNote")}</p>
+      <p className="mt-5 text-xs text-muted">
+        {locale === "en"
+          ? `${formatUsd(FRAME_COST_USD)}/image · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} standard video · ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} talking-head video (voice included).`
+          : locale === "zh-Hans"
+            ? `图片 ${formatUsd(FRAME_COST_USD)}/张 · 标准影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（含语音）。`
+            : `圖片 ${formatUsd(FRAME_COST_USD)}/張 · 標準影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} · 口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（含語音）。`}
+      </p>
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-accent-ink/10 pt-5">
         <PortalButton label={t("billing.billingPortal")} />

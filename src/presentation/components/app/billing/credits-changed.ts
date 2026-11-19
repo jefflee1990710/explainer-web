@@ -1,8 +1,8 @@
 export const CREDITS_CHANGED_EVENT = "scro-credits-changed";
 
 export type CreditsChangedDetail = {
-  credits: number;
-  creditLimit: number;
+  creditUsd: number;
+  creditLimitUsd: number;
   subscribed: boolean;
   planId?: string | null;
 };

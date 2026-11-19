@@ -38,12 +38,14 @@ import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import {
   cheapestVideoCost,
   clipVideoCost,
-  needsVideoUpgrade,
+  FRAME_COST_USD,
+  needsVideoUpgradeUsd,
   planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
 } from "@/service/production-plan";
+import { subUsd } from "@/service/billing/usd";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import {
@@ -431,16 +433,19 @@ export function NewProjectForm({
     if (initialVideo) return;
     const remembered = readLastCharacterIds();
     if (remembered.length === 0) return;
-    setCharacterIds((current) => {
-      const next = resolveInitialBriefCharacterIds({
-        rememberedIds: remembered,
-        lastBrief,
-        ruleSlug,
-        styleId,
-        characters,
+    const id = window.setTimeout(() => {
+      setCharacterIds((current) => {
+        const next = resolveInitialBriefCharacterIds({
+          rememberedIds: remembered,
+          lastBrief,
+          ruleSlug,
+          styleId,
+          characters,
+        });
+        return next.join("|") === current.join("|") ? current : next;
       });
-      return next.join("|") === current.join("|") ? current : next;
-    });
+    }, 0);
+    return () => window.clearTimeout(id);
     // Mount only. lastBrief and styleId are the values from this first render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -567,15 +572,16 @@ export function NewProjectForm({
   } | null>(null);
   // Header RSC credits stay stale until poll; keep a local wallet for gates.
   const [walletCredits, setWalletCredits] = useState(credits);
+  const [prevCreditsProp, setPrevCreditsProp] = useState(credits);
+  if (prevCreditsProp !== credits) {
+    setPrevCreditsProp(credits);
+    setWalletCredits(credits);
+  }
   const [paidSubscribed, setPaidSubscribed] = useState<boolean | null>(null);
   const walletSubscribed = paidSubscribed ?? subscribed;
   // Previous stills, restored if the redo action never reaches the server.
   const redoSnapshotRef = useRef<PublicVideo | null>(null);
   const creditsSnapshotRef = useRef(credits);
-
-  useEffect(() => {
-    setWalletCredits(credits);
-  }, [credits]);
 
   // A settled frame or clip should refresh the task list immediately so the
   // browser notification can fire without waiting for the next 5s tick.
@@ -660,13 +666,16 @@ export function NewProjectForm({
   // Parent may show a list snapshot first, then replace with a fresh fetch.
   // Keep a newer local frame claim so a stale RSC refresh cannot restore the
   // previous still while a redo is already on screen as a skeleton.
-  useEffect(() => {
-    if (!initialVideo) return;
-    setProject((current) => {
-      if (!current || current.id !== initialVideo.id) return initialVideo;
-      return mergePolledProject(current, initialVideo);
-    });
-  }, [initialVideo]);
+  const [prevInitialVideo, setPrevInitialVideo] = useState(initialVideo);
+  if (prevInitialVideo !== initialVideo) {
+    setPrevInitialVideo(initialVideo);
+    if (initialVideo) {
+      setProject((current) => {
+        if (!current || current.id !== initialVideo.id) return initialVideo;
+        return mergePolledProject(current, initialVideo);
+      });
+    }
+  }
 
   // Leftover 核准分鏡 videos enter 製作 the first time this form opens them.
   useEffect(() => {
@@ -1068,7 +1077,7 @@ export function NewProjectForm({
   }
 
   function openCreditGate(needed: number, resume: () => void) {
-    setCreditGate({ needed: Math.max(needed, 1), resume });
+    setCreditGate({ needed: Math.max(needed, FRAME_COST_USD), resume });
   }
 
   // Shared handler for every server action behind a paid button. A short wallet
@@ -1083,7 +1092,7 @@ export function NewProjectForm({
     setPending(key);
     setError("");
     creditsSnapshotRef.current = walletCredits;
-    if (spend > 0) setWalletCredits((current) => current - spend);
+    if (spend > 0) setWalletCredits((current) => subUsd(current, spend));
     // Hide the old still/video immediately; the server write lands a moment later.
     // Bulk passes one key per clip so the production queue flips with the click.
     const clearKeys = queueKeys ?? [key];
@@ -1121,7 +1130,7 @@ export function NewProjectForm({
         setError(translateAppError(result.error, t));
         notifyTasksChanged();
         if (isCreditGateError(result.error)) {
-          openCreditGate(spend || 1, () => {
+          openCreditGate(spend || FRAME_COST_USD, () => {
             void runPaid(key, action, spend, queueKeys);
           });
         }
@@ -1177,7 +1186,7 @@ export function NewProjectForm({
       openCreditGate(cost, () => onGenerateVideo(clipNumber));
       return;
     }
-    if (needsVideoUpgrade(walletCredits, cost)) {
+    if (needsVideoUpgradeUsd(walletCredits, cost)) {
       openCreditGate(cost, () => onGenerateVideo(clipNumber));
       return;
     }
@@ -1224,7 +1233,7 @@ export function NewProjectForm({
           ? planGenerateAllScenes(project)
           : planGenerateAllVideos(project);
     const cheapest = cheapestVideoCost(project, plan.videos);
-    if (plan.videos.length > 0 && needsVideoUpgrade(walletCredits, cheapest)) {
+    if (plan.videos.length > 0 && needsVideoUpgradeUsd(walletCredits, cheapest)) {
       openCreditGate(Math.max(cheapest, plan.cost), () => {
         void onBulkGenerate(mode);
       });
@@ -1238,7 +1247,7 @@ export function NewProjectForm({
     if (!project) return Promise.resolve(false);
     if (kind === "videos") {
       const cheapest = cheapestVideoCost(project, planSelected(project, clipNumbers, kind).videos);
-      if (needsVideoUpgrade(walletCredits, cheapest)) {
+      if (needsVideoUpgradeUsd(walletCredits, cheapest)) {
         openCreditGate(cheapest, () => {
           void onGenerateSelected(clipNumbers, kind);
         });
@@ -2361,7 +2370,7 @@ export function NewProjectForm({
             subscribed={walletSubscribed}
             onClose={() => setCreditGate(null)}
             onPaid={(snap) => {
-              setWalletCredits(snap.credits);
+              setWalletCredits(snap.creditUsd);
               setPaidSubscribed(snap.subscribed);
               const resume = creditGate.resume;
               setCreditGate(null);

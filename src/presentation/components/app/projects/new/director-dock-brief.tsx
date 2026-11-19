@@ -19,6 +19,11 @@ import type {
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
+import { formatUsdRate } from "@/service/billing/usd";
+import {
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import {
   TALKING_HEAD_POSE_IDS,
   localizedTalkingHeadPose,
@@ -355,7 +360,7 @@ export function DirectorDockBrief({
             castNeed,
           );
     return buildCastSlotItems(characterIds, enriched, slotTotal);
-  }, [allCharacters, styleId, characterSelections, characterIds, castNeed, talkingHead]);
+  }, [allCharacters, styleId, characterSelections, characterIds, castNeed, talkingHead, ruleSlug]);
 
   const activeSkill = skills.find((s) => s.slug === skillSlug);
   const activeStyle = styles.find((s) => s.id === styleId);
@@ -467,7 +472,9 @@ export function DirectorDockBrief({
           ? "Generate"
           : "生成";
 
-  const creditEstimate = talkingHead ? "15/s" : "20";
+  const creditEstimate = talkingHead
+    ? formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)
+    : formatUsdRate(VIDEO_COST_PER_SECOND_USD);
 
   return (
     <>

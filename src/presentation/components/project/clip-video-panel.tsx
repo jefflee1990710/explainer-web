@@ -10,7 +10,7 @@ import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { Spinner } from "@/presentation/components/spinner";
 import { clipNextAction, clipNextActionText } from "@/service/clip-next-action";
 import type { ClipState } from "@/service/clip-stage";
-import { MIN_VIDEO_COST } from "@/service/credit-costs";
+import { MIN_VIDEO_COST_USD } from "@/service/credit-costs";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { displayMediaSrc } from "@/util/media-src";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -90,7 +90,7 @@ export function ClipVideoPanel({
         <ClipVideoPlaceholder
           pending={pending}
           disabled={clipNextAction(state).kind !== "video"}
-          cost={state.videoCost ?? MIN_VIDEO_COST}
+          cost={state.videoCost ?? MIN_VIDEO_COST_USD}
           overImage={showPoster}
           onGenerate={onGenerate}
         />

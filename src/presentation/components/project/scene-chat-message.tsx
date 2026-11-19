@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { formatUsd } from "@/service/billing/usd";
 import type { SceneChatChange, SceneChatField } from "@/model/project";
 
 // One production-chat bubble. The regenerate control sits inside the latest AI reply.
@@ -89,7 +90,7 @@ export function SceneChatMessage({
                 onClick={onRegenerate}
                 className="mt-2 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-accent px-3 text-left text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                {t("production.sceneChat.regenerate", { credits })}
+                {t("production.sceneChat.regenerate", { credits: formatUsd(credits) })}
               </button>
             )
           ) : null}

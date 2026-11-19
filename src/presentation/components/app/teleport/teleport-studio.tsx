@@ -21,7 +21,8 @@ import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-sig
 import { TeleportHistoryDialog } from "@/presentation/components/app/teleport/teleport-history-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { teleportCost } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { teleportCostUsd } from "@/service/credit-costs";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -644,7 +645,7 @@ export function TeleportStudio({ initialJobs }: { initialJobs: PublicTeleportJob
                 >
                   <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" />
                 </svg>
-                <span>{teleportCost({ durationSeconds: sectionLength })}</span>
+                <span>{formatUsd(teleportCostUsd({ durationSeconds: sectionLength }))}</span>
               </span>
             </button>
           </div>

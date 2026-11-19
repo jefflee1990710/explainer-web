@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { loadOwnedFolder, loadStudioPickers, loadFolderOptions } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
 
@@ -23,7 +24,7 @@ export default async function NewFolderVideoPage({
       folderName={folder.name}
       folders={await loadFolderOptions(user.clerkUserId)}
       initialVideo={null}
-      credits={user.credits}
+      credits={resolveUserUsdBalance(user).creditUsd}
       {...pickers}
     />
   );

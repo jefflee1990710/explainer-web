@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PlanDefinition } from "@/service/billing/plans";
+import { formatUsd } from "@/service/billing/usd";
 import type { PlanId } from "@/model/subscription";
 import { CheckoutButton } from "@/presentation/components/app/billing/billing-actions";
 
@@ -19,9 +20,15 @@ export function BillingPlanCard({
   plan: PlanDefinition;
   className?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const id = plan.id as PlanId;
   const planName = t(`plans.${id}.name`);
+  const refillNote =
+    locale === "en"
+      ? `${formatUsd(plan.monthlyCreditUsd)} USD Credit · Refills monthly`
+      : locale === "zh-Hans"
+        ? `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置补满至方案金额`
+        : `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置補滿至方案金額`;
 
   return (
     <article
@@ -49,7 +56,7 @@ export function BillingPlanCard({
       <div className="flex flex-1 flex-col p-6">
         <h2 className="font-display text-xl font-bold">{planName}</h2>
         <p className="mt-2 font-display text-3xl font-bold">
-          ${plan.amountUsd}
+          {formatUsd(plan.amountUsd)}
           <span
             className={`text-base font-medium ${
               plan.highlight ? "text-white/70" : "text-muted"
@@ -71,7 +78,7 @@ export function BillingPlanCard({
             plan.highlight ? "text-[#c6f24b]" : "text-muted"
           }`}
         >
-          {t("billing.creditsClips", { credits: plan.monthlyCredits.toLocaleString() })}
+          {refillNote}
         </p>
         <div className="mt-5">
           <CheckoutButton

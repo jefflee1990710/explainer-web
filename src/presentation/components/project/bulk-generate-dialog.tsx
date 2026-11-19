@@ -8,11 +8,12 @@ import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import {
   cheapestVideoCost,
-  needsVideoUpgrade,
+  needsVideoUpgradeUsd,
   planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
 } from "@/service/production-plan";
+import { toUsdUnits } from "@/service/billing/usd";
 import type { PublicVideo } from "@/presentation/serialize";
 
 export type BulkMode = "remaining" | "scenes" | "clips";
@@ -44,8 +45,8 @@ export function BulkGenerateDialog({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const plan = useMemo(() => planForMode(project, mode), [project, mode]);
   const videoUpgrade =
-    plan.videos.length > 0 && needsVideoUpgrade(credits, cheapestVideoCost(project, plan.videos));
-  const short = !videoUpgrade && credits < plan.cost;
+    plan.videos.length > 0 && needsVideoUpgradeUsd(credits, cheapestVideoCost(project, plan.videos));
+  const short = !videoUpgrade && toUsdUnits(credits) < toUsdUnits(plan.cost);
   const canConfirm = !pending && plan.cost > 0;
 
   useEffect(() => {

@@ -3,6 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { PlayIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
+import { formatUsd } from "@/service/billing/usd";
 
 export function ClipVideoPlaceholder({
   pending,
@@ -51,7 +52,7 @@ export function ClipVideoPlaceholder({
         </span>
         {overImage ? null : (
           <span className="text-[11px] text-[var(--studio-muted)]">
-            {t("production.video.generateThisClip", { cost })}
+            {t("production.video.generateThisClip", { cost: formatUsd(cost) })}
           </span>
         )}
       </span>

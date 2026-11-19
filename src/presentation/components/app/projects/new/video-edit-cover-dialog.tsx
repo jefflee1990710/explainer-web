@@ -17,7 +17,8 @@ import {
 } from "@/presentation/components/app/tasks/optimistic-tasks";
 import { beginTaskRefresh, endTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -49,7 +50,7 @@ export function VideoEditCoverDialog({
   const desiredRef = useRef(safeAreas);
   const flushing = useRef(false);
   const generating = project.coverStatus === "generating" || pending;
-  const enough = credits >= FRAME_COST;
+  const enough = toUsdUnits(credits) >= toUsdUnits(FRAME_COST_USD);
   // Once this export has queued a cover, keep the dialog until the still lands.
   const holdForExport = forExport && generating;
 
@@ -130,7 +131,7 @@ export function VideoEditCoverDialog({
       }
       if (forExport) onExportQueued?.();
       onProjectChange(result.project);
-      onCreditsChange?.(-FRAME_COST);
+      onCreditsChange?.(-FRAME_COST_USD);
       notifyTasksChanged();
       if (!forExport) onClose();
     } catch {
@@ -200,7 +201,9 @@ export function VideoEditCoverDialog({
             </StudioButton>
             <StudioButton disabled={generating || !enough} onClick={() => void generate()}>
               {generating ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {generating ? t("video.cover.generating") : t("video.cover.generate", { credits: FRAME_COST })}
+              {generating
+                ? t("video.cover.generating")
+                : t("video.cover.generate", { credits: formatUsd(FRAME_COST_USD) })}
             </StudioButton>
           </div>
         </div>

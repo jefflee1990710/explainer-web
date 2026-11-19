@@ -17,7 +17,8 @@ import {
   clipStartScene,
   clipStartVo,
 } from "@/service/director/dual-beat";
-import { FRAME_COST } from "@/service/production-plan";
+import { formatUsd, toUsdUnits } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { displayMediaSrc } from "@/util/media-src";
 import type {
   AspectRatio,
@@ -92,7 +93,7 @@ export function FrameEditDialog({
   }, [onClose]);
 
   const hasChanges = objectCount > 0 || remark.trim().length > 0;
-  const enoughCredits = credits >= FRAME_COST;
+  const enoughCredits = toUsdUnits(credits) >= toUsdUnits(FRAME_COST_USD);
   const canSubmit = canRegenerate;
 
   const toolHint =
@@ -292,7 +293,10 @@ export function FrameEditDialog({
 
             <div className="mt-auto space-y-2 border-t border-accent-ink/10 pt-4">
               <p className="text-xs text-muted">
-                {t("production.frameEdit.redrawCost", { cost: FRAME_COST, remaining: credits })}
+                {t("production.frameEdit.redrawCost", {
+                  cost: formatUsd(FRAME_COST_USD),
+                  remaining: formatUsd(credits),
+                })}
                 {!hasChanges ? t("production.frameEdit.redrawNoChangesNote") : ""}
               </p>
               {!enoughCredits ? (
@@ -315,7 +319,7 @@ export function FrameEditDialog({
                   className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   <RefreshIcon />
-                  {t("production.frameEdit.redrawButton", { cost: FRAME_COST })}
+                  {t("production.frameEdit.redrawButton", { cost: formatUsd(FRAME_COST_USD) })}
                 </button>
               </div>
             </div>

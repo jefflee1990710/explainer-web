@@ -1,6 +1,6 @@
 "use client";
 
-// Remaining credits as a 3px ring around the avatar. The track is the spent share.
+// Remaining USD credit as a 3px ring around the avatar. The track is the spent share.
 export function AvatarCreditRing({
   ratio,
   label,

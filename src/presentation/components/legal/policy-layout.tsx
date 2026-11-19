@@ -9,7 +9,7 @@ import {
   signupDiscountPercent,
   signupPromoEnabled,
 } from "@/service/billing/promo";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
 // Public pages share the marketing header and footer.
 export async function PolicyLayout({ children }: { children: ReactNode }) {
@@ -27,7 +27,7 @@ export async function PolicyLayout({ children }: { children: ReactNode }) {
         showAffiliate={showAffiliate}
         showPromo={signupPromoEnabled()}
         promoDiscountPercent={signupDiscountPercent()}
-        promoCredits={WELCOME_CREDITS}
+        promoCredits={WELCOME_CREDIT_USD}
         promoBonusPercent={adhocBonusPercent()}
         account={
           session

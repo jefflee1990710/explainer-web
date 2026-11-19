@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PortalButton } from "@/presentation/components/app/billing/billing-actions";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { CustomerInvoiceRecord } from "@/service/billing/customer-billing";
+import { formatUsd } from "@/service/billing/usd";
 
 /**
  * Dedicated Invoices & Payment History page (`/app/invoices`):
@@ -33,8 +34,8 @@ export function InvoicesView({
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm text-muted">
             {isEn
-              ? "View all your payments, one-time credit top-ups, and downloadable invoices."
-              : "查看你所有已付款嘅儲值與訂閱金額總計，並下載每一張 Invoice 收據。"}
+              ? "View all your payments, one-time USD Credit top-ups, and downloadable invoices."
+              : "查看你所有已付款嘅 USD Credit 加值與訂閱金額總計，並下載每一張 Invoice 收據。"}
           </p>
         </div>
 
@@ -61,7 +62,7 @@ export function InvoicesView({
             {isEn ? "Total Paid" : "累計已付總額"}
           </p>
           <p className="mt-1.5 font-display text-3xl font-bold text-foreground">
-            ${totalPaidUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+            {formatUsd(totalPaidUsd)}{" "}
             <span className="text-sm font-semibold text-muted">USD</span>
           </p>
         </div>
@@ -104,8 +105,8 @@ export function InvoicesView({
               </p>
               <p className="text-xs text-muted">
                 {isEn
-                  ? "When you top up credits or subscribe to a plan, your invoices and receipts will appear here."
-                  : "當你儲值 Credits 或訂閱方案後，所有付款金額與可下載收據都會顯示喺呢度。"}
+                  ? "When you top up USD Credit or subscribe to a plan, your invoices and receipts will appear here."
+                  : "當你加值 USD Credit 或訂閱方案後，所有付款金額與可下載收據都會顯示喺呢度。"}
               </p>
             </div>
           </div>
@@ -167,7 +168,7 @@ export function InvoicesView({
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5 text-right font-display font-bold text-foreground">
-                      ${rec.amountPaidUsd.toFixed(2)} {rec.currency}
+                      {formatUsd(rec.amountPaidUsd)} {rec.currency}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5 text-right text-xs">
                       <div className="inline-flex items-center gap-2">

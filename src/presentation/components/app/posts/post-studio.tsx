@@ -45,7 +45,8 @@ import type {
   PublicStyle,
 } from "@/presentation/serialize";
 import type { CharacterSelectionMap } from "@/service/character/character-presets";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { checkBrandUpload, resolveBrandContentType } from "@/service/video-edit/edit-state";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -129,9 +130,11 @@ export function PostStudio({
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
   useEffect(() => {
     const remembered = preferredCharacterId(characters, selectedStyleId);
-    if (remembered) {
+    if (!remembered) return;
+    const id = window.setTimeout(() => {
       setSelectedCharacterIds((current) => (current.length > 0 ? current : [remembered]));
-    }
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>({});
@@ -600,7 +603,9 @@ export function PostStudio({
                 ? "Generate"
                 : "生成海報"
           }
-          creditBadge={sourceImageUrl && !createPrompt.trim() ? 0 : FRAME_COST}
+          creditBadge={
+            sourceImageUrl && !createPrompt.trim() ? "$0.00" : formatUsd(FRAME_COST_USD)
+          }
           error={error}
         />
       </div>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { track } from "@/presentation/components/analytics/track";
 import { StartFirstVideoButton } from "@/presentation/components/app/start-first-video-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { formatUsd } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/credit-costs";
 
 // Three-option onboarding hero shown on `/app` when the user has not generated a video yet.
 export function OnboardingHeroCards({
@@ -12,23 +14,25 @@ export function OnboardingHeroCards({
   existingFolderId?: string;
 }) {
   const { locale } = useI18n();
+  const blueprintLabel = formatUsd(BLUEPRINT_COST_USD);
+  const lifeLabel = formatUsd(FRAME_COST_USD);
 
   const copy =
     locale === "zh-Hant"
       ? {
           badge: "新手快速開始 · 已內建 5 位現成 AI 角色",
           heading: "你想先體驗哪一個創作流程？",
-          card1Tag: "0 Credits 免費寫分鏡",
+          card1Tag: "$0.00 免費寫分鏡",
           card1Title: "🎬 30 秒做出第一支 AI 短片",
           card1Body:
             "不用先自己建角色！系統已預選現成角色（Aera）與 9:16 短片規格，輸入一句話或點選範例腳本即可產出分鏡。",
           card1Cta: "立即製作第一支短片 →",
-          card2Tag: "8 Credits / 角色藍圖",
+          card2Tag: `${blueprintLabel} / 角色藍圖`,
           card2Title: "🧑 打造專屬 AI 角色 / 網紅",
           card2Body:
             "自由搭配臉型、髮型、服裝與誇張比例，或上傳照片定裝，建立可在所有短片重複登場的專屬角色。",
           card2Cta: "前往建立新角色 →",
-          card3Tag: "4 Credits / 日常寫真",
+          card3Tag: `${lifeLabel} / 日常寫真`,
           card3Title: "📸 拍一張 AI 網紅日常照 (Life)",
           card3Body:
             "門檻最低、幾秒鐘出圖！直接選用現成角色套用街拍、咖啡廳或旅遊模板，立即產出 IG 級生活照。",
@@ -38,17 +42,17 @@ export function OnboardingHeroCards({
         ? {
             badge: "新手快速开始 · 已内置 5 位现成 AI 角色",
             heading: "你想先体验哪一个创作流程？",
-            card1Tag: "0 Credits 免费写分镜",
+            card1Tag: "$0.00 免费写分镜",
             card1Title: "🎬 30 秒做出第一支 AI 短片",
             card1Body:
               "不用先自己建角色！系统已预选现成角色（Aera）与 9:16 短片规格，输入一句话或点击示例脚本即可生成分镜。",
             card1Cta: "立即制作第一支短片 →",
-            card2Tag: "8 Credits / 角色蓝图",
+            card2Tag: `${blueprintLabel} / 角色蓝图`,
             card2Title: "🧑 打造专属 AI 角色 / 网红",
             card2Body:
               "自由搭配脸型、发型、服装与夸张比例，或上传照片定装，创建可在所有短片重复登场的专属角色。",
             card2Cta: "前往创建新角色 →",
-            card3Tag: "4 Credits / 日常写真",
+            card3Tag: `${lifeLabel} / 日常写真`,
             card3Title: "📸 拍一张 AI 网红日常照 (Life)",
             card3Body:
               "门槛最低、几秒钟出图！直接选用现成角色套用街拍、咖啡厅或旅游模板，立即生成 IG 级生活照。",
@@ -57,17 +61,17 @@ export function OnboardingHeroCards({
         : {
             badge: "Quick Start · 5 Starter AI Characters Included",
             heading: "How would you like to start creating?",
-            card1Tag: "0 Credits for Storyboard",
+            card1Tag: "$0.00 Free Storyboard",
             card1Title: "🎬 Make Your First AI Video in 30s",
             card1Body:
               "No need to build a character first! Starter character Aera and 9:16 vertical specs are pre-selected—just type one sentence or pick a sample script.",
             card1Cta: "Create First Video →",
-            card2Tag: "8 Credits / Blueprint",
+            card2Tag: `${blueprintLabel} / Blueprint`,
             card2Title: "🧑 Design Your Custom AI Character",
             card2Body:
               "Mix and match face, hair, outfits, and exaggeration levels—or upload a reference photo—to create a reusable AI influencer.",
             card2Cta: "Create Character →",
-            card3Tag: "4 Credits / Photo",
+            card3Tag: `${lifeLabel} / Photo`,
             card3Title: "📸 Snap an AI Influencer Life Photo",
             card3Body:
               "Fastest way to see results! Pick a ready character and a lifestyle template to generate an Instagram-ready photo in seconds.",

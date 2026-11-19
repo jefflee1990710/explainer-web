@@ -8,7 +8,8 @@ import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicVideo } from "@/presentation/serialize";
-import { teleportCost } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { videoCostUsd } from "@/service/credit-costs";
 
 /** Modal to extend a completed OpenEdit clip into a new Clip N+1 via Vast MiniMax H3 ref2va (39-frame latent prefix + 6s video ref + character/scene/prop refs). */
 export function OpenCutClipExtendDialog({
@@ -343,7 +344,7 @@ export function OpenCutClipExtendDialog({
               {isEn
                 ? `Extend → Clip ${clipNumber + 1}`
                 : `延展產生 Clip ${clipNumber + 1}`}{" "}
-              · {teleportCost({ durationSeconds: 6 })}
+              · {formatUsd(videoCostUsd(6))}
             </span>
           </button>
         </div>

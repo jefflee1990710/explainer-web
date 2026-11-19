@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { generateDirectorPreviewAction } from "@/presentation/actions/directors";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { DirectorPreviewStatus } from "@/model/skill";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -62,7 +63,7 @@ export function DirectorPreviewButton({
 
   const label = generating
     ? t("directors.previewGenerating")
-    : t("directors.generatePreview", { credits: FRAME_COST });
+    : t("directors.generatePreview", { credits: formatUsd(FRAME_COST_USD) });
 
   return (
     <div className={`flex flex-wrap items-center ${compact ? "gap-2" : "mt-4 gap-3"}`}>

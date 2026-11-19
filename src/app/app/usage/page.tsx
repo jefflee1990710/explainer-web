@@ -1,5 +1,10 @@
 import { requireAppUser } from "@/service/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import {
+  getActiveSubscription,
+  isSubscriptionActive,
+  resolveSubscriptionMonthlyUsd,
+} from "@/service/billing/credits";
 import { isPackId, CREDIT_PACKS } from "@/service/billing/packs";
 import { isPlanId, PLANS } from "@/service/billing/plans";
 import { UsageView } from "@/presentation/components/app/billing/usage-view";
@@ -10,6 +15,7 @@ export default async function UsagePage({
   searchParams: Promise<{ checkout?: string; plan?: string; pack?: string; session_id?: string }>;
 }) {
   const user = await requireAppUser();
+  const balance = resolveUserUsdBalance(user);
   const params = await searchParams;
   const plan = isPlanId(params.plan) ? PLANS[params.plan] : undefined;
   const pack = isPackId(params.pack) ? CREDIT_PACKS[params.pack] : undefined;
@@ -24,15 +30,16 @@ export default async function UsagePage({
       : undefined;
   const sub = await getActiveSubscription(user.clerkUserId);
   const active = isSubscriptionActive(sub);
+  const monthlyCreditUsd = active && sub ? resolveSubscriptionMonthlyUsd(sub) : 0;
   const plans = Object.values(PLANS);
 
   return (
     <UsageView
       checkoutSuccess={params.checkout === "success"}
-      credits={user.credits}
-      creditLimit={user.creditLimit || 0}
-      monthlyCredits={sub?.monthlyCredits || 0}
-      bonusCredits={user.bonusCredits || 0}
+      creditUsd={balance.creditUsd}
+      creditLimitUsd={balance.creditLimitUsd}
+      monthlyCreditUsd={monthlyCreditUsd}
+      bonusCreditUsd={balance.bonusCreditUsd}
       periodEnd={sub?.currentPeriodEnd}
       subscribed={active}
       activePlanId={active && sub ? sub.planId : undefined}

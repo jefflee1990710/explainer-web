@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { generateTextStylePreviewAction } from "@/presentation/actions/text-styles";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { TextStylePreviewStatus } from "@/model/text-style";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -56,7 +57,7 @@ export function TextStylePreviewButton({
 
   const label = generating
     ? t("textStyles.previewGenerating")
-    : t("textStyles.generateSample", { credits: FRAME_COST });
+    : t("textStyles.generateSample", { credits: formatUsd(FRAME_COST_USD) });
 
   return (
     <div className="flex flex-wrap items-center gap-2">

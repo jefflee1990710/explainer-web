@@ -28,7 +28,8 @@ import type {
   PublicCharacterVersion,
   PublicProduct,
 } from "@/presentation/serialize";
-import { FRAME_COST } from "@/service/credit-costs";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 
 function versionImageUrl(v?: PublicCharacterVersion | null): string {
   if (!v) return "";
@@ -602,7 +603,7 @@ export function PostHistoryDialog({
                           : "執行元素重繪"}
                     </span>
                     <span className="rounded-xl bg-[#12141c]/10 px-2 py-0.5 text-xs font-bold">
-                      ✦ {FRAME_COST}
+                      ✦ {formatUsd(FRAME_COST_USD)}
                     </span>
                   </button>
                 </div>

@@ -67,8 +67,8 @@ describe("scro preview generate button", () => {
 			"video",
 		);
 		assert.equal(
-			scroVideoActionLabel({ stage: "failed", retryVideo: true, videoCost: 75 }),
-			"Regenerate video · 75",
+			scroVideoActionLabel({ stage: "failed", retryVideo: true, videoCost: 0.6 }),
+			"Regenerate video · $0.60",
 		);
 	});
 

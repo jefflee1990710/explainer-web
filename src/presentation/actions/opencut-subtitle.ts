@@ -4,11 +4,12 @@ import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { mulUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import {
   classifyOpencutSubtitlePlates,
@@ -95,13 +96,13 @@ export async function syncOpencutSubtitlePlatesAction(input: {
     });
 
     if (classified.toEnqueue.length > 0) {
-      const cost = classified.toEnqueue.length * FRAME_COST;
-      await assertCanSpendCredits(user, cost);
-      const spendKey = await consumeCredits(user.clerkUserId, cost);
+      const costUsd = mulUsd(FRAME_COST_USD, classified.toEnqueue.length);
+      await assertCanSpendCreditUsd(user, costUsd);
+      const spendKey = await consumeCreditUsd(user.clerkUserId, costUsd);
       try {
         await enqueueSubtitlePlateJobs(project, classified.toEnqueue, { skipOverlayCheck: true });
       } catch (error) {
-        await refundCredits(user.clerkUserId, cost, spendKey);
+        await refundCreditUsd(user.clerkUserId, costUsd, spendKey);
         throw error;
       }
     }

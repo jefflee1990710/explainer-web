@@ -33,9 +33,10 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { StyleSelectDialog } from "@/presentation/components/style-select-dialog";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import type { CharacterSelectionMap } from "@/service/character/character-presets";
+import { addUsd, formatUsd, mulUsd } from "@/service/billing/usd";
 import {
-  FRAME_COST,
-  VIDEO_CREDITS_PER_SECOND,
+  FRAME_COST_USD,
+  VIDEO_COST_PER_SECOND_USD,
 } from "@/service/credit-costs";
 
 const ASPECT_OPTIONS: readonly AspectRatio[] = ["9:16", "16:9", "1:1"];
@@ -117,7 +118,9 @@ export function SimpleVideoStudio({
   );
   useEffect(() => {
     const remembered = preferredCharacterId(characters, styleId);
-    if (remembered) setSelectedCharacterIds([remembered]);
+    if (!remembered) return;
+    const id = window.setTimeout(() => setSelectedCharacterIds([remembered]), 0);
+    return () => window.clearTimeout(id);
     // Mount only, so a later style change does not replace the character the user just picked.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -167,9 +170,11 @@ export function SimpleVideoStudio({
     [selectedCharacterIds, characters, styleId, characterSelections],
   );
 
-  const perSecondCost = VIDEO_CREDITS_PER_SECOND;
-  const estimatedCost =
-    (firstFrameUrl ? 0 : FRAME_COST) + perSecondCost * durationSeconds;
+  const perSecondCost = VIDEO_COST_PER_SECOND_USD;
+  const estimatedCost = addUsd(
+    firstFrameUrl ? 0 : FRAME_COST_USD,
+    mulUsd(perSecondCost, durationSeconds),
+  );
 
   async function handleUploadImage(
     e: ChangeEvent<HTMLInputElement>,
@@ -949,7 +954,7 @@ export function SimpleVideoStudio({
                 ? "Generate"
                 : "生成"
           }
-          creditBadge={estimatedCost}
+          creditBadge={formatUsd(estimatedCost)}
           error={error}
         />
       </DirectorDockStage>
