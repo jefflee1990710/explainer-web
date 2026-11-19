@@ -10,7 +10,7 @@ import {
   editCharacterVersionAction,
   getCharacterAction,
 } from "@/service/character/actions";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { unwrap } from "@/service/mcp/wrap-tool";
 
 // Shared fitting-room apply used by apply_character_wardrobe and extract_cloth_for_character.
@@ -48,9 +48,9 @@ export async function applyWardrobeToCharacter(input: {
   );
   if (!instruction) throw new Error("請至少選擇一個造型部位");
 
-  const creditsCharged = version.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
+  const costUsd = version.blueprintKind === "board" ? BLUEPRINT_COST_USD : FRAME_COST_USD;
   const character = unwrap(
     await editCharacterVersionAction(input.characterId, input.versionId, instruction),
   ).character;
-  return { character, creditsCharged, editInstruction: instruction };
+  return { character, costUsd, editInstruction: instruction };
 }

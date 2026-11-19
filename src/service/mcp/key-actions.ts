@@ -1,5 +1,7 @@
 import { revalidatePath } from "next/cache";
+import type { McpToolCall } from "@/model/mcp";
 import { requireAppUser } from "@/service/auth";
+import { addUsd, legacyCreditsToUsd } from "@/service/billing/usd";
 import {
   createMcpApiKey,
   listMcpApiKeys,
@@ -39,6 +41,47 @@ export async function revokeMcpKeyAction(keyId: string) {
   }
 }
 
+type ToolCallUsageRow = Pick<McpToolCall, "tool" | "ok" | "chargedUsd" | "creditsCharged">;
+
+function resolveToolCallCostUsd(call: ToolCallUsageRow): number {
+  if (typeof call.chargedUsd === "number" && Number.isFinite(call.chargedUsd)) {
+    return call.chargedUsd;
+  }
+  if (typeof call.creditsCharged === "number" && Number.isFinite(call.creditsCharged)) {
+    return legacyCreditsToUsd(call.creditsCharged);
+  }
+  return 0;
+}
+
+// Aggregate 30-day MCP call volume, error rate, and USD spend without float drift.
+export function summarizeMcpToolCalls(recent: ToolCallUsageRow[]) {
+  const total = recent.length;
+  const errors = recent.filter((c) => !c.ok).length;
+  let costUsd = 0;
+  const byToolMap = new Map<string, { calls: number; errors: number; costUsd: number }>();
+
+  for (const call of recent) {
+    const callUsd = resolveToolCallCostUsd(call);
+    costUsd = addUsd(costUsd, callUsd);
+    const row = byToolMap.get(call.tool) || { calls: 0, errors: 0, costUsd: 0 };
+    row.calls += 1;
+    if (!call.ok) row.errors += 1;
+    row.costUsd = addUsd(row.costUsd, callUsd);
+    byToolMap.set(call.tool, row);
+  }
+
+  const byTool = Array.from(byToolMap.entries())
+    .map(([tool, stats]) => ({ tool, ...stats }))
+    .sort((a, b) => b.calls - a.calls);
+
+  return {
+    total,
+    costUsd,
+    errorRate: total === 0 ? 0 : Math.round((errors / total) * 1000) / 10,
+    byTool,
+  };
+}
+
 export async function getMcpDashboardData() {
   const user = await requireAppUser();
   const keys = await listMcpApiKeys(user.clerkUserId);
@@ -51,22 +94,6 @@ export async function getMcpDashboardData() {
     .find({ clerkUserId: user.clerkUserId, createdAt: { $gte: since } })
     .toArray();
 
-  const total = recent.length;
-  const errors = recent.filter((c) => !c.ok).length;
-  const credits = recent.reduce((sum, c) => sum + (c.creditsCharged || 0), 0);
-  const byToolMap = new Map<string, { calls: number; errors: number; credits: number }>();
-  for (const call of recent) {
-    const row = byToolMap.get(call.tool) || { calls: 0, errors: 0, credits: 0 };
-    row.calls += 1;
-    if (!call.ok) row.errors += 1;
-    row.credits += call.creditsCharged || 0;
-    byToolMap.set(call.tool, row);
-  }
-
-  const byTool = Array.from(byToolMap.entries())
-    .map(([tool, stats]) => ({ tool, ...stats }))
-    .sort((a, b) => b.calls - a.calls);
-
   return {
     endpoint,
     keys: keys.map((k) => ({
@@ -76,11 +103,6 @@ export async function getMcpDashboardData() {
       lastUsedAt: k.lastUsedAt?.toISOString() || null,
       createdAt: k.createdAt.toISOString(),
     })),
-    usage: {
-      total,
-      credits,
-      errorRate: total === 0 ? 0 : Math.round((errors / total) * 1000) / 10,
-      byTool,
-    },
+    usage: summarizeMcpToolCalls(recent),
   };
 }

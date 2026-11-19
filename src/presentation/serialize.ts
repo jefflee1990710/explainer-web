@@ -18,6 +18,8 @@ import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import { normalizeStyleId } from "@/model/style-id";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { resolveSubscriptionMonthlyUsd } from "@/service/billing/credits";
 import type { AppUser } from "@/model/user";
 import {
   resolveCharacterVoiceMode,
@@ -732,11 +734,14 @@ function previewFromVideo(video: PreviewMediaSource | Pick<PublicVideoCard, "pre
 export { previewFromVideo as videoPreviewUrl };
 
 export function publicUser(user: AppUser) {
+  const { creditUsd, creditLimitUsd, bonusCreditUsd } = resolveUserUsdBalance(user);
   return {
     id: user._id.toHexString(),
     email: user.email,
     name: user.name,
-    credits: user.credits,
+    creditUsd,
+    creditLimitUsd,
+    bonusCreditUsd,
   };
 }
 
@@ -745,7 +750,7 @@ export function publicSubscription(sub: Subscription | null) {
   return {
     planId: sub.planId,
     status: sub.status,
-    monthlyCredits: sub.monthlyCredits,
+    monthlyCreditUsd: resolveSubscriptionMonthlyUsd(sub),
     currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
   };
 }

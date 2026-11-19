@@ -1,6 +1,7 @@
 import { charactersCollection } from "@/dao";
 import { readFormData } from "@/service/api/form";
 import { apiJson, fromResult, withApiUser } from "@/service/api/respond";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { createCharacterAction } from "@/service/character/actions";
 import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
@@ -20,12 +21,13 @@ export const GET = withApiUser(async ({ auth }) => {
   ]);
   const subscribed = isSubscriptionActive(sub);
   const limit = characterAllowance(subscribed && sub ? sub.planId : null, user.email);
+  const { creditUsd } = resolveUserUsdBalance(user);
   return apiJson({
     characters: docs.map(toPublicCharacter),
     styles: [...selectable.system, ...selectable.mine],
     count,
     limit,
-    credits: user.credits,
+    creditUsd,
     subscribed,
   });
 });

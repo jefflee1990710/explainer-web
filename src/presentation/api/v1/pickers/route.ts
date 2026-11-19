@@ -12,18 +12,25 @@ import {
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { VOICE_PRESETS } from "@/service/director/voice";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { loadStudioPickers } from "@/service/project/load-folder-studio";
-import { FRAME_COST, FRAMES_COST, VIDEO_CREDITS_PER_SECOND } from "@/service/credit-costs";
+import {
+  FRAME_COST_USD,
+  FRAMES_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import { getAppUrl } from "@/util/app-url";
 
 // Everything the brief form needs: directors, styles, cast, products, lettering,
 // fixed option lists, and per-director rules (so the app mirrors the web form).
 export const GET = withApiUser(async ({ auth }) => {
   const pickers = await loadStudioPickers(auth.user);
+  const { creditUsd } = resolveUserUsdBalance(auth.user);
   const appUrl = getAppUrl();
   return apiJson({
     ...pickers,
-    credits: auth.user.credits,
+    creditUsd,
     systemTextStyles: SYSTEM_TEXT_STYLE_ORDER.map((id) => ({
       id,
       previewUrl: `${appUrl}${systemTextStylePreview(id)}`,
@@ -53,9 +60,10 @@ export const GET = withApiUser(async ({ auth }) => {
       ]),
     ),
     costs: {
-      frame: FRAME_COST,
-      frames: FRAMES_COST,
-      videoPerSecond: VIDEO_CREDITS_PER_SECOND,
+      frameUsd: FRAME_COST_USD,
+      framesUsd: FRAMES_COST_USD,
+      videoPerSecondUsd: VIDEO_COST_PER_SECOND_USD,
+      talkingHeadPerSecondUsd: TALKING_HEAD_COST_PER_SECOND_USD,
     },
   });
 });

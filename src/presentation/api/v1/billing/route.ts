@@ -5,36 +5,54 @@ import {
   startPlanUpgradeAction,
   startPortalAction,
 } from "@/service/billing/actions";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import {
+  getActiveSubscription,
+  isSubscriptionActive,
+  resolveSubscriptionMonthlyUsd,
+} from "@/service/billing/credits";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { isPlanId, PLANS, upgradeablePlans } from "@/service/billing/plans";
+import { adhocBonusPercent, packCreditUsdWithBonus } from "@/service/billing/promo";
 import { publicSubscription } from "@/presentation/serialize";
 
 // Wallet + plan catalog for the billing page.
 export const GET = withApiUser(async ({ auth }) => {
   const { user } = auth;
+  const balance = resolveUserUsdBalance(user);
   const sub = await getActiveSubscription(user.clerkUserId);
   const active = isSubscriptionActive(sub);
   const activePlanId = active && sub ? sub.planId : null;
+  const bonusPercent = adhocBonusPercent();
   return apiJson({
-    credits: user.credits,
-    creditLimit: user.creditLimit || 0,
-    bonusCredits: user.bonusCredits || 0,
-    monthlyCredits: sub?.monthlyCredits || 0,
+    creditUsd: balance.creditUsd,
+    creditLimitUsd: balance.creditLimitUsd,
+    bonusCreditUsd: balance.bonusCreditUsd,
+    monthlyCreditUsd: sub ? resolveSubscriptionMonthlyUsd(sub) : 0,
     subscribed: active,
     activePlanId,
     subscription: publicSubscription(sub),
-    plans: Object.values(PLANS).map(({ id, name, nameZh, monthlyCredits, amountUsd, blurb, highlight }) => ({
-      id,
-      name,
-      nameZh,
-      monthlyCredits,
-      amountUsd,
-      blurb,
-      highlight: Boolean(highlight),
-      upgradeable: upgradeablePlans(activePlanId).some((plan) => plan.id === id),
+    plans: Object.values(PLANS).map(
+      ({ id, name, nameZh, monthlyCreditUsd, amountUsd, blurb, highlight }) => ({
+        id,
+        name,
+        nameZh,
+        monthlyCreditUsd,
+        amountUsd,
+        blurb,
+        highlight: Boolean(highlight),
+        upgradeable: upgradeablePlans(activePlanId).some((plan) => plan.id === id),
+      }),
+    ),
+    packs: Object.values(CREDIT_PACKS).map((pack) => ({
+      id: pack.id,
+      creditUsd: packCreditUsdWithBonus(pack.creditUsd, bonusPercent),
+      baseCreditUsd: pack.creditUsd,
+      bonusPercent,
+      amountUsd: pack.amountUsd,
+      nameZh: pack.nameZh,
+      blurb: pack.blurb,
     })),
-    packs: Object.values(CREDIT_PACKS),
     hasPaymentProfile: Boolean(user.stripeCustomerId),
   });
 });

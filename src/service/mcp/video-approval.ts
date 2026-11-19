@@ -24,7 +24,7 @@ export async function requireVideoApproval(server: McpServer, message: string) {
             approve: {
               type: "boolean",
               title: "核准產生影片",
-              description: "勾選後才會扣 credits 並開始渲染。",
+              description: "勾選後才會扣 USD Credit 並開始渲染。",
             },
           },
           required: ["approve"],

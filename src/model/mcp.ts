@@ -24,7 +24,9 @@ export type McpToolCall = {
   ok: boolean;
   error?: string;
   latencyMs: number;
-  creditsCharged: number;
+  chargedUsd?: number;
+  // Legacy integer credit field preserved for pre-migration records.
+  creditsCharged?: number;
   createdAt: Date;
 };
 
@@ -48,6 +50,7 @@ export const mcpToolCallSchema: z.ZodType<McpToolCall> = z.object({
   ok: z.boolean(),
   error: z.string().optional(),
   latencyMs: z.number(),
-  creditsCharged: z.number(),
+  chargedUsd: z.number().optional(),
+  creditsCharged: z.number().optional(),
   createdAt: z.date(),
 });

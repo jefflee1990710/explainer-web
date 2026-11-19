@@ -5,6 +5,8 @@ import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
 import { TALKING_HEAD_POSE_IDS, type TalkingHeadPoseId } from "@/model/talking-head-options";
 import { importBrandAsset, importReferenceImage } from "@/service/project/reference-image-import";
 import { coerceDiagramExplainerOnScreenText } from "@/service/director/explainer-family";
+import { formatUsdRate } from "@/service/billing/usd";
+import { VIDEO_COST_PER_SECOND_USD } from "@/service/credit-costs";
 
 // Matches the create-video form. The action still validates language, cast, and logo.
 export const videoBriefFields = {
@@ -38,7 +40,7 @@ export const videoBriefFields = {
     .enum(VIDEO_QUALITY_TIERS)
     .optional()
     .describe(
-      "Video generation tier: '2k_cinema' (2 credits/s, OpenRouter MiniMax H3). Defaults to '2k_cinema'.",
+      `Video generation tier: '2k_cinema' (${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}, OpenRouter MiniMax H3). Defaults to '2k_cinema'.`,
     ),
   talkingHeadPoseId: z
     .enum(TALKING_HEAD_POSE_IDS)

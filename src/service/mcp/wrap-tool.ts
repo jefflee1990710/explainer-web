@@ -2,6 +2,7 @@ import type { OptionalId } from "mongodb";
 import { mcpToolCallsCollection } from "@/dao";
 import type { McpApiKey, McpToolCall } from "@/model/mcp";
 import type { AppUser } from "@/model/user";
+import { roundUsd4 } from "@/service/billing/usd";
 
 function textResult(data: unknown) {
   return {
@@ -28,7 +29,7 @@ async function logCall(input: {
   ok: boolean;
   error?: string;
   latencyMs: number;
-  creditsCharged: number;
+  chargedUsd: number;
 }) {
   const col = await mcpToolCallsCollection();
   const doc: OptionalId<McpToolCall> = {
@@ -38,7 +39,7 @@ async function logCall(input: {
     ok: input.ok,
     error: input.error,
     latencyMs: input.latencyMs,
-    creditsCharged: input.creditsCharged,
+    chargedUsd: roundUsd4(input.chargedUsd),
     createdAt: new Date(),
   };
   await col.insertOne(doc).catch(() => {});
@@ -49,8 +50,8 @@ export function wrapTool<TArgs>(
   user: AppUser,
   apiKey: McpApiKey,
   tool: string,
-  // Fixed cost, or one read from the tool result (per-second video pricing).
-  creditsCharged: number | ((result: unknown, args: TArgs) => number),
+  // Fixed USD cost, or one read from the tool result (per-second video pricing).
+  chargedUsd: number | ((result: unknown, args: TArgs) => number),
   fn: (args: TArgs) => Promise<unknown>,
 ) {
   return async (args: TArgs) => {
@@ -63,8 +64,8 @@ export function wrapTool<TArgs>(
         tool,
         ok: true,
         latencyMs: Date.now() - started,
-        creditsCharged:
-          typeof creditsCharged === "function" ? creditsCharged(result, args) : creditsCharged,
+        chargedUsd:
+          typeof chargedUsd === "function" ? chargedUsd(result, args) : chargedUsd,
       });
       return textResult(result);
     } catch (error) {
@@ -76,7 +77,7 @@ export function wrapTool<TArgs>(
         ok: false,
         error: message,
         latencyMs: Date.now() - started,
-        creditsCharged: 0,
+        chargedUsd: 0,
       });
       return errorResult(message);
     }

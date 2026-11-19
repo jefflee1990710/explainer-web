@@ -26,8 +26,9 @@ import {
   setDefaultVersionAction,
   suggestCharacterVoiceAction,
 } from "@/service/character/actions";
+import { formatUsd } from "@/service/billing/usd";
 import { applyWardrobeToCharacter } from "@/service/mcp/apply-wardrobe";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
 type Ctx = { server: McpServer; user: AppUser; apiKey: McpApiKey };
@@ -40,11 +41,11 @@ const wardrobePickFields = {
   accessory: z.string().optional(),
 };
 
-type ChargedCharacter = { character: unknown; creditsCharged: number };
+type ChargedCharacter = { character: unknown; costUsd: number };
 
-function chargedCredits(result: unknown) {
-  if (result && typeof result === "object" && "creditsCharged" in result) {
-    const value = (result as ChargedCharacter).creditsCharged;
+function chargedCostUsd(result: unknown) {
+  if (result && typeof result === "object" && "costUsd" in result) {
+    const value = (result as ChargedCharacter).costUsd;
     return typeof value === "number" ? value : 0;
   }
   return 0;
@@ -97,23 +98,23 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
     "edit_character_version",
     {
       title: "Edit character version",
-      description: `Branch a new blueprint from a completed version with a free-text edit (costs ${BLUEPRINT_COST} credits for board versions, ${FRAME_COST} for legacy sheets).`,
+      description: `Branch a new blueprint from a completed version with a free-text edit (costs ${formatUsd(BLUEPRINT_COST_USD)} for board versions, ${formatUsd(FRAME_COST_USD)} for legacy sheets).`,
       inputSchema: {
         characterId: z.string(),
         versionId: z.string().describe("Completed version id from get_character."),
         editInstruction: z.string().min(1).max(1200),
       },
     },
-    wrapTool(user, apiKey, "edit_character_version", chargedCredits, async (args) => {
+    wrapTool(user, apiKey, "edit_character_version", chargedCostUsd, async (args) => {
       const current = unwrap(await getCharacterAction(args.characterId)).character;
       const version = current.versions.find((item) => item.id === args.versionId);
       if (!version) throw new Error("版本不存在");
-      const creditsCharged =
-        version.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
+      const costUsd =
+        version.blueprintKind === "board" ? BLUEPRINT_COST_USD : FRAME_COST_USD;
       const character = unwrap(
         await editCharacterVersionAction(args.characterId, args.versionId, args.editInstruction),
       ).character;
-      return { character, creditsCharged } satisfies ChargedCharacter;
+      return { character, costUsd } satisfies ChargedCharacter;
     }),
   );
 
@@ -122,7 +123,7 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
     "apply_character_wardrobe",
     {
       title: "Apply character wardrobe",
-      description: `Fitting-room edit: apply hair / top / pants / shoes / accessory picks from search_looks or list_custom_wardrobe onto a completed version (costs ${BLUEPRINT_COST} credits for board versions, ${FRAME_COST} for legacy sheets).`,
+      description: `Fitting-room edit: apply hair / top / pants / shoes / accessory picks from search_looks or list_custom_wardrobe onto a completed version (costs ${formatUsd(BLUEPRINT_COST_USD)} for board versions, ${formatUsd(FRAME_COST_USD)} for legacy sheets).`,
       inputSchema: {
         characterId: z.string(),
         versionId: z.string().describe("Completed version id to branch from."),
@@ -132,7 +133,7 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
         note: z.string().max(400).optional().describe("Optional free-text styling note."),
       },
     },
-    wrapTool(user, apiKey, "apply_character_wardrobe", chargedCredits, async (args) => {
+    wrapTool(user, apiKey, "apply_character_wardrobe", chargedCostUsd, async (args) => {
       return applyWardrobeToCharacter({
         clerkUserId: user.clerkUserId,
         characterId: args.characterId,
@@ -147,22 +148,22 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
     "retry_character_version",
     {
       title: "Retry character version",
-      description: `Re-queue a failed blueprint version (same cost as the original: ${BLUEPRINT_COST} for boards, ${FRAME_COST} for legacy sheets).`,
+      description: `Re-queue a failed blueprint version (same cost as the original: ${formatUsd(BLUEPRINT_COST_USD)} for boards, ${formatUsd(FRAME_COST_USD)} for legacy sheets).`,
       inputSchema: {
         characterId: z.string(),
         versionId: z.string(),
       },
     },
-    wrapTool(user, apiKey, "retry_character_version", chargedCredits, async (args) => {
+    wrapTool(user, apiKey, "retry_character_version", chargedCostUsd, async (args) => {
       const current = unwrap(await getCharacterAction(args.characterId)).character;
       const version = current.versions.find((item) => item.id === args.versionId);
       if (!version) throw new Error("版本不存在");
-      const creditsCharged =
-        version.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
+      const costUsd =
+        version.blueprintKind === "board" ? BLUEPRINT_COST_USD : FRAME_COST_USD;
       const character = unwrap(
         await retryCharacterVersionAction(args.characterId, args.versionId),
       ).character;
-      return { character, creditsCharged } satisfies ChargedCharacter;
+      return { character, costUsd } satisfies ChargedCharacter;
     }),
   );
 
@@ -170,13 +171,13 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
     "add_character_style",
     {
       title: "Add character style",
-      description: `Generate this character in another visual style (costs ${BLUEPRINT_COST} credits). styleId comes from list_styles.`,
+      description: `Generate this character in another visual style (costs ${formatUsd(BLUEPRINT_COST_USD)}). styleId comes from list_styles.`,
       inputSchema: {
         characterId: z.string(),
         styleId: z.string(),
       },
     },
-    wrapTool(user, apiKey, "add_character_style", BLUEPRINT_COST, async (args) => {
+    wrapTool(user, apiKey, "add_character_style", BLUEPRINT_COST_USD, async (args) => {
       return unwrap(await addCharacterStyleAction(args.characterId, args.styleId)).character;
     }),
   );

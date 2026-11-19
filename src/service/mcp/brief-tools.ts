@@ -108,13 +108,13 @@ export function registerBriefTools({ server, user, apiKey }: Ctx) {
     }),
   );
 
-  // Wipe storyboard, stills, clips, and exports, then plan again. Spent credits stay spent.
+  // Wipe storyboard, stills, clips, and exports, then plan again. Spent USD Credit stays spent.
   server.registerTool(
     "restart_video",
     {
       title: "Restart video",
       description:
-        "Start the video over from the brief. Clears the storyboard, stills, clip videos, reel, and export. Spent credits are not refunded. Send the full brief; omitted characterIds, productIds, referenceImages, and logoUrl are cleared.",
+        "Start the video over from the brief. Clears the storyboard, stills, clip videos, reel, and export. Spent USD Credit is not refunded. Send the full brief; omitted characterIds, productIds, referenceImages, and logoUrl are cleared.",
       inputSchema: { videoId: z.string(), ...videoBriefUpdateFields },
     },
     wrapTool(user, apiKey, "restart_video", 0, async (args) => {

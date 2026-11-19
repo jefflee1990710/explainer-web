@@ -25,12 +25,13 @@ import {
   applyClipStyle,
   setClipVideoQualityTier,
 } from "@/service/opencut/clip-style";
+import { formatUsd, formatUsdRate, mulUsd } from "@/service/billing/usd";
 import {
-  FRAME_COST,
-  FRAMES_COST,
-  VIDEO_CREDITS_PER_SECOND,
-  scroSwapCost,
-  teleportCost,
+  FRAME_COST_USD,
+  FRAMES_COST_USD,
+  VIDEO_COST_PER_SECOND_USD,
+  scroSwapCostUsd,
+  teleportCostUsd,
 } from "@/service/production-plan";
 import { getVideoAction, createSimpleVideoAction } from "@/service/project/actions";
 import { videoPreview } from "@/service/mcp/video-preview";
@@ -109,7 +110,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     {
       title: "Update clip guideline",
       description:
-        "Save scene, camera, and voiceover text for one or more clips. Omitted fields stay as they are. Does not redraw scenes or render video, and spends no credits.",
+        "Save scene, camera, and voiceover text for one or more clips. Omitted fields stay as they are. Does not redraw scenes or render video, and spends no USD Credit.",
       inputSchema: {
         videoId: z.string(),
         clips: z
@@ -143,7 +144,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "regenerate_scene",
     {
       title: "Regenerate scene",
-      description: `Redraw the start and end scene images for the given clips from the saved guideline (up to ${FRAMES_COST} credits per clip). Does not render video.`,
+      description: `Redraw the start and end scene images for the given clips from the saved guideline (up to ${formatUsd(FRAMES_COST_USD)} per clip). Does not render video.`,
       inputSchema: {
         videoId: z.string(),
         clipNumbers: z.array(z.number().int().positive()).min(1).max(40),
@@ -161,7 +162,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "regenerate_frame",
     {
       title: "Regenerate frame",
-      description: `Redraw one start or end frame (costs ${FRAME_COST} credits). Optional remark steers the redo.`,
+      description: `Redraw one start or end frame (costs ${formatUsd(FRAME_COST_USD)}). Optional remark steers the redo.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -173,7 +174,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
           .describe("PNG data URL of markings drawn over the current frame"),
       },
     },
-    wrapTool(user, apiKey, "regenerate_frame", FRAME_COST, async (args) => {
+    wrapTool(user, apiKey, "regenerate_frame", FRAME_COST_USD, async (args) => {
       const revision =
         args.remark || args.sketchDataUrl
           ? { remark: args.remark, sketchDataUrl: args.sketchDataUrl }
@@ -189,7 +190,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     {
       title: "Generate selected clips",
       description:
-        "Generate frames or videos for the given clip numbers. Each clip is charged on its own. Ineligible clips come back in skipped. kind videos asks the user to approve before anything is queued.",
+        "Generate frames or videos for the given clip numbers. Each clip is charged in USD Credit on its own. Ineligible clips come back in skipped. kind videos asks the user to approve before anything is queued.",
       inputSchema: {
         videoId: z.string(),
         clipNumbers: z.array(z.number().int().positive()).min(1),
@@ -201,7 +202,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       if (args.kind === "videos") {
         await requireVideoApproval(
           server,
-          `要產生 Clip ${args.clipNumbers.join("、")} 的影片嗎？這會扣除 credits。`,
+          `要產生 Clip ${args.clipNumbers.join("、")} 的影片嗎？這會扣除 USD Credit。`,
         );
       }
       const result = unwrap(
@@ -215,7 +216,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "generate_all_scene_images",
     {
       title: "Generate all scene images",
-      description: `Draw start and end frames for every clip that is not already drawing (${FRAMES_COST} credits per clip, less when a start frame is inherited).`,
+      description: `Draw start and end frames for every clip that is not already drawing (${formatUsd(FRAMES_COST_USD)} per clip, less when a start frame is inherited).`,
       inputSchema: { videoId: z.string() },
     },
     wrapTool(user, apiKey, "generate_all_scene_images", 0, async ({ videoId }) => {
@@ -228,12 +229,12 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     {
       title: "Generate all clips",
       description:
-        "Render every clip that still needs a video. Frames must already be ready. Each clip is charged per second. Asks the user to approve before anything is queued.",
+        "Render every clip that still needs a video. Frames must already be ready. Each clip is charged per second in USD Credit. Asks the user to approve before anything is queued.",
       inputSchema: { videoId: z.string() },
       annotations: { destructiveHint: true },
     },
     wrapTool(user, apiKey, "generate_all_clips", 0, async ({ videoId }) => {
-      await requireVideoApproval(server, "要產生這支影片裡尚未完成的各段影片嗎？這會扣除 credits。");
+      await requireVideoApproval(server, "要產生這支影片裡尚未完成的各段影片嗎？這會扣除 USD Credit。");
       return unwrap(await generateAllClipsAction(videoId)).project;
     }),
   );
@@ -282,7 +283,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "set_clip_video_quality_tier",
     {
       title: "Set clip video quality tier",
-      description: `Switch one clip's video quality tier ('2k_cinema' at ${VIDEO_CREDITS_PER_SECOND} credits/s).`,
+      description: `Switch one clip's video quality tier ('2k_cinema' at ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -298,7 +299,7 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "create_simple_video",
     {
       title: "Create simple single-clip video",
-      description: `Directly generate a single-clip video from a prompt, optional first/last frames, and optional character/scene references (${VIDEO_CREDITS_PER_SECOND} credits/s).`,
+      description: `Directly generate a single-clip video from a prompt, optional first/last frames, and optional character/scene references (${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}).`,
       inputSchema: {
         prompt: z.string().min(1).max(2000).describe("Action, scene, and camera motion description"),
         aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional().default("9:16"),
@@ -315,9 +316,11 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       annotations: { destructiveHint: true },
     },
     wrapTool(user, apiKey, "create_simple_video", 0, async (args) => {
+      const durationSeconds = args.durationSeconds ?? 6;
+      const estimatedUsd = mulUsd(VIDEO_COST_PER_SECOND_USD, durationSeconds);
       await requireVideoApproval(
         server,
-        `要建立並生成呢段 ${args.durationSeconds ?? 6} 秒影片嗎？這會扣除 credits。`,
+        `要建立並生成呢段 ${durationSeconds} 秒影片嗎？這會扣除 ${formatUsd(estimatedUsd)} USD Credit。`,
       );
       return unwrap(await createSimpleVideoAction(args)).project;
     }),
@@ -327,24 +330,24 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     "apply_clip_style",
     {
       title: "Apply clip visual style",
-      description: "Change one clip's visual styleId, redraw its frames in the new style, and queue auto-video generation.",
+      description: `Change one clip's visual styleId, redraw its frames in the new style (${formatUsd(FRAME_COST_USD)}/frame), and queue auto-video generation.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
         styleId: z.string().min(1),
       },
     },
-    wrapTool(user, apiKey, "apply_clip_style", FRAME_COST, async (args) => {
+    wrapTool(user, apiKey, "apply_clip_style", FRAME_COST_USD, async (args) => {
       return unwrap(await applyClipStyle(args)).project;
     }),
   );
 
+  const extendSixSecUsd = mulUsd(VIDEO_COST_PER_SECOND_USD, 6);
   server.registerTool(
     "extend_clip_video",
     {
       title: "Extend clip video (+6s)",
-      description:
-        "Seamlessly extend a completed clip by +6 seconds using a 39-frame protected latent prefix and character/scene/prop references, inserting a new Clip N+1 right after it.",
+      description: `Seamlessly extend a completed clip by +6 seconds (${formatUsd(extendSixSecUsd)}) using a 39-frame protected latent prefix and character/scene/prop references, inserting a new Clip N+1 right after it.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -352,10 +355,10 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       },
       annotations: { destructiveHint: true },
     },
-    wrapTool(user, apiKey, "extend_clip_video", VIDEO_CREDITS_PER_SECOND * 6, async (args) => {
+    wrapTool(user, apiKey, "extend_clip_video", extendSixSecUsd, async (args) => {
       await requireVideoApproval(
         server,
-        `要將 Clip ${args.clipNumber} 無縫延展 +6 秒嗎？這會扣除 credits。`,
+        `要將 Clip ${args.clipNumber} 無縫延展 +6 秒嗎？這會扣除 ${formatUsd(extendSixSecUsd)} USD Credit。`,
       );
       const res = unwrap(
         await applyClipExtend({
@@ -368,12 +371,12 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     }),
   );
 
+  const scroSwapSixSecUsd = scroSwapCostUsd({ mediaKind: "video", durationSeconds: 6 });
   server.registerTool(
     "apply_clip_scro_swap",
     {
       title: "Apply Scro Swap to clip",
-      description:
-        "Replace the character and/or outfit in a completed storyboard clip while preserving its motion and lip-sync.",
+      description: `Replace the character and/or outfit in a completed storyboard clip while preserving its motion and lip-sync (${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -382,22 +385,22 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       },
       annotations: { destructiveHint: true },
     },
-    wrapTool(user, apiKey, "apply_clip_scro_swap", scroSwapCost({ mediaKind: "video", durationSeconds: 6 }), async (args) => {
+    wrapTool(user, apiKey, "apply_clip_scro_swap", scroSwapSixSecUsd, async (args) => {
       await requireVideoApproval(
         server,
-        `要對 Clip ${args.clipNumber} 執行 Scro Swap 換角嗎？這會扣除 credits。`,
+        `要對 Clip ${args.clipNumber} 執行 Scro Swap 換角嗎？這會扣除 USD Credit（${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}）。`,
       );
       const res = unwrap(await applyClipScroSwap(args));
       return { project: res.project, jobId: res.jobId };
     }),
   );
 
+  const teleportSixSecUsd = teleportCostUsd({ durationSeconds: 6 });
   server.registerTool(
     "apply_clip_teleport",
     {
       title: "Apply Teleport to clip",
-      description:
-        "Relocate the character in a completed storyboard clip into a new scene while keeping their identity and motion.",
+      description: `Relocate the character in a completed storyboard clip into a new scene while keeping their identity and motion (${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -406,10 +409,10 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       },
       annotations: { destructiveHint: true },
     },
-    wrapTool(user, apiKey, "apply_clip_teleport", teleportCost({ durationSeconds: 6 }), async (args) => {
+    wrapTool(user, apiKey, "apply_clip_teleport", teleportSixSecUsd, async (args) => {
       await requireVideoApproval(
         server,
-        `要對 Clip ${args.clipNumber} 執行 Teleport 換場嗎？這會扣除 credits。`,
+        `要對 Clip ${args.clipNumber} 執行 Teleport 換場嗎？這會扣除 USD Credit（${formatUsd(FRAME_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}）。`,
       );
       const res = unwrap(await applyClipTeleport(args));
       return { project: res.project, jobId: res.jobId };

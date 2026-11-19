@@ -30,7 +30,8 @@ import {
   saveEditedLifeShotAction,
   searchLifeScenesAction,
 } from "@/service/character/life";
-import { FRAME_COST } from "@/service/production-plan";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
 type Ctx = { server: McpServer; user: AppUser; apiKey: McpApiKey };
@@ -180,7 +181,7 @@ export function registerLifeTools({ server, user, apiKey }: Ctx) {
     "generate_life_shot",
     {
       title: "Generate life shot",
-      description: `Generate a Life post image for a character (costs ${FRAME_COST} credits). Use createMode=post-template with templateId, or pass sceneImageUrl from search_life_scenes / a public https URL. Optional wardrobe ids come from list_wardrobe_catalog.`,
+      description: `Generate a Life post image for a character (costs ${formatUsd(FRAME_COST_USD)}). Use createMode=post-template with templateId, or pass sceneImageUrl from search_life_scenes / a public https URL. Optional wardrobe ids come from list_wardrobe_catalog.`,
       inputSchema: {
         characterId: z.string(),
         source: z
@@ -219,7 +220,7 @@ export function registerLifeTools({ server, user, apiKey }: Ctx) {
         remarks: z.array(lifeRemarkSchema).max(10).optional(),
       },
     },
-    wrapTool(user, apiKey, "generate_life_shot", FRAME_COST, async (args) => {
+    wrapTool(user, apiKey, "generate_life_shot", FRAME_COST_USD, async (args) => {
       return unwrap(
         await generateLifeShotAction({
           characterId: args.characterId,

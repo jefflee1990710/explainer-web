@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { listPublishedBlogPostsForLlms } from "@/service/blog-post/blog-posts";
 import { PLANS } from "@/service/billing/plans";
+import { formatUsd, formatUsdRate, mulUsd } from "@/service/billing/usd";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
+import {
+  BLUEPRINT_COST_USD,
+  IMAGE_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
+} from "@/service/credit-costs";
 import { getSiteUrl } from "@/util/app-url";
 
 // Build the concise `llms.txt` markdown document following the llms.txt standard.
@@ -39,7 +47,7 @@ export function buildLlmsTxt(
     `- [Whiteboard Explainer Videos](${siteUrl}/explainer): Turn complex product concepts into clear 30–60s whiteboard doodle and vector explainer shorts.`,
     `- [Pick the Right AI Video Tool](${siteUrl}/right-tool): Compare DIY prompting vs. Scro's end-to-end AI director, keyframe approval, and built-in timeline editor.`,
     `- [Use Cases & Examples](${siteUrl}/examples): One finished video each for whiteboard explainers, product promos, talking-head, Hong Kong Cantonese, and AI Influencers.`,
-    `- [Pricing & Plans](${siteUrl}/pricing): Monthly subscription tiers (Starter $${PLANS.starter.amountUsd}/mo, Pro $${PLANS.pro.amountUsd}/mo, Studio $${PLANS.studio.amountUsd}/mo, Scale $${PLANS.scale.amountUsd}/mo) and Enterprise custom plans.`,
+    `- [Pricing & Plans](${siteUrl}/pricing): 1:1 USD Credit monthly subscription tiers (Starter $${PLANS.starter.amountUsd}/mo, Pro $${PLANS.pro.amountUsd}/mo, Studio $${PLANS.studio.amountUsd}/mo, Scale $${PLANS.scale.amountUsd}/mo), top-up packs, and Enterprise custom plans.`,
     `- [Posts & Guides](${siteUrl}/posts): Tutorials, product updates, and playbooks on AI Influencers, short-form video marketing, and creative workflows.`,
     `- [Contact](${siteUrl}/contact): Customer support (cs@thenovax.com) and enterprise sales inquiries.`,
     "",
@@ -51,7 +59,7 @@ export function buildLlmsTxt(
     "",
     "## Optional",
     "",
-    `- [Terms of Service](${siteUrl}/terms): Platform terms, credit usage policies, and content licensing.`,
+    `- [Terms of Service](${siteUrl}/terms): Platform terms, USD Credit usage policies, and content licensing.`,
     `- [Privacy Policy](${siteUrl}/privacy): Data collection, Firebase authentication, Stripe billing, and privacy practices.`,
     `- [Sitemap](${siteUrl}/sitemap.xml): XML sitemap of all public pages and published articles.`,
     "",
@@ -89,12 +97,12 @@ export function buildLlmsFullTxt(
     "",
     "## 1. What Problem Scro Solves",
     "",
-    "Traditional video production requires cameras, lighting, actors, and expensive retakes. Raw AI video playgrounds burn credits on blind retries because they lack character consistency, storyboard planning, and post-production editing.",
+    "Traditional video production requires cameras, lighting, actors, and expensive retakes. Raw AI video playgrounds burn USD Credit on blind retries because they lack character consistency, storyboard planning, and post-production editing.",
     "",
     "Scro solves this with a structured **Approve-Before-Render** pipeline:",
     "1. **Inject a Soul into Your AI Influencer**: Create a virtual character blueprint with a locked face, persona (city, personality, tone, pace, humor), custom wardrobe outfits, and cloned voice.",
     "2. **Plan with Built-in AI Directors**: Choose specialized AI directors (Talking-Head, Whiteboard Explainer, Product Demo, Listicle, Step-by-Step Tutorial, Short Film, Outfit Reel) that write hooks, visual beats, and narration.",
-    "3. **Approve Keyframe Stills First**: Preview and revise start/end keyframes at low credit cost before committing credits to full video rendering.",
+    `3. **Approve Keyframe Stills First**: Preview and revise start/end keyframes at low USD Credit cost (${formatUsd(IMAGE_COST_USD)}/image) before committing balance to full video rendering.`,
     "4. **Finish in the Built-in Timeline Editor**: Auto-trim leading/trailing silence with 15ms audio micro-fades, apply 13 artistic subtitle presets with bilingual Google Fonts, insert 1-click Stock B-Roll cutaways, layer sound effects and music, and export 9:16 Reels, 16:9 presentations, or 1:1 feed posts.",
     "",
     "---",
@@ -112,7 +120,7 @@ export function buildLlmsFullTxt(
     "- **High-Converting Hooks**: Structured around buyer pain points → product reveal → features in use → call to action.",
     "",
     "### 2.3 Captioned Talking-Head & Dialogue Q&A Videos (`/talking-head`)",
-    "- **Up to 120s 1-Pass Lip-Sync (`heygen/avatar-iv` 1080p)**: Select a character and outfit, paste the script or upload/record your own raw voice (`uploadedVoUrl`), and generate up to 120-second continuous 1080p lip-synced clips at just 4 credits/second (voice included).",
+    `- **Up to 120s 1-Pass Lip-Sync (\`heygen/avatar-iv\` 1080p)**: Select a character and outfit, paste the script or upload/record your own raw voice (\`uploadedVoUrl\`), and generate up to 120-second continuous 1080p lip-synced clips at ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} (voice included).`,
     "- **Multi-Director Formats**: Includes Sitting Talking-Head, Talking B-Roll (A-Roll lip-sync + B-Roll cutaways), Editorial Interview, and 2-Speaker Dialogue Q&A.",
     "- **Artistic Subtitles & AI Text Cards**: 13 editable caption presets with bilingual Google Fonts plus transparent AI On-Screen Text sticker plates rendered directly on the timeline.",
     "",
@@ -134,13 +142,13 @@ export function buildLlmsFullTxt(
     "",
     "## 3. Pricing & Plans (`/pricing`)",
     "",
-    "Storyboard drafting is free before approval. Credits are spent only when generating character blueprints, Life photos, posters, keyframe stills (4 credits/image), or rendered video clips (2 credits/s across all storyboard, explainer, realistic, and story videos with voice included; 4 credits/s for 1080p sitting talking-head with voice included).",
+    `New accounts receive ${formatUsd(WELCOME_CREDIT_USD)} welcome USD Credit. Storyboard drafting is free before approval. USD Credit is spent only when generating character blueprints (${formatUsd(BLUEPRINT_COST_USD)}), Life photos, posters, keyframe stills (${formatUsd(IMAGE_COST_USD)}/image), or rendered video clips (${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} across all storyboard, explainer, realistic, and story videos with voice included; ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} for 1080p sitting talking-head with voice included; ${formatUsd(IMAGE_COST_USD)} + ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} for Scro Swap / Teleport; ${formatUsd(mulUsd(VIDEO_COST_PER_SECOND_USD, 6))} for 6s Extend).`,
     "",
-    `- **Starter** ($${PLANS.starter.amountUsd}/month): ${PLANS.starter.monthlyCredits.toLocaleString("en-US")} monthly credits — ideal for testing Scro and solo creators.`,
-    `- **Pro** ($${PLANS.pro.amountUsd}/month): ${PLANS.pro.monthlyCredits.toLocaleString("en-US")} monthly credits — for business owners publishing regular shorts and Life posts.`,
-    `- **Studio** ($${PLANS.studio.amountUsd}/month, Most Popular): ${PLANS.studio.monthlyCredits.toLocaleString("en-US")} monthly credits — for creators and freelancers producing client videos.`,
-    `- **Scale** ($${PLANS.scale.amountUsd}/month): ${PLANS.scale.monthlyCredits.toLocaleString("en-US")} monthly credits — for agencies and multi-account teams.`,
-    "- **Enterprise**: Custom monthly credits, invoice billing, dedicated support, and volume agreements (`hello@explainer.io`).",
+    `- **Starter** ($${PLANS.starter.amountUsd}/month): ${formatUsd(PLANS.starter.monthlyCreditUsd)} monthly USD Credit — ideal for testing Scro and solo creators.`,
+    `- **Pro** ($${PLANS.pro.amountUsd}/month): ${formatUsd(PLANS.pro.monthlyCreditUsd)} monthly USD Credit — for business owners publishing regular shorts and Life posts.`,
+    `- **Studio** ($${PLANS.studio.amountUsd}/month, Most Popular): ${formatUsd(PLANS.studio.monthlyCreditUsd)} monthly USD Credit — for creators and freelancers producing client videos.`,
+    `- **Scale** ($${PLANS.scale.amountUsd}/month): ${formatUsd(PLANS.scale.monthlyCreditUsd)} monthly USD Credit — for agencies and multi-account teams.`,
+    "- **Enterprise**: Custom monthly USD Credit, invoice billing, dedicated support, and volume agreements (`hello@explainer.io`).",
     "",
     "---",
     "",

@@ -4,7 +4,8 @@ import { COVER_SAFE_AREA_IDS } from "@/model/project";
 import type { McpApiKey } from "@/model/mcp";
 import type { AppUser } from "@/model/user";
 import { videoEditSchema } from "@/model/video-edit";
-import { FRAME_COST } from "@/service/production-plan";
+import { formatUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { importBrandAsset } from "@/service/project/reference-image-import";
 import { composeReelAction } from "@/service/reel/actions";
 import {
@@ -43,14 +44,14 @@ export function registerReelEditTools({ server, user, apiKey }: Ctx) {
     "generate_reel_cover",
     {
       title: "Generate reel cover",
-      description: `Generate the reel cover still (costs ${FRAME_COST} credits). Safe areas keep the picture inside platform crops.`,
+      description: `Generate the reel cover still (costs ${formatUsd(FRAME_COST_USD)}). Safe areas keep the picture inside platform crops.`,
       inputSchema: {
         videoId: z.string(),
         extraPrompt: z.string().max(500).optional(),
         safeAreas: z.array(z.enum(COVER_SAFE_AREA_IDS)).optional(),
       },
     },
-    wrapTool(user, apiKey, "generate_reel_cover", FRAME_COST, async (args) => {
+    wrapTool(user, apiKey, "generate_reel_cover", FRAME_COST_USD, async (args) => {
       return unwrap(await generateReelCoverAction(args.videoId, args.extraPrompt, args.safeAreas)).project;
     }),
   );

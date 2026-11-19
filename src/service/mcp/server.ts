@@ -22,15 +22,21 @@ import {
   projectsCollection,
   videosCollection,
 } from "@/dao";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import {
+  getActiveSubscription,
+  isSubscriptionActive,
+  resolveSubscriptionMonthlyUsd,
+} from "@/service/billing/credits";
+import { formatUsd, formatUsdRate } from "@/service/billing/usd";
 import { listPublicStyles } from "@/service/style/list";
 import {
-  BLUEPRINT_COST,
+  BLUEPRINT_COST_USD,
   clipVideoCost,
-  FRAMES_COST,
-  MIN_VIDEO_COST,
-  TALKING_HEAD_CREDITS_PER_SECOND,
-  VIDEO_CREDITS_PER_SECOND,
+  FRAMES_COST_USD,
+  MIN_VIDEO_COST_USD,
+  TALKING_HEAD_COST_PER_SECOND_USD,
+  VIDEO_COST_PER_SECOND_USD,
 } from "@/service/production-plan";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { AppUser } from "@/model/user";
@@ -55,16 +61,19 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "get_account",
     {
       title: "Get account",
-      description: "Return the authenticated Scro account credits and subscription.",
+      description: "Return the authenticated Scro account USD Credit balance and subscription.",
       inputSchema: {},
     },
     wrapTool(user, apiKey, "get_account", 0, async () => {
       const sub = await getActiveSubscription(user.clerkUserId);
+      const balance = resolveUserUsdBalance(user);
       return {
         email: user.email,
         name: user.name,
-        credits: user.credits,
-        bonusCredits: user.bonusCredits || 0,
+        creditUsd: balance.creditUsd,
+        creditLimitUsd: balance.creditLimitUsd,
+        bonusCreditUsd: balance.bonusCreditUsd,
+        monthlyCreditUsd: sub ? resolveSubscriptionMonthlyUsd(sub) : 0,
         subscribed: isSubscriptionActive(sub),
         planId: sub?.planId || null,
       };
@@ -263,13 +272,13 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_frames",
     {
       title: "Generate clip frames",
-      description: `Generate start/end frames for one clip (costs ${FRAMES_COST} credits).`,
+      description: `Generate start/end frames for one clip (costs ${formatUsd(FRAMES_COST_USD)}).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
       },
     },
-    wrapTool(user, apiKey, "generate_clip_frames", FRAMES_COST, async (args) => {
+    wrapTool(user, apiKey, "generate_clip_frames", FRAMES_COST_USD, async (args) => {
       const result = await generateClipFramesAction(args.videoId, args.clipNumber);
       if (!result.ok) throw new Error(result.error);
       const loaded = await getVideoAction(args.videoId);
@@ -282,7 +291,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_video",
     {
       title: "Generate clip video",
-      description: `Generate or regenerate the rendered video for one clip (standard videos cost ${VIDEO_CREDITS_PER_SECOND} credits per second, minimum ${MIN_VIDEO_COST}; sitting talking-head costs ${TALKING_HEAD_CREDITS_PER_SECOND} credits per second, up to 120 seconds). Asks the user to approve before anything is queued.`,
+      description: `Generate or regenerate the rendered video for one clip (standard videos cost ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}, minimum ${formatUsd(MIN_VIDEO_COST_USD)}; sitting talking-head costs ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}, up to 120 seconds). Asks the user to approve before anything is queued.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
@@ -297,7 +306,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       async (args) => {
         await requireVideoApproval(
           server,
-          `要產生 Clip ${args.clipNumber} 的影片嗎？這會扣除 credits。`,
+          `要產生 Clip ${args.clipNumber} 的影片嗎？這會扣除 USD Credit。`,
         );
         const result = await generateClipVideoAction(args.videoId, args.clipNumber);
         if (!result.ok) throw new Error(result.error);
@@ -320,7 +329,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     wrapTool(user, apiKey, "generate_remaining", 0, async ({ videoId }) => {
       await requireVideoApproval(
         server,
-        "要補齊尚未完成的場景圖並產生影片嗎？產生影片會扣除 credits。",
+        "要補齊尚未完成的場景圖並產生影片嗎？產生影片會扣除 USD Credit。",
       );
       const result = await generateRemainingAction(videoId);
       if (!result.ok) throw new Error(result.error);
@@ -332,7 +341,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "create_character",
     {
       title: "Create character",
-      description: `Create a character blueprint (costs ${BLUEPRINT_COST} credits).`,
+      description: `Create a character blueprint (costs ${formatUsd(BLUEPRINT_COST_USD)}).`,
       inputSchema: {
         name: z.string().min(1).max(40),
         styleId: z.string(),
@@ -340,7 +349,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         referenceImageUrl: z.string().url().optional(),
       },
     },
-    wrapTool(user, apiKey, "create_character", BLUEPRINT_COST, async (args) => {
+    wrapTool(user, apiKey, "create_character", BLUEPRINT_COST_USD, async (args) => {
       const form = new FormData();
       form.set("name", args.name);
       form.set("styleId", args.styleId);

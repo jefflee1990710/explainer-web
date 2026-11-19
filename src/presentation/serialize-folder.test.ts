@@ -3,7 +3,9 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
-import { toPublicFolder } from "@/presentation/serialize";
+import type { Subscription } from "@/model/subscription";
+import type { AppUser } from "@/model/user";
+import { publicSubscription, publicUser, toPublicFolder } from "@/presentation/serialize";
 
 function folder(): Folder {
   return {
@@ -54,4 +56,75 @@ test("folder videos list the most recently updated first", () => {
     cards.map((card) => card.title),
     ["Fresh generation", "Old"],
   );
+});
+
+test("publicUser emits USD credit fields and lazily converts unmigrated legacy balances", () => {
+  const now = new Date("2026-11-19T00:00:00Z");
+  const migrated: AppUser = {
+    _id: new ObjectId(),
+    clerkUserId: "uid_migrated",
+    email: "migrated@example.com",
+    name: "Migrated",
+    creditUsd: 59,
+    creditLimitUsd: 69.5,
+    bonusCreditUsd: 10.5,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const dto = publicUser(migrated) as Record<string, unknown>;
+  assert.equal(dto.creditUsd, 59);
+  assert.equal(dto.creditLimitUsd, 69.5);
+  assert.equal(dto.bonusCreditUsd, 10.5);
+  assert.equal("credits" in dto, false);
+
+  const legacy: AppUser = {
+    _id: new ObjectId(),
+    clerkUserId: "uid_legacy",
+    email: "legacy@example.com",
+    name: "Legacy",
+    credits: 150,
+    creditLimit: 200,
+    bonusCredits: 50,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const legacyDto = publicUser(legacy) as Record<string, unknown>;
+  assert.equal(legacyDto.creditUsd, 6);
+  assert.equal(legacyDto.creditLimitUsd, 8);
+  assert.equal(legacyDto.bonusCreditUsd, 2);
+  assert.equal("credits" in legacyDto, false);
+});
+
+test("publicSubscription emits monthlyCreditUsd with plan fallback for legacy records", () => {
+  assert.equal(publicSubscription(null), null);
+
+  const now = new Date("2026-11-19T00:00:00Z");
+  const migratedSub: Subscription = {
+    _id: new ObjectId(),
+    userId: new ObjectId(),
+    clerkUserId: "uid_1",
+    stripeCustomerId: "cus_1",
+    stripeSubscriptionId: "sub_1",
+    stripePriceId: "price_1",
+    planId: "studio",
+    status: "active",
+    monthlyCreditUsd: 249,
+    currentPeriodStart: now,
+    currentPeriodEnd: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const dto = publicSubscription(migratedSub) as Record<string, unknown>;
+  assert.equal(dto.monthlyCreditUsd, 249);
+  assert.equal("monthlyCredits" in dto, false);
+
+  const legacySub: Subscription = {
+    ...migratedSub,
+    planId: "pro",
+    monthlyCreditUsd: undefined,
+    monthlyCredits: 3333,
+  };
+  const legacyDto = publicSubscription(legacySub) as Record<string, unknown>;
+  assert.equal(legacyDto.monthlyCreditUsd, 129);
+  assert.equal("monthlyCredits" in legacyDto, false);
 });

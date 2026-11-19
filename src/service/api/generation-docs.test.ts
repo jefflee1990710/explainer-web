@@ -7,6 +7,7 @@ import {
   getGenerationApiDocs,
   buildGenerationCurlExample,
 } from "./generation-docs";
+import { buildLlmsFullTxt, buildLlmsTxt } from "@/presentation/api/llms/route";
 
 test("GENERATION_API_FEATURES covers all 8 creation tools in order", () => {
   assert.deepEqual(GENERATION_API_FEATURES, [
@@ -83,4 +84,65 @@ test("McpView includes custom API key name input and 8-feature REST API document
   );
   assert.match(mcpViewSource, /getGenerationApiDocs/);
   assert.match(mcpViewSource, /keyName/);
+});
+
+test("getGenerationApiDocs uses USD Credit pricing across locales without legacy integer credits", () => {
+  for (const locale of ["en", "zh-Hant", "zh-Hans"]) {
+    const docs = getGenerationApiDocs(locale);
+    const byId = new Map(docs.map((doc) => [doc.id, doc]));
+
+    for (const doc of docs) {
+      assert.doesNotMatch(
+        doc.creditCost,
+        /\b\d+\s*(credits?|cr)\b/i,
+        `${locale}:${doc.id} should not mention legacy integer credits: ${doc.creditCost}`,
+      );
+      assert.match(doc.creditCost, /\$\d+\.\d{2}/);
+    }
+
+    assert.match(byId.get("simple")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("simple")!.creditCost, /\$0\.10\/s/);
+    assert.match(byId.get("explainer")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("explainer")!.creditCost, /\$0\.10\/s/);
+    assert.match(byId.get("talking")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("talking")!.creditCost, /\$0\.18\/s/);
+    assert.match(byId.get("story")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("story")!.creditCost, /\$0\.10\/s/);
+    assert.match(byId.get("swap")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("swap")!.creditCost, /\$0\.10\/s/);
+    assert.match(byId.get("teleport")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("teleport")!.creditCost, /\$0\.10\/s/);
+    assert.match(byId.get("poster")!.creditCost, /\$0\.15/);
+    assert.match(byId.get("life")!.creditCost, /\$0\.15/);
+
+    const swapJob = byId.get("swap")!.sampleResponse.job as Record<string, unknown>;
+    assert.equal(swapJob.costUsd, 0.75);
+    assert.equal("creditCost" in swapJob, false);
+
+    const teleportJob = byId.get("teleport")!.sampleResponse.job as Record<string, unknown>;
+    assert.equal(teleportJob.costUsd, 0.75);
+    assert.equal("creditCost" in teleportJob, false);
+  }
+});
+
+test("llms.txt and llms-full.txt document USD Credit plans and action pricing", () => {
+  const shortTxt = buildLlmsTxt("https://scro.io");
+  assert.match(shortTxt, /USD Credit/i);
+  assert.match(shortTxt, /\$59\/mo/);
+  assert.match(shortTxt, /\$129\/mo/);
+  assert.match(shortTxt, /\$249\/mo/);
+  assert.match(shortTxt, /\$399\/mo/);
+
+  const fullTxt = buildLlmsFullTxt("https://scro.io");
+  assert.match(fullTxt, /\$6\.00/);
+  assert.match(fullTxt, /\$0\.15/);
+  assert.match(fullTxt, /\$0\.30/);
+  assert.match(fullTxt, /\$0\.10\/s/);
+  assert.match(fullTxt, /\$0\.18\/s/);
+  assert.match(fullTxt, /\$0\.60/);
+  assert.match(fullTxt, /\$59\.00/);
+  assert.match(fullTxt, /\$129\.00/);
+  assert.match(fullTxt, /\$249\.00/);
+  assert.match(fullTxt, /\$399\.00/);
+  assert.doesNotMatch(fullTxt, /4 credits|2 credits\/s|4 credits\/s|monthly credits/i);
 });

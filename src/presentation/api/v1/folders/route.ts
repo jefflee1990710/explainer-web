@@ -1,5 +1,6 @@
 import { projectsCollection, videosCollection } from "@/dao";
 import { apiJson, fromResult, readJson, withApiUser } from "@/service/api/respond";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { createFolderAction } from "@/service/project/actions";
 import { toPublicFolder, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
@@ -28,11 +29,12 @@ export const GET = withApiUser(async ({ auth }) => {
     list.push(video as Project);
     videosByFolder.set(key, list);
   }
+  const { creditUsd } = resolveUserUsdBalance(user);
   return apiJson({
     folders: folderDocs.map((folder) =>
       toPublicFolder(folder as Folder, videosByFolder.get(folder._id!.toHexString()) || []),
     ),
-    credits: user.credits,
+    creditUsd,
     subscribed: isSubscriptionActive(sub),
   });
 });

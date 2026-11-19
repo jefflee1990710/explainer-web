@@ -24,7 +24,8 @@ import {
   recommendCombinationsForWardrobePicks,
 } from "@/service/character/wardrobe-combinations";
 import { IG_POST_SETTINGS } from "@/model/wardrobe-combination";
-import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
+import { formatUsd } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/production-plan";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
 type Ctx = { server: McpServer; user: AppUser; apiKey: McpApiKey };
@@ -47,11 +48,11 @@ const imageInputFields = {
     .describe("Mime type for raw base64 (image/jpeg, image/png, image/webp). Optional for data URLs."),
 };
 
-type ChargedResult = { creditsCharged: number };
+type ChargedResult = { costUsd: number };
 
-function chargedCredits(result: unknown) {
-  if (result && typeof result === "object" && "creditsCharged" in result) {
-    const value = (result as ChargedResult).creditsCharged;
+function chargedCostUsd(result: unknown) {
+  if (result && typeof result === "object" && "costUsd" in result) {
+    const value = (result as ChargedResult).costUsd;
     return typeof value === "number" ? value : 0;
   }
   return 0;
@@ -315,7 +316,7 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
     "extract_cloth_for_character",
     {
       title: "Extract cloth for character",
-      description: `Upload/analyze an outfit photo, save it as a custom wardrobe item, and optionally apply it onto a character version (My Room). Analyze/save is free; applying costs ${BLUEPRINT_COST} credits for board versions or ${FRAME_COST} for legacy sheets.`,
+      description: `Upload/analyze an outfit photo, save it as a custom wardrobe item, and optionally apply it onto a character version (My Room). Analyze/save is free; applying costs ${formatUsd(BLUEPRINT_COST_USD)} for board versions or ${formatUsd(FRAME_COST_USD)} for legacy sheets.`,
       inputSchema: {
         ...imageInputFields,
         part: wardrobePartSchema
@@ -339,7 +340,7 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
         note: z.string().max(400).optional().describe("Optional styling note when applying."),
       },
     },
-    wrapTool(user, apiKey, "extract_cloth_for_character", chargedCredits, async (args) => {
+    wrapTool(user, apiKey, "extract_cloth_for_character", chargedCostUsd, async (args) => {
       const image = await loadAgentImage(args);
       const form = new FormData();
       form.set("file", imageToFormFile(image, "wardrobe"));
@@ -390,7 +391,7 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
         item,
         character: applied?.character ?? null,
         editInstruction: applied?.editInstruction ?? null,
-        creditsCharged: applied?.creditsCharged ?? 0,
+        costUsd: applied?.costUsd ?? 0,
       };
     }),
   );
