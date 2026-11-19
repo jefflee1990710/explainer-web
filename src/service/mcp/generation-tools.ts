@@ -25,7 +25,7 @@ import {
   applyClipStyle,
   setClipVideoQualityTier,
 } from "@/service/opencut/clip-style";
-import { formatUsd, formatUsdRate, mulUsd } from "@/service/billing/usd";
+import { addUsd, formatUsd, formatUsdRate, mulUsd } from "@/service/billing/usd";
 import {
   FRAME_COST_USD,
   FRAMES_COST_USD,
@@ -295,11 +295,20 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
     }),
   );
 
+  const estimateSimpleVideoUsd = (args: {
+    durationSeconds?: number;
+    firstFrameUrl?: string;
+  }) => {
+    const videoUsd = mulUsd(VIDEO_COST_PER_SECOND_USD, args.durationSeconds ?? 6);
+    // Auto-generates the starting keyframe when firstFrameUrl is omitted.
+    return args.firstFrameUrl ? videoUsd : addUsd(FRAME_COST_USD, videoUsd);
+  };
+
   server.registerTool(
     "create_simple_video",
     {
       title: "Create simple single-clip video",
-      description: `Directly generate a single-clip video from a prompt, optional first/last frames, and optional character/scene references (${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}).`,
+      description: `Directly generate a single-clip video from a prompt, optional first/last frames, and optional character/scene references (${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}, plus ${formatUsd(FRAME_COST_USD)} when firstFrameUrl is omitted).`,
       inputSchema: {
         prompt: z.string().min(1).max(2000).describe("Action, scene, and camera motion description"),
         aspectRatio: z.enum(["9:16", "16:9", "1:1"]).optional().default("9:16"),
@@ -315,15 +324,21 @@ export function registerGenerationTools({ server, user, apiKey }: Ctx) {
       },
       annotations: { destructiveHint: true },
     },
-    wrapTool(user, apiKey, "create_simple_video", 0, async (args) => {
-      const durationSeconds = args.durationSeconds ?? 6;
-      const estimatedUsd = mulUsd(VIDEO_COST_PER_SECOND_USD, durationSeconds);
-      await requireVideoApproval(
-        server,
-        `要建立並生成呢段 ${durationSeconds} 秒影片嗎？這會扣除 ${formatUsd(estimatedUsd)} USD Credit。`,
-      );
-      return unwrap(await createSimpleVideoAction(args)).project;
-    }),
+    wrapTool(
+      user,
+      apiKey,
+      "create_simple_video",
+      (_result, args) => estimateSimpleVideoUsd(args),
+      async (args) => {
+        const durationSeconds = args.durationSeconds ?? 6;
+        const estimatedUsd = estimateSimpleVideoUsd(args);
+        await requireVideoApproval(
+          server,
+          `要建立並生成呢段 ${durationSeconds} 秒影片嗎？這會扣除 ${formatUsd(estimatedUsd)} USD Credit。`,
+        );
+        return unwrap(await createSimpleVideoAction(args)).project;
+      },
+    ),
   );
 
   server.registerTool(
