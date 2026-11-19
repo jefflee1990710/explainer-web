@@ -21,3 +21,9 @@ test("character pages, including the generator, highlight Characters", () => {
   assert.equal(isStudioNavActive("/app/characters/abc", "/app/characters"), true);
   assert.equal(isStudioNavActive("/app/characters/generate", "/app"), false);
 });
+
+test("canvas page highlights Canvas and not Home", () => {
+  assert.equal(isStudioNavActive("/app/canvas", "/app/canvas"), true);
+  assert.equal(isStudioNavActive("/app/canvas", "/app"), false);
+  assert.equal(isStudioNavActive("/app", "/app/canvas"), false);
+});

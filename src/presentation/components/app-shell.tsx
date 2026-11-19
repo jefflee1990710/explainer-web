@@ -53,6 +53,12 @@ export function AppShell({
       icon: "home",
       section: "home",
     },
+    {
+      href: "/app/canvas",
+      label: locale === "zh-Hant" ? "Canvas 畫布" : locale === "zh-Hans" ? "Canvas 画布" : "Canvas",
+      icon: "canvas",
+      section: "home",
+    },
     // 1. CREATE VIDEO. Simple and Story stay off the menu for now.
     {
       href: "/app/talking-heads",

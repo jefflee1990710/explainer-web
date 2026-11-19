@@ -381,6 +381,16 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       </svg>
     );
   }
+  if (name === "canvas") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="3" y="4.5" width="6.5" height="5.5" rx="1.5" />
+        <rect x="14.5" y="4.5" width="6.5" height="5.5" rx="1.5" />
+        <rect x="8.75" y="14.5" width="6.5" height="5.5" rx="1.5" />
+        <path d="M9.5 7.25h5M6.25 10v1.75A1.5 1.5 0 0 0 7.75 13.25h8.5a1.5 1.5 0 0 0 1.5-1.5V10M12 13.25v1.25" />
+      </svg>
+    );
+  }
   if (name === "projects") {
     return (
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>

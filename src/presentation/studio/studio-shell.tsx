@@ -28,6 +28,7 @@ export type StudioNavItem = {
   section: StudioNavSection;
   icon:
     | "home"
+    | "canvas"
     | "projects"
     | "posts"
     | "directors"
