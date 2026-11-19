@@ -104,36 +104,12 @@ export function needsVideoUpgradeUsd(creditUsd: number, costUsd = MIN_VIDEO_COST
   return toUsdUnits(creditUsd) < toUsdUnits(costUsd);
 }
 
-// Transitional aliases mapped directly to USD values until downstream service/UI callers migrate in Tasks 4-6.
+// Minimal transitional aliases required by `clip-stage.ts` and `talking-head.ts` until Task 4 migrates them.
 /** @deprecated Use `FRAME_COST_USD` / `IMAGE_COST_USD`. */
 export const FRAME_COST = FRAME_COST_USD;
 /** @deprecated Use `FRAMES_COST_USD`. */
 export const FRAMES_COST = FRAMES_COST_USD;
-/** @deprecated Use `BLUEPRINT_COST_USD`. */
-export const BLUEPRINT_COST = BLUEPRINT_COST_USD;
-/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
-export const VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
-/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
-export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
-/** @deprecated Use `VIDEO_COST_PER_SECOND_USD`. */
-export const ECONOMY_VIDEO_CREDITS_PER_SECOND = VIDEO_COST_PER_SECOND_USD;
-/** @deprecated Voice is always included in video pricing. */
-export const VOICE_SWAP_CREDITS_PER_SECOND = 0;
-/** @deprecated Use `TALKING_HEAD_COST_PER_SECOND_USD`. */
-export const TALKING_HEAD_CREDITS_PER_SECOND = TALKING_HEAD_COST_PER_SECOND_USD;
-/** @deprecated Use `MIN_VIDEO_COST_USD`. */
-export const MIN_VIDEO_COST = MIN_VIDEO_COST_USD;
-/** @deprecated Use `videoCostPerSecondUsd`. */
-export const videoCreditsPerSecond = videoCostPerSecondUsd;
 /** @deprecated Use `videoCostUsd`. */
 export const videoCost = videoCostUsd;
 /** @deprecated Use `talkingHeadVideoCostUsd`. */
 export const talkingHeadVideoCost = talkingHeadVideoCostUsd;
-/** @deprecated Use `scroSwapCostUsd`. */
-export const scroSwapCost = scroSwapCostUsd;
-/** @deprecated Use `teleportCostUsd`. */
-export const teleportCost = teleportCostUsd;
-/** @deprecated Use `chargedClipUsd`. */
-export const chargedVideoCredits = chargedClipUsd;
-/** @deprecated Use `needsVideoUpgradeUsd`. */
-export const needsVideoUpgrade = needsVideoUpgradeUsd;
