@@ -4,7 +4,7 @@ import {
   subscriptionsCollection,
   usersCollection,
 } from "@/dao";
-import { cashCentsPerUsd } from "@/service/affiliate/lots";
+import { resolveLotCashCentsPerUsd } from "@/service/affiliate/lots";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { isPlanId, PLANS } from "@/service/billing/plans";
 import { legacyCreditsToUsd } from "@/service/billing/usd";
@@ -26,13 +26,19 @@ async function main() {
   let migratedSubscriptions = 0;
   let migratedCreditLots = 0;
 
-  // 1. Migrate users where canonical creditUsd does not exist yet.
+  // 1. Migrate users where canonical creditUsd does not exist yet (matching legacy credits to prevent stale overwrites).
   const legacyUsers = await users.find({ creditUsd: { $exists: false } }).toArray();
   for (const user of legacyUsers) {
     const balance = resolveUserUsdBalance(user);
     if (!dryRun) {
       const res = await users.updateOne(
-        { _id: user._id, creditUsd: { $exists: false } },
+        {
+          _id: user._id,
+          creditUsd: { $exists: false },
+          ...(typeof user.credits === "number"
+            ? { credits: user.credits }
+            : { credits: { $exists: false } }),
+        },
         {
           $set: {
             creditUsd: balance.creditUsd,
@@ -82,7 +88,7 @@ async function main() {
     const creditUsdOriginal = legacyCreditsToUsd(
       lot.creditsOriginal ?? lot.creditsRemaining ?? 0,
     );
-    const rate = cashCentsPerUsd(lot.amountPaidCents, creditUsdOriginal);
+    const rate = resolveLotCashCentsPerUsd(lot);
     if (!dryRun) {
       const res = await creditLots.updateOne(
         { _id: lot._id, creditUsdRemaining: { $exists: false } },

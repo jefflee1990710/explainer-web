@@ -7,7 +7,7 @@ export function isCreditGateError(error?: string) {
   return (
     detail.includes("訂閱") ||
     detail.includes("餘額不足") ||
-    detail.includes("USD Credit") ||
+    detail.includes("USD Credit 餘額不足") ||
     detail.includes("credits 不足") ||
     lower.includes("insufficient")
   );

@@ -8,7 +8,7 @@ import {
   commissionCents,
   maxStackPct,
 } from "@/service/affiliate/rates";
-import { buildUplineIds } from "@/service/affiliate/engine";
+import { buildUplineIds, executeFifoLotDeductions } from "@/service/affiliate/engine";
 import { normalizeAffiliateCode } from "@/service/affiliate/code";
 
 describe("affiliate rates", () => {
@@ -124,6 +124,56 @@ describe("USD FIFO lots", () => {
     assert.equal(plan.slices[0]!.cashCentsPerUsd, 100);
     assert.equal(plan.slices[0]!.amountCents, 125);
     assert.equal(plan.totalAmountCents, 125);
+  });
+
+  it("retries on optimistic-lock contention and only counts committed lot slices", async () => {
+    const lot1Id = new ObjectId();
+    const lot2Id = new ObjectId();
+    // Initial snapshot has $10 on lot1 (85c/$) and $10 on lot2 (100c/$).
+    // First attempt misses on lot1 because a concurrent spend reduced lot1 to $4.
+    let readCount = 0;
+    const state = [
+      { _id: lot1Id, creditUsdRemaining: 10, cashCentsPerUsd: 85, amountPaidCents: 850 },
+      { _id: lot2Id, creditUsdRemaining: 10, cashCentsPerUsd: 100, amountPaidCents: 1000 },
+    ];
+
+    const result = await executeFifoLotDeductions({
+      spendUsd: 8,
+      loadLots: async () => {
+        readCount += 1;
+        return state.map((l) => ({ ...l }));
+      },
+      applySlice: async (lot, _slice, nextRemaining) => {
+        if (readCount === 1 && lot._id.equals(lot1Id)) {
+          // Simulate concurrent spend reducing lot1 from $10 to $4 before our update lands.
+          state[0]!.creditUsdRemaining = 4;
+          return false;
+        }
+        const target = state.find((l) => l._id.equals(lot._id));
+        if (!target || target.creditUsdRemaining !== lot.creditUsdRemaining) return false;
+        target.creditUsdRemaining = nextRemaining;
+        return true;
+      },
+    });
+
+    assert.equal(readCount, 2);
+    // $4 from lot1 @ 85c = 340c, plus $4 from lot2 @ 100c = 400c -> 740c total
+    assert.equal(result.allocatedUsd, 8);
+    assert.equal(result.allocatedAmountCents, 740);
+    assert.equal(state[0]!.creditUsdRemaining, 0);
+    assert.equal(state[1]!.creditUsdRemaining, 6);
+
+    // When all lot updates fail due to contention, committed base stays 0 (no phantom commission).
+    const failed = await executeFifoLotDeductions({
+      spendUsd: 5,
+      loadLots: async () => [
+        { _id: new ObjectId(), creditUsdRemaining: 5, cashCentsPerUsd: 100, amountPaidCents: 500 },
+      ],
+      applySlice: async () => false,
+      maxRetries: 2,
+    });
+    assert.equal(failed.allocatedUsd, 0);
+    assert.equal(failed.allocatedAmountCents, 0);
   });
 });
 

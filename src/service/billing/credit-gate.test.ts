@@ -6,6 +6,7 @@ import {
   assertFreeTrialClipAllowed,
   evaluateCreditSpendGate,
   hasPaidOrCreditAccess,
+  walletConcurrencyFilter,
 } from "@/service/billing/credits";
 import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
@@ -22,6 +23,7 @@ test("isCreditGateError matches subscribe and short-wallet copy", () => {
   assert.equal(isCreditGateError("USD Credit 餘額不足，無法扣款"), true);
   assert.equal(isCreditGateError("credits 不足，請加購或升級方案"), true);
   assert.equal(isCreditGateError("Insufficient USD Credit balance"), true);
+  assert.equal(isCreditGateError("讀取 USD Credit 失敗"), false);
   assert.equal(isCreditGateError("產生失敗"), false);
   assert.equal(isCreditGateError(undefined), false);
 });
@@ -193,5 +195,24 @@ test("hasPaidOrCreditAccess checks USD balance and lazy legacy fallback", () => 
   assert.equal(
     hasPaidOrCreditAccess({ email: "a@example.com", creditUsd: 0, bonusCreditUsd: 0 }, null),
     false,
+  );
+});
+
+test("walletConcurrencyFilter guards bonusCreditUsd for migrated users and legacy credits for unmigrated users", () => {
+  assert.deepEqual(
+    walletConcurrencyFilter({ clerkUserId: "u1", creditUsd: 10, bonusCreditUsd: 2.5 }),
+    { clerkUserId: "u1", creditUsd: 10, bonusCreditUsd: 2.5 },
+  );
+  assert.deepEqual(
+    walletConcurrencyFilter({ clerkUserId: "u1", creditUsd: 10 }),
+    { clerkUserId: "u1", creditUsd: 10, bonusCreditUsd: { $exists: false } },
+  );
+  assert.deepEqual(
+    walletConcurrencyFilter({ clerkUserId: "u2", credits: 145 }),
+    { clerkUserId: "u2", creditUsd: { $exists: false }, credits: 145 },
+  );
+  assert.deepEqual(
+    walletConcurrencyFilter({ clerkUserId: "u3", creditUsd: Number.NaN }),
+    { clerkUserId: "u3", creditUsd: { $exists: false }, credits: { $exists: false } },
   );
 });

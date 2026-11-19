@@ -18,7 +18,7 @@ import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 // Max retries when an optimistic balance filter loses a concurrent write race.
-const MAX_WALLET_RETRIES = 2;
+const MAX_WALLET_RETRIES = 5;
 
 export function isSubscriptionActive(sub: Subscription | null) {
   return Boolean(sub && ACTIVE_STATUSES.has(sub.status));
@@ -137,19 +137,29 @@ function newSpendEventKey(clerkUserId: string) {
   return `spend:${clerkUserId}:${Date.now()}:${randomBytes(4).toString("hex")}`;
 }
 
-// Optimistic filter matching the balance snapshot read before mutation (supports lazy legacy migration).
-function walletConcurrencyFilter(
-  user: Pick<AppUser, "clerkUserId" | "creditUsd" | "credits">,
+function isMigratedUser(user: Pick<AppUser, "creditUsd">): boolean {
+  return typeof user.creditUsd === "number" && Number.isFinite(user.creditUsd);
+}
+
+// Optimistic filter matching the exact wallet snapshot read before mutation (prevents ABA races & supports lazy migration).
+export function walletConcurrencyFilter(
+  user: Pick<AppUser, "clerkUserId" | "creditUsd" | "bonusCreditUsd" | "credits">,
 ) {
-  if (typeof user.creditUsd === "number") {
-    return { clerkUserId: user.clerkUserId, creditUsd: user.creditUsd };
+  if (isMigratedUser(user)) {
+    return {
+      clerkUserId: user.clerkUserId,
+      creditUsd: user.creditUsd,
+      ...(typeof user.bonusCreditUsd === "number"
+        ? { bonusCreditUsd: user.bonusCreditUsd }
+        : { bonusCreditUsd: { $exists: false } }),
+    };
   }
   return {
     clerkUserId: user.clerkUserId,
     creditUsd: { $exists: false },
-    ...(user.credits === undefined
-      ? { credits: { $exists: false } }
-      : { credits: user.credits }),
+    ...(typeof user.credits === "number"
+      ? { credits: user.credits }
+      : { credits: { $exists: false } }),
   };
 }
 
@@ -176,7 +186,7 @@ export async function consumeCreditUsd(
       throw new Error("USD Credit 餘額不足，無法扣款");
     }
 
-    const isMigrated = typeof user.creditUsd === "number";
+    const isMigrated = isMigratedUser(user);
     if (toUsdUnits(cost) === 0 && isMigrated) {
       return newSpendEventKey(clerkUserId);
     }
@@ -228,7 +238,7 @@ export async function refundCreditUsd(
     const balance = resolveUserUsdBalance(user);
     const nextCreditUsd = addUsd(balance.creditUsd, cost);
     const now = new Date();
-    const isMigrated = typeof user.creditUsd === "number";
+    const isMigrated = isMigratedUser(user);
 
     const result = await users.updateOne(walletConcurrencyFilter(user), {
       $set: isMigrated
@@ -248,7 +258,13 @@ export async function refundCreditUsd(
     }
   }
 
-  if (refunded && spendEventKey) {
+  if (!refunded) {
+    throw new Error(
+      `refundCreditUsd failed after ${MAX_WALLET_RETRIES + 1} attempts due to concurrent wallet updates (user=${clerkUserId})`,
+    );
+  }
+
+  if (spendEventKey) {
     try {
       await reverseConsumeCommission(clerkUserId, cost, spendEventKey);
     } catch (error) {
@@ -283,6 +299,10 @@ export async function resetMonthlyCreditUsd(
     });
     if (result.modifiedCount === 1 || result.matchedCount === 1) return;
   }
+
+  throw new Error(
+    `resetMonthlyCreditUsd failed after ${MAX_WALLET_RETRIES + 1} attempts due to concurrent wallet updates (user=${clerkUserId})`,
+  );
 }
 
 // Idempotently grant a one-time top-up pack in USD credit and record the processed checkout id.
@@ -319,4 +339,8 @@ export async function grantPackCreditUsd(
     );
     if (result.modifiedCount === 1 || result.matchedCount === 1) return;
   }
+
+  throw new Error(
+    `grantPackCreditUsd failed after ${MAX_WALLET_RETRIES + 1} attempts due to concurrent wallet updates (user=${clerkUserId}, checkout=${checkoutId})`,
+  );
 }

@@ -10,6 +10,8 @@ import {
   cashCentsPerUsd,
   planFifoSpendUsd,
   resolveLotUsdRemaining,
+  type FifoLotInput,
+  type LotSpendSliceUsd,
   type NewLotInput,
 } from "@/service/affiliate/lots";
 import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
@@ -18,7 +20,13 @@ import {
   CONSUME_RATES,
   commissionCents,
 } from "@/service/affiliate/rates";
-import { legacyCreditsToUsd, roundUsd4, subUsd, toUsdUnits } from "@/service/billing/usd";
+import {
+  fromUsdUnits,
+  legacyCreditsToUsd,
+  roundUsd4,
+  subUsd,
+  toUsdUnits,
+} from "@/service/billing/usd";
 import type {
   AffiliateLedgerEntry,
   AffiliateProfile,
@@ -26,6 +34,54 @@ import type {
   CreditLot,
 } from "@/model/affiliate";
 import type { AppUser } from "@/model/user";
+
+const MAX_FIFO_LOT_RETRIES = 5;
+
+// Executes FIFO lot deductions with optimistic-lock contention retries, returning strictly the committed USD and cash base.
+export async function executeFifoLotDeductions<TLot extends FifoLotInput>(input: {
+  spendUsd: number;
+  loadLots: () => Promise<TLot[]>;
+  applySlice: (lot: TLot, slice: LotSpendSliceUsd, nextRemaining: number) => Promise<boolean>;
+  maxRetries?: number;
+}): Promise<{ allocatedUsd: number; allocatedAmountCents: number }> {
+  const maxRetries = input.maxRetries ?? MAX_FIFO_LOT_RETRIES;
+  let remainingUnits = Math.max(0, toUsdUnits(input.spendUsd));
+  let allocatedUnits = 0;
+  let allocatedAmountCents = 0;
+
+  for (let attempt = 0; attempt <= maxRetries && remainingUnits > 0; attempt++) {
+    const lots = await input.loadLots();
+    const plan = planFifoSpendUsd(lots, fromUsdUnits(remainingUnits));
+    if (plan.slices.length === 0) break;
+
+    const lotsById = new Map(lots.map((l) => [l._id.toHexString(), l]));
+    let contended = false;
+
+    for (const slice of plan.slices) {
+      const lot = lotsById.get(slice.lotId);
+      if (!lot) continue;
+      const nextRemaining = Math.max(0, subUsd(resolveLotUsdRemaining(lot), slice.creditUsd));
+      const committed = await input.applySlice(lot, slice, nextRemaining);
+      if (committed) {
+        const sliceUnits = toUsdUnits(slice.creditUsd);
+        remainingUnits = Math.max(0, remainingUnits - sliceUnits);
+        allocatedUnits += sliceUnits;
+        allocatedAmountCents += slice.amountCents;
+      } else {
+        // Re-read remaining lots and re-plan for the unallocated balance on optimistic-lock miss.
+        contended = true;
+        break;
+      }
+    }
+
+    if (!contended) break;
+  }
+
+  return {
+    allocatedUsd: fromUsdUnits(allocatedUnits),
+    allocatedAmountCents,
+  };
+}
 
 export async function ensureAffiliateProfile(
   user: Pick<AppUser, "_id" | "clerkUserId">,
@@ -238,7 +294,7 @@ export async function recordPurchaseCommission(input: {
   }
 }
 
-// Deduct FIFO USD credit lots and pay consume commissions to uplines.
+// Deduct FIFO USD credit lots (retrying on optimistic-lock contention) and pay consume commissions to uplines.
 export async function recordConsumeCommission(
   spenderClerkUserId: string,
   creditUsd: number,
@@ -253,34 +309,36 @@ export async function recordConsumeCommission(
   if (!spender) return;
 
   const lotsCol = await creditLotsCollection();
-  const lots = await lotsCol
-    .find({
-      clerkUserId: spenderClerkUserId,
-      $or: [
-        { creditUsdRemaining: { $gt: 0 } },
-        { creditUsdRemaining: { $exists: false }, creditsRemaining: { $gt: 0 } },
-      ],
-    })
-    .sort({ createdAt: 1 })
-    .toArray();
-
-  const plan = planFifoSpendUsd(lots, spend);
-  const lotsById = new Map(lots.map((l) => [l._id.toHexString(), l]));
-
-  // Persist FIFO decrements using exact 4-decimal subtraction (lazily migrating legacy lots).
-  for (const slice of plan.slices) {
-    const lot = lotsById.get(slice.lotId);
-    if (!lot) continue;
-    const nextRemaining = Math.max(0, subUsd(resolveLotUsdRemaining(lot), slice.creditUsd));
-    if (!slice.isLegacy) {
-      await lotsCol.updateOne(
-        { _id: new ObjectId(slice.lotId), creditUsdRemaining: lot.creditUsdRemaining },
-        { $set: { creditUsdRemaining: nextRemaining } },
-      );
-    } else {
+  const { allocatedUsd, allocatedAmountCents } = await executeFifoLotDeductions({
+    spendUsd: spend,
+    loadLots: () =>
+      lotsCol
+        .find({
+          clerkUserId: spenderClerkUserId,
+          $or: [
+            { creditUsdRemaining: { $gt: 0 } },
+            { creditUsdRemaining: { $exists: false }, creditsRemaining: { $gt: 0 } },
+          ],
+        })
+        .sort({ createdAt: 1 })
+        .toArray(),
+    applySlice: async (lot, slice, nextRemaining) => {
+      if (!slice.isLegacy) {
+        const res = await lotsCol.updateOne(
+          { _id: new ObjectId(slice.lotId), creditUsdRemaining: lot.creditUsdRemaining },
+          { $set: { creditUsdRemaining: nextRemaining } },
+        );
+        return res.modifiedCount === 1;
+      }
       const origUsd = legacyCreditsToUsd(lot.creditsOriginal ?? lot.creditsRemaining ?? 0);
-      await lotsCol.updateOne(
-        { _id: new ObjectId(slice.lotId), creditUsdRemaining: { $exists: false } },
+      const res = await lotsCol.updateOne(
+        {
+          _id: new ObjectId(slice.lotId),
+          creditUsdRemaining: { $exists: false },
+          ...(typeof lot.creditsRemaining === "number"
+            ? { creditsRemaining: lot.creditsRemaining }
+            : { creditsRemaining: { $exists: false } }),
+        },
         {
           $set: {
             creditUsdRemaining: nextRemaining,
@@ -289,16 +347,17 @@ export async function recordConsumeCommission(
           },
         },
       );
-    }
-  }
+      return res.modifiedCount === 1;
+    },
+  });
 
-  if (plan.totalAmountCents <= 0) return;
+  if (allocatedAmountCents <= 0 || toUsdUnits(allocatedUsd) <= 0) return;
 
-  const effectiveRate = cashCentsPerUsd(plan.totalAmountCents, spend);
+  const effectiveRate = cashCentsPerUsd(allocatedAmountCents, allocatedUsd);
   const uplines = await uplineClerkIds(spender);
   for (const { tier, clerkUserId } of uplines) {
     const rate = CONSUME_RATES[tier];
-    const amountCents = commissionCents(plan.totalAmountCents, rate);
+    const amountCents = commissionCents(allocatedAmountCents, rate);
     if (amountCents <= 0) continue;
     const key = `${eventKey}:consume:L${tier}`;
     const inserted = await writeLedger({
@@ -308,8 +367,8 @@ export async function recordConsumeCommission(
       kind: "consume",
       amountCents,
       rate,
-      baseAmountCents: plan.totalAmountCents,
-      creditUsd: spend,
+      baseAmountCents: allocatedAmountCents,
+      creditUsd: allocatedUsd,
       cashCentsPerUsd: effectiveRate,
       eventKey: key,
     });
