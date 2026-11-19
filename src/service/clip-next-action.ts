@@ -1,4 +1,4 @@
-import { FRAMES_COST, MIN_VIDEO_COST } from "@/service/credit-costs";
+import { FRAMES_COST_USD, MIN_VIDEO_COST_USD } from "@/service/credit-costs";
 import { canQueueFrames, type ClipState } from "@/service/clip-stage";
 import type { TranslateFn } from "@/util/i18n/translate";
 
@@ -42,8 +42,8 @@ export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
 }
 
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
-  const videoCredits = state.videoCost ?? MIN_VIDEO_COST;
-  const frameCredits = state.frameCost ?? FRAMES_COST;
+  const videoCostUsd = state.videoCost ?? MIN_VIDEO_COST_USD;
+  const frameCostUsd = state.frameCost ?? FRAMES_COST_USD;
   if (state.stage === "frames_generating") {
     const id = state.wait === "running" ? "busy.framesRunning" : "busy.framesQueued";
     return { kind: "busy", id, cost: 0 };
@@ -53,22 +53,22 @@ export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipN
     return { kind: "busy", id, cost: 0 };
   }
   if (state.stale.frames) {
-    return { kind: "frames", id: "staleFrames", cost: frameCredits };
+    return { kind: "frames", id: "staleFrames", cost: frameCostUsd };
   }
   if (state.stage === "no_frames") {
-    return { kind: "frames", id: "drawFrames", cost: frameCredits };
+    return { kind: "frames", id: "drawFrames", cost: frameCostUsd };
   }
   if (state.stage === "frames_failed") {
-    return { kind: "frames", id: "retryFrames", cost: frameCredits };
+    return { kind: "frames", id: "retryFrames", cost: frameCostUsd };
   }
   if (state.stage === "frames_ready") {
-    return { kind: "video", id: "renderClip", cost: videoCredits };
+    return { kind: "video", id: "renderClip", cost: videoCostUsd };
   }
   if (state.stage === "video_failed") {
-    return { kind: "video", id: "retryVideo", cost: videoCredits };
+    return { kind: "video", id: "retryVideo", cost: videoCostUsd };
   }
   if (state.stale.video) {
-    return { kind: "video", id: "redoVideo", cost: videoCredits };
+    return { kind: "video", id: "redoVideo", cost: videoCostUsd };
   }
   if (nextUnfinished !== undefined) {
     return { kind: "next", id: "nextClip", params: { n: nextUnfinished }, cost: 0 };

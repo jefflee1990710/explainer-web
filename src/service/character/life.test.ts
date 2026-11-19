@@ -102,6 +102,7 @@ test("runLifeShotJob refunds credits and marks the shot failed when provider thr
 
   assert.equal(refunds.length, 1);
   assert.equal(refunds[0]?.clerkUserId, "user_1");
+  assert.equal(refunds[0]?.amount, 0.15);
   assert.equal(refunds[0]?.key, "spend_456");
   assert.equal(updates.length, 1);
   assert.deepEqual(updates[0]?.filter, { _id: shotId, status: "generating" });

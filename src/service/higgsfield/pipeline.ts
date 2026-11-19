@@ -10,7 +10,7 @@ import {
   generationJobsCollection,
   videosCollection,
 } from "@/dao";
-import { refundCredits } from "@/service/billing/credits";
+import { refundCreditUsd } from "@/service/billing/credits";
 import { flattenToCanvas, stripLetterboxBars } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import {
@@ -133,7 +133,7 @@ import {
   TALKING_HEAD_SKILL_SLUG,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
-import { chargedVideoCredits, FRAME_COST, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS } from "@/service/production-plan";
+import { chargedClipUsd, FRAME_COST_USD, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
 import { isSilentSpokenLine, lockDialogueSpeech } from "@/service/director/spoken-line";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
@@ -1278,7 +1278,7 @@ export async function applyJobStatus(input: {
     if (!claimedLockFailure) await jobs.updateOne({ _id: job._id }, lockUpdate);
     if (claimedLockFailure && job.projectId) {
       const lockProject = await (await videosCollection()).findOne({ _id: job.projectId });
-      if (lockProject) await refundCredits(lockProject.clerkUserId, FRAME_COST);
+      if (lockProject) await refundCreditUsd(lockProject.clerkUserId, FRAME_COST_USD);
     }
     if (status === "completed" && outputUrl) {
       scheduleGenerationFinishedEmail(job._id);
@@ -1491,7 +1491,7 @@ export async function applyJobStatus(input: {
   // Lost the claim (or not a failure at all): the fields still have to land.
   if (!claimedFailure) await jobs.updateOne({ _id: job._id }, update);
 
-  // Each frame is FRAME_COST; a clip video returns what it was charged. Hand it back once,
+  // Each frame is FRAME_COST_USD; a clip video returns what it was charged. Hand it back once,
   // the moment this caller is the one that marked the job failed.
   if (project && claimedFailure) {
     await refundClaimedFailure(job, project, errorMessage || status);
@@ -1542,13 +1542,13 @@ export async function refundClaimedFailure(
   project: Project,
   error: string,
 ) {
-  if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
+  if (job.kind === "frame") await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
   if (isVideoLockJobKind(job.kind)) {
-    await refundCredits(project.clerkUserId, FRAME_COST);
+    await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
   }
   if (job.kind === "video") {
     const clip = project.clips.find((item) => item.clipNumber === job.clipIndex + 1);
-    await refundCredits(project.clerkUserId, chargedVideoCredits(clip));
+    await refundCreditUsd(project.clerkUserId, chargedClipUsd(clip));
   }
   if (job.kind === "frame" && job.framePosition === "start") {
     await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
@@ -1592,7 +1592,7 @@ export async function failDeferredEndIfNeeded(
     if (existing.status === "pending" && existing.awaits === "start") {
       const failed = await claimFailure(existing._id, error, "failed", { awaits: "start" });
       if (failed) {
-        await refundCredits(project.clerkUserId, FRAME_COST);
+        await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
         await syncProjectFromJobs(projectId);
       }
       return;
@@ -1616,7 +1616,7 @@ export async function failDeferredEndIfNeeded(
       },
     },
   );
-  if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
+  if (claimed) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
 }
 
 // After this clip's start file lands, send the waiting end still. sendFrame
@@ -1782,7 +1782,7 @@ export async function failStartsAwaitingFirstStart(projectId: ObjectId, error: s
     const failed = await claimFailure(job._id, error, "failed", { awaits: "first-start" });
     if (!failed) continue;
     failedAny = true;
-    await refundCredits(project.clerkUserId, FRAME_COST);
+    await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
     // The last clip's end was parked on this start.
     await failDeferredEndIfNeeded(projectId, job.clipIndex + 1, error);
   }
@@ -1809,13 +1809,13 @@ export async function failDeferredNextStartIfNeeded(
   if (existing?.status === "pending" && existing.awaits === "prev-end") {
     const failed = await claimFailure(existing._id, error, "failed", { awaits: "prev-end" });
     if (failed) {
-      await refundCredits(project.clerkUserId, FRAME_COST);
+      await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
       await syncProjectFromJobs(projectId);
     }
   }
 }
 
-const ORPHAN_CLIP_ERROR = "影片沒有送出，credit 已退回，請再試一次";
+const ORPHAN_CLIP_ERROR = "影片沒有送出，USD Credit 已退回，請再試一次";
 
 // Reconcile attempts before giving up on a busy project; the next sync
 // (webhook, cron or poll) picks up whatever this one could not land.
@@ -1960,7 +1960,7 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
         },
       },
     );
-    if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
+    if (claimed) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
   }
   // A charged clip video whose job never got inserted (or was lost) has nothing
   // to send or settle it. Fenced on the claim so a newer attempt is never failed.
@@ -1987,7 +1987,7 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
     );
     if (claimed) {
       const clip = project.clips.find((item) => item.clipNumber === orphan.clipNumber);
-      await refundCredits(project.clerkUserId, chargedVideoCredits(clip));
+      await refundCreditUsd(project.clerkUserId, chargedClipUsd(clip));
     }
   }
   const current =

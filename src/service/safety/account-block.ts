@@ -71,6 +71,8 @@ export async function blockUserAndPurgeMedia(input: BlockUserInput): Promise<{
             isBlocked: true,
             blockedReason: input.reason,
             blockedAt: now,
+            creditUsd: 0,
+            bonusCreditUsd: 0,
             credits: 0,
             bonusCredits: 0,
             updatedAt: now,

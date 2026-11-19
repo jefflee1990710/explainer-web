@@ -7,6 +7,7 @@ import {
   uxEventsCollection,
   videosCollection,
 } from "@/dao";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import {
   buildPostActivationBehavior,
   type PostActivationActionSummary,
@@ -425,7 +426,7 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
       clerkUserId: u.clerkUserId,
       email: u.email || "(no email)",
       name: u.name || "User",
-      credits: u.credits ?? 0,
+      credits: resolveUserUsdBalance(u).creditUsd,
       hasAcceptedLegal: Boolean(u.legalAcceptance?.acceptedAt),
       folderCount: folderCountByUser.get(u.clerkUserId) ?? 0,
       characterCount: charStat?.total ?? 0,

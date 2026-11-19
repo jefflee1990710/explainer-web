@@ -80,12 +80,18 @@ test("restart is allowed while scene images and locks are still generating", () 
   );
 });
 
-test("restart refunds a frame cost, or what the subtitle plate charged", () => {
-  const source = video({ subtitlePlates: [{ clipNumber: 2, status: "in_progress", creditsCharged: 3 }] });
-  assert.equal(restartRefundFor(source, { kind: "frame", clipIndex: 0 }, 1), 1);
-  assert.equal(restartRefundFor(source, { kind: "backgroundPlate", clipIndex: 0 }, 1), 1);
-  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 1 }, 1), 3);
-  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 4 }, 1), 1);
+test("restart refunds a frame USD cost, or what the subtitle plate charged (with legacy fallback)", () => {
+  const source = video({
+    subtitlePlates: [
+      { clipNumber: 2, status: "in_progress", chargedUsd: 0.45 },
+      { clipNumber: 3, status: "in_progress", creditsCharged: 3 },
+    ],
+  });
+  assert.equal(restartRefundFor(source, { kind: "frame", clipIndex: 0 }, 0.15), 0.15);
+  assert.equal(restartRefundFor(source, { kind: "backgroundPlate", clipIndex: 0 }, 0.15), 0.15);
+  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 1 }, 0.15), 0.45);
+  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 2 }, 0.15), 0.12);
+  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 4 }, 0.15), 0.15);
 });
 
 test("restart deletes generated media but keeps the uploaded character image", () => {

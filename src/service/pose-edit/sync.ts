@@ -2,8 +2,8 @@ import type { Filter, ObjectId, OptionalId, UpdateFilter } from "mongodb";
 import { poseEditsCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { PoseEdit } from "@/model/pose-edit";
-import { refundCredits } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
 import { applyPoseWatermark } from "@/service/pose-edit/watermark";
@@ -50,10 +50,10 @@ async function restoreFailedSpendKey(rows: PoseEditRows, id: ObjectId, spendKey:
   });
 }
 
-// Claim a pending edit, store the short error, and refund the frame credit once.
+// Claim a pending edit, store the short error, and refund the frame USD credit once.
 export async function failPoseEdit(id: ObjectId, error: string, deps?: PoseEditSyncDeps) {
   const rows = await poseEditRows(deps);
-  const refund = deps?.refund ?? refundCredits;
+  const refund = deps?.refund ?? refundCreditUsd;
   const existing = await rows.findOne({ _id: id });
   if (!existing || existing.status === "completed") return;
   const spendKey = existing.spendKey;
@@ -63,7 +63,7 @@ export async function failPoseEdit(id: ObjectId, error: string, deps?: PoseEditS
   });
   if (!poseEditShouldRefund(claimed.modifiedCount) || !spendKey) return;
   try {
-    await refund(existing.clerkUserId, FRAME_COST, spendKey);
+    await refund(existing.clerkUserId, FRAME_COST_USD, spendKey);
   } catch {
     await restoreFailedSpendKey(rows, id, spendKey);
     await refundFailedPoseEdit(id, deps);
@@ -73,7 +73,7 @@ export async function failPoseEdit(id: ObjectId, error: string, deps?: PoseEditS
 // One refund for a failed row that still holds its spend key. The conditional unset is the only double-refund guard.
 export async function refundFailedPoseEdit(id: ObjectId, deps?: PoseEditSyncDeps) {
   const rows = await poseEditRows(deps);
-  const refund = deps?.refund ?? refundCredits;
+  const refund = deps?.refund ?? refundCreditUsd;
   const existing = await rows.findOne(poseEditFailedSpendQuery(id));
   if (!existing || existing.status !== "failed" || !existing.spendKey) return;
   const spendKey = existing.spendKey;
@@ -83,7 +83,7 @@ export async function refundFailedPoseEdit(id: ObjectId, deps?: PoseEditSyncDeps
   });
   if (!poseEditShouldRefund(claimed.modifiedCount)) return;
   try {
-    await refund(existing.clerkUserId, FRAME_COST, spendKey);
+    await refund(existing.clerkUserId, FRAME_COST_USD, spendKey);
   } catch (refundError) {
     await restoreFailedSpendKey(rows, id, spendKey);
     throw refundError;

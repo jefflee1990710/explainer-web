@@ -2,18 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId } from "mongodb";
 import type { AppUser } from "@/model/user";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { createPoseEdit } from "@/service/pose-edit/create";
+import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
 
 test("createPoseEdit does not upload when credits are refused", async () => {
   let uploaded = false;
   const result = await createPoseEdit({
-    user: { clerkUserId: "uid", credits: 0 } as AppUser,
+    user: { clerkUserId: "uid", creditUsd: 0 } as AppUser,
     bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
     fields: { poseId: "standing-arms-relaxed" },
     deps: {
       assertCanSpend: async () => {
-        throw new Error("credits 不足，請加購或升級方案");
+        throw new Error(POSE_EDIT_ERRORS.credits);
       },
       upload: async () => {
         uploaded = true;
@@ -28,7 +29,7 @@ test("createPoseEdit does not upload when credits are refused", async () => {
       readSize: async () => ({ width: 300, height: 400 }),
     },
   });
-  assert.deepEqual(result, { ok: false, status: 400, error: "credits 不足，請加購或升級方案" });
+  assert.deepEqual(result, { ok: false, status: 400, error: POSE_EDIT_ERRORS.credits });
   assert.equal(uploaded, false);
 });
 
@@ -36,7 +37,7 @@ test("createPoseEdit fails the edit once when enqueue throws", async () => {
   let fails = 0;
   let refunds = 0;
   const result = await createPoseEdit({
-    user: { clerkUserId: "uid", credits: 4 } as AppUser,
+    user: { clerkUserId: "uid", creditUsd: 1 } as AppUser,
     bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
     fields: { poseId: "standing-arms-relaxed" },
     deps: {
@@ -75,7 +76,7 @@ test("createPoseEdit refunds once when insert throws after consume", async () =>
   await assert.rejects(
     () =>
       createPoseEdit({
-        user: { clerkUserId: "uid", credits: 4 } as AppUser,
+        user: { clerkUserId: "uid", creditUsd: 1 } as AppUser,
         bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
         fields: { poseId: "standing-arms-relaxed" },
         deps: {
@@ -102,8 +103,8 @@ test("createPoseEdit refunds once when insert throws after consume", async () =>
   );
   assert.equal(inserts, 1);
   assert.equal(fails, 0);
-  assert.equal(FRAME_COST, 4);
-  assert.deepEqual(refunds, [{ clerkUserId: "uid", cost: FRAME_COST, spendKey: "spend-1" }]);
+  assert.equal(FRAME_COST_USD, 0.15);
+  assert.deepEqual(refunds, [{ clerkUserId: "uid", cost: FRAME_COST_USD, spendKey: "spend-1" }]);
 });
 
 test("createPoseEdit reports the spend key when the insert refund throws", async () => {
@@ -250,8 +251,8 @@ test("createPoseEdit marks freeTier true for free users and false for pack buyer
     user: {
       clerkUserId: "paid-uid",
       email: "paid@gmail.com",
-      credits: 100,
-      bonusCredits: 50,
+      creditUsd: 10,
+      bonusCreditUsd: 5,
     } as AppUser,
     bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
     fields: { poseId: "standing-arms-relaxed" },

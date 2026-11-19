@@ -6,7 +6,8 @@ import { videosCollection } from "@/dao";
 import type { FramePosition, SceneChatMessage } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, getActiveSubscription, hasPaidOrCreditAccess, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, getActiveSubscription, hasPaidOrCreditAccess, refundCreditUsd } from "@/service/billing/credits";
+import { mulUsd } from "@/service/billing/usd";
 import { sceneChatRateLimited } from "@/service/clip/scene-chat";
 import {
   FRAME_PROMPT_SUMMARY_MAX,
@@ -26,7 +27,7 @@ import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
 import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { failUnsubmittedFrames, regenerateFrame } from "@/service/higgsfield/pipeline";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { isProductionLike } from "@/service/project-status";
 
 type FramePromptResult =
@@ -76,7 +77,7 @@ export async function openFramePromptChatAction(input: {
     if (!target) return { ok: false, error: "專案不存在" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 USD Credit 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({
@@ -164,7 +165,7 @@ export async function sendFramePromptChatAction(input: {
     if (message.length > 2000) return { ok: false, error: "訊息過長" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 USD Credit 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({
@@ -281,8 +282,8 @@ export async function regenerateFramePromptAction(
       return { ok: false, error: "起始畫格還沒有圖，請先完成起始畫格" };
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     const attemptStartedAt = new Date();
     try {
       await regenerateFrame(project, target.clipNumber, target.position, undefined, {
@@ -298,7 +299,7 @@ export async function regenerateFramePromptAction(
         [target.position === "start" ? "end" : "start"],
         { strict: true },
       );
-      if (missed > 0) await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+      if (missed > 0) await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
       throw error;
     }
 

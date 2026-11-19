@@ -153,7 +153,7 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
     };
     // One throwing job (e.g. a refund error) must not abort the batch.
     try {
-      if (await failJob(job, "送出逾時，credit 已退回", stillStuck)) failed += 1;
+      if (await failJob(job, "送出逾時，USD Credit 已退回", stillStuck)) failed += 1;
     } catch (error) {
       console.error("[queue] exhausted job fail threw", { jobId: job._id, error });
     }
@@ -263,7 +263,7 @@ export async function refreshSubmittedJobs() {
   let timedOut = 0;
   for (const job of stale) {
     if (!providerTimedOut(job, now)) continue;
-    if (await failJob(job, "產生逾時，credit 已退回")) timedOut += 1;
+    if (await failJob(job, "產生逾時，USD Credit 已退回")) timedOut += 1;
   }
   return { refreshed: due.length, timedOut, staleClipProjects: staleClipProjects.length };
 }

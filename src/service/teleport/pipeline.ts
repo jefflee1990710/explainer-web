@@ -15,11 +15,12 @@ import {
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { teleportCost } from "@/service/credit-costs";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
+import { teleportCostUsd } from "@/service/credit-costs";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { settleTargetClipFromEngineJob } from "@/service/opencut/clip-jutsu-settle";
 import {
@@ -131,9 +132,9 @@ export async function startTeleportJob(
       return { ok: false, error: "場景照網址無效" };
     }
 
-    const cost = teleportCost({ durationSeconds: normalized.sectionLength });
-    await assertCanSpendCredits(user, cost);
-    const spendKey = await consumeCredits(user.clerkUserId, cost);
+    const cost = teleportCostUsd({ durationSeconds: normalized.sectionLength });
+    await assertCanSpendCreditUsd(user, cost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
 
     const now = new Date();
     const jobId = new ObjectId();
@@ -159,7 +160,7 @@ export async function startTeleportJob(
         });
         resolvedTargetClipNumber = 1;
       } catch (err) {
-        await refundCredits(user.clerkUserId, cost, spendKey);
+        await refundCreditUsd(user.clerkUserId, cost, spendKey);
         throw err;
       }
     }
@@ -178,7 +179,7 @@ export async function startTeleportJob(
       scenePlateGenerated: false,
       keepSourceAudio: normalized.keepSourceAudio,
       applyColorFix: normalized.applyColorFix,
-      creditsCharged: cost,
+      chargedUsd: cost,
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(normalized.previousClipVideoUrl
@@ -192,7 +193,7 @@ export async function startTeleportJob(
     try {
       await col.insertOne(doc);
     } catch (err) {
-      await refundCredits(user.clerkUserId, cost, spendKey);
+      await refundCreditUsd(user.clerkUserId, cost, spendKey);
       throw err;
     }
 
@@ -364,13 +365,18 @@ async function failTeleportJobAndRefund(
       },
     },
   );
+  const refundUsd =
+    typeof job.chargedUsd === "number" && Number.isFinite(job.chargedUsd)
+      ? job.chargedUsd
+      : typeof job.creditsCharged === "number" && Number.isFinite(job.creditsCharged)
+        ? legacyCreditsToUsd(job.creditsCharged)
+        : 0;
   if (
     updateRes.modifiedCount > 0 &&
     !job.creditsRefunded &&
-    job.creditsCharged &&
-    job.creditsCharged > 0
+    refundUsd > 0
   ) {
-    await refundCredits(job.clerkUserId, job.creditsCharged).catch((err) => {
+    await refundCreditUsd(job.clerkUserId, refundUsd).catch((err) => {
       console.error("[teleport] credit refund failed", {
         jobId: job._id.toHexString(),
         err,

@@ -387,6 +387,7 @@ test("duplicateClip clones the storyboard row, frames, video, subtitle plates, a
           prompt: "video prompt 1",
           status: "completed" as const,
           outputUrl: "https://blob/clip-1.mp4",
+          chargedUsd: 0.5,
           creditsCharged: 15,
         },
         {
@@ -425,6 +426,7 @@ test("duplicateClip clones the storyboard row, frames, video, subtitle plates, a
           clipNumber: 1,
           status: "completed" as const,
           outputUrl: "https://blob/plate-1.png",
+          chargedUsd: 0.15,
           creditsCharged: 1,
         },
       ],
@@ -465,12 +467,13 @@ test("duplicateClip clones the storyboard row, frames, video, subtitle plates, a
     result.project.clips.map((clip) => [
       clip.clipNumber,
       clip.outputUrl,
+      clip.chargedUsd ?? null,
       clip.creditsCharged ?? null,
     ]),
     [
-      [1, "https://blob/clip-1.mp4", 15],
-      [2, "https://blob/clip-1.mp4", null],
-      [3, "https://blob/clip-2.mp4", null],
+      [1, "https://blob/clip-1.mp4", 0.5, 15],
+      [2, "https://blob/clip-1.mp4", null, null],
+      [3, "https://blob/clip-2.mp4", null, null],
     ],
   );
   assert.deepEqual(
@@ -491,11 +494,12 @@ test("duplicateClip clones the storyboard row, frames, video, subtitle plates, a
     result.project.subtitlePlates?.map((plate) => [
       plate.clipNumber,
       plate.outputUrl,
+      plate.chargedUsd ?? null,
       plate.creditsCharged ?? null,
     ]),
     [
-      [1, "https://blob/plate-1.png", 1],
-      [2, "https://blob/plate-1.png", null],
+      [1, "https://blob/plate-1.png", 0.15, 1],
+      [2, "https://blob/plate-1.png", null, null],
     ],
   );
   assert.deepEqual(

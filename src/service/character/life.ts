@@ -19,7 +19,7 @@ import {
 } from "@/model/life-shot";
 import type { LifeCreateMode } from "@/model/life-shot-kind";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
 import {
   characterStyleIds,
@@ -42,7 +42,7 @@ import {
 } from "@/service/character/life-prompt";
 import { lifePoseReferenceUrl } from "@/service/character/life-pose-ref";
 import { searchPlaceScenes } from "@/service/character/life-search";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { directorModel } from "@/service/director/model";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
@@ -208,12 +208,12 @@ async function settleStaleGeneratingShots(clerkUserId: string) {
     const claimed = await shots.findOneAndUpdate(
       { _id: item._id, status: "generating" },
       {
-        $set: { status: "failed", error: "生成逾時，點數已退回" },
+        $set: { status: "failed", error: "生成逾時，USD Credit 已退回" },
         $unset: { spendKey: "" },
       },
     );
     if (claimed && item.spendKey) {
-      await refundCredits(clerkUserId, FRAME_COST, item.spendKey).catch(() => {});
+      await refundCreditUsd(clerkUserId, FRAME_COST_USD, item.spendKey).catch(() => {});
     }
   }
 }
@@ -319,7 +319,7 @@ const defaultLifeJobDeps: LifeJobDeps = {
     await shots.updateOne(filter, update);
   },
   refund: (clerkUserId, amount, spendKey) =>
-    refundCredits(clerkUserId, amount, spendKey),
+    refundCreditUsd(clerkUserId, amount, spendKey),
   revalidate: () => {
     try {
       revalidatePath("/app/life");
@@ -369,7 +369,7 @@ export async function runLifeShotJob(
     console.error("[life] background generate failed", error);
     const message = error instanceof Error ? error.message : "生活照生成失敗";
     try {
-      await deps.refund(input.clerkUserId, FRAME_COST, input.spendKey);
+      await deps.refund(input.clerkUserId, FRAME_COST_USD, input.spendKey);
     } catch {
       // Keep the failure status update even if refund throws.
     }
@@ -481,8 +481,8 @@ export async function generateLifeShotAction(input: {
     }));
   const customInstruction = (input.customInstruction ?? "").trim().slice(0, 400);
 
-  await assertCanSpendCredits(user, FRAME_COST);
-  const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+  await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+  const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
 
   try {
     const hasAnnotatedImage = Boolean(
@@ -563,7 +563,7 @@ export async function generateLifeShotAction(input: {
   } catch (error) {
     console.error("[life] enqueue failed", error);
     try {
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
     } catch {
       // The generate error is the one the user can act on.
     }

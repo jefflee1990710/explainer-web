@@ -4,7 +4,7 @@ import { directorsCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { DirectorChatMessage, DirectorPreviewStatus, Skill } from "@/model/skill";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { bleedDirectorPreview } from "@/service/director/preview-frame";
 import {
   DIRECTOR_PREVIEW_STRIP_IDS,
@@ -17,7 +17,7 @@ import { emptyProfile } from "@/service/director/profile";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { persistBuffer } from "@/service/higgsfield/persist";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import {
   shouldChargeAfterClaim,
@@ -169,7 +169,7 @@ async function releaseUnqueuedSpend(input: {
     return;
   }
   try {
-    await refundCredits(input.ownerClerkUserId, FRAME_COST, input.spendKey);
+    await refundCreditUsd(input.ownerClerkUserId, FRAME_COST_USD, input.spendKey);
   } catch (error) {
     if (resetMatchedCount === 1) {
       await collection.updateOne(ownedPreviewFilter(input.directorId, input.previewStartedAt), {
@@ -229,8 +229,8 @@ export async function generateDirectorPreviewAction(input: {
     }
 
     try {
-      await assertCanSpendCredits(user, FRAME_COST);
-      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+      await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+      spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     } catch (error) {
       await collection.updateOne(ownedPreviewFilter(doc._id, now), {
         $set: { previewStatus: "idle", updatedAt: new Date() },
@@ -297,7 +297,7 @@ async function claimPreviewRefund(
   );
   if (!shouldClearPreviewCharge(claimed.matchedCount)) return;
   try {
-    await refundCredits(ownerClerkUserId, FRAME_COST);
+    await refundCreditUsd(ownerClerkUserId, FRAME_COST_USD);
   } catch (error) {
     await directors.updateOne(ownedPreviewFilter(directorId, previewStartedAt), {
       $set: { previewCreditsCharged: true, updatedAt: new Date() },

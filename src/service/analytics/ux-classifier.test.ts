@@ -43,7 +43,7 @@ describe("User Stuck Stage Classifier & Funnel", () => {
     clerkUserId: "u1",
     email: "user@example.com",
     name: "Test User",
-    credits: 100,
+    credits: 6,
     hasAcceptedLegal: false,
     folderCount: 0,
     characterCount: 0,
@@ -131,7 +131,7 @@ describe("User Stuck Stage Classifier & Funnel", () => {
     const res = classifyUserStuckStage({
       ...baseSnapshot,
       hasAcceptedLegal: true,
-      credits: 2,
+      credits: 0.05,
       videoCount: 1,
       storyboardReadyCount: 1,
       keyframeReadyCount: 1,

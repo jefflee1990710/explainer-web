@@ -479,7 +479,7 @@ export async function buildCast(
         ...(selectedVersion.spec ? { spec: selectedVersion.spec } : {}),
         status: "queued" as const,
         creditsCharged: false,
-        creditsCost: 0,
+        chargedUsd: 0,
         createdAt: now,
         submittedAt: now,
       };

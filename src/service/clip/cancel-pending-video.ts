@@ -1,6 +1,6 @@
 import { generationJobsCollection, videosCollection } from "@/dao";
-import { refundCredits } from "@/service/billing/credits";
-import { chargedVideoCredits } from "@/service/credit-costs";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { chargedClipUsd } from "@/service/credit-costs";
 import { nextProjectStatus } from "@/service/higgsfield/reconcile";
 import type { Project, ProjectClip } from "@/model/project";
 
@@ -69,6 +69,6 @@ export async function cancelPendingClipVideo(
     return { ok: false, error: CLIP_ALREADY_SENT };
   }
 
-  await refundCredits(clerkUserId, chargedVideoCredits(clip));
+  await refundCreditUsd(clerkUserId, chargedClipUsd(clip));
   return { ok: true };
 }

@@ -5,7 +5,7 @@ import { videosCollection } from "@/dao";
 import type { SceneChatMessage } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, getActiveSubscription, hasPaidOrCreditAccess } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, getActiveSubscription, hasPaidOrCreditAccess } from "@/service/billing/credits";
 import { sceneImageCost } from "@/service/production-plan";
 import { updateClipStoryboardAction } from "@/service/generation/actions";
 import { directorModel } from "@/service/director/model";
@@ -73,7 +73,7 @@ export async function sendClipSceneChatAction(input: {
     if (message.length > 2000) return { ok: false, error: "訊息過長" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 USD Credit 或訂閱才能使用 AI 修改" };
 
     const projects = await videosCollection();
     const project = await projects.findOne({
@@ -203,7 +203,7 @@ export async function regenerateClipSceneMediaAction(
     if (!clip) return { ok: false, error: "找不到這段分鏡" };
 
     const source = { ...project, frames: project.frames || [] };
-    await assertCanSpendCredits(user, sceneImageCost(source, [clipNumber]));
+    await assertCanSpendCreditUsd(user, sceneImageCost(source, [clipNumber]));
 
     const saved = await updateClipStoryboardAction(
       videoId,

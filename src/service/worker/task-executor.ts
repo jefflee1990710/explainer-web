@@ -208,10 +208,10 @@ export async function executeWorkerTask(
         };
       }
       if (providerTimedOut(fresh, Date.now())) {
-        await failJob(fresh, "產生逾時，credit 已退回");
+        await failJob(fresh, "產生逾時，USD Credit 已退回");
         return {
           outcome: "failed",
-          error: "產生逾時，credit 已退回",
+          error: "產生逾時，USD Credit 已退回",
           permanent: true,
         };
       }

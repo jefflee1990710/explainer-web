@@ -3,13 +3,13 @@ import { videosCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { CoverStatus, Project } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { toSent } from "@/service/generation/sent";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { resolveSubtitleLook, subtitleLookLine, textStyleSampleHint } from "@/service/director/subtitle-look";
@@ -177,7 +177,7 @@ async function claimCoverRefund(videoId: ObjectId, clerkUserId: string, coverSta
   );
   if (claimed.matchedCount !== 1) return;
   try {
-    await refundCredits(clerkUserId, FRAME_COST);
+    await refundCreditUsd(clerkUserId, FRAME_COST_USD);
   } catch (error) {
     await videos.updateOne(ownedCoverFilter(videoId, clerkUserId, coverStartedAt), {
       $set: { coverCreditsCharged: true, updatedAt: new Date() },
@@ -259,8 +259,8 @@ export async function generateReelCoverAction(
     if (claimed.matchedCount !== 1) return { ok: false, error: "封面生成中" };
 
     try {
-      await assertCanSpendCredits(user, FRAME_COST);
-      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+      await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+      spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     } catch (error) {
       await videos.updateOne(ownedCoverFilter(video._id, user.clerkUserId, now), {
         $set: { coverStatus: "idle", updatedAt: new Date() },
@@ -286,7 +286,7 @@ export async function generateReelCoverAction(
       await videos.updateOne(ownedCoverFilter(video._id, user.clerkUserId, now), {
         $set: { coverStatus: "idle", coverCreditsCharged: false, updatedAt: new Date() },
       });
-      if (spendKey) await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      if (spendKey) await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
       return fail(error, "封面排隊失敗");
     }
     jobQueued = true;

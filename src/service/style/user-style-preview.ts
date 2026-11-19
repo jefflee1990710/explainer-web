@@ -4,13 +4,13 @@ import { userStylesCollection } from "@/dao/user-styles";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { PreviewStatus, StyleChatMessage } from "@/model/user-style";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { stylePreviewPrompt } from "@/service/style/preview-prompt";
 import { renderableFromUserStyle } from "@/service/style/renderable-style";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 
 // A generating preview older than this is no longer treated as in flight.
 const PREVIEW_IN_FLIGHT_MS = 15 * 60 * 1000;
@@ -178,7 +178,7 @@ async function releaseUnqueuedSpend(input: {
     return;
   }
   try {
-    await refundCredits(input.ownerClerkUserId, FRAME_COST, input.spendKey);
+    await refundCreditUsd(input.ownerClerkUserId, FRAME_COST_USD, input.spendKey);
   } catch (error) {
     if (resetMatchedCount === 1) {
       await collection.updateOne(ownedPreviewFilter(input.styleId, input.previewStartedAt), {
@@ -237,8 +237,8 @@ export async function generateUserStylePreviewAction(input: {
     }
 
     try {
-      await assertCanSpendCredits(user, FRAME_COST);
-      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+      await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+      spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     } catch (error) {
       await collection.updateOne(ownedPreviewFilter(doc._id, now), {
         $set: { previewStatus: "idle", updatedAt: new Date() },
@@ -247,7 +247,11 @@ export async function generateUserStylePreviewAction(input: {
     }
 
     const charged = await collection.updateOne(ownedPreviewFilter(doc._id, now), {
-      $set: { previewCreditsCharged: true, updatedAt: new Date() },
+      $set: {
+        previewCreditsCharged: true,
+        chargedUsd: FRAME_COST_USD,
+        updatedAt: new Date(),
+      },
     });
     // A newer attempt replaced this start time. Do not refund or overwrite its charge.
     if (!shouldClearPreviewCharge(charged.matchedCount)) {
@@ -295,6 +299,7 @@ async function claimPreviewRefund(
   styleId: ObjectId,
   ownerClerkUserId: string,
   previewStartedAt: Date,
+  chargedUsd?: number,
 ) {
   const styles = await userStylesCollection();
   const claimed = await styles.updateOne(
@@ -308,8 +313,12 @@ async function claimPreviewRefund(
     },
   );
   if (!shouldClearPreviewCharge(claimed.matchedCount)) return;
+  const refundAmount =
+    typeof chargedUsd === "number" && Number.isFinite(chargedUsd)
+      ? chargedUsd
+      : FRAME_COST_USD;
   try {
-    await refundCredits(ownerClerkUserId, FRAME_COST);
+    await refundCreditUsd(ownerClerkUserId, refundAmount);
   } catch (error) {
     // Restore the claim so a later delivery can retry the refund.
     await styles.updateOne(ownedPreviewFilter(styleId, previewStartedAt), {
@@ -360,6 +369,6 @@ export async function syncStylePreviewJob(
   }
 
   if (status === "failed" || status === "nsfw") {
-    await claimPreviewRefund(doc._id, doc.ownerClerkUserId, startedAt);
+    await claimPreviewRefund(doc._id, doc.ownerClerkUserId, startedAt, doc.chargedUsd);
   }
 }

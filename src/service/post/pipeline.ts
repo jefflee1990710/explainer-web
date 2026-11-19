@@ -20,11 +20,11 @@ import {
 import type { Product } from "@/model/product";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { detectPostElementsWithFalSam3 } from "@/service/fal/sam3-post";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { upsampleJutsuFramePrompt } from "@/service/jutsu/describer";
@@ -320,7 +320,7 @@ export async function createPostJob(
       return { ok: true, post: toPublicPost(doc) };
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
     const [cast, products] = await Promise.all([
       resolveCastMembers(
         user.clerkUserId,
@@ -362,7 +362,7 @@ export async function createPostJob(
       hasReferenceImage: Boolean(referenceImageUrl),
     });
 
-    spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
 
     const now = new Date();
     const doc: Post = {
@@ -412,7 +412,7 @@ export async function createPostJob(
     return { ok: true, post: toPublicPost(doc) };
   } catch (error) {
     if (spendKey && clerkUserId) {
-      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
+      await refundCreditUsd(clerkUserId, FRAME_COST_USD, spendKey).catch(() => {});
     }
     return {
       ok: false,
@@ -485,7 +485,7 @@ export async function runPostCreateInBackground(input: {
       error,
     });
     if (input.spendKey && input.clerkUserId) {
-      await refundCredits(input.clerkUserId, FRAME_COST, input.spendKey).catch(() => {});
+      await refundCreditUsd(input.clerkUserId, FRAME_COST_USD, input.spendKey).catch(() => {});
     }
     await posts.updateOne(
       { _id: input.postId },
@@ -539,7 +539,7 @@ export async function editPostElementJob(
     });
     if (!validation.ok) return validation;
 
-    await assertCanSpendCredits(user, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
 
     let donorImageUrl =
       input.characterLookUrl?.trim() || input.referenceImageUrl?.trim() || undefined;
@@ -594,7 +594,7 @@ export async function editPostElementJob(
         ? [pub.currentImageUrl, donorImageUrl]
         : [pub.currentImageUrl];
 
-    spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
 
     const refBuffers = (
       await Promise.all(referenceImageUrls.map((u) => downloadBuffer(u)))
@@ -683,7 +683,7 @@ export async function editPostElementJob(
     };
   } catch (error) {
     if (spendKey && clerkUserId) {
-      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
+      await refundCreditUsd(clerkUserId, FRAME_COST_USD, spendKey).catch(() => {});
     }
     return {
       ok: false,

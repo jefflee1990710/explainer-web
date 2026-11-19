@@ -3,11 +3,12 @@ import { generationJobsCollection, usersCollection, videosCollection } from "@/d
 import type { GenerationJob } from "@/model/generation-job";
 import type { BackgroundPlate, Project } from "@/model/project";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { addUsd, mulUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import {
   applyVideoLocksToClips,
   planVideoLocks,
@@ -45,7 +46,7 @@ async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string)
       continue;
     }
     const claimed = await claimFailure(job._id, "分鏡道具或場景已更新，將重新產生參考圖");
-    if (claimed) await refundCredits(clerkUserId, FRAME_COST);
+    if (claimed) await refundCreditUsd(clerkUserId, FRAME_COST_USD);
   }
 }
 
@@ -79,9 +80,9 @@ export function videoLocksReady(project: Project) {
 }
 
 export function videoLocksCost(plan: Pick<VideoLocksPlan, "objects" | "sets">) {
-  const sheet = plan.objects.length > 0 ? FRAME_COST : 0;
-  const plates = plan.sets.filter((set) => set.clipNumbers.length > 0).length * FRAME_COST;
-  return sheet + plates;
+  const sheet = plan.objects.length > 0 ? FRAME_COST_USD : 0;
+  const plates = mulUsd(plan.sets.filter((set) => set.clipNumbers.length > 0).length, FRAME_COST_USD);
+  return addUsd(sheet, plates);
 }
 
 export function videoLocksCostForProject(project: Project) {
@@ -189,12 +190,12 @@ export async function enqueueVideoLockJobs(project: Project) {
 
   if (toQueue.length === 0) return { queued: 0, cost: 0 };
 
-  const cost = toQueue.length * FRAME_COST;
+  const cost = mulUsd(toQueue.length, FRAME_COST_USD);
   const users = await usersCollection();
   const user = await users.findOne({ clerkUserId: project.clerkUserId });
   if (!user) throw new Error("找不到使用者");
-  await assertCanSpendCredits(user, cost);
-  const spendKey = await consumeCredits(project.clerkUserId, cost);
+  await assertCanSpendCreditUsd(user, cost);
+  const spendKey = await consumeCreditUsd(project.clerkUserId, cost);
 
   try {
     await jobs.deleteMany({
@@ -219,7 +220,7 @@ export async function enqueueVideoLockJobs(project: Project) {
       },
     );
   } catch (error) {
-    await refundCredits(project.clerkUserId, cost, spendKey);
+    await refundCreditUsd(project.clerkUserId, cost, spendKey);
     throw error;
   }
 

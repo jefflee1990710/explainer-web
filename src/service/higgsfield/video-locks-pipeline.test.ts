@@ -9,7 +9,8 @@ import {
   videoLocksCost,
   videoLocksReady,
 } from "@/service/higgsfield/video-locks-pipeline";
-import { FRAME_COST } from "@/service/credit-costs";
+import { mulUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 
 test("videoLocksCost charges one sheet plus each unique set", () => {
   assert.equal(videoLocksCost({ objects: [], sets: [] }), 0);
@@ -18,7 +19,7 @@ test("videoLocksCost charges one sheet plus each unique set", () => {
       objects: [{ name: "gimbal", notes: "metal" }],
       sets: [],
     }),
-    FRAME_COST,
+    FRAME_COST_USD,
   );
   assert.equal(
     videoLocksCost({
@@ -28,7 +29,7 @@ test("videoLocksCost charges one sheet plus each unique set", () => {
         { setId: "desk", name: "desk", notes: "wood", clipNumbers: [3] },
       ],
     }),
-    FRAME_COST * 3,
+    mulUsd(FRAME_COST_USD, 3),
   );
   // Empty clip list does not bill a plate.
   assert.equal(

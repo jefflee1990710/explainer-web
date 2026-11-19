@@ -16,7 +16,7 @@ import {
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { talkingHeadPhaseASchema, phaseBClipSchema } from "@/model/director";
-import { FRAMES_COST } from "@/service/credit-costs";
+import { FRAMES_COST_USD } from "@/service/credit-costs";
 
 const TALKING_HEAD_TOO_LONG = 20 * 12 * 4 + 8;
 
@@ -322,15 +322,15 @@ test("talking-head evens word count and keeps a named shot", () => {
 });
 
 test("start-only directors draw their own start; talking-head draws its own start", () => {
-  assert.equal(talkingHeadFramesCost("talking-head-director", 1), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("surprise-interview-director", 1), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAMES_COST);
+  assert.equal(talkingHeadFramesCost("talking-head-director", 1), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 1), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAMES_COST_USD);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAMES_COST_USD);
   const rows = [
     { clipNumber: 1, position: "end" as const, status: "completed", blobUrl: "https://blob/end-1.png" },
     { clipNumber: 2, position: "start" as const, status: "queued" },

@@ -4,12 +4,12 @@ import { textStylesCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { TextStyleChatMessage, TextStyleDoc, TextStylePreviewStatus } from "@/model/text-style";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { customTextStylePreviewPrompt } from "@/service/director/subtitle-look";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 
 const PREVIEW_IN_FLIGHT_MS = 15 * 60 * 1000;
@@ -112,7 +112,7 @@ async function releaseUnqueuedSpend(input: {
   });
   if (reset.matchedCount !== 1) return;
   try {
-    await refundCredits(input.clerkUserId, FRAME_COST, input.spendKey);
+    await refundCreditUsd(input.clerkUserId, FRAME_COST_USD, input.spendKey);
   } catch (error) {
     await collection.updateOne(ownedPreviewFilter(input.styleId, input.previewStartedAt), {
       $set: { previewCreditsCharged: true, updatedAt: new Date() },
@@ -169,8 +169,8 @@ export async function generateTextStylePreviewAction(input: {
     if (claimed.matchedCount !== 1) return { ok: false, error: "預覽生成中" };
 
     try {
-      await assertCanSpendCredits(user, FRAME_COST);
-      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+      await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+      spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     } catch (error) {
       await collection.updateOne(ownedPreviewFilter(doc._id, now), {
         $set: { previewStatus: "idle", updatedAt: new Date() },
@@ -234,7 +234,7 @@ async function claimPreviewRefund(styleId: ObjectId, clerkUserId: string, previe
   );
   if (claimed.matchedCount !== 1) return;
   try {
-    await refundCredits(clerkUserId, FRAME_COST);
+    await refundCreditUsd(clerkUserId, FRAME_COST_USD);
   } catch (error) {
     await styles.updateOne(ownedPreviewFilter(styleId, previewStartedAt), {
       $set: { previewCreditsCharged: true, updatedAt: new Date() },

@@ -7,7 +7,7 @@ import {
   resolveClipProject,
 } from "@/service/clip/clip-context";
 import { clipStateFor, clipFrameCost } from "@/service/clip-stage";
-import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
 import { clipEndIsNextStart, clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { frameSubmitPlan, framesWithClip } from "@/service/higgsfield/frame-prompts";
 import { clipVideoCost } from "@/service/production-plan";
@@ -217,19 +217,19 @@ describe("per-clip stage and steady-stills resolution", () => {
     // so Clip 1 cannot use Clip 2's start frame as its end frame and must draw both stills.
     assert.equal(clipEndIsNextStart(project, 1), false);
     assert.equal(clipDrawsNoEndStill(project, 1), false);
-    assert.equal(clipFrameCost(project, 1), FRAMES_COST);
-    // Clip 2 is one-take (start-only), so it draws no end still (1 frame = FRAME_COST).
+    assert.equal(clipFrameCost(project, 1), FRAMES_COST_USD);
+    // Clip 2 is one-take (start-only), so it draws no end still (1 frame = FRAME_COST_USD).
     assert.equal(clipDrawsNoEndStill(project, 2), true);
-    assert.equal(clipFrameCost(project, 2), FRAME_COST);
+    assert.equal(clipFrameCost(project, 2), FRAME_COST_USD);
     // Clip 3 is papercraft-diorama (start-only explainer), so it draws no end still.
     assert.equal(clipDrawsNoEndStill(project, 3), true);
-    assert.equal(clipFrameCost(project, 3), FRAME_COST);
+    assert.equal(clipFrameCost(project, 3), FRAME_COST_USD);
 
     const state2 = clipStateFor(project, 2);
-    assert.equal(state2.frameCost, FRAME_COST);
-    assert.equal(clipVideoCost(project, 1), 20);
-    assert.equal(clipVideoCost(project, 2), 10);
-    assert.equal(state2.videoCost, 10);
+    assert.equal(state2.frameCost, FRAME_COST_USD);
+    assert.equal(clipVideoCost(project, 1), 0.9);
+    assert.equal(clipVideoCost(project, 2), 0.5);
+    assert.equal(state2.videoCost, 0.5);
   });
 
   it("isolates frameSubmitPlan anchors across director changes and builds per-clip frames in framesWithClip", () => {

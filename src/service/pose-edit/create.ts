@@ -6,13 +6,14 @@ import type { PoseEdit } from "@/model/pose-edit";
 import type { Subscription } from "@/model/subscription";
 import type { AppUser } from "@/model/user";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
   isSubscriptionActive,
-  refundCredits,
+  refundCreditUsd,
 } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { poseEditAspect, type PoseEditAspect } from "@/service/pose-edit/aspect";
 import { toPoseEditDto, type PoseEditDto } from "@/service/pose-edit/dto";
 import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
@@ -27,8 +28,8 @@ import { failPoseEdit } from "@/service/pose-edit/sync";
 
 const BLOB_NOT_CONFIGURED = "尚未設定 Vercel Blob";
 
-// Free welcome-credit accounts may generate up to 3 pose edits (12 credits max)
-// so a single 145-credit welcome grant cannot be drained into 36 free photos.
+// Free welcome-credit accounts may generate up to 3 pose edits ($0.45 USD max)
+// so a single $6.00 welcome grant cannot be drained into 40 free photos.
 export const FREE_TRIAL_POSE_EDIT_LIMIT = 3;
 
 // Upload refused before any bytes are stored. Other upload failures still throw.
@@ -79,11 +80,11 @@ function spendRefusal(error: unknown) {
   return SPEND_REFUSALS.has(error.message) ? error.message : undefined;
 }
 
-// Paid users have an active subscription, purchased a credit pack, or are on the operator unlimited list.
+// Paid users have an active subscription, purchased a USD credit pack, or are on the operator unlimited list.
 export function isFreeTierPoseUser(user: AppUser, sub: Subscription | null): boolean {
   if (hasUnlimitedCredits(user.email)) return false;
   if (isSubscriptionActive(sub)) return false;
-  if ((user.bonusCredits ?? 0) > 0) return false;
+  if (resolveUserUsdBalance(user).bonusCreditUsd > 0) return false;
   if (user.processedCheckoutIds && user.processedCheckoutIds.length > 0) return false;
   return true;
 }
@@ -123,14 +124,14 @@ async function insertPoseEdit(draft: PoseEditDraft): Promise<PoseEdit> {
 }
 
 const defaultDeps: PoseEditCreateDeps = {
-  assertCanSpend: assertCanSpendCredits,
+  assertCanSpend: assertCanSpendCreditUsd,
   countNonFailedEdits: countNonFailedPoseEdits,
   upload: uploadPoseEditSource,
-  consume: consumeCredits,
+  consume: consumeCreditUsd,
   insert: insertPoseEdit,
   enqueue: enqueuePoseEdit,
   fail: failPoseEdit,
-  refund: refundCredits,
+  refund: refundCreditUsd,
   readSize: readPoseEditSize,
 };
 
@@ -165,7 +166,7 @@ export async function createPoseEdit(input: {
 
   let freeTier = false;
   try {
-    const subResult = await deps.assertCanSpend(input.user, FRAME_COST);
+    const subResult = await deps.assertCanSpend(input.user, FRAME_COST_USD);
     const sub =
       subResult && typeof subResult === "object" && "status" in subResult
         ? (subResult as Subscription)
@@ -196,7 +197,7 @@ export async function createPoseEdit(input: {
     throw error;
   }
 
-  const spendKey = await deps.consume(input.user.clerkUserId, FRAME_COST);
+  const spendKey = await deps.consume(input.user.clerkUserId, FRAME_COST_USD);
   const poseId = selection.poseId;
   const poseText = selection.poseText;
   const outfitText = selection.outfitText;
@@ -216,7 +217,7 @@ export async function createPoseEdit(input: {
     });
   } catch (insertError) {
     try {
-      await deps.refund(input.user.clerkUserId, FRAME_COST, spendKey);
+      await deps.refund(input.user.clerkUserId, FRAME_COST_USD, spendKey);
     } catch (refundError) {
       // Insert threw before a pose_edits row existed, so there is nothing to mark failed.
       console.error("[pose-edit] insert refund failed", { spendKey, insertError, refundError });

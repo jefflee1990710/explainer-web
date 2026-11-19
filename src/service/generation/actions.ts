@@ -3,10 +3,11 @@ import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
+import { mulUsd } from "@/service/billing/usd";
 import { videosCollection } from "@/dao";
 import { clipAppendNeedsKick } from "@/service/clip/clip-append";
 import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
@@ -43,7 +44,7 @@ import {
 } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
 import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
-import { FRAME_COST } from "@/service/production-plan";
+import { FRAME_COST_USD } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
   ClipFrame,
@@ -187,8 +188,8 @@ export async function regenerateFrameAction(
       revision = { remark };
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
 
     // Anything older than this belongs to a previous attempt and cannot prove
     // that this one was queued.
@@ -234,7 +235,7 @@ export async function regenerateFrameAction(
         { strict: true },
       );
       if (missed > 0) {
-        await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+        await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
       }
       throw error;
     }
@@ -286,14 +287,14 @@ export async function retrySubtitlePlateAction(
       return { ok: false, error: "這段的字幕圖還在產生中，請稍後再重試" };
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     try {
       // Replaces only this clip's row and job; the row keeps the clip's current line.
       await enqueueSubtitlePlateJobs(project, [clipNumber]);
     } catch (error) {
       // No job was left behind, so nothing will refund this charge but us.
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
       throw error;
     }
 
@@ -391,7 +392,7 @@ export async function updateClipStoryboardAction(
 
     const skipEnd = clipDrawsNoEndStill(project, clipNumber);
     const cost = regenerate ? clipFrameCost(project, clipNumber) : 0;
-    if (regenerate) await assertCanSpendCredits(user, cost);
+    if (regenerate) await assertCanSpendCreditUsd(user, cost);
 
     // Apply the edit in memory first so frame prompts are rebuilt from the new text.
     const editedAt = new Date().toISOString();
@@ -439,7 +440,7 @@ export async function updateClipStoryboardAction(
         });
 
     const spendKey = regenerate
-      ? await consumeCredits(user.clerkUserId, cost)
+      ? await consumeCreditUsd(user.clerkUserId, cost)
       : undefined;
     try {
       await projects.updateOne(
@@ -448,7 +449,7 @@ export async function updateClipStoryboardAction(
       );
     } catch (error) {
       // Write failed before anything went out → give back the full charge.
-      if (regenerate && spendKey) await refundCredits(user.clerkUserId, cost, spendKey);
+      if (regenerate && spendKey) await refundCreditUsd(user.clerkUserId, cost, spendKey);
       throw error;
     }
 
@@ -491,7 +492,7 @@ export async function updateClipStoryboardAction(
           skipEnd ? { strict: true } : {},
         );
         if (missed > 0) {
-          await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+          await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
         }
         throw error;
       }

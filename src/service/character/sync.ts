@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
-import { refundCredits } from "@/service/billing/credits";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
 import { charactersCollection } from "@/dao";
 import {
   canReframeOnCanvas,
@@ -17,13 +18,21 @@ import {
 } from "@/service/character/generate";
 import { versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import type { Character, CharacterVersion } from "@/model/character";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
-// What this version was charged. Rows from before boards carried one sheet at FRAME_COST.
-export function versionCreditsCost(version: Pick<CharacterVersion, "creditsCost">) {
-  return version.creditsCost ?? FRAME_COST;
+// What this version was charged in USD Credit. Falls back to legacy integer creditsCost, then FRAME_COST_USD.
+export function versionChargedUsd(
+  version: Pick<CharacterVersion, "chargedUsd" | "creditsCost">,
+): number {
+  if (typeof version.chargedUsd === "number" && Number.isFinite(version.chargedUsd)) {
+    return version.chargedUsd;
+  }
+  if (typeof version.creditsCost === "number" && Number.isFinite(version.creditsCost)) {
+    return legacyCreditsToUsd(version.creditsCost);
+  }
+  return FRAME_COST_USD;
 }
 
 // Mark a version failed and refund its credits exactly once. The atomic claim on
@@ -63,7 +72,10 @@ export async function failCharacterVersion(
   );
   if (claimed.modifiedCount === 1) {
     try {
-      await refundCredits(character.clerkUserId, version ? versionCreditsCost(version) : FRAME_COST);
+      await refundCreditUsd(
+        character.clerkUserId,
+        version ? versionChargedUsd(version) : FRAME_COST_USD,
+      );
     } catch (error) {
       // Restore the claim so a later delivery can retry the refund.
       await characters.updateOne(

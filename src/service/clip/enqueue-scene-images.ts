@@ -1,9 +1,9 @@
 import type { ObjectId } from "mongodb";
 import { usersCollection, videosCollection } from "@/dao";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
 import { enqueueClipFrameJobs, stillBlocker } from "@/service/higgsfield/pipeline";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
@@ -45,8 +45,8 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   const users = await usersCollection();
   const user = await users.findOne({ clerkUserId: project.clerkUserId });
   if (!user) return;
-  await assertCanSpendCredits(user, plan.cost);
-  const spendKey = await consumeCredits(project.clerkUserId, plan.cost);
+  await assertCanSpendCreditUsd(user, plan.cost);
+  const spendKey = await consumeCreditUsd(project.clerkUserId, plan.cost);
   try {
     // Flag Clip 1 for automatic video generation as soon as its scene frame(s) finish,
     // so new videos immediately deliver an animated, voiced first clip in OpenCut.
@@ -60,7 +60,7 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
     // One plate per clip; the plan cost above already includes them.
     await enqueueSubtitlePlateJobs(project);
   } catch (error) {
-    await refundCredits(project.clerkUserId, plan.cost, spendKey);
+    await refundCreditUsd(project.clerkUserId, plan.cost, spendKey);
     throw error;
   }
 }

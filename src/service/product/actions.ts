@@ -7,9 +7,15 @@ import {
   type Product,
 } from "@/model/product";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import {
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  getActiveSubscription,
+  isSubscriptionActive,
+  refundCreditUsd,
+} from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { enqueueProductBlueprint } from "@/service/product/generate";
 import { productAllowance } from "@/service/product/product-limit";
 
@@ -42,7 +48,7 @@ export async function createProductAction(formData: FormData): Promise<ProductRe
 
     const sub = await getActiveSubscription(user.clerkUserId);
     const hasPaidPack =
-      (user.bonusCredits ?? 0) > 0 ||
+      resolveUserUsdBalance(user).bonusCreditUsd > 0 ||
       Boolean(user.processedCheckoutIds && user.processedCheckoutIds.length > 0);
     const allowance = productAllowance(
       isSubscriptionActive(sub) && sub ? sub.planId : null,
@@ -55,8 +61,8 @@ export async function createProductAction(formData: FormData): Promise<ProductRe
       if (count >= allowance) return { ok: false, error: "已達這個方案的產品上限" };
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     const now = new Date();
     let product: Product | null = null;
     try {
@@ -68,12 +74,13 @@ export async function createProductAction(formData: FormData): Promise<ProductRe
         referenceImageUrls,
         status: "queued",
         creditsCharged: true,
+        chargedUsd: FRAME_COST_USD,
         createdAt: now,
         updatedAt: now,
       });
       product = await products.findOne({ _id: insert.insertedId });
     } catch (error) {
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
       throw error;
     }
     if (!product) return { ok: false, error: "建立產品失敗" };
@@ -82,7 +89,9 @@ export async function createProductAction(formData: FormData): Promise<ProductRe
   } catch (error) {
     const message = error instanceof Error ? error.message : "建立產品失敗";
     if (message.includes("訂閱")) return { ok: false, error: "請先訂閱才能建立產品" };
-    if (message.includes("credits")) return { ok: false, error: "credits 不足" };
+    if (message.includes("USD Credit") || message.includes("credits")) {
+      return { ok: false, error: "USD Credit 餘額不足" };
+    }
     return { ok: false, error: message };
   }
 }
@@ -98,24 +107,31 @@ export async function retryProductAction(productId: string): Promise<ProductResu
     if (product.status === "queued" || product.status === "in_progress") {
       return { ok: false, error: "產品藍圖還在生成" };
     }
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
     const claimed = await products.updateOne(
       { _id: product._id, status: { $in: ["failed", "completed"] } },
       {
-        $set: { status: "queued", creditsCharged: true, updatedAt: new Date() },
+        $set: {
+          status: "queued",
+          creditsCharged: true,
+          chargedUsd: FRAME_COST_USD,
+          updatedAt: new Date(),
+        },
         $unset: { error: "", blueprintUrl: "" },
       },
     );
     if (claimed.modifiedCount !== 1) {
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
       return { ok: false, error: "產品藍圖還在生成" };
     }
     await enqueueProductBlueprint(product._id);
     return { ok: true, id: product._id.toHexString() };
   } catch (error) {
     const message = error instanceof Error ? error.message : "重試失敗";
-    if (message.includes("credits")) return { ok: false, error: "credits 不足" };
+    if (message.includes("USD Credit") || message.includes("credits")) {
+      return { ok: false, error: "USD Credit 餘額不足" };
+    }
     return { ok: false, error: message };
   }
 }

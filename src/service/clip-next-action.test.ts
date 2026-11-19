@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { FRAMES_COST, MIN_VIDEO_COST, videoCost } from "@/service/production-plan";
+import { FRAMES_COST_USD, MIN_VIDEO_COST_USD, videoCostUsd } from "@/service/production-plan";
 import { canQueueFrames, canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 
@@ -39,7 +39,7 @@ test("no frames asks to draw both frames", () => {
   assert.deepEqual(clipNextAction(state("no_frames")), {
     kind: "frames",
     id: "drawFrames",
-    cost: FRAMES_COST,
+    cost: FRAMES_COST_USD,
   });
 });
 
@@ -58,9 +58,9 @@ test("stale frames outrank a ready video", () => {
 test("ready frames ask for the video at the clip's per-second cost", () => {
   const action = clipNextAction(state("frames_ready"));
   assert.equal(action.kind, "video");
-  assert.equal(action.cost, MIN_VIDEO_COST);
-  const eightSeconds = clipNextAction({ ...state("frames_ready"), videoCost: videoCost(8) });
-  assert.equal(eightSeconds.cost, 16);
+  assert.equal(action.cost, MIN_VIDEO_COST_USD);
+  const eightSeconds = clipNextAction({ ...state("frames_ready"), videoCost: videoCostUsd(8) });
+  assert.equal(eightSeconds.cost, 0.8);
 });
 
 test("failed video retries the video", () => {

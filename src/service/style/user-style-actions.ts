@@ -212,7 +212,7 @@ export async function sendUserStyleChatAction(input: {
     if (!doc) return { ok: false, error: "找不到 Style" };
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能使用 AI 修改" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 USD Credit 或訂閱才能使用 AI 修改" };
 
     const message = String(input.message ?? "").trim();
     const imageUrl = parseChatImageUrl(input.imageUrl);

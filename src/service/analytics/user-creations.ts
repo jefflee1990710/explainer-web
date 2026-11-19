@@ -7,6 +7,7 @@ import {
   usersCollection,
   videosCollection,
 } from "@/dao";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 
 export type AdminUserVideoItem = {
   id: string;
@@ -286,7 +287,7 @@ export async function getAdminUserCreations(
     clerkUserId: trimmedId,
     email: userDoc?.email || trimmedId,
     name: userDoc?.name || "User",
-    credits: userDoc?.credits ?? 0,
+    credits: userDoc ? resolveUserUsdBalance(userDoc).creditUsd : 0,
     marketingEmailsAllowed: Boolean(
       userDoc?.marketingEmailsAllowed ?? userDoc?.marketingConsent?.consented,
     ),

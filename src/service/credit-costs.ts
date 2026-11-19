@@ -103,13 +103,3 @@ export function chargedClipUsd(clip?: {
 export function needsVideoUpgradeUsd(creditUsd: number, costUsd = MIN_VIDEO_COST_USD): boolean {
   return toUsdUnits(creditUsd) < toUsdUnits(costUsd);
 }
-
-// Minimal transitional aliases required by `clip-stage.ts` and `talking-head.ts` until Task 4 migrates them.
-/** @deprecated Use `FRAME_COST_USD` / `IMAGE_COST_USD`. */
-export const FRAME_COST = FRAME_COST_USD;
-/** @deprecated Use `FRAMES_COST_USD`. */
-export const FRAMES_COST = FRAMES_COST_USD;
-/** @deprecated Use `videoCostUsd`. */
-export const videoCost = videoCostUsd;
-/** @deprecated Use `talkingHeadVideoCostUsd`. */
-export const talkingHeadVideoCost = talkingHeadVideoCostUsd;

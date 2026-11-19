@@ -28,11 +28,12 @@ import type { Character } from "@/model/character";
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { scroSwapCost } from "@/service/credit-costs";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
+import { scroSwapCostUsd } from "@/service/credit-costs";
 import {
   detectPeopleWithFalSam3ImageRle,
   type DetectedSourcePerson,
@@ -1332,12 +1333,12 @@ export async function startScroSwapJob(
     const colorSettings = input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS;
 
     const sourceMediaKind = inferJutsuSourceMediaKind(sourceUrl, input.sourceMediaKind);
-    const cost = scroSwapCost({
+    const cost = scroSwapCostUsd({
       durationSeconds: sectionLength,
       mediaKind: sourceMediaKind,
     });
-    await assertCanSpendCredits(user, cost);
-    const spendKey = await consumeCredits(user.clerkUserId, cost);
+    await assertCanSpendCreditUsd(user, cost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
 
     const now = new Date();
     const jobId = new ObjectId();
@@ -1361,7 +1362,7 @@ export async function startScroSwapJob(
         });
         resolvedTargetClipNumber = 1;
       } catch (err) {
-        await refundCredits(user.clerkUserId, cost, spendKey);
+        await refundCreditUsd(user.clerkUserId, cost, spendKey);
         throw err;
       }
     }
@@ -1410,7 +1411,7 @@ export async function startScroSwapJob(
       keepSourceAudio,
       applyColorFix,
       colorSettings,
-      creditsCharged: cost,
+      chargedUsd: cost,
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(input.previousClipVideoUrl ? { previousClipVideoUrl: input.previousClipVideoUrl } : {}),
@@ -1422,7 +1423,7 @@ export async function startScroSwapJob(
     try {
       await col.insertOne(doc);
     } catch (err) {
-      await refundCredits(user.clerkUserId, cost, spendKey);
+      await refundCreditUsd(user.clerkUserId, cost, spendKey);
       throw err;
     }
 
@@ -1951,13 +1952,18 @@ async function failJutsuJobAndRefund(
       },
     },
   );
+  const refundUsd =
+    typeof job.chargedUsd === "number" && Number.isFinite(job.chargedUsd)
+      ? job.chargedUsd
+      : typeof job.creditsCharged === "number" && Number.isFinite(job.creditsCharged)
+        ? legacyCreditsToUsd(job.creditsCharged)
+        : 0;
   if (
     updateRes.modifiedCount > 0 &&
     !job.creditsRefunded &&
-    job.creditsCharged &&
-    job.creditsCharged > 0
+    refundUsd > 0
   ) {
-    await refundCredits(job.clerkUserId, job.creditsCharged).catch((err) => {
+    await refundCreditUsd(job.clerkUserId, refundUsd).catch((err) => {
       console.error("[scro-swap] credit refund failed", {
         jobId: job._id.toHexString(),
         err,

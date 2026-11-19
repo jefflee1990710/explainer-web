@@ -158,6 +158,6 @@ export async function advanceOwnedJobs(clerkUserId: string) {
     .toArray();
   for (const job of stale) {
     if (!providerTimedOut(job, now)) continue;
-    await failJob(job, "產生逾時，credit 已退回");
+    await failJob(job, "產生逾時，USD Credit 已退回");
   }
 }

@@ -1,3 +1,6 @@
+import { formatUsd } from "@/service/billing/usd";
+import { IMAGE_COST_USD } from "@/service/credit-costs";
+
 // Pure UX funnel & drop-off classifier used by `/scroadmin/analytics` and unit tests.
 
 export type UserJourneySnapshot = {
@@ -54,8 +57,8 @@ export type FunnelStepMetric = {
   dropOffPercent: number;
 };
 
-// Minimum credits needed to generate one image/frame in the studio.
-const MIN_ACTIONABLE_CREDITS = 5;
+// Minimum USD credit needed to generate one image/frame in the studio.
+const MIN_ACTIONABLE_CREDIT_USD = IMAGE_COST_USD;
 
 // Classify why a specific user stopped progressing or whether they are actively producing.
 export function classifyUserStuckStage(
@@ -78,13 +81,13 @@ export function classifyUserStuckStage(
 
   if (
     !hasProducedOutput &&
-    (snapshot.credits < MIN_ACTIONABLE_CREDITS || snapshot.creditBlockCount > 0)
+    (snapshot.credits < MIN_ACTIONABLE_CREDIT_USD || snapshot.creditBlockCount > 0)
   ) {
     return {
       stageId: "blocked_insufficient_credits",
-      title: "點數不足阻斷 (Out of Credits)",
-      reason: `剩餘 ${snapshot.credits} 點（或曾觸發點數不足彈窗 ${snapshot.creditBlockCount} 次），無法繼續生成分鏡圖或影片。`,
-      recommendation: "檢查免費用戶初始點數是否足夠完成第一支短片，或提供首支影片體驗額度。",
+      title: "USD Credit 不足阻斷 (Out of Credits)",
+      reason: `剩餘 ${formatUsd(snapshot.credits)}（或曾觸發餘額不足彈窗 ${snapshot.creditBlockCount} 次），無法繼續生成分鏡圖或影片。`,
+      recommendation: "檢查免費用戶初始 USD Credit 是否足夠完成第一支短片，或提供首支影片體驗額度。",
       severity: "high",
     };
   }

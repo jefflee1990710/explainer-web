@@ -27,14 +27,15 @@ import { attachClipOverrides, clipsShareContinuity } from "@/service/clip/clip-c
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
   getActiveSubscription,
   hasPaidOrCreditAccess,
-  refundCredits,
+  refundCreditUsd,
 } from "@/service/billing/credits";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { addUsd, mulUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isSceneTextChoice, resolveSceneText, SCENE_TEXT_OFF } from "@/service/director/scene-text";
@@ -135,7 +136,7 @@ export async function appendDirectorClipAction(
     const mode: ClipAppendMode = input?.mode === "full_video" ? "full_video" : "single_clip";
 
     const sub = await getActiveSubscription(user.clerkUserId);
-    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 credits 或訂閱才能新增片段" };
+    if (!hasPaidOrCreditAccess(user, sub)) return { ok: false, error: "需要有可用 USD Credit 或訂閱才能新增片段" };
 
     const videos = await videosCollection();
     const project = await videos.findOne({
@@ -659,7 +660,10 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
     const users = await usersCollection();
     const account = await users.findOne({ clerkUserId: fresh.clerkUserId });
     if (!account) throw new Error("專案不存在");
-    await assertCanSpendCredits(withUnlimitedCredits(account), FRAME_COST * drafted.length);
+    await assertCanSpendCreditUsd(
+      withUnlimitedCredits(account),
+      mulUsd(FRAME_COST_USD, drafted.length),
+    );
   }
 
   const draftedWithOverrides = drafted.map((row) => attachClipOverrides(row, job.overrides));
@@ -740,20 +744,20 @@ async function queueNewClipFrames(
     if (await stillBlocker(saved)) return;
 
     const cost = clipNumbers.reduce(
-      (sum, clipNumber) => sum + clipFrameCost(saved, clipNumber),
+      (sum, clipNumber) => addUsd(sum, clipFrameCost(saved, clipNumber)),
       0,
     );
     if (cost <= 0) return;
 
-    await assertCanSpendCredits(withUnlimitedCredits(account), cost);
-    spendKey = await consumeCredits(clerkUserId, cost);
+    await assertCanSpendCreditUsd(withUnlimitedCredits(account), cost);
+    spendKey = await consumeCreditUsd(clerkUserId, cost);
     chargedCost = cost;
 
     await enqueueClipFrameJobs(saved, clipNumbers);
   } catch (error) {
     console.error("[clip-append] new clip frame enqueue failed", { videoId, error });
     if (spendKey && chargedCost > 0) {
-      await refundCredits(clerkUserId, chargedCost, spendKey).catch(() => {});
+      await refundCreditUsd(clerkUserId, chargedCost, spendKey).catch(() => {});
     }
   }
 }
@@ -762,10 +766,10 @@ async function queueNewClipFrames(
 // failure refunds those credits and leaves no plate: export stays blocked and the studio's
 // retry button is the way to recover.
 async function queueNewClipPlates(clerkUserId: string, videoId: ObjectId, clipNumbers: number[]) {
-  const cost = FRAME_COST * clipNumbers.length;
+  const cost = mulUsd(FRAME_COST_USD, clipNumbers.length);
   let spendKey: string | undefined;
   try {
-    spendKey = await consumeCredits(clerkUserId, cost);
+    spendKey = await consumeCreditUsd(clerkUserId, cost);
   } catch (error) {
     console.error("[subtitle-plate] new clip charge failed", { videoId, error });
     return;
@@ -777,7 +781,7 @@ async function queueNewClipPlates(clerkUserId: string, videoId: ObjectId, clipNu
     await enqueueSubtitlePlateJobs(saved, clipNumbers);
   } catch (error) {
     console.error("[subtitle-plate] new clip enqueue failed", { videoId, error });
-    await refundCredits(clerkUserId, cost, spendKey);
+    await refundCreditUsd(clerkUserId, cost, spendKey);
   }
 }
 

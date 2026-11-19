@@ -3,8 +3,9 @@ import sharp from "sharp";
 import { generationJobsCollection, videosCollection } from "@/dao";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { Project, SubtitlePlate } from "@/model/project";
-import { refundCredits } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import {
   isGreenKeyPixel,
   plateIsEmpty,
@@ -106,7 +107,7 @@ export async function enqueueSubtitlePlateJobs(
     clipNumber: clip.clipNumber,
     status: "queued",
     submittedAt,
-    creditsCharged: FRAME_COST,
+    chargedUsd: FRAME_COST_USD,
     // The line this plate is drawn for; a later edit makes it stale.
     line: clip.englishVo?.trim() || undefined,
   }));
@@ -224,12 +225,25 @@ export async function sendSubtitlePlate(project: Project, clipNumber: number): P
   return toSent(model, submitted);
 }
 
+// Resolve exact USD refund for a plate, falling back to legacy integer credits or default frame cost.
+function subtitlePlateRefundUsd(
+  plate?: Pick<SubtitlePlate, "chargedUsd" | "creditsCharged">,
+): number {
+  if (typeof plate?.chargedUsd === "number" && Number.isFinite(plate.chargedUsd)) {
+    return plate.chargedUsd;
+  }
+  if (typeof plate?.creditsCharged === "number" && Number.isFinite(plate.creditsCharged)) {
+    return legacyCreditsToUsd(plate.creditsCharged);
+  }
+  return FRAME_COST_USD;
+}
+
 // Fail the plate row once (the status filter is the claim) and refund only the winner.
 async function failPlate(
   projectId: ObjectId,
   clipNumber: number,
   error: string,
-  refund?: number,
+  refundUsd?: number,
 ) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
@@ -251,7 +265,7 @@ async function failPlate(
   );
   if (claimed.matchedCount === 0) return;
   const plate = project.subtitlePlates?.find((item) => item.clipNumber === clipNumber);
-  await refundCredits(project.clerkUserId, refund ?? plate?.creditsCharged ?? FRAME_COST);
+  await refundCreditUsd(project.clerkUserId, refundUsd ?? subtitlePlateRefundUsd(plate));
 }
 
 // Mirror a subtitlePlate job onto the project's plate row. Frames and clip video are untouched.
@@ -269,7 +283,7 @@ export async function syncSubtitlePlateJob(
   if (status === "failed" || status === "nsfw") {
     const fallback = status === "nsfw" ? "字幕圖未通過內容檢查" : "字幕圖產生失敗";
     const message = errorMessage?.trim() || fallback;
-    await failPlate(projectId, clipNumber, message, FRAME_COST);
+    await failPlate(projectId, clipNumber, message);
     return;
   }
 
@@ -293,7 +307,7 @@ export async function syncSubtitlePlateJob(
   // The spoken line changed while this plate was drawing: do not save a stale graphic.
   const clip = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
   if (plateLineStale(plate, clip?.englishVo)) {
-    await failPlate(projectId, clipNumber, PLATE_LINE_CHANGED_ERROR, plate.creditsCharged);
+    await failPlate(projectId, clipNumber, PLATE_LINE_CHANGED_ERROR, subtitlePlateRefundUsd(plate));
     return;
   }
 
@@ -304,12 +318,12 @@ export async function syncSubtitlePlateJob(
     keyed = await keyGreenPng(Buffer.from(await response.arrayBuffer()));
   } catch (error) {
     console.error("[subtitle-plate] key failed", { jobId: job._id, error });
-    await failPlate(projectId, clipNumber, "字幕圖處理失敗", plate.creditsCharged);
+    await failPlate(projectId, clipNumber, "字幕圖處理失敗", subtitlePlateRefundUsd(plate));
     return;
   }
 
   if (plateIsEmpty(keyed.ratio)) {
-    await failPlate(projectId, clipNumber, PLATE_EMPTY_ERROR, plate.creditsCharged);
+    await failPlate(projectId, clipNumber, PLATE_EMPTY_ERROR, subtitlePlateRefundUsd(plate));
     return;
   }
 

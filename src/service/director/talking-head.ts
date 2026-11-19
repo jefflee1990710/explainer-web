@@ -8,7 +8,7 @@ import {
   talkingHeadPoseOwnsFraming,
   talkingHeadPoseShot,
 } from "@/model/talking-head-options";
-import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
@@ -57,7 +57,7 @@ export function isInheritedTalkingHeadStart(
 
 // A copied start is free. Clip 1 still draws both stills. Later chained starts copy the previous end.
 export function talkingHeadFramesCost(skillSlug: string | undefined, clipNumber: number) {
-  return inheritsPreviousEnd(skillSlug, clipNumber, "start") ? FRAME_COST : FRAMES_COST;
+  return inheritsPreviousEnd(skillSlug, clipNumber, "start") ? FRAME_COST_USD : FRAMES_COST_USD;
 }
 
 type CopyableFrame = {

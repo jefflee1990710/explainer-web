@@ -5,10 +5,11 @@ import { videosCollection } from "@/dao";
 import type { ProjectClip, ReferenceImage, StoryboardRow, VideoQualityTier } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { assertCanSpendCredits, consumeCredits } from "@/service/billing/credits";
+import { assertCanSpendCreditUsd, consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
+import { addUsd } from "@/service/billing/usd";
 import { insertClips } from "@/service/clip/clip-order";
 import { queueAutoClipVideos } from "@/service/clip/auto-video";
-import { FRAME_COST } from "@/service/credit-costs";
+import { FRAME_COST_USD, videoCostUsd } from "@/service/credit-costs";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { enqueueClipFrameJobs } from "@/service/higgsfield/pipeline";
 
@@ -94,15 +95,24 @@ export async function appendSimpleClipAction(
       5,
       Math.min(12, Math.round(Number(input.durationSeconds) || 6)),
     );
-    const videoCost = durationSeconds * 2;
+    const videoCost = videoCostUsd(
+      durationSeconds,
+      project.styleId,
+      false,
+      undefined,
+      input.videoQualityTier,
+    );
     const firstFrameUrl = input.firstFrameUrl?.trim();
     const hasFirstFrame = Boolean(firstFrameUrl && firstFrameUrl.startsWith("https://"));
-    const initialCost = hasFirstFrame ? 0 : FRAME_COST;
+    const initialCost = hasFirstFrame ? 0 : FRAME_COST_USD;
 
     try {
-      await assertCanSpendCredits(user, initialCost + videoCost);
+      await assertCanSpendCreditUsd(user, addUsd(initialCost, videoCost));
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "點數不足，無法新增分鏡" };
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "USD Credit 餘額不足，無法新增分鏡",
+      };
     }
 
     const refImages: ReferenceImage[] = (input.referenceImageUrls || [])
@@ -194,28 +204,35 @@ export async function appendSimpleClipAction(
       new Set([...(shifted.project.autoVideoClips || []), insertAt]),
     );
 
-    if (initialCost > 0) {
-      await consumeCredits(user.clerkUserId, initialCost);
-    }
+    const spendKey = initialCost > 0
+      ? await consumeCreditUsd(user.clerkUserId, initialCost)
+      : undefined;
 
     const mergedRefImages = [
       ...(project.referenceImages || []).filter((img) => !refImages.some((r) => r.url === img.url)),
       ...refImages,
     ];
 
-    await videos.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          phaseA: shifted.project.phaseA,
-          clips: updatedClips,
-          frames: updatedFrames,
-          autoVideoClips: updatedAutoVideoClips,
-          referenceImages: mergedRefImages,
-          updatedAt: now,
+    try {
+      await videos.updateOne(
+        { _id: project._id },
+        {
+          $set: {
+            phaseA: shifted.project.phaseA,
+            clips: updatedClips,
+            frames: updatedFrames,
+            autoVideoClips: updatedAutoVideoClips,
+            referenceImages: mergedRefImages,
+            updatedAt: now,
+          },
         },
-      },
-    );
+      );
+    } catch (err) {
+      if (initialCost > 0) {
+        await refundCreditUsd(user.clerkUserId, initialCost, spendKey);
+      }
+      throw err;
+    }
 
     const updatedProject = await videos.findOne({ _id: project._id });
     if (!updatedProject) {

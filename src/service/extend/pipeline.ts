@@ -14,11 +14,12 @@ import {
 import type { AspectRatio } from "@/model/project";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { teleportCost } from "@/service/credit-costs";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
+import { teleportCostUsd } from "@/service/credit-costs";
 import {
   comfyRenderStaleMs,
   comfyViewAuthHeaders,
@@ -87,9 +88,9 @@ export async function startExtendJob(input: {
       return { ok: false, error: "目標專案不存在" };
     }
 
-    const cost = teleportCost({ durationSeconds: EXTEND_CLIP_DURATION_SECONDS });
-    await assertCanSpendCredits(user, cost);
-    const spendKey = await consumeCredits(user.clerkUserId, cost);
+    const cost = teleportCostUsd({ durationSeconds: EXTEND_CLIP_DURATION_SECONDS });
+    await assertCanSpendCreditUsd(user, cost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
 
     const now = new Date();
     const jobId = new ObjectId();
@@ -116,7 +117,7 @@ export async function startExtendJob(input: {
       applyColorFix: true,
       targetVideoId: new ObjectId(input.targetVideoId),
       targetClipNumber: input.targetClipNumber,
-      creditsCharged: cost,
+      chargedUsd: cost,
       createdAt: now,
       updatedAt: now,
     };
@@ -125,7 +126,7 @@ export async function startExtendJob(input: {
     try {
       await col.insertOne(doc);
     } catch (err) {
-      await refundCredits(user.clerkUserId, cost, spendKey);
+      await refundCreditUsd(user.clerkUserId, cost, spendKey);
       throw err;
     }
 
@@ -233,13 +234,18 @@ async function failExtendJobAndRefund(job: ExtendJobDoc, error: string): Promise
       },
     },
   );
+  const refundUsd =
+    typeof job.chargedUsd === "number" && Number.isFinite(job.chargedUsd)
+      ? job.chargedUsd
+      : typeof job.creditsCharged === "number" && Number.isFinite(job.creditsCharged)
+        ? legacyCreditsToUsd(job.creditsCharged)
+        : 0;
   if (
     updateRes.modifiedCount > 0 &&
     !job.creditsRefunded &&
-    job.creditsCharged &&
-    job.creditsCharged > 0
+    refundUsd > 0
   ) {
-    await refundCredits(job.clerkUserId, job.creditsCharged).catch((err) => {
+    await refundCreditUsd(job.clerkUserId, refundUsd).catch((err) => {
       console.error("[extend-video] credit refund failed", {
         jobId: job._id.toHexString(),
         err,

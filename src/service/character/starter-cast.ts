@@ -161,7 +161,7 @@ export async function seedStarterCharacters(user: { _id: ObjectId; clerkUserId: 
             spec: item.spec,
             status: "completed" as const,
             creditsCharged: false,
-            creditsCost: 0,
+            chargedUsd: 0,
             createdAt: now,
             submittedAt: now,
           },

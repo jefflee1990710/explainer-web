@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { productsCollection } from "@/dao/products";
-import { refundCredits } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { persistMedia } from "@/service/higgsfield/persist";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
@@ -29,8 +29,12 @@ export async function failProduct(productId: ObjectId, message: string) {
     );
     return;
   }
+  const refundUsd =
+    typeof product.chargedUsd === "number" && Number.isFinite(product.chargedUsd)
+      ? product.chargedUsd
+      : FRAME_COST_USD;
   try {
-    await refundCredits(product.clerkUserId, FRAME_COST);
+    await refundCreditUsd(product.clerkUserId, refundUsd);
   } catch (error) {
     await products.updateOne({ _id: productId }, { $set: { creditsCharged: true, updatedAt: new Date() } });
     throw error;

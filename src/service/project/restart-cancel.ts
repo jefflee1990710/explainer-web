@@ -1,6 +1,6 @@
 import { generationJobsCollection } from "@/dao";
-import { refundCredits } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { refundCreditUsd } from "@/service/billing/credits";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import { claimFailure } from "@/service/generation/task-store";
 import {
   RESTART_CANCELLABLE_KINDS,
@@ -20,9 +20,9 @@ export async function cancelRestartImageJobs(video: Project) {
     })
     .toArray();
   for (const job of active) {
-    const claimed = await claimFailure(job._id, "已重新開始，這張圖已取消並退回 credit");
+    const claimed = await claimFailure(job._id, "已重新開始，這張圖已取消並退回 USD Credit");
     if (claimed) {
-      await refundCredits(video.clerkUserId, restartRefundFor(video, job, FRAME_COST));
+      await refundCreditUsd(video.clerkUserId, restartRefundFor(video, job, FRAME_COST_USD));
     }
   }
 }

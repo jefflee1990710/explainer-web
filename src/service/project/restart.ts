@@ -1,3 +1,4 @@
+import { legacyCreditsToUsd } from "@/service/billing/usd";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { collectVideoBlobUrls } from "@/service/video/storage";
 import type { GenerationKind } from "@/model/generation-job";
@@ -36,16 +37,22 @@ export function restartBlockReason(video: RestartGuardSource): string | null {
   return null;
 }
 
-// Credits to return for unfinished image jobs that restart cancels.
-// Subtitle plates refund what their plate row charged.
+// USD credit to return for unfinished image jobs that restart cancels.
+// Subtitle plates refund what their plate row charged (with legacy credits fallback).
 export function restartRefundFor(
   video: Pick<Project, "subtitlePlates">,
   job: { kind: GenerationKind; clipIndex: number },
-  frameCost: number,
+  frameCostUsd: number,
 ): number {
-  if (job.kind !== "subtitlePlate") return frameCost;
+  if (job.kind !== "subtitlePlate") return frameCostUsd;
   const plate = video.subtitlePlates?.find((item) => item.clipNumber === job.clipIndex + 1);
-  return plate?.creditsCharged ?? frameCost;
+  if (typeof plate?.chargedUsd === "number" && Number.isFinite(plate.chargedUsd)) {
+    return plate.chargedUsd;
+  }
+  if (typeof plate?.creditsCharged === "number" && Number.isFinite(plate.creditsCharged)) {
+    return legacyCreditsToUsd(plate.creditsCharged);
+  }
+  return frameCostUsd;
 }
 
 // Generated media to delete. The uploaded character image is part of the brief.

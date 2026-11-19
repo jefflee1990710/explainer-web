@@ -231,7 +231,7 @@ export function duplicateClip<T extends ClipOrderProject>(
       clipNumber,
       insertAt,
       map,
-      (item) => ({ ...item, creditsCharged: undefined }) as typeof item,
+      (item) => ({ ...item, chargedUsd: undefined, creditsCharged: undefined }) as typeof item,
     ),
     frames: project.frames
       ? cloneAndRenumber(project.frames, clipNumber, insertAt, map)
@@ -242,7 +242,7 @@ export function duplicateClip<T extends ClipOrderProject>(
           clipNumber,
           insertAt,
           map,
-          (item) => ({ ...item, creditsCharged: undefined }) as typeof item,
+          (item) => ({ ...item, chargedUsd: undefined, creditsCharged: undefined }) as typeof item,
         )
       : project.subtitlePlates,
     phaseB: project.phaseB

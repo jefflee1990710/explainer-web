@@ -2,11 +2,13 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
+  assertCanSpendCreditUsd,
   assertFreeTrialClipAllowed,
-  consumeCredits,
-  refundCredits,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { mulUsd, toUsdUnits } from "@/service/billing/usd";
 import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { videosCollection } from "@/dao";
 import { claimAndStartClipVideo } from "@/service/clip/auto-video";
@@ -22,7 +24,7 @@ import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-jo
 import { isProductionLike } from "@/service/project-status";
 import {
   clipVideoCost,
-  FRAME_COST,
+  FRAME_COST_USD,
   planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
@@ -126,8 +128,8 @@ export async function generateClipFramesAction(
     if (blocker) return { ok: false, error: blocker };
 
     const frameCost = clipFrameCost(project, clipNumber);
-    await assertCanSpendCredits(user, frameCost);
-    const spendKey = await consumeCredits(user.clerkUserId, frameCost);
+    await assertCanSpendCreditUsd(user, frameCost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, frameCost);
 
     // Anything older than this belongs to a previous attempt and cannot prove
     // that this one reached the provider.
@@ -151,7 +153,7 @@ export async function generateClipFramesAction(
         skipEnd ? { strict: true } : {},
       );
       if (missed > 0) {
-        await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+        await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
       }
       throw error;
     }
@@ -184,15 +186,16 @@ export async function generateClipVideoAction(
     if (!row) return { ok: false, error: "找不到這段分鏡" };
 
     const cost = clipVideoCost(project, clipNumber);
-    const sub = await assertCanSpendCredits(user, cost);
+    const sub = await assertCanSpendCreditUsd(user, cost);
+    const balance = resolveUserUsdBalance(user);
     try {
       assertFreeTrialClipAllowed({
         email: user.email,
         sub,
         clipNumber,
-        bonusCredits: user.bonusCredits,
+        bonusCreditUsd: balance.bonusCreditUsd,
         processedCheckoutIds: user.processedCheckoutIds,
-        hasPaidForClip: user.credits >= cost,
+        hasPaidForClip: toUsdUnits(balance.creditUsd) >= toUsdUnits(cost),
       });
     } catch (gateError) {
       logServerUxEvent(
@@ -200,8 +203,8 @@ export async function generateClipVideoAction(
         {
           videoId: projectId,
           clipNumber,
-          cost,
-          remainingCredits: user.credits,
+          costUsd: cost,
+          remainingCreditUsd: balance.creditUsd,
           error: gateError instanceof Error ? gateError.message : "請先訂閱方案",
         },
         {
@@ -221,8 +224,8 @@ export async function generateClipVideoAction(
           clipNumber,
           durationSeconds: row.durationSeconds,
           styleId: project.styleId,
-          cost,
-          creditsBefore: user.credits,
+          costUsd: cost,
+          creditUsdBefore: balance.creditUsd,
         },
         {
           category: "onboarding",
@@ -285,7 +288,7 @@ export async function generateRemainingAction(
     const plan = planRemaining(loaded.project);
     if (plan.cost === 0) return { ok: false, error: "沒有需要補齊的段落" };
     // Upfront balance check only; each clip below charges itself.
-    await assertCanSpendCredits(user, plan.cost);
+    await assertCanSpendCreditUsd(user, plan.cost);
 
     const skipped: number[] = [];
     let firstError = "";
@@ -350,7 +353,7 @@ export async function generateSelectedClipsAction(
         error: kind === "frames" ? "選取的段落都在產生中" : "選取的段落都還沒有完成的畫格",
       };
     }
-    await assertCanSpendCredits(user, plan.cost);
+    await assertCanSpendCreditUsd(user, plan.cost);
 
     const skipped = picks.filter((clipNumber) => !targets.includes(clipNumber));
     let firstError = "";
@@ -397,13 +400,13 @@ export async function generateAllSceneImagesAction(
     if (plan.cost === 0) return { ok: false, error: "沒有可產生的分鏡圖" };
     const blocker = await stillBlocker(loaded.project);
     if (blocker) return { ok: false, error: blocker };
-    await assertCanSpendCredits(user, plan.cost);
-    const spendKey = await consumeCredits(user.clerkUserId, plan.cost);
+    await assertCanSpendCreditUsd(user, plan.cost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, plan.cost);
     try {
       await enqueueClipFrameJobs(loaded.project, plan.frames);
     } catch (error) {
       // Nothing was queued, so the whole spend (frames + plates) comes back.
-      await refundCredits(user.clerkUserId, plan.cost, spendKey);
+      await refundCreditUsd(user.clerkUserId, plan.cost, spendKey);
       throw error;
     }
     try {
@@ -412,7 +415,7 @@ export async function generateAllSceneImagesAction(
     } catch (error) {
       // Frames are queued and keep their credits; only the plate share returns.
       const plateCost = subtitlePlateCost(loaded.project);
-      if (plateCost > 0) await refundCredits(user.clerkUserId, plateCost, spendKey);
+      if (plateCost > 0) await refundCreditUsd(user.clerkUserId, plateCost, spendKey);
       throw error;
     }
     return { ok: true, project: await enqueuedVideo(loaded.project) };
@@ -438,7 +441,7 @@ export async function generateAllClipsAction(
 
     const plan = planGenerateAllVideos(loaded.project);
     if (plan.videos.length === 0) return { ok: false, error: "畫格還沒全部完成，或沒有可產生的影片" };
-    await assertCanSpendCredits(user, plan.cost);
+    await assertCanSpendCreditUsd(user, plan.cost);
 
     let firstError = "";
     let started = 0;

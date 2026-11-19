@@ -7,11 +7,12 @@ import type { TextStyleDoc } from "@/model/text-style";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import {
-  assertCanSpendCredits,
-  consumeCredits,
-  refundCredits,
+  assertCanSpendCreditUsd,
+  consumeCreditUsd,
+  refundCreditUsd,
 } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/credit-costs";
+import { legacyCreditsToUsd } from "@/service/billing/usd";
+import { FRAME_COST_USD } from "@/service/credit-costs";
 import {
   isSubtitleLook,
   lookLineForOnScreenVideo,
@@ -585,8 +586,8 @@ export async function enqueueProjectOnScreenText(input: {
       }
     }
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    spendKey = await consumeCredits(project.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    spendKey = await consumeCreditUsd(project.clerkUserId, FRAME_COST_USD);
 
     const projects = await videosCollection();
     const resolvedStyleId = textStyleId || project.subtitleLook || "handwritten";
@@ -612,7 +613,7 @@ export async function enqueueProjectOnScreenText(input: {
       ...(input.baseVideoUrl?.trim() ? { baseVideoUrl: input.baseVideoUrl.trim() } : {}),
       status: "queued",
       submittedAt: new Date().toISOString(),
-      creditsCharged: FRAME_COST,
+      chargedUsd: FRAME_COST_USD,
     };
 
     const sceneTextLanguage = inferOnScreenTextSceneLanguage(trimmedText);
@@ -648,7 +649,7 @@ export async function enqueueProjectOnScreenText(input: {
       await jobs.deleteOne({ _id: queuedJobId }).catch(() => {});
     }
     if (spendKey) {
-      await refundCredits(project.clerkUserId, FRAME_COST, spendKey).catch(() => {});
+      await refundCreditUsd(project.clerkUserId, FRAME_COST_USD, spendKey).catch(() => {});
     }
     return {
       ok: false,
@@ -679,6 +680,7 @@ export async function requeueOnScreenTextDraw(
       $set: {
         "onscreenTexts.$.status": "queued",
         "onscreenTexts.$.submittedAt": new Date().toISOString(),
+        "onscreenTexts.$.chargedUsd": 0,
         "onscreenTexts.$.creditsCharged": 0,
         ...(typeof timing?.sectionStart === "number" ? { "onscreenTexts.$.sectionStart": timing.sectionStart } : {}),
         ...(typeof timing?.sectionLength === "number"
@@ -935,9 +937,14 @@ async function failOnscreenText(
       { $set: { [`clips.${clipIdx}.status`]: "completed", updatedAt: new Date() } },
     );
   }
-  const refund = item?.creditsCharged ?? FRAME_COST;
+  const refund =
+    typeof item?.chargedUsd === "number" && Number.isFinite(item.chargedUsd)
+      ? item.chargedUsd
+      : typeof item?.creditsCharged === "number" && Number.isFinite(item.creditsCharged)
+        ? legacyCreditsToUsd(item.creditsCharged)
+        : FRAME_COST_USD;
   if (refund > 0) {
-    await refundCredits(project.clerkUserId, refund);
+    await refundCreditUsd(project.clerkUserId, refund);
   }
 }
 
@@ -1173,8 +1180,8 @@ export async function generateOpencutOnScreenText(input: {
       keyColor,
     });
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
+    spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
 
     const submitted = toSent(
       model,
@@ -1219,7 +1226,7 @@ export async function generateOpencutOnScreenText(input: {
     };
   } catch (error) {
     if (spendKey && clerkUserId) {
-      await refundCredits(clerkUserId, FRAME_COST, spendKey).catch(() => {});
+      await refundCreditUsd(clerkUserId, FRAME_COST_USD, spendKey).catch(() => {});
     }
     return {
       ok: false,

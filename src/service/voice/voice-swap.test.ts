@@ -5,7 +5,7 @@ import {
   voiceSampleUrls,
   voiceSwapVoiceId,
 } from "@/model/character-voice-sample";
-import { videoCost } from "@/service/credit-costs";
+import { videoCostUsd } from "@/service/credit-costs";
 import {
   fitOffscreenVoiceDuration,
   mixVoiceArgs,
@@ -178,14 +178,14 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
     }),
     "v_scro",
   );
-  assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 10);
+  assert.equal(videoCostUsd(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 0.5);
 });
 
-test("voice is included in the 2 credits per billed second rate without extra surcharge", () => {
-  assert.equal(videoCost(5, undefined, true), 10);
-  assert.equal(videoCost(8, "realistic", true), 16);
-  assert.equal(videoCost(3, undefined, true), 10);
-  assert.equal(videoCost(5), 10);
+test("voice is included in the $0.10/s billed rate without extra surcharge", () => {
+  assert.equal(videoCostUsd(5, undefined, true), 0.5);
+  assert.equal(videoCostUsd(8, "realistic", true), 0.8);
+  assert.equal(videoCostUsd(3, undefined, true), 0.5);
+  assert.equal(videoCostUsd(5), 0.5);
 });
 
 test("whiteboard submit duration grows to cover a longer VO and stays put when VO fits", () => {

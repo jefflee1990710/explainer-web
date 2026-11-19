@@ -1,9 +1,10 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import {
+  FRAME_COST_USD,
   MIN_VIDEO_SECONDS,
-  talkingHeadVideoCost,
-  videoCost,
+  talkingHeadVideoCostUsd,
+  videoCostUsd,
 } from "@/service/credit-costs";
 import { resolveClipProject } from "@/service/clip/clip-context";
 import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
@@ -13,7 +14,6 @@ import {
   clipEndIsNextStart,
   clipSkipsEndStill,
 } from "@/service/director/steady-stills";
-import { FRAME_COST } from "@/service/credit-costs";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import type {
@@ -30,10 +30,10 @@ import type {
 export type ClipStage =
   | "no_frames"          // 待畫格
   | "frames_generating"  // 畫格中
-  | "frames_failed"      // 有畫格失敗（credits 已退）
+  | "frames_failed"      // 有畫格失敗（USD Credit 已退）
   | "frames_ready"       // 兩張畫格完成，可產片
   | "video_generating"   // 產片中
-  | "video_failed"       // 影片失敗（credits 已退）
+  | "video_failed"       // 影片失敗（USD Credit 已退）
   | "video_ready";       // 影片完成
 
 // queued = claimed / waiting on the provider; running = the model is working.
@@ -45,11 +45,11 @@ export type ClipState = {
   // Media generated before the latest text edit / frame redo.
   stale: { frames: boolean; video: boolean };
   wait?: ClipWait;
-  // Credits this clip's video costs, from its storyboard duration.
+  // USD credit cost of this clip's video, from its storyboard duration.
   videoCost?: number;
   // The video job is still pending in our queue, so the user may cancel it.
   videoUnsent?: boolean;
-  // Credits to draw this clip's stills. Talking-head draws only the start, plus the end on the last clip.
+  // USD credit cost to draw this clip's stills. Talking-head draws only the start, plus the end on the last clip.
   frameCost?: number;
 };
 
@@ -132,7 +132,7 @@ export function clipFrameCost(
   clipNumber: number,
 ) {
   const clipProj = resolveClipProject(project, clipNumber);
-  if (clipDrawsNoEndStill(project, clipNumber)) return FRAME_COST;
+  if (clipDrawsNoEndStill(project, clipNumber)) return FRAME_COST_USD;
   return talkingHeadFramesCost(clipProj.skillSlug, clipNumber);
 }
 
@@ -193,8 +193,8 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     wait: waitKind(waitItems),
     videoCost:
       clipProj.skillSlug === TALKING_HEAD_SKILL_SLUG
-        ? talkingHeadVideoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS)
-        : videoCost(
+        ? talkingHeadVideoCostUsd(row?.durationSeconds ?? MIN_VIDEO_SECONDS)
+        : videoCostUsd(
             row?.durationSeconds ?? MIN_VIDEO_SECONDS,
             clipProj.styleId,
             Boolean(resolveVoiceSwapId(clipProj)),

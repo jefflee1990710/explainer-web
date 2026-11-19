@@ -1,7 +1,9 @@
 import type { ObjectId } from "mongodb";
 import { generationJobsCollection, usersCollection, videosCollection } from "@/dao";
-import { consumeCredits, refundCredits } from "@/service/billing/credits";
+import { consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
+import { toUsdUnits } from "@/service/billing/usd";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { resolveClipProject } from "@/service/clip/clip-context";
@@ -11,7 +13,7 @@ import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-fr
 import { submitDeferredEndIfNeeded } from "@/service/higgsfield/pipeline";
 import {
   autoVideoDecision,
-  chargedVideoCredits,
+  chargedClipUsd,
   clipVideoCost,
   STUCK_CLAIM_MS,
 } from "@/service/production-plan";
@@ -109,7 +111,7 @@ export async function claimAndStartClipVideo(
             "clips.$.status": "queued",
             "clips.$.submittedAt": submittedAt,
             "clips.$.durationSeconds": row.durationSeconds,
-            "clips.$.creditsCharged": cost,
+            "clips.$.chargedUsd": cost,
             // Empty prompt makes the sender run Phase B for this attempt.
             "clips.$.prompt": "",
             "clips.$.mergedKeyframes": merged,
@@ -117,6 +119,7 @@ export async function claimAndStartClipVideo(
             updatedAt: new Date(),
           },
           $unset: {
+            "clips.$.creditsCharged": "",
             "clips.$.error": "",
             "clips.$.blobUrl": "",
             "clips.$.outputUrl": "",
@@ -144,7 +147,7 @@ export async function claimAndStartClipVideo(
               prompt: "",
               status: "queued" as const,
               submittedAt,
-              creditsCharged: cost,
+              chargedUsd: cost,
               ...(merged ? { mergedKeyframes: true } : {}),
             },
           },
@@ -153,10 +156,10 @@ export async function claimAndStartClipVideo(
       );
   if (!claimed) return { ok: false, error: "這段正在生成中", retry: true };
   // Taking over a stuck claim settles it: its charge had no job, so hand it back.
-  if (stuck) await refundCredits(clerkUserId, chargedVideoCredits(existing));
+  if (stuck) await refundCreditUsd(clerkUserId, chargedClipUsd(existing));
 
   try {
-    await consumeCredits(clerkUserId, cost);
+    await consumeCreditUsd(clerkUserId, cost);
   } catch (error) {
     await projects.updateOne(
       { _id: project._id },
@@ -209,7 +212,7 @@ async function compensateClipVideo(
   message: string,
   cost: number,
 ) {
-  await refundCredits(project.clerkUserId, cost);
+  await refundCreditUsd(project.clerkUserId, cost);
   const projects = await videosCollection();
   await projects.updateOne(
     { _id: project._id },
@@ -263,7 +266,8 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
     const users = await usersCollection();
     const user = await users.findOne({ clerkUserId: fresh.clerkUserId });
     const cost = clipVideoCost(fresh, clipNumber);
-    if (!user || (!hasUnlimitedCredits(user.email) && user.credits < cost)) {
+    const balance = user ? resolveUserUsdBalance(user) : null;
+    if (!user || (!hasUnlimitedCredits(user.email) && toUsdUnits(balance!.creditUsd) < toUsdUnits(cost))) {
       continue;
     }
     const started = await claimAndStartClipVideo(fresh.clerkUserId, fresh, clipNumber);
