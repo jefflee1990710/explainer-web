@@ -6,8 +6,10 @@ loadEnvConfig(process.cwd());
 import { ObjectId } from "mongodb";
 import { generationJobsCollection, usersCollection, videosCollection } from "@/dao";
 import { voiceSwapVoiceId } from "@/model/character-voice-sample";
-import { consumeCredits, refundCredits } from "@/service/billing/credits";
-import { FRAME_COST, videoCost } from "@/service/credit-costs";
+import { consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { FRAME_COST_USD, videoCostUsd } from "@/service/credit-costs";
+import { addUsd, mulUsd } from "@/service/billing/usd";
 import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
 import { regenerateFrames } from "@/service/higgsfield/pipeline";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -65,33 +67,34 @@ async function main() {
 
   // Sunburst stills were the wrong model. Clip 1's Ideogram pair already refunded
   // itself when it failed; the other six frame charges still cover this redraw.
-  const sunburstRefund = 32;
-  await refundCredits(project.clerkUserId, sunburstRefund);
-  const frameCost = FRAME_COST * 2;
+  const sunburstRefundUsd = 1.28;
+  await refundCreditUsd(project.clerkUserId, sunburstRefundUsd);
+  const frameCostUsd = mulUsd(FRAME_COST_USD, 2);
   const voiceSwap = Boolean(voiceSwapVoiceId(project.cast));
-  const videoTotal = clips.reduce(
-    (sum, clip) => sum + videoCost(clip.durationSeconds, project.styleId, voiceSwap),
+  const videoTotalUsd = clips.reduce(
+    (sum, clip) => addUsd(sum, videoCostUsd(clip.durationSeconds, project.styleId, voiceSwap)),
     0,
   );
   const users = await usersCollection();
   const user = await users.findOne({ clerkUserId: project.clerkUserId });
-  const credits = user?.credits ?? 0;
+  const bal = user ? resolveUserUsdBalance(user) : null;
+  const balanceUsd = bal ? addUsd(bal.creditUsd, bal.bonusCreditUsd) : 0;
   console.log(
     JSON.stringify({
       sceneTextLanguage: project.sceneTextLanguage,
       clips: clips.map((clip) => clip.durationSeconds),
-      frameCost,
-      videoTotal,
-      sunburstRefund,
-      credits,
+      frameCostUsd,
+      videoTotalUsd,
+      sunburstRefundUsd,
+      balanceUsd,
     }),
   );
-  if (credits < frameCost) throw new Error("credits 不足，無法扣款");
+  if (balanceUsd < frameCostUsd) throw new Error("USD Credit 不足，無法扣款");
 
-  await consumeCredits(project.clerkUserId, frameCost);
+  await consumeCreditUsd(project.clerkUserId, frameCostUsd);
   const result = await regenerateFrames(planned, targets);
   // Videos start themselves once each clip's two new stills exist.
-  if (credits >= frameCost + videoTotal) {
+  if (balanceUsd >= addUsd(frameCostUsd, videoTotalUsd)) {
     await projects.updateOne(
       { _id: project._id },
       { $addToSet: { autoVideoClips: { $each: clips.map((clip) => clip.clipNumber) } } },
@@ -103,7 +106,7 @@ async function main() {
   console.log(
     JSON.stringify({
       deferred: result.deferred.map((item) => `${item.clipNumber}:${item.position}`),
-      autoVideo: credits >= frameCost + videoTotal,
+      autoVideo: balanceUsd >= addUsd(frameCostUsd, videoTotalUsd),
       jobs: rows.map((job) => ({
         clip: (job.clipIndex ?? 0) + 1,
         position: job.framePosition,

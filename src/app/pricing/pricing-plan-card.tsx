@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PlanDefinition } from "@/service/billing/plans";
+import { formatUsd } from "@/service/billing/usd";
 import type { PlanId } from "@/model/subscription";
 
 // Paper cut-out art per plan, in /public/pricing.
@@ -50,7 +51,7 @@ export function PricingPlanCard({ plan, signedIn = false }: { plan: PlanDefiniti
           </span>
         </p>
         <p className={`mt-3 text-sm font-semibold ${dark ? "text-[#c6f24b]" : "text-[#12141c]"}`}>
-          {t("billing.creditsClips", { credits: plan.monthlyCredits.toLocaleString() })}
+          {t("billing.creditsClips", { credits: formatUsd(plan.monthlyCreditUsd) })}
         </p>
         <p className={`mt-3 flex-1 text-sm leading-6 ${dark ? "text-white/75" : "text-[#5c6170]"}`}>
           {t(`plans.${id}.blurb`)}

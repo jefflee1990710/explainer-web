@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const es: Partial<Messages> = {
   meta: { title: "Scro — Estudio de AI Influencers para Reels y Shorts", description: "Crea tu propio AI Influencer con rostro, atuendo y voz consistentes. Publica Reels, Shorts y TikToks diarios sin salir en cámara." },
   nav: { projects: "Vídeo", characters: "AI Influencer", tasks: "Tareas", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", examples: "Ejemplos", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma", posts: "Póster", blog: "Artículos", wardrobe: "Armario" },
-  common: { credits: "credits", pending: "pendientes", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
+  common: { credits: "USD Credit", pending: "pendientes", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
   landing: {
     hero: { kicker: "Estudio de AI Influencers", title: "Tu AI Influencer. Shorts diarios sin grabar.", subtitle: "Elige personaje y pose para generar Reels y TikToks 9:16 en minutos.", ctaStart: "Crear mi AI Influencer", ctaWorkspace: "Abrir estudio", ctaUseCases: "Ver casos de uso", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Selección de personajes a la izquierda y móvil generando vídeo corto de AI KOL a la derecha" },
     steps: {
@@ -14,7 +14,7 @@ export const es: Partial<Messages> = {
       step3Title: "Exporta el vídeo", step3Body: "Tras la aprobación, generamos imágenes de los personajes y clips para Reels, anuncios y presentaciones.",
     },
     pricing: { eyebrow: "Precios", title: "Suscríbete para renderizar vídeos", subtitle: "Elige el plan según cómo uses Scro.", clipsApprox: "clips", subscribePlan: "Suscribirse a {plan}" },
-    enterprise: { title: "¿Necesitas más que Scale?", body: "Credits, facturación y contrato a medida para equipos que superan los planes publicados.", cta: "Contáctanos", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Presupuesto a medida" },
+    enterprise: { title: "¿Necesitas más que Scale?", body: "USD Credit, facturación y contrato a medida para equipos que superan los planes publicados.", cta: "Contáctanos", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Presupuesto a medida" },
     showcase: { title: "Ver resultados", subtitle: "Cuatro combinaciones en la misma plataforma: tema, estilo y formato.", reel: "Reel", deck: "Presentación", marketing: "Marketing", scro: "Cómo funciona Scro", product: "Demo de producto", story: "Historia corta" },
     cast: { eyebrow: "Personajes", title: "Crea el personaje una vez. Úsalo en cada vídeo.", body: "Define primero el personaje y el estilo. Luego haz Reels, clips de marketing y vídeos explicativos con la misma cara: para un producto, una función o un conocimiento.", product: "Producto", service: "Servicio", knowledge: "Conocimiento", cta: "Crear personaje" },
     director: { eyebrow: "Coste de generación", title: "Lo caro son los reintentos.", body: "El vídeo con IA se encarece porque cada fallo es otro render. El director de IA de Scro convierte tu idea en un storyboard que apruebas primero. El vídeo acierta en pocas tomas y el coste de generación baja.", idea: "Tu idea", takes: "Pocas tomas", cost: "Menor coste", cta: "Escribir el storyboard" },
@@ -35,7 +35,7 @@ export const es: Partial<Messages> = {
     talkingHead: { title: "Un talking-head con subtítulos", body: "Un anfitrión lee el guion a cámara. Este corte está en cantonés de Hong Kong.", cta: "Talking-head" },
     aiInfluencer: { title: "Un AI Influencer a cámara", body: "La misma cara bloqueada presenta el reel. Este corte es ese anfitrión virtual.", cta: "Estudio AI Influencer" },
   },
-  dashboard: { title: "Vídeo", subscribed: "Tu plan permite renderizar vídeos. Te quedan {credits} credits.", notSubscribed: "No hay ninguna suscripción activa. Puedes preparar guiones gráficos, pero necesitarás un plan antes de renderizar.", noSubscriptionBanner: "No hay ninguna suscripción activa.", goBilling: "Ir a facturación" },
+  dashboard: { title: "Vídeo", subscribed: "Tu plan permite renderizar vídeos. Te quedan {credits} USD Credit.", notSubscribed: "No hay ninguna suscripción activa. Puedes preparar guiones gráficos, pero necesitarás un plan antes de renderizar.", noSubscriptionBanner: "No hay ninguna suscripción activa.", goBilling: "Ir a facturación" },
   folder: {
     create: "Nuevo proyecto", createTitle: "Nuevo proyecto", createHint: "Ponle un nombre primero y luego añade vídeos.", createSubmit: "Crear proyecto", nameLabel: "Nombre del proyecto", namePlaceholder: "p. ej., lanzamiento de producto del T4",
     emptyTitle: "Aún no hay proyectos", emptyBody: "Ponle un nombre a esta campaña y después añade vídeos.",

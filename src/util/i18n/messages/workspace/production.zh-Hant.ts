@@ -8,7 +8,7 @@ export const productionZhHant = {
     saving: "儲存中…",
     saveAndRedraw: "儲存並重畫 · {cost}",
     submitting: "送出中…",
-    insufficientClickToUpgrade: "credits 不足，點擊後可加購或升級並繼續產生。",
+    insufficientClickToUpgrade: "USD Credit 餘額不足，點擊後可加購或升級並繼續產生。",
     redrawBothFrames: "重畫兩張畫格 · {cost}",
     rerenderFrame: "重新產生畫格 · {cost}",
   },
@@ -18,7 +18,7 @@ export const productionZhHant = {
     badgeRecommended: "建議",
     badgeOverwrites: "會覆蓋已完成段落",
     empty: "沒有需要處理的段落。",
-    insufficientCredits: "credits 不足，確認後可加購或升級並繼續產生。",
+    insufficientCredits: "USD Credit 餘額不足，確認後可加購或升級並繼續產生。",
     confirm: "確認",
     confirmShortcut: "按 Enter 開始。",
     mode: {
@@ -38,12 +38,12 @@ export const productionZhHant = {
     row: {
       frames: "{clips} 畫格",
       framesCost: "{count} 段 × {cost} = {total}",
-      framesCostMixed: "{total} credits",
+      framesCostMixed: "{total}",
       videos: "{clips} 影片",
       videosDeferredNote: "（畫格完成後才扣）",
       videosCost: "{count} 段 · 每秒 {rate} = {total}",
       total: "合計",
-      totalCredits: "{cost} credits",
+      totalCredits: "{cost}",
       remaining: "（剩餘 {remaining}）",
     },
   },
@@ -130,13 +130,13 @@ export const productionZhHant = {
     playAfterGenerate: "▶ 產片後在此播放",
     generateThisClip: "點擊產這段影片 · {cost}",
     playAria: "播放這段影片",
-    failedOverlay: "產片失敗{error} · credits 已退回",
+    failedOverlay: "產片失敗{error} · USD Credit 已退回",
     failedInline: "產片失敗{error}",
-    creditsRefunded: "credits 已退回",
+    creditsRefunded: "USD Credit 已退回",
     cancelQueued: "取消排隊",
-    cancelQueuedHint: "尚未送出。點一下停止，並退回 credits。",
-    retryPlate: "重新產生字幕圖 · {cost} credits",
-    retryPlateAria: "這段的字幕圖還沒有完成，重新產生需要 {cost} credits",
+    cancelQueuedHint: "尚未送出。點一下停止，並退回 USD Credit。",
+    retryPlate: "重新產生字幕圖 · {cost}",
+    retryPlateAria: "這段的字幕圖還沒有完成，重新產生需要 {cost}",
   },
   stale: { badge: "舊版" },
   frame: {
@@ -216,14 +216,14 @@ export const productionZhHant = {
       stage3DetailIdle:
         "已完成 {done}/{total} 段畫格。可點選單段或按「全部產生」繼續繪製剩餘畫格。",
       stage3DetailFailed:
-        "部分分鏡畫格產生失敗（已完成 {done}/{total} 段），失敗點數已自動退回，請點擊重試。",
+        "部分分鏡畫格產生失敗（已完成 {done}/{total} 段），失敗 USD Credit 已自動退回，請點擊重試。",
       stage4Title: "步驟 4/5 · 產生 AI 動態影片與同步配音（已完成 {done}/{total} 段）",
       stage4DetailBusy:
         "正在由首尾關鍵畫格生成動態影片、自然肢體動作與同步配音（排隊中 {queued} 段 · 產片中 {running} 段）…",
       stage4DetailIdle:
         "全部 {framesDone}/{total} 段畫格已就緒（影片已完成 {done}/{total} 段）。確認畫格無誤後即可點擊產生影片。",
       stage4DetailFailed:
-        "部分影片產生失敗（已完成 {done}/{total} 段），失敗點數已自動退回，請點擊重試。",
+        "部分影片產生失敗（已完成 {done}/{total} 段），失敗 USD Credit 已自動退回，請點擊重試。",
       stage5Title: "步驟 5/5 · 全部片段已完成（{done}/{total} 段影片就緒）",
       stage5Detail:
         "全部 {total} 段影片已排入時間軸，可直接預覽播放、調整圖層或點擊右上角匯出成片。",
@@ -247,7 +247,7 @@ export const productionZhHant = {
     ariaFull: "Project steps",
     goToStep: "前往{label}",
   },
-  credits: { insufficientClickToUpgrade: "credits 不足，點擊後可加購或升級。" },
+  credits: { insufficientClickToUpgrade: "USD Credit 餘額不足，點擊後可加購或升級。" },
   scene: {
     summaryStart: "起始：{text}",
     empty: "（空白）",
@@ -261,13 +261,13 @@ export const productionZhHant = {
     placeholderEndScene: "結尾姿勢、道具、環境。",
     placeholderExplainerScene: "這段畫面要出現什麼、誰在做什麼。",
     placeholderMotion: "例如：鏡頭慢慢推近，角色從左走到右。",
-    insufficientCreditsRedraw: "credits 不足，重畫會先加購或升級再繼續。",
+    insufficientCreditsRedraw: "USD Credit 餘額不足，重畫會先加值或升級再繼續。",
     redrawHint: "改過的文字要重畫畫格才會套用到畫面與影片。",
   },
   clipEdit: {
     kicker: "分鏡 · #{n} · {timeRange}",
     title: "編輯這段分鏡內容",
-    intro: "直接改寫畫面、鏡頭與旁白。儲存不扣 credits。",
+    intro: "直接改寫畫面、鏡頭與旁白。儲存不扣 USD Credit。",
     labelStartScene: "起始畫面",
     labelEndScene: "結尾畫面",
     labelExplainerScene: "畫面描述",
@@ -291,13 +291,13 @@ export const productionZhHant = {
     placeholderVo: "這段旁白要說的話。",
     continuityTitle: "提醒",
     continuityBody: "上一段（#{prev}）的結尾畫格是銜接到這段的。",
-    costNote: "儲存並重畫將扣 {cost} credits（起始＋結尾各 {frameCost} · 剩餘 {remaining}）。",
+    costNote: "儲存並重畫將扣 {cost}（起始＋結尾各 {frameCost} · 剩餘 {remaining}）。",
     validationDualBeat: "起始／結尾畫面與兩句旁白不能空白。",
     validationSingle: "畫面描述與旁白不能空白。",
-    insufficientCreditsSaveOk: "credits 不足，仍可儲存文字；重畫會先加購或升級再繼續。",
+    insufficientCreditsSaveOk: "USD Credit 餘額不足，仍可儲存文字；重畫會先加值或升級再繼續。",
     waitForIdle: "請等目前的動作完成後再重畫。",
     saveTextOnly: "只儲存文字",
-    saveAndRedrawBoth: "儲存並重畫兩張 · {cost} credits",
+    saveAndRedrawBoth: "儲存並重畫兩張 · {cost}",
   },
   frameEdit: {
     kicker: "分鏡圖 · #{n} {position}",
@@ -318,10 +318,10 @@ export const productionZhHant = {
     remarkLabel: "修改備註",
     remarkPlaceholder: "例如：角色要面向右邊…",
     viewLastAnnotation: "查看上次的標註圖 ↗",
-    redrawCost: "重畫將扣 {cost} credits（剩餘 {remaining}）",
+    redrawCost: "重畫將扣 {cost}（剩餘 {remaining}）",
     redrawNoChangesNote: "；沒有標註或備註時會直接重畫一次。",
     waitForIdle: "請等目前的動作完成後再重畫。",
-    redrawButton: "重畫 · {cost} credits",
+    redrawButton: "重畫 · {cost}",
   },
   annotate: {
     tools: "工具",
@@ -374,7 +374,7 @@ export const productionZhHant = {
     },
     retryFrames: {
       label: "重試畫格",
-      hint: "有一張畫格失敗，credits 已退回",
+      hint: "有一張畫格失敗，USD Credit 已退回",
     },
     renderClip: {
       label: "產這段影片",
@@ -382,7 +382,7 @@ export const productionZhHant = {
     },
     retryVideo: {
       label: "重試產片",
-      hint: "產片失敗，credits 已退回",
+      hint: "產片失敗，USD Credit 已退回",
     },
     redoVideo: {
       label: "重產影片",

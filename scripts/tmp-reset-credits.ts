@@ -1,6 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { usersCollection } from "@/dao/users";
-import { resetMonthlyCredits, getActiveSubscription } from "@/service/billing/credits";
+import { resetMonthlyCreditUsd, getActiveSubscription } from "@/service/billing/credits";
 import { isPlanId, PLANS } from "@/service/billing/plans";
 
 loadEnvConfig(process.cwd());
@@ -20,30 +20,30 @@ async function main() {
     process.exit(1);
   }
 
-  const allotment = PLANS[sub.planId].monthlyCredits;
+  const allotmentUsd = PLANS[sub.planId].monthlyCreditUsd;
   console.log(
     JSON.stringify({
       before: {
-        credits: user.credits,
-        bonusCredits: user.bonusCredits ?? 0,
-        creditLimit: user.creditLimit,
+        creditUsd: user.creditUsd,
+        bonusCreditUsd: user.bonusCreditUsd ?? 0,
+        creditLimitUsd: user.creditLimitUsd,
       },
       planId: sub.planId,
       status: sub.status,
-      storedMonthlyCredits: sub.monthlyCredits,
-      allotment,
+      storedMonthlyCreditUsd: sub.monthlyCreditUsd,
+      allotmentUsd,
     }),
   );
 
-  await resetMonthlyCredits(user.clerkUserId, allotment);
+  await resetMonthlyCreditUsd(user.clerkUserId, allotmentUsd);
 
   const after = await users.findOne({ _id: user._id });
   console.log(
     JSON.stringify({
       after: {
-        credits: after?.credits,
-        bonusCredits: after?.bonusCredits ?? 0,
-        creditLimit: after?.creditLimit,
+        creditUsd: after?.creditUsd,
+        bonusCreditUsd: after?.bonusCreditUsd ?? 0,
+        creditLimitUsd: after?.creditLimitUsd,
       },
     }),
   );

@@ -170,7 +170,7 @@ export const videoZhHant = {
     promptLabel: "補充需求",
     promptHint: "選填。會加在標題、分鏡與風格之上。",
     promptPlaceholder: "例如：標題放大、不要加額外角色。",
-    generate: "產生封面 · {credits} 點",
+    generate: "產生封面 · {credits}",
     generating: "正在產生封面…",
     failed: "封面產生失敗，請再試一次。",
     empty: "還沒有封面。",

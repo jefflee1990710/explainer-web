@@ -3,6 +3,7 @@ import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { PublicPageJsonLd } from "@/presentation/components/seo/public-page-json-ld";
 import { getAuthSession } from "@/service/auth";
 import { PLANS } from "@/service/billing/plans";
+import { formatUsd } from "@/service/billing/usd";
 import { getSiteUrl } from "@/util/app-url";
 import { getMessages } from "@/util/i18n";
 import { getRequestLocale } from "@/util/i18n/request-locale";
@@ -40,7 +41,7 @@ export default async function PricingPage() {
       priceCurrency: "USD",
       url: `${siteUrl}/pricing`,
       availability: "https://schema.org/InStock",
-      description: `${plan.monthlyCredits.toLocaleString("en-US")} monthly credits`,
+      description: `${formatUsd(plan.monthlyCreditUsd)} monthly USD Credit`,
     })),
   };
   return (

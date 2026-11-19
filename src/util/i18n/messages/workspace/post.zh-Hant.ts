@@ -44,7 +44,7 @@ export const postZhHant = {
     instruction_too_long: "內容說明請少於 2,000 字。",
     layout_invalid: "請選擇版面。",
     subscription: "請先訂閱才能生成海報。",
-    credits: "credits 不足。",
+    credits: "USD Credit 餘額不足。",
     designer: "文案沒寫成，請再試一次。",
     preview: "預覽沒能開始。你仍可編輯這張海報。",
     not_found: "找不到這張海報。",

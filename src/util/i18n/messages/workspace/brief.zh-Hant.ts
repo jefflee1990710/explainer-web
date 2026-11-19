@@ -178,7 +178,7 @@ export const briefZhHant = {
   },
   section06: {
     title: "片長",
-    hint: "選自動時，片長與鏡數由導演依內容規劃。選固定片長會鎖定鏡數，也影響產片 credits。",
+    hint: "選自動時，片長與鏡數由導演依內容規劃。選固定片長會鎖定鏡數，也影響產片 USD Credit 費用。",
     hintBookend: "選自動時，依這個導演自己的 3–4 秒規劃。選了片長就改跟該鏡數。",
   },
   logo: {
@@ -215,10 +215,10 @@ export const briefZhHant = {
   footer: {
     castRequired: "請先選正好 {n} 個角色，才能開始。",
     restartWarning:
-      "會刪掉這支影片的分鏡、畫格與影片，再依這份導演指示從頭產生分鏡。已完成的 credits 不會退回；還在產生的場景圖會取消並退回。",
+      "會刪掉這支影片的分鏡、畫格與影片，再依這份導演指示從頭產生分鏡。已完成的 USD Credit 不會退回；還在產生的場景圖會取消並退回。",
     editBriefWarning:
       "改導演指示會重寫分鏡並回到 Video。已產生的畫格與影片會留著，但可能對不上。",
-    noCharge: "這一步不扣 credits。分鏡寫好後會直接進入 Video；產畫格與影片才扣款。",
+    noCharge: "這一步不扣 USD Credit。分鏡寫好後會直接進入 Video；產畫格與影片才扣款。",
   },
   summary: {
     speechPace: "語速 · {label}",
@@ -236,7 +236,7 @@ export const briefZhHant = {
     },
     restart: {
       title: "重新開始這支影片？",
-      body: "會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。還在產生的場景圖會取消並退回 credits，已完成的不會退回，刪除後無法復原。",
+      body: "會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。還在產生的場景圖會取消並退回 USD Credit，已完成的不會退回，刪除後無法復原。",
       confirm: "刪除並重新產生",
       pending: "重新開始中…",
     },
@@ -251,7 +251,7 @@ export const briefZhHant = {
     retryDefault: "請再試一次。",
     retryToProduction: "回到 Video，逐段重做",
     retryRegenerateStoryboard: "重新產生分鏡",
-    creditsRefunded: "失敗階段的 credits 已自動退回，重試不會重複扣款。",
+    creditsRefunded: "失敗階段的 USD Credit 已自動退回，重試不會重複扣款。",
   },
   language: {
     ariaDialogue: "對白語言",
@@ -522,7 +522,7 @@ export const briefZhHant = {
     approvedBody: "儲存文字會讓對應畫格／影片標成需重做。",
     approvedBack: "儲存並返回",
     approveTitle: "核准分鏡，進入 Video",
-    approvePricing: "核准不扣 credits。之後每段各自產生：畫格與影片屆時才扣款。",
+    approvePricing: "核准不扣 USD Credit。之後每段各自產生：畫格與影片屆時才扣款。",
     approveRemaining: "（剩餘 {remaining}）",
     approveTip: "可以先做第 1 段看效果，再決定是否全做。",
     approveSubscribeRequired: "尚未訂閱；Video 裡的產生按鈕需要訂閱。",

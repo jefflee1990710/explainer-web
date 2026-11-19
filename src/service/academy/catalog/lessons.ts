@@ -284,7 +284,7 @@ Scro's talking-head director fits this format. Keep the same face and the same f
       "Add one example from this week. A number, a screen, or a sentence you heard.",
       "Ask them to follow for the next take. Do not pitch the whole service in the same breath.",
     ],
-    practice: "Generate a short talking-head reel with three clips: opinion, example, follow ask. Approve the keyframe before you spend credits on motion.",
+    practice: "Generate a short talking-head reel with three clips: opinion, example, follow ask. Approve the keyframe before you spend USD Credit on motion.",
     images: [
       {
         alt: "Hot take structure: opinion, example, follow",
@@ -748,7 +748,7 @@ You can sketch the board or talk it through in the draft chat. Either way, lock 
     module: SHIP,
     title: "Approve keyframes before video",
     excerpt: "A wrong still is cheap. A wrong moving shot is the expensive way to learn the same thing.",
-    idea: `Blind video is how credits disappear. Scro lets you approve the still before the motion. Use that pause every time.
+    idea: `Blind video is how USD Credit disappears. Scro lets you approve the still before the motion. Use that pause every time.
 
 Look for four failures. Wrong face. Wrong product. Wrong words on screen. A composition you would not post. If any of those are wrong, redo the still. Do not talk yourself into "the motion will fix it." Motion keeps what the still got wrong and adds camera on top.
 

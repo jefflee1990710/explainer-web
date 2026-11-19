@@ -46,7 +46,7 @@ export const productsEn = {
     photos: "Upload at least one product photo.",
     limit: "This plan’s product limit is reached.",
     subscription: "Subscribe to create a product.",
-    credits: "Not enough credits.",
+    credits: "Not enough USD Credit.",
     missing: "That product was not found.",
     busy: "The blueprint is still generating.",
     save: "Could not create the product.",

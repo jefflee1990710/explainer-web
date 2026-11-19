@@ -170,7 +170,7 @@ export const videoEn = {
     promptLabel: "Extra requirement",
     promptHint: "Optional. Added on top of the video title, scenes, and style.",
     promptPlaceholder: "e.g. Keep the title large. No extra characters.",
-    generate: "Generate cover · {credits} credits",
+    generate: "Generate cover · {credits}",
     generating: "Generating cover…",
     failed: "Cover generation failed. Try again.",
     empty: "No cover yet.",

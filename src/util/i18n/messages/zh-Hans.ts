@@ -46,7 +46,7 @@ export const zhHans: Partial<Messages> = {
     academy: "Scro Academy",
   },
   common: {
-    credits: "credits",
+    credits: "USD Credit",
     pending: "进行中",
     perMonth: "/ 月",
     cancel: "取消",
@@ -154,13 +154,13 @@ export const zhHans: Partial<Messages> = {
       subtitle: "按照你的账号更新频率与矩阵规模选择方案。",
       seoTitle: "Scro 方案价格 — Explainer 与 AI 网红",
       seoDescription:
-        "比较 Starter、Pro、Studio、Scale。分镜批准前免费，credits 用于角色造型、Life 照片和成片渲染。",
+        "比较 Starter、Pro、Studio、Scale。分镜批准前免费，每月 USD Credit 用于角色造型、Life 照片和成片渲染。",
       clipsApprox: "段 clips",
       subscribePlan: "订阅 {plan}",
     },
     enterprise: {
       title: "运营多账号矩阵或代运营团队？",
-      body: "自定义 credits、发票请款、专人支持与企业级用量合约。",
+      body: "自定义 USD Credit 额度、发票请款、专人支持与企业级用量合约。",
       cta: "联系我们",
       cardLabel: "Enterprise",
       nameLine: "{nameLocal} / {name}",
@@ -262,7 +262,7 @@ export const zhHans: Partial<Messages> = {
   },
   dashboard: {
     title: "视频",
-    subscribed: "您的方案可渲染视频。剩余 {credits} credits。",
+    subscribed: "您的方案可渲染视频。剩余 {credits} USD Credit。",
     notSubscribed: "当前没有有效订阅。您可以先起草分镜，但渲染前需要订阅方案。",
     noSubscriptionBanner: "当前没有有效订阅。",
     goBilling: "前往账单",
@@ -294,7 +294,7 @@ export const zhHans: Partial<Messages> = {
     filters: { all: "全部", action: "待处理", active: "进行中", ready: "已完成", failed: "失败" },
   },
   characters: { title: "角色", create: "新建角色", empty: "还没有角色。" },
-  billing: { title: "Credits & Tiers" },
+  billing: { title: "USD Credit 与方案" },
   styles: {
     doodle: "白板涂鸦",
     "flat-vector": "扁平矢量",
@@ -389,8 +389,8 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "选正确的工具",
       title: "少一点学习。多一点出片。",
-      body: "领免费 credits，选导演，锁定 AI Influencer，改好成片再发布——不必再上课，也不必烧一堆失败生成。",
-      cta: "立即领取免费 credits",
+      body: "领免费 USD Credit，选导演，锁定 AI Influencer，改好成片再发布——不必再上课，也不必烧一堆失败生成。",
+      cta: "立即领取免费 USD Credit",
       ctaPricing: "查看方案",
     },
   },
@@ -436,7 +436,7 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "几分钟出一条口播",
       title: "你不必出镜。你的字照样出街。",
-      body: "领免费 credits，锁定 AI Influencer，打好讲稿，出连字幕口播——想再 polish 就加音效。",
+      body: "领免费 USD Credit，锁定 AI Influencer，打好讲稿，出连字幕口播——想再 polish 就加音效。",
       cta: "开始做口播",
       ctaCantonese: "香港粤语 · 中小企版",
       ctaPricing: "查看方案",
@@ -488,7 +488,7 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "今天开始出短片",
       title: "新宣传片，不必新一张制作发票。",
-      body: "领免费 credits，上传产品，让虚拟人物在剧组租不到的场景帮你卖。",
+      body: "领免费 USD Credit，上传产品，让虚拟人物在剧组租不到的场景帮你卖。",
       cta: "做产品宣传短片",
       ctaPricing: "查看方案",
     },
@@ -559,7 +559,7 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "趁注意力还容易赚，快点开始",
       title: "你的故事本身就值钱。给它一张脸。",
-      body: "领免费 credits，建立 AI Influencer，注入经验再发布——然后把赚到的眼球变成收入。",
+      body: "领免费 USD Credit，建立 AI Influencer，注入经验再发布——然后把赚到的眼球变成收入。",
       cta: "建立我的 AI Influencer",
       ctaPricing: "查看方案",
     },
@@ -610,7 +610,7 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "讲得漂亮、讲得清楚",
       title: "你的概念，值得清楚的 45 秒。",
-      body: "领免费 credits，选 Explainer 导演和白板风格，出一条观众看得完的短片。",
+      body: "领免费 USD Credit，选 Explainer 导演和白板风格，出一条观众看得完的短片。",
       cta: "开始做 Explainer",
       ctaFeatures: "全部功能",
       ctaPricing: "查看方案",
@@ -657,7 +657,7 @@ export const zhHans: Partial<Messages> = {
     cta: {
       eyebrow: "用粤语出片",
       title: "让产品讲香港人听得懂的话。",
-      body: "领免费 credits，产出客人真正听得懂的粤语口播——不必组剧组。",
+      body: "领免费 USD Credit，产出客人真正听得懂的粤语口播——不必组剧组。",
       cta: "用粤语开始",
       ctaTalkingHead: "口播功能总览",
       ctaPricing: "查看方案",
@@ -688,11 +688,11 @@ export const zhHans: Partial<Messages> = {
     ctaTitleSidebar: "把你的专业变成日更 AI 短片",
     ctaTitleInline: "不用亲自上镜，用你的知识打造专属 AI 网红与高留存 Explainer 短片",
     ctaBodySidebar:
-      "立即免费注册领取体验 Credits。支持麦克风录音复制声线、21 国语言配音、白板解说与一键字幕剪辑。",
+      "立即免费注册领取 $6.00 体验 USD Credit。支持麦克风录音复制声线、21 国语言配音、白板解说与一键字幕剪辑。",
     ctaBodyInline:
-      "注册即送免费体验 Credits。内置麦克风即时录音复制声线（支持广东话、国语、英文等 21 种语言）、手绘分镜草稿与 AI 导演，几分钟产出 Reels、Shorts 与 TikTok 成片。",
+      "注册即送 $6.00 免费体验 USD Credit。内置麦克风即时录音复制声线（支持广东话、国语、英文等 21 种语言）、手绘分镜草稿与 AI 导演，几分钟产出 Reels、Shorts 与 TikTok 成片。",
     ctaPrimarySignedIn: "进入创作工作区 →",
-    ctaPrimarySignedOut: "免费注册 Scro 领取 Credits →",
+    ctaPrimarySignedOut: "免费注册 Scro 领取 $6.00 USD Credit →",
     ctaSecondary: "查看范例成果",
     ctaBullet1: "免信用卡立即试用",
     ctaBullet2: "21 种语言声线复制",
@@ -743,7 +743,7 @@ export const zhHans: Partial<Messages> = {
       instruction_too_long: "内容说明请少于 2,000 字。",
       layout_invalid: "请选择版面。",
       subscription: "请先订阅才能生成海报。",
-      credits: "credits 不足。",
+      credits: "USD Credit 余额不足。",
       designer: "文案没写成，请再试一次。",
       preview: "预览没能开始。你仍可编辑这张海报。",
       not_found: "找不到这张海报。",

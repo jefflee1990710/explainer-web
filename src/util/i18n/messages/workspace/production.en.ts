@@ -8,7 +8,7 @@ export const productionEn = {
     saving: "Saving…",
     saveAndRedraw: "Save & redraw · {cost}",
     submitting: "Submitting…",
-    insufficientClickToUpgrade: "Not enough credits — click to top up or upgrade and continue.",
+    insufficientClickToUpgrade: "Not enough USD Credit — click to top up or upgrade and continue.",
     redrawBothFrames: "Redraw both frames · {cost}",
     rerenderFrame: "Re-render frame · {cost}",
   },
@@ -18,7 +18,7 @@ export const productionEn = {
     badgeRecommended: "Recommended",
     badgeOverwrites: "Overwrites finished clips",
     empty: "Nothing to process.",
-    insufficientCredits: "Not enough credits — confirm to top up or upgrade and continue.",
+    insufficientCredits: "Not enough USD Credit — confirm to top up or upgrade and continue.",
     confirm: "Confirm",
     confirmShortcut: "Press Enter to start.",
     mode: {
@@ -38,12 +38,12 @@ export const productionEn = {
     row: {
       frames: "{clips} frames",
       framesCost: "{count} clips × {cost} = {total}",
-      framesCostMixed: "{total} credits",
+      framesCostMixed: "{total}",
       videos: "{clips} videos",
-      videosDeferredNote: "(video credits when frames finish)",
+      videosDeferredNote: "(video USD Credit charged when frames finish)",
       videosCost: "{count} clips · {rate}/s = {total}",
       total: "Total",
-      totalCredits: "{cost} credits",
+      totalCredits: "{cost}",
       remaining: "({remaining} left)",
     },
   },
@@ -130,13 +130,13 @@ export const productionEn = {
     playAfterGenerate: "▶ Plays here after render",
     generateThisClip: "Render this clip · {cost}",
     playAria: "Play this clip",
-    failedOverlay: "Render failed{error} · credits refunded",
+    failedOverlay: "Render failed{error} · USD Credit refunded",
     failedInline: "Render failed{error}",
-    creditsRefunded: "Credits refunded",
+    creditsRefunded: "USD Credit refunded",
     cancelQueued: "Cancel queue",
-    cancelQueuedHint: "Not sent yet. Click to stop and refund the credits.",
-    retryPlate: "Redo subtitle plate · {cost} credits",
-    retryPlateAria: "This clip's subtitle plate is not ready. Redoing it costs {cost} credits",
+    cancelQueuedHint: "Not sent yet. Click to stop and refund the USD Credit.",
+    retryPlate: "Redo subtitle plate · {cost}",
+    retryPlateAria: "This clip's subtitle plate is not ready. Redoing it costs {cost}",
   },
   stale: { badge: "Stale" },
   frame: {
@@ -220,14 +220,14 @@ export const productionEn = {
       stage3DetailIdle:
         "{done}/{total} clips have completed keyframes. Click a clip or Generate all to draw the remaining frames.",
       stage3DetailFailed:
-        "Some scene frames failed ({done}/{total} clips ready). Credits were refunded — click retry to redraw.",
+        "Some scene frames failed ({done}/{total} clips ready). USD Credit refunded — click retry to redraw.",
       stage4Title: "Step 4/5 · Generating AI clip videos & synced audio ({done}/{total} clips)",
       stage4DetailBusy:
         "Rendering motion video and lip-synced audio from your keyframes ({queued} queued · {running} rendering)…",
       stage4DetailIdle:
         "All {framesDone}/{total} clip keyframes are ready ({done}/{total} videos done). Review frames or click Generate all video to render.",
       stage4DetailFailed:
-        "Some clip videos failed ({done}/{total} videos done). Credits were refunded — click retry to render again.",
+        "Some clip videos failed ({done}/{total} videos done). USD Credit refunded — click retry to render again.",
       stage5Title: "Step 5/5 · All clips complete ({done}/{total} videos ready)",
       stage5Detail:
         "All {total} clip videos are placed on the timeline. Preview playback, add overlays, or click Export video.",
@@ -251,7 +251,7 @@ export const productionEn = {
     ariaFull: "Project steps",
     goToStep: "Go to {label}",
   },
-  credits: { insufficientClickToUpgrade: "Not enough credits — click to top up or upgrade." },
+  credits: { insufficientClickToUpgrade: "Not enough USD Credit — click to top up or upgrade." },
   scene: {
     summaryStart: "Start: {text}",
     empty: "(empty)",
@@ -265,13 +265,13 @@ export const productionEn = {
     placeholderEndScene: "End pose, props, environment.",
     placeholderExplainerScene: "Who does what on screen.",
     placeholderMotion: "e.g. slow push-in, character walks left to right.",
-    insufficientCreditsRedraw: "Not enough credits — top up to redraw.",
+    insufficientCreditsRedraw: "Not enough USD Credit — top up to redraw.",
     redrawHint: "Save text first; redraw frames to apply to images and video.",
   },
   clipEdit: {
     kicker: "Storyboard · #{n} · {timeRange}",
     title: "Edit this clip",
-    intro: "Edit scene, camera, and VO. Saving text alone does not spend credits.",
+    intro: "Edit scene, camera, and VO. Saving text alone does not spend USD Credit.",
     labelStartScene: "Start scene",
     labelEndScene: "End scene",
     labelExplainerScene: "Scene",
@@ -295,13 +295,13 @@ export const productionEn = {
     placeholderVo: "Spoken line for this clip.",
     continuityTitle: "Reminder",
     continuityBody: "Clip #{prev} ended with a state that should lead into this clip.",
-    costNote: "Save & redraw costs {cost} credits ({frameCost} per frame · {remaining} left).",
+    costNote: "Save & redraw costs {cost} ({frameCost} per frame · {remaining} left).",
     validationDualBeat: "Start/end scenes and both VO lines cannot be empty.",
     validationSingle: "Scene and voiceover cannot be empty.",
-    insufficientCreditsSaveOk: "Not enough credits to redraw; you can still save text.",
+    insufficientCreditsSaveOk: "Not enough USD Credit to redraw; you can still save text.",
     waitForIdle: "Wait for the current job to finish before redrawing.",
     saveTextOnly: "Save text only",
-    saveAndRedrawBoth: "Save & redraw both · {cost} credits",
+    saveAndRedrawBoth: "Save & redraw both · {cost}",
   },
   frameEdit: {
     kicker: "Frame · #{n} {position}",
@@ -322,10 +322,10 @@ export const productionEn = {
     remarkLabel: "Remark",
     remarkPlaceholder: "e.g. face right, lower the hand",
     viewLastAnnotation: "View last annotation ↗",
-    redrawCost: "Redraw costs {cost} credits ({remaining} left)",
+    redrawCost: "Redraw costs {cost} ({remaining} left)",
     redrawNoChangesNote: "; with no marks, redraws once anyway.",
     waitForIdle: "Wait for the current job to finish.",
-    redrawButton: "Redraw · {cost} credits",
+    redrawButton: "Redraw · {cost}",
   },
   annotate: {
     tools: "Tools",
@@ -378,7 +378,7 @@ export const productionEn = {
     },
     retryFrames: {
       label: "Retry frames",
-      hint: "A frame failed; credits refunded.",
+      hint: "A frame failed; USD Credit refunded.",
     },
     renderClip: {
       label: "Render this clip",
@@ -386,7 +386,7 @@ export const productionEn = {
     },
     retryVideo: {
       label: "Retry render",
-      hint: "Render failed; credits refunded.",
+      hint: "Render failed; USD Credit refunded.",
     },
     redoVideo: {
       label: "Re-render video",

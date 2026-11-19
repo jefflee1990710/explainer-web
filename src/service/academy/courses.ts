@@ -71,7 +71,7 @@ Scro locks the same face, wardrobe, and voice so every episode looks like the sa
 
 1. Create an AI Influencer and lock the look
 2. Write a 20–40 second script with the 4-beat table
-3. Approve keyframes before you spend credits on motion
+3. Approve keyframes before you spend USD Credit on motion
 4. Publish, then shoot the next episode in the same format
 
 Save this course. The next lesson is just a new hook on the same skeleton.

@@ -42,7 +42,7 @@ export const postEn = {
     instruction_too_long: "Keep the instruction under 2,000 characters.",
     layout_invalid: "Choose a layout.",
     subscription: "Subscribe before generating a poster.",
-    credits: "Not enough credits.",
+    credits: "Not enough USD Credit.",
     designer: "The wording could not be written. Try again.",
     preview: "The preview could not start. You can still edit the poster.",
     not_found: "That poster is gone.",

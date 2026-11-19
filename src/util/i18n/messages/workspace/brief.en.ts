@@ -179,7 +179,7 @@ export const briefEn = {
   },
   section06: {
     title: "Length",
-    hint: "Auto lets the director choose length and clip count from the content. A fixed length sets the clip budget and credit cost.",
+    hint: "Auto lets the director choose length and clip count from the content. A fixed length sets the clip budget and USD Credit cost.",
     hintBookend: "Auto follows this director’s own 3–4 second sting. Pick a length to set the clip budget instead.",
   },
   logo: {
@@ -222,7 +222,7 @@ export const briefEn = {
     editBriefWarning:
       "Changing the instruction rewrites the storyboard and returns to Video. Existing frames and clips may no longer match.",
     noCharge:
-      "This step does not spend credits. After the storyboard is ready you go straight to Video; frames and clips charge then.",
+      "This step does not spend USD Credit. After the storyboard is ready you go straight to Video; frames and clips charge then.",
   },
   summary: {
     speechPace: "Pace · {label}",
@@ -255,7 +255,7 @@ export const briefEn = {
     retryDefault: "Please try again.",
     retryToProduction: "Back to Video — redo clips",
     retryRegenerateStoryboard: "Regenerate storyboard",
-    creditsRefunded: "Credits for the failed step were refunded; retry will not double-charge.",
+    creditsRefunded: "USD Credit for the failed step was refunded; retry will not double-charge.",
   },
   language: {
     ariaDialogue: "Dialogue language",
@@ -531,7 +531,7 @@ export const briefEn = {
     approvedBack: "Save & back",
     approveTitle: "Approve storyboard & open Video",
     approvePricing:
-      "Approval is free. Each clip is generated separately: frames {frameCost} credits each, video billed per second.",
+      "Approval is free. Each clip is generated separately: frames {frameCost} each, video billed per second ($0.10/s; talking-head $0.18/s).",
     approveRemaining: "({remaining} left)",
     approveTip: "Try clip 1 first to see the look before running the rest.",
     approveSubscribeRequired: "Not subscribed; Video generate buttons need an active plan.",

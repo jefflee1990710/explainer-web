@@ -9,6 +9,7 @@ import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 import { SiteAccountMenu, type SiteAccount } from "@/presentation/components/site-account-menu";
 import { SITE_FEATURE_LINKS, SiteFeaturesMenu } from "@/presentation/components/site-features-menu";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
+import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
 // Sticky translucent bar with desktop navigation and a responsive mobile drawer menu.
 export function SiteHeader({
@@ -17,7 +18,7 @@ export function SiteHeader({
   account,
   showPromo = false,
   promoDiscountPercent = 0,
-  promoCredits = 0,
+  promoCredits = WELCOME_CREDIT_USD,
   promoBonusPercent = 0,
 }: {
   signedIn?: boolean;

@@ -65,9 +65,9 @@ async function main() {
   const { submitStillIfNeeded, enqueueClipFrameJobs, refreshProjectJobs } =
     await import("@/service/higgsfield/pipeline");
   const { claimAndStartClipVideo } = await import("@/service/clip/auto-video");
-  const { consumeCredits } = await import("@/service/billing/credits");
+  const { consumeCreditUsd } = await import("@/service/billing/credits");
   const { runJobById } = await import("@/service/generation/task-runner");
-  const { FRAMES_COST, clipVideoCost } = await import("@/service/production-plan");
+  const { FRAMES_COST_USD, clipVideoCost } = await import("@/service/production-plan");
   const { mediaSrc } = await import("@/util/media-src");
   const { isStyleId } = await import("@/service/style");
 
@@ -79,9 +79,9 @@ async function main() {
   const activeIds = new Set(active.map((row) => row.clerkUserId));
   const user = await users.findOne({
     clerkUserId: { $in: [...activeIds] },
-    credits: { $gte: 12 },
+    $or: [{ creditUsd: { $gte: 2 } }, { credits: { $gte: 12 } }],
   });
-  if (!user) throw new Error("沒有足夠 credits 的訂閱帳號");
+  if (!user) throw new Error("沒有足夠 USD Credit 的訂閱帳號");
 
   const folders = await projectsCollection();
   const now = new Date();
@@ -187,7 +187,7 @@ async function main() {
       console.error("still-missing", item.id, project?.stillError || project?.status);
       continue;
     }
-    await consumeCredits(user.clerkUserId, FRAMES_COST);
+    await consumeCreditUsd(user.clerkUserId, FRAMES_COST_USD);
     await enqueueClipFrameJobs(project, [1]);
     console.log("frames-queued", item.id);
   }
@@ -223,7 +223,7 @@ async function main() {
       console.error("frames-missing", item.id);
       continue;
     }
-    await consumeCredits(user.clerkUserId, clipVideoCost(project, 1));
+    await consumeCreditUsd(user.clerkUserId, clipVideoCost(project, 1));
     const started = await claimAndStartClipVideo(user.clerkUserId, project, 1);
     console.log("video-queued", item.id, started.ok ? "ok" : started.error);
   }

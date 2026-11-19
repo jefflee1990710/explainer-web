@@ -46,7 +46,7 @@ export const productsZhHant = {
     photos: "請上傳至少一張產品照片。",
     limit: "已達這個方案的產品上限。",
     subscription: "請先訂閱才能建立產品。",
-    credits: "credits 不足。",
+    credits: "USD Credit 餘額不足。",
     missing: "找不到這個產品。",
     busy: "產品藍圖還在生成。",
     save: "沒能建立產品。",

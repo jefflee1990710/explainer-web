@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const fr: Partial<Messages> = {
   meta: { title: "Scro — Studio d’AI Influencers pour Reels et Shorts", description: "Créez votre propre AI Influencer avec le même visage, la même tenue et la même voix. Publiez des Reels, Shorts et TikToks chaque jour sans filmer." },
   nav: { projects: "Vidéo", characters: "AI Influencer", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue", posts: "Affiche", blog: "Articles", wardrobe: "Garde-robe" },
-  common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
+  common: { credits: "USD Credit", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
     hero: { kicker: "Studio d’AI Influencers", title: "Votre AI Influencer. Des Shorts chaque jour, sans filmer.", subtitle: "Choisissez un personnage et une pose, puis générez vos Reels et TikToks 9:16 en quelques minutes.", ctaStart: "Créer mon AI Influencer", ctaWorkspace: "Ouvrir le studio", ctaUseCases: "Voir les cas d’usage", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Sélection de personnages à gauche et smartphone générant une vidéo courte AI KOL à droite" },
     steps: {
@@ -14,7 +14,7 @@ export const fr: Partial<Messages> = {
       step3Title: "Exportez la vidéo", step3Body: "Après validation, nous générons des images fixes des personnages et des clips pour vos Reels, publicités et présentations.",
     },
     pricing: { eyebrow: "Tarifs", title: "Abonnez-vous pour générer des vidéos", subtitle: "Choisissez l’offre qui correspond à votre usage de Scro.", clipsApprox: "clips", subscribePlan: "S’abonner à {plan}" },
-    enterprise: { title: "Besoin de plus que Scale ?", body: "Credits, facturation et contrat sur mesure pour les équipes qui dépassent les offres affichées.", cta: "Nous contacter", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Devis sur mesure" },
+    enterprise: { title: "Besoin de plus que Scale ?", body: "USD Credit, facturation et contrat sur mesure pour les équipes qui dépassent les offres affichées.", cta: "Nous contacter", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Devis sur mesure" },
     showcase: { title: "Voir les résultats", subtitle: "Quatre combinaisons sur la même plateforme : sujet, style et format.", reel: "Reel", deck: "Présentation", marketing: "Marketing", scro: "Comment marche Scro", product: "Démo produit", story: "Courte histoire" },
     cast: { eyebrow: "Personnages", title: "Créez le personnage une fois. Gardez-le dans chaque vidéo.", body: "Définissez d’abord un personnage et un style. Ensuite, enchaînez Reels, clips marketing et vidéos explicatives avec le même visage — pour un produit, une fonctionnalité, ou un savoir.", product: "Produit", service: "Service", knowledge: "Savoir", cta: "Créer un personnage" },
     director: { eyebrow: "Coût de génération", title: "Ce qui coûte cher, ce sont les essais.", body: "La vidéo IA s’additionne parce que chaque raté est un nouveau rendu. Le directeur IA de Scro transforme votre idée en storyboard à valider d’abord. La vidéo tombe juste en quelques prises, et le coût de génération reste bas.", idea: "Votre idée", takes: "Peu de prises", cost: "Coût plus bas", cta: "Écrire le storyboard" },
@@ -35,7 +35,7 @@ export const fr: Partial<Messages> = {
     talkingHead: { title: "Un talking-head sous-titré", body: "Un hôte lit le script face caméra. Ce film est en cantonais de Hong Kong.", cta: "Talking-head" },
     aiInfluencer: { title: "Un AI Influencer face caméra", body: "Le même visage verrouillé présente le reel. Ce film est cet hôte virtuel.", cta: "Studio AI Influencer" },
   },
-  dashboard: { title: "Vidéo", subscribed: "Votre offre permet de générer des vidéos. Il vous reste {credits} credits.", notSubscribed: "Aucun abonnement actif. Vous pouvez préparer des storyboards, mais une offre est nécessaire avant le rendu.", noSubscriptionBanner: "Aucun abonnement actif.", goBilling: "Accéder à la facturation" },
+  dashboard: { title: "Vidéo", subscribed: "Votre offre permet de générer des vidéos. Il vous reste {credits} USD Credit.", notSubscribed: "Aucun abonnement actif. Vous pouvez préparer des storyboards, mais une offre est nécessaire avant le rendu.", noSubscriptionBanner: "Aucun abonnement actif.", goBilling: "Accéder à la facturation" },
   folder: {
     create: "Nouveau projet", createTitle: "Nouveau projet", createHint: "Donnez-lui d'abord un nom, puis ajoutez des vidéos.", createSubmit: "Créer le projet", nameLabel: "Nom du projet", namePlaceholder: "Ex. : lancement produit du T4",
     emptyTitle: "Aucun projet pour le moment", emptyBody: "Commencez par nommer cette campagne, puis ajoutez-y des vidéos.",

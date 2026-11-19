@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const id: Partial<Messages> = {
   meta: { title: "Scro — Studio AI Influencer untuk Reels dan Shorts", description: "Buat AI Influencer Anda sendiri dengan wajah, pakaian, dan suara yang konsisten. Publikasikan Reels, Shorts, dan TikTok setiap hari tanpa syuting." },
   nav: { projects: "Video", characters: "AI Influencer", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa", posts: "Poster", blog: "Artikel", wardrobe: "Lemari" },
-  common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
+  common: { credits: "USD Credit", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
     hero: { kicker: "Studio AI Influencer", title: "AI Influencer Anda. Shorts Harian Tanpa Syuting.", subtitle: "Pilih karakter dan pose, lalu buat Reels & TikTok 9:16 dalam hitungan menit.", ctaStart: "Buat AI Influencer saya", ctaWorkspace: "Buka studio", ctaUseCases: "Lihat contoh penggunaan", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Pilihan karakter di kiri dan ponsel yang membuat video pendek AI KOL di kanan" },
     steps: {
@@ -14,7 +14,7 @@ export const id: Partial<Messages> = {
       step3Title: "Ekspor video", step3Body: "Setelah disetujui, kami membuat gambar diam karakter dan clips untuk Reels, iklan, dan presentasi.",
     },
     pricing: { eyebrow: "Harga", title: "Berlangganan untuk merender video", subtitle: "Pilih paket sesuai cara Anda memakai Scro.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
-    enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Penawaran khusus" },
+    enterprise: { title: "Butuh lebih dari Scale?", body: "USD Credit, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Penawaran khusus" },
     showcase: { title: "Lihat hasil", subtitle: "Empat kombinasi di platform yang sama: topik, gaya, dan rasio.", reel: "Reel", deck: "Presentasi", marketing: "Pemasaran", scro: "Cara kerja Scro", product: "Demo produk", story: "Cerita pendek" },
     cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
     director: { eyebrow: "Biaya generasi", title: "Yang mahal adalah percobaan ulang.", body: "Video AI membengkak karena setiap meleset berarti render lagi. Sutradara AI Scro mengubah idemu menjadi storyboard yang kamu setujui dulu. Videonya tepat dalam beberapa take, dan biaya generasi tetap rendah.", idea: "Idemu", takes: "Sedikit take", cost: "Biaya lebih rendah", cta: "Tulis storyboard" },
@@ -35,7 +35,7 @@ export const id: Partial<Messages> = {
     talkingHead: { title: "Talking-head dengan teks", body: "Satu host membaca naskah ke kamera. Potongan ini dalam Kanton Hong Kong.", cta: "Talking-head" },
     aiInfluencer: { title: "AI Influencer di depan kamera", body: "Wajah yang sama dan terkunci memandu reel. Potongan ini adalah host virtual itu.", cta: "Studio AI Influencer" },
   },
-  dashboard: { title: "Video", subscribed: "Paket Anda dapat merender video. Tersisa {credits} credits.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
+  dashboard: { title: "Video", subscribed: "Paket Anda dapat merender video. Tersisa {credits} USD Credit.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
   folder: {
     create: "Proyek baru", createTitle: "Proyek baru", createHint: "Beri nama dulu, lalu tambahkan video.", createSubmit: "Buat proyek", nameLabel: "Nama proyek", namePlaceholder: "mis. peluncuran produk kuartal 4",
     emptyTitle: "Belum ada proyek", emptyBody: "Beri nama kampanye ini terlebih dahulu, lalu tambahkan video di dalamnya.",

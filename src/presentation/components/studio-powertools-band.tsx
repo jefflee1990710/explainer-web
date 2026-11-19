@@ -39,8 +39,8 @@ export function StudioPowertoolsBand({
           {
             badge: "01 · 120s 對嘴口播 & 21 語原聲直出",
             title: "單段 120 秒 1080p 對嘴 + 雙人 Q&A + 原聲直傳",
-            body: "支援單段最長 120 秒一鏡到底 1080p 自然對嘴（每秒僅 4 credits，已含語音），內建雙人對談 Q&A、雜誌人物專訪及口播穿插 B-Roll 導演；可跟著提詞稿用麥克風直錄或上傳原聲免 TTS 直出，支援廣東話等 21 國語言。",
-            chips: ["120s 一鏡到底 (4 credits/s)", "雙人對談 Q&A & 專訪", "原聲直錄 / 21 國語言"],
+            body: "支援單段最長 120 秒一鏡到底 1080p 自然對嘴（每秒僅 $0.18，已含語音），內建雙人對談 Q&A、雜誌人物專訪及口播穿插 B-Roll 導演；可跟著提詞稿用麥克風直錄或上傳原聲免 TTS 直出，支援廣東話等 21 國語言。",
+            chips: ["120s 一鏡到底 ($0.18/s)", "雙人對談 Q&A & 專訪", "原聲直錄 / 21 國語言"],
           },
           {
             badge: "02 · Scro Swap 換角 & Teleport 換場",
@@ -57,7 +57,7 @@ export function StudioPowertoolsBand({
           {
             badge: "04 · 手繪分鏡畫板 & 結構化 Explainer",
             title: "白板塗鴉 + 剪紙拼貼 6 大圖表模型 + 先審畫格",
-            body: "支援 Step 03 手繪分鏡草稿與 AI 對話室預先規劃，先審核 2K 關鍵畫格（4 credits/張）再渲染影片；內建白板手繪、Paper Cutout 剪紙拼貼（6 大結構化圖表模型）、清單盤點、對比卡與流程宣傳導演。",
+            body: "支援 Step 03 手繪分鏡草稿與 AI 對話室預先規劃，先審核 2K 關鍵畫格（$0.15/張）再渲染影片；內建白板手繪、Paper Cutout 剪紙拼貼（6 大結構化圖表模型）、清單盤點、對比卡與流程宣傳導演。",
             chips: ["白板 & 剪紙拼貼圖表", "手繪分鏡 & AI 對話室", "先審畫格省重試成本"],
           },
           {
@@ -83,8 +83,8 @@ export function StudioPowertoolsBand({
           {
             badge: "01 · 120s Lip-Sync & 21 Languages",
             title: "Up to 120s 1-pass 1080p talking-head + Dialogue Q&A",
-            body: "Render up to 120-second continuous 1080p talking-head clips in one pass (just 4 credits/s, voice included). Includes Dialogue Q&A, Editorial Interview, and Talking B-Roll directors, plus direct mic/audio VO upload and 21 matched languages.",
-            chips: ["120s 1-Pass (4 credits/s)", "Dialogue Q&A & Interview", "Direct VO Upload & 21 Languages"],
+            body: "Render up to 120-second continuous 1080p talking-head clips in one pass (just $0.18/s, voice included). Includes Dialogue Q&A, Editorial Interview, and Talking B-Roll directors, plus direct mic/audio VO upload and 21 matched languages.",
+            chips: ["120s 1-Pass ($0.18/s)", "Dialogue Q&A & Interview", "Direct VO Upload & 21 Languages"],
           },
           {
             badge: "02 · Scro Swap & Teleport",
@@ -101,7 +101,7 @@ export function StudioPowertoolsBand({
           {
             badge: "04 · Storyboard Sketchpad & Explainers",
             title: "Whiteboard & Paper Cutout 6-diagram explainers + keyframe approval",
-            body: "Sketch rough layouts or co-write scenes in AI chat and approve 2K keyframes (4 credits/image) before rendering video. Includes Whiteboard Doodle, Paper Cutout (6 structured diagram models), Listicle, Comparison Card, and Workflow Promo directors.",
+            body: "Sketch rough layouts or co-write scenes in AI chat and approve 2K keyframes ($0.15/image) before rendering video. Includes Whiteboard Doodle, Paper Cutout (6 structured diagram models), Listicle, Comparison Card, and Workflow Promo directors.",
             chips: ["Whiteboard & Paper Cutout", "Interactive Sketchpad", "Approve Keyframes First"],
           },
           {

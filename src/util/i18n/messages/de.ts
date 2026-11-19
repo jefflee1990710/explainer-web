@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const de: Partial<Messages> = {
   meta: { title: "Scro — KI-Influencer-Studio für Reels und Shorts", description: "Erstelle deinen eigenen KI-Influencer mit konsistentem Gesicht, Outfit und Stimme. Poste täglich Reels, Shorts und TikToks ohne selbst vor die Kamera zu treten." },
   nav: { projects: "Video", characters: "AI Influencer", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache", posts: "Poster", blog: "Beiträge", wardrobe: "Garderobe" },
-  common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
+  common: { credits: "USD Credit", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
     hero: { kicker: "KI-Influencer-Studio", title: "Dein KI-Influencer. Tägliche Shorts ohne Dreharbeiten.", subtitle: "Charakter und Pose wählen – vertikale 9:16-Reels & TikToks in Minuten generieren.", ctaStart: "Meinen KI-Influencer erstellen", ctaWorkspace: "Studio öffnen", ctaUseCases: "Anwendungsfälle ansehen", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Charakterauswahl links und Smartphone mit KI-KOL-Kurzvideogenerierung rechts" },
     steps: {
@@ -14,7 +14,7 @@ export const de: Partial<Messages> = {
       step3Title: "Video exportieren", step3Body: "Nach der Freigabe erstellen wir Figurenbilder und clips für Reels, Anzeigen und Präsentationen.",
     },
     pricing: { eyebrow: "Preise", title: "Abonnieren und Videos rendern", subtitle: "Wählen Sie den Plan, der zu Ihrer Nutzung von Scro passt.", clipsApprox: "clips", subscribePlan: "{plan} abonnieren" },
-    enterprise: { title: "Mehr als Scale?", body: "Individuelle Credits, Rechnungen und Verträge für Teams, die über die gelisteten Tarife hinauswachsen.", cta: "Kontakt", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Individuelles Angebot" },
+    enterprise: { title: "Mehr als Scale?", body: "Individuelles USD Credit, Rechnungen und Verträge für Teams, die über die gelisteten Tarife hinauswachsen.", cta: "Kontakt", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Individuelles Angebot" },
     showcase: { title: "Ergebnisse ansehen", subtitle: "Vier Kombinationen auf derselben Plattform: Thema, Stil und Format.", reel: "Reel", deck: "Präsentation", marketing: "Marketing", scro: "So funktioniert Scro", product: "Produktdemo", story: "Kurzgeschichte" },
     cast: { eyebrow: "Charaktere", title: "Charakter einmal anlegen. In jedem Video derselbe.", body: "Lege zuerst Charakter und Stil fest. Danach entstehen Reels, Marketingclips und Erklärvideos mit demselben Gesicht — für ein Produkt, eine Funktion oder Wissen.", product: "Produkt", service: "Service", knowledge: "Wissen", cta: "Charakter erstellen" },
     director: { eyebrow: "Generierungskosten", title: "Teuer sind die Wiederholungen.", body: "KI-Video summiert sich, weil jeder Fehlversuch ein neues Rendering ist. Scros KI-Regie macht aus deiner Idee zuerst ein Storyboard zum Freigeben. Das Video trifft in wenigen Takes, und die Generierungskosten bleiben niedrig.", idea: "Deine Idee", takes: "Wenige Takes", cost: "Niedrigere Kosten", cta: "Storyboard schreiben" },
@@ -35,7 +35,7 @@ export const de: Partial<Messages> = {
     talkingHead: { title: "Ein Talking-Head mit Untertiteln", body: "Ein Host liest das Skript in die Kamera. Dieser Schnitt ist Hongkong-Kantonesisch.", cta: "Talking-Head" },
     aiInfluencer: { title: "Ein AI Influencer vor der Kamera", body: "Dasselbe gesperrte Gesicht moderiert den Reel. Dieser Schnitt ist dieser virtuelle Host.", cta: "AI-Influencer-Studio" },
   },
-  dashboard: { title: "Video", subscribed: "Mit deinem Tarif kannst du Videos rendern. Noch {credits} credits verfügbar.", notSubscribed: "Kein aktives Abonnement. Du kannst Storyboards entwerfen, benötigst aber vor dem Rendering einen Tarif.", noSubscriptionBanner: "Kein aktives Abonnement.", goBilling: "Zur Abrechnung" },
+  dashboard: { title: "Video", subscribed: "Mit deinem Tarif kannst du Videos rendern. Noch {credits} USD Credit verfügbar.", notSubscribed: "Kein aktives Abonnement. Du kannst Storyboards entwerfen, benötigst aber vor dem Rendering einen Tarif.", noSubscriptionBanner: "Kein aktives Abonnement.", goBilling: "Zur Abrechnung" },
   folder: {
     create: "Neues Projekt", createTitle: "Neues Projekt", createHint: "Zuerst benennen, dann Videos hinzufügen.", createSubmit: "Projekt erstellen", nameLabel: "Projektname", namePlaceholder: "z. B. Produkteinführung im 4. Quartal",
     emptyTitle: "Noch keine Projekte", emptyBody: "Gib dieser Kampagne zuerst einen Namen und füge dann Videos hinzu.",

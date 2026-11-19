@@ -249,7 +249,7 @@ export function TermsDocument() {
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              7. Violation Enforcement, Account Termination &amp; Forfeiture of Credits
+              7. Violation Enforcement, Account Termination &amp; Forfeiture of USD Credit
             </h2>
             <p className="mt-2">
               We employ automated safety filters and reserve the right (without assuming the
@@ -263,8 +263,8 @@ export function TermsDocument() {
               <li>Suspend or permanently ban your account, email, device, and IP address;</li>
               <li>
                 <strong>
-                  Permanently forfeit all remaining credits, bonus packs, and active subscription
-                  periods with zero refund;
+                  Permanently forfeit all remaining USD Credit balances, top-up USD Credit packs,
+                  and active subscription periods with zero refund;
                 </strong>{" "}
                 and
               </li>
@@ -278,16 +278,18 @@ export function TermsDocument() {
 
           <section>
             <h2 className="text-xl font-semibold text-[#12141c]">
-              8. Credits, Subscriptions &amp; Refund Policy
+              8. USD Credit, Subscriptions &amp; Refund Policy
             </h2>
             <p className="mt-2">
               Storyboard drafts are free until you approve them. Rendering images, frames, audio,
-              character swaps, or video clips consumes credits according to the displayed rate.
-              Subscriptions and one-time credit packs are processed through Stripe. Spent credits
-              are non-refundable once a render completes or if you are dissatisfied with the
-              creative style of a model output, except where a technical render failure occurs and
-              the system automatically returns the credits. No refunds are provided for accounts
-              suspended or terminated for Terms violations.
+              character swaps, or video clips deducts USD Credit according to the displayed USD
+              rate. Monthly subscription USD Credit allowances refill to your plan&apos;s USD value
+              each billing cycle, while one-time top-up USD Credit packs never expire. Subscriptions
+              and one-time USD Credit packs are processed through Stripe. Spent USD Credit is
+              non-refundable once a render completes or if you are dissatisfied with the creative
+              style of a model output, except where a technical render failure occurs and the system
+              automatically refunds the USD Credit. No refunds are provided for accounts suspended
+              or terminated for Terms violations.
             </p>
           </section>
 

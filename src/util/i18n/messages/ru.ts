@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const ru: Partial<Messages> = {
   meta: { title: "Scro — Студия ИИ-инфлюенсеров для Reels и Shorts", description: "Создайте собственного ИИ-инфлюенсера с постоянным лицом, образом и голосом. Публикуйте Reels, Shorts и TikTok каждый день без съёмок." },
   nav: { projects: "Видео", characters: "AI Influencer", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык", posts: "Постер", blog: "Статьи", wardrobe: "Гардероб" },
-  common: { credits: "credits", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
+  common: { credits: "USD Credit", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
   landing: {
     hero: { kicker: "Студия ИИ-инфлюенсеров", title: "Ваш ИИ-инфлюенсер. Ежедневные Shorts без съёмок.", subtitle: "Выберите персонажа и позу — создавайте вертикальные Reels и TikTok 9:16 за минуты.", ctaStart: "Создать ИИ-инфлюенсера", ctaWorkspace: "Открыть студию", ctaUseCases: "Посмотреть сценарии", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Выбор персонажей слева и смартфон с генерацией короткого видео ИИ-KOL справа" },
     steps: {
@@ -14,7 +14,7 @@ export const ru: Partial<Messages> = {
       step3Title: "Экспортируйте видео", step3Body: "После утверждения мы создадим изображения персонажей и clips для Reels, рекламы и презентаций.",
     },
     pricing: { eyebrow: "Тарифы", title: "Оформите подписку для рендеринга видео", subtitle: "Выберите тариф под то, как вы используете Scro.", clipsApprox: "clips", subscribePlan: "Оформить подписку {plan}" },
-    enterprise: { title: "Нужно больше, чем Scale?", body: "Индивидуальные credits, счета и договор для команд, которым мало опубликованных тарифов.", cta: "Связаться с нами", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Индивидуальный расчёт" },
+    enterprise: { title: "Нужно больше, чем Scale?", body: "Индивидуальный объём USD Credit, счета и договор для команд, которым мало опубликованных тарифов.", cta: "Связаться с нами", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Индивидуальный расчёт" },
     showcase: { title: "Посмотреть результаты", subtitle: "Четыре сочетания на одной платформе: тема, стиль и формат.", reel: "Reel", deck: "Презентация", marketing: "Маркетинг", scro: "Как работает Scro", product: "Демо продукта", story: "Короткий рассказ" },
     cast: { eyebrow: "Персонажи", title: "Создайте персонажа один раз. Он остаётся в каждом видео.", body: "Сначала задайте персонажа и стиль. Потом снимайте Reels, маркетинговые ролики и объясняющие видео с тем же лицом — про продукт, функцию сервиса или знание.", product: "Продукт", service: "Сервис", knowledge: "Знание", cta: "Создать персонажа" },
     director: { eyebrow: "Стоимость генерации", title: "Дорого обходятся повторные попытки.", body: "ИИ-видео дорожает, потому что каждый промах — это новый рендер. ИИ-режиссёр Scro сначала превращает вашу идею в раскадровку для утверждения. Ролик попадает в идею за несколько дублей, и стоимость генерации остаётся низкой.", idea: "Ваша идея", takes: "Мало дублей", cost: "Ниже стоимость", cta: "Написать раскадровку" },
@@ -35,7 +35,7 @@ export const ru: Partial<Messages> = {
     talkingHead: { title: "Talking-head с субтитрами", body: "Один ведущий читает текст в камеру. Этот ролик на гонконгском кантонском.", cta: "Talking-head" },
     aiInfluencer: { title: "AI Influencer в кадре", body: "Одно и то же зафиксированное лицо ведёт ролик. Этот кадр — тот виртуальный ведущий.", cta: "Студия AI Influencer" },
   },
-  dashboard: { title: "Видео", subscribed: "Ваш тариф позволяет создавать видео. Осталось {credits} credits.", notSubscribed: "Нет активной подписки. Вы можете подготовить раскадровки, но для рендеринга понадобится тариф.", noSubscriptionBanner: "Нет активной подписки.", goBilling: "Перейти к оплате" },
+  dashboard: { title: "Видео", subscribed: "Ваш тариф позволяет создавать видео. Осталось {credits} USD Credit.", notSubscribed: "Нет активной подписки. Вы можете подготовить раскадровки, но для рендеринга понадобится тариф.", noSubscriptionBanner: "Нет активной подписки.", goBilling: "Перейти к оплате" },
   folder: {
     create: "Новый проект", createTitle: "Новый проект", createHint: "Сначала назовите проект, затем добавьте видео.", createSubmit: "Создать проект", nameLabel: "Название проекта", namePlaceholder: "например, запуск продукта в IV квартале",
     emptyTitle: "Проектов пока нет", emptyBody: "Сначала назовите кампанию, а затем добавьте в неё видео.",

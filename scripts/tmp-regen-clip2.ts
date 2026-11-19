@@ -14,8 +14,8 @@ function sleep(ms: number) {
 
 async function main() {
   const { generationJobsCollection, videosCollection } = await import("@/dao");
-  const { consumeCredits, refundCredits } = await import("@/service/billing/credits");
-  const { FRAME_COST } = await import("@/service/credit-costs");
+  const { consumeCreditUsd, refundCreditUsd } = await import("@/service/billing/credits");
+  const { FRAME_COST_USD } = await import("@/service/credit-costs");
   const { rewriteEndScenes } = await import("@/service/director/end-scene-rewrite");
   const { withWrittenCanvas } = await import("@/service/director/written-chinese");
   const { runJobById } = await import("@/service/generation/task-runner");
@@ -77,11 +77,11 @@ async function main() {
     }),
   );
 
-  const spendKey = await consumeCredits(saved.clerkUserId, FRAME_COST);
+  const spendKey = await consumeCreditUsd(saved.clerkUserId, FRAME_COST_USD);
   try {
     await regenerateFrame(saved, CLIP, "end");
   } catch (error) {
-    await refundCredits(saved.clerkUserId, FRAME_COST, spendKey);
+    await refundCreditUsd(saved.clerkUserId, FRAME_COST_USD, spendKey);
     throw error;
   }
 
