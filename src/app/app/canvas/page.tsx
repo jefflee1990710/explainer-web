@@ -24,6 +24,7 @@ import {
 import { CanvasWorkspace } from "@/app/app/canvas/canvas-workspace";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 800;
 
 export default async function CanvasPage({
   searchParams,

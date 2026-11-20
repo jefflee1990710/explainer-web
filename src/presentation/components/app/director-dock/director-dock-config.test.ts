@@ -224,14 +224,10 @@ test("AppShell consolidates tools into Canvas and platform slogan is updated", a
 
   const { en } = await import("@/util/i18n/messages/en");
   const { zhHant } = await import("@/util/i18n/messages/zh-Hant");
-  assert.equal(
-    en.landing.hero.title,
-    "Build Your AI Creator IP, Then Put Them Everywhere.",
-  );
-  assert.equal(
-    zhHant.landing.hero.title,
-    "Build Your AI Creator IP, Then Put Them Everywhere.",
-  );
+  assert.match(en.landing.hero.title, /Canvas/);
+  assert.match(zhHant.landing.hero.title, /Canvas|畫布/);
+  assert.match(en.landing.hero.kicker, /Canvas/);
+  assert.match(zhHant.landing.hero.kicker, /Canvas/);
 });
 
 test("LIFE_REMARK_STAGE_CLASS includes w-fit and tokens.css preserves rounded-full on director-dock-cell pills", () => {

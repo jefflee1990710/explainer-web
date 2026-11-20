@@ -2,9 +2,9 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const zhHans: Partial<Messages> = {
   meta: {
-    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro",
+    title: "Scro Canvas — 一块画布搞定所有 AI 视频与媒体创作 | Scro",
     description:
-      "Build Your AI Creator IP, Then Put Them Everywhere. 养一个锁定脸、衣柜和 21 语声音的 AI 角色 IP，一站式包办真人口播、白板 Explainer、2K 剧情短片、动作换角与每日 IG 贴文。",
+      "Scro Canvas 将所有 AI 媒体创作放在同一块画布。选好现成模板或对免费 AI 助理说一句，即可生成 1080p 真人口播、动画解说、换角换场、AI 配音与自动合并成片。",
   },
   nav: {
     projects: "视频",
@@ -59,11 +59,11 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "AI Creator IP · 一站式拍片、改片与日常图文",
-      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
-      subtitle: "养一个锁脸、锁声、专属衣橱的 AI 角色 IP —— 一站式包办真人口播、白板解说、2K 剧情短片、动作换角与每日 IG 贴文。",
-      ctaStart: "创建我的 AI 角色 IP",
-      ctaWorkspace: "打开创作工作区",
+      kicker: "Scro Canvas · 零门槛一站式 AI 媒体工作台",
+      title: "一块画布，轻松开始制作 AI 视频。",
+      subtitle: "不必学复杂配置。选择模板或对 AI 助理说一句，即自动生成真人口播、动画解说、换角换场与自动配音合片。",
+      ctaStart: "免费开始创作",
+      ctaWorkspace: "打开 Canvas",
       ctaUseCases: "查看角色 3 大创作场景",
       platformReels: "🎬 拍新片 Create Video",
       platformShorts: "⚡ 改片 Remix Video",
@@ -374,17 +374,17 @@ export const zhHans: Partial<Messages> = {
       f3Body: "同一灵魂拍口播、UGC 与教学短片。",
     },
     edit: {
-      eyebrow: "生成 → 剪辑 → 导出",
-      title: "不只是生成——成片在同一个地方继续改。",
-      body: "Clip 落到 timeline 之后可以继续修剪、加字幕、配音乐，再导出 Reel。从构思到发布一条龙。",
-      p1Title: "Timeline 修剪与分割",
-      p1Body: "剪掉冷场、调顺序，锁定节奏再 export。",
+      eyebrow: "生成 → 换角换场 → 自动合片 → 导出",
+      title: "不只是生成——配音混音、自动合片与 Scro Swap 在同一块画布完成。",
+      body: "片段完成后自动接上配音混音、裁掉首尾空白，支持 13 款艺术字幕、AI 抠像字卡、自动串联多段视频，还能直接对单段分镜做 Scro Swap 换角或 Teleport 换场。",
+      p1Title: "自动去首尾静音 · 智能配音混音",
+      p1Body: "自动分析波形裁掉首尾空白，并把旁白混入背景音乐、自动压低原声。",
       p2Title: "字幕与画面字",
-      p2Body: "开场钩子与 CTA 留在画面，不必跳第二个 App。",
+      p2Body: "开场钩子与 CTA 留在画面，不必跳到第二个 App。",
       p3Title: "导出最终 Reel",
-      p3Body: "同一张工作台出 9:16，直接上 Reels、Shorts、TikTok。",
-      deskLabel: "影片编辑工作台——预览、clips 与调整面板",
-      timelineLabel: "生成后的多轨 timeline",
+      p3Body: "同一块画布出 9:16，直接上 Reels、Shorts、TikTok。",
+      deskLabel: "Scro Canvas 工作流——片段、配音与成品",
+      timelineLabel: "生成后自动串联成片",
     },
     cta: {
       eyebrow: "选正确的工具",

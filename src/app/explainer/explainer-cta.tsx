@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureCtaCard } from "@/presentation/components/feature-cta-card";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -13,7 +14,7 @@ export function ExplainerCta({ signedIn = false }: { signedIn?: boolean }) {
       body={t("explainerPage.cta.body")}
       artSrc="/landing/explainer/social.jpg"
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn, "explainer"),
         label: t("explainerPage.cta.cta"),
       }}
       secondary={{

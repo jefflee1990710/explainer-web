@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -14,7 +15,7 @@ export function ProductPromoHero({ signedIn = false }: { signedIn?: boolean }) {
       title={t("productPromoPage.hero.title")}
       subtitle={t("productPromoPage.hero.subtitle")}
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn, "text-image-video"),
         label: signedIn ? t("productPromoPage.hero.ctaWorkspace") : t("productPromoPage.hero.ctaStart"),
       }}
       secondary={{ href: "#wild", label: t("productPromoPage.hero.ctaSecondary") }}

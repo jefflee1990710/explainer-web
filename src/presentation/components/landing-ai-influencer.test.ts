@@ -8,34 +8,40 @@ import { zhHans } from "@/util/i18n/messages/zh-Hans";
 
 const ROOT = process.cwd();
 
-test("landing messages focus Scro on AI Creator IP and explainer/video studio", () => {
-  assert.match(en.meta.title, /AI Creator IP|Explainer|AI Influencer/i);
-  assert.match(en.landing.hero.kicker, /AI Creator IP|Explainer|AI Influencer/i);
-  assert.equal(
-    en.landing.hero.title,
-    "Build Your AI Creator IP, Then Put Them Everywhere.",
-  );
+test("landing messages focus Scro on effortless Canvas AI media creation with zero technical jargon", () => {
+  assert.match(en.meta.title, /Canvas|AI Media|AI Video/i);
+  assert.match(en.landing.hero.kicker, /Scro Canvas|AI Media/i);
+  assert.match(en.landing.hero.title, /Canvas/i);
   assert.ok(en.landing.hero.title.length <= 60, "en hero title should stay concise");
-  assert.ok(en.landing.hero.subtitle.length <= 130, "en hero subtitle should stay concise");
-  assert.match(en.landing.cast.title, /AI Influencer|explainer/i);
-  assert.match(en.landing.steps.step1Title, /character|wardrobe/i);
-  assert.match(en.landing.steps.step2Title, /explainer/i);
-  assert.match(en.landing.academy.title, /reel/i);
-  assert.doesNotMatch(en.landing.academy.title, /course/i);
-  assert.match(zhHant.landing.academy.title, /Reel|白板/);
+  assert.ok(en.landing.hero.subtitle.length <= 150, "en hero subtitle should stay concise");
+  assert.match(zhHant.meta.title, /Canvas|AI 影片|AI 媒體/);
+  assert.match(zhHant.landing.hero.kicker, /Canvas/);
+  assert.match(zhHant.landing.hero.title, /畫布|Canvas/);
+  assert.match(zhHans.meta?.title ?? "", /Canvas|AI 视频|AI 媒体/);
+  assert.match(zhHans.landing?.hero?.kicker ?? "", /Canvas/);
 
-  assert.match(zhHant.meta.title, /AI Creator IP|AI 角色 IP|Explainer|AI 網紅/);
-  assert.match(zhHant.landing.hero.kicker, /AI Creator IP|Explainer|AI Influencer|AI 網紅/);
-  assert.equal(
-    zhHant.landing.hero.title,
-    "Build Your AI Creator IP, Then Put Them Everywhere.",
-  );
-  assert.ok(zhHant.landing.hero.subtitle.length <= 80, "zhHant hero subtitle should stay concise");
-  assert.match(zhHant.landing.cast.title, /AI 網紅|Explainer/);
-  assert.match(zhHant.landing.steps.step1Title, /角色|衣櫃/);
-
-  assert.match(zhHans.meta?.title ?? "", /AI Creator IP|Explainer|AI 网红/);
-  assert.match(zhHans.landing?.hero?.kicker ?? "", /AI Creator IP|Explainer|AI Influencer|AI 网红/);
+  // Zero technical jargon (ComfyUI / OpenCut / FFmpeg / Multi-Track) in public marketing copy
+  for (const [langName, msg] of [
+    ["en", en],
+    ["zhHant", zhHant],
+    ["zhHans", zhHans],
+  ] as const) {
+    const publicCopy = JSON.stringify({
+      meta: msg.meta,
+      landing: msg.landing,
+      rightTool: msg.rightTool,
+      talkingHeadPage: msg.talkingHeadPage,
+      explainerPage: msg.explainerPage,
+      cantonesePage: msg.cantonesePage,
+      aiInfluencerPage: msg.aiInfluencerPage,
+      productPromoPage: msg.productPromoPage,
+    });
+    assert.doesNotMatch(
+      publicCopy,
+      /comfyui|opencut|ffmpeg|multi-track|多軌\s*timeline|時間軸/i,
+      `${langName} public copy must not mention ComfyUI, OpenCut, FFmpeg, or Multi-Track timeline`,
+    );
+  }
 
   const heroArt = fs.readFileSync(
     path.join(ROOT, "src/presentation/components/landing-hero-art.tsx"),
@@ -221,5 +227,26 @@ test("landing and feature page components use the clean Studio / Editor design s
     const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
     assert.doesNotMatch(src, /editor-desk\.png/, `${rel} should not render legacy OpenCut screenshot`);
     assert.match(src, /CanvasPostFlowVisual/);
+  }
+
+  // Public feature CTAs should route video creation to Canvas (no raw /app/products or /app/life dead links) and canvas page sets maxDuration=800
+  const canvasPage = fs.readFileSync(path.join(ROOT, "src/app/app/canvas/page.tsx"), "utf8");
+  assert.match(canvasPage, /maxDuration\s*=\s*800/);
+
+  for (const rel of [
+    "src/app/explainer/explainer-hero.tsx",
+    "src/app/explainer/explainer-cta.tsx",
+    "src/app/talking-head/talking-head-hero.tsx",
+    "src/app/talking-head/talking-head-cta.tsx",
+    "src/app/cantonese/cantonese-hero.tsx",
+    "src/app/cantonese/cantonese-cta.tsx",
+    "src/app/product-promo/product-promo-hero.tsx",
+    "src/app/product-promo/product-promo-cta.tsx",
+    "src/app/right-tool/right-tool-hero.tsx",
+    "src/app/right-tool/right-tool-cta.tsx",
+    "src/presentation/components/examples-hero.tsx",
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
+    assert.match(src, /canvasLaunchHref/, `${rel} should route to Scro Canvas via canvasLaunchHref`);
   }
 });

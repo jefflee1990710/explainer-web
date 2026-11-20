@@ -20,9 +20,9 @@ import { wardrobeEn } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 export const en: Messages = {
   meta: {
-    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro",
+    title: "Scro Canvas — One Simple Canvas for AI Video, Voice & Media | Scro",
     description:
-      "Build Your AI Creator IP, Then Put Them Everywhere. Lock one face, custom wardrobe, and 21-language voice to direct 120s talking-head reels, whiteboard explainers, 2K stories, SAM 3 Scro Swap, Teleport scene relocation, Life photos, and 2K posters.",
+      "Scro Canvas puts every AI media workflow on one simple canvas. Pick a ready-made template or ask the free AI Assistant, then generate 1080p talking-head reels, animated explainers, character swaps, scene teleports, voiceovers, and auto-assembled videos.",
   },
   nav: {
     projects: "Video",
@@ -136,12 +136,12 @@ export const en: Messages = {
   },
   landing: {
     hero: {
-      kicker: "AI Creator IP · Video, Remix & Social Studio",
-      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
+      kicker: "Scro Canvas · Effortless AI Video & Media Studio",
+      title: "One Simple Canvas. Every AI Video You Need.",
       subtitle:
-        "Lock one face, voice, and wardrobe. Direct videos, remixes, and daily social posts.",
-      ctaStart: "Build My AI Creator",
-      ctaWorkspace: "Open Studio",
+        "Pick a template or ask the AI Assistant, then generate talking-head reels, explainers, swaps, and fully assembled videos.",
+      ctaStart: "Start Creating Free",
+      ctaWorkspace: "Open Canvas",
       ctaUseCases: "See What Your Creator Can Do",
       platformReels: "Create Video",
       platformShorts: "Remix Video",
@@ -1353,17 +1353,17 @@ export const en: Messages = {
       f3Body: "Reuse the same soul for talking-head, UGC, and tutorials.",
     },
     edit: {
-      eyebrow: "Generate → Swap & Teleport → Edit → Export",
-      title: "Not just generation — Scro Swap, IG Viral SFX & Auto-Ducking in one desk.",
-      body: "Clips land on a timeline with auto silence trimming, 13 artistic subtitle presets, AI On-Screen Text sticker cards, 12 peak-aligned IG Viral SFX, BGM auto-ducking, and in-timeline Scro Swap & Teleport.",
-      p1Title: "Auto silence trim & IG Viral SFX",
-      p1Body: "Trims dead air with 15ms micro-fades and aligns 12 IG Viral SFX & BGM auto-ducking curves directly to cuts and text pops.",
+      eyebrow: "Generate → Swap & Teleport → Auto-Assemble → Export",
+      title: "Not just generation — voice mixing, auto-assembly, and Scro Swap in one canvas.",
+      body: "Finished clips flow straight into automatic voiceover mixing, silence trimming, 13 artistic subtitle presets, AI On-Screen Text stickers, auto clip merging, and in-canvas Scro Swap & Teleport.",
+      p1Title: "Auto silence trim & voice mix",
+      p1Body: "Trims dead air with smooth micro-fades and blends voiceover over background music with automatic volume ducking.",
       p2Title: "Artistic captions, AI Text Cards & B-Roll",
       p2Body: "Style VO into 13 editable caption presets, transparent AI On-Screen Text stickers, and 1-click free Stock B-Roll.",
-      p3Title: "In-Timeline Scro Swap & Teleport",
-      p3Body: "Swap characters, relight in 17 cinema looks, or teleport backgrounds on any clip in place and export 9:16 Reels.",
-      deskLabel: "Video edit desk — preview, clips, and inspector",
-      timelineLabel: "Multi-track timeline after generation",
+      p3Title: "In-Canvas Scro Swap & Teleport",
+      p3Body: "Swap characters, relight in 17 cinema looks, or teleport backgrounds on any clip in place and export a 9:16 Reel.",
+      deskLabel: "Scro Canvas workflow — clips, voice, and output",
+      timelineLabel: "Automatic clip assembly after generation",
     },
     cta: {
       eyebrow: "Pick the right tool",

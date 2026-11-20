@@ -20,9 +20,9 @@ import { wardrobeZhHant } from "@/util/i18n/messages/workspace/wardrobe.zh-Hant"
 
 export const zhHant: Messages = {
   meta: {
-    title: "Build Your AI Creator IP, Then Put Them Everywhere | Scro 一站式 AI 角色 IP 與短片工作台",
+    title: "Scro Canvas — 一塊畫布搞定所有 AI 影片與媒體創作 | Scro",
     description:
-      "Build Your AI Creator IP, Then Put Them Everywhere. 養一個鎖定臉、衣櫃同 21 語聲線的 AI 角色 IP，包辦真人口播、白板/剪紙 Explainer、2K 劇情短片、Scro Swap 換角、Teleport 換場與每日 IG 生活貼文。",
+      "Scro Canvas 將所有 AI 媒體創作放喺同一塊畫布。揀好現成範本或同免費 AI 助理講一句，即可生成 1080p 真人口播、動畫解說、換角換場、AI 配音同自動合併成片。",
   },
   nav: {
     projects: "影片",
@@ -136,12 +136,12 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "AI Creator IP · 一站式拍片、改片與日常圖文",
-      title: "Build Your AI Creator IP, Then Put Them Everywhere.",
+      kicker: "Scro Canvas · 零門檻一站式 AI 媒體工作台",
+      title: "一塊畫布，輕鬆開始製作 AI 影片。",
       subtitle:
-        "養一個鎖臉、鎖聲、專屬衣櫥的 AI 角色 IP —— 一站式包辦真人口播、白板解說、2K 劇情短片、動作換角與每日 IG 貼文。",
-      ctaStart: "建立我的 AI 角色 IP",
-      ctaWorkspace: "進入創作工作台",
+        "唔使學複雜設定。揀選範本或者同 AI 助理講一句，即自動生成真人口播、動畫解說、換角換場同自動配音合片。",
+      ctaStart: "免費開始創作",
+      ctaWorkspace: "打開 Canvas",
       ctaUseCases: "睇角色 3 大創作場景",
       platformReels: "🎬 拍新片 Create Video",
       platformShorts: "⚡ 改片 Remix Video",
@@ -1342,17 +1342,17 @@ export const zhHant: Messages = {
       f3Body: "同一靈魂拍口播、UGC 同教學短片。",
     },
     edit: {
-      eyebrow: "生成 → 換角換場 → 剪輯 → 匯出",
-      title: "唔係淨係生成——Scro Swap、AI 聲效對拍與字幕喺同一個位一次搞掂。",
-      body: "Clip 落到 timeline 時自動偵測並裁走句首句尾死白，支援 13 款藝術字幕、AI 去背字卡、12 款 IG 熱門 SFX 峰值對拍、BGM Auto-Ducking 自動避人聲，更可對單段分鏡直接做 Scro Swap 換角或 Teleport 換場。",
-      p1Title: "自動去頭尾靜音 · IG 熱門 SFX 對拍",
-      p1Body: "自動分析波形裁走頭尾空白，並依轉場、字卡與動作自動對齊 12 款 IG 熱門 SFX 及 BGM Auto-Ducking 避人聲曲線。",
+      eyebrow: "生成 → 換角換場 → 自動合片 → 匯出",
+      title: "唔係淨係生成——配音混音、自動合片同 Scro Swap 喺同一塊畫布一次搞掂。",
+      body: "片段完成後自動接上配音混音、裁走句首句尾死白，支援 13 款藝術字幕、AI 去背字卡、自動串接多段影片，更可對單段分鏡直接做 Scro Swap 換角或 Teleport 換場。",
+      p1Title: "自動去頭尾靜音 · 智能配音混音",
+      p1Body: "自動分析波形裁走頭尾空白，並將旁白混入背景音樂、自動壓低原聲避免蓋過人聲。",
       p2Title: "13 款藝術字幕、AI 字卡 & 免費 B-Roll",
       p2Body: "一鍵將旁白變成可編輯藝術字幕與 AI 透明底視覺字卡，並自動搜尋穿插免費 B-Roll 空鏡。",
-      p3Title: "剪輯台內 Scro Swap 換角 & Teleport 換場",
-      p3Body: "在時間軸點選任意分鏡即可原地換角、換衫、17 款電影打光或換背景，直接匯出 9:16 Reel。",
-      deskLabel: "影片編輯工作台——預覽、clips 同調整面板",
-      timelineLabel: "生成後嘅多軌 timeline",
+      p3Title: "畫布內 Scro Swap 換角 & Teleport 換場",
+      p3Body: "揀選任意分鏡即可原地換角、換衫、17 款電影打光或換背景，直接匯出 9:16 Reel。",
+      deskLabel: "Scro Canvas 工作流——片段、配音同成品",
+      timelineLabel: "生成後自動串接成片",
     },
     cta: {
       eyebrow: "揀正確嘅工具",

@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -14,7 +15,7 @@ export function ExamplesHero({ signedIn = false }: { signedIn?: boolean }) {
       title={t("examples.heroTitle")}
       subtitle={t("examples.subtitle")}
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn),
         label: signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart"),
       }}
       secondary={{ href: "#clips", label: t("examples.cta") }}

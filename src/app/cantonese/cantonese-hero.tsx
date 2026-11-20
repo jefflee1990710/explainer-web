@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -14,7 +15,7 @@ export function CantoneseHero({ signedIn = false }: { signedIn?: boolean }) {
       title={t("cantonesePage.hero.title")}
       subtitle={t("cantonesePage.hero.subtitle")}
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn, "talking-head"),
         label: signedIn ? t("cantonesePage.hero.ctaWorkspace") : t("cantonesePage.hero.ctaStart"),
       }}
       secondary={{ href: "#fit", label: t("cantonesePage.hero.ctaSecondary") }}

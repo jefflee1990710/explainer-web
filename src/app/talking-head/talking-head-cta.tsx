@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureCtaCard } from "@/presentation/components/feature-cta-card";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -13,7 +14,7 @@ export function TalkingHeadCta({ signedIn = false }: { signedIn?: boolean }) {
       body={t("talkingHeadPage.cta.body")}
       artSrc="/landing/talking-head/captions.jpg"
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn, "talking-head"),
         label: t("talkingHeadPage.cta.cta"),
       }}
       secondary={{

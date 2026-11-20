@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -14,7 +15,7 @@ export function RightToolHero({ signedIn = false }: { signedIn?: boolean }) {
       title={t("rightTool.hero.title")}
       subtitle={t("rightTool.hero.subtitle")}
       primary={{
-        href: signedIn ? "/app" : "/sign-up",
+        href: canvasLaunchHref(signedIn),
         label: signedIn ? t("rightTool.hero.ctaWorkspace") : t("rightTool.hero.ctaStart"),
       }}
       secondary={{ href: "#edit", label: t("rightTool.hero.ctaSecondary") }}

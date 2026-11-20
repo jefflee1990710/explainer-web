@@ -84,10 +84,10 @@ export function HomeView({
   const copy =
     locale === "zh-Hant"
       ? {
-          welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
-          heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
+          welcomeBadge: "SCRO CANVAS · 一站式 AI 媒體工作台",
+          heroTitle: "一塊畫布，輕鬆開始製作 AI 影片。",
           heroSubtitle:
-            "養一個鎖臉鎖聲的專屬 AI 角色 IP —— 一站式包辦「拍新片 Create Video」、「改片特效 Remix Video」與「日常圖文 Social Image」。",
+            "揀選現成範本或同 AI 助理講一句，即可自動生成口播、解說、換角換場同配音合片。",
           shortcutsTitle: "精選創作工具 · Featured Creation Tools",
           tool1Tag: "STORYBOARD & VOICE",
           tool1Title: "Explainer 解說短片",
@@ -118,10 +118,10 @@ export function HomeView({
         }
       : locale === "zh-Hans"
         ? {
-            welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
-            heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
+            welcomeBadge: "SCRO CANVAS · 一站式 AI 媒体工作台",
+            heroTitle: "一块画布，轻松开始制作 AI 视频。",
             heroSubtitle:
-              "养一个锁脸锁声的专属 AI 角色 IP —— 一站式包办「拍新片 Create Video」、「改片特效 Remix Video」与「日常图文 Social Image」。",
+              "选择现成模板或对 AI 助理说一句，即可自动生成口播、解说、换角换场与配音合片。",
             shortcutsTitle: "精选创作工具 · Featured Creation Tools",
             tool1Tag: "STORYBOARD & VOICE",
             tool1Title: "Explainer 解说短片",
@@ -151,10 +151,10 @@ export function HomeView({
             startTopicCta: "立即生成短片 →",
           }
         : {
-            welcomeBadge: "BUILD YOUR AI CREATOR IP, THEN PUT THEM EVERYWHERE",
-            heroTitle: "Build Your AI Creator IP, Then Put Them Everywhere.",
+            welcomeBadge: "SCRO CANVAS · ALL-IN-ONE AI MEDIA STUDIO",
+            heroTitle: "One Simple Canvas. Every AI Video You Need.",
             heroSubtitle:
-              "Lock one AI character face, voice, and wardrobe — then Create Video, Remix Video, and publish Daily Social Images from one studio.",
+              "Pick a ready-made template or ask the AI Assistant, then auto-generate talking heads, explainers, swaps, and assembled videos.",
             shortcutsTitle: "Featured Creation Tools",
             tool1Tag: "STORYBOARD & VOICE",
             tool1Title: "Explainer Video",
