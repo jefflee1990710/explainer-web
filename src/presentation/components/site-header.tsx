@@ -6,6 +6,7 @@ import { track } from "@/presentation/components/analytics/track";
 import { BrandMark } from "@/presentation/components/brand-mark";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { SiteAccountMenu, type SiteAccount } from "@/presentation/components/site-account-menu";
 import { SITE_FEATURE_LINKS, SiteFeaturesMenu } from "@/presentation/components/site-features-menu";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
@@ -68,10 +69,10 @@ export function SiteHeader({
               {t("nav.home")}
             </Link>
             <Link
-              href="/simple"
+              href={canvasLaunchHref(signedIn)}
               className="shrink-0 font-semibold text-[#A3FF47] transition-colors hover:text-white"
             >
-              Try It Now
+              Open Canvas
             </Link>
             <SiteFeaturesMenu />
             {showAffiliate ? (
@@ -148,6 +149,13 @@ export function SiteHeader({
                 className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
               >
                 {t("nav.home")}
+              </Link>
+              <Link
+                href={canvasLaunchHref(signedIn)}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl bg-[#12141c] px-3 py-2.5 text-sm font-bold text-[#c6f24b] transition-colors hover:bg-black"
+              >
+                Open Canvas →
               </Link>
               <Link
                 href="/examples"

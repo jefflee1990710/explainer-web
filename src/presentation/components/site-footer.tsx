@@ -32,8 +32,8 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-400">
-            <Link href="/simple" className="text-[#A3FF47] hover:text-white">
-              Simple Studio
+            <Link href="/app/canvas" className="text-[#A3FF47] hover:text-white">
+              Scro Canvas
             </Link>
             <Link href="/scroswap" className="hover:text-white">
               Scro Swap
@@ -46,27 +46,27 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
                 {t(item.labelKey)}
               </Link>
             ))}
-            <Link href="/posts" className="hover:text-[#12141c]">
+            <Link href="/posts" className="hover:text-white">
               {t("nav.blog")}
             </Link>
-            <Link href="/examples" className="hover:text-[#12141c]">
+            <Link href="/examples" className="hover:text-white">
               {t("nav.features")}
             </Link>
             {showAffiliate ? (
-              <Link href="/affiliate" className="hover:text-[#12141c]">
+              <Link href="/affiliate" className="hover:text-white">
                 {t("nav.affiliate")}
               </Link>
             ) : null}
-            <Link href="/pricing" className="hover:text-[#12141c]">
+            <Link href="/pricing" className="hover:text-white">
               {t("nav.pricing")}
             </Link>
-            <Link href="/contact" className="hover:text-[#12141c]">
+            <Link href="/contact" className="hover:text-white">
               {t("contactPage.navLabel")}
             </Link>
-            <Link href="/terms" className="hover:text-[#12141c]">
+            <Link href="/terms" className="hover:text-white">
               {t("legal.terms")}
             </Link>
-            <Link href="/privacy" className="hover:text-[#12141c]">
+            <Link href="/privacy" className="hover:text-white">
               {t("legal.privacy")}
             </Link>
           </nav>
