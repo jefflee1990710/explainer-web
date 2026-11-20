@@ -9,6 +9,7 @@ import {
   Film,
   FolderHeart,
   Loader2,
+  Music,
   Plus,
   RefreshCw,
   Search,
@@ -33,11 +34,11 @@ export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const CATEGORIES: Array<"all" | CanvasModelCategory> = [
   "all",
+  "scro-tool",
+  "ffmpeg",
+  "audio",
   "image",
   "video",
-  "editing",
-  "segmentation",
-  "upscale",
 ];
 
 export function CanvasSidebar({
@@ -67,12 +68,14 @@ export function CanvasSidebar({
   const [category, setCategory] = useState<"all" | CanvasModelCategory>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // The picker offers OpenRouter models. Mentalok specs stay in the catalog so
-  // graphs that already use them can still run.
-  const listedModels = useMemo(
-    () => models.filter((spec) => spec.provider === "openrouter"),
-    [models],
-  );
+  // Offer Scro tools, FFmpeg utilities, and OpenRouter models. Legacy Mentalok specs
+  // stay in the catalog so graphs that already use them can still run.
+  const listedModels = useMemo(() => {
+    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, openrouter: 2 };
+    return models
+      .filter((spec) => spec.provider !== "mentalok")
+      .sort((a, b) => (providerRank[a.provider] ?? 9) - (providerRank[b.provider] ?? 9));
+  }, [models]);
   const visibleCategories = useMemo(() => {
     const present = new Set(listedModels.map((spec) => spec.category));
     return CATEGORIES.filter((cat) => cat === "all" || present.has(cat));
@@ -355,6 +358,10 @@ function AssetSection({
               {asset.mediaKind === "video" ? (
                 <div className="relative grid aspect-[4/5] w-full place-items-center bg-black/50 text-violet-300">
                   <Film className="h-5 w-5" />
+                </div>
+              ) : asset.mediaKind === "audio" ? (
+                <div className="relative grid aspect-[4/5] w-full place-items-center bg-amber-500/10 text-amber-300">
+                  <Music className="h-5 w-5" />
                 </div>
               ) : (
                 <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#10141c]">

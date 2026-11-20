@@ -9,6 +9,7 @@ import type {
   CanvasModelSpec,
   CanvasPortType,
 } from "@/service/canvas/model-catalog";
+import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
 
 export const PORT_COLOR_MAP: Record<CanvasPortType, string> = {
   image: "#38bdf8",
@@ -40,6 +41,7 @@ export type CanvasLightboxItem = {
 export type CanvasNodeActionsContextValue = {
   catalog: readonly CanvasModelSpec[];
   edges: readonly CanvasEdge[];
+  characterOptions: readonly CanvasLibraryCharacterOption[];
   locale: string;
   isFlowRunning: boolean;
   onUpdateNodeData: (nodeId: string, patch: Partial<CanvasNodeData>) => void;

@@ -1076,6 +1076,7 @@ function CanvasWorkspaceInner({
     () => ({
       catalog: models,
       edges: domainEdges,
+      characterOptions: assets.characterOptions ?? [],
       locale,
       isFlowRunning,
       onUpdateNodeData,
@@ -1086,6 +1087,7 @@ function CanvasWorkspaceInner({
     [
       models,
       domainEdges,
+      assets.characterOptions,
       locale,
       isFlowRunning,
       onUpdateNodeData,
