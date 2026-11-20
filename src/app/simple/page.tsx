@@ -1,20 +1,18 @@
-import { PublicStudioCreationHub } from "@/presentation/components/economy/public-studio-creation-hub";
+import { CanvasTemplateLauncher } from "@/presentation/components/canvas-template-launcher";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
-import { listPublicStyles } from "@/service/style/list";
 
 export const dynamic = "force-dynamic";
 
 export default async function SimpleMarketingCreationPage() {
-  const [session, styles] = await Promise.all([
-    getAuthSession(),
-    listPublicStyles(),
-  ]);
+  const session = await getAuthSession();
   const signedIn = Boolean(session);
 
   return (
     <PolicyLayout>
-      <PublicStudioCreationHub mode="simple" signedIn={signedIn} styles={styles} />
+      <CanvasTemplateLauncher templateId="text-image-video" signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
     </PolicyLayout>
   );
 }

@@ -203,4 +203,23 @@ test("landing and feature page components use the clean Studio / Editor design s
   assert.match(videoStylesBlock, /grid-cols-2/);
   assert.match(videoStylesBlock, /relative aspect-video overflow-hidden/);
   assert.doesNotMatch(videoStylesBlock, /lg:grid-rows-3|lg:aspect-auto/);
+
+  // Public tool pages must use CanvasTemplateLauncher (never PublicStudioCreationHub) and never render OpenCut editor-desk.png
+  for (const rel of [
+    "src/app/simple/page.tsx",
+    "src/app/scroswap/page.tsx",
+    "src/app/teleport/page.tsx",
+    "src/app/explainer/page.tsx",
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
+    assert.doesNotMatch(src, /PublicStudioCreationHub/, `${rel} should not mount legacy PublicStudioCreationHub`);
+  }
+  for (const rel of [
+    "src/app/talking-head/talking-head-finish.tsx",
+    "src/app/right-tool/right-tool-edit.tsx",
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
+    assert.doesNotMatch(src, /editor-desk\.png/, `${rel} should not render legacy OpenCut screenshot`);
+    assert.match(src, /CanvasPostFlowVisual/);
+  }
 });

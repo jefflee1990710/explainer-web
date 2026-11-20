@@ -1,5 +1,7 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
+import { CanvasPostFlowVisual } from "@/presentation/components/canvas-post-flow-visual";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -26,14 +28,10 @@ export function RightToolEdit({ signedIn = false }: { signedIn?: boolean }) {
           <p className="mt-4 text-base leading-7 text-[#5c6170]">{t("rightTool.edit.body")}</p>
         </div>
 
-        {/* Full desk print-screen inside a Studio card frame. */}
-        <figure className="mt-12 overflow-hidden rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-2 shadow-[0_16px_48px_rgba(18,20,28,0.08)]">
-          <img
-            src="/landing/right-tool/editor-desk.png"
-            alt={t("rightTool.edit.deskLabel")}
-            className="block w-full rounded-xl"
-          />
-        </figure>
+        {/* Canvas automated post-production flow visual */}
+        <div className="mt-12">
+          <CanvasPostFlowVisual />
+        </div>
 
         <MotionStagger className="mt-8 grid gap-6 md:grid-cols-3">
           {points.map((item, i) => (
@@ -51,7 +49,7 @@ export function RightToolEdit({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn),
             label: t("rightTool.cta.cta"),
           }}
           secondary={{ href: "/pricing", label: t("rightTool.cta.ctaPricing") }}

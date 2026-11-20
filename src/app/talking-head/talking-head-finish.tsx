@@ -1,5 +1,7 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
+import { CanvasPostFlowVisual } from "@/presentation/components/canvas-post-flow-visual";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
@@ -28,13 +30,7 @@ export function TalkingHeadFinish({ signedIn = false }: { signedIn?: boolean }) 
                 />
               </ParallaxLayer>
             </div>
-            <figure className="overflow-hidden rounded-2xl border border-white/15 bg-white/5 p-2">
-              <img
-                src="/landing/talking-head/editor-desk.png"
-                alt={t("talkingHeadPage.finish.deskLabel")}
-                className="block w-full rounded-xl"
-              />
-            </figure>
+            <CanvasPostFlowVisual />
           </div>
           <div className="lg:order-1">
             <p className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">
@@ -62,7 +58,7 @@ export function TalkingHeadFinish({ signedIn = false }: { signedIn?: boolean }) 
             <SectionCtaRow
               tone="dark"
               primary={{
-                href: signedIn ? "/app" : "/sign-up",
+                href: canvasLaunchHref(signedIn, "talking-head"),
                 label: t("talkingHeadPage.cta.cta"),
               }}
               secondary={{ href: "/cantonese", label: t("talkingHeadPage.cta.ctaCantonese") }}
