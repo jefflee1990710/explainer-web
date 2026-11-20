@@ -1,7 +1,7 @@
 "use client";
 
 // Collapsible left drawer for /app/canvas with two tabs:
-// 1) Models (16 Mentalok + 10 OpenRouter, searchable, filterable, draggable or click-to-add)
+// 1) Models (OpenRouter only, searchable, filterable, draggable or click-to-add)
 // 2) Assets (Local upload + Scro Characters, Products, and Recent Canvas Outputs)
 
 import { useMemo, useRef, useState } from "react";
@@ -67,19 +67,32 @@ export function CanvasSidebar({
   const [category, setCategory] = useState<"all" | CanvasModelCategory>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // The picker offers OpenRouter models. Mentalok specs stay in the catalog so
+  // graphs that already use them can still run.
+  const listedModels = useMemo(
+    () => models.filter((spec) => spec.provider === "openrouter"),
+    [models],
+  );
+  const visibleCategories = useMemo(() => {
+    const present = new Set(listedModels.map((spec) => spec.category));
+    return CATEGORIES.filter((cat) => cat === "all" || present.has(cat));
+  }, [listedModels]);
+
+  // Falls back to "all" when the picked category has no listed model.
+  const activeCategory = visibleCategories.includes(category) ? category : "all";
+
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return models.filter((spec) => {
-      if (category !== "all" && spec.category !== category) return false;
+    return listedModels.filter((spec) => {
+      if (activeCategory !== "all" && spec.category !== activeCategory) return false;
       if (!q) return true;
       return (
         spec.name.toLowerCase().includes(q) ||
         spec.providerModelId.toLowerCase().includes(q) ||
-        spec.provider.toLowerCase().includes(q) ||
         spec.category.toLowerCase().includes(q)
       );
     });
-  }, [models, query, category]);
+  }, [listedModels, query, activeCategory]);
 
   return (
     <aside className="flex h-full w-[276px] shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95">
@@ -95,7 +108,7 @@ export function CanvasSidebar({
           }`}
         >
           <Sparkles className="h-3.5 w-3.5" />
-          <span>{isZh ? `模型 (${models.length})` : `Models (${models.length})`}</span>
+          <span>{isZh ? `模型 (${listedModels.length})` : `Models (${listedModels.length})`}</span>
         </button>
         <button
           type="button"
@@ -141,8 +154,8 @@ export function CanvasSidebar({
 
             {/* Category filter pills */}
             <div className="flex flex-wrap gap-1">
-              {CATEGORIES.map((cat) => {
-                const active = category === cat;
+              {visibleCategories.map((cat) => {
+                const active = activeCategory === cat;
                 const label =
                   cat === "all"
                     ? isZh

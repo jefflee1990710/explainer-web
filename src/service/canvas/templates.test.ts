@@ -21,6 +21,7 @@ describe("canvas starter templates", () => {
         if (node.type === "model") {
           const spec = findCanvasModel(node.data.modelId || "", STATIC_CANVAS_MODELS);
           assert.ok(spec, `template ${template.id} references unknown model ${node.data.modelId}`);
+          assert.equal(spec.provider, "openrouter");
           if (node.data.presetId) {
             assert.ok(
               spec.presets.includes(node.data.presetId),

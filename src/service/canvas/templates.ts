@@ -1,6 +1,14 @@
 // Curated starter workflow templates for the Interactive Node Canvas Editor (/app/canvas).
 
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import {
+  OPENROUTER_GPT_5_IMAGE_MODEL,
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
+  OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL,
+  OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL,
+  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+  OPENROUTER_WAN_3_VIDEO_MODEL,
+} from "@/service/openrouter/generate";
 
 export type CanvasStarterTemplateId =
   | "text-image-video"
@@ -27,30 +35,30 @@ export const CANVAS_STARTER_TEMPLATES: readonly CanvasStarterTemplate[] = [
       en: "Text → Image → Video",
     },
     description: {
-      "zh-Hant": "用 FLUX.2 快速出圖，直接接成 Wan 2.2 起始幀生成短片",
-      en: "Generate a keyframe with FLUX.2 and animate it with Wan 2.2",
+      "zh-Hant": "用 Seedream 5.0 Pro 出圖，直接接成 Wan 3.0 起始幀生成短片",
+      en: "Generate a keyframe with Seedream 5.0 Pro and animate it with Wan 3.0",
     },
   },
   {
     id: "image-edit-upscale",
     name: {
-      "zh-Hant": "修圖 → 2x 超解析放大",
-      en: "Image → Edit → 2x Upscale",
+      "zh-Hant": "生圖 → 參考重繪",
+      en: "Image → Reference Restyle",
     },
     description: {
-      "zh-Hant": "用 Qwen-Image-Edit 指令修圖，再送入 SeedVR2 放大 2 倍",
-      en: "Edit an image with Qwen-Image-Edit and upscale 2x with SeedVR2",
+      "zh-Hant": "先用 Seedream 5.0 Lite 生圖，再交給 Nano Banana 2.1 依參考圖重繪",
+      en: "Generate with Seedream 5.0 Lite, then restyle from that reference with Nano Banana 2.1",
     },
   },
   {
     id: "text-image-cutout",
     name: {
-      "zh-Hant": "文生圖 → 一鍵去背",
-      en: "Text → Image → Cutout",
+      "zh-Hant": "文生圖 → Hailuo 短片",
+      en: "Text → Image → Hailuo",
     },
     description: {
-      "zh-Hant": "先以 FLUX.1 schnell 生圖，再由 BiRefNet 自動去背",
-      en: "Create an image with FLUX.1 schnell and remove background with BiRefNet",
+      "zh-Hant": "先以 GPT-5 Image 生圖，再交給 MiniMax Hailuo 3 做成短片",
+      en: "Create an image with GPT-5 Image and animate it with MiniMax Hailuo 3",
     },
   },
 ];
@@ -84,8 +92,9 @@ export function instantiateCanvasTemplate(
           type: "model",
           position: { x: 360, y: 80 },
           data: {
-            modelId: "mentalok:flux-2-klein-4b",
-            presetId: "flux2-klein-portrait",
+            modelId: `openrouter:${OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL}`,
+            presetId: "9:16",
+            aspectRatio: "9:16",
             prompt: "",
             status: "idle",
           },
@@ -95,8 +104,9 @@ export function instantiateCanvasTemplate(
           type: "model",
           position: { x: 760, y: 80 },
           data: {
-            modelId: "mentalok:wan-2-2",
-            presetId: "wan22-portrait",
+            modelId: `openrouter:${OPENROUTER_WAN_3_VIDEO_MODEL}`,
+            presetId: "9:16",
+            aspectRatio: "9:16",
             prompt:
               "Slow cinematic dolly-in around the perfume bottle, subtle mist drifting across the dark basalt surface",
             status: "idle",
@@ -133,10 +143,11 @@ export function instantiateCanvasTemplate(
           type: "model",
           position: { x: 260, y: 100 },
           data: {
-            modelId: "mentalok:qwen-image-edit-2511",
-            presetId: "qwen-edit-4step",
+            modelId: `openrouter:${OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL}`,
+            presetId: "1:1",
+            aspectRatio: "1:1",
             prompt:
-              "Add warm sunset window light and clean editorial color grading, keep the subject identical",
+              "A ceramic perfume bottle on dark stone, soft studio light, square product photo",
             status: "idle",
           },
         },
@@ -145,8 +156,11 @@ export function instantiateCanvasTemplate(
           type: "model",
           position: { x: 680, y: 100 },
           data: {
-            modelId: "mentalok:seedvr2-image",
-            presetId: "seedvr2-img-2x",
+            modelId: `openrouter:${OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL}`,
+            presetId: "1:1",
+            aspectRatio: "1:1",
+            prompt:
+              "Restyle the reference into warm sunset window light and clean editorial color, keep the subject identical",
             status: "idle",
           },
         },
@@ -157,7 +171,7 @@ export function instantiateCanvasTemplate(
           source: editModelId,
           sourceHandle: "output",
           target: upscaleModelId,
-          targetHandle: "image",
+          targetHandle: "refImages",
         },
       ],
     };
@@ -174,8 +188,9 @@ export function instantiateCanvasTemplate(
         type: "model",
         position: { x: 180, y: 100 },
         data: {
-          modelId: "mentalok:flux-schnell",
-          presetId: "flux-square-1024",
+          modelId: `openrouter:${OPENROUTER_GPT_5_IMAGE_MODEL}`,
+          presetId: "1:1",
+          aspectRatio: "1:1",
           prompt:
             "Cute minimal ceramic coffee mug with matte sage glaze centered on a clean studio backdrop, crisp product photo",
           status: "idle",
@@ -186,8 +201,10 @@ export function instantiateCanvasTemplate(
         type: "model",
         position: { x: 600, y: 100 },
         data: {
-          modelId: "mentalok:birefnet",
-          presetId: "birefnet-auto",
+          modelId: `openrouter:${OPENROUTER_HAILUO_3_VIDEO_MODEL}`,
+          presetId: "1:1",
+          aspectRatio: "1:1",
+          prompt: "Slow push-in on the coffee mug, soft light shifting across the glaze",
           status: "idle",
         },
       },
@@ -198,7 +215,7 @@ export function instantiateCanvasTemplate(
         source: genModelId,
         sourceHandle: "output",
         target: cutoutModelId,
-        targetHandle: "image",
+        targetHandle: "startImage",
       },
     ],
   };
