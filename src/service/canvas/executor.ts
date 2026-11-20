@@ -6,9 +6,11 @@ import {
   canvasJobsCollection,
   canvasProjectsCollection,
   usersCollection,
+  workerTasksCollection,
 } from "@/dao";
 import type {
   CanvasJob,
+  CanvasJobDomainKind,
   CanvasNode,
   CanvasNodeData,
   CanvasOutputKind,
@@ -30,7 +32,14 @@ import {
   getCanvasModelCatalog,
 } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+import {
+  executeScroSyncNode,
+  pollScroAsyncJob,
+  submitScroAsyncNode,
+  validateScroToolInputs,
+} from "@/service/canvas/scro-dispatch";
 import { persistMedia } from "@/service/higgsfield/persist";
+import { enqueueWorkerTask } from "@/service/worker/task-queue";
 import {
   type MentalokCreateJobPayload,
   type MentalokJobRecord,
@@ -116,6 +125,17 @@ export type CanvasExecutorDeps = {
   getMentalokJob: (jobId: string) => Promise<MentalokJobRecord>;
   ensureMentalokUrl: (mediaUrl: string) => Promise<string>;
   persistMedia: (url: string, pathname: string) => Promise<string>;
+  executeScroSyncNode: typeof executeScroSyncNode;
+  submitScroAsyncNode: typeof submitScroAsyncNode;
+  pollScroAsyncJob: typeof pollScroAsyncJob;
+  enqueueFfmpegWorkerTask: (params: {
+    jobIdHex: string;
+    modelId: string;
+    clerkUserId: string;
+  }) => Promise<ObjectId>;
+  findWorkerTaskStatus: (
+    workerTaskId: string,
+  ) => Promise<{ status: string; error?: string } | null>;
   now: () => Date;
 };
 
@@ -283,6 +303,23 @@ function createDefaultDeps(): CanvasExecutorDeps {
     getMentalokJob: (jobId) => getMentalokJob(jobId),
     ensureMentalokUrl: (mediaUrl) => ensureMentalokUrl(mediaUrl),
     persistMedia: (url, pathname) => persistMedia(url, pathname),
+    executeScroSyncNode: (params) => executeScroSyncNode(params),
+    submitScroAsyncNode: (params) => submitScroAsyncNode(params),
+    pollScroAsyncJob: (params) => pollScroAsyncJob(params),
+    enqueueFfmpegWorkerTask: async ({ jobIdHex, modelId, clerkUserId }) =>
+      enqueueWorkerTask({
+        kind: "canvas_ffmpeg",
+        targetId: jobIdHex,
+        lane: "cpu",
+        payload: { modelId, clerkUserId },
+      }),
+    findWorkerTaskStatus: async (workerTaskId) => {
+      if (!ObjectId.isValid(workerTaskId)) return null;
+      const col = await workerTasksCollection();
+      const doc = await col.findOne({ _id: new ObjectId(workerTaskId) });
+      if (!doc) return null;
+      return { status: doc.status, error: doc.error };
+    },
     now: () => new Date(),
   };
 }
@@ -334,6 +371,9 @@ function buildCanvasBlobPathname(
   if (outputKind === "video") {
     const ext = lower.includes(".webm") ? "webm" : "mp4";
     return `canvas/${clerkUserId}/${jobIdHex}.${ext}`;
+  }
+  if (outputKind === "audio") {
+    return `canvas/${clerkUserId}/${jobIdHex}.mp3`;
   }
   if (lower.startsWith("data:image/webp") || /\.webp(?:$|\?)/.test(lower)) {
     return `canvas/${clerkUserId}/${jobIdHex}.webp`;
@@ -577,34 +617,58 @@ export async function submitCanvasNodeJob(
     };
   }
 
-  // Recalculate authoritative USD cost server-side before deducting wallet balance.
-  const costUsd = estimateCanvasModelCostUsd(spec, {
-    durationSeconds: node.data.durationSeconds,
-  });
-
-  let spendEventKey: string;
-  try {
-    spendEventKey = await resolved.consumeCreditUsd(input.clerkUserId, costUsd);
-  } catch (error) {
-    const availableUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    if (isInsufficientCreditError(error)) {
+  if (spec.provider === "scro") {
+    const scroCheck = validateScroToolInputs(spec.id, node, inputCheck.inputs);
+    if (!scroCheck.ok) {
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
       return {
         ok: false,
-        code: "INSUFFICIENT_CREDIT",
-        error: toErrorMessage(error, "USD Credit 餘額不足，無法執行此節點"),
-        requiredUsd: costUsd,
-        availableUsd,
-        creditUsd: availableUsd,
+        code: "INVALID_INPUTS",
+        error: scroCheck.reason,
+        missingRequiredFields: scroCheck.missingRequiredFields,
+        creditUsd,
       };
     }
-    throw error;
+  }
+
+  // Recalculate authoritative USD cost server-side before deducting wallet balance.
+  const durationPresetSec =
+    node.data.toolParams?.durationPreset === "15s"
+      ? 15
+      : node.data.toolParams?.durationPreset === "45s"
+        ? 45
+        : node.data.toolParams?.durationPreset === "60s"
+          ? 60
+          : undefined;
+  const costUsd = estimateCanvasModelCostUsd(spec, {
+    durationSeconds: node.data.durationSeconds ?? durationPresetSec,
+  });
+
+  let spendEventKey: string | undefined;
+  if (costUsd > 0) {
+    try {
+      spendEventKey = await resolved.consumeCreditUsd(input.clerkUserId, costUsd);
+    } catch (error) {
+      const availableUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      if (isInsufficientCreditError(error)) {
+        return {
+          ok: false,
+          code: "INSUFFICIENT_CREDIT",
+          error: toErrorMessage(error, "USD Credit 餘額不足，無法執行此節點"),
+          requiredUsd: costUsd,
+          availableUsd,
+          creditUsd: availableUsd,
+        };
+      }
+      throw error;
+    }
   }
 
   const jobId = new ObjectId();
   const jobIdHex = jobId.toHexString();
   const now = resolved.now();
   const presetId =
-    spec.provider === "mentalok"
+    spec.provider === "mentalok" || spec.provider === "ffmpeg"
       ? node.data.presetId && spec.presets.includes(node.data.presetId)
         ? node.data.presetId
         : spec.defaultPresetId
@@ -621,6 +685,7 @@ export async function submitCanvasNodeJob(
     ...(node.data.durationSeconds !== undefined
       ? { durationSeconds: node.data.durationSeconds }
       : {}),
+    ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
     ...(inputCheck.inputs.image ? { image: inputCheck.inputs.image } : {}),
     ...(inputCheck.inputs.startImage
       ? { startImage: inputCheck.inputs.startImage }
@@ -632,6 +697,9 @@ export async function submitCanvasNodeJob(
       ? { refImages: inputCheck.inputs.refImages }
       : {}),
     ...(inputCheck.inputs.video ? { video: inputCheck.inputs.video } : {}),
+    ...(inputCheck.inputs.videos.length > 0
+      ? { videos: inputCheck.inputs.videos }
+      : {}),
     ...(inputCheck.inputs.refAudio
       ? { refAudio: inputCheck.inputs.refAudio }
       : {}),
@@ -651,7 +719,7 @@ export async function submitCanvasNodeJob(
     status: "queued",
     inputSnapshot,
     chargedUsd: costUsd,
-    spendEventKey,
+    ...(spendEventKey ? { spendEventKey } : {}),
     outputKind: spec.output.type,
     createdAt: now,
     updatedAt: now,
@@ -839,6 +907,141 @@ export async function submitCanvasNodeJob(
           status: "running",
           externalJobId: response.request_id,
           statusUrl: response.status_url,
+          updatedAt,
+        },
+        creditUsd,
+      };
+    }
+
+    // Branch 4: Vast.ai Worker FFmpeg utility node.
+    if (spec.provider === "ffmpeg") {
+      const workerTaskId = await resolved.enqueueFfmpegWorkerTask({
+        jobIdHex,
+        modelId: spec.id,
+        clerkUserId: input.clerkUserId,
+      });
+      const updatedAt = resolved.now();
+      const workerIdHex = workerTaskId.toHexString();
+      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
+        $set: {
+          status: "running",
+          domainKind: "worker_ffmpeg",
+          externalJobId: workerIdHex,
+          updatedAt,
+        },
+      });
+      await resolved.updateCanvasNodeState({
+        canvasId: canvasObjectId,
+        clerkUserId: input.clerkUserId,
+        nodeId: node.id,
+        patch: {
+          status: "running",
+          lastJobId: jobIdHex,
+          lastCostUsd: costUsd,
+          lastError: undefined,
+        },
+        updatedAt,
+      });
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: true,
+        job: {
+          ...initialJob,
+          status: "running",
+          domainKind: "worker_ffmpeg",
+          externalJobId: workerIdHex,
+          updatedAt,
+        },
+        creditUsd,
+      };
+    }
+
+    // Branch 5: Scro tool nodes (`scro:*`).
+    if (spec.provider === "scro") {
+      if (spec.id === "scro:tts" || spec.id === "scro:life" || spec.id === "scro:poster") {
+        const out = await resolved.executeScroSyncNode({
+          clerkUserId: input.clerkUserId,
+          jobIdHex,
+          modelId: spec.id,
+          node,
+          inputs: inputCheck.inputs,
+        });
+        const completedAt = resolved.now();
+        await resolved.updateCanvasJob(jobId, input.clerkUserId, {
+          $set: {
+            status: "completed",
+            outputUrl: out.outputUrl,
+            outputKind: out.outputKind,
+            updatedAt: completedAt,
+          },
+          $unset: { error: "" },
+        });
+        await resolved.updateCanvasNodeState({
+          canvasId: canvasObjectId,
+          clerkUserId: input.clerkUserId,
+          nodeId: node.id,
+          patch: {
+            status: "completed",
+            lastJobId: jobIdHex,
+            outputUrl: out.outputUrl,
+            outputKind: out.outputKind,
+            lastCostUsd: costUsd,
+            lastError: undefined,
+          },
+          ...(out.outputKind === "image" ? { thumbnailUrl: out.outputUrl } : {}),
+          updatedAt: completedAt,
+        });
+        const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+        return {
+          ok: true,
+          job: {
+            ...initialJob,
+            status: "completed",
+            outputUrl: out.outputUrl,
+            outputKind: out.outputKind,
+            updatedAt: completedAt,
+          },
+          creditUsd,
+        };
+      }
+
+      const submitted = await resolved.submitScroAsyncNode({
+        clerkUserId: input.clerkUserId,
+        canvasIdHex: input.canvasId,
+        jobIdHex,
+        modelId: spec.id,
+        node,
+        inputs: inputCheck.inputs,
+      });
+      const updatedAt = resolved.now();
+      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
+        $set: {
+          status: "running",
+          domainKind: submitted.domainKind,
+          externalJobId: submitted.externalJobId,
+          updatedAt,
+        },
+      });
+      await resolved.updateCanvasNodeState({
+        canvasId: canvasObjectId,
+        clerkUserId: input.clerkUserId,
+        nodeId: node.id,
+        patch: {
+          status: "running",
+          lastJobId: jobIdHex,
+          lastCostUsd: costUsd,
+          lastError: undefined,
+        },
+        updatedAt,
+      });
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: true,
+        job: {
+          ...initialJob,
+          status: "running",
+          domainKind: submitted.domainKind,
+          externalJobId: submitted.externalJobId,
           updatedAt,
         },
         creditUsd,
@@ -1132,6 +1335,76 @@ export async function pollCanvasJobs(
         // Ensure a failed job is refunded at most once even if a prior failure crashed mid-settlement.
         if (!job.refundedAt) {
           await refundCanvasJobOnce(job._id, job.clerkUserId, resolved);
+        }
+        return job;
+      }
+
+      if (job.provider === "ffmpeg") {
+        if (!job.externalJobId) return job;
+        const wt = await resolved.findWorkerTaskStatus(job.externalJobId).catch(() => null);
+        if (wt?.status === "failed") {
+          return settleFailedJob(job, wt.error || "FFmpeg 處理失敗", resolved);
+        }
+        return job;
+      }
+
+      if (job.provider === "scro") {
+        if (
+          !job.externalJobId ||
+          (job.domainKind !== "video" &&
+            job.domainKind !== "jutsu" &&
+            job.domainKind !== "teleport")
+        ) {
+          return job;
+        }
+        const pollRes = await resolved
+          .pollScroAsyncJob({
+            clerkUserId: job.clerkUserId,
+            domainKind: job.domainKind as "video" | "jutsu" | "teleport",
+            externalJobId: job.externalJobId,
+          })
+          .catch(() => ({ status: "running" as const }));
+
+        if (pollRes.status === "failed") {
+          return settleFailedJob(job, pollRes.error, resolved);
+        }
+        if (pollRes.status === "completed") {
+          if (pollRes.outputUrl.includes(".public.blob.vercel-storage.com/")) {
+            const outputKind: CanvasOutputKind = job.outputKind ?? "video";
+            const completedAt = resolved.now();
+            await resolved.updateCanvasJob(job._id, job.clerkUserId, {
+              $set: {
+                status: "completed",
+                outputUrl: pollRes.outputUrl,
+                outputKind,
+                updatedAt: completedAt,
+              },
+              $unset: { error: "" },
+            });
+            await resolved.updateCanvasNodeState({
+              canvasId: job.canvasId,
+              clerkUserId: job.clerkUserId,
+              nodeId: job.nodeId,
+              patch: {
+                status: "completed",
+                lastJobId: job._id.toHexString(),
+                outputUrl: pollRes.outputUrl,
+                outputKind,
+                lastCostUsd: job.chargedUsd,
+                lastError: undefined,
+              },
+              updatedAt: completedAt,
+            });
+            return {
+              ...job,
+              status: "completed",
+              outputUrl: pollRes.outputUrl,
+              outputKind,
+              error: undefined,
+              updatedAt: completedAt,
+            };
+          }
+          return settleCompletedJob(job, pollRes.outputUrl, resolved);
         }
         return job;
       }

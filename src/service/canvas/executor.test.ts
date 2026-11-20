@@ -173,6 +173,17 @@ function createHarness(options: {
       persistedCalls.push({ url, pathname });
       return `https://blob.vercel-storage.com/${pathname}`;
     },
+    executeScroSyncNode: async () => ({
+      outputUrl: "https://blob.example/scro-sync.png",
+      outputKind: "image",
+    }),
+    submitScroAsyncNode: async () => ({
+      domainKind: "video",
+      externalJobId: new ObjectId().toHexString(),
+    }),
+    pollScroAsyncJob: async () => ({ status: "running" }),
+    enqueueFfmpegWorkerTask: async () => new ObjectId(),
+    findWorkerTaskStatus: async () => ({ status: "in_progress" }),
     now: () => new Date("2026-11-20T00:01:00.000Z"),
     ...options.overrides,
   };
@@ -711,5 +722,190 @@ describe("canvas executor", () => {
       harness.project.nodes.find((node) => node.id === "img")?.data.status,
       "completed",
     );
+  });
+
+  it("skips consumeCreditUsd for $0 ffmpeg:concat, enqueues canvas_ffmpeg worker task, and polls completion", async () => {
+    const workerTaskId = new ObjectId();
+    let enqueuedKind = "";
+    const harness = createHarness({
+      initialCreditUsd: 1,
+      nodes: [
+        {
+          id: "v1",
+          type: "media",
+          position: { x: 0, y: 0 },
+          data: { mediaKind: "video", mediaUrl: "https://blob.example/a.mp4" },
+        },
+        {
+          id: "v2",
+          type: "media",
+          position: { x: 0, y: 120 },
+          data: { mediaKind: "video", mediaUrl: "https://blob.example/b.mp4" },
+        },
+        {
+          id: "concat",
+          type: "model",
+          position: { x: 300, y: 0 },
+          data: { modelId: "ffmpeg:concat", presetId: "pad-200ms" },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "v1", sourceHandle: "output", target: "concat", targetHandle: "videos" },
+        { id: "e2", source: "v2", sourceHandle: "output", target: "concat", targetHandle: "videos" },
+      ],
+      overrides: {
+        enqueueFfmpegWorkerTask: async ({ jobIdHex }) => {
+          enqueuedKind = `canvas_ffmpeg:${jobIdHex}`;
+          return workerTaskId;
+        },
+        findWorkerTaskStatus: async () => ({ status: "completed" }),
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const submitted = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "concat",
+      },
+      harness.deps,
+    );
+    assert.equal(submitted.ok, true);
+    if (!submitted.ok) return;
+    assert.equal(harness.consumeCalls.length, 0);
+    assert.equal(harness.wallet.creditUsd, 1);
+    assert.match(enqueuedKind, /^canvas_ffmpeg:/);
+    assert.equal(submitted.job.domainKind, "worker_ffmpeg");
+
+    // Simulate worker updating canvas_jobs outputUrl
+    const stored = harness.jobs.get(submitted.job._id.toHexString())!;
+    stored.status = "completed";
+    stored.outputUrl = "https://blob.example/concat.mp4";
+    stored.outputKind = "video";
+
+    const polled = await pollCanvasJobs(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        jobIds: [submitted.job._id.toHexString()],
+      },
+      harness.deps,
+    );
+    assert.equal(polled.jobs[0]?.status, "completed");
+    assert.equal(polled.jobs[0]?.outputUrl, "https://blob.example/concat.mp4");
+  });
+
+  it("charges $0.02 for scro:tts synchronously and outputs audio kind", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 1,
+      nodes: [
+        {
+          id: "tts",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "scro:tts", prompt: "大家好，歡迎來到 Scro" },
+        },
+      ],
+      overrides: {
+        executeScroSyncNode: async () => ({
+          outputUrl: "https://blob.example/canvas/user_1/tts.mp3",
+          outputKind: "audio",
+        }),
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const res = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "tts",
+      },
+      harness.deps,
+    );
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    assert.equal(res.job.status, "completed");
+    assert.equal(res.job.outputKind, "audio");
+    assert.equal(res.creditUsd, 0.98);
+    assert.equal(harness.project.nodes[0]?.data.outputKind, "audio");
+  });
+
+  it("rejects scro:talking-head without startImage or characterId before charging", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 5,
+      nodes: [
+        {
+          id: "th",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "scro:talking-head", prompt: "Hello world" },
+        },
+      ],
+    });
+
+    const res = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "th",
+      },
+      harness.deps,
+    );
+    assert.equal(res.ok, false);
+    if (!res.ok) assert.equal(res.code, "INVALID_INPUTS");
+    assert.equal(harness.consumeCalls.length, 0);
+  });
+
+  it("dispatches scro:explainer asynchronously, polls domain job, and refunds once on failure", async () => {
+    let pollStage: "running" | "failed" = "running";
+    const domainId = new ObjectId().toHexString();
+    const harness = createHarness({
+      initialCreditUsd: 10,
+      nodes: [
+        {
+          id: "exp",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "scro:explainer", prompt: "Explain compound interest", durationSeconds: 30 },
+        },
+      ],
+      overrides: {
+        submitScroAsyncNode: async () => ({
+          domainKind: "video",
+          externalJobId: domainId,
+        }),
+        pollScroAsyncJob: async () =>
+          pollStage === "running"
+            ? { status: "running" }
+            : { status: "failed", error: "Phase A failed" },
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const res = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "exp",
+      },
+      harness.deps,
+    );
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    assert.equal(res.job.status, "running");
+    assert.equal(res.job.domainKind, "video");
+    assert.equal(harness.wallet.creditUsd, 6.25); // 10 - 3.75
+
+    pollStage = "failed";
+    const polled = await pollCanvasJobs(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        jobIds: [res.job._id.toHexString()],
+      },
+      harness.deps,
+    );
+    assert.equal(polled.jobs[0]?.status, "failed");
+    assert.equal(polled.creditUsd, 10);
+    assert.equal(harness.refundCalls.length, 1);
   });
 });
