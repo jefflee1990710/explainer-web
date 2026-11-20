@@ -87,9 +87,10 @@ export async function claimAndStartClipVideo(
     };
   }
 
+  const skipBilling = Boolean(project.skipBilling);
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
-  const cost = clipVideoCost(project, clipNumber);
+  const cost = skipBilling ? 0 : clipVideoCost(project, clipNumber);
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;
   if (existing && !stuck && IN_FLIGHT.has(existing.status)) {
@@ -156,26 +157,28 @@ export async function claimAndStartClipVideo(
       );
   if (!claimed) return { ok: false, error: "這段正在生成中", retry: true };
   // Taking over a stuck claim settles it: its charge had no job, so hand it back.
-  if (stuck) await refundCreditUsd(clerkUserId, chargedClipUsd(existing));
+  if (stuck && !skipBilling) await refundCreditUsd(clerkUserId, chargedClipUsd(existing));
 
-  try {
-    await consumeCreditUsd(clerkUserId, cost);
-  } catch (error) {
-    await projects.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          "clips.$[clip].status": "failed",
-          "clips.$[clip].error": error instanceof Error ? error.message : "扣款失敗",
-          updatedAt: new Date(),
+  if (!skipBilling) {
+    try {
+      await consumeCreditUsd(clerkUserId, cost);
+    } catch (error) {
+      await projects.updateOne(
+        { _id: project._id },
+        {
+          $set: {
+            "clips.$[clip].status": "failed",
+            "clips.$[clip].error": error instanceof Error ? error.message : "扣款失敗",
+            updatedAt: new Date(),
+          },
         },
-      },
-      { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
-    );
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "扣款失敗",
-    };
+        { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+      );
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "扣款失敗",
+      };
+    }
   }
 
   try {
@@ -212,7 +215,9 @@ async function compensateClipVideo(
   message: string,
   cost: number,
 ) {
-  await refundCreditUsd(project.clerkUserId, cost);
+  if (!project.skipBilling && cost > 0) {
+    await refundCreditUsd(project.clerkUserId, cost);
+  }
   const projects = await videosCollection();
   await projects.updateOne(
     { _id: project._id },
@@ -261,14 +266,16 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
 
     const fresh = await projects.findOne({ _id: projectId });
     if (!fresh) return;
-    // Skip auto-video silently if the wallet cannot cover this clip's video cost,
-    // keeping the finished scene frame ready instead of marking the clip failed.
-    const users = await usersCollection();
-    const user = await users.findOne({ clerkUserId: fresh.clerkUserId });
-    const cost = clipVideoCost(fresh, clipNumber);
-    const balance = user ? resolveUserUsdBalance(user) : null;
-    if (!user || (!hasUnlimitedCredits(user.email) && toUsdUnits(balance!.creditUsd) < toUsdUnits(cost))) {
-      continue;
+    if (!fresh.skipBilling) {
+      // Skip auto-video silently if the wallet cannot cover this clip's video cost,
+      // keeping the finished scene frame ready instead of marking the clip failed.
+      const users = await usersCollection();
+      const user = await users.findOne({ clerkUserId: fresh.clerkUserId });
+      const cost = clipVideoCost(fresh, clipNumber);
+      const balance = user ? resolveUserUsdBalance(user) : null;
+      if (!user || (!hasUnlimitedCredits(user.email) && toUsdUnits(balance!.creditUsd) < toUsdUnits(cost))) {
+        continue;
+      }
     }
     const started = await claimAndStartClipVideo(fresh.clerkUserId, fresh, clipNumber);
     if (!started.ok && started.retry) remaining.push(clipNumber);

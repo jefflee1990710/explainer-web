@@ -1190,6 +1190,7 @@ export async function detectJutsuPeopleInFrame(input: {
  */
 export async function startScroSwapJob(
   input: StartScroSwapInput,
+  options?: { skipBilling?: boolean },
 ): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
   try {
     const user = await requireAppUser();
@@ -1332,13 +1333,19 @@ export async function startScroSwapJob(
     const applyColorFix = input.applyColorFix !== false;
     const colorSettings = input.colorSettings ?? DEFAULT_JUTSU_COLOR_SETTINGS;
 
+    const skipBilling = Boolean(options?.skipBilling);
     const sourceMediaKind = inferJutsuSourceMediaKind(sourceUrl, input.sourceMediaKind);
-    const cost = scroSwapCostUsd({
-      durationSeconds: sectionLength,
-      mediaKind: sourceMediaKind,
-    });
-    await assertCanSpendCreditUsd(user, cost);
-    const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
+    const cost = skipBilling
+      ? 0
+      : scroSwapCostUsd({
+          durationSeconds: sectionLength,
+          mediaKind: sourceMediaKind,
+        });
+    let spendKey: string | undefined;
+    if (!skipBilling) {
+      await assertCanSpendCreditUsd(user, cost);
+      spendKey = await consumeCreditUsd(user.clerkUserId, cost);
+    }
 
     const now = new Date();
     const jobId = new ObjectId();
@@ -1362,7 +1369,9 @@ export async function startScroSwapJob(
         });
         resolvedTargetClipNumber = 1;
       } catch (err) {
-        await refundCreditUsd(user.clerkUserId, cost, spendKey);
+        if (!skipBilling && spendKey) {
+          await refundCreditUsd(user.clerkUserId, cost, spendKey);
+        }
         throw err;
       }
     }
@@ -1412,6 +1421,7 @@ export async function startScroSwapJob(
       applyColorFix,
       colorSettings,
       chargedUsd: cost,
+      ...(skipBilling ? { skipBilling: true } : {}),
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(input.previousClipVideoUrl ? { previousClipVideoUrl: input.previousClipVideoUrl } : {}),
@@ -1423,7 +1433,9 @@ export async function startScroSwapJob(
     try {
       await col.insertOne(doc);
     } catch (err) {
-      await refundCreditUsd(user.clerkUserId, cost, spendKey);
+      if (!skipBilling && spendKey) {
+        await refundCreditUsd(user.clerkUserId, cost, spendKey);
+      }
       throw err;
     }
 
@@ -1960,6 +1972,7 @@ async function failJutsuJobAndRefund(
         : 0;
   if (
     updateRes.modifiedCount > 0 &&
+    !job.skipBilling &&
     !job.creditsRefunded &&
     refundUsd > 0
   ) {

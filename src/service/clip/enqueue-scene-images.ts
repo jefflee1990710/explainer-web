@@ -42,25 +42,35 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   const plan = planGenerateAllScenes(project);
   if (plan.frames.length === 0 || plan.cost === 0) return;
 
-  const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId: project.clerkUserId });
-  if (!user) return;
-  await assertCanSpendCreditUsd(user, plan.cost);
-  const spendKey = await consumeCreditUsd(project.clerkUserId, plan.cost);
+  const skipBilling = Boolean(project.skipBilling);
+  let spendKey: string | undefined;
+  if (!skipBilling) {
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId: project.clerkUserId });
+    if (!user) return;
+    await assertCanSpendCreditUsd(user, plan.cost);
+    spendKey = await consumeCreditUsd(project.clerkUserId, plan.cost);
+  }
   try {
-    // Flag Clip 1 for automatic video generation as soon as its scene frame(s) finish,
-    // so new videos immediately deliver an animated, voiced first clip in OpenCut.
-    if (plan.frames.includes(1)) {
+    // Flag Clip 1 (or all clips when autoProduceAllClips is enabled for Canvas) for automatic video generation.
+    const autoClips = project.autoProduceAllClips
+      ? Array.from(new Set(plan.frames))
+      : plan.frames.includes(1)
+        ? [1]
+        : [];
+    if (autoClips.length > 0) {
       await projects.updateOne(
         { _id: project._id },
-        { $addToSet: { autoVideoClips: 1 }, $set: { updatedAt: new Date() } },
+        { $addToSet: { autoVideoClips: { $each: autoClips } }, $set: { updatedAt: new Date() } },
       );
     }
     await enqueueClipFrameJobs(project, plan.frames);
     // One plate per clip; the plan cost above already includes them.
     await enqueueSubtitlePlateJobs(project);
   } catch (error) {
-    await refundCreditUsd(project.clerkUserId, plan.cost, spendKey);
+    if (!skipBilling && spendKey) {
+      await refundCreditUsd(project.clerkUserId, plan.cost, spendKey);
+    }
     throw error;
   }
 }

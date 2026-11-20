@@ -1278,7 +1278,9 @@ export async function applyJobStatus(input: {
     if (!claimedLockFailure) await jobs.updateOne({ _id: job._id }, lockUpdate);
     if (claimedLockFailure && job.projectId) {
       const lockProject = await (await videosCollection()).findOne({ _id: job.projectId });
-      if (lockProject) await refundCreditUsd(lockProject.clerkUserId, FRAME_COST_USD);
+      if (lockProject && !lockProject.skipBilling) {
+        await refundCreditUsd(lockProject.clerkUserId, FRAME_COST_USD);
+      }
     }
     if (status === "completed" && outputUrl) {
       scheduleGenerationFinishedEmail(job._id);
@@ -1542,13 +1544,15 @@ export async function refundClaimedFailure(
   project: Project,
   error: string,
 ) {
-  if (job.kind === "frame") await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
-  if (isVideoLockJobKind(job.kind)) {
-    await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
-  }
-  if (job.kind === "video") {
-    const clip = project.clips.find((item) => item.clipNumber === job.clipIndex + 1);
-    await refundCreditUsd(project.clerkUserId, chargedClipUsd(clip));
+  if (!project.skipBilling) {
+    if (job.kind === "frame") await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (isVideoLockJobKind(job.kind)) {
+      await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    }
+    if (job.kind === "video") {
+      const clip = project.clips.find((item) => item.clipNumber === job.clipIndex + 1);
+      await refundCreditUsd(project.clerkUserId, chargedClipUsd(clip));
+    }
   }
   if (job.kind === "frame" && job.framePosition === "start") {
     await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
@@ -1592,7 +1596,7 @@ export async function failDeferredEndIfNeeded(
     if (existing.status === "pending" && existing.awaits === "start") {
       const failed = await claimFailure(existing._id, error, "failed", { awaits: "start" });
       if (failed) {
-        await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+        if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
         await syncProjectFromJobs(projectId);
       }
       return;
@@ -1616,7 +1620,7 @@ export async function failDeferredEndIfNeeded(
       },
     },
   );
-  if (claimed) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+  if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
 }
 
 // After this clip's start file lands, send the waiting end still. sendFrame
@@ -1782,7 +1786,7 @@ export async function failStartsAwaitingFirstStart(projectId: ObjectId, error: s
     const failed = await claimFailure(job._id, error, "failed", { awaits: "first-start" });
     if (!failed) continue;
     failedAny = true;
-    await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
     // The last clip's end was parked on this start.
     await failDeferredEndIfNeeded(projectId, job.clipIndex + 1, error);
   }
@@ -1809,7 +1813,7 @@ export async function failDeferredNextStartIfNeeded(
   if (existing?.status === "pending" && existing.awaits === "prev-end") {
     const failed = await claimFailure(existing._id, error, "failed", { awaits: "prev-end" });
     if (failed) {
-      await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+      if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
       await syncProjectFromJobs(projectId);
     }
   }
@@ -1960,7 +1964,7 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
         },
       },
     );
-    if (claimed) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
   }
   // A charged clip video whose job never got inserted (or was lost) has nothing
   // to send or settle it. Fenced on the claim so a newer attempt is never failed.
@@ -1985,7 +1989,7 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
         },
       },
     );
-    if (claimed) {
+    if (claimed && !project.skipBilling) {
       const clip = project.clips.find((item) => item.clipNumber === orphan.clipNumber);
       await refundCreditUsd(project.clerkUserId, chargedClipUsd(clip));
     }

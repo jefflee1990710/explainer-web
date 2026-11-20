@@ -608,6 +608,10 @@ export type Project = {
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;
+  // Set for Canvas-created projects billed via `canvas_jobs` (prevents double-charging).
+  skipBilling?: boolean;
+  // Set for Canvas Explainer projects so all clips (1..N) auto-produce and concat into a reel.
+  autoProduceAllClips?: boolean;
   error?: string;
   createdAt: Date;
   updatedAt: Date;

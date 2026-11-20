@@ -110,6 +110,7 @@ function pollStatusOnce(statusUrl: string) {
 /** Create a `rendering` Teleport job and run the pipeline in `after()`. */
 export async function startTeleportJob(
   input: TeleportStartInput,
+  options?: { skipBilling?: boolean },
 ): Promise<{ ok: true; job: PublicTeleportJob } | { ok: false; error: string }> {
   try {
     const user = await requireAppUser();
@@ -132,9 +133,13 @@ export async function startTeleportJob(
       return { ok: false, error: "場景照網址無效" };
     }
 
-    const cost = teleportCostUsd({ durationSeconds: normalized.sectionLength });
-    await assertCanSpendCreditUsd(user, cost);
-    const spendKey = await consumeCreditUsd(user.clerkUserId, cost);
+    const skipBilling = Boolean(options?.skipBilling);
+    const cost = skipBilling ? 0 : teleportCostUsd({ durationSeconds: normalized.sectionLength });
+    let spendKey: string | undefined;
+    if (!skipBilling) {
+      await assertCanSpendCreditUsd(user, cost);
+      spendKey = await consumeCreditUsd(user.clerkUserId, cost);
+    }
 
     const now = new Date();
     const jobId = new ObjectId();
@@ -160,7 +165,9 @@ export async function startTeleportJob(
         });
         resolvedTargetClipNumber = 1;
       } catch (err) {
-        await refundCreditUsd(user.clerkUserId, cost, spendKey);
+        if (!skipBilling && spendKey) {
+          await refundCreditUsd(user.clerkUserId, cost, spendKey);
+        }
         throw err;
       }
     }
@@ -180,6 +187,7 @@ export async function startTeleportJob(
       keepSourceAudio: normalized.keepSourceAudio,
       applyColorFix: normalized.applyColorFix,
       chargedUsd: cost,
+      ...(skipBilling ? { skipBilling: true } : {}),
       ...(resolvedTargetVideoId ? { targetVideoId: resolvedTargetVideoId } : {}),
       ...(resolvedTargetClipNumber ? { targetClipNumber: resolvedTargetClipNumber } : {}),
       ...(normalized.previousClipVideoUrl
@@ -193,7 +201,9 @@ export async function startTeleportJob(
     try {
       await col.insertOne(doc);
     } catch (err) {
-      await refundCreditUsd(user.clerkUserId, cost, spendKey);
+      if (!skipBilling && spendKey) {
+        await refundCreditUsd(user.clerkUserId, cost, spendKey);
+      }
       throw err;
     }
 
@@ -373,6 +383,7 @@ async function failTeleportJobAndRefund(
         : 0;
   if (
     updateRes.modifiedCount > 0 &&
+    !job.skipBilling &&
     !job.creditsRefunded &&
     refundUsd > 0
   ) {

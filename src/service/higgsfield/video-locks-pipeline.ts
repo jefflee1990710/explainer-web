@@ -30,7 +30,11 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 
 // Drop prior lock jobs so a new inventory can re-queue. Refund anything still unpaid.
-async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string) {
+async function invalidateVideoLockJobs(
+  projectId: ObjectId,
+  clerkUserId: string,
+  skipBilling = false,
+) {
   const jobs = await generationJobsCollection();
   const active = await jobs
     .find({
@@ -46,7 +50,7 @@ async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string)
       continue;
     }
     const claimed = await claimFailure(job._id, "分鏡道具或場景已更新，將重新產生參考圖");
-    if (claimed) await refundCreditUsd(clerkUserId, FRAME_COST_USD);
+    if (claimed && !skipBilling) await refundCreditUsd(clerkUserId, FRAME_COST_USD);
   }
 }
 
@@ -105,7 +109,7 @@ export async function storeVideoLocksPlan(projectId: ObjectId, plan: VideoLocksP
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
 
-  await invalidateVideoLockJobs(projectId, project.clerkUserId);
+  await invalidateVideoLockJobs(projectId, project.clerkUserId, Boolean(project.skipBilling));
 
   const clips = applyVideoLocksToClips(project.phaseA.clips, plan.sets);
   const backgroundPlates: BackgroundPlate[] = plan.sets.map((set) => ({
@@ -190,12 +194,16 @@ export async function enqueueVideoLockJobs(project: Project) {
 
   if (toQueue.length === 0) return { queued: 0, cost: 0 };
 
-  const cost = mulUsd(toQueue.length, FRAME_COST_USD);
-  const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId: project.clerkUserId });
-  if (!user) throw new Error("找不到使用者");
-  await assertCanSpendCreditUsd(user, cost);
-  const spendKey = await consumeCreditUsd(project.clerkUserId, cost);
+  const skipBilling = Boolean(project.skipBilling);
+  const cost = skipBilling ? 0 : mulUsd(toQueue.length, FRAME_COST_USD);
+  let spendKey: string | undefined;
+  if (!skipBilling) {
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId: project.clerkUserId });
+    if (!user) throw new Error("找不到使用者");
+    await assertCanSpendCreditUsd(user, cost);
+    spendKey = await consumeCreditUsd(project.clerkUserId, cost);
+  }
 
   try {
     await jobs.deleteMany({
@@ -220,7 +228,9 @@ export async function enqueueVideoLockJobs(project: Project) {
       },
     );
   } catch (error) {
-    await refundCreditUsd(project.clerkUserId, cost, spendKey);
+    if (!skipBilling && spendKey) {
+      await refundCreditUsd(project.clerkUserId, cost, spendKey);
+    }
     throw error;
   }
 

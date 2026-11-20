@@ -264,6 +264,7 @@ async function failPlate(
     },
   );
   if (claimed.matchedCount === 0) return;
+  if (project.skipBilling) return;
   const plate = project.subtitlePlates?.find((item) => item.clipNumber === clipNumber);
   await refundCreditUsd(project.clerkUserId, refundUsd ?? subtitlePlateRefundUsd(plate));
 }

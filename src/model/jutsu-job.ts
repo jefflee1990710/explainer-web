@@ -260,6 +260,7 @@ export type JutsuJob = {
   // Legacy integer credits charged (kept optional for in-flight refund fallback).
   creditsCharged?: number;
   creditsRefunded?: boolean;
+  skipBilling?: boolean;
   notifiedAt?: Date;
   error?: string;
   createdAt: Date;
