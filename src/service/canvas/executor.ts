@@ -38,6 +38,7 @@ import {
   validateScroToolInputs,
 } from "@/service/canvas/scro-dispatch";
 import { persistMedia } from "@/service/higgsfield/persist";
+import { scheduleCanvasNodeWorkerTask } from "@/service/worker/schedule";
 import { enqueueWorkerTask } from "@/service/worker/task-queue";
 import {
   type MentalokCreateJobPayload,
@@ -135,6 +136,8 @@ export type CanvasExecutorDeps = {
   findWorkerTaskStatus: (
     workerTaskId: string,
   ) => Promise<{ status: string; error?: string } | null>;
+  findCanvasJobById?: (jobId: ObjectId) => Promise<CanvasJob | null>;
+  enqueueCanvasNodeWorkerTask?: (jobId: ObjectId) => void;
   now: () => Date;
 };
 
@@ -143,6 +146,7 @@ export type SubmitCanvasNodeJobInput = {
   canvasId: string;
   nodeId: string;
   flowRunId?: string;
+  queueToWorker?: boolean;
 };
 
 export type SubmitCanvasNodeJobErrorCode =
@@ -318,6 +322,13 @@ function createDefaultDeps(): CanvasExecutorDeps {
       const doc = await col.findOne({ _id: new ObjectId(workerTaskId) });
       if (!doc) return null;
       return { status: doc.status, error: doc.error };
+    },
+    findCanvasJobById: async (jobId) => {
+      const col = await canvasJobsCollection();
+      return col.findOne({ _id: jobId });
+    },
+    enqueueCanvasNodeWorkerTask: (jobId) => {
+      scheduleCanvasNodeWorkerTask(jobId);
     },
     now: () => new Date(),
   };
@@ -737,6 +748,90 @@ export async function submitCanvasNodeJob(
     },
     updatedAt: now,
   });
+
+  if (input.queueToWorker) {
+    resolved.enqueueCanvasNodeWorkerTask?.(jobId);
+    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+    return { ok: true, job: initialJob, creditUsd };
+  }
+
+  return executeDispatchedCanvasJob(
+    {
+      initialJob,
+      spec,
+      node,
+      inputs: inputCheck.inputs,
+      presetId,
+    },
+    resolved,
+  );
+}
+
+function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasInputs {
+  return {
+    prompt: typeof snapshot.prompt === "string" ? snapshot.prompt : undefined,
+    image: typeof snapshot.image === "string" ? snapshot.image : undefined,
+    startImage: typeof snapshot.startImage === "string" ? snapshot.startImage : undefined,
+    endImage: typeof snapshot.endImage === "string" ? snapshot.endImage : undefined,
+    refImages: Array.isArray(snapshot.refImages) ? snapshot.refImages.map(String) : [],
+    video: typeof snapshot.video === "string" ? snapshot.video : undefined,
+    videos: Array.isArray(snapshot.videos) ? snapshot.videos.map(String) : [],
+    refAudio: typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined,
+  };
+}
+
+export async function dispatchQueuedCanvasJobById(
+  jobId: ObjectId,
+  deps?: Partial<CanvasExecutorDeps>,
+): Promise<CanvasJob | null> {
+  const resolved = resolveDeps(deps);
+  const job = resolved.findCanvasJobById
+    ? await resolved.findCanvasJobById(jobId)
+    : await (await canvasJobsCollection()).findOne({ _id: jobId });
+  if (!job || job.status !== "queued") return job;
+
+  const project = await resolved.findCanvasProject(job.canvasId, job.clerkUserId);
+  const node = project?.nodes.find((n) => n.id === job.nodeId);
+  const catalog = await resolved.getCatalog();
+  const spec = findCanvasModel(job.modelId, catalog);
+  if (!project || !node || !spec) {
+    return settleFailedJob(job, "找不到畫布節點或模型規格", resolved);
+  }
+
+  const res = await executeDispatchedCanvasJob(
+    {
+      initialJob: job,
+      spec,
+      node,
+      inputs: inputsFromSnapshot(job.inputSnapshot ?? {}),
+      presetId: job.presetId || spec.defaultPresetId,
+    },
+    resolved,
+  );
+  return res.job ?? null;
+}
+
+async function executeDispatchedCanvasJob(
+  ctx: {
+    initialJob: CanvasJob;
+    spec: CanvasModelSpec;
+    node: CanvasNode;
+    inputs: ResolvedCanvasInputs;
+    presetId: string;
+  },
+  resolved: CanvasExecutorDeps,
+): Promise<SubmitCanvasNodeJobResult> {
+  const { initialJob, spec, node, inputs, presetId } = ctx;
+  const jobId = initialJob._id;
+  const jobIdHex = jobId.toHexString();
+  const canvasObjectId = initialJob.canvasId;
+  const clerkUserId = initialJob.clerkUserId;
+  const costUsd = initialJob.chargedUsd;
+  const input = {
+    clerkUserId,
+    canvasId: canvasObjectId.toHexString(),
+  };
+  const inputCheck = { inputs };
 
   try {
     // Branch 1: Synchronous OpenRouter image generation -> persist directly to Blob.
@@ -1291,7 +1386,181 @@ async function settleFailedJob(
   };
 }
 
-// Polls active Mentalok and OpenRouter jobs for a canvas project in parallel,
+async function pollSingleCanvasJob(
+  job: CanvasJob,
+  resolved: CanvasExecutorDeps,
+): Promise<CanvasJob> {
+  if (job.status === "completed") {
+    return job;
+  }
+  if (job.status === "failed") {
+    // Ensure a failed job is refunded at most once even if a prior failure crashed mid-settlement.
+    if (!job.refundedAt) {
+      await refundCanvasJobOnce(job._id, job.clerkUserId, resolved);
+    }
+    return job;
+  }
+
+  if (job.provider === "ffmpeg") {
+    if (!job.externalJobId) return job;
+    const wt = await resolved.findWorkerTaskStatus(job.externalJobId).catch(() => null);
+    if (wt?.status === "failed") {
+      return settleFailedJob(job, wt.error || "FFmpeg 處理失敗", resolved);
+    }
+    return job;
+  }
+
+  if (job.provider === "scro") {
+    if (
+      !job.externalJobId ||
+      (job.domainKind !== "video" &&
+        job.domainKind !== "jutsu" &&
+        job.domainKind !== "teleport")
+    ) {
+      return job;
+    }
+    const pollRes = await resolved
+      .pollScroAsyncJob({
+        clerkUserId: job.clerkUserId,
+        domainKind: job.domainKind as "video" | "jutsu" | "teleport",
+        externalJobId: job.externalJobId,
+      })
+      .catch(() => ({ status: "running" as const }));
+
+    if (pollRes.status === "failed") {
+      return settleFailedJob(job, pollRes.error, resolved);
+    }
+    if (pollRes.status === "completed") {
+      if (pollRes.outputUrl.includes(".public.blob.vercel-storage.com/")) {
+        const outputKind: CanvasOutputKind = job.outputKind ?? "video";
+        const completedAt = resolved.now();
+        await resolved.updateCanvasJob(job._id, job.clerkUserId, {
+          $set: {
+            status: "completed",
+            outputUrl: pollRes.outputUrl,
+            outputKind,
+            updatedAt: completedAt,
+          },
+          $unset: { error: "" },
+        });
+        await resolved.updateCanvasNodeState({
+          canvasId: job.canvasId,
+          clerkUserId: job.clerkUserId,
+          nodeId: job.nodeId,
+          patch: {
+            status: "completed",
+            lastJobId: job._id.toHexString(),
+            outputUrl: pollRes.outputUrl,
+            outputKind,
+            lastCostUsd: job.chargedUsd,
+            lastError: undefined,
+          },
+          updatedAt: completedAt,
+        });
+        return {
+          ...job,
+          status: "completed",
+          outputUrl: pollRes.outputUrl,
+          outputKind,
+          error: undefined,
+          updatedAt: completedAt,
+        };
+      }
+      return settleCompletedJob(job, pollRes.outputUrl, resolved);
+    }
+    return job;
+  }
+
+  if (job.provider === "mentalok") {
+    if (!job.externalJobId) return job;
+    let remote: MentalokJobRecord;
+    try {
+      remote = await resolved.getMentalokJob(job.externalJobId);
+    } catch (error) {
+      console.warn("[canvas-executor] transient Mentalok poll error", {
+        jobId: job._id.toHexString(),
+        error: toErrorMessage(error, "Mentalok poll failed"),
+      });
+      return job;
+    }
+
+    if (remote.status === "completed") {
+      if (!remote.outputUrl) {
+        return settleFailedJob(
+          job,
+          "Mentalok 任務已完成但未回傳輸出檔案",
+          resolved,
+        );
+      }
+      return settleCompletedJob(job, remote.outputUrl, resolved);
+    }
+
+    if (remote.status === "failed") {
+      return settleFailedJob(
+        job,
+        remote.error || "Mentalok 生成失敗",
+        resolved,
+      );
+    }
+
+    return job;
+  }
+
+  // OpenRouter async video polling.
+  const statusUrl =
+    job.statusUrl ||
+    (job.externalJobId
+      ? `${OPENROUTER_VIDEOS_URL}/${encodeURIComponent(job.externalJobId)}`
+      : undefined);
+  if (!statusUrl) return job;
+
+  let remote: GenerationSubmitResult;
+  try {
+    remote = await resolved.fetchOpenRouterStatus(statusUrl);
+  } catch (error) {
+    console.warn("[canvas-executor] transient OpenRouter poll error", {
+      jobId: job._id.toHexString(),
+      error: toErrorMessage(error, "OpenRouter poll failed"),
+    });
+    return job;
+  }
+
+  if (remote.status === "completed") {
+    const rawUrl = remote.video?.url || remote.images?.[0]?.url;
+    if (!rawUrl) {
+      return settleFailedJob(
+        job,
+        "OpenRouter 任務已完成但未回傳輸出檔案",
+        resolved,
+      );
+    }
+    return settleCompletedJob(job, rawUrl, resolved);
+  }
+
+  if (remote.status === "failed" || remote.status === "nsfw") {
+    const defaultMsg =
+      remote.status === "nsfw"
+        ? "內容觸發安全審核限制，已自動退還 USD Credit"
+        : "OpenRouter 影片生成失敗";
+    return settleFailedJob(job, remote.error || defaultMsg, resolved);
+  }
+
+  return job;
+}
+
+export async function pollSingleCanvasJobById(
+  jobId: ObjectId,
+  deps?: Partial<CanvasExecutorDeps>,
+): Promise<CanvasJob | null> {
+  const resolved = resolveDeps(deps);
+  const job = resolved.findCanvasJobById
+    ? await resolved.findCanvasJobById(jobId)
+    : await (await canvasJobsCollection()).findOne({ _id: jobId });
+  if (!job) return null;
+  return pollSingleCanvasJob(job, resolved);
+}
+
+// Polls active Mentalok, OpenRouter, Scro, and FFmpeg jobs for a canvas project in parallel,
 // copying completed outputs into permanent Vercel Blob storage and issuing
 // idempotent single refunds on provider failures.
 export async function pollCanvasJobs(
@@ -1326,164 +1595,7 @@ export async function pollCanvasJobs(
   );
 
   const updatedJobs = await Promise.all(
-    existingJobs.map(async (job): Promise<CanvasJob> => {
-      if (job.status === "completed") {
-        return job;
-      }
-      if (job.status === "failed") {
-        // Ensure a failed job is refunded at most once even if a prior failure crashed mid-settlement.
-        if (!job.refundedAt) {
-          await refundCanvasJobOnce(job._id, job.clerkUserId, resolved);
-        }
-        return job;
-      }
-
-      if (job.provider === "ffmpeg") {
-        if (!job.externalJobId) return job;
-        const wt = await resolved.findWorkerTaskStatus(job.externalJobId).catch(() => null);
-        if (wt?.status === "failed") {
-          return settleFailedJob(job, wt.error || "FFmpeg 處理失敗", resolved);
-        }
-        return job;
-      }
-
-      if (job.provider === "scro") {
-        if (
-          !job.externalJobId ||
-          (job.domainKind !== "video" &&
-            job.domainKind !== "jutsu" &&
-            job.domainKind !== "teleport")
-        ) {
-          return job;
-        }
-        const pollRes = await resolved
-          .pollScroAsyncJob({
-            clerkUserId: job.clerkUserId,
-            domainKind: job.domainKind as "video" | "jutsu" | "teleport",
-            externalJobId: job.externalJobId,
-          })
-          .catch(() => ({ status: "running" as const }));
-
-        if (pollRes.status === "failed") {
-          return settleFailedJob(job, pollRes.error, resolved);
-        }
-        if (pollRes.status === "completed") {
-          if (pollRes.outputUrl.includes(".public.blob.vercel-storage.com/")) {
-            const outputKind: CanvasOutputKind = job.outputKind ?? "video";
-            const completedAt = resolved.now();
-            await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-              $set: {
-                status: "completed",
-                outputUrl: pollRes.outputUrl,
-                outputKind,
-                updatedAt: completedAt,
-              },
-              $unset: { error: "" },
-            });
-            await resolved.updateCanvasNodeState({
-              canvasId: job.canvasId,
-              clerkUserId: job.clerkUserId,
-              nodeId: job.nodeId,
-              patch: {
-                status: "completed",
-                lastJobId: job._id.toHexString(),
-                outputUrl: pollRes.outputUrl,
-                outputKind,
-                lastCostUsd: job.chargedUsd,
-                lastError: undefined,
-              },
-              updatedAt: completedAt,
-            });
-            return {
-              ...job,
-              status: "completed",
-              outputUrl: pollRes.outputUrl,
-              outputKind,
-              error: undefined,
-              updatedAt: completedAt,
-            };
-          }
-          return settleCompletedJob(job, pollRes.outputUrl, resolved);
-        }
-        return job;
-      }
-
-      if (job.provider === "mentalok") {
-        if (!job.externalJobId) return job;
-        let remote: MentalokJobRecord;
-        try {
-          remote = await resolved.getMentalokJob(job.externalJobId);
-        } catch (error) {
-          console.warn("[canvas-executor] transient Mentalok poll error", {
-            jobId: job._id.toHexString(),
-            error: toErrorMessage(error, "Mentalok poll failed"),
-          });
-          return job;
-        }
-
-        if (remote.status === "completed") {
-          if (!remote.outputUrl) {
-            return settleFailedJob(
-              job,
-              "Mentalok 任務已完成但未回傳輸出檔案",
-              resolved,
-            );
-          }
-          return settleCompletedJob(job, remote.outputUrl, resolved);
-        }
-
-        if (remote.status === "failed") {
-          return settleFailedJob(
-            job,
-            remote.error || "Mentalok 生成失敗",
-            resolved,
-          );
-        }
-
-        return job;
-      }
-
-      // OpenRouter async video polling.
-      const statusUrl =
-        job.statusUrl ||
-        (job.externalJobId
-          ? `${OPENROUTER_VIDEOS_URL}/${encodeURIComponent(job.externalJobId)}`
-          : undefined);
-      if (!statusUrl) return job;
-
-      let remote: GenerationSubmitResult;
-      try {
-        remote = await resolved.fetchOpenRouterStatus(statusUrl);
-      } catch (error) {
-        console.warn("[canvas-executor] transient OpenRouter poll error", {
-          jobId: job._id.toHexString(),
-          error: toErrorMessage(error, "OpenRouter poll failed"),
-        });
-        return job;
-      }
-
-      if (remote.status === "completed") {
-        const rawUrl = remote.video?.url || remote.images?.[0]?.url;
-        if (!rawUrl) {
-          return settleFailedJob(
-            job,
-            "OpenRouter 任務已完成但未回傳輸出檔案",
-            resolved,
-          );
-        }
-        return settleCompletedJob(job, rawUrl, resolved);
-      }
-
-      if (remote.status === "failed" || remote.status === "nsfw") {
-        const defaultMsg =
-          remote.status === "nsfw"
-            ? "內容觸發安全審核限制，已自動退還 USD Credit"
-            : "OpenRouter 影片生成失敗";
-        return settleFailedJob(job, remote.error || defaultMsg, resolved);
-      }
-
-      return job;
-    }),
+    existingJobs.map((job) => pollSingleCanvasJob(job, resolved)),
   );
 
   const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);

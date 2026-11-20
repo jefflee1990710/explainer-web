@@ -8,6 +8,10 @@ import {
 import type { WorkerTask, WorkerTaskLane } from "@/model/worker-task";
 import { runLifeShotJob } from "@/service/character/life";
 import { executeCanvasFfmpegJob } from "@/service/canvas/ffmpeg-ops";
+import {
+  executeCanvasFlowTask,
+  executeCanvasNodeTask,
+} from "@/service/canvas/worker-runner";
 import { runClipAppendQueue } from "@/service/clip/clip-timeline-actions";
 import { isComfyPromptStatusUrl } from "@/service/comfy/openjutsu-client";
 import { runPhaseAJob, runReelJob, runStillJob } from "@/service/director/jobs";
@@ -432,6 +436,19 @@ export async function executeWorkerTask(
         outputUrl: res.outputUrl,
         stage: "canvas_ffmpeg_done",
       };
+    }
+
+    case "canvas_node": {
+      if (!ObjectId.isValid(task.targetId)) {
+        return { outcome: "failed", error: "無效的 CanvasJob ID", permanent: true };
+      }
+      await report(25, "running_canvas_node");
+      return executeCanvasNodeTask(new ObjectId(task.targetId));
+    }
+
+    case "canvas_flow": {
+      await report(25, "running_canvas_flow");
+      return executeCanvasFlowTask(task);
     }
   }
 }

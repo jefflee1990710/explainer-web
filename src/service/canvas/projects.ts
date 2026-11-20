@@ -38,6 +38,15 @@ export type CanvasProjectSummaryDto = {
   updatedAt: string;
 };
 
+export type CanvasFlowRunDto = {
+  flowRunId: string;
+  status: "running" | "completed" | "failed" | "stopped";
+  currentWave: number;
+  totalWaves: number;
+  failedNodeIds: string[];
+  error?: string;
+};
+
 export type CanvasProjectDto = {
   id: string;
   title: string;
@@ -45,6 +54,7 @@ export type CanvasProjectDto = {
   viewport: CanvasViewport;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  activeFlowRun?: CanvasFlowRunDto;
   createdAt: string;
   updatedAt: string;
 };
@@ -126,6 +136,18 @@ export function serializeCanvasProject(project: CanvasProject): CanvasProjectDto
     viewport: project.viewport,
     nodes: project.nodes,
     edges: project.edges,
+    ...(project.activeFlowRun
+      ? {
+          activeFlowRun: {
+            flowRunId: project.activeFlowRun.flowRunId,
+            status: project.activeFlowRun.status,
+            currentWave: project.activeFlowRun.currentWave,
+            totalWaves: project.activeFlowRun.totalWaves,
+            failedNodeIds: project.activeFlowRun.failedNodeIds ?? [],
+            ...(project.activeFlowRun.error ? { error: project.activeFlowRun.error } : {}),
+          },
+        }
+      : {}),
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
   };

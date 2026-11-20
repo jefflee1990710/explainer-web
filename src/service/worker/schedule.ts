@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import {
   enqueueWorkerTask,
   shouldUseWorkerQueueOnly,
@@ -107,5 +107,70 @@ export function scheduleLifeShotWorkerTask(input: {
   runInAfterIfLocal(async () => {
     const { runLifeShotJob } = await import("@/service/character/life");
     await runLifeShotJob(input);
+  });
+}
+
+export function scheduleCanvasNodeWorkerTask(jobId: ObjectId) {
+  void enqueueWorkerTask({
+    kind: "canvas_node",
+    targetId: jobId,
+    lane: "cpu",
+  }).catch((error) => {
+    console.error("[worker-queue] failed to enqueue canvas_node", {
+      jobId: jobId.toHexString(),
+      error,
+    });
+  });
+
+  runInAfterIfLocal(async () => {
+    const { executeCanvasNodeTask } = await import("@/service/canvas/worker-runner");
+    const res = await executeCanvasNodeTask(jobId);
+    // In local dev without a worker, dispatchQueuedJob ran; pollCanvasJobs handles any async poll.
+    void res;
+  });
+}
+
+export function scheduleCanvasFlowWorkerTask(input: {
+  canvasId: string;
+  flowRunId: string;
+  clerkUserId: string;
+}) {
+  void enqueueWorkerTask({
+    kind: "canvas_flow",
+    targetId: input.canvasId,
+    lane: "cpu",
+    dedupeKey: `canvas_flow:${input.flowRunId}`,
+    payload: {
+      flowRunId: input.flowRunId,
+      clerkUserId: input.clerkUserId,
+    },
+  }).catch((error) => {
+    console.error("[worker-queue] failed to enqueue canvas_flow", {
+      canvasId: input.canvasId,
+      flowRunId: input.flowRunId,
+      error,
+    });
+  });
+
+  runInAfterIfLocal(async () => {
+    const { executeCanvasFlowTask } = await import("@/service/canvas/worker-runner");
+    const fakeTask = {
+      _id: new ObjectId(),
+      kind: "canvas_flow" as const,
+      lane: "cpu" as const,
+      status: "in_progress" as const,
+      targetId: input.canvasId,
+      payload: { flowRunId: input.flowRunId, clerkUserId: input.clerkUserId },
+      attempts: 1,
+      maxAttempts: 5,
+      nextAttemptAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    for (let step = 0; step < 120; step += 1) {
+      const res = await executeCanvasFlowTask(fakeTask);
+      if (res.outcome !== "requeue") break;
+      await new Promise((r) => setTimeout(r, Math.min(5_000, res.delayMs)));
+    }
   });
 }

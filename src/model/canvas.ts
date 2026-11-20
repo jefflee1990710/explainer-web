@@ -67,6 +67,23 @@ export type CanvasViewport = {
   zoom: number;
 };
 
+export type CanvasFlowRunStatus = "running" | "completed" | "failed" | "stopped";
+
+export type CanvasFlowRunState = {
+  flowRunId: string;
+  status: CanvasFlowRunStatus;
+  currentWave: number;
+  totalWaves: number;
+  waveIndex: number;
+  waves: string[][];
+  activeWaveJobIds: string[];
+  failedNodeIds: string[];
+  aborted?: boolean;
+  error?: string;
+  startedAt: Date;
+  updatedAt: Date;
+};
+
 // Persisted multi-project canvas document in the `canvas_projects` collection.
 export type CanvasProject = {
   _id: ObjectId;
@@ -76,6 +93,7 @@ export type CanvasProject = {
   viewport: CanvasViewport;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  activeFlowRun?: CanvasFlowRunState;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -203,6 +221,21 @@ export const canvasViewportSchema: z.ZodType<CanvasViewport> = z.object({
   zoom: z.number().finite().positive(),
 });
 
+export const canvasFlowRunStateSchema: z.ZodType<CanvasFlowRunState> = z.object({
+  flowRunId: z.string().min(1),
+  status: z.enum(["running", "completed", "failed", "stopped"]),
+  currentWave: z.number().int().min(0),
+  totalWaves: z.number().int().min(0),
+  waveIndex: z.number().int().min(0),
+  waves: z.array(z.array(z.string())),
+  activeWaveJobIds: z.array(z.string()),
+  failedNodeIds: z.array(z.string()),
+  aborted: z.boolean().optional(),
+  error: z.string().optional(),
+  startedAt: z.date(),
+  updatedAt: z.date(),
+});
+
 export const canvasProjectSchema: z.ZodType<CanvasProject> = z.object({
   _id: objectIdSchema,
   clerkUserId: z.string().min(1),
@@ -211,6 +244,7 @@ export const canvasProjectSchema: z.ZodType<CanvasProject> = z.object({
   viewport: canvasViewportSchema,
   nodes: z.array(canvasNodeSchema),
   edges: z.array(canvasEdgeSchema),
+  activeFlowRun: canvasFlowRunStateSchema.optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

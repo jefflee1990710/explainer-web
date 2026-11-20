@@ -35,11 +35,14 @@ import type {
 import {
   createCanvasProjectAction,
   deleteCanvasProjectAction,
+  pollCanvasFlowAction,
   pollCanvasJobsAction,
   refreshCanvasModelsAction,
   renameCanvasProjectAction,
+  runCanvasFlowAction,
   runCanvasNodeAction,
   saveCanvasProjectAction,
+  stopCanvasFlowAction,
   uploadCanvasMediaAction,
 } from "@/presentation/actions/canvas";
 import { notifyCreditsChanged } from "@/presentation/components/app/billing/credits-changed";
@@ -240,11 +243,20 @@ function CanvasWorkspaceInner({
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [lightbox, setLightbox] = useState<CanvasLightboxItem | null>(null);
-  const [isFlowRunning, setIsFlowRunning] = useState(false);
+  const [isFlowRunning, setIsFlowRunning] = useState(
+    initialProject.activeFlowRun?.status === "running",
+  );
   const [flowWaveProgress, setFlowWaveProgress] = useState<{
     current: number;
     total: number;
-  } | null>(null);
+  } | null>(
+    initialProject.activeFlowRun?.status === "running"
+      ? {
+          current: initialProject.activeFlowRun.currentWave,
+          total: initialProject.activeFlowRun.totalWaves,
+        }
+      : null,
+  );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(
     toFlowNodes(initialProject.nodes),
@@ -725,7 +737,78 @@ function CanvasWorkspaceInner({
     [setNodes, syncWallet, applyJobUpdates, isZh],
   );
 
-  // Multi-wave topological Run Flow orchestrator.
+  // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
+  useEffect(() => {
+    if (!isFlowRunning) return;
+    let alive = true;
+
+    const timer = window.setInterval(async () => {
+      try {
+        const res = await pollCanvasFlowAction(activeProjectIdRef.current);
+        if (!alive) return;
+        syncWallet(res.creditUsd);
+
+        for (const node of res.nodes) {
+          if (node.type !== "model") continue;
+          if (node.data.lastJobId) {
+            jobOutputRef.current.set(node.id, {
+              status: node.data.status ?? "idle",
+              lastJobId: node.data.lastJobId,
+              lastCostUsd: node.data.lastCostUsd,
+              outputUrl: node.data.outputUrl,
+              outputKind: node.data.outputKind,
+              lastError: node.data.lastError,
+            });
+          }
+        }
+        setNodes((prev) =>
+          prev.map((flowNode) => {
+            const serverNode = res.nodes.find((n) => n.id === flowNode.id);
+            if (!serverNode) return flowNode;
+            return {
+              ...flowNode,
+              data: { ...flowNode.data, ...serverNode.data },
+            };
+          }),
+        );
+        setEdges((prev) =>
+          prev.map((e) => {
+            const targetNode = res.nodes.find((n) => n.id === e.target);
+            const busy =
+              targetNode?.type === "model" &&
+              (targetNode.data.status === "queued" || targetNode.data.status === "running");
+            return { ...e, animated: Boolean(busy) };
+          }),
+        );
+
+        const run = res.activeFlowRun;
+        if (!run || run.status !== "running") {
+          setIsFlowRunning(false);
+          setFlowWaveProgress(null);
+          if (run?.status === "completed") {
+            toast.success(isZh ? "整條工作流執行完成！" : "Workflow completed!");
+          } else if (run?.status === "failed") {
+            toast.error(
+              isZh
+                ? `工作流結束（${run.failedNodeIds.length} 個節點失敗並已自動退費）`
+                : `Workflow finished (${run.failedNodeIds.length} node(s) failed & refunded)`,
+            );
+          }
+        } else {
+          setFlowWaveProgress({ current: run.currentWave, total: run.totalWaves });
+        }
+      } catch {
+        // Keep polling silently on transient network hiccups.
+      }
+    }, JOB_POLL_INTERVAL_MS);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [isFlowRunning, isZh, setEdges, setNodes, syncWallet]);
+
+  // Worker-backed multi-wave Run Flow trigger.
   const handleRunFlow = useCallback(async () => {
     const currentNodes = toDomainNodes(
       withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
@@ -741,135 +824,27 @@ function CanvasWorkspaceInner({
     }
     if (waves.length === 0) return;
 
-    flowAbortRef.current = false;
-    setIsFlowRunning(true);
-    const flowRunId = `flow-${crypto.randomUUID().slice(0, 8)}`;
-    const failedNodes = new Set<string>();
-    let startedCount = 0;
-
-    try {
-      for (let waveIndex = 0; waveIndex < waves.length; waveIndex++) {
-        if (flowAbortRef.current) break;
-        const wave = waves[waveIndex]!;
-        setFlowWaveProgress({ current: waveIndex + 1, total: waves.length });
-
-        // Skip any node whose direct upstream dependency failed in an earlier wave.
-        const runnableIds = wave.filter((nodeId) => {
-          const upstreamFailed = currentEdges.some(
-            (e) => e.target === nodeId && failedNodes.has(e.source),
-          );
-          if (upstreamFailed) {
-            failedNodes.add(nodeId);
-            return false;
-          }
-          const node = nodesRef.current.find((item) => item.id === nodeId);
-          const remembered = jobOutputRef.current.get(nodeId);
-          const status = remembered?.status ?? node?.data.status;
-          const outputUrl = remembered?.outputUrl ?? node?.data.outputUrl;
-          // Upstream already finished. Run only the nodes that still need a result.
-          if (status === "completed" && outputUrl?.trim()) return false;
-          return true;
-        });
-
-        if (runnableIds.length === 0) continue;
-        startedCount += runnableIds.length;
-
-        // Mark wave nodes queued visually.
-        setNodes((prev) =>
-          prev.map((n) =>
-            runnableIds.includes(n.id)
-              ? { ...n, data: { ...n.data, status: "queued", lastError: undefined } }
-              : n,
-          ),
-        );
-
-        // Persist latest graph once before firing parallel submissions in this wave.
-        await flushSaveNow();
-
-        const pendingJobIds: string[] = [];
-        const submissions = await Promise.all(
-          runnableIds.map((nodeId) =>
-            runCanvasNodeAction({
-              canvasId: activeProjectIdRef.current,
-              nodeId,
-              flowRunId,
-            }),
-          ),
-        );
-
-        for (let i = 0; i < runnableIds.length; i++) {
-          const nodeId = runnableIds[i]!;
-          const res = submissions[i]!;
-          syncWallet(res.creditUsd);
-          if (!res.ok) {
-            failedNodes.add(nodeId);
-            setNodes((prev) =>
-              prev.map((n) =>
-                n.id === nodeId
-                  ? { ...n, data: { ...n.data, status: "failed", lastError: res.error } }
-                  : n,
-              ),
-            );
-            toast.error(res.error);
-          } else {
-            applyJobUpdates([res.job]);
-            if (res.job.status === "queued" || res.job.status === "running") {
-              pendingJobIds.push(res.job.id);
-            } else if (res.job.status === "failed") {
-              failedNodes.add(nodeId);
-            }
-          }
-        }
-
-        // Poll until all async jobs in this wave reach terminal status before moving to Wave + 1.
-        let remaining = [...pendingJobIds];
-        while (remaining.length > 0 && !flowAbortRef.current) {
-          await new Promise((resolve) => setTimeout(resolve, JOB_POLL_INTERVAL_MS));
-          if (flowAbortRef.current) break;
-          const pollRes = await pollCanvasJobsAction({
-            canvasId: activeProjectIdRef.current,
-            jobIds: remaining,
-          });
-          applyJobUpdates(pollRes.jobs);
-          syncWallet(pollRes.creditUsd);
-
-          const nextRemaining: string[] = [];
-          for (const job of pollRes.jobs) {
-            if (job.status === "queued" || job.status === "running") {
-              nextRemaining.push(job.id);
-            } else if (job.status === "failed") {
-              failedNodes.add(job.nodeId);
-            }
-          }
-          remaining = nextRemaining;
-        }
-      }
-
-      if (!flowAbortRef.current && startedCount === 0) {
-        toast.info(
-          isZh
-            ? "上游都已完成，沒有待執行的節點"
-            : "Every upstream node is already done",
-        );
-      } else if (!flowAbortRef.current) {
-        toast.success(
-          failedNodes.size === 0
-            ? isZh
-              ? "整條工作流執行完成！"
-              : "Workflow completed!"
-            : isZh
-              ? `工作流結束（${failedNodes.size} 個節點失敗並已自動退費）`
-              : `Workflow finished (${failedNodes.size} node(s) failed & refunded)`,
-        );
-      }
-    } finally {
-      setIsFlowRunning(false);
-      setFlowWaveProgress(null);
+    const res = await runCanvasFlowAction({
+      canvasId: activeProjectIdRef.current,
+      nodes: currentNodes,
+      edges: currentEdges,
+      viewport: viewportRef.current,
+    });
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
     }
-  }, [flushSaveNow, setNodes, syncWallet, applyJobUpdates, isZh]);
+    syncWallet(res.creditUsd);
+    setIsFlowRunning(true);
+    setFlowWaveProgress({
+      current: res.activeFlowRun.currentWave,
+      total: res.activeFlowRun.totalWaves,
+    });
+  }, [syncWallet]);
 
-  const handleStopFlow = useCallback(() => {
+  const handleStopFlow = useCallback(async () => {
     flowAbortRef.current = true;
+    await stopCanvasFlowAction(activeProjectIdRef.current).catch(() => {});
     setIsFlowRunning(false);
     setFlowWaveProgress(null);
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");

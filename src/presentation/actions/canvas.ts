@@ -8,7 +8,10 @@ import type {
   CanvasNode,
   CanvasViewport,
 } from "@/model/canvas";
+import { canvasProjectsCollection, usersCollection } from "@/dao";
 import { requireAppUser } from "@/service/auth";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
+import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import {
   type SubmitCanvasNodeJobErrorCode,
   pollCanvasJobs,
@@ -19,6 +22,7 @@ import {
   getCanvasModelCatalog,
 } from "@/service/canvas/model-catalog";
 import {
+  type CanvasFlowRunDto,
   type CanvasJobDto,
   type CanvasProjectDto,
   type CreateCanvasProjectInput,
@@ -29,7 +33,13 @@ import {
   serializeCanvasJob,
   serializeCanvasProject,
 } from "@/service/canvas/projects";
+import {
+  startCanvasFlowRun,
+  stopCanvasFlowRun,
+} from "@/service/canvas/worker-runner";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { shouldUseWorkerQueueOnly } from "@/service/worker/task-queue";
+import { ObjectId } from "mongodb";
 
 const CANVAS_MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
@@ -212,6 +222,7 @@ export async function runCanvasNodeAction(
     canvasId: input.canvasId,
     nodeId: input.nodeId,
     flowRunId: input.flowRunId,
+    queueToWorker: true,
   });
 
   if (!result.ok) {
@@ -249,6 +260,33 @@ export async function pollCanvasJobsAction(input: {
   jobIds: string[];
 }): Promise<PollCanvasJobsActionResult> {
   const user = await requireAppUser();
+  if (shouldUseWorkerQueueOnly() && ObjectId.isValid(input.canvasId)) {
+    const { canvasJobsCollection } = await import("@/dao");
+    const uniqueIds = input.jobIds
+      .map((id) => id.trim())
+      .filter((id) => ObjectId.isValid(id))
+      .map((id) => new ObjectId(id));
+    const [jobs, users] = await Promise.all([
+      uniqueIds.length > 0
+        ? (await canvasJobsCollection())
+            .find({
+              _id: { $in: uniqueIds },
+              canvasId: new ObjectId(input.canvasId),
+              clerkUserId: user.clerkUserId,
+            })
+            .toArray()
+        : Promise.resolve([]),
+      usersCollection(),
+    ]);
+    const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
+    const creditUsd = freshUser
+      ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
+      : 0;
+    return {
+      jobs: jobs.map(serializeCanvasJob),
+      creditUsd,
+    };
+  }
   const result = await pollCanvasJobs({
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
@@ -260,11 +298,118 @@ export async function pollCanvasJobsAction(input: {
   };
 }
 
-// Force-refreshes live Mentalok pricing/status metadata and returns the 26-model catalog.
+// Force-refreshes live Mentalok pricing/status metadata and returns the model catalog.
 export async function refreshCanvasModelsAction(): Promise<{
   models: CanvasModelSpec[];
 }> {
   await requireAppUser();
   const models = await getCanvasModelCatalog({ forceRefresh: true });
   return { models };
+}
+
+export async function runCanvasFlowAction(input: {
+  canvasId: string;
+  nodes?: CanvasNode[];
+  edges?: CanvasEdge[];
+  viewport?: CanvasViewport;
+}): Promise<
+  | { ok: true; activeFlowRun: CanvasFlowRunDto; creditUsd: number }
+  | { ok: false; error: string }
+> {
+  const user = await requireAppUser();
+  if (input.nodes !== undefined || input.edges !== undefined || input.viewport !== undefined) {
+    const saved = await saveCanvasProject(user.clerkUserId, input.canvasId, {
+      ...(input.nodes !== undefined ? { nodes: input.nodes } : {}),
+      ...(input.edges !== undefined ? { edges: input.edges } : {}),
+      ...(input.viewport !== undefined ? { viewport: input.viewport } : {}),
+    });
+    if (!saved) return { ok: false, error: "找不到畫布專案" };
+  }
+
+  const started = await startCanvasFlowRun({
+    clerkUserId: user.clerkUserId,
+    canvasId: input.canvasId,
+  });
+  if (!started.ok) return started;
+
+  const users = await usersCollection();
+  const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
+  const creditUsd = freshUser
+    ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
+    : 0;
+
+  return {
+    ok: true,
+    activeFlowRun: {
+      flowRunId: started.activeFlowRun.flowRunId,
+      status: started.activeFlowRun.status,
+      currentWave: started.activeFlowRun.currentWave,
+      totalWaves: started.activeFlowRun.totalWaves,
+      failedNodeIds: started.activeFlowRun.failedNodeIds,
+      ...(started.activeFlowRun.error ? { error: started.activeFlowRun.error } : {}),
+    },
+    creditUsd,
+  };
+}
+
+export async function stopCanvasFlowAction(canvasId: string): Promise<{ ok: true }> {
+  const user = await requireAppUser();
+  await stopCanvasFlowRun({ clerkUserId: user.clerkUserId, canvasId });
+  return { ok: true };
+}
+
+export async function pollCanvasFlowAction(canvasId: string): Promise<{
+  nodes: CanvasNode[];
+  activeFlowRun?: CanvasFlowRunDto;
+  creditUsd: number;
+}> {
+  const user = await requireAppUser();
+  if (!ObjectId.isValid(canvasId)) {
+    return { nodes: [], creditUsd: 0 };
+  }
+  const col = await canvasProjectsCollection();
+  let project = await col.findOne({
+    _id: new ObjectId(canvasId),
+    clerkUserId: user.clerkUserId,
+  });
+  if (!project) {
+    return { nodes: [], creditUsd: 0 };
+  }
+
+  // In local dev without an external Vast worker, nudge in-flight wave jobs on poll.
+  if (!shouldUseWorkerQueueOnly() && project.activeFlowRun?.activeWaveJobIds?.length) {
+    await pollCanvasJobs({
+      clerkUserId: user.clerkUserId,
+      canvasId,
+      jobIds: project.activeFlowRun.activeWaveJobIds,
+    }).catch(() => {});
+    project =
+      (await col.findOne({
+        _id: new ObjectId(canvasId),
+        clerkUserId: user.clerkUserId,
+      })) ?? project;
+  }
+
+  const users = await usersCollection();
+  const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
+  const creditUsd = freshUser
+    ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
+    : 0;
+
+  return {
+    nodes: project.nodes,
+    ...(project.activeFlowRun
+      ? {
+          activeFlowRun: {
+            flowRunId: project.activeFlowRun.flowRunId,
+            status: project.activeFlowRun.status,
+            currentWave: project.activeFlowRun.currentWave,
+            totalWaves: project.activeFlowRun.totalWaves,
+            failedNodeIds: project.activeFlowRun.failedNodeIds ?? [],
+            ...(project.activeFlowRun.error ? { error: project.activeFlowRun.error } : {}),
+          },
+        }
+      : {}),
+    creditUsd,
+  };
 }

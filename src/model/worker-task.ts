@@ -19,6 +19,8 @@ export const WORKER_TASK_KINDS = [
   "life_shot",
   "director_job",
   "canvas_ffmpeg",
+  "canvas_node",
+  "canvas_flow",
 ] as const;
 export type WorkerTaskKind = (typeof WORKER_TASK_KINDS)[number];
 
