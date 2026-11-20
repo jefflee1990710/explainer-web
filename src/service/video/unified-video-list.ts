@@ -453,6 +453,7 @@ export function buildUnifiedVideoItems(input: {
       durationLabel: durationPresetLabel(t, video.durationPreset).label,
       languageOrModeLabel,
       previewUrls: uniquePreviewUrls(video.previewUrls),
+      ...(video.outputVideoUrl ? { outputVideoUrl: video.outputVideoUrl } : {}),
       sourceMediaKind: "video",
       stage,
       isBusy: pipelineInfo.busy,

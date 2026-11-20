@@ -203,22 +203,24 @@ test("OpenCut dark mode preserves white scaling anchors and uses white selection
   assert.match(selectableItemSource, /ring-white/);
 });
 
-test("StudioNav renders tools in 2-column grid across create/remix/social sections and platform slogan is updated", async () => {
+test("AppShell consolidates tools into Canvas and platform slogan is updated", async () => {
   const navSource = fs.readFileSync(
     path.join(process.cwd(), "src/presentation/studio/studio-nav.tsx"),
     "utf8",
   );
   assert.match(navSource, /grid-cols-2/);
-  assert.match(navSource, /CREATE VIDEO/);
-  assert.match(navSource, /REMIX VIDEO/);
-  assert.match(navSource, /SOCIAL IMAGE/);
 
   const appShellSource = fs.readFileSync(
     path.join(process.cwd(), "src/presentation/components/app-shell.tsx"),
     "utf8",
   );
-  assert.match(appShellSource, /section:\s*"remix"/);
-  assert.match(appShellSource, /section:\s*"social"/);
+  assert.match(appShellSource, /href:\s*"\/app\/canvas"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/talking-heads"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/explainers"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/scroswap"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/teleport"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/life"/);
+  assert.doesNotMatch(appShellSource, /href:\s*"\/app\/posts"/);
 
   const { en } = await import("@/util/i18n/messages/en");
   const { zhHant } = await import("@/util/i18n/messages/zh-Hant");

@@ -8,7 +8,6 @@ import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-
 import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
-import { POSTS_FEATURE_ENABLED } from "@/service/post/feature";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
 import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 // Logged-in chrome. Page content sits in the studio shell.
@@ -59,55 +58,6 @@ export function AppShell({
       icon: "canvas",
       section: "home",
     },
-    // 1. CREATE VIDEO. Simple and Story stay off the menu for now.
-    {
-      href: "/app/talking-heads",
-      label: locale === "zh-Hant" ? "口播" : locale === "zh-Hans" ? "口播" : "Talking",
-      icon: "directors",
-      imageUrl: "/nav-tools/talking.png",
-      section: "create",
-    },
-    {
-      href: "/app/explainers",
-      label: locale === "zh-Hant" ? "解說" : locale === "zh-Hans" ? "解说" : "Explainer",
-      icon: "projects",
-      imageUrl: "/nav-tools/explainer.png",
-      section: "create",
-    },
-    // 2. REMIX VIDEO (Swap, Teleport)
-    {
-      href: "/app/scroswap",
-      label: locale === "zh-Hant" ? "換角" : locale === "zh-Hans" ? "换角" : "Swap",
-      icon: "styles",
-      imageUrl: "/nav-tools/swap.png",
-      section: "remix",
-    },
-    {
-      href: "/app/teleport",
-      label: locale === "zh-Hant" ? "換場" : locale === "zh-Hans" ? "换场" : "Teleport",
-      icon: "room",
-      imageUrl: "/nav-tools/teleport.png",
-      section: "remix",
-    },
-    // 3. SOCIAL IMAGE (Life, Poster)
-    {
-      href: "/app/life",
-      label: t("nav.life"),
-      icon: "life",
-      imageUrl: "/nav-tools/life.png",
-      section: "social",
-    },
-    ...(POSTS_FEATURE_ENABLED
-      ? [
-          {
-            href: "/app/posts",
-            label: locale === "en" ? "Poster" : t("nav.posts"),
-            icon: "posts" as const,
-            imageUrl: "/nav-tools/poster.png",
-            section: "social" as const,
-          },
-        ]
-      : []),
     // CHARACTER & ASSETS
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },

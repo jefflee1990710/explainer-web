@@ -220,6 +220,9 @@ export type PublicVideoCard = {
   postedAt?: string;
   // ISO time the user archived this video. Any stage can be archived.
   archivedAt?: string;
+  // Downloadable final/reel/clip video URL and individual clip URLs for gallery preview & download.
+  outputVideoUrl?: string;
+  clipUrls?: string[];
 };
 
 export type PublicFolder = {
@@ -276,6 +279,8 @@ export const VIDEO_LIST_PROJECTION = {
   "clips.status": 1,
   "clips.blobUrl": 1,
   "clips.outputUrl": 1,
+  reelUrl: 1,
+  finalUrl: 1,
   postedAt: 1,
   archivedAt: 1,
 } as const;
@@ -589,6 +594,12 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     characterStillUrl: video.characterStillUrl,
     characterImageUrl: video.characterImageUrl,
   });
+  const clipUrls = [...clips]
+    .sort((a, b) => a.clipNumber - b.clipNumber)
+    .map((c) => c.blobUrl || c.outputUrl)
+    .filter((u): u is string => Boolean(u));
+  const outputVideoUrl = video.finalUrl || video.reelUrl || (clipUrls.length === 1 ? clipUrls[0] : undefined);
+
   return {
     id: video._id.toHexString(),
     projectId: video.projectId?.toHexString() ?? "",
@@ -613,6 +624,8 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     platesDone: locks.platesDone,
     postedAt: toOptionalIsoDate(video.postedAt),
     archivedAt: toOptionalIsoDate(video.archivedAt),
+    ...(outputVideoUrl ? { outputVideoUrl } : {}),
+    ...(clipUrls.length > 0 ? { clipUrls } : {}),
   };
 }
 

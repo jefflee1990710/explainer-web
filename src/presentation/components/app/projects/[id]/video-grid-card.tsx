@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
 import { markVideoArchivedAction, unarchiveVideoAction } from "@/presentation/actions/video-archive";
 import { markVideoPostedAction } from "@/presentation/actions/video-post";
+import { VideoPreviewModal } from "@/presentation/components/app/videos/video-preview-modal";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import {
@@ -27,7 +27,6 @@ import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
 import { canGenerateAllVideos, type GenerationDetailTag } from "@/service/clip-stage";
 import { computeCardPipelineProgress } from "@/service/video-progress-steps";
-import { folderVideoPath } from "@/service/folder-video-path";
 import type { TranslateFn } from "@/util/i18n";
 import type { VideoListFilter } from "@/service/video/list-stage";
 
@@ -117,6 +116,7 @@ export function VideoGridCard({
   const [posting, setPosting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const ready = canGenerateAllVideos(video.tags);
   const isSubmitting = submitting && ready;
   const tags = isSubmitting ? videosAsBusy(video.tags) : video.tags;
@@ -240,8 +240,9 @@ export function VideoGridCard({
       transition={{ duration: 0.3, ease }}
       className="studio-card group relative flex flex-col overflow-hidden border border-[var(--studio-line)]"
     >
-      <Link
-        href={folderVideoPath(video.projectId || folderId, video.id)}
+      <button
+        type="button"
+        onClick={() => setPreviewOpen(true)}
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">
@@ -270,7 +271,7 @@ export function VideoGridCard({
           </span>
           <span className="text-[11px] text-muted">{created}</span>
         </span>
-      </Link>
+      </button>
       <span className="absolute bottom-2 right-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap justify-end gap-1">
         {ready && !isSubmitting && stage !== "archived" ? (
           <button
@@ -321,6 +322,14 @@ export function VideoGridCard({
           </button>
         )}
       </span>
+      <VideoPreviewModal
+        open={previewOpen}
+        title={title}
+        subtitle={`${video.aspectRatio} · ${duration} · ${language}`}
+        videoUrl={video.outputVideoUrl}
+        clipUrls={video.clipUrls}
+        onClose={() => setPreviewOpen(false)}
+      />
     </motion.article>
   );
 }

@@ -187,7 +187,7 @@ export function HomeView({
 
   const toolShortcuts = [
     {
-      href: "/app/explainers",
+      href: "/app/canvas?template=explainer",
       tag: copy.tool1Tag,
       title: copy.tool1Title,
       desc: copy.tool1Desc,
@@ -196,7 +196,7 @@ export function HomeView({
       videoUrl: "/hero/tools/explainer/center.mp4",
     },
     {
-      href: "/app/talking-heads",
+      href: "/app/canvas?template=talking-head",
       tag: copy.tool2Tag,
       title: copy.tool2Title,
       desc: copy.tool2Desc,
@@ -205,7 +205,7 @@ export function HomeView({
       videoUrl: "/hero/tools/talking-head/center.mp4",
     },
     {
-      href: "/app/scroswap",
+      href: "/app/canvas?template=scro-swap",
       tag: copy.tool3Tag,
       title: copy.tool3Title,
       desc: copy.tool3Desc,
@@ -463,19 +463,9 @@ export function HomeView({
                 : locale === "zh-Hans"
                   ? topic.descZhHans
                   : topic.descEn;
-            const promptText =
-              locale === "zh-Hant"
-                ? topic.promptZhHant
-                : locale === "zh-Hans"
-                  ? topic.promptZhHans
-                  : topic.promptEn;
-            const baseRoute =
-              topic.useCase === "talking-head"
-                ? "/app/talking-heads"
-                : topic.useCase === "story"
-                  ? "/app/stories"
-                  : "/app/explainers";
-            const href = `${baseRoute}?prompt=${encodeURIComponent(promptText)}`;
+            const templateId =
+              topic.useCase === "talking-head" ? "talking-head" : "explainer";
+            const href = `/app/canvas?template=${templateId}`;
 
             return (
               <Link

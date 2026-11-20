@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
 import {
   markVideoArchivedAction,
@@ -11,6 +10,7 @@ import {
 import { markVideoPostedAction } from "@/presentation/actions/video-post";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import { VideoListDeleteDialog } from "@/presentation/components/app/videos/video-list-delete-dialog";
+import { VideoPreviewModal } from "@/presentation/components/app/videos/video-preview-modal";
 import { Spinner } from "@/presentation/components/spinner";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
@@ -30,7 +30,6 @@ import {
   canGenerateAllVideos,
   type GenerationDetailTag,
 } from "@/service/clip-stage";
-import { folderVideoPath } from "@/service/folder-video-path";
 import type { UnifiedVideoItem } from "@/service/video/unified-video-list";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -141,13 +140,10 @@ export function VideoListRow({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [localError, setLocalError] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const studioVideo = item.studioVideo;
   const targetVideoId = studioVideo?.id ?? item.editorVideoId;
-  const directEditorHref =
-    studioVideo && item.editorVideoId
-      ? folderVideoPath(item.folderId, item.editorVideoId)
-      : null;
 
   const readyToGenerateAll = studioVideo
     ? canGenerateAllVideos(studioVideo.tags)
@@ -322,19 +318,14 @@ export function VideoListRow({
 
   return (
     <article className="group flex flex-col gap-4 p-4 transition hover:bg-zinc-50/70 sm:flex-row sm:items-center">
-      {/* Left Thumbnail */}
-      {directEditorHref ? (
-        <Link
-          href={directEditorHref}
-          className="relative aspect-video w-full shrink-0 cursor-pointer overflow-hidden rounded-xl bg-zinc-900 sm:w-44"
-        >
-          {thumbnailContent}
-        </Link>
-      ) : (
-        <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-xl bg-zinc-900 sm:w-44">
-          {thumbnailContent}
-        </div>
-      )}
+      {/* Left Thumbnail — opens inline preview & download modal (Open Editor retired) */}
+      <button
+        type="button"
+        onClick={() => setPreviewOpen(true)}
+        className="relative aspect-video w-full shrink-0 cursor-pointer overflow-hidden rounded-xl bg-zinc-900 text-left sm:w-44"
+      >
+        {thumbnailContent}
+      </button>
 
       {/* Middle Metadata Column */}
       <div className="min-w-0 flex-1 space-y-1">
@@ -354,18 +345,13 @@ export function VideoListRow({
         </div>
 
         <div className="min-w-0">
-          {directEditorHref ? (
-            <Link
-              href={directEditorHref}
-              className="block truncate font-display text-sm font-bold text-[#12141c] hover:underline"
-            >
-              {item.title}
-            </Link>
-          ) : (
-            <h3 className="truncate font-display text-sm font-bold text-[#12141c]">
-              {item.title}
-            </h3>
-          )}
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="block max-w-full cursor-pointer truncate text-left font-display text-sm font-bold text-[#12141c] hover:underline"
+          >
+            {item.title}
+          </button>
         </div>
 
         {item.progressText ? (
@@ -501,6 +487,16 @@ export function VideoListRow({
           />
         ) : null}
       </div>
+      <VideoPreviewModal
+        open={previewOpen}
+        title={item.title}
+        subtitle={`${item.aspectRatio} · ${item.durationLabel} · ${item.languageOrModeLabel}`}
+        videoUrl={item.outputVideoUrl}
+        imageUrl={item.outputImageUrl}
+        gifUrl={item.outputGifUrl}
+        clipUrls={item.studioVideo?.clipUrls}
+        onClose={() => setPreviewOpen(false)}
+      />
     </article>
   );
 }

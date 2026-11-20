@@ -1,12 +1,5 @@
-import { UseCaseVideoListPage } from "@/presentation/components/app/use-case-video-list-page";
+import { redirect } from "next/navigation";
 
-// Gemini 4 Argon can think for several minutes before the storyboard returns.
-export const maxDuration = 800;
-
-export default async function ExplainersPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ stay?: string; project?: string; projectId?: string; prompt?: string }>;
-}) {
-  return <UseCaseVideoListPage useCase="explainer" searchParams={searchParams} />;
+export default function ExplainersPage() {
+  redirect("/app/canvas?template=explainer");
 }
