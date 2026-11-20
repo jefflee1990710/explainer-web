@@ -13,7 +13,10 @@ import type {
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type {
+  CanvasLibraryAsset,
+  CanvasLibraryCharacterOption,
+} from "@/service/canvas/projects";
 import type { CanvasAgentOp } from "@/service/canvas-agent/types";
 
 export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
@@ -29,6 +32,7 @@ export type CanvasAgentWorkingGraph = {
   edges: CanvasEdge[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
+  characters: readonly CanvasLibraryCharacterOption[];
   ops: CanvasAgentOp[];
   addedNodes: number;
   nextId: () => string;
@@ -41,13 +45,20 @@ export function createWorkingGraph(input: {
   edges: CanvasEdge[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
+  characters?: readonly CanvasLibraryCharacterOption[];
   nextId?: () => string;
 }): CanvasAgentWorkingGraph {
+  const characters =
+    input.characters ??
+    input.assets
+      .filter((a) => a.source === "character")
+      .map((a) => ({ id: a.id, name: a.name, previewUrl: a.url }));
   return {
     nodes: input.nodes.map((n) => ({ ...n, data: { ...n.data } })),
     edges: [...input.edges],
     catalog: input.catalog,
     assets: input.assets,
+    characters,
     ops: [],
     addedNodes: 0,
     nextId: input.nextId ?? (() => crypto.randomUUID().slice(0, 8)),
@@ -55,7 +66,7 @@ export function createWorkingGraph(input: {
 }
 
 function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
-  return g.catalog.filter((spec) => spec.provider === "openrouter" && spec.available !== false);
+  return g.catalog.filter((spec) => spec.provider !== "mentalok" && spec.available !== false);
 }
 
 function clip(text: string | undefined): string | undefined {
@@ -117,6 +128,7 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           prompt: clip(node.data.prompt),
           aspectRatio: node.data.aspectRatio,
           durationSeconds: node.data.durationSeconds,
+          ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
           status: node.data.status ?? "idle",
           hasOutput: Boolean(node.data.outputUrl),
         }
@@ -166,6 +178,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         mediaKind: a.mediaKind,
         source: a.source,
       })),
+      characters: g.characters.slice(0, 40).map((c) => ({
+        id: c.id,
+        name: c.name,
+      })),
     };
   },
 
@@ -175,7 +191,13 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
 
   add_model_node(
     g: CanvasAgentWorkingGraph,
-    input: { modelId: string; prompt?: string; aspectRatio?: CanvasAspectRatio; durationSeconds?: number },
+    input: {
+      modelId: string;
+      prompt?: string;
+      aspectRatio?: CanvasAspectRatio;
+      durationSeconds?: number;
+      toolParams?: Record<string, unknown>;
+    },
   ): CanvasAgentToolResult {
     const spec = agentModels(g).find((s) => s.id === input.modelId);
     if (!spec) {
@@ -184,10 +206,11 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return addNode(g, "model", {
       modelId: spec.id,
       presetId: spec.defaultPresetId,
-      aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "16:9") : undefined,
+      aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "9:16") : undefined,
       resolution: spec.supportsResolution ? "2k" : undefined,
       durationSeconds: clampDuration(spec, input.durationSeconds),
       prompt: input.prompt ?? "",
+      ...(input.toolParams ? { toolParams: input.toolParams } : {}),
       status: "idle",
     });
   },
@@ -211,6 +234,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       text?: string;
       aspectRatio?: CanvasAspectRatio;
       durationSeconds?: number;
+      toolParams?: Record<string, unknown>;
     },
   ): CanvasAgentToolResult {
     const node = g.nodes.find((n) => n.id === input.nodeId);
@@ -221,8 +245,13 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       if (node.type !== "prompt") return { error: "Only prompt nodes have text. Use prompt for model nodes." };
       patch.text = input.text;
     }
-    if (input.prompt !== undefined || input.aspectRatio !== undefined || input.durationSeconds !== undefined) {
-      if (node.type !== "model") return { error: "prompt, aspectRatio and durationSeconds only apply to model nodes." };
+    if (
+      input.prompt !== undefined ||
+      input.aspectRatio !== undefined ||
+      input.durationSeconds !== undefined ||
+      input.toolParams !== undefined
+    ) {
+      if (node.type !== "model") return { error: "prompt, aspectRatio, durationSeconds and toolParams only apply to model nodes." };
       const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
       if (input.prompt !== undefined) patch.prompt = input.prompt;
       if (input.aspectRatio !== undefined) {
@@ -232,6 +261,9 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       if (input.durationSeconds !== undefined) {
         if (!spec || spec.output.type !== "video") return { error: "Only video models have a duration." };
         patch.durationSeconds = clampDuration(spec, input.durationSeconds);
+      }
+      if (input.toolParams !== undefined) {
+        patch.toolParams = { ...(node.data.toolParams ?? {}), ...input.toolParams };
       }
     }
     if (Object.keys(patch).length === 0) return { error: "Nothing to update." };
@@ -363,12 +395,16 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async (input) => H.add_prompt_node(g, input),
     }),
     add_model_node: tool({
-      description: "Add a model node. modelId must come from list_models.",
+      description: "Add a model, Scro tool, or FFmpeg node. modelId must come from list_models.",
       inputSchema: z.object({
         modelId: z.string(),
         prompt: z.string().max(4000).optional().describe("Inline prompt, used when no prompt node is connected."),
         aspectRatio: aspectRatio.optional(),
         durationSeconds: z.number().optional().describe("Video length in seconds."),
+        toolParams: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Tool-specific parameters such as characterId, language, skillSlug, swapMode, ffmpegTransition, ffmpegMixMode."),
       }),
       execute: async (input) => H.add_model_node(g, input),
     }),
@@ -378,19 +414,20 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async (input) => H.add_media_node(g, input),
     }),
     update_node: tool({
-      description: "Change a node: text for prompt nodes; prompt, aspectRatio, durationSeconds for model nodes.",
+      description: "Change a node: text for prompt nodes; prompt, aspectRatio, durationSeconds, toolParams for model/tool nodes.",
       inputSchema: z.object({
         nodeId: z.string(),
         text: z.string().max(4000).optional(),
         prompt: z.string().max(4000).optional(),
         aspectRatio: aspectRatio.optional(),
         durationSeconds: z.number().optional(),
+        toolParams: z.record(z.string(), z.unknown()).optional(),
       }),
       execute: async (input) => H.update_node(g, input),
     }),
     connect: tool({
       description:
-        "Connect a node's output to a model input port. Types must match (text→prompt, image→startImage/endImage/refImages). Connecting to a single-input port replaces its old edge.",
+        "Connect a node's output to an input port. Types must match (text→prompt, image→startImage/endImage/refImages/image, audio→refAudio, video→video/videos). Multi-input ports (refImages, videos) append edges in order.",
       inputSchema: z.object({ sourceId: z.string(), targetId: z.string(), targetPort: z.string() }),
       execute: async (input) => H.connect(g, input),
     }),

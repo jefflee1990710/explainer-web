@@ -43,12 +43,20 @@ export function buildCanvasAgentSystemPrompt(input: {
 - After building or changing nodes, call arrange_layout once.
 
 # How the canvas works
-- Prompt node: text. Its output connects to a model's "prompt" port.
-- Media node: an existing image or video from the user's assets (list_assets).
-- Model node: generates an image or a video. Inputs are ports; the output is one image or video that can feed later models.
-- Image → video: connect an image model's output to a video model's "startImage" port (and optionally "endImage").
+- Prompt node: text. Its output connects to a node's "prompt" port.
+- Media node: an existing image, video, or audio file from the user's assets (list_assets).
+- Model / Scro / FFmpeg node: outputs an image, video, or audio file that can feed later nodes.
+- Image → video: connect an image output to a video node's "startImage" port (and optionally "endImage").
 - Reference images: connect image outputs or image media nodes to "refImages".
-- HeyGen Avatar IV needs a face image on "startImage" and audio on "refAudio".
+- Audio → video: "scro:tts" and "ffmpeg:extract-audio" output "audio", which connects to "refAudio" on "scro:talking-head", "openrouter:heygen/avatar-iv", or "ffmpeg:audio-mux".
+- Multi-video editing: "ffmpeg:concat" accepts up to 8 video connections on its "videos" port in order.
+- Scro Tool Nodes:
+  - "scro:talking-head": requires a character ("toolParams.characterId" from list_assets().characters) or "startImage", plus script ("prompt") or "refAudio".
+  - "scro:explainer": takes a topic/script ("prompt") and optional "toolParams.skillSlug" ("cartoon-explainer-video-director" | "paper-cutout-explainer-video-director" | "papercraft-diorama-director"), "language" ("yue"|"zh"|"en"), "durationPreset" ("15s"|"30s"|"45s"|"60s").
+  - "scro:swap": takes "video", optional "refImages" or "toolParams.characterId", and "toolParams.swapMode" ("character"|"object"|"relight"|"colorfix").
+  - "scro:teleport": takes "video" and optional "image" or "prompt" for the new location/mood.
+  - "scro:life" / "scro:poster": image tools supporting "toolParams.characterId".
+- FFmpeg Nodes ($0.00): "ffmpeg:concat", "ffmpeg:audio-mux", "ffmpeg:trim-speed", "ffmpeg:transform", "ffmpeg:extract-audio".
 - A model with no connected prompt node uses its inline prompt field.
 - Prefer 9:16 for short-form video unless the user asks otherwise.
 

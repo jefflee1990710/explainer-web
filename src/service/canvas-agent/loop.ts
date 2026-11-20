@@ -6,7 +6,10 @@ import { generateText, stepCountIs, type ToolSet } from "ai";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import { directorModel } from "@/service/director/model";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type {
+  CanvasLibraryAsset,
+  CanvasLibraryCharacterOption,
+} from "@/service/canvas/projects";
 import { buildCanvasAgentSystemPrompt, canvasAgentLanguageRule } from "@/service/canvas-agent/prompt";
 import { buildCanvasAgentTools, createWorkingGraph } from "@/service/canvas-agent/tools";
 import type { CanvasAgentLanguage, CanvasAgentOp } from "@/service/canvas-agent/types";
@@ -41,6 +44,7 @@ export async function runCanvasAgentTurn(input: {
   edges: CanvasEdge[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
+  characters?: readonly CanvasLibraryCharacterOption[];
   generate?: CanvasAgentGenerate;
 }): Promise<{ reply: string; ops: CanvasAgentOp[]; nodes: CanvasNode[]; edges: CanvasEdge[] }> {
   const generate = input.generate ?? defaultGenerate;

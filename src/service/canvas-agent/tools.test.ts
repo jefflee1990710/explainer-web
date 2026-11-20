@@ -34,10 +34,50 @@ function fresh(nodes: CanvasNode[] = []) {
 }
 
 describe("canvas agent tools", () => {
-  it("lists only OpenRouter models", () => {
+  it("lists OpenRouter, Scro, and FFmpeg models (excluding legacy Mentalok)", () => {
     const res = T.list_models(fresh()) as { models: Array<{ id: string }> };
-    assert.ok(res.models.length >= 10);
-    assert.ok(res.models.every((m) => m.id.startsWith("openrouter:")));
+    assert.ok(res.models.length >= 22);
+    assert.ok(res.models.every((m) => !m.id.startsWith("mentalok:")));
+    assert.ok(res.models.some((m) => m.id === "scro:talking-head"));
+    assert.ok(res.models.some((m) => m.id === "scro:tts"));
+    assert.ok(res.models.some((m) => m.id === "ffmpeg:concat"));
+    assert.ok(res.models.some((m) => m.id === "ffmpeg:audio-mux"));
+  });
+
+  it("supports toolParams on Scro tools, audio -> refAudio wiring, and multi-video ffmpeg:concat", () => {
+    const g = fresh();
+    const tts = T.add_model_node(g, {
+      modelId: "scro:tts",
+      prompt: "Hello",
+      toolParams: { language: "yue", voicePreset: "alan" },
+    }) as { nodeId: string };
+    const th = T.add_model_node(g, {
+      modelId: "scro:talking-head",
+      aspectRatio: "9:16",
+      toolParams: { characterId: "char-1", language: "yue" },
+    }) as { nodeId: string };
+    assert.deepEqual(
+      (g.nodes.find((n) => n.id === th.nodeId)?.data.toolParams as Record<string, unknown>)?.characterId,
+      "char-1",
+    );
+
+    const eAudio = T.connect(g, { sourceId: tts.nodeId, targetId: th.nodeId, targetPort: "refAudio" });
+    assert.ok(!("error" in eAudio));
+
+    const v1 = T.add_model_node(g, { modelId: HAILUO }) as { nodeId: string };
+    const v2 = T.add_model_node(g, { modelId: HAILUO }) as { nodeId: string };
+    const concat = T.add_model_node(g, {
+      modelId: "ffmpeg:concat",
+      toolParams: { ffmpegTransition: "pad-200ms" },
+    }) as { nodeId: string };
+
+    assert.ok(!("error" in T.connect(g, { sourceId: v1.nodeId, targetId: concat.nodeId, targetPort: "videos" })));
+    assert.ok(!("error" in T.connect(g, { sourceId: v2.nodeId, targetId: concat.nodeId, targetPort: "videos" })));
+    assert.equal(g.edges.filter((e) => e.target === concat.nodeId).length, 2);
+
+    // Mismatched audio -> videos must return { error }
+    const bad = T.connect(g, { sourceId: tts.nodeId, targetId: concat.nodeId, targetPort: "videos" });
+    assert.ok("error" in bad);
   });
 
   it("builds prompt → image and logs ops in order", () => {

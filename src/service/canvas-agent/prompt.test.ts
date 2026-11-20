@@ -25,9 +25,11 @@ describe("canvas agent prompt", () => {
     assert.match(canvasAgentLanguageRule("ja"), /Japanese/);
   });
 
-  it("lists OpenRouter models and the current nodes", () => {
+  it("lists OpenRouter, Scro, and FFmpeg models and the current nodes", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "en", graph: graph() });
     assert.match(text, /openrouter:minimax\/hailuo-3/);
+    assert.match(text, /scro:talking-head/);
+    assert.match(text, /ffmpeg:concat/);
     assert.match(text, /prompt-abc/);
     assert.doesNotMatch(text, /mentalok:/);
   });

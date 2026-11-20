@@ -81,6 +81,7 @@ export async function sendCanvasAgentMessageAction(
       edges: project.edges,
       catalog,
       assets: [...library.characters, ...library.products, ...library.recentOutputs],
+      characters: library.characterOptions,
     });
   } catch (error) {
     console.error("[canvas-agent] turn failed", error);
