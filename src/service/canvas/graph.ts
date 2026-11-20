@@ -433,7 +433,7 @@ export function applyCompletedJobOutputs(
   }
 
   let changed = false;
-  const next = nodes.map((node) => {
+  const next = nodes.map((node): CanvasNode => {
     if (node.type !== "model" || node.data.outputUrl?.trim()) return node;
     const job = latestByNodeId.get(node.id);
     if (!job?.outputUrl) return node;
@@ -449,7 +449,7 @@ export function applyCompletedJobOutputs(
       },
     };
   });
-  return changed ? next : nodes;
+  return changed ? next : [...nodes];
 }
 
 // Plans parallel execution waves across model nodes using Kahn's topological sort.

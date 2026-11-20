@@ -1,0 +1,82 @@
+// UI strings and op summaries for the canvas agent dock (zh / en, like the rest of /app/canvas).
+
+import type { CanvasAgentLanguage, CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { LocaleId } from "@/util/i18n/locales";
+
+export type CanvasAgentCopy = ReturnType<typeof canvasAgentCopy>;
+
+export function canvasAgentCopy(isZh: boolean) {
+  return isZh
+    ? {
+        title: "Scro 畫布助手",
+        subtitle: "說出你想做的作品，我幫你接好節點並解釋。不會自動執行或扣款。",
+        language: "對話語言",
+        clear: "清除對話",
+        clearConfirm: "確定要清除這個畫布的對話紀錄嗎？",
+        collapse: "收合",
+        expand: "展開",
+        placeholder: "例如：幫我做一條 9:16 的狐狸奔跑短片…（Enter 送出，Shift+Enter 換行）",
+        send: "送出",
+        thinking: "正在規劃節點…",
+        applying: "正在畫上畫布…",
+        undo: "復原",
+        undone: "已復原",
+        retry: "重試",
+        error: "助手暫時無法回覆，請再試一次。",
+        skipped: (n: number) => `${n} 個步驟因畫布已變動而略過`,
+        suggestions: [
+          "幫我做一個文字 → 圖片 → 影片的 9:16 流程",
+          "用 Seedream 生 4 張不同角度的產品照",
+          "解釋目前畫布上每個節點在做什麼",
+        ],
+      }
+    : {
+        title: "Scro Canvas Assistant",
+        subtitle: "Describe what you want. I'll wire the nodes and explain them. Nothing runs or charges automatically.",
+        language: "Chat language",
+        clear: "Clear chat",
+        clearConfirm: "Clear this canvas's chat history?",
+        collapse: "Collapse",
+        expand: "Expand",
+        placeholder: "e.g. Build a 9:16 clip of a fox running… (Enter to send, Shift+Enter for a new line)",
+        send: "Send",
+        thinking: "Planning nodes…",
+        applying: "Drawing on the canvas…",
+        undo: "Undo",
+        undone: "Undone",
+        retry: "Retry",
+        error: "The assistant could not answer. Please try again.",
+        skipped: (n: number) => `${n} step(s) skipped because the canvas changed`,
+        suggestions: [
+          "Build a text → image → video flow in 9:16",
+          "Make 4 product shots from different angles with Seedream",
+          "Explain what each node on this canvas does",
+        ],
+      };
+}
+
+// Picks the chat language that matches the site locale.
+export function defaultCanvasAgentLanguage(locale: LocaleId): CanvasAgentLanguage {
+  if (locale === "zh-Hant" || locale === "zh-Hans" || locale === "en" || locale === "ja" || locale === "ko") {
+    return locale;
+  }
+  return "en";
+}
+
+// Short chips such as "+3 nodes · 2 links" under an assistant reply.
+export function summarizeCanvasAgentOps(ops: readonly CanvasAgentOp[], isZh: boolean): string[] {
+  const count = (kind: CanvasAgentOp["kind"]) => ops.filter((op) => op.kind === kind).length;
+  const added = count("add_node");
+  const updated = count("update_node");
+  const removed = count("remove_node");
+  const linked = count("add_edge");
+  const unlinked = count("remove_edge");
+  const chips: string[] = [];
+  if (added) chips.push(isZh ? `新增 ${added} 個節點` : `+${added} node${added > 1 ? "s" : ""}`);
+  if (linked) chips.push(isZh ? `連接 ${linked} 條線` : `+${linked} link${linked > 1 ? "s" : ""}`);
+  if (updated) chips.push(isZh ? `修改 ${updated} 處` : `${updated} edit${updated > 1 ? "s" : ""}`);
+  if (removed) chips.push(isZh ? `刪除 ${removed} 個節點` : `−${removed} node${removed > 1 ? "s" : ""}`);
+  if (unlinked) chips.push(isZh ? `移除 ${unlinked} 條線` : `−${unlinked} link${unlinked > 1 ? "s" : ""}`);
+  if (count("move_node")) chips.push(isZh ? "整理排版" : "Tidied layout");
+  return chips;
+}

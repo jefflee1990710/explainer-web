@@ -10,6 +10,10 @@ import {
   serializeCanvasProject,
   serializeCanvasProjectSummary,
 } from "@/service/canvas/projects";
+import {
+  listCanvasAgentMessages,
+  serializeCanvasAgentMessage,
+} from "@/service/canvas-agent/history";
 import { CanvasWorkspace } from "@/app/app/canvas/canvas-workspace";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +33,10 @@ export default async function CanvasPage({
     listCanvasLibraryAssets(user.clerkUserId),
   ]);
 
-  const allProjects = await listCanvasProjects(user.clerkUserId);
+  const [allProjects, agentMessages] = await Promise.all([
+    listCanvasProjects(user.clerkUserId),
+    listCanvasAgentMessages(user.clerkUserId, activeProject._id.toHexString()),
+  ]);
   const balance = resolveUserUsdBalance(user);
 
   return (
@@ -41,6 +48,7 @@ export default async function CanvasPage({
       initialAssets={assets}
       initialCreditUsd={balance.creditUsd}
       initialCreditLimitUsd={balance.creditLimitUsd}
+      initialAgentMessages={agentMessages.map(serializeCanvasAgentMessage)}
     />
   );
 }

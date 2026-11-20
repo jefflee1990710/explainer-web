@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
+import type { CanvasAgentOp } from "@/service/canvas-agent/types";
 
 export type CanvasNodeType = "media" | "prompt" | "model";
 export type CanvasMediaKind = "image" | "video" | "audio";
@@ -100,6 +101,19 @@ export type CanvasJob = {
   error?: string;
   createdAt: Date;
   updatedAt: Date;
+};
+
+// One chat message with the canvas agent, stored per canvas in `canvas_agent_messages`.
+export type CanvasAgentMessage = {
+  _id: ObjectId;
+  canvasId: ObjectId;
+  clerkUserId: string;
+  role: "user" | "assistant";
+  text: string;
+  language: string;
+  // Graph edits made during this assistant turn (shown as chips with Undo).
+  ops?: CanvasAgentOp[];
+  createdAt: Date;
 };
 
 export const canvasNodeTypeSchema = z.enum(["media", "prompt", "model"]);

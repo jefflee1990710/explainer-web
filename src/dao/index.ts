@@ -43,6 +43,7 @@ export { blockedUsersCollection } from "@/dao/blocked-users";
 export {
   canvasProjectsCollection,
   canvasJobsCollection,
+  canvasAgentMessagesCollection,
 } from "@/dao/canvas";
 
 

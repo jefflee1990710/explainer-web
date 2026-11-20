@@ -1,9 +1,10 @@
 import type { Collection } from "mongodb";
 import { getDb } from "@/dao/mongo";
-import type { CanvasJob, CanvasProject } from "@/model/canvas";
+import type { CanvasAgentMessage, CanvasJob, CanvasProject } from "@/model/canvas";
 
 let projectsIndexed = false;
 let jobsIndexed = false;
+let agentMessagesIndexed = false;
 
 // Typed MongoDB accessor for multi-project canvas graphs (`canvas_projects`).
 export async function canvasProjectsCollection(): Promise<
@@ -34,6 +35,21 @@ export async function canvasJobsCollection(): Promise<Collection<CanvasJob>> {
     ]).catch(() => {
       jobsIndexed = false;
     });
+  }
+  return collection;
+}
+
+// Typed MongoDB accessor for canvas agent chat history (`canvas_agent_messages`).
+export async function canvasAgentMessagesCollection(): Promise<Collection<CanvasAgentMessage>> {
+  const db = await getDb();
+  const collection = db.collection<CanvasAgentMessage>("canvas_agent_messages");
+  if (!agentMessagesIndexed) {
+    agentMessagesIndexed = true;
+    await collection
+      .createIndex({ canvasId: 1, clerkUserId: 1, createdAt: 1 })
+      .catch(() => {
+        agentMessagesIndexed = false;
+      });
   }
   return collection;
 }

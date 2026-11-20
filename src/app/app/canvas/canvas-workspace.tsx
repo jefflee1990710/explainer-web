@@ -66,6 +66,13 @@ import {
   type CanvasStarterTemplateId,
   instantiateCanvasTemplate,
 } from "@/service/canvas/templates";
+import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
+import { applyCanvasAgentOp } from "@/service/canvas-agent/apply-ops";
+import type { CanvasAgentGraph, CanvasAgentOp } from "@/service/canvas-agent/types";
+import {
+  CanvasAgentDock,
+  type CanvasAgentGraphSnapshot,
+} from "@/app/app/canvas/agent/canvas-agent-dock";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
 import {
   CANVAS_DRAG_ASSET_MIME,
@@ -90,6 +97,8 @@ const NODE_TYPES = {
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const JOB_POLL_INTERVAL_MS = 3_000;
+// Pause between agent ops so the user can watch the graph being built.
+const AGENT_OP_STEP_MS = 250;
 
 type FlowNode = Node<CanvasNodeData, CanvasNodeType>;
 
@@ -188,6 +197,7 @@ export function CanvasWorkspace(props: {
   initialAssets: CanvasLibraryAssetsResult;
   initialCreditUsd: number;
   initialCreditLimitUsd: number;
+  initialAgentMessages: CanvasAgentMessageDto[];
 }) {
   return (
     <ReactFlowProvider>
@@ -203,6 +213,7 @@ function CanvasWorkspaceInner({
   initialAssets,
   initialCreditUsd,
   initialCreditLimitUsd,
+  initialAgentMessages,
 }: {
   initialProject: CanvasProjectDto;
   initialProjects: CanvasProjectSummaryDto[];
@@ -210,6 +221,7 @@ function CanvasWorkspaceInner({
   initialAssets: CanvasLibraryAssetsResult;
   initialCreditUsd: number;
   initialCreditLimitUsd: number;
+  initialAgentMessages: CanvasAgentMessageDto[];
 }) {
   const { locale } = useI18n();
   const router = useRouter();
@@ -926,6 +938,86 @@ function CanvasWorkspaceInner({
     [models, setNodes, setEdges, scheduleAutosave, reactFlow],
   );
 
+  // Canvas agent: the graph sent with each chat message, per-turn undo snapshots, and op replay.
+  const agentSnapshotsRef = useRef(new Map<string, CanvasAgentGraph>());
+
+  const getAgentGraph = useCallback((): CanvasAgentGraphSnapshot => {
+    // The action saves this graph itself, so a pending autosave would only repeat it.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    return {
+      nodes: toDomainNodes(withRememberedJobOutputs(nodesRef.current, jobOutputRef.current)),
+      edges: toDomainEdges(edgesRef.current),
+      viewport: viewportRef.current,
+    };
+  }, []);
+
+  const applyAgentOps = useCallback(
+    async (messageId: string, ops: CanvasAgentOp[]) => {
+      const before = getAgentGraph();
+      agentSnapshotsRef.current.set(messageId, { nodes: before.nodes, edges: before.edges });
+      let graph: CanvasAgentGraph = { nodes: before.nodes, edges: before.edges };
+      let skipped = 0;
+
+      for (const op of ops) {
+        await new Promise((resolve) => window.setTimeout(resolve, AGENT_OP_STEP_MS));
+        const result = applyCanvasAgentOp(graph, op);
+        if (!result.applied) {
+          skipped += 1;
+          continue;
+        }
+        graph = result.graph;
+        // Patch React Flow state per op so existing nodes keep their measured size.
+        switch (op.kind) {
+          case "add_node":
+            setNodes((prev) => [...prev, ...toFlowNodes([op.node])]);
+            break;
+          case "update_node":
+            setNodes((prev) =>
+              prev.map((n) => (n.id === op.nodeId ? { ...n, data: { ...n.data, ...op.patch } } : n)),
+            );
+            break;
+          case "move_node":
+            setNodes((prev) =>
+              prev.map((n) => (n.id === op.nodeId ? { ...n, position: op.position } : n)),
+            );
+            break;
+          case "remove_node":
+            setNodes((prev) => prev.filter((n) => n.id !== op.nodeId));
+            setEdges((prev) => prev.filter((e) => e.source !== op.nodeId && e.target !== op.nodeId));
+            break;
+          case "add_edge":
+            setEdges((prev) => [...prev, ...toFlowEdges([op.edge], graph.nodes, models)]);
+            break;
+          case "remove_edge":
+            setEdges((prev) => prev.filter((e) => e.id !== op.edgeId));
+            break;
+        }
+      }
+
+      scheduleAutosave();
+      window.setTimeout(() => {
+        void reactFlow.fitView({ padding: 0.2, duration: 400 });
+      }, 80);
+      return { skipped };
+    },
+    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes],
+  );
+
+  const undoAgentTurn = useCallback(
+    async (messageId: string) => {
+      const snapshot = agentSnapshotsRef.current.get(messageId);
+      if (!snapshot) return;
+      agentSnapshotsRef.current.delete(messageId);
+      setNodes(toFlowNodes(snapshot.nodes));
+      setEdges(toFlowEdges(snapshot.edges, snapshot.nodes, models));
+      scheduleAutosave();
+    },
+    [models, scheduleAutosave, setEdges, setNodes],
+  );
+
   const handleRefreshModels = useCallback(async () => {
     setIsRefreshingModels(true);
     try {
@@ -1068,94 +1160,105 @@ function CanvasWorkspaceInner({
           />
         ) : null}
 
-        <div
-          className="relative min-w-0 flex-1"
-          onDragOver={handlePaneDragOver}
-          onDragLeave={handlePaneDragLeave}
-          onDrop={handlePaneDrop}
-        >
-          <CanvasNodeActionsContext.Provider value={nodeContextValue}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={NODE_TYPES}
-              onNodesChange={handleNodesChange}
-              onEdgesChange={handleEdgesChange}
-              onConnect={handleConnect}
-              isValidConnection={isValidConnection}
-              defaultViewport={initialProject.viewport}
-              onMoveEnd={(_event, viewport) => {
-                viewportRef.current = viewport;
-                scheduleAutosave();
-              }}
-              deleteKeyCode={["Backspace", "Delete"]}
-              fitView={initialProject.nodes.length > 0 && initialProject.viewport.x === 0 && initialProject.viewport.y === 0}
-              className="dark"
-              proOptions={{ hideAttribution: true }}
-            >
-              <Background
-                variant={BackgroundVariant.Dots}
-                gap={22}
-                size={1.2}
-                color="#262e3e"
-              />
-              <Controls className="!border-white/10 !bg-[#12161f]/90" />
-              <MiniMap
-                nodeColor={(n) =>
-                  n.type === "media"
-                    ? "#38bdf8"
-                    : n.type === "prompt"
-                      ? "#c6f24b"
-                      : "#a78bfa"
-                }
-                maskColor="rgba(11, 14, 19, 0.72)"
-                className="!rounded-xl !border !border-white/10 !bg-[#12161f]/90"
-              />
-            </ReactFlow>
-          </CanvasNodeActionsContext.Provider>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            className="relative min-h-0 flex-1"
+            onDragOver={handlePaneDragOver}
+            onDragLeave={handlePaneDragLeave}
+            onDrop={handlePaneDrop}
+          >
+            <CanvasNodeActionsContext.Provider value={nodeContextValue}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={NODE_TYPES}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
+                onConnect={handleConnect}
+                isValidConnection={isValidConnection}
+                defaultViewport={initialProject.viewport}
+                onMoveEnd={(_event, viewport) => {
+                  viewportRef.current = viewport;
+                  scheduleAutosave();
+                }}
+                deleteKeyCode={["Backspace", "Delete"]}
+                fitView={initialProject.nodes.length > 0 && initialProject.viewport.x === 0 && initialProject.viewport.y === 0}
+                className="dark"
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background
+                  variant={BackgroundVariant.Dots}
+                  gap={22}
+                  size={1.2}
+                  color="#262e3e"
+                />
+                <Controls className="!border-white/10 !bg-[#12161f]/90" />
+                <MiniMap
+                  nodeColor={(n) =>
+                    n.type === "media"
+                      ? "#38bdf8"
+                      : n.type === "prompt"
+                        ? "#c6f24b"
+                        : "#a78bfa"
+                  }
+                  maskColor="rgba(11, 14, 19, 0.72)"
+                  className="!rounded-xl !border !border-white/10 !bg-[#12161f]/90"
+                />
+              </ReactFlow>
+            </CanvasNodeActionsContext.Provider>
 
-          {/* Empty canvas onboarding overlay */}
-          {domainNodes.length === 0 ? (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-              <div className="pointer-events-auto max-w-md rounded-2xl border border-white/10 bg-[#12161f]/90 p-6 text-center shadow-2xl backdrop-blur-md">
-                <h2 className="text-base font-bold text-white">
-                  {isZh ? "開始打造你的 AI 生成工作流" : "Build Your AI Visual Workflow"}
-                </h2>
-                <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                  {isZh
-                    ? "把電腦上的圖片／影片直接拖到畫布、從左側點擊或拖入模型，連線後即可單節點或一鍵 Run Flow 生成。"
-                    : "Drop local images/videos onto the canvas, click or drag a model from the left panel, wire ports together, and click Run."}
-                </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate("text-image-video")}
-                    className="cursor-pointer rounded-[10px] bg-[#c6f24b] px-3.5 py-2 text-xs font-bold text-[#11141b] transition hover:brightness-105"
-                  >
-                    {isZh ? "套用：文生圖 → 圖生影片" : "Try: Text → Image → Video"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate("text-image-cutout")}
-                    className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
-                  >
-                    {isZh ? "套用：文生圖 → 一鍵去背" : "Try: Text → Image → Cutout"}
-                  </button>
+            {/* Empty canvas onboarding overlay */}
+            {domainNodes.length === 0 ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+                <div className="pointer-events-auto max-w-md rounded-2xl border border-white/10 bg-[#12161f]/90 p-6 text-center shadow-2xl backdrop-blur-md">
+                  <h2 className="text-base font-bold text-white">
+                    {isZh ? "開始打造你的 AI 生成工作流" : "Build Your AI Visual Workflow"}
+                  </h2>
+                  <p className="mt-1.5 text-xs leading-relaxed text-white/60">
+                    {isZh
+                      ? "把電腦上的圖片／影片直接拖到畫布、從左側點擊或拖入模型，連線後即可單節點或一鍵 Run Flow 生成。"
+                      : "Drop local images/videos onto the canvas, click or drag a model from the left panel, wire ports together, and click Run."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyTemplate("text-image-video")}
+                      className="cursor-pointer rounded-[10px] bg-[#c6f24b] px-3.5 py-2 text-xs font-bold text-[#11141b] transition hover:brightness-105"
+                    >
+                      {isZh ? "套用：文生圖 → 圖生影片" : "Try: Text → Image → Video"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyTemplate("text-image-cutout")}
+                      className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
+                    >
+                      {isZh ? "套用：文生圖 → Hailuo 短片" : "Try: Text → Image → Hailuo"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {/* Local file drop overlay */}
-          {isDraggingFile ? (
-            <div className="pointer-events-none absolute inset-4 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-[#c6f24b] bg-[#c6f24b]/10 backdrop-blur-xs">
-              <div className="rounded-xl bg-[#0e121a]/95 px-5 py-3 text-sm font-bold text-[#c6f24b] shadow-xl">
-                {isZh
-                  ? "放開即可上傳並建立媒體節點"
-                  : "Drop file to upload & create Media node"}
+            {/* Local file drop overlay */}
+            {isDraggingFile ? (
+              <div className="pointer-events-none absolute inset-4 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-[#c6f24b] bg-[#c6f24b]/10 backdrop-blur-xs">
+                <div className="rounded-xl bg-[#0e121a]/95 px-5 py-3 text-sm font-bold text-[#c6f24b] shadow-xl">
+                  {isZh
+                    ? "放開即可上傳並建立媒體節點"
+                    : "Drop file to upload & create Media node"}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+
+          <CanvasAgentDock
+            locale={locale}
+            canvasId={activeProjectId}
+            initialMessages={initialAgentMessages}
+            getGraph={getAgentGraph}
+            onApplyOps={applyAgentOps}
+            onUndo={undoAgentTurn}
+          />
         </div>
       </div>
 
