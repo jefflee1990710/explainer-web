@@ -1222,17 +1222,24 @@ function CanvasWorkspaceInner({
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleApplyTemplate("text-image-video")}
+                      onClick={() => handleApplyTemplate("talking-head")}
                       className="cursor-pointer rounded-[10px] bg-[#c6f24b] px-3.5 py-2 text-xs font-bold text-[#11141b] transition hover:brightness-105"
                     >
-                      {isZh ? "套用：文生圖 → 圖生影片" : "Try: Text → Image → Video"}
+                      {isZh ? "套用：Talking Head 口播" : "Try: Talking Head"}
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleApplyTemplate("text-image-cutout")}
+                      onClick={() => handleApplyTemplate("explainer")}
                       className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
                     >
-                      {isZh ? "套用：文生圖 → Hailuo 短片" : "Try: Text → Image → Hailuo"}
+                      {isZh ? "套用：Explainer 解說片" : "Try: AI Explainer"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyTemplate("text-image-video")}
+                      className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
+                    >
+                      {isZh ? "套用：文生圖 → 圖生影片" : "Try: Text → Image → Video"}
                     </button>
                   </div>
                 </div>
