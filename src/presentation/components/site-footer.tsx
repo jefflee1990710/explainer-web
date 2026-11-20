@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { SITE_FEATURE_LINKS } from "@/presentation/components/site-features-menu";
 
 /** Partner directory listings (dofollow backlinks for free-listing verification). */
@@ -23,7 +24,13 @@ const DIRECTORY_LINKS = [
 ] as const;
 
 // Site-wide links to pricing, examples, and the legal documents.
-export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean }) {
+export function SiteFooter({
+  showAffiliate = false,
+  signedIn = false,
+}: {
+  showAffiliate?: boolean;
+  signedIn?: boolean;
+}) {
   const { t } = useI18n();
 
   return (
@@ -32,7 +39,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-400">
-            <Link href="/app/canvas" className="text-[#A3FF47] hover:text-white">
+            <Link href={canvasLaunchHref(signedIn)} className="text-[#A3FF47] hover:text-white">
               Scro Canvas
             </Link>
             <Link href="/scroswap" className="hover:text-white">
@@ -83,7 +90,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
                 href={href}
                 target="_blank"
                 rel="noopener"
-                className="hover:text-[#12141c]"
+                className="hover:text-white"
               >
                 {label}
               </a>

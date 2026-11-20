@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { track } from "@/presentation/components/analytics/track";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Conversion CTA banner / sidebar card encouraging readers to register for Scro and claim free credits.
@@ -29,7 +30,7 @@ export function BlogPostRegisterCta({
     t("blogPage.ctaBullet3"),
   ];
 
-  const targetHref = signedIn ? "/app" : "/sign-up";
+  const targetHref = canvasLaunchHref(signedIn);
 
   if (variant === "sidebar") {
     return (

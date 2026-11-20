@@ -18,7 +18,7 @@ export function LandingCatalog({
   stats: CatalogShowcaseStats;
   signedIn: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const partLabel = (part: string) => t(`characters.look.${part}`);
 
   return (
@@ -103,7 +103,12 @@ export function LandingCatalog({
           }}
           secondary={{
             href: canvasLaunchHref(signedIn),
-            label: t("landing.catalog.ctaSecondary"),
+            label:
+              locale === "zh-Hant"
+                ? "在 Canvas 開啟生活照"
+                : locale === "zh-Hans"
+                  ? "在 Canvas 打开生活照"
+                  : "Open in Canvas",
           }}
         />
       </div>

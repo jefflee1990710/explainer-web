@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -43,7 +44,7 @@ export function ExplainerFlow({ signedIn = false }: { signedIn?: boolean }) {
           align="center"
           tone="dark"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn, "explainer"),
             label: t("explainerPage.cta.cta"),
           }}
           secondary={{ href: "/pricing", label: t("explainerPage.cta.ctaPricing") }}

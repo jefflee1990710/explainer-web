@@ -31,8 +31,12 @@ export function LandingSteps({ signedIn = false }: { signedIn?: boolean }) {
     {
       step: "02",
       title: isZhHant ? "拖入角色、產品或影片" : isZhHans ? "拖入角色、产品或视频" : "Drop Your Character or Clip",
-      body: t("landing.steps.step1Body"),
-      href: signedIn ? "/app/characters" : "/sign-up?next=%2Fapp%2Fcharacters",
+      body: isZhHant
+        ? "由 Canvas 角色庫揀選鎖臉角色，或者直接拖入你嘅產品相、片段同錄音，系統會自動放進對應位置。"
+        : isZhHans
+          ? "从 Canvas 角色库选择锁脸角色，或直接拖入你的产品图、片段和录音，系统会自动放进对应位置。"
+          : "Pick a face-locked character from your library, or drop in product shots, clips, and voice audio. It wires into the workflow automatically.",
+      href: canvasLaunchHref(signedIn),
       cta: t("landing.cast.cta"),
     },
     {
@@ -53,10 +57,14 @@ export function LandingSteps({ signedIn = false }: { signedIn?: boolean }) {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
           <p className="inline-flex items-center rounded-full bg-[#f4fcd4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#12141c]">
-            {t("landing.steps.eyebrow")}
+            {isZhHant ? "三步開始" : isZhHans ? "三步开始" : "Three easy steps"}
           </p>
           <h2 className="mt-4 font-display text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-5xl">
-            {t("landing.steps.title")}
+            {isZhHant
+              ? "揀範本、放入素材、按下 Run，就係咁簡單。"
+              : isZhHans
+                ? "选模板、放入素材、按下 Run，就这么简单。"
+                : "Template, drop your media, press Run. That is the whole workflow."}
           </h2>
         </div>
         <MotionStagger className="mt-14 grid gap-6 md:grid-cols-3">
@@ -84,7 +92,7 @@ export function LandingSteps({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app/characters" : "/sign-up",
+            href: canvasLaunchHref(signedIn),
             label: signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart"),
           }}
           secondary={{ href: "/pricing", label: t("landing.freeCredit.ctaPricing") }}

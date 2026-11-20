@@ -3,7 +3,7 @@
 import { ArrowRight, CheckCircle2, Film, Music, Sparkles } from "lucide-react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// Clean Canvas workflow diagram replacing retired OpenCut editor screenshots.
+// Clean Canvas workflow diagram used by the public feature pages.
 export function CanvasPostFlowVisual() {
   const { locale } = useI18n();
   const isZhHant = locale === "zh-Hant";
@@ -55,7 +55,7 @@ export function CanvasPostFlowVisual() {
         <div className="rounded-xl border border-white/12 bg-[#141925] p-4">
           <div className="flex items-center gap-2 text-sky-400">
             <Film className="h-4 w-4" />
-            <span className="text-[11px] font-bold uppercase tracking-wider">Input</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{isZhHant ? "輸入" : isZhHans ? "输入" : "Input"}</span>
           </div>
           <p className="mt-2 font-display text-sm font-bold text-white">{copy.node1Title}</p>
           <p className="mt-1 text-xs leading-5 text-white/60">{copy.node1Desc}</p>
@@ -66,7 +66,7 @@ export function CanvasPostFlowVisual() {
         <div className="rounded-xl border border-[#c6f24b]/35 bg-[#171e2b] p-4">
           <div className="flex items-center gap-2 text-amber-300">
             <Music className="h-4 w-4" />
-            <span className="text-[11px] font-bold uppercase tracking-wider">Auto-Flow</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{isZhHant ? "自動處理" : isZhHans ? "自动处理" : "Auto-Flow"}</span>
           </div>
           <p className="mt-2 font-display text-sm font-bold text-white">{copy.node2Title}</p>
           <p className="mt-1 text-xs leading-5 text-white/65">{copy.node2Desc}</p>
@@ -77,7 +77,7 @@ export function CanvasPostFlowVisual() {
         <div className="rounded-xl border border-emerald-400/35 bg-emerald-500/10 p-4">
           <div className="flex items-center gap-2 text-emerald-300">
             <CheckCircle2 className="h-4 w-4" />
-            <span className="text-[11px] font-bold uppercase tracking-wider">Done</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{isZhHant ? "完成" : isZhHans ? "完成" : "Done"}</span>
           </div>
           <p className="mt-2 font-display text-sm font-bold text-white">{copy.node3Title}</p>
           <p className="mt-1 text-xs leading-5 text-white/70">{copy.node3Desc}</p>

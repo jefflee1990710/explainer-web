@@ -40,7 +40,7 @@ export async function PolicyLayout({ children }: { children: ReactNode }) {
         }
       />
       <div className="flex-1">{children}</div>
-      <SiteFooter showAffiliate={showAffiliate} />
+      <SiteFooter showAffiliate={showAffiliate} signedIn={Boolean(session)} />
     </div>
   );
 }

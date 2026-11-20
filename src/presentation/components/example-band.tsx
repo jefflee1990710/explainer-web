@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { EXAMPLE_FRAME, type ExampleItem } from "@/presentation/components/example-catalog";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem } from "@/presentation/components/motion-reveal";
 import { localizedStyleName } from "@/util/style-i18n";
@@ -74,7 +75,7 @@ export function ExampleBand({
               {t(item.ctaKey)}
             </Link>
             <Link
-              href={signedIn ? "/app" : "/sign-up"}
+              href={canvasLaunchHref(signedIn)}
               className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#e4e4e7] px-5 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#fafafa]"
             >
               {t("examples.makeOne")}

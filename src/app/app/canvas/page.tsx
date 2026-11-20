@@ -22,6 +22,7 @@ import {
   serializeCanvasAgentMessage,
 } from "@/service/canvas-agent/history";
 import { CanvasWorkspace } from "@/app/app/canvas/canvas-workspace";
+import { getRequestLocale } from "@/util/i18n/request-locale";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 800;
@@ -32,6 +33,7 @@ export default async function CanvasPage({
   searchParams: Promise<{ id?: string; template?: string }>;
 }) {
   const user = await requireAppUser();
+  const requestedLocale = await getRequestLocale();
   const params = await searchParams;
   const requestedId = typeof params.id === "string" ? params.id : undefined;
   const requestedTemplate =
@@ -40,8 +42,10 @@ export default async function CanvasPage({
   if (!requestedId && isCanvasStarterTemplateId(requestedTemplate)) {
     const tpl = CANVAS_STARTER_TEMPLATES.find((t) => t.id === requestedTemplate);
     const { nodes, edges } = instantiateCanvasTemplate(requestedTemplate);
+    const templateTitle =
+      tpl && (requestedLocale === "zh-Hant" ? tpl.name["zh-Hant"] : tpl.name.en);
     const created = await createCanvasProject(user.clerkUserId, {
-      title: tpl?.name["zh-Hant"] ?? "Template Canvas",
+      title: templateTitle ?? "Template Canvas",
       nodes,
       edges,
     });

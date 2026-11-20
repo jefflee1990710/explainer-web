@@ -96,6 +96,7 @@ export type Messages = {
     featuresAiInfluencer: string;
     featuresProductPromo: string;
     academy: string;
+    openCanvas: string;
   };
   persona: {
     title: string;

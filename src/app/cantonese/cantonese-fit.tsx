@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -14,7 +15,7 @@ const FIT_ART = [
 export function CantoneseFit({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const cards = [
-    { step: "01", title: t("cantonesePage.fit.f1Title"), body: t("cantonesePage.fit.f1Body"), href: signedIn ? "/app" : "/sign-up", cta: t("cantonesePage.hero.ctaStart") },
+    { step: "01", title: t("cantonesePage.fit.f1Title"), body: t("cantonesePage.fit.f1Body"), href: canvasLaunchHref(signedIn, "talking-head"), cta: t("cantonesePage.hero.ctaStart") },
     { step: "02", title: t("cantonesePage.fit.f2Title"), body: t("cantonesePage.fit.f2Body"), href: "/product-promo", cta: t("productPromoPage.hero.ctaStart") },
     { step: "03", title: t("cantonesePage.fit.f3Title"), body: t("cantonesePage.fit.f3Body"), href: "/talking-head", cta: t("talkingHeadPage.hero.ctaStart") },
   ];
@@ -56,7 +57,7 @@ export function CantoneseFit({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn, "talking-head"),
             label: t("cantonesePage.hero.ctaStart"),
           }}
           secondary={{ href: "/talking-head", label: t("cantonesePage.cta.ctaTalkingHead") }}

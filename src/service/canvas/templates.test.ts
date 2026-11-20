@@ -18,7 +18,7 @@ describe("canvas starter templates", () => {
         "explainer",
         "scro-swap",
         "teleport",
-        "ffmpeg-reel",
+        "merge-reel",
         "text-image-video",
       ],
     );

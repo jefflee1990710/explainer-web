@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -15,7 +16,7 @@ export function TalkingHeadSteps({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const steps = [
     { step: "01", title: t("talkingHeadPage.steps.s1Title"), body: t("talkingHeadPage.steps.s1Body"), href: signedIn ? "/app/characters" : "/sign-up", cta: t("landing.cast.cta") },
-    { step: "02", title: t("talkingHeadPage.steps.s2Title"), body: t("talkingHeadPage.steps.s2Body"), href: signedIn ? "/app" : "/sign-up", cta: t("talkingHeadPage.hero.ctaStart") },
+    { step: "02", title: t("talkingHeadPage.steps.s2Title"), body: t("talkingHeadPage.steps.s2Body"), href: canvasLaunchHref(signedIn, "talking-head"), cta: t("talkingHeadPage.hero.ctaStart") },
     { step: "03", title: t("talkingHeadPage.steps.s3Title"), body: t("talkingHeadPage.steps.s3Body"), href: "/cantonese", cta: t("cantonesePage.hero.ctaStart") },
   ];
 
@@ -56,7 +57,7 @@ export function TalkingHeadSteps({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn, "talking-head"),
             label: t("talkingHeadPage.hero.ctaStart"),
           }}
           secondary={{ href: "/cantonese", label: t("cantonesePage.hero.ctaStart") }}

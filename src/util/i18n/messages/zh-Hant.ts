@@ -63,6 +63,7 @@ export const zhHant: Messages = {
     featuresAiInfluencer: "每條解說片都由同一個 AI 網紅出鏡",
     featuresProductPromo: "上載產品，虛擬人物去推",
     academy: "Scro Academy",
+    openCanvas: "開始 Canvas",
   },
   persona: {
     title: "人設",
@@ -146,7 +147,7 @@ export const zhHant: Messages = {
       platformReels: "🎬 拍新片 Create Video",
       platformShorts: "⚡ 改片 Remix Video",
       platformTiktok: "📸 出圖 Social Image",
-      artLabel: "Build Your AI Creator IP, Then Put Them Everywhere",
+      artLabel: "Scro Canvas — 一塊畫布搞定所有 AI 影片",
     },
     academy: {
       eyebrow: "Explainer Reel",
@@ -218,7 +219,7 @@ export const zhHant: Messages = {
     },
     steps: {
       eyebrow: "運作流程",
-      title: "由 AI 網紅，到一條可發佈的 Explainer。",
+      title: "揀範本、放入素材、按下 Run，就係咁簡單。",
       step1Title: "建立角色同衣櫃",
       step1Body: "鎖住臉、髮型、衣服同把聲。之後每條 Explainer 都由呢個 AI 網紅出鏡。",
       step2Title: "拍白板 Explainer",
@@ -274,8 +275,8 @@ export const zhHant: Messages = {
     },
     freeCredit: {
       eyebrow: "免費體驗 USD Credit",
-      title: "由一條 Explainer 或一個 AI 網紅開始。",
-      body: "建立帳號即可領取 $6.00 免費 USD Credit，鎖住角色，並產出第一條 Explainer。",
+      title: "帶住 $6.00 免費 USD Credit，直接喺 Canvas 開始。",
+      body: "建立帳號即領 $6.00 免費 USD Credit，打開 Scro Canvas，幾分鐘就出到第一條 AI 影片。",
       cta: "立即領取免費 USD Credit",
       ctaPricing: "查看方案",
     },
@@ -305,7 +306,7 @@ export const zhHant: Messages = {
       statTags: "篩選標籤",
       footnote: "喺工作室用標籤篩選，或者叫 Agent 用 search_looks／list_life_post_templates 嘅 tags 參數搵。",
       cta: "去睇衣櫃",
-      ctaSecondary: "打開 Life 工作台",
+      ctaSecondary: "在 Canvas 開啟生活照",
     },
     kol: {
       eyebrow: "同一個網紅，日日出鏡",

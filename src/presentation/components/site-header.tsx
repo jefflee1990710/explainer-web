@@ -72,7 +72,7 @@ export function SiteHeader({
               href={canvasLaunchHref(signedIn)}
               className="shrink-0 font-semibold text-[#A3FF47] transition-colors hover:text-white"
             >
-              Open Canvas
+              {t("nav.openCanvas")}
             </Link>
             <SiteFeaturesMenu />
             {showAffiliate ? (
@@ -155,7 +155,7 @@ export function SiteHeader({
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-xl bg-[#12141c] px-3 py-2.5 text-sm font-bold text-[#c6f24b] transition-colors hover:bg-black"
               >
-                Open Canvas →
+                {t("nav.openCanvas")} →
               </Link>
               <Link
                 href="/examples"
@@ -211,7 +211,7 @@ export function SiteHeader({
 
             <div className="mt-4 border-t border-zinc-200 pt-3">
               <Link
-                href={signedIn ? "/app" : "/sign-up"}
+                href={canvasLaunchHref(signedIn)}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#12141c] px-5 py-2.5 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
               >

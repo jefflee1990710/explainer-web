@@ -47,7 +47,7 @@ export function CanvasTemplateLauncher({
         <div className="space-y-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#c6f24b]">
             <Sparkles className="h-3.5 w-3.5" />
-            Scro Canvas · {tpl.badge}
+            Scro Canvas · {tpl.badge[lang]}
           </span>
 
           <h1 className="font-display text-pretty text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
@@ -65,7 +65,7 @@ export function CanvasTemplateLauncher({
                 className="rounded-2xl border border-white/12 bg-[#141925] p-3.5"
               >
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#c6f24b]">
-                  Step 0{idx + 1}
+                  {lang === "en" ? `Step 0${idx + 1}` : `第 ${idx + 1} 步`}
                 </span>
                 <p className="mt-1.5 font-display text-sm font-bold text-white">
                   {stepLabel}

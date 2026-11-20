@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
@@ -71,7 +72,7 @@ export function LandingExplainerReel({ signedIn = false }: { signedIn?: boolean 
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn),
             label: signedIn ? t("landing.academy.ctaContinue") : t("landing.academy.ctaRegister"),
           }}
           secondary={{ href: "/explainer", label: t("landing.academy.ctaBrowse") }}

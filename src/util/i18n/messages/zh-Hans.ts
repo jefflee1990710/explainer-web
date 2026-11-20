@@ -44,6 +44,7 @@ export const zhHans: Partial<Messages> = {
     featuresAiInfluencer: "每条解说片都由同一个 AI 网红出镜",
     featuresProductPromo: "上传产品，虚拟人物去推",
     academy: "Scro Academy",
+    openCanvas: "打开 Canvas",
   },
   common: {
     credits: "USD Credit",
@@ -68,7 +69,7 @@ export const zhHans: Partial<Messages> = {
       platformReels: "🎬 拍新片 Create Video",
       platformShorts: "⚡ 改片 Remix Video",
       platformTiktok: "📸 出图 Social Image",
-      artLabel: "Build Your AI Creator IP, Then Put Them Everywhere",
+      artLabel: "Scro Canvas — 一块画布搞定所有 AI 视频",
     },
     academy: {
       eyebrow: "Explainer Reel",
@@ -140,7 +141,7 @@ export const zhHans: Partial<Messages> = {
     },
     steps: {
       eyebrow: "运作流程",
-      title: "由 AI 网红，到一条可发布的 Explainer。",
+      title: "选模板、放入素材、按下 Run，就这么简单。",
       step1Title: "创建角色和衣柜",
       step1Body: "锁住脸、发型、衣服和声音。之后每条 Explainer 都由这个 AI 网红出镜。",
       step2Title: "拍白板 Explainer",
@@ -185,6 +186,13 @@ export const zhHans: Partial<Messages> = {
       knowledge: "系列连更",
       cta: "立即打造 AI 网红",
     },
+    freeCredit: {
+      eyebrow: "免费体验 USD Credit",
+      title: "带着 $6.00 免费 USD Credit，直接在 Canvas 开始。",
+      body: "创建账号即领 $6.00 免费 USD Credit，打开 Scro Canvas，几分钟就能做出第一条 AI 视频。",
+      cta: "立即领取免费 USD Credit",
+      ctaPricing: "查看价格方案",
+    },
     ip: {
       eyebrow: "品牌 IP · 衣柜 · Life 帖文",
       title: "同一张脸。无数造型。日更账号属于你。",
@@ -211,7 +219,7 @@ export const zhHans: Partial<Messages> = {
       statTags: "筛选标签",
       footnote: "在工作室用标签筛选，或让 Agent 用 search_looks／list_life_post_templates 的 tags 参数查找。",
       cta: "去看衣柜",
-      ctaSecondary: "打开 Life 工作台",
+      ctaSecondary: "在 Canvas 打开生活照",
     },
     director: {
       eyebrow: "精准控制制作成本",

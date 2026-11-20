@@ -11,7 +11,7 @@ export type CanvasStarterTemplateId =
   | "explainer"
   | "scro-swap"
   | "teleport"
-  | "ffmpeg-reel"
+  | "merge-reel"
   | "text-image-video";
 
 export type CanvasStarterTemplate = {
@@ -34,7 +34,7 @@ export const CANVAS_STARTER_TEMPLATES: readonly CanvasStarterTemplate[] = [
       en: "Talking Head (TTS → Avatar)",
     },
     description: {
-      "zh-Hant": "先用 ElevenLabs TTS 配音，再駁入 Talking Head 生成 1080p 真人口播短片",
+      "zh-Hant": "用 AI 配音，再駁入 Talking Head 生成 1080p 真人口播短片",
       en: "Synthesize speech with ElevenLabs TTS and drive Talking Head lip-sync",
     },
   },
@@ -72,14 +72,14 @@ export const CANVAS_STARTER_TEMPLATES: readonly CanvasStarterTemplate[] = [
     },
   },
   {
-    id: "ffmpeg-reel",
+    id: "merge-reel",
     name: {
-      "zh-Hant": "FFmpeg 多段合併配音剪輯",
-      en: "FFmpeg Concat + Audio Mux",
+      "zh-Hant": "多段合併配音剪輯",
+      en: "Multi-Clip Merge & Voice Mix",
     },
     description: {
-      "zh-Hant": "用 FFmpeg 合併多段影片，再與 ElevenLabs 旁白或音樂混音成片",
-      en: "Join multiple clips with FFmpeg Concat and mix TTS/BGM via Audio Mux",
+      "zh-Hant": "自動串接多段影片，再與 AI 旁白或音樂混音成片",
+      en: "Join multiple clips automatically and mix AI voiceover or music into one reel",
     },
   },
   {
@@ -311,7 +311,7 @@ export function instantiateCanvasTemplate(
     };
   }
 
-  if (templateId === "ffmpeg-reel") {
+  if (templateId === "merge-reel") {
     const clip1Id = id("clip-1");
     const clip2Id = id("clip-2");
     const concatId = id("concat");

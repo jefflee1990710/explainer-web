@@ -15,7 +15,7 @@ const SHOWCASE_IDS = [
   "explainer",
   "scro-swap",
   "teleport",
-  "ffmpeg-reel",
+  "merge-reel",
 ] as const;
 
 export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean }) {
@@ -31,9 +31,9 @@ export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean
     lang === "zh-Hant"
       ? {
           eyebrow: "CANVAS 工作台 · 零門檻一鍵啟動",
-          title: "不用學複雜節點，選好範本或問 AI 助理一句話就開拍。",
+          title: "不用學複雜工具，選好範本或問 AI 助理一句話就開拍。",
           subtitle:
-            "把傳統極難上手的 AI 媒體工具變成一目了然的積木流程。你想拍對嘴口播、動畫解說、換角還是實景換場，點一下就自動接好。",
+            "把傳統極難上手的 AI 媒體工具變成一目了然的積木流程。你想拍對嘴口播、動畫解說、換角還是實景換場，點一下就自動排好。",
           aiLabel: "Canvas AI 助理對話示範",
           outputLabel: "即時成品預覽",
           cta: "在 Canvas 打開此範本",
@@ -41,9 +41,9 @@ export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean
       : lang === "zh-Hans"
         ? {
             eyebrow: "CANVAS 工作台 · 零门槛一键启动",
-            title: "不用学复杂节点，选好模板或对 AI 助理说一句就开拍。",
+            title: "不用学复杂工具，选好模板或对 AI 助理说一句就开拍。",
             subtitle:
-              "把难上手的 AI 媒体工具变成一目了然的积木流程。无论是对嘴口播、动画解说、换角还是实景换场，点一下就自动接好。",
+              "把难上手的 AI 媒体工具变成一目了然的积木流程。无论是对嘴口播、动画解说、换角还是实景换场，点一下就自动排好。",
             aiLabel: "Canvas AI 助理对话示范",
             outputLabel: "实时成品预览",
             cta: "在 Canvas 打开此模板",
@@ -102,7 +102,7 @@ export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#c6f24b]">
-                {active.badge}
+                {active.badge[lang]}
               </span>
               <h3 className="font-display text-xl font-bold text-white sm:text-2xl">
                 {active.title[lang]}
@@ -117,7 +117,7 @@ export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean
                 <div key={stepLabel} className="relative flex items-center gap-2">
                   <div className="w-full rounded-2xl border border-white/12 bg-[#141925] p-3.5 shadow-inner">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/45">
-                      <span>Step 0{idx + 1}</span>
+                      <span>{lang === "en" ? `Step 0${idx + 1}` : `第 ${idx + 1} 步`}</span>
                       <span
                         className={`h-2 w-2 rounded-full ${
                           idx === 2 ? "bg-[#c6f24b]" : "bg-sky-400"
@@ -162,7 +162,7 @@ export function LandingCanvasShowcase({ signedIn = false }: { signedIn?: boolean
                 <span>{heading.outputLabel}</span>
                 <span className="inline-flex items-center gap-1 text-[#c6f24b]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#c6f24b]" />
-                  Ready
+                  {lang === "en" ? "Ready" : "完成"}
                 </span>
               </div>
               {active.videoUrl ? (

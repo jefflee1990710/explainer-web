@@ -63,6 +63,7 @@ export const en: Messages = {
     featuresAiInfluencer: "The locked host for every explainer",
     featuresProductPromo: "Upload a product. Promote anywhere.",
     academy: "Scro Academy",
+    openCanvas: "Open Canvas",
   },
   persona: {
     title: "Persona",
@@ -146,7 +147,7 @@ export const en: Messages = {
       platformReels: "Create Video",
       platformShorts: "Remix Video",
       platformTiktok: "Social Image",
-      artLabel: "Build your AI Creator IP and put them everywhere",
+      artLabel: "Scro Canvas — one simple canvas for every AI video",
     },
     academy: {
       eyebrow: "Explainer reel",
@@ -218,7 +219,7 @@ export const en: Messages = {
     },
     steps: {
       eyebrow: "How it works",
-      title: "From AI Influencer to published explainer.",
+      title: "Template, drop your media, press Run.",
       step1Title: "Create the character and wardrobe",
       step1Body:
         "Lock face, hair, clothes, and voice. That AI Influencer hosts every explainer.",
@@ -277,8 +278,8 @@ export const en: Messages = {
     },
     freeCredit: {
       eyebrow: "Free starter USD Credit",
-      title: "Start with an explainer or an AI Influencer.",
-      body: "Create an account, claim $6.00 free USD Credit, lock a character, and ship the first explainer.",
+      title: "Start on Canvas with $6.00 free USD Credit.",
+      body: "Create an account, claim $6.00 free USD Credit, open Scro Canvas, and ship your first AI video in minutes.",
       cta: "Claim $6.00 free USD Credit",
       ctaPricing: "See pricing",
     },
@@ -308,7 +309,7 @@ export const en: Messages = {
       statTags: "Filter tags",
       footnote: "Filter by tag in the studio, or ask an agent via search_looks / list_life_post_templates with tags.",
       cta: "Browse the wardrobe",
-      ctaSecondary: "Open Life desk",
+      ctaSecondary: "Open life shots in Canvas",
     },
     kol: {
       eyebrow: "The influencer, every day",

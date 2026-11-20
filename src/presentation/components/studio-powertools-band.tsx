@@ -21,11 +21,11 @@ export function StudioPowertoolsBand({
   tone?: "light" | "dark";
 }) {
   const { locale, t } = useI18n();
-  const isZh = locale.startsWith("zh");
+  const isZhHant = locale === "zh-Hant";
+  const isZh = isZhHant || locale === "zh-Hans";
   const isDark = tone === "dark";
 
-  const copy = isZh
-    ? {
+  const zhHantCopy = {
         eyebrow: "SCRO CANVAS · 一站式 AI 媒體工作台",
         title: "從靈感、配音、生片、換角換場到自動合併混音，全部喺同一塊畫布輕鬆完成。",
         subtitle:
@@ -58,7 +58,7 @@ export function StudioPowertoolsBand({
           {
             badge: "05 · 免費 Canvas AI 助理",
             title: "打字講出想法，AI 幫你自動砌好成條流程",
-            body: "唔知點駁線？喺畫布下方用廣東話、中文或英文話俾 AI 助理知你想整咩，佢會自動幫你揀啱工具、填好角色同駁好線（對話完全免費）。",
+            body: "唔知點開始？喺畫布下方用廣東話、中文或英文話俾 AI 助理知你想整咩，佢會自動幫你揀啱工具、填好角色同排好成條流程（對話完全免費）。",
             chips: ["免費自然語言砌圖", "支援 6 種對話語言", "隨時一鍵 Undo"],
           },
           {
@@ -67,9 +67,10 @@ export function StudioPowertoolsBand({
             body: "結合你嘅鎖臉角色同商品圖庫，喺畫布隨時生成 2K 生活照、社群海報或最新頂級生圖與生片模型，所有背景執行關掉網頁都會自動完成。",
             chips: ["2K 海報與生活照", "多代換裝零走樣", "雲端背景自動跑完"],
           },
-        ] satisfies PowertoolCard[],
-      }
-    : {
+    ] satisfies PowertoolCard[],
+  };
+
+  const enCopy = {
         eyebrow: "SCRO CANVAS · ALL-IN-ONE CREATIVE WORKSPACE",
         title: "Voice, video, character swap, scene teleport, and auto-assembly on one simple canvas.",
         subtitle:
@@ -113,6 +114,55 @@ export function StudioPowertoolsBand({
           },
         ] satisfies PowertoolCard[],
       };
+
+  // Simplified Chinese mirror of the Cantonese copy (public site supports zh-Hant / zh-Hans / en).
+  const zhHansCopy = {
+    eyebrow: "SCRO CANVAS · 一站式 AI 媒体工作台",
+    title: "从灵感、配音、出片、换角换场到自动合并混音，全部在同一块画布轻松完成。",
+    subtitle:
+      "不必面对复杂参数和零散工具。无论是单段口播还是多段串联工作流，拖放或对 AI 助理说一句，就能在云端自动完成。",
+    cards: [
+      {
+        badge: "01 · 120 秒真人口播 & AI 配音",
+        title: "输入讲稿或语音，一键生成自然对口型口播",
+        body: "支持最长 120 秒 1080p 高清真人口播（$0.18/秒），并内置即时 AI 配音积木，支持粤语、国语与英语等 21 国语言和语速微调。",
+        chips: ["120 秒 1080p 对口型", "粤语等 21 国配音", "语速自由微调"],
+      },
+      {
+        badge: "02 · 视频换角 & 实景换场",
+        title: "Scro Swap 换角换装 ＋ Teleport 一键换场",
+        body: "直接把现有视频主角替换成你的专属 AI 角色或自订穿搭，并套用 17 款电影打光；或保留原片人物与嘴型动作，一键搬进全新场景。",
+        chips: ["保留动作与光影", "17 款电影打光", "锁住人物一键换场"],
+      },
+      {
+        badge: "03 · AI 解说动画短视频",
+        title: "白板手绘、剪纸拼贴与 3D 折纸解说",
+        body: "输入主题或笔记，自动规划多段视觉图表、艺术标题字卡与流畅旁白，并全自动合并成完整短视频，适合知识分享与产品教学。",
+        chips: ["白板／剪纸／折纸风格", "自动画出图表字卡", "多段全自动合片"],
+      },
+      {
+        badge: "04 · 自动合并剪辑 & 混音",
+        title: "多段无缝串联、自动配音混音与比例裁切",
+        body: "在画布直接把多条视频自动合并（支持淡入淡出转场），把 AI 旁白或背景音乐自动混入并压低原声，一键裁切 9:16／16:9／1:1。",
+        chips: ["最多 8 段视频串联", "自动压低背景音", "一键 9:16／16:9"],
+      },
+      {
+        badge: "05 · 免费 Canvas AI 助理",
+        title: "打字说出想法，AI 帮你自动搭好整条流程",
+        body: "不知道怎样开始？在画布下方用粤语、中文或英文对 AI 助理说出你想做什么，它会自动帮你选好工具、填好角色并排好整条流程（对话完全免费）。",
+        chips: ["免费自然语言搭建", "支持 6 种对话语言", "随时一键 Undo"],
+      },
+      {
+        badge: "06 · 2K 海报、生活照 & 角色库",
+        title: "一次锁脸锁声，全平台内容保持 100% 一致",
+        body: "结合你的锁脸角色与商品图库，在画布随时生成 2K 生活照、社群海报或最新顶级生图与生片模型，所有后台执行关掉网页也会自动完成。",
+        chips: ["2K 海报与生活照", "多代换装零走样", "云端后台自动跑完"],
+      },
+    ],
+  };
+
+  const copy =
+    locale === "zh-Hant" ? zhHantCopy : locale === "zh-Hans" ? zhHansCopy : enCopy;
 
   return (
     <section

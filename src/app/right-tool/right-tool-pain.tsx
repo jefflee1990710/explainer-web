@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -62,7 +63,7 @@ export function RightToolPain({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn),
             label: signedIn ? t("rightTool.hero.ctaWorkspace") : t("rightTool.hero.ctaStart"),
           }}
           secondary={{ href: "/pricing", label: t("rightTool.cta.ctaPricing") }}

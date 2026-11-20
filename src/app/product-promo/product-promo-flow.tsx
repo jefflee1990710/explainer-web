@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
@@ -52,7 +53,7 @@ export function ProductPromoFlow({ signedIn = false }: { signedIn?: boolean }) {
           <SectionCtaRow
             tone="dark"
             primary={{
-              href: signedIn ? "/app" : "/sign-up",
+              href: canvasLaunchHref(signedIn, "text-image-video"),
               label: t("productPromoPage.cta.cta"),
             }}
             secondary={{ href: "#wild", label: t("productPromoPage.hero.ctaSecondary") }}

@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -14,7 +15,7 @@ const USE_ART = [
 export function ExplainerUses({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const uses = [
-    { step: "01", title: t("explainerPage.uses.u1Title"), body: t("explainerPage.uses.u1Body"), href: signedIn ? "/app" : "/sign-up", cta: t("explainerPage.hero.ctaStart") },
+    { step: "01", title: t("explainerPage.uses.u1Title"), body: t("explainerPage.uses.u1Body"), href: canvasLaunchHref(signedIn, "explainer"), cta: t("explainerPage.hero.ctaStart") },
     { step: "02", title: t("explainerPage.uses.u2Title"), body: t("explainerPage.uses.u2Body"), href: "/cantonese", cta: t("cantonesePage.hero.ctaStart") },
     { step: "03", title: t("explainerPage.uses.u3Title"), body: t("explainerPage.uses.u3Body"), href: "/talking-head", cta: t("talkingHeadPage.hero.ctaStart") },
   ];
@@ -56,7 +57,7 @@ export function ExplainerUses({ signedIn = false }: { signedIn?: boolean }) {
         <SectionCtaRow
           align="center"
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
+            href: canvasLaunchHref(signedIn, "explainer"),
             label: t("explainerPage.hero.ctaStart"),
           }}
           secondary={{ href: "/right-tool", label: t("explainerPage.cta.ctaFeatures") }}

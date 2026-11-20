@@ -13,7 +13,7 @@ export function canvasLaunchHref(
 
 export type CanvasPublicTemplateCard = {
   id: CanvasStarterTemplateId;
-  badge: string;
+  badge: { en: string; "zh-Hant": string; "zh-Hans": string };
   videoUrl?: string;
   posterUrl: string;
   title: { en: string; "zh-Hant": string; "zh-Hans": string };
@@ -26,7 +26,7 @@ export type CanvasPublicTemplateCard = {
 export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
   {
     id: "talking-head",
-    badge: "1080p Lip-Sync",
+    badge: { en: "1080p Lip-Sync", "zh-Hant": "1080p 對嘴", "zh-Hans": "1080p 对口型" },
     videoUrl: "/hero/tools/talking-head/center.mp4",
     posterUrl: "/hero/tools/talking-head/center.webp",
     title: {
@@ -52,7 +52,7 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
   },
   {
     id: "explainer",
-    badge: "Multi-Scene",
+    badge: { en: "Multi-Scene", "zh-Hant": "多鏡分鏡", "zh-Hans": "多镜分镜" },
     videoUrl: "/hero/tools/explainer/center.mp4",
     posterUrl: "/hero/tools/explainer/center.webp",
     title: {
@@ -78,7 +78,7 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
   },
   {
     id: "scro-swap",
-    badge: "Character Remix",
+    badge: { en: "Character Remix", "zh-Hant": "換角換裝", "zh-Hans": "换角换装" },
     videoUrl: "/hero/tools/scroswap/center.mp4",
     posterUrl: "/hero/tools/scroswap/center.webp",
     title: {
@@ -104,7 +104,7 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
   },
   {
     id: "teleport",
-    badge: "Scene Relocate",
+    badge: { en: "Scene Relocate", "zh-Hant": "實景換場", "zh-Hans": "实景换场" },
     videoUrl: "/hero/tools/teleport/center.mp4",
     posterUrl: "/hero/tools/teleport/center.webp",
     title: {
@@ -129,8 +129,8 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
     },
   },
   {
-    id: "ffmpeg-reel",
-    badge: "Auto-Edit & Mix",
+    id: "merge-reel",
+    badge: { en: "Auto-Edit & Mix", "zh-Hant": "自動剪輯混音", "zh-Hans": "自动剪辑混音" },
     videoUrl: "/hero/tools/simple/center.mp4",
     posterUrl: "/hero/tools/simple/center.webp",
     title: {
@@ -140,8 +140,8 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
     },
     description: {
       en: "Stitch multiple clips together, add AI voiceover or music, and export a polished reel—no timeline needed.",
-      "zh-Hant": "將多條短片自動順暢接駁，配上 AI 旁白或背景音樂並自動壓低背景音，唔使手動剪時間軸。",
-      "zh-Hans": "将多条短片自动流畅拼接，配上 AI 旁白或背景音乐并自动避让人声，无需手动剪时间轴。",
+      "zh-Hant": "將多條短片自動順暢接駁，配上 AI 旁白或背景音樂並自動壓低背景音，全程零手動剪接。",
+      "zh-Hans": "将多条短片自动流畅拼接，配上 AI 旁白或背景音乐并自动避让人声，全程零手动剪辑。",
     },
     steps: {
       en: ["Add Clips", "Auto Merge", "Voice & Music Mix"],
@@ -156,7 +156,7 @@ export const CANVAS_PUBLIC_TEMPLATES: readonly CanvasPublicTemplateCard[] = [
   },
   {
     id: "text-image-video",
-    badge: "Image → Video",
+    badge: { en: "Image → Video", "zh-Hant": "文生圖 → 影片", "zh-Hans": "文生图 → 视频" },
     videoUrl: "/hero/tools/simple/center.mp4",
     posterUrl: "/hero/tools/simple/left.webp",
     title: {

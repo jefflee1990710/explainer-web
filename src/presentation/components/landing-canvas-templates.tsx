@@ -18,14 +18,14 @@ export function LandingCanvasTemplates({ signedIn = false }: { signedIn?: boolea
       ? {
           eyebrow: "一鍵套用 · 6 款即用範本",
           title: "從空白開始太慢？揀一張範本，換上你嘅文字或影片即刻跑。",
-          subtitle: "所有節點已經預先駁好線，一打開 Canvas 就可以直接按 Run Flow 出片。",
+          subtitle: "所有流程已經預先駁好，一打開 Canvas 就可以直接按 Run Flow 出片。",
           cta: "打開 Canvas 範本",
         }
       : lang === "zh-Hans"
         ? {
             eyebrow: "一键套用 · 6 款即用模板",
             title: "从空白开始太慢？挑一张模板，换上你的文字或视频马上跑。",
-            subtitle: "所有节点都已预先连好线，一打开 Canvas 就能直接按 Run Flow 出片。",
+            subtitle: "所有流程都已预先搭好，一打开 Canvas 就能直接按 Run Flow 出片。",
             cta: "打开 Canvas 模板",
           }
         : {
@@ -59,7 +59,7 @@ export function LandingCanvasTemplates({ signedIn = false }: { signedIn?: boolea
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="rounded-full bg-[#f4fcd4] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#12141c]">
-                      {tpl.badge}
+                      {tpl.badge[lang]}
                     </span>
                   </div>
 
