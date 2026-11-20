@@ -105,6 +105,17 @@ function createHarness(options: {
       }
       return found;
     },
+    findCompletedJobOutputs: async (canvasId, clerkUserId, nodeIds) => {
+      const wanted = new Set(nodeIds);
+      return [...jobs.values()].filter(
+        (job) =>
+          job.canvasId.equals(canvasId) &&
+          job.clerkUserId === clerkUserId &&
+          wanted.has(job.nodeId) &&
+          job.status === "completed" &&
+          Boolean(job.outputUrl?.trim()),
+      );
+    },
     claimCanvasJobRefund: async (jobId, clerkUserId, refundedAt) => {
       const existing = jobs.get(jobId.toHexString());
       if (!existing || existing.clerkUserId !== clerkUserId || existing.refundedAt) {
@@ -626,5 +637,79 @@ describe("canvas executor", () => {
     }
     assert.equal(harness.consumeCalls.length, 0);
     assert.equal(harness.wallet.creditUsd, 5.0);
+  });
+
+  it("runs a downstream video from a completed upstream job when the node outputUrl was wiped", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 5,
+      nodes: [
+        {
+          id: "img",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "mentalok:flux-2-klein-4b", status: "idle" },
+        },
+        {
+          id: "vid",
+          type: "model",
+          position: { x: 280, y: 0 },
+          data: {
+            modelId: "mentalok:wan-2-2",
+            prompt: "Slow cinematic dolly-in",
+            presetId: "wan22-portrait",
+          },
+        },
+      ],
+      edges: [
+        {
+          id: "e-img-vid",
+          source: "img",
+          sourceHandle: "output",
+          target: "vid",
+          targetHandle: "startImage",
+        },
+      ],
+    });
+    const finishedAt = new Date("2026-11-20T00:00:30.000Z");
+    harness.jobs.set("job-img", {
+      _id: new ObjectId(),
+      clerkUserId: "user_1",
+      canvasId: harness.project._id,
+      nodeId: "img",
+      provider: "mentalok",
+      modelId: "mentalok:flux-2-klein-4b",
+      providerModelId: "flux-2-klein-4b",
+      status: "completed",
+      inputSnapshot: {},
+      chargedUsd: 0.005,
+      outputUrl: "https://blob.example/flux.png",
+      outputKind: "image",
+      createdAt: new Date("2026-11-20T00:00:00.000Z"),
+      updatedAt: finishedAt,
+    });
+
+    const result = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "vid",
+      },
+      harness.deps,
+    );
+
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(
+      harness.mentalokPayloads[0]?.imageUrl,
+      "https://blob.example/flux.png",
+    );
+    assert.equal(
+      harness.project.nodes.find((node) => node.id === "img")?.data.outputUrl,
+      "https://blob.example/flux.png",
+    );
+    assert.equal(
+      harness.project.nodes.find((node) => node.id === "img")?.data.status,
+      "completed",
+    );
   });
 });

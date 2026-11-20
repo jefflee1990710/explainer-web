@@ -13,7 +13,6 @@ import {
   Loader2,
   Maximize2,
   Play,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
@@ -25,6 +24,8 @@ import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
 } from "@/app/app/canvas/nodes/port-colors";
+import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
+import "@/app/app/canvas/nodes/model-node-running.css";
 
 const ASPECT_OPTIONS = ["16:9", "9:16", "1:1", "3:4"] as const;
 const RESOLUTION_OPTIONS = ["1k", "2k", "4k"] as const;
@@ -132,7 +133,7 @@ export function ModelNodeCard({
     <div
       className={`relative w-[312px] rounded-[16px] border bg-[#12161f]/95 shadow-[0_18px_42px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all ${
         isBusy
-          ? "border-[#c6f24b]/80 ring-2 ring-[#c6f24b]/25"
+          ? "canvas-model-running border-2"
           : selected
             ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/20"
             : "border-[#252c3b] hover:border-[#3a455c]"
@@ -142,21 +143,15 @@ export function ModelNodeCard({
       <div className="flex items-start justify-between gap-2 border-b border-white/7 px-3.5 py-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#c6f24b]" />
+            <CanvasModelLogo
+              providerModelId={spec.providerModelId}
+              className="h-4 w-4"
+            />
             <span className="truncate text-[12.5px] font-bold text-white">
               {spec.name}
             </span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
-            <span
-              className={`rounded-full px-1.5 py-0.5 font-semibold ${
-                spec.provider === "mentalok"
-                  ? "bg-sky-500/15 text-sky-300"
-                  : "bg-violet-500/15 text-violet-300"
-              }`}
-            >
-              {spec.provider === "mentalok" ? "Mentalok" : "OpenRouter"}
-            </span>
             <span className="rounded-full bg-white/7 px-1.5 py-0.5 text-white/70">
               {categoryLabel}
             </span>

@@ -22,6 +22,7 @@ import {
   canvasViewportSchema,
 } from "@/model/canvas";
 import type { Character } from "@/model/character";
+import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 
 export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
@@ -239,6 +240,8 @@ export async function saveCanvasProject(
     return null;
   }
 
+  const projects = await canvasProjectsCollection();
+  const canvasObjectId = new ObjectId(canvasId);
   const setFields: Partial<CanvasProject> = {
     updatedAt: new Date(),
   };
@@ -247,7 +250,16 @@ export async function saveCanvasProject(
     setFields.title = normalizeCanvasTitle(patch.title);
   }
   if (patch.nodes !== undefined) {
-    setFields.nodes = nodesArraySchema.parse(patch.nodes);
+    const parsedNodes = nodesArraySchema.parse(patch.nodes);
+    // A flow wave can save the graph before the completed output is painted.
+    // Keep the stored URL so the downstream node can still read it.
+    const existing = await projects.findOne(
+      { _id: canvasObjectId, clerkUserId },
+      { projection: { nodes: 1 } },
+    );
+    setFields.nodes = existing
+      ? mergeCanvasNodeSnapshots(existing.nodes, parsedNodes)
+      : parsedNodes;
   }
   if (patch.edges !== undefined) {
     setFields.edges = edgesArraySchema.parse(patch.edges);
@@ -259,9 +271,8 @@ export async function saveCanvasProject(
     setFields.thumbnailUrl = patch.thumbnailUrl.trim();
   }
 
-  const projects = await canvasProjectsCollection();
   return projects.findOneAndUpdate(
-    { _id: new ObjectId(canvasId), clerkUserId },
+    { _id: canvasObjectId, clerkUserId },
     { $set: setFields },
     { returnDocument: "after" },
   );

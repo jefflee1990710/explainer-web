@@ -19,7 +19,11 @@ import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
-import { type ResolvedCanvasInputs, resolveNodeInputs } from "@/service/canvas/graph";
+import {
+  type ResolvedCanvasInputs,
+  applyCompletedJobOutputs,
+  resolveNodeInputs,
+} from "@/service/canvas/graph";
 import {
   type CanvasModelSpec,
   findCanvasModel,
@@ -74,6 +78,12 @@ export type CanvasExecutorDeps = {
     canvasId: ObjectId,
     clerkUserId: string,
     jobIds: ObjectId[],
+  ) => Promise<CanvasJob[]>;
+  // Newest completed outputs for model nodes whose canvas document lost outputUrl.
+  findCompletedJobOutputs: (
+    canvasId: ObjectId,
+    clerkUserId: string,
+    nodeIds: string[],
   ) => Promise<CanvasJob[]>;
   claimCanvasJobRefund: (
     jobId: ObjectId,
@@ -230,6 +240,20 @@ function createDefaultDeps(): CanvasExecutorDeps {
       const jobs = await canvasJobsCollection();
       return jobs
         .find({ _id: { $in: jobIds }, canvasId, clerkUserId })
+        .toArray();
+    },
+    findCompletedJobOutputs: async (canvasId, clerkUserId, nodeIds) => {
+      if (nodeIds.length === 0) return [];
+      const jobs = await canvasJobsCollection();
+      return jobs
+        .find({
+          canvasId,
+          clerkUserId,
+          nodeId: { $in: nodeIds },
+          status: "completed",
+          outputUrl: { $exists: true, $ne: "" },
+        })
+        .sort({ updatedAt: -1 })
         .toArray();
     },
     claimCanvasJobRefund: async (jobId, clerkUserId, refundedAt) => {
@@ -427,6 +451,43 @@ export async function refundCanvasJobOnce(
   };
 }
 
+// Restores outputUrl from the newest completed job when a stale graph save wiped it.
+async function hydrateMissingModelOutputs(
+  project: CanvasProject,
+  deps: CanvasExecutorDeps,
+): Promise<CanvasNode[]> {
+  const missingNodeIds = project.nodes
+    .filter((item) => item.type === "model" && !item.data.outputUrl?.trim())
+    .map((item) => item.id);
+  if (missingNodeIds.length === 0) return project.nodes;
+
+  const jobs = await deps.findCompletedJobOutputs(
+    project._id,
+    project.clerkUserId,
+    missingNodeIds,
+  );
+  const hydrated = applyCompletedJobOutputs(project.nodes, jobs);
+  const now = deps.now();
+  for (const item of hydrated) {
+    if (item.type !== "model" || !item.data.outputUrl) continue;
+    const previous = project.nodes.find((node) => node.id === item.id);
+    if (!previous || previous.data.outputUrl?.trim()) continue;
+    await deps.updateCanvasNodeState({
+      canvasId: project._id,
+      clerkUserId: project.clerkUserId,
+      nodeId: item.id,
+      patch: {
+        outputUrl: item.data.outputUrl,
+        ...(item.data.outputKind ? { outputKind: item.data.outputKind } : {}),
+        status: "completed",
+        lastError: undefined,
+      },
+      updatedAt: now,
+    });
+  }
+  return hydrated;
+}
+
 // Validates a model node, pre-charges authoritative USD credit, creates a `canvas_jobs`
 // record, dispatches to OpenRouter or Mentalok, and auto-refunds on any submit error.
 export async function submitCanvasNodeJob(
@@ -490,9 +551,10 @@ export async function submitCanvasNodeJob(
     };
   }
 
+  const projectNodes = await hydrateMissingModelOutputs(project, resolved);
   const inputCheck = resolveNodeInputs(
     node.id,
-    project.nodes,
+    projectNodes,
     project.edges,
     catalog,
   );

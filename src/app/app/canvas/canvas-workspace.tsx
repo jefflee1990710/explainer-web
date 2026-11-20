@@ -27,7 +27,9 @@ import type {
   CanvasEdge,
   CanvasNode,
   CanvasNodeData,
+  CanvasNodeStatus,
   CanvasNodeType,
+  CanvasOutputKind,
   CanvasViewport,
 } from "@/model/canvas";
 import {
@@ -90,6 +92,39 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 const JOB_POLL_INTERVAL_MS = 3_000;
 
 type FlowNode = Node<CanvasNodeData, CanvasNodeType>;
+
+// Job results remembered before React paints, so the next flow wave can save them.
+type RememberedJobOutput = {
+  status: CanvasNodeStatus;
+  lastJobId: string;
+  lastCostUsd?: number;
+  outputUrl?: string;
+  outputKind?: CanvasOutputKind;
+  lastError?: string;
+};
+
+function withRememberedJobOutputs(
+  nodes: readonly FlowNode[],
+  remembered: ReadonlyMap<string, RememberedJobOutput>,
+): FlowNode[] {
+  if (remembered.size === 0) return [...nodes];
+  return nodes.map((node) => {
+    const job = remembered.get(node.id);
+    if (!job) return node;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        status: job.status,
+        lastJobId: job.lastJobId,
+        ...(job.lastCostUsd !== undefined ? { lastCostUsd: job.lastCostUsd } : {}),
+        ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
+        ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+        lastError: job.status === "failed" ? job.lastError : undefined,
+      },
+    };
+  });
+}
 
 function toFlowNodes(nodes: readonly CanvasNode[]): FlowNode[] {
   return nodes.map((n) => ({
@@ -209,6 +244,7 @@ function CanvasWorkspaceInner({
   // Refs hold latest graph state so async Run Flow waves and autosave never read stale closures.
   const nodesRef = useRef<FlowNode[]>(nodes);
   const edgesRef = useRef<Edge[]>(edges);
+  const jobOutputRef = useRef(new Map<string, RememberedJobOutput>());
   const viewportRef = useRef<CanvasViewport>(initialProject.viewport);
   const activeProjectIdRef = useRef(activeProjectId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -247,7 +283,9 @@ function CanvasWorkspaceInner({
     }
     setSaveStatus("saving");
     try {
-      const currentNodes = toDomainNodes(nodesRef.current);
+      const currentNodes = toDomainNodes(
+        withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
+      );
       const currentEdges = toDomainEdges(edgesRef.current);
       const res = await saveCanvasProjectAction(activeProjectIdRef.current, {
         nodes: currentNodes,
@@ -530,23 +568,22 @@ function CanvasWorkspaceInner({
         byNodeId.set(job.nodeId, job);
       }
 
+      for (const job of jobs) {
+        const previous = jobOutputRef.current.get(job.nodeId);
+        const outputUrl = job.outputUrl ?? previous?.outputUrl;
+        const outputKind = job.outputKind ?? previous?.outputKind;
+        jobOutputRef.current.set(job.nodeId, {
+          status: job.status,
+          lastJobId: job.id,
+          lastCostUsd: job.chargedUsd,
+          ...(outputUrl ? { outputUrl } : {}),
+          ...(outputKind ? { outputKind } : {}),
+          ...(job.status === "failed" && job.error ? { lastError: job.error } : {}),
+        });
+      }
+
       setNodes((prev) =>
-        prev.map((n) => {
-          const job = byNodeId.get(n.id);
-          if (!job) return n;
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              status: job.status,
-              lastJobId: job.id,
-              lastCostUsd: job.chargedUsd,
-              ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
-              ...(job.outputKind ? { outputKind: job.outputKind } : {}),
-              lastError: job.status === "failed" ? job.error : undefined,
-            },
-          };
-        }),
+        withRememberedJobOutputs(prev, jobOutputRef.current),
       );
 
       // Update animated edge state for running targets.
@@ -619,7 +656,9 @@ function CanvasWorkspaceInner({
         const res = await runCanvasNodeAction({
           canvasId: activeProjectIdRef.current,
           nodeId,
-          nodes: toDomainNodes(nodesRef.current),
+          nodes: toDomainNodes(
+            withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
+          ),
           edges: toDomainEdges(edgesRef.current),
           viewport: viewportRef.current,
         });
@@ -676,7 +715,9 @@ function CanvasWorkspaceInner({
 
   // Multi-wave topological Run Flow orchestrator.
   const handleRunFlow = useCallback(async () => {
-    const currentNodes = toDomainNodes(nodesRef.current);
+    const currentNodes = toDomainNodes(
+      withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
+    );
     const currentEdges = toDomainEdges(edgesRef.current);
 
     let waves: string[][];
@@ -692,6 +733,7 @@ function CanvasWorkspaceInner({
     setIsFlowRunning(true);
     const flowRunId = `flow-${crypto.randomUUID().slice(0, 8)}`;
     const failedNodes = new Set<string>();
+    let startedCount = 0;
 
     try {
       for (let waveIndex = 0; waveIndex < waves.length; waveIndex++) {
@@ -708,10 +750,17 @@ function CanvasWorkspaceInner({
             failedNodes.add(nodeId);
             return false;
           }
+          const node = nodesRef.current.find((item) => item.id === nodeId);
+          const remembered = jobOutputRef.current.get(nodeId);
+          const status = remembered?.status ?? node?.data.status;
+          const outputUrl = remembered?.outputUrl ?? node?.data.outputUrl;
+          // Upstream already finished. Run only the nodes that still need a result.
+          if (status === "completed" && outputUrl?.trim()) return false;
           return true;
         });
 
         if (runnableIds.length === 0) continue;
+        startedCount += runnableIds.length;
 
         // Mark wave nodes queued visually.
         setNodes((prev) =>
@@ -784,7 +833,13 @@ function CanvasWorkspaceInner({
         }
       }
 
-      if (!flowAbortRef.current) {
+      if (!flowAbortRef.current && startedCount === 0) {
+        toast.info(
+          isZh
+            ? "上游都已完成，沒有待執行的節點"
+            : "Every upstream node is already done",
+        );
+      } else if (!flowAbortRef.current) {
         toast.success(
           failedNodes.size === 0
             ? isZh
@@ -1068,8 +1123,8 @@ function CanvasWorkspaceInner({
                 </h2>
                 <p className="mt-1.5 text-xs leading-relaxed text-white/60">
                   {isZh
-                    ? "把電腦上的圖片／影片直接拖到畫布、從左側點擊或拖入 Mentalok / OpenRouter 模型，連線後即可單節點或一鍵 Run Flow 生成。"
-                    : "Drop local images/videos onto the canvas, click or drag any Mentalok or OpenRouter model from the left panel, wire ports together, and click Run."}
+                    ? "把電腦上的圖片／影片直接拖到畫布、從左側點擊或拖入模型，連線後即可單節點或一鍵 Run Flow 生成。"
+                    : "Drop local images/videos onto the canvas, click or drag a model from the left panel, wire ports together, and click Run."}
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   <button

@@ -26,6 +26,7 @@ import type {
   CanvasLibraryAssetsResult,
 } from "@/service/canvas/projects";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
+import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
 
 export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
@@ -129,7 +130,7 @@ export function CanvasSidebar({
                 type="button"
                 onClick={onRefreshModels}
                 disabled={isRefreshingModels}
-                title={isZh ? "重新同步 Mentalok 即時狀態與定價" : "Refresh live prices"}
+                title={isZh ? "重新同步模型狀態與定價" : "Refresh live prices"}
                 className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/65 transition hover:border-white/20 hover:text-white disabled:opacity-50"
               >
                 <RefreshCw
@@ -186,9 +187,15 @@ export function CanvasSidebar({
                   onClick={() => onAddModel(spec.id)}
                   className="group cursor-grab rounded-[12px] border border-white/8 bg-[#131823]/90 p-2.5 transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-bold text-white/95">
-                      {spec.name}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <CanvasModelLogo
+                        providerModelId={spec.providerModelId}
+                        className="h-4 w-4"
+                      />
+                      <span className="truncate text-xs font-bold text-white/95">
+                        {spec.name}
+                      </span>
                     </span>
                     <span className="shrink-0 rounded-full bg-[#c6f24b]/12 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[#c6f24b]">
                       {formatUsd(price)}
@@ -196,15 +203,6 @@ export function CanvasSidebar({
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-1.5 text-[10px]">
                     <div className="flex items-center gap-1">
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 font-semibold ${
-                          spec.provider === "mentalok"
-                            ? "bg-sky-500/15 text-sky-300"
-                            : "bg-violet-500/15 text-violet-300"
-                        }`}
-                      >
-                        {spec.provider === "mentalok" ? "Mentalok" : "OpenRouter"}
-                      </span>
                       <span className="rounded-full bg-white/6 px-1.5 py-0.5 text-white/60">
                         {catText}
                       </span>
@@ -342,16 +340,18 @@ function AssetSection({
               className="group relative cursor-grab overflow-hidden rounded-[10px] border border-white/8 bg-[#131823] transition hover:border-[#c6f24b]/60 active:cursor-grabbing"
             >
               {asset.mediaKind === "video" ? (
-                <div className="relative grid h-20 w-full place-items-center bg-black/50 text-violet-300">
+                <div className="relative grid aspect-[4/5] w-full place-items-center bg-black/50 text-violet-300">
                   <Film className="h-5 w-5" />
                 </div>
               ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={asset.thumbnailUrl || asset.url}
-                  alt={asset.name}
-                  className="h-20 w-full object-cover transition duration-200 group-hover:scale-105"
-                />
+                <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#10141c]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={asset.thumbnailUrl || asset.url}
+                    alt={asset.name}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
               )}
               <div className="truncate bg-[#0c0f16]/90 px-1.5 py-1 text-[10px] font-medium text-white/80">
                 {asset.name}

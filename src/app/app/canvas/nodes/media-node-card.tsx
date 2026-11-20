@@ -94,7 +94,7 @@ export function MediaNodeCard({
               <img
                 src={data.mediaUrl}
                 alt={fileName}
-                className="max-h-[180px] w-full object-cover"
+                className="max-h-[180px] w-full object-contain"
               />
               <button
                 type="button"

@@ -1,7 +1,11 @@
 // Pure, side-effect-free graph validation, input resolution, and Kahn topological
 // wave planning for the Interactive Node Canvas Editor (/app/canvas).
 
-import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasOutputKind,
+} from "@/model/canvas";
 import {
   type CanvasModelSpec,
   type CanvasPortType,
@@ -373,6 +377,79 @@ export function resolveNodeInputs(
     inputs,
     promptFromNode,
   };
+}
+
+export type CompletedCanvasOutput = {
+  nodeId: string;
+  outputUrl?: string;
+  outputKind?: CanvasOutputKind;
+  updatedAt: Date;
+};
+
+// Keeps a finished model output when a stale client snapshot is saved before
+// React has painted the completed job back onto the node.
+export function mergeCanvasNodeSnapshots(
+  existing: readonly CanvasNode[],
+  incoming: readonly CanvasNode[],
+): CanvasNode[] {
+  const previousById = new Map(existing.map((node) => [node.id, node]));
+  return incoming.map((node) => {
+    const previous = previousById.get(node.id);
+    if (!previous || previous.type !== "model" || node.type !== "model") {
+      return node;
+    }
+    const previousUrl = previous.data.outputUrl?.trim();
+    const incomingUrl = node.data.outputUrl?.trim();
+    if (!previousUrl || incomingUrl) return node;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        outputUrl: previousUrl,
+        ...(previous.data.outputKind && !node.data.outputKind
+          ? { outputKind: previous.data.outputKind }
+          : {}),
+      },
+    };
+  });
+}
+
+// Fills model nodes whose outputUrl was wiped, using the newest completed job.
+export function applyCompletedJobOutputs(
+  nodes: readonly CanvasNode[],
+  jobs: readonly CompletedCanvasOutput[],
+): CanvasNode[] {
+  const latestByNodeId = new Map<string, CompletedCanvasOutput>();
+  for (const job of jobs) {
+    const url = job.outputUrl?.trim();
+    if (!url) continue;
+    const previous = latestByNodeId.get(job.nodeId);
+    if (
+      !previous ||
+      job.updatedAt.getTime() >= previous.updatedAt.getTime()
+    ) {
+      latestByNodeId.set(job.nodeId, { ...job, outputUrl: url });
+    }
+  }
+
+  let changed = false;
+  const next = nodes.map((node) => {
+    if (node.type !== "model" || node.data.outputUrl?.trim()) return node;
+    const job = latestByNodeId.get(node.id);
+    if (!job?.outputUrl) return node;
+    changed = true;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        outputUrl: job.outputUrl,
+        ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+        status: "completed",
+        lastError: undefined,
+      },
+    };
+  });
+  return changed ? next : nodes;
 }
 
 // Plans parallel execution waves across model nodes using Kahn's topological sort.

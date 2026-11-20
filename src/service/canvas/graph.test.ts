@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import {
+  applyCompletedJobOutputs,
   computeExecutionWaves,
   getNodeOutputPortType,
+  mergeCanvasNodeSnapshots,
   resolveNodeInputs,
   validateEdgeConnection,
 } from "@/service/canvas/graph";
@@ -493,5 +495,67 @@ describe("canvas graph — computeExecutionWaves", () => {
     ];
 
     assert.throws(() => computeExecutionWaves(nodes, edges), /cycle/i);
+  });
+});
+
+describe("canvas graph — completed output recovery", () => {
+  it("keeps a stored outputUrl when a stale save omits it", () => {
+    const existing = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "completed",
+        outputUrl: "https://blob.example/flux.png",
+        outputKind: "image",
+      }),
+    ];
+    const incoming = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "idle",
+        prompt: "A perfume bottle",
+      }),
+    ];
+
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.outputUrl, "https://blob.example/flux.png");
+    assert.equal(merged[0]?.data.outputKind, "image");
+    assert.equal(merged[0]?.data.prompt, "A perfume bottle");
+  });
+
+  it("prefers a newer incoming outputUrl over the stored one", () => {
+    const existing = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        outputUrl: "https://blob.example/old.png",
+      }),
+    ];
+    const incoming = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        outputUrl: "https://blob.example/new.png",
+      }),
+    ];
+
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.outputUrl, "https://blob.example/new.png");
+  });
+
+  it("restores the newest completed job output onto a model node", () => {
+    const nodes = [
+      modelNode("img", "mentalok:flux-2-klein-4b", { status: "idle" }),
+    ];
+    const restored = applyCompletedJobOutputs(nodes, [
+      {
+        nodeId: "img",
+        outputUrl: "https://blob.example/old.png",
+        outputKind: "image",
+        updatedAt: new Date("2026-11-20T00:00:00.000Z"),
+      },
+      {
+        nodeId: "img",
+        outputUrl: "https://blob.example/new.png",
+        outputKind: "image",
+        updatedAt: new Date("2026-11-20T00:02:00.000Z"),
+      },
+    ]);
+
+    assert.equal(restored[0]?.data.outputUrl, "https://blob.example/new.png");
+    assert.equal(restored[0]?.data.status, "completed");
   });
 });

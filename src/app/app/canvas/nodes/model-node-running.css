@@ -1,0 +1,33 @@
+/* Traveling lime ring around a model card while it is queued or running. */
+@property --canvas-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes canvas-model-border-spin {
+  to {
+    --canvas-border-angle: 360deg;
+  }
+}
+
+.canvas-model-running {
+  border-width: 3px !important;
+  border-style: solid !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+  background-image:
+    linear-gradient(rgba(18, 22, 31, 0.97), rgba(18, 22, 31, 0.97)),
+    conic-gradient(
+      from var(--canvas-border-angle),
+      rgba(198, 242, 75, 0.12) 0deg,
+      rgba(198, 242, 75, 0.12) 255deg,
+      #f7ffd0 305deg,
+      #c6f24b 332deg,
+      rgba(198, 242, 75, 0.12) 360deg
+    ) !important;
+  background-origin: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+  box-shadow: 0 0 18px rgba(198, 242, 75, 0.32) !important;
+  animation: canvas-model-border-spin 1.15s linear infinite;
+}
