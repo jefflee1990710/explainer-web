@@ -6,24 +6,30 @@ import {
   findCanvasModel,
   getCanvasModelCatalog,
 } from "@/service/canvas/model-catalog";
+import {
+  OPENROUTER_ACCOUNT_IMAGE_MODELS,
+  OPENROUTER_ACCOUNT_VIDEO_MODELS,
+} from "@/service/openrouter/account-media-models";
 
 describe("canvas model catalog", () => {
   beforeEach(() => {
     clearMentalokCatalogCache();
   });
 
-  it("contains 16 Mentalok, 10 OpenRouter, 7 Scro, and 5 FFmpeg models with unique IDs", () => {
-    assert.equal(STATIC_CANVAS_MODELS.length, 38);
+  it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
+    const openRouterCount =
+      OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 5);
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
-    assert.equal(ids.size, 38);
+    assert.equal(ids.size, STATIC_CANVAS_MODELS.length);
 
     const mentalok = STATIC_CANVAS_MODELS.filter((m) => m.provider === "mentalok");
     const openrouter = STATIC_CANVAS_MODELS.filter((m) => m.provider === "openrouter");
     const scro = STATIC_CANVAS_MODELS.filter((m) => m.provider === "scro");
     const ffmpeg = STATIC_CANVAS_MODELS.filter((m) => m.provider === "ffmpeg");
     assert.equal(mentalok.length, 16);
-    assert.equal(openrouter.length, 10);
+    assert.equal(openrouter.length, openRouterCount);
     assert.equal(scro.length, 7);
     assert.equal(ffmpeg.length, 5);
 
@@ -218,7 +224,7 @@ describe("canvas model catalog", () => {
       { slug: "bytedance-seed/seedream-5-0-pro", category: "image", output: "image", refMax: 14 },
       { slug: "bytedance-seed/seedream-5-0-lite", category: "image", output: "image", refMax: 14 },
       { slug: "google/gemini-nano-banana-2.1", category: "image", output: "image", refMax: 14 },
-      { slug: "openai/gpt-5-image", category: "image", output: "image", refMax: 4 },
+      { slug: "bytedance-seed/seedream-5-5", category: "image", output: "image", refMax: 10 },
       { slug: "minimax/hailuo-3", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0-fast", category: "video", output: "video", refMax: 4 },
@@ -240,6 +246,10 @@ describe("canvas model catalog", () => {
         assert.equal(refPort.maxConnections, exp.refMax);
       }
     }
+
+    assert.equal(findCanvasModel("openrouter:openai/gpt-5-image"), undefined);
+    assert.equal(findCanvasModel("openrouter:openai/gpt-5-image-mini"), undefined);
+    assert.equal(findCanvasModel("openrouter:google/veo-3.1")?.category, "video");
 
     const avatar = findCanvasModel("openrouter:heygen/avatar-iv");
     assert.equal(avatar?.inputs.find((p) => p.id === "startImage")?.required, true);
@@ -323,7 +333,7 @@ describe("canvas model catalog", () => {
       },
     });
     assert.equal(called, false);
-    assert.equal(withoutKey.length, 38);
+    assert.equal(withoutKey.length, STATIC_CANVAS_MODELS.length);
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.runtimeStatus, "unavailable");
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.available, false);
     assert.equal(findCanvasModel("openrouter:minimax/hailuo-3", withoutKey)?.available, true);
@@ -334,7 +344,7 @@ describe("canvas model catalog", () => {
         throw new Error("network unreachable");
       },
     });
-    assert.equal(afterError.length, 38);
+    assert.equal(afterError.length, STATIC_CANVAS_MODELS.length);
     assert.equal(findCanvasModel("mentalok:flux-schnell", afterError)?.basePriceUsd, 0.0012);
   });
 

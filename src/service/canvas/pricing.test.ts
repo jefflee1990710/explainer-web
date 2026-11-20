@@ -41,7 +41,7 @@ describe("canvas USD pricing", () => {
   it("prices OpenRouter image models at flat $0.15", () => {
     const seedream = findCanvasModel("openrouter:bytedance-seed/seedream-5-0-pro");
     const nanoBanana = findCanvasModel("openrouter:google/gemini-nano-banana-2.1");
-    const gptImage = findCanvasModel("openrouter:openai/gpt-5-image");
+    const gptImage = findCanvasModel("openrouter:openai/gpt-image-2");
     assert.ok(seedream && nanoBanana && gptImage);
 
     assert.equal(estimateCanvasModelCostUsd(seedream), 0.15);

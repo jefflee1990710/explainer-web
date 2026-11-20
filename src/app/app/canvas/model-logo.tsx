@@ -15,7 +15,7 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /qwen/, asset: { src: "/canvas/model-logos/qwen.svg", alt: "Qwen" } },
   { match: /wan/, asset: { src: "/canvas/model-logos/alibaba.svg", alt: "Alibaba" } },
   { match: /ltx/, asset: { src: "/canvas/model-logos/ltx.png", alt: "LTX" } },
-  { match: /sam/, asset: { src: "/canvas/model-logos/meta.svg", alt: "Meta" } },
+  { match: /sam|muse|^meta\//, asset: { src: "/canvas/model-logos/meta.svg", alt: "Meta" } },
   {
     match: /seedvr|seedream|seedance|bytedance/,
     asset: { src: "/canvas/model-logos/seed.png", alt: "ByteDance Seed" },
@@ -28,6 +28,18 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /openai|gpt-5/, asset: { src: "/canvas/model-logos/openai.svg", alt: "OpenAI" } },
   { match: /heygen/, asset: { src: "/canvas/model-logos/heygen-icon.png", alt: "HeyGen" } },
   { match: /alibaba/, asset: { src: "/canvas/model-logos/alibaba.svg", alt: "Alibaba" } },
+  { match: /elevenlabs|^tts$/, asset: { src: "/canvas/model-logos/tts.png", alt: "Text to speech" } },
+  { match: /^talking-head$/, asset: { src: "/canvas/model-logos/talking-head.png", alt: "Talking head" } },
+  { match: /^explainer$/, asset: { src: "/canvas/model-logos/explainer.png", alt: "Explainer" } },
+  { match: /^swap$/, asset: { src: "/canvas/model-logos/swap.png", alt: "Character swap" } },
+  { match: /^teleport$/, asset: { src: "/canvas/model-logos/teleport.png", alt: "Scene teleport" } },
+  { match: /^life$/, asset: { src: "/canvas/model-logos/life.png", alt: "Life photos" } },
+  { match: /^poster$/, asset: { src: "/canvas/model-logos/poster.png", alt: "Poster" } },
+  { match: /^concat$/, asset: { src: "/canvas/model-logos/concat.png", alt: "Merge clips" } },
+  { match: /^audio-mux$/, asset: { src: "/canvas/model-logos/audio-mux.png", alt: "Audio mix" } },
+  { match: /^trim-speed$/, asset: { src: "/canvas/model-logos/trim.png", alt: "Trim and speed" } },
+  { match: /^transform$/, asset: { src: "/canvas/model-logos/transform.png", alt: "Color and ratio" } },
+  { match: /^extract-audio$/, asset: { src: "/canvas/model-logos/extract-audio.png", alt: "Extract audio" } },
 ];
 
 // Resolves the downloaded brand mark for a canvas model, or null when none exists.

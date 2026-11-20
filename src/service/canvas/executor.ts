@@ -963,6 +963,7 @@ async function executeDispatchedCanvasJob(
         endImageUrl: inputCheck.inputs.endImage,
         referenceImageUrls: inputCheck.inputs.refImages,
         audioUrl: inputCheck.inputs.refAudio,
+        videoUrl: inputCheck.inputs.video,
       });
 
       if (response.status === "failed" || response.status === "nsfw") {

@@ -3,6 +3,11 @@ import type { AspectRatio, VoLanguage } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
 import { talkingHeadLanguageName } from "@/service/minimax/talking-head-reference";
+import {
+  openRouterAccountVideoAspect,
+  openRouterAccountVideoDuration,
+  openRouterAccountVideoResolution,
+} from "@/service/openrouter/account-media-models";
 import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
@@ -701,6 +706,7 @@ export type OpenRouterCanvasVideoInput = {
   endImageUrl?: string;
   referenceImageUrls?: Array<string | undefined>;
   audioUrl?: string;
+  videoUrl?: string;
   callbackUrl?: string;
 };
 
@@ -713,13 +719,14 @@ export function openRouterCanvasVideoBody(
   const model = input.model;
   const isHeyGenAudioModel =
     model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
-    model === OPENROUTER_HEYGEN_VIDEO_1_MODEL;
+    model === OPENROUTER_HEYGEN_VIDEO_1_MODEL ||
+    /heygen\/.*avatar/i.test(model);
 
   if (isHeyGenAudioModel) {
     const startImageUrl = input.startImageUrl?.trim();
     const audioUrl = input.audioUrl?.trim();
     if (!startImageUrl || !audioUrl) {
-      throw new Error("HeyGen Avatar IV 需要同時連接起始圖與參考音訊");
+      throw new Error("HeyGen 虛擬人需要同時連接起始圖與參考音訊");
     }
     const cleanPrompt = input.prompt?.trim() || "";
     return openRouterHeyGenAudioVideoBody({
@@ -735,12 +742,18 @@ export function openRouterCanvasVideoBody(
   }
 
   const configured = clipVideoResolution();
-  const resolution =
+  const preferredResolution =
     model === OPENROUTER_HAILUO_3_VIDEO_MODEL && configured !== "2K"
       ? "2K"
       : model === OPENROUTER_WAN_3_VIDEO_MODEL
         ? "480p"
         : configured;
+  const resolution =
+    openRouterAccountVideoResolution(model, preferredResolution) ?? preferredResolution;
+  const requestedDuration = input.durationSeconds ?? 5;
+  const duration =
+    openRouterAccountVideoDuration(model, requestedDuration) ??
+    clampVideoDurationSeconds(requestedDuration);
 
   const frameImages: OpenRouterVideoFrameImage[] = [];
   if (input.startImageUrl?.trim()) {
@@ -770,14 +783,25 @@ export function openRouterCanvasVideoBody(
       audio_url: { url: input.audioUrl.trim() },
     });
   }
+  if (input.videoUrl?.trim()) {
+    refs.push({
+      type: "video_url",
+      video_url: { url: input.videoUrl.trim() },
+    });
+  }
 
   return {
     model,
     prompt: capOpenRouterVideoPrompt((input.prompt || "").trim()),
-    aspect_ratio: input.aspectRatio,
-    duration: clampVideoDurationSeconds(input.durationSeconds ?? 5),
+    aspect_ratio: openRouterAccountVideoAspect(model, input.aspectRatio) ?? input.aspectRatio,
+    duration,
     resolution,
-    generate_audio: true,
+    // Models whose snapshot sets generate_audio to false reject the flag.
+    ...(/^(tbc\/mischief-1|black-forest-labs\/flux-video-(?:edit|upscale)|minimax\/hailuo-(?:3-max|2\.3)|runway\/(?:aleph-2|gen-4\.5))$/.test(
+      model,
+    )
+      ? {}
+      : { generate_audio: true as const }),
     ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
     ...(frameImages.length > 0 ? { frame_images: frameImages } : {}),
     ...(refs.length > 0 ? { input_references: refs } : {}),

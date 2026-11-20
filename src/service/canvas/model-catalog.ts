@@ -1,5 +1,6 @@
-// Canonical 26-model catalog for the Interactive Node Canvas Editor (/app/canvas):
-// 16 commercial-safe Mentalok AI Studio models + 10 curated OpenRouter production models.
+// Canonical catalog for the Interactive Node Canvas Editor (/app/canvas):
+// 16 Mentalok models, every OpenRouter image and video model on this account
+// except GPT-5 Image, plus Scro tools and FFmpeg nodes.
 
 import { IMAGE_COST_USD, talkingHeadVideoCostUsd, videoCostUsd } from "@/service/credit-costs";
 import {
@@ -11,17 +12,10 @@ import {
   mentalokBaseUrl,
 } from "@/service/mentalok/client";
 import {
-  OPENROUTER_GPT_5_IMAGE_MODEL,
-  OPENROUTER_HAILUO_3_VIDEO_MODEL,
-  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-  OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL,
-  OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL,
-  OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL,
-  OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
-  OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL,
-  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
-  OPENROUTER_WAN_3_VIDEO_MODEL,
-} from "@/service/openrouter/generate";
+  OPENROUTER_ACCOUNT_IMAGE_MODELS,
+  OPENROUTER_ACCOUNT_VIDEO_MODELS,
+} from "@/service/openrouter/account-media-models";
+import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export type CanvasPortType = "image" | "video" | "audio" | "text";
 
@@ -130,13 +124,13 @@ function endImagePort(required = false): CanvasPortSpec {
   };
 }
 
-function refImagesPort(maxConnections: number): CanvasPortSpec {
+function refImagesPort(maxConnections: number, required = false): CanvasPortSpec {
   return {
     id: "refImages",
     label: "參考圖 Ref Images",
     labels: { "zh-Hant": "參考圖", en: "Ref Images" },
     type: "image",
-    required: false,
+    required,
     multiple: true,
     maxConnections,
   };
@@ -423,170 +417,121 @@ const MENTALOK_STATIC_MODELS: CanvasModelSpec[] = [
   },
 ];
 
-// 10 curated OpenRouter production image & video models (Section 3.2).
-const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = [
-  {
-    id: `openrouter:${OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
-    name: "Seedream 5.0 Pro",
-    category: "image",
-    inputs: [promptPort(true), refImagesPort(14)],
-    output: imageOutput(),
-    presets: ["16:9", "9:16", "1:1", "4:3", "3:4"],
-    defaultPresetId: "16:9",
-    basePriceUsd: IMAGE_COST_USD,
-    supportsAspectRatio: true,
-    supportsResolution: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL,
-    name: "Seedream 5.0 Lite",
-    category: "image",
-    inputs: [promptPort(true), refImagesPort(14)],
-    output: imageOutput(),
-    presets: ["16:9", "9:16", "1:1", "4:3", "3:4"],
-    defaultPresetId: "16:9",
-    basePriceUsd: IMAGE_COST_USD,
-    supportsAspectRatio: true,
-    supportsResolution: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL,
-    name: "Nano Banana 2.1",
-    category: "image",
-    inputs: [promptPort(true), refImagesPort(14)],
-    output: imageOutput(),
-    presets: ["16:9", "9:16", "1:1", "4:3", "3:4"],
-    defaultPresetId: "16:9",
-    basePriceUsd: IMAGE_COST_USD,
-    supportsAspectRatio: true,
-    supportsResolution: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_GPT_5_IMAGE_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_GPT_5_IMAGE_MODEL,
-    name: "GPT-5 Image",
-    category: "image",
-    inputs: [promptPort(true), refImagesPort(4)],
-    output: imageOutput(),
-    presets: ["1:1", "16:9", "9:16"],
-    defaultPresetId: "1:1",
-    basePriceUsd: IMAGE_COST_USD,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_HAILUO_3_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_HAILUO_3_VIDEO_MODEL,
-    name: "MiniMax Hailuo 3",
-    category: "video",
-    inputs: [promptPort(true), startImagePort(false), endImagePort(false), refImagesPort(4)],
-    output: videoOutput(),
-    presets: ["16:9", "9:16", "1:1"],
-    defaultPresetId: "16:9",
-    basePriceUsd: videoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 15,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_SEEDANCE_2_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
-    name: "Seedance 2.0",
-    category: "video",
-    inputs: [promptPort(true), startImagePort(false), endImagePort(false), refImagesPort(4)],
-    output: videoOutput(),
-    presets: ["16:9", "9:16", "1:1"],
-    defaultPresetId: "16:9",
-    basePriceUsd: videoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 15,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL,
-    name: "Seedance 2.0 Fast",
-    category: "video",
-    inputs: [promptPort(true), startImagePort(false), endImagePort(false), refImagesPort(4)],
-    output: videoOutput(),
-    presets: ["16:9", "9:16", "1:1"],
-    defaultPresetId: "16:9",
-    basePriceUsd: videoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 15,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL,
-    name: "Seedance 2.0 Mini",
-    category: "video",
-    inputs: [promptPort(true), startImagePort(false), endImagePort(false), refImagesPort(4)],
-    output: videoOutput(),
-    presets: ["16:9", "9:16", "1:1"],
-    defaultPresetId: "16:9",
-    basePriceUsd: videoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 15,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_WAN_3_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_WAN_3_VIDEO_MODEL,
-    name: "Alibaba Wan 3.0",
-    category: "video",
-    inputs: [promptPort(true), startImagePort(false), endImagePort(false)],
-    output: videoOutput(),
-    presets: ["16:9", "9:16", "1:1"],
-    defaultPresetId: "16:9",
-    basePriceUsd: videoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 15,
-    supportsAspectRatio: true,
-    available: true,
-  },
-  {
-    id: `openrouter:${OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL}`,
-    provider: "openrouter",
-    providerModelId: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
-    name: "HeyGen Avatar IV",
-    category: "video",
-    inputs: [startImagePort(true), refAudioPort(true), promptPort(false)],
-    output: videoOutput(),
-    presets: ["9:16", "16:9", "1:1"],
-    defaultPresetId: "9:16",
-    basePriceUsd: talkingHeadVideoCostUsd(5),
-    defaultDurationSeconds: 5,
-    minDurationSeconds: 5,
-    maxDurationSeconds: 60,
-    supportsAspectRatio: true,
-    available: true,
-  },
-];
+const CANVAS_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
+
+const OPENROUTER_NAME_OVERRIDES: Record<string, string> = {
+  "bytedance-seed/seedream-5-0-pro": "Seedream 5.0 Pro",
+  "bytedance-seed/seedream-5-0-lite": "Seedream 5.0 Lite",
+  "google/gemini-nano-banana-2.1": "Nano Banana 2.1",
+  "minimax/hailuo-3": "MiniMax Hailuo 3",
+  "bytedance/seedance-2.0": "Seedance 2.0",
+  "bytedance/seedance-2.0-fast": "Seedance 2.0 Fast",
+  "bytedance/seedance-2.0-mini": "Seedance 2.0 Mini",
+  "alibaba/wan-3.0": "Alibaba Wan 3.0",
+  "heygen/avatar-iv": "HeyGen Avatar IV",
+};
+
+// These video models already accept extra reference stills on the canvas.
+const OPENROUTER_VIDEO_REF_MAX: Record<string, number> = {
+  "minimax/hailuo-3": 4,
+  "bytedance/seedance-2.0": 4,
+  "bytedance/seedance-2.0-fast": 4,
+  "bytedance/seedance-2.0-mini": 4,
+};
+
+function openRouterDisplayName(id: string, apiName: string): string {
+  const override = OPENROUTER_NAME_OVERRIDES[id];
+  if (override) return override;
+  const split = apiName.split(": ");
+  if (split.length < 2) return apiName;
+  const product = split.slice(1).join(": ");
+  return product.length <= 3 ? `${split[0]} ${product}` : product;
+}
+
+function ratioPresets(aspects: readonly string[], fallback: string): string[] {
+  const picked = CANVAS_RATIOS.filter((ratio) => aspects.includes(ratio));
+  if (picked.length > 0) return [...picked];
+  const raw = aspects.filter((ratio) => ratio !== "auto").slice(0, 5);
+  return raw.length > 0 ? raw : [fallback];
+}
+
+// Turns the account snapshot into canvas specs. GPT-5 Image is already absent from the snapshot.
+function buildOpenRouterAccountModels(): CanvasModelSpec[] {
+  const images = OPENROUTER_ACCOUNT_IMAGE_MODELS.map((model): CanvasModelSpec => {
+    const presets = ratioPresets(model.aspects, "1:1");
+    const supportsResolution = model.resolutions.some(
+      (value) => value === "1K" || value === "2K" || value === "4K",
+    );
+    const inputs = [promptPort(true)];
+    if (model.refMax > 0) inputs.push(refImagesPort(model.refMax, model.refMin > 0));
+    return {
+      id: `openrouter:${model.id}`,
+      provider: "openrouter",
+      providerModelId: model.id,
+      name: openRouterDisplayName(model.id, model.name),
+      category: "image",
+      inputs,
+      output: imageOutput(),
+      presets,
+      defaultPresetId: presets.includes("16:9") ? "16:9" : presets[0],
+      basePriceUsd: IMAGE_COST_USD,
+      supportsAspectRatio: model.aspects.length > 0,
+      ...(supportsResolution ? { supportsResolution: true } : {}),
+      available: true,
+    };
+  });
+
+  const videos = OPENROUTER_ACCOUNT_VIDEO_MODELS.map((model): CanvasModelSpec => {
+    const presets = ratioPresets(model.aspects, "16:9");
+    const durations = model.durations.filter((value) => value > 0);
+    const minDurationSeconds = durations.length > 0 ? Math.min(...durations) : 5;
+    const maxDurationSeconds =
+      durations.length > 0 ? Math.max(...durations) : model.avatar ? 60 : 15;
+    const defaultDurationSeconds = durations.includes(5) ? 5 : (durations[0] ?? 5);
+    const inputs: CanvasPortSpec[] = [];
+    if (model.avatar) {
+      inputs.push(startImagePort(true), refAudioPort(true), promptPort(false));
+    } else if (model.videoIn) {
+      inputs.push(videoPort(true), promptPort(!/upscale/i.test(model.id)));
+    } else {
+      inputs.push(promptPort(true));
+      if (model.frames.includes("first_frame")) inputs.push(startImagePort(false));
+      if (model.frames.includes("last_frame")) inputs.push(endImagePort(false));
+      const refMax = OPENROUTER_VIDEO_REF_MAX[model.id];
+      if (refMax) inputs.push(refImagesPort(refMax));
+    }
+    const defaultPresetId =
+      model.avatar && presets.includes("9:16")
+        ? "9:16"
+        : presets.includes("16:9")
+          ? "16:9"
+          : presets[0];
+    return {
+      id: `openrouter:${model.id}`,
+      provider: "openrouter",
+      providerModelId: model.id,
+      name: openRouterDisplayName(model.id, model.name),
+      category: "video",
+      inputs,
+      output: videoOutput(),
+      presets,
+      defaultPresetId,
+      basePriceUsd:
+        model.id === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
+          ? talkingHeadVideoCostUsd(5)
+          : videoCostUsd(Math.min(15, Math.max(5, defaultDurationSeconds))),
+      defaultDurationSeconds,
+      minDurationSeconds,
+      maxDurationSeconds,
+      supportsAspectRatio: model.aspects.length > 0,
+      available: true,
+    };
+  });
+
+  return [...images, ...videos];
+}
+
+const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = buildOpenRouterAccountModels();
 
 // 7 Scro production tool nodes (`scro:*`).
 export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [

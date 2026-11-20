@@ -631,6 +631,26 @@ test("openRouterCanvasVideoBody supports text-only, first/last frames, reference
     { type: "audio_url", audio_url: { url: "https://blob/speech.mp3" } },
   ]);
   assert.equal(heygen.motion_prompt, "Warm confident delivery");
+
+  // Veo only accepts 4/6/8s, and Hailuo 2.3 only accepts 1080p.
+  const veo = openRouterCanvasVideoBody({
+    model: "google/veo-3.1",
+    prompt: "A quiet street at dusk",
+    aspectRatio: "1:1",
+    durationSeconds: 5,
+  });
+  assert.equal(veo.duration, 4);
+  assert.equal(veo.aspect_ratio, "16:9");
+
+  const hailuo23 = openRouterCanvasVideoBody({
+    model: "minimax/hailuo-2.3",
+    prompt: "A quiet street at dusk",
+    aspectRatio: "16:9",
+    durationSeconds: 7,
+  });
+  assert.equal(hailuo23.resolution, "1080p");
+  assert.equal(hailuo23.duration, 6);
+  assert.equal("generate_audio" in hailuo23, false);
 });
 
 test("submitOpenRouterCanvasVideo posts canvas video request and returns polling state", async () => {

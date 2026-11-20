@@ -4,24 +4,21 @@
 // 1) Models (OpenRouter only, searchable, filterable, draggable or click-to-add)
 // 2) Assets (Local upload + Scro Characters, Products, and Recent Canvas Outputs)
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Film,
   FolderHeart,
   Loader2,
   Music,
-  Plus,
   RefreshCw,
   Search,
   Sparkles,
   Upload,
 } from "lucide-react";
-import { formatUsd } from "@/service/billing/usd";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
 } from "@/service/canvas/model-catalog";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryAssetsResult,
@@ -32,13 +29,19 @@ import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
 export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
-const CATEGORIES: Array<"all" | CanvasModelCategory> = [
-  "all",
+const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
+const SIDEBAR_MIN_WIDTH = 220;
+const SIDEBAR_MAX_WIDTH = 520;
+const SIDEBAR_DEFAULT_WIDTH = 276;
+
+// Models are generative AI only. Scro tools, editors, and FFmpeg live on the Tools tab.
+const MODEL_CATEGORIES: CanvasModelCategory[] = ["image", "video", "audio"];
+const TOOL_CATEGORIES: CanvasModelCategory[] = [
   "scro-tool",
+  "editing",
+  "segmentation",
+  "upscale",
   "ffmpeg",
-  "audio",
-  "image",
-  "video",
 ];
 
 export function CanvasSidebar({
@@ -63,31 +66,79 @@ export function CanvasSidebar({
   onRefreshModels: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const [tab, setTab] = useState<"models" | "assets">("models");
+  const [tab, setTab] = useState<"models" | "tools" | "assets">("models");
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<"all" | CanvasModelCategory>("all");
+  // null shows every group of the current tab. There is no "All" chip.
+  const [category, setCategory] = useState<CanvasModelCategory | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
 
-  // Offer Scro tools, FFmpeg utilities, and OpenRouter models. Legacy Mentalok specs
-  // stay in the catalog so graphs that already use them can still run.
-  const listedModels = useMemo(() => {
-    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, openrouter: 2 };
+  // Saved width is read after mount so server and client HTML match.
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    if (Number.isFinite(saved) && saved >= SIDEBAR_MIN_WIDTH) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
+      setWidth(Math.min(SIDEBAR_MAX_WIDTH, saved));
+    }
+  }, []);
+
+  // Drag the right edge to resize the panel, same idea as the chat dock's top edge.
+  const startResize = useCallback(
+    (event: React.PointerEvent) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = width;
+      let latest = startWidth;
+      const onMove = (move: PointerEvent) => {
+        latest = Math.min(
+          SIDEBAR_MAX_WIDTH,
+          Math.max(SIDEBAR_MIN_WIDTH, startWidth + (move.clientX - startX)),
+        );
+        setWidth(latest);
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(latest)));
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [width],
+  );
+
+  // OpenRouter models lead each group. Mentalok only fills categories that have no
+  // OpenRouter model (image edit, SAM cutout, upscale), so older graphs still run.
+  const availableModels = useMemo(() => {
+    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, openrouter: 2, mentalok: 3 };
+    const openRouterCategories = new Set(
+      models.filter((spec) => spec.provider === "openrouter").map((spec) => spec.category),
+    );
     return models
-      .filter((spec) => spec.provider !== "mentalok")
+      .filter((spec) => spec.provider !== "mentalok" || !openRouterCategories.has(spec.category))
       .sort((a, b) => (providerRank[a.provider] ?? 9) - (providerRank[b.provider] ?? 9));
   }, [models]);
+  const tabCategories = tab === "tools" ? TOOL_CATEGORIES : MODEL_CATEGORIES;
+  const listedModels = useMemo(
+    () => availableModels.filter((spec) => tabCategories.includes(spec.category)),
+    [availableModels, tabCategories],
+  );
+  const modelCount = useMemo(
+    () => availableModels.filter((spec) => MODEL_CATEGORIES.includes(spec.category)).length,
+    [availableModels],
+  );
   const visibleCategories = useMemo(() => {
     const present = new Set(listedModels.map((spec) => spec.category));
-    return CATEGORIES.filter((cat) => cat === "all" || present.has(cat));
-  }, [listedModels]);
+    return tabCategories.filter((cat) => present.has(cat));
+  }, [listedModels, tabCategories]);
 
-  // Falls back to "all" when the picked category has no listed model.
-  const activeCategory = visibleCategories.includes(category) ? category : "all";
+  // A chip from the other tab does not apply here, so the groups show instead.
+  const activeCategory = category && visibleCategories.includes(category) ? category : null;
 
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
     return listedModels.filter((spec) => {
-      if (activeCategory !== "all" && spec.category !== activeCategory) return false;
+      if (activeCategory && spec.category !== activeCategory) return false;
       if (!q) return true;
       return (
         spec.name.toLowerCase().includes(q) ||
@@ -98,20 +149,48 @@ export function CanvasSidebar({
   }, [listedModels, query, activeCategory]);
 
   return (
-    <aside className="flex h-full w-[276px] shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95">
-      {/* Top 2-tab switch */}
-      <div className="grid grid-cols-2 gap-1 border-b border-white/8 p-2">
+    <aside
+      className="relative flex h-full shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95"
+      style={{ width }}
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize panel"
+        onPointerDown={startResize}
+        className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
+      />
+      {/* Models are image / video / audio. Tools hold Scro, edit, cutout, upscale, and FFmpeg. */}
+      <div className="grid grid-cols-3 gap-1 border-b border-white/8 p-2">
         <button
           type="button"
-          onClick={() => setTab("models")}
-          className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] py-1.5 text-xs font-semibold transition ${
+          onClick={() => {
+            setTab("models");
+            setCategory(null);
+          }}
+          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] py-1.5 text-xs font-semibold transition ${
             tab === "models"
               ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
               : "text-white/60 hover:bg-white/6 hover:text-white"
           }`}
         >
           <Sparkles className="h-3.5 w-3.5" />
-          <span>{isZh ? `模型 (${listedModels.length})` : `Models (${listedModels.length})`}</span>
+          <span>{isZh ? `模型 (${modelCount})` : `Models (${modelCount})`}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab("tools");
+            setCategory(null);
+          }}
+          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] py-1.5 text-xs font-semibold transition ${
+            tab === "tools"
+              ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
+              : "text-white/60 hover:bg-white/6 hover:text-white"
+          }`}
+        >
+          <Film className="h-3.5 w-3.5" />
+          <span>{isZh ? "工具" : "Tools"}</span>
         </button>
         <button
           type="button"
@@ -127,7 +206,7 @@ export function CanvasSidebar({
         </button>
       </div>
 
-      {tab === "models" ? (
+      {tab !== "assets" ? (
         <div className="flex min-h-0 flex-1 flex-col">
           {/* Search & Refresh */}
           <div className="space-y-2 border-b border-white/6 p-2.5">
@@ -159,19 +238,12 @@ export function CanvasSidebar({
             <div className="flex flex-wrap gap-1">
               {visibleCategories.map((cat) => {
                 const active = activeCategory === cat;
-                const label =
-                  cat === "all"
-                    ? isZh
-                      ? "全部"
-                      : "All"
-                    : isZh
-                      ? CATEGORY_LABELS[cat]["zh-Hant"]
-                      : CATEGORY_LABELS[cat].en;
+                const label = isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en;
                 return (
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setCategory(cat)}
+                    onClick={() => setCategory(active ? null : cat)}
                     className={`cursor-pointer rounded-full px-2 py-0.5 text-[10.5px] font-semibold transition ${
                       active
                         ? "bg-[#c6f24b] text-[#11141b]"
@@ -185,65 +257,48 @@ export function CanvasSidebar({
             </div>
           </div>
 
-          {/* Model list */}
+          {/* Model list, grouped by kind when showing everything */}
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
-            {filteredModels.map((spec) => {
-              const price = estimateCanvasModelCostUsd(spec);
-              const catText = isZh
-                ? CATEGORY_LABELS[spec.category]["zh-Hant"]
-                : CATEGORY_LABELS[spec.category].en;
-              return (
-                <div
-                  key={spec.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData(CANVAS_DRAG_MODEL_MIME, spec.id);
-                    e.dataTransfer.effectAllowed = "copy";
-                  }}
-                  onClick={() => onAddModel(spec.id)}
-                  className="group cursor-grab rounded-[12px] border border-white/8 bg-[#131823]/90 p-2.5 transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <CanvasModelLogo
-                        providerModelId={spec.providerModelId}
-                        className="h-4 w-4"
-                      />
-                      <span className="truncate text-xs font-bold text-white/95">
+            {(activeCategory
+              ? [{ label: "", models: filteredModels }]
+              : visibleCategories.map((cat) => ({
+                  label: isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en,
+                  models: filteredModels.filter((spec) => spec.category === cat),
+                }))
+            ).map((section) => (
+              <div key={section.label || "flat"} className="space-y-1.5">
+                {section.label ? (
+                  <p className="px-1 pt-2 text-[10px] font-bold tracking-wide text-white/40 uppercase first:pt-0">
+                    {section.label}
+                  </p>
+                ) : null}
+                <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
+                  {section.models.map((spec) => (
+                    <div
+                      key={spec.id}
+                      draggable
+                      title={spec.name}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(CANVAS_DRAG_MODEL_MIME, spec.id);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      onClick={() => onAddModel(spec.id)}
+                      className="group flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border border-white/8 bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
+                    >
+                      <span className="grid h-8 w-8 place-items-center">
+                        <CanvasModelLogo
+                          providerModelId={spec.providerModelId}
+                          className="h-7 w-7"
+                        />
+                      </span>
+                      <span className="line-clamp-2 w-full text-[10px] leading-3 font-semibold text-white/90">
                         {spec.name}
                       </span>
-                    </span>
-                    <span className="shrink-0 rounded-full bg-[#c6f24b]/12 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[#c6f24b]">
-                      {formatUsd(price)}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between gap-1.5 text-[10px]">
-                    <div className="flex items-center gap-1">
-                      <span className="rounded-full bg-white/6 px-1.5 py-0.5 text-white/60">
-                        {catText}
-                      </span>
-                      {spec.runtimeStatus ? (
-                        <span
-                          className={`inline-block h-1.5 w-1.5 rounded-full ${
-                            spec.runtimeStatus === "warm" ||
-                            spec.runtimeStatus === "cached"
-                              ? "bg-emerald-400"
-                              : spec.runtimeStatus === "unavailable"
-                                ? "bg-rose-400"
-                                : "bg-amber-400"
-                          }`}
-                          title={spec.runtimeStatus}
-                        />
-                      ) : null}
                     </div>
-                    <span className="inline-flex items-center gap-0.5 text-white/35 transition group-hover:text-[#c6f24b]">
-                      <Plus className="h-3 w-3" />
-                      {isZh ? "加入" : "Add"}
-                    </span>
-                  </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
             {filteredModels.length === 0 ? (
               <p className="py-6 text-center text-xs text-white/40">
                 {isZh ? "找不到符合的模型" : "No matching models"}
