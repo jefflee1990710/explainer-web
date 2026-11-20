@@ -130,6 +130,11 @@ All FFmpeg nodes execute asynchronously on the **Vast.ai Worker** via `workerTas
 | `ffmpeg:transform` | `video` (required) | `aspectRatio` (`9:16` / `16:9` / `1:1`), `ffmpegCropMode` (`"fit-pad"` \| `"center-crop"`), `ffmpegColorGrade` (`"none"` \| `"h3-soft"`) | `video` | Scales/crops or letterboxes to target resolution (`1080x1920`, `1920x1080`, `1080x1080`), optionally applies H3 Soft color grade. |
 | `ffmpeg:extract-audio` | `video` (required) | (none) | `audio` | Extracts audio track (`-vn -acodec libmp3lame -b:a 192k`) into `.mp3`. Fails clearly if source video has no audio stream. |
 
+### 4.3 Unified Canvas Node & Flow Execution on Vast.ai Worker (`canvas_node` + `canvas_flow`)
+To support long-running multi-wave workflows even when the user closes their browser tab:
+- **`canvas_node` (`workerTasks`, `cpu` lane)**: `runCanvasNodeAction` validates inputs, atomically charges USD Credit (`canvas_jobs`), marks the node `"queued"`, and enqueues `canvas_node` via `scheduleCanvasNodeWorkerTask` (returning immediately; in local dev when `WORKER_QUEUE_ENABLED` is unset, `runInAfterIfLocal` runs it in `after()`). The Worker dispatches any provider (`openrouter`, `mentalok`, `scro:*`, `ffmpeg:*`) and requeues (`delayMs: 5000`) until async completion, Blob persistence, or atomic `refundCanvasJobOnce`.
+- **`canvas_flow` (`workerTasks`, `cpu` lane)**: `runCanvasFlowAction` saves the graph, records `activeFlowRun` on `canvas_projects`, and enqueues `canvas_flow`. The Worker executes wave by wave in topological order, polling each wave's `canvas_jobs` via `requeueWorkerTaskForPoll` and advancing to Wave `N+1` using freshly persisted `outputUrl`s. `stopCanvasFlowAction` sets `activeFlowRun.aborted = true` to halt before the next wave, and `/app/canvas` restores live `activeFlowRun` + node progress automatically on reload.
+
 ---
 
 ## 5. Canvas AI Assistant Upgrade (`src/service/canvas-agent/`)

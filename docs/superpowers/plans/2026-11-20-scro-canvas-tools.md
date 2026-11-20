@@ -347,7 +347,41 @@ git commit -m "feat(canvas-agent): support Scro tools, TTS, FFmpeg nodes, and au
 
 ---
 
-### Task 7: Canvas UI (`ModelNodeCard` Tool Controls, Audio Output & Sidebar Groups)
+### Task 7: Unified Canvas Worker Execution (`canvas_node` + `canvas_flow`)
+
+**Files:**
+- Modify: `src/model/worker-task.ts`
+- Modify: `src/model/canvas.ts`
+- Create: `src/service/canvas/worker-runner.ts`
+- Modify: `src/service/canvas/executor.ts`
+- Modify: `src/service/canvas/projects.ts`
+- Modify: `src/service/worker/schedule.ts`
+- Modify: `src/service/worker/task-executor.ts`
+- Modify: `src/presentation/actions/canvas.ts`
+- Modify: `src/app/app/canvas/canvas-workspace.tsx`
+- Create: `src/service/canvas/worker-runner.test.ts`
+
+**Interfaces:**
+- Consumes: `submitCanvasNodeJob`, `pollCanvasJobs`, `computeExecutionWaves`, `executeCanvasFfmpegJob`
+- Produces in `src/model/worker-task.ts`:
+  - Add `"canvas_node"` and `"canvas_flow"` to `WORKER_TASK_KINDS`.
+- Produces in `src/model/canvas.ts`:
+  - `CanvasFlowRunState` and `CanvasProject.activeFlowRun?: CanvasFlowRunState`
+- Produces in `src/service/canvas/worker-runner.ts`:
+  - `executeCanvasNodeTask(jobId: ObjectId, deps?): Promise<WorkerTaskExecutionResult>`
+  - `startCanvasFlowRun(params: { clerkUserId: string; canvasId: string }, deps?): Promise<{ ok: true; activeFlowRun: CanvasFlowRunState } | { ok: false; error: string }>`
+  - `executeCanvasFlowTask(task: WorkerTask, deps?): Promise<WorkerTaskExecutionResult>`
+  - `stopCanvasFlowRun(params: { clerkUserId: string; canvasId: string }): Promise<void>`
+
+- [ ] **Step 1: Write failing tests in `src/service/canvas/worker-runner.test.ts`**
+- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 3: Implement `canvas_node` & `canvas_flow` worker tasks, `runCanvasFlowAction`/`stopCanvasFlowAction`/`pollCanvasFlowAction`, and update `canvas-workspace.tsx` to delegate Run Flow to worker**
+- [ ] **Step 4: Run tests and `npx tsc --noEmit` to verify pass**
+- [ ] **Step 5: Commit**
+
+---
+
+### Task 8: Canvas UI (`ModelNodeCard` Tool Controls, Audio Output & Sidebar Groups)
 
 **Files:**
 - Modify: `src/app/app/canvas/nodes/port-colors.ts`
@@ -385,7 +419,7 @@ git commit -m "feat(canvas-ui): add Scro tool controls, FFmpeg controls, and aud
 
 ---
 
-### Task 8: Left Menu Cleanup, Legacy Redirects, Open Editor Retirement & Docs Sync
+### Task 9: Left Menu Cleanup, Legacy Redirects, Open Editor Retirement & Docs Sync
 
 **Files:**
 - Modify: `src/presentation/components/app-shell.tsx`
