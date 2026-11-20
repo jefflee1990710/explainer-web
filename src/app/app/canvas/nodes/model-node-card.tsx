@@ -460,7 +460,15 @@ export function ModelNodeCard({
                     </label>
                     <select
                       value={String(toolParams.durationPreset ?? "30s")}
-                      onChange={(e) => updateToolParam("durationPreset", e.target.value)}
+                      onChange={(e) => {
+                        const preset = e.target.value;
+                        const secs =
+                          preset === "15s" ? 15 : preset === "45s" ? 45 : preset === "60s" ? 60 : 30;
+                        onUpdateNodeData(id, {
+                          durationSeconds: secs,
+                          toolParams: { ...toolParams, durationPreset: preset },
+                        });
+                      }}
                       className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     >
                       <option value="15s">15s</option>

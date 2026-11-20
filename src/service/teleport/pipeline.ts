@@ -6,7 +6,7 @@ import {
   enqueueWorkerTask,
   shouldUseWorkerQueueOnly,
 } from "@/service/worker/task-queue";
-import { teleportJobsCollection } from "@/dao";
+import { teleportJobsCollection, usersCollection } from "@/dao";
 import {
   toPublicTeleportJob,
   type PublicTeleportJob,
@@ -112,8 +112,20 @@ export async function startTeleportJob(
   input: TeleportStartInput,
   options?: { skipBilling?: boolean },
 ): Promise<{ ok: true; job: PublicTeleportJob } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  return startTeleportJobForUser(user.clerkUserId, input, options);
+}
+
+/** Internal cookie-free Teleport starter for Vast.ai Worker / Canvas execution. */
+export async function startTeleportJobForUser(
+  clerkUserId: string,
+  input: TeleportStartInput,
+  options?: { skipBilling?: boolean },
+): Promise<{ ok: true; job: PublicTeleportJob } | { ok: false; error: string }> {
   try {
-    const user = await requireAppUser();
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId });
+    if (!user) return { ok: false, error: "找不到使用者" };
     const normalized = normalizeTeleportStart(input);
     if (!normalized.ok) return normalized;
 
@@ -548,15 +560,23 @@ export async function advanceTeleportJobs(clerkUserId?: string): Promise<number>
 export async function pollTeleportJobStatus(
   jobId: string,
 ): Promise<{ ok: true; job: PublicTeleportJob } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  return pollTeleportJobStatusForUser(user.clerkUserId, jobId);
+}
+
+/** Internal cookie-free Teleport poller for Vast.ai Worker / Canvas execution. */
+export async function pollTeleportJobStatusForUser(
+  clerkUserId: string,
+  jobId: string,
+): Promise<{ ok: true; job: PublicTeleportJob } | { ok: false; error: string }> {
   try {
-    const user = await requireAppUser();
     if (!ObjectId.isValid(jobId)) {
       return { ok: false, error: "找不到 Teleport 任務" };
     }
     const col = await teleportJobsCollection();
     const job = (await col.findOne({
       _id: new ObjectId(jobId),
-      clerkUserId: user.clerkUserId,
+      clerkUserId,
     })) as TeleportJobDoc | null;
     if (!job) return { ok: false, error: "找不到 Teleport 任務" };
 

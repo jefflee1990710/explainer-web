@@ -8,6 +8,7 @@ import {
   pollScroAsyncJob,
   resolveAutoVideoClipNumbers,
   shouldSkipProjectBilling,
+  submitScroAsyncNode,
   validateScroToolInputs,
 } from "@/service/canvas/scro-dispatch";
 
@@ -206,5 +207,135 @@ describe("scro canvas dispatch — skipBilling, autoProduceAllClips & polling", 
       },
     );
     assert.deepEqual(failed, { status: "failed", error: "Swap failed" });
+  });
+
+  it("detects failed frames, lock errors, or stillError in pollScroAsyncJob for video domain", async () => {
+    const vidId = new ObjectId().toHexString();
+    const frameFailed = await pollScroAsyncJob(
+      { clerkUserId: "user-1", domainKind: "video", externalJobId: vidId },
+      {
+        findVideo: async () => ({
+          status: "production",
+          clips: [],
+          frames: [
+            {
+              clipNumber: 1,
+              position: "start",
+              prompt: "p",
+              status: "failed",
+              error: "Image moderation blocked",
+            },
+          ],
+        }),
+      },
+    );
+    assert.deepEqual(frameFailed, {
+      status: "failed",
+      error: "Image moderation blocked",
+    });
+
+    const lockFailed = await pollScroAsyncJob(
+      { clerkUserId: "user-1", domainKind: "video", externalJobId: vidId },
+      {
+        findVideo: async () => ({
+          status: "production",
+          clips: [],
+          stillError: "角色定裝圖產生失敗",
+        }),
+      },
+    );
+    assert.deepEqual(lockFailed, {
+      status: "failed",
+      error: "角色定裝圖產生失敗",
+    });
+  });
+
+  it("passes clerkUserId to cookie-free ForUser swap & teleport dispatchers and pollers", async () => {
+    const seen: string[] = [];
+    const swapSubmit = await submitScroAsyncNode(
+      {
+        clerkUserId: "worker-user-1",
+        canvasIdHex: new ObjectId().toHexString(),
+        jobIdHex: "job-swap",
+        modelId: "scro:swap",
+        node: makeNode("sw1", "scro:swap", { toolParams: { swapMode: "character" } }),
+        inputs: emptyInputs({ video: "https://blob.example/src.mp4" }),
+      },
+      {
+        startSwapForUser: async (uid) => {
+          seen.push(`swap:${uid}`);
+          return { ok: true, job: { id: "jutsu-1" } as never };
+        },
+      },
+    );
+    assert.deepEqual(swapSubmit, { domainKind: "jutsu", externalJobId: "jutsu-1" });
+
+    const tpSubmit = await submitScroAsyncNode(
+      {
+        clerkUserId: "worker-user-2",
+        canvasIdHex: new ObjectId().toHexString(),
+        jobIdHex: "job-tp",
+        modelId: "scro:teleport",
+        node: makeNode("tp1", "scro:teleport"),
+        inputs: emptyInputs({ video: "https://blob.example/src.mp4" }),
+      },
+      {
+        startTeleportForUser: async (uid) => {
+          seen.push(`tp:${uid}`);
+          return { ok: true, job: { id: "tp-1" } as never };
+        },
+      },
+    );
+    assert.deepEqual(tpSubmit, { domainKind: "teleport", externalJobId: "tp-1" });
+
+    await pollScroAsyncJob(
+      { clerkUserId: "worker-user-1", domainKind: "jutsu", externalJobId: "jutsu-1" },
+      {
+        pollJutsu: async (uid) => {
+          seen.push(`poll-jutsu:${uid}`);
+          return { ok: true, job: { id: "jutsu-1", status: "rendering" } as never };
+        },
+      },
+    );
+    await pollScroAsyncJob(
+      { clerkUserId: "worker-user-2", domainKind: "teleport", externalJobId: "tp-1" },
+      {
+        pollTeleport: async (uid) => {
+          seen.push(`poll-tp:${uid}`);
+          return { ok: true, job: { id: "tp-1", status: "rendering" } as never };
+        },
+      },
+    );
+
+    assert.deepEqual(seen, [
+      "swap:worker-user-1",
+      "tp:worker-user-2",
+      "poll-jutsu:worker-user-1",
+      "poll-tp:worker-user-2",
+    ]);
+  });
+
+  it("rejects scro:life when characterId does not resolve to an owned blueprint", async () => {
+    await assert.rejects(
+      () =>
+        executeScroSyncNode(
+          {
+            clerkUserId: "user-1",
+            jobIdHex: "job-missing-char",
+            modelId: "scro:life",
+            node: makeNode("life-bad", "scro:life", {
+              toolParams: { characterId: "non-existent" },
+            }),
+            inputs: emptyInputs({ prompt: "Cafe" }),
+          },
+          {
+            loadCharacterBlueprintUrl: async () => undefined,
+            submitImage: async () => {
+              throw new Error("submitImage must not be called");
+            },
+          },
+        ),
+      /找不到指定角色/,
+    );
   });
 });

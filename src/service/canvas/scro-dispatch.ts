@@ -20,7 +20,10 @@ import type { ResolvedCanvasInputs } from "@/service/canvas/graph";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
 import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
-import { pollJutsuJobStatus, startScroSwapJob } from "@/service/jutsu/pipeline";
+import {
+  pollJutsuJobStatusForUser,
+  startScroSwapJobForUser,
+} from "@/service/jutsu/pipeline";
 import {
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   submitOpenRouterImage,
@@ -28,7 +31,10 @@ import {
 import { buildPostCreatePrompt } from "@/service/post/prompts";
 import { buildCast, buildProducts } from "@/service/project/actions";
 import { runFfmpeg } from "@/service/reel/concat";
-import { pollTeleportJobStatus, startTeleportJob } from "@/service/teleport/pipeline";
+import {
+  pollTeleportJobStatusForUser,
+  startTeleportJobForUser,
+} from "@/service/teleport/pipeline";
 import { synthesizeSpeech } from "@/service/voice/elevenlabs";
 import {
   FEMALE_NARRATOR_VOICE_ID,
@@ -275,6 +281,9 @@ export async function executeScroSyncNode(
   const aspectRatio = normalizeAspect(params.node.data.aspectRatio ?? params.node.data.presetId);
 
   if (params.modelId === "scro:life") {
+    if (characterId && !blueprintUrl) {
+      throw new Error("找不到指定角色或角色定裝圖尚未完成");
+    }
     const scene = params.inputs.prompt?.trim() || "Candid natural daylight lifestyle portrait";
     const prompt =
       `Candid lifestyle photograph of the reference character. Scene and mood: ${scene}. ` +
@@ -338,15 +347,25 @@ export async function executeScroSyncNode(
   throw new Error(`不支援的同步 Scro 節點：${params.modelId}`);
 }
 
-export async function submitScroAsyncNode(params: {
-  clerkUserId: string;
-  canvasIdHex: string;
-  jobIdHex: string;
-  modelId: string;
-  node: CanvasNode;
-  inputs: ResolvedCanvasInputs;
-}): Promise<{ domainKind: "video" | "jutsu" | "teleport"; externalJobId: string }> {
+export type ScroAsyncSubmitDeps = {
+  startSwapForUser: typeof startScroSwapJobForUser;
+  startTeleportForUser: typeof startTeleportJobForUser;
+};
+
+export async function submitScroAsyncNode(
+  params: {
+    clerkUserId: string;
+    canvasIdHex: string;
+    jobIdHex: string;
+    modelId: string;
+    node: CanvasNode;
+    inputs: ResolvedCanvasInputs;
+  },
+  deps?: Partial<ScroAsyncSubmitDeps>,
+): Promise<{ domainKind: "video" | "jutsu" | "teleport"; externalJobId: string }> {
   const { clerkUserId, modelId, node, inputs } = params;
+  const startSwapForUser = deps?.startSwapForUser ?? startScroSwapJobForUser;
+  const startTeleportForUser = deps?.startTeleportForUser ?? startTeleportJobForUser;
 
   if (modelId === "scro:swap") {
     if (!inputs.video) throw new Error("Scro Swap 需要連接輸入影片");
@@ -362,7 +381,8 @@ export async function submitScroAsyncNode(params: {
     const objectEditMode = (readToolParamStr(node, "objectEditMode") ?? "change") as JutsuObjectEditMode;
     const objectTarget = readToolParamStr(node, "objectTarget") ?? "person";
 
-    const res = await startScroSwapJob(
+    const res = await startSwapForUser(
+      clerkUserId,
       {
         mode,
         sourceVideoUrl: inputs.video,
@@ -388,7 +408,8 @@ export async function submitScroAsyncNode(params: {
   if (modelId === "scro:teleport") {
     if (!inputs.video) throw new Error("Teleport 需要連接輸入影片");
     const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
-    const res = await startTeleportJob(
+    const res = await startTeleportForUser(
+      clerkUserId,
       {
         sourceVideoUrl: inputs.video,
         aspectRatio,
@@ -493,11 +514,29 @@ export type PollScroAsyncDeps = {
     videoId: ObjectId,
     clerkUserId: string,
   ) => Promise<
-    | Pick<Project, "status" | "reelStatus" | "reelUrl" | "reelError" | "error" | "clips">
+    | Pick<
+        Project,
+        | "status"
+        | "reelStatus"
+        | "reelUrl"
+        | "reelError"
+        | "error"
+        | "clips"
+        | "frames"
+        | "stillError"
+        | "objectSheetError"
+        | "backgroundPlateError"
+      >
     | null
   >;
-  pollJutsu: typeof pollJutsuJobStatus;
-  pollTeleport: typeof pollTeleportJobStatus;
+  pollJutsu: (
+    clerkUserId: string,
+    jobId: string,
+  ) => ReturnType<typeof pollJutsuJobStatusForUser>;
+  pollTeleport: (
+    clerkUserId: string,
+    jobId: string,
+  ) => ReturnType<typeof pollTeleportJobStatusForUser>;
 };
 
 export async function pollScroAsyncJob(
@@ -517,8 +556,8 @@ export async function pollScroAsyncJob(
       const col = await videosCollection();
       return col.findOne({ _id: videoId, clerkUserId });
     },
-    pollJutsu: pollJutsuJobStatus,
-    pollTeleport: pollTeleportJobStatus,
+    pollJutsu: pollJutsuJobStatusForUser,
+    pollTeleport: pollTeleportJobStatusForUser,
     ...deps,
   };
 
@@ -539,6 +578,19 @@ export async function pollScroAsyncJob(
         status: "failed",
         error: video.reelError || video.error || "Scro 影片生成失敗",
       };
+    }
+    if (video.stillError) {
+      return { status: "failed", error: video.stillError };
+    }
+    if (video.objectSheetError) {
+      return { status: "failed", error: video.objectSheetError };
+    }
+    if (video.backgroundPlateError) {
+      return { status: "failed", error: video.backgroundPlateError };
+    }
+    const failedFrame = video.frames?.find((f) => f.status === "failed");
+    if (failedFrame) {
+      return { status: "failed", error: failedFrame.error || "分鏡畫格生成失敗" };
     }
     const failedClip = video.clips?.find((c) => c.status === "failed");
     if (failedClip) {
@@ -561,7 +613,7 @@ export async function pollScroAsyncJob(
   }
 
   if (params.domainKind === "jutsu") {
-    const res = await resolved.pollJutsu(params.externalJobId);
+    const res = await resolved.pollJutsu(params.clerkUserId, params.externalJobId);
     if (!res.ok) return { status: "failed", error: res.error };
     if (res.job.status === "completed" && res.job.outputVideoUrl) {
       return { status: "completed", outputUrl: res.job.outputVideoUrl };
@@ -575,7 +627,7 @@ export async function pollScroAsyncJob(
     return { status: "running" };
   }
 
-  const res = await resolved.pollTeleport(params.externalJobId);
+  const res = await resolved.pollTeleport(params.clerkUserId, params.externalJobId);
   if (!res.ok) return { status: "failed", error: res.error };
   if (res.job.status === "completed" && res.job.outputVideoUrl) {
     return { status: "completed", outputUrl: res.job.outputVideoUrl };

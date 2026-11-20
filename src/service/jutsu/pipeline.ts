@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import sharp from "sharp";
-import { charactersCollection, jutsuJobsCollection } from "@/dao";
+import { charactersCollection, jutsuJobsCollection, usersCollection } from "@/dao";
 import {
   enqueueWorkerTask,
   shouldUseWorkerQueueOnly,
@@ -1192,8 +1192,20 @@ export async function startScroSwapJob(
   input: StartScroSwapInput,
   options?: { skipBilling?: boolean },
 ): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  return startScroSwapJobForUser(user.clerkUserId, input, options);
+}
+
+/** Internal cookie-free Scro Swap starter for Vast.ai Worker / Canvas execution. */
+export async function startScroSwapJobForUser(
+  clerkUserId: string,
+  input: StartScroSwapInput,
+  options?: { skipBilling?: boolean },
+): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
   try {
-    const user = await requireAppUser();
+    const users = await usersCollection();
+    const user = await users.findOne({ clerkUserId });
+    if (!user) return { ok: false, error: "找不到使用者" };
     const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
     const sourceUrl = input.sourceVideoUrl.trim();
     if (!sourceUrl.startsWith("https://")) {
@@ -2070,15 +2082,23 @@ export async function advanceJutsuJobs(clerkUserId?: string): Promise<number> {
 export async function pollJutsuJobStatus(
   jobId: string,
 ): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  return pollJutsuJobStatusForUser(user.clerkUserId, jobId);
+}
+
+/** Internal cookie-free Jutsu poller for Vast.ai Worker / Canvas execution. */
+export async function pollJutsuJobStatusForUser(
+  clerkUserId: string,
+  jobId: string,
+): Promise<{ ok: true; job: PublicJutsuJob } | { ok: false; error: string }> {
   try {
-    const user = await requireAppUser();
     if (!ObjectId.isValid(jobId)) {
       return { ok: false, error: "找不到 Jutsu 任務" };
     }
     const col = await jutsuJobsCollection();
     const job = (await col.findOne({
       _id: new ObjectId(jobId),
-      clerkUserId: user.clerkUserId,
+      clerkUserId,
     })) as (JutsuJob & { _id: ObjectId }) | null;
     if (!job) return { ok: false, error: "找不到 Jutsu 任務" };
 

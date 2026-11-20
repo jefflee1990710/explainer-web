@@ -24,8 +24,28 @@ function ready(overrides: Partial<ReelRecord> = {}): ClipStageSource & ReelRecor
   };
 }
 
-test("a finished clip with no reel does not auto-queue 成片合成", () => {
+test("a finished non-autoProduce clip with no reel does not auto-queue 成片合成", () => {
   assert.equal(shouldQueueReel(ready()), false);
+});
+
+test("autoProduceAllClips projects auto-queue reel once clips are ready", () => {
+  assert.equal(
+    shouldQueueReel({ ...ready(), autoProduceAllClips: true }),
+    true,
+  );
+  assert.equal(
+    shouldQueueReel({
+      ...ready({ reelStatus: "completed", reelUrl: "https://blob/reel.mp4" }),
+      autoProduceAllClips: true,
+    }),
+    false,
+  );
+  const unfinished = ready();
+  unfinished.clips[0]!.status = "in_progress";
+  assert.equal(
+    shouldQueueReel({ ...unfinished, autoProduceAllClips: true }),
+    false,
+  );
 });
 
 test("an unfinished clip does not queue a reel", () => {

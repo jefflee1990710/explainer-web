@@ -281,4 +281,61 @@ describe("canvas worker runner — multi-wave flow", () => {
       assert.equal(res.stage, "flow_aborted");
     }
   });
+
+  it("writes node failed status & lastError when submitNodeQueued fails inside executeCanvasFlowTask", async () => {
+    const project = makeProject([
+      {
+        id: "img",
+        type: "model",
+        position: { x: 0, y: 0 },
+        data: { modelId: "openrouter:bytedance-seed/seedream-5-0-pro", prompt: "Fox" },
+      },
+    ]);
+    project.activeFlowRun = {
+      flowRunId: "flow-fail",
+      status: "running",
+      currentWave: 1,
+      totalWaves: 1,
+      waveIndex: 0,
+      waves: [["img"]],
+      activeWaveJobIds: [],
+      failedNodeIds: [],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const markedFailed: Array<{ nodeId: string; error: string }> = [];
+    const res = await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: "flow-fail", clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        findCanvasProject: async () => ({ ...project }),
+        setActiveFlowRun: async (_id, _uid, run) => {
+          project.activeFlowRun = run;
+        },
+        submitNodeQueued: async () => ({
+          ok: false,
+          error: "USD Credit 餘額不足",
+        }),
+        markNodeFailed: async (_cid, _uid, nodeId, error) => {
+          markedFailed.push({ nodeId, error });
+        },
+      },
+    );
+    assert.equal(res.outcome, "completed");
+    assert.equal(project.activeFlowRun?.status, "failed");
+    assert.deepEqual(markedFailed, [{ nodeId: "img", error: "USD Credit 餘額不足" }]);
+  });
 });

@@ -137,7 +137,8 @@ export type CanvasExecutorDeps = {
     workerTaskId: string,
   ) => Promise<{ status: string; error?: string } | null>;
   findCanvasJobById?: (jobId: ObjectId) => Promise<CanvasJob | null>;
-  enqueueCanvasNodeWorkerTask?: (jobId: ObjectId) => void;
+  enqueueCanvasNodeWorkerTask?: (jobId: ObjectId) => Promise<void> | void;
+  probeAudioDurationSec?: (audioUrl: string) => Promise<number | null>;
   now: () => Date;
 };
 
@@ -327,8 +328,24 @@ function createDefaultDeps(): CanvasExecutorDeps {
       const col = await canvasJobsCollection();
       return col.findOne({ _id: jobId });
     },
-    enqueueCanvasNodeWorkerTask: (jobId) => {
-      scheduleCanvasNodeWorkerTask(jobId);
+    enqueueCanvasNodeWorkerTask: (jobId) => scheduleCanvasNodeWorkerTask(jobId),
+    probeAudioDurationSec: async (audioUrl) => {
+      try {
+        const res = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
+        if (!res.ok) return null;
+        const buf = Buffer.from(await res.arrayBuffer());
+        const ext = audioUrl.toLowerCase().includes(".wav")
+          ? "wav"
+          : audioUrl.toLowerCase().includes(".ogg")
+            ? "ogg"
+            : audioUrl.toLowerCase().includes(".m4a")
+              ? "m4a"
+              : "mp3";
+        const { probeAudioSeconds } = await import("@/service/voice/voice-swap");
+        return await probeAudioSeconds(buf, ext);
+      } catch {
+        return null;
+      }
     },
     now: () => new Date(),
   };
@@ -645,13 +662,36 @@ export async function submitCanvasNodeJob(
   const durationPresetSec =
     node.data.toolParams?.durationPreset === "15s"
       ? 15
-      : node.data.toolParams?.durationPreset === "45s"
-        ? 45
-        : node.data.toolParams?.durationPreset === "60s"
-          ? 60
-          : undefined;
+      : node.data.toolParams?.durationPreset === "30s"
+        ? 30
+        : node.data.toolParams?.durationPreset === "45s"
+          ? 45
+          : node.data.toolParams?.durationPreset === "60s"
+            ? 60
+            : undefined;
+
+  let resolvedDurationSeconds =
+    spec.id === "scro:explainer"
+      ? durationPresetSec ?? node.data.durationSeconds
+      : node.data.durationSeconds ?? durationPresetSec;
+
+  if (spec.id === "scro:talking-head") {
+    if (inputCheck.inputs.refAudio && resolved.probeAudioDurationSec) {
+      const probed = await resolved.probeAudioDurationSec(inputCheck.inputs.refAudio);
+      if (probed && Number.isFinite(probed) && probed > 0) {
+        resolvedDurationSeconds = Math.min(120, Math.max(5, Math.ceil(probed)));
+      }
+    } else if (resolvedDurationSeconds === undefined && inputCheck.inputs.prompt?.trim()) {
+      const text = inputCheck.inputs.prompt.trim();
+      const cjkChars = (text.match(/[\u4e00-\u9fff]/g) ?? []).length;
+      const latinWords = text.replace(/[\u4e00-\u9fff]/g, " ").trim().split(/\s+/).filter(Boolean).length;
+      const estimated = Math.ceil(cjkChars / 4 + latinWords / 2.5);
+      resolvedDurationSeconds = Math.min(120, Math.max(5, estimated));
+    }
+  }
+
   const costUsd = estimateCanvasModelCostUsd(spec, {
-    durationSeconds: node.data.durationSeconds ?? durationPresetSec,
+    durationSeconds: resolvedDurationSeconds,
   });
 
   let spendEventKey: string | undefined;
@@ -692,8 +732,8 @@ export async function submitCanvasNodeJob(
     ...(typeof node.data.seed === "number" ? { seed: node.data.seed } : {}),
     ...(node.data.aspectRatio ? { aspectRatio: node.data.aspectRatio } : {}),
     ...(node.data.resolution ? { resolution: node.data.resolution } : {}),
-    ...(node.data.durationSeconds !== undefined
-      ? { durationSeconds: node.data.durationSeconds }
+    ...(resolvedDurationSeconds !== undefined
+      ? { durationSeconds: resolvedDurationSeconds }
       : {}),
     ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
     ...(inputCheck.inputs.image ? { image: inputCheck.inputs.image } : {}),
@@ -750,7 +790,7 @@ export async function submitCanvasNodeJob(
   });
 
   if (input.queueToWorker) {
-    resolved.enqueueCanvasNodeWorkerTask?.(jobId);
+    await resolved.enqueueCanvasNodeWorkerTask?.(jobId);
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return { ok: true, job: initialJob, creditUsd };
   }
@@ -798,12 +838,22 @@ export async function dispatchQueuedCanvasJobById(
     return settleFailedJob(job, "找不到畫布節點或模型規格", resolved);
   }
 
+  const snapshot = job.inputSnapshot ?? {};
+  const snapshotDuration =
+    typeof snapshot.durationSeconds === "number" && Number.isFinite(snapshot.durationSeconds)
+      ? snapshot.durationSeconds
+      : undefined;
+  const effectiveNode =
+    snapshotDuration !== undefined
+      ? { ...node, data: { ...node.data, durationSeconds: snapshotDuration } }
+      : node;
+
   const res = await executeDispatchedCanvasJob(
     {
       initialJob: job,
       spec,
-      node,
-      inputs: inputsFromSnapshot(job.inputSnapshot ?? {}),
+      node: effectiveNode,
+      inputs: inputsFromSnapshot(snapshot),
       presetId: job.presetId || spec.defaultPresetId,
     },
     resolved,

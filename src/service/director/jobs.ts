@@ -240,8 +240,12 @@ export async function runPhaseAJob(
     }
     // Frames wait until locks are ready; lock completion re-calls this.
     if (!options?.clipsOnly) {
-      await enqueueSceneImagesForNewVideo(projectId).catch((error: unknown) => {
+      await enqueueSceneImagesForNewVideo(projectId).catch(async (error: unknown) => {
         console.error("[frames] auto enqueue failed", { projectId, error });
+        const fresh = await projects.findOne({ _id: projectId });
+        if (fresh?.autoProduceAllClips) {
+          throw error;
+        }
       });
     }
     // Flip to production after locks and initial frame jobs are queued so the

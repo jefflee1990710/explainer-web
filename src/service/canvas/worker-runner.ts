@@ -104,7 +104,13 @@ export type CanvasFlowWorkerDeps = {
     canvasId: string;
     flowRunId: string;
     clerkUserId: string;
-  }) => void;
+  }) => Promise<void> | void;
+  markNodeFailed: (
+    canvasId: ObjectId,
+    clerkUserId: string,
+    nodeId: string,
+    error: string,
+  ) => Promise<void>;
   submitNodeQueued: (input: {
     clerkUserId: string;
     canvasId: string;
@@ -151,6 +157,20 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
       );
     },
     scheduleFlowTask: (input) => scheduleCanvasFlowWorkerTask(input),
+    markNodeFailed: async (canvasId, clerkUserId, nodeId, error) => {
+      const col = await canvasProjectsCollection();
+      const now = new Date();
+      await col.updateOne(
+        { _id: canvasId, clerkUserId, "nodes.id": nodeId },
+        {
+          $set: {
+            "nodes.$.data.status": "failed",
+            "nodes.$.data.lastError": error,
+            updatedAt: now,
+          },
+        },
+      );
+    },
     submitNodeQueued: (input) =>
       submitCanvasNodeJob({
         ...input,
@@ -212,7 +232,7 @@ export async function startCanvasFlowRun(
   };
 
   await resolved.setActiveFlowRun(canvasObjectId, params.clerkUserId, activeFlowRun);
-  resolved.scheduleFlowTask({
+  await resolved.scheduleFlowTask({
     canvasId: params.canvasId,
     flowRunId,
     clerkUserId: params.clerkUserId,
@@ -344,6 +364,7 @@ export async function executeCanvasFlowTask(
       const res = submitted[i]!;
       if (!res.ok) {
         failedSet.add(nodeId);
+        await resolved.markNodeFailed(canvasObjectId, clerkUserId, nodeId, res.error);
       } else if (res.job.status === "queued" || res.job.status === "running") {
         newJobIds.push(res.job._id.toHexString());
       } else if (res.job.status === "failed") {

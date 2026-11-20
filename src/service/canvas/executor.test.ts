@@ -908,4 +908,89 @@ describe("canvas executor", () => {
     assert.equal(polled.creditUsd, 10);
     assert.equal(harness.refundCalls.length, 1);
   });
+
+  it("probes refAudio duration for scro:talking-head billing and stores duration in snapshot", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 20,
+      nodes: [
+        {
+          id: "aud",
+          type: "media",
+          position: { x: 0, y: 0 },
+          data: { mediaKind: "audio", mediaUrl: "https://blob.example/speech.mp3" },
+        },
+        {
+          id: "th",
+          type: "model",
+          position: { x: 300, y: 0 },
+          data: {
+            modelId: "scro:talking-head",
+            toolParams: { characterId: "char-1" },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "aud", sourceHandle: "output", target: "th", targetHandle: "refAudio" },
+      ],
+      overrides: {
+        probeAudioDurationSec: async () => 25,
+        submitScroAsyncNode: async () => ({
+          domainKind: "video",
+          externalJobId: new ObjectId().toHexString(),
+        }),
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const res = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "th",
+      },
+      harness.deps,
+    );
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    // 25s * $0.18/s = $4.50
+    assert.equal(res.job.chargedUsd, 4.5);
+    assert.equal(res.job.inputSnapshot.durationSeconds, 25);
+  });
+
+  it("uses toolParams.durationPreset for scro:explainer billing even when node.data.durationSeconds is stale", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 20,
+      nodes: [
+        {
+          id: "exp",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: {
+            modelId: "scro:explainer",
+            prompt: "Explain inflation",
+            durationSeconds: 30,
+            toolParams: { durationPreset: "60s" },
+          },
+        },
+      ],
+      overrides: {
+        submitScroAsyncNode: async () => ({
+          domainKind: "video",
+          externalJobId: new ObjectId().toHexString(),
+        }),
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const res = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "exp",
+      },
+      harness.deps,
+    );
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    // 60s = 9 clips * $0.15 + 60 * $0.10 = $7.35
+    assert.equal(res.job.chargedUsd, 7.35);
+  });
 });

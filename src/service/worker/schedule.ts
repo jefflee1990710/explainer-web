@@ -110,8 +110,8 @@ export function scheduleLifeShotWorkerTask(input: {
   });
 }
 
-export function scheduleCanvasNodeWorkerTask(jobId: ObjectId) {
-  void enqueueWorkerTask({
+export async function scheduleCanvasNodeWorkerTask(jobId: ObjectId) {
+  await enqueueWorkerTask({
     kind: "canvas_node",
     targetId: jobId,
     lane: "cpu",
@@ -130,12 +130,12 @@ export function scheduleCanvasNodeWorkerTask(jobId: ObjectId) {
   });
 }
 
-export function scheduleCanvasFlowWorkerTask(input: {
+export async function scheduleCanvasFlowWorkerTask(input: {
   canvasId: string;
   flowRunId: string;
   clerkUserId: string;
 }) {
-  void enqueueWorkerTask({
+  await enqueueWorkerTask({
     kind: "canvas_flow",
     targetId: input.canvasId,
     lane: "cpu",

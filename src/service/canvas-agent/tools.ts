@@ -65,6 +65,68 @@ export function createWorkingGraph(input: {
   };
 }
 
+const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
+  "scro:talking-head": ["characterId", "language", "framing", "styleId"],
+  "scro:explainer": ["characterId", "language", "skillSlug", "durationPreset", "styleId", "productId"],
+  "scro:swap": ["characterId", "swapMode", "lightLookId", "objectTarget", "objectEditMode"],
+  "scro:teleport": [],
+  "scro:life": ["characterId", "poseId"],
+  "scro:poster": ["characterId", "productId", "styleId"],
+  "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed"],
+  "ffmpeg:concat": ["ffmpegTransition"],
+  "ffmpeg:audio-mux": ["ffmpegMixMode", "ffmpegAudioGainDb"],
+  "ffmpeg:trim-speed": ["ffmpegStartSec", "ffmpegEndSec", "ffmpegSpeed", "ffmpegTrimSilence"],
+  "ffmpeg:transform": ["ffmpegCropMode", "ffmpegColorGrade"],
+  "ffmpeg:extract-audio": [],
+};
+
+const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
+  language: ["yue", "zh", "en"],
+  framing: ["collarbone-close", "waist-up", "handheld-selfie", "full-body"],
+  skillSlug: [
+    "cartoon-explainer-video-director",
+    "paper-cutout-explainer-video-director",
+    "papercraft-diorama-director",
+  ],
+  durationPreset: ["15s", "30s", "45s", "60s"],
+  swapMode: ["character", "object", "relight", "colorfix"],
+  objectEditMode: ["change", "add", "remove"],
+  voicePreset: ["alan", "cathy", "yu", "una", "brian", "bella"],
+  ffmpegTransition: ["cut", "pad-200ms", "fade"],
+  ffmpegMixMode: ["replace", "mix-ducking"],
+  ffmpegCropMode: ["fit-pad", "center-crop"],
+  ffmpegColorGrade: ["none", "h3-soft"],
+};
+
+function validateToolParamsForModel(
+  g: CanvasAgentWorkingGraph,
+  modelId: string,
+  toolParams?: Record<string, unknown>,
+): string | null {
+  if (!toolParams) return null;
+  const allowed = TOOL_PARAMS_ALLOWED_KEYS[modelId];
+  if (!allowed) {
+    return Object.keys(toolParams).length > 0
+      ? `Model "${modelId}" does not accept toolParams.`
+      : null;
+  }
+  for (const [key, val] of Object.entries(toolParams)) {
+    if (!allowed.includes(key)) {
+      return `Invalid toolParams key "${key}" for "${modelId}". Allowed: ${allowed.join(", ") || "(none)"}.`;
+    }
+    if (key === "characterId" && typeof val === "string" && val.trim()) {
+      if (!g.characters.some((c) => c.id === val.trim())) {
+        return `Unknown characterId "${val}". Call list_assets() and use an exact id from characters.`;
+      }
+    }
+    const enumValues = TOOL_PARAM_ENUMS[key];
+    if (enumValues && typeof val === "string" && !enumValues.includes(val)) {
+      return `Invalid value "${val}" for toolParams.${key}. Allowed: ${enumValues.join(", ")}.`;
+    }
+  }
+  return null;
+}
+
 function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
   return g.catalog.filter((spec) => spec.provider !== "mentalok" && spec.available !== false);
 }
@@ -203,6 +265,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     if (!spec) {
       return { error: `Unknown model "${input.modelId}". Call list_models and use an exact id.` };
     }
+    const paramError = validateToolParamsForModel(g, spec.id, input.toolParams);
+    if (paramError) return { error: paramError };
     return addNode(g, "model", {
       modelId: spec.id,
       presetId: spec.defaultPresetId,
@@ -263,6 +327,12 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         patch.durationSeconds = clampDuration(spec, input.durationSeconds);
       }
       if (input.toolParams !== undefined) {
+        const paramError = validateToolParamsForModel(
+          g,
+          spec?.id ?? node.data.modelId ?? "",
+          input.toolParams,
+        );
+        if (paramError) return { error: paramError };
         patch.toolParams = { ...(node.data.toolParams ?? {}), ...input.toolParams };
       }
     }

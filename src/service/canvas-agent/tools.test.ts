@@ -78,6 +78,20 @@ describe("canvas agent tools", () => {
     // Mismatched audio -> videos must return { error }
     const bad = T.connect(g, { sourceId: tts.nodeId, targetId: concat.nodeId, targetPort: "videos" });
     assert.ok("error" in bad);
+
+    // Unknown toolParams key or non-existent characterId must return { error }
+    const badParam = T.add_model_node(g, {
+      modelId: "scro:tts",
+      prompt: "Hi",
+      toolParams: { unknownVoiceKey: "alan" },
+    });
+    assert.ok("error" in badParam);
+
+    const badChar = T.add_model_node(g, {
+      modelId: "scro:talking-head",
+      toolParams: { characterId: "missing-char-999" },
+    });
+    assert.ok("error" in badChar);
   });
 
   it("builds prompt → image and logs ops in order", () => {
