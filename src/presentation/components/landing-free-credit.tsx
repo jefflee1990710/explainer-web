@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
@@ -26,7 +27,7 @@ export function LandingFreeCredit({ signedIn = false }: { signedIn?: boolean }) 
           <p className="mt-4 text-base leading-7 text-[#5c6170]">{t("landing.freeCredit.body")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href={signedIn ? "/app/characters" : "/sign-up"}
+              href={canvasLaunchHref(signedIn)}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:w-auto"
             >
               {t("landing.freeCredit.cta")}

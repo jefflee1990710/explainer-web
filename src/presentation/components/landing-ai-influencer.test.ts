@@ -45,32 +45,45 @@ test("landing messages focus Scro on AI Creator IP and explainer/video studio", 
   assert.match(heroArt, /#0d0e13/);
 });
 
-test("HomePage use cases lead with explainer videos, then the AI Influencer", () => {
+test("HomePage leads with Canvas-First hero, interactive showcase, 6 templates, and zero ComfyUI/OpenCut/FFmpeg jargon", () => {
   const homePage = fs.readFileSync(path.join(ROOT, "src/app/page.tsx"), "utf8");
   const heroIdx = homePage.indexOf("<LandingHero");
-  const reelIdx = homePage.indexOf("<LandingExplainerReel");
+  const showcaseIdx = homePage.indexOf("<LandingCanvasShowcase");
+  const templatesIdx = homePage.indexOf("<LandingCanvasTemplates");
+  const stepsIdx = homePage.indexOf("<LandingSteps");
   const castIdx = homePage.indexOf("<LandingCast");
-  const ipIdx = homePage.indexOf("<LandingIp");
-  const useCasesIdx = homePage.indexOf("<LandingUseCases");
-  const kolIdx = homePage.indexOf("<LandingKol");
+  const powerIdx = homePage.indexOf("<StudioPowertoolsBand");
+  const freeIdx = homePage.indexOf("<LandingFreeCredit");
   assert.ok(
     heroIdx >= 0 &&
-      reelIdx > heroIdx &&
-      castIdx > reelIdx &&
-      !homePage.includes("LandingAcademy") &&
-      ipIdx > castIdx &&
-      kolIdx > ipIdx &&
-      useCasesIdx > kolIdx,
+      showcaseIdx > heroIdx &&
+      templatesIdx > showcaseIdx &&
+      stepsIdx > templatesIdx &&
+      castIdx > stepsIdx &&
+      powerIdx > castIdx &&
+      freeIdx > powerIdx,
+    "HomePage should follow the 6-band Canvas-First flow",
   );
+  assert.doesNotMatch(homePage, /Multi-Track|OpenCut|ComfyUI|FFmpeg/i);
 
-  const useCases = fs.readFileSync(
-    path.join(ROOT, "src/presentation/components/landing-use-cases.tsx"),
+  const heroSrc = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/landing-hero.tsx"),
     "utf8",
   );
-  const explainIdx = useCases.indexOf('"explain"');
-  const virtualYouIdx = useCases.indexOf('"virtual-you"');
-  assert.ok(explainIdx >= 0 && virtualYouIdx > explainIdx);
-  assert.equal(useCases.includes('"product"'), false);
+  assert.match(heroSrc, /canvasLaunchHref/);
+  assert.doesNotMatch(heroSrc, /href="\/simple"|2 cr\/s|comfy|opencut|ffmpeg/i);
+
+  const powerSrc = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/studio-powertools-band.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(powerSrc, /comfy|opencut|ffmpeg|時間軸剪輯器/i);
+
+  const catalogSrc = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/landing-catalog.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(catalogSrc, /\/app\/life/);
 });
 
 test("landing and feature page components use the clean Studio / Editor design style and dedicated character assets", () => {

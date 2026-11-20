@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { track } from "@/presentation/components/analytics/track";
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LandingHeroArt } from "@/presentation/components/landing-hero-art";
 
@@ -10,7 +11,9 @@ const ease = [0.25, 0.1, 0.25, 1] as const;
 
 // Dense character-design hero on an ink + lime film-studio stage (no flat gray).
 export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZhHant = locale === "zh-Hant";
+  const isZhHans = locale === "zh-Hans";
   const fadeUp = {
     hidden: { opacity: 0, y: 28 },
     visible: (i: number) => ({
@@ -20,6 +23,22 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
     }),
   };
   const platforms = [t("landing.hero.platformReels"), t("landing.hero.platformShorts"), t("landing.hero.platformTiktok")];
+  const primaryLabel = isZhHant
+    ? "⚡ 免費打開 Canvas 創作"
+    : isZhHans
+      ? "⚡ 免费打开 Canvas 创作"
+      : "⚡ Start Creating on Canvas";
+  const secondaryLabel = isZhHant
+    ? "瀏覽 6 款一鍵範本"
+    : isZhHans
+      ? "浏览 6 款一键模板"
+      : "Explore Templates";
+  const quickPills = [
+    { tpl: "talking-head" as const, label: isZhHant ? "🎙️ 真人口播" : isZhHans ? "🎙️ 真人口播" : "🎙️ Talking Head" },
+    { tpl: "explainer" as const, label: isZhHant ? "📊 AI 解說" : isZhHans ? "📊 AI 解说" : "📊 AI Explainer" },
+    { tpl: "scro-swap" as const, label: isZhHant ? "🎭 影片換角" : isZhHans ? "🎭 视频换角" : "🎭 Character Swap" },
+    { tpl: "teleport" as const, label: isZhHant ? "🌍 實景換場" : isZhHans ? "🌍 实景换场" : "🌍 Scene Teleport" },
+  ];
 
   // Viewport under the sticky header on desktop, with min-height guard so shorter laptop screens never clip.
   return (
@@ -85,28 +104,22 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           className="mt-7 flex w-full flex-col justify-center gap-3 sm:mt-9 sm:w-auto sm:flex-row sm:flex-wrap"
         >
           <Link
-            href="/simple"
+            href={canvasLaunchHref(signedIn)}
             onClick={() =>
               track("auth_cta_click", {
-                placement: "landing_hero_try_it_now",
-                target: "/simple",
+                placement: "landing_hero_canvas",
+                target: canvasLaunchHref(signedIn),
               })
             }
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-black text-[#12141c] shadow-[0_12px_36px_rgba(198,242,75,0.32)] transition-transform hover:-translate-y-0.5 hover:bg-[#d4f76a] sm:w-auto sm:px-9"
           >
-            ⚡ Try It Now
+            {primaryLabel}
           </Link>
           <Link
-            href={signedIn ? "/app" : "/sign-up"}
-            onClick={() =>
-              track("auth_cta_click", {
-                placement: "landing_hero",
-                target: signedIn ? "/app" : "/sign-up",
-              })
-            }
+            href="#canvas-templates"
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-8 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/15 sm:w-auto sm:px-9"
           >
-            {signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart")}
+            {secondaryLabel}
           </Link>
         </motion.div>
 
@@ -117,30 +130,15 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           animate="visible"
           className="mt-4 flex flex-wrap justify-center gap-2 text-xs"
         >
-          <Link
-            href="/simple"
-            className="rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/10 px-3 py-1 font-semibold text-[#c6f24b] hover:bg-[#c6f24b]/20"
-          >
-            ⚡ Simple Video (2 cr/s)
-          </Link>
-          <Link
-            href="/explainer"
-            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
-          >
-            📊 Explainer
-          </Link>
-          <Link
-            href="/scroswap"
-            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
-          >
-            🎭 Scro Swap
-          </Link>
-          <Link
-            href="/teleport"
-            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 hover:bg-white/15"
-          >
-            🌍 Teleport
-          </Link>
+          {quickPills.map((pill) => (
+            <Link
+              key={pill.tpl}
+              href={canvasLaunchHref(signedIn, pill.tpl)}
+              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-white/85 transition hover:border-[#c6f24b]/50 hover:bg-[#c6f24b]/15 hover:text-[#c6f24b]"
+            >
+              {pill.label}
+            </Link>
+          ))}
         </motion.div>
       </div>
     </section>

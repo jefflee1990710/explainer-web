@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
@@ -11,13 +12,7 @@ type PowertoolCard = {
   chips: string[];
 };
 
-// Highlights the 6 flagship studio capabilities across Landing & Feature pages:
-// 1. 120s 1-Pass Lip-Sync + Direct Mic/Audio VO Upload + 21 Languages + Dialogue Q&A
-// 2. Scro Swap (SAM 3 Multi-Person Motion Swap / 17-Look Relight) & Teleport Scene Relocation
-// 3. Poster SAM 3 Studio (2K Social Posters + Person/Object/Text Element Inpainting)
-// 4. Storyboard Sketchpad + Whiteboard & Paper Cutout 6-Diagram Explainers
-// 5. OpenCut AI Audio (IG Viral SFX Peak-Aligned + BGM Loop & Auto-Ducking + Silence Trim)
-// 6. 13 Artistic Captions + AI On-Screen Text Stickers + Drift-Free Root Wardrobe
+// Highlights the 6 flagship Scro Canvas capabilities across Landing & Feature pages (zero technical jargon).
 export function StudioPowertoolsBand({
   signedIn = false,
   tone = "light",
@@ -31,90 +26,90 @@ export function StudioPowertoolsBand({
 
   const copy = isZh
     ? {
-        eyebrow: "全新升級 · 6 大 AI Studio 創作引擎",
-        title: "由 120 秒一鏡到底口播、Scro Swap 換角換場、SAM 3 海報重繪到 AI 自動對拍剪輯，一站完成。",
+        eyebrow: "SCRO CANVAS · 一站式 AI 媒體工作台",
+        title: "從靈感、配音、生片、換角換場到自動合併混音，全部喺同一塊畫布輕鬆完成。",
         subtitle:
-          "我們將虛擬 IP 經營、實拍影片改造與專業後期剪接全面整合進 Scro 工作台，讓你不用切換多個工具就能穩定日更爆款短片與海報。",
+          "唔使面對複雜參數同零散工具。無論係單段口播定多段串接工作流，拖放或問 AI 助理一句就可以自動在雲端完成。",
         cards: [
           {
-            badge: "01 · 120s 對嘴口播 & 21 語原聲直出",
-            title: "單段 120 秒 1080p 對嘴 + 雙人 Q&A + 原聲直傳",
-            body: "支援單段最長 120 秒一鏡到底 1080p 自然對嘴（每秒僅 $0.18，已含語音），內建雙人對談 Q&A、雜誌人物專訪及口播穿插 B-Roll 導演；可跟著提詞稿用麥克風直錄或上傳原聲免 TTS 直出，支援廣東話等 21 國語言。",
-            chips: ["120s 一鏡到底 ($0.18/s)", "雙人對談 Q&A & 專訪", "原聲直錄 / 21 國語言"],
+            badge: "01 · 120 秒真人口播 & AI 配音",
+            title: "輸入講稿或語音，一鍵生成自然對嘴口播",
+            body: "支援最長 120 秒 1080p 高清真人口播（$0.18/秒），並內置即時 AI 配音積木，支援廣東話、國語同英文等 21 國語言與語速微調。",
+            chips: ["120 秒 1080p 對嘴", "廣東話等 21 國配音", "語速自由微調"],
           },
           {
-            badge: "02 · Scro Swap 換角 & Teleport 換場",
-            title: "SAM 3 多人影片換角、17 款電影打光與一鍵換場",
-            body: "透過 SAM 3 RLE 像素級輪廓追蹤，在實拍或分鏡影片中實現 N 對 N 多人指定換角、換物換衫與 17 款電影級重新打光（Scro Swap），或鎖定原片人物動作與原聲嘴型一鍵搬入新場景（Teleport），並支援在時間軸剪輯器內單鏡原地替換。",
-            chips: ["SAM 3 多人影片換角", "17 款電影級打光", "Teleport 鎖動作換場"],
+            badge: "02 · 影片換角 & 實景換場",
+            title: "Scro Swap 換角換裝 ＋ Teleport 一鍵換場",
+            body: "直接將現有影片主角替換成你嘅專屬 AI 角色或自訂穿搭，並套用 17 款電影打光；或者保留原片人物與嘴型動作，一鍵搬入全新場景。",
+            chips: ["保留動作同光影", "17 款電影打光", "鎖住人物一鍵換場"],
           },
           {
-            badge: "03 · Poster Studio & SAM 3 局部重繪",
-            title: "2K 社群海報生成 + 人物／物件／文字獨立重繪",
-            body: "結合 Scro 角色穿搭與真實商品藍圖生成 2K 社群海報，並由 SAM 3 自動分離畫面中的「人物（Person）」、「物件（Object）」與「文字（Text）」三層輪廓，點選任意元素即可原位換人、換產品、改字或無縫移除。",
-            chips: ["2K 品牌海報生成", "SAM 3 三層元素分離", "點選局部重繪 & 改字"],
+            badge: "03 · AI 解說動畫短片",
+            title: "白板手繪、剪紙拼貼與 3D 摺紙解說",
+            body: "輸入主題或筆記，自動規劃多段視覺圖表、藝術標題字卡同流暢旁白，並全自動合併成完整短片，適合知識分享同產品教學。",
+            chips: ["白板／剪紙／摺紙風格", "自動畫出圖表字卡", "多段全自動合片"],
           },
           {
-            badge: "04 · 手繪分鏡畫板 & 結構化 Explainer",
-            title: "白板塗鴉 + 剪紙拼貼 6 大圖表模型 + 先審畫格",
-            body: "支援 Step 03 手繪分鏡草稿與 AI 對話室預先規劃，先審核 2K 關鍵畫格（$0.15/張）再渲染影片；內建白板手繪、Paper Cutout 剪紙拼貼（6 大結構化圖表模型）、清單盤點、對比卡與流程宣傳導演。",
-            chips: ["白板 & 剪紙拼貼圖表", "手繪分鏡 & AI 對話室", "先審畫格省重試成本"],
+            badge: "04 · 自動合併剪輯 & 混音",
+            title: "多段無縫串接、自動配音混音與比例裁切",
+            body: "喺畫布直接將多條影片自動合併（支援淡入淡出轉場），把 AI 旁白或背景音樂自動混入並壓低原聲，一鍵裁切 9:16／16:9／1:1。",
+            chips: ["最多 8 段影片串接", "自動壓低背景音", "一鍵 9:16／16:9"],
           },
           {
-            badge: "05 · IG 熱門 SFX 峰值對拍 & BGM 自動避人聲",
-            title: "自動去頭尾靜音 + IG Viral SFX + BGM Auto-Ducking",
-            body: "時間軸載入片段自動裁除頭尾死白；AI 自動偵測轉場切點、字卡彈出與畫面動作，匹配內建 12 款 IG Reels 熱門 SFX 與 ElevenLabs AI Foley（20ms RMS 峰值對齊），並為 BGM 自動循環鋪底及寫入避開人聲的 Auto-Ducking 音量曲線。",
-            chips: ["12 款 IG 熱門 SFX 對拍", "BGM Auto-Ducking 避人聲", "自動去頭尾死白 & B-Roll"],
+            badge: "05 · 免費 Canvas AI 助理",
+            title: "打字講出想法，AI 幫你自動砌好成條流程",
+            body: "唔知點駁線？喺畫布下方用廣東話、中文或英文話俾 AI 助理知你想整咩，佢會自動幫你揀啱工具、填好角色同駁好線（對話完全免費）。",
+            chips: ["免費自然語言砌圖", "支援 6 種對話語言", "隨時一鍵 Undo"],
           },
           {
-            badge: "06 · 13 款藝術字幕 + AI 字卡 + 換裝鎖臉",
-            title: "原生藝術字幕、AI 透明底視覺字卡與 v1–v10 鎖臉",
-            body: "一鍵生成 13 款可編輯藝術字幕（中英雙語 Google Fonts）及 AI 去背貼紙字卡（撕紙、霓虹、立體字），轉場自動置於字幕層之下絕不遮字；搭配原始五官錨定技術，連續換裝 10 代依然 100% 鎖定同一張臉。",
-            chips: ["13 款藝術字幕 & AI 字卡", "字幕獨立特效 & 防遮擋轉場", "v1–v10 換裝零走樣"],
+            badge: "06 · 2K 海報、生活照 & 角色庫",
+            title: "一次鎖臉鎖聲，全平台內容保持 100% 一致",
+            body: "結合你嘅鎖臉角色同商品圖庫，喺畫布隨時生成 2K 生活照、社群海報或最新頂級生圖與生片模型，所有背景執行關掉網頁都會自動完成。",
+            chips: ["2K 海報與生活照", "多代換裝零走樣", "雲端背景自動跑完"],
           },
         ] satisfies PowertoolCard[],
       }
     : {
-        eyebrow: "New in Scro Studio · 6-in-1 Creator Engine",
-        title: "120s lip-sync, Scro Swap, Teleport, SAM 3 Poster Studio, and AI peak-aligned editing in one workspace.",
+        eyebrow: "SCRO CANVAS · ALL-IN-ONE CREATIVE WORKSPACE",
+        title: "Voice, video, character swap, scene teleport, and auto-assembly on one simple canvas.",
         subtitle:
-          "Six integrated studio engines take you from virtual IP creation and live-video character/scene swapping to viral post-production without switching tools.",
+          "No technical hurdles or scattered tools. Start from a template or ask the free AI Assistant, then let our cloud pipeline render and merge everything automatically.",
         cards: [
           {
-            badge: "01 · 120s Lip-Sync & 21 Languages",
-            title: "Up to 120s 1-pass 1080p talking-head + Dialogue Q&A",
-            body: "Render up to 120-second continuous 1080p talking-head clips in one pass (just $0.18/s, voice included). Includes Dialogue Q&A, Editorial Interview, and Talking B-Roll directors, plus direct mic/audio VO upload and 21 matched languages.",
-            chips: ["120s 1-Pass ($0.18/s)", "Dialogue Q&A & Interview", "Direct VO Upload & 21 Languages"],
+            badge: "01 · 120s Lip-Sync & AI Voice",
+            title: "Up to 120s 1080p talking-head + instant AI voiceover",
+            body: "Generate natural 1080p talking-head videos up to 120 seconds ($0.18/s), or pair any clip with instant AI voiceovers in 21 languages including Cantonese, Mandarin, and English.",
+            chips: ["120s 1080p Lip-Sync", "21-Language AI Voice", "Adjustable Speech Pace"],
           },
           {
-            badge: "02 · Scro Swap & Teleport",
-            title: "SAM 3 multi-person motion swap, 17-look relight & scene teleport",
-            body: "Use SAM 3 RLE pixel masks for N-to-N multi-person character swap, object/wardrobe replacement, and 17-look cinematic relighting (Scro Swap), or relocate your speaker into any new scene while preserving motion and lip-sync (Teleport) — standalone or right inside the studio timeline.",
-            chips: ["SAM 3 Multi-Person Swap", "17 Cinematic Light Looks", "Teleport Scene Relocation"],
+            badge: "02 · Character Swap & Teleport",
+            title: "Swap performers or relocate anyone into a new scene",
+            body: "Drop a reference clip to swap the person or outfit into your AI character with 17 cinematic lighting looks, or keep the speaker and move them into any new location.",
+            chips: ["Motion & Light Lock", "17 Cinematic Looks", "1-Click Scene Teleport"],
           },
           {
-            badge: "03 · Poster Studio & SAM 3 Inpainting",
-            title: "2K social posters + Person / Object / Text element inpainting",
-            body: "Generate 2K social posters with your AI Influencer and product blueprints, then let SAM 3 automatically segment every Person, Object, and Text layer so you can click any element to swap characters, replace products, edit copy, or erase cleanly.",
-            chips: ["2K Poster Generation", "SAM 3 3-Layer Segmentation", "Click-to-Inpaint Elements"],
+            badge: "03 · Automated AI Explainers",
+            title: "Whiteboard, paper cutout & 3D papercraft reels",
+            body: "Turn any topic or article into a complete multi-scene animated explainer with crisp on-screen titles, diagrams, and synchronized voiceover—assembled automatically.",
+            chips: ["3 Signature Visual Styles", "Auto Storyboard & Voice", "Ready-to-Post Reel"],
           },
           {
-            badge: "04 · Storyboard Sketchpad & Explainers",
-            title: "Whiteboard & Paper Cutout 6-diagram explainers + keyframe approval",
-            body: "Sketch rough layouts or co-write scenes in AI chat and approve 2K keyframes ($0.15/image) before rendering video. Includes Whiteboard Doodle, Paper Cutout (6 structured diagram models), Listicle, Comparison Card, and Workflow Promo directors.",
-            chips: ["Whiteboard & Paper Cutout", "Interactive Sketchpad", "Approve Keyframes First"],
+            badge: "04 · Auto-Merge, Mix & Resize",
+            title: "Stitch clips, mix voiceover & format ratios effortlessly",
+            body: "Join up to 8 clips with smooth transitions, blend voiceovers over background audio with automatic volume ducking, trim silence, and resize to 9:16, 16:9, or 1:1.",
+            chips: ["Multi-Clip Auto Merge", "Auto Voice & Music Mix", "Instant Ratio Formatting"],
           },
           {
-            badge: "05 · IG Viral SFX & BGM Auto-Ducking",
-            title: "Auto silence trim + peak-aligned IG Viral SFX + BGM ducking",
-            body: "Scro Studio trims leading/trailing dead air on load, aligns 12 curated IG Reels Viral SFX and ElevenLabs AI Foley peaks (20ms RMS) directly onto cuts and text pops, and loops BGM with automated volume ducking keyframes under spoken VO.",
-            chips: ["12 IG Viral SFX Pack", "BGM Auto-Ducking Keyframes", "Auto Silence Trim & B-Roll"],
+            badge: "05 · Free Canvas AI Assistant",
+            title: "Just type what you want—AI builds the workflow for you",
+            body: "Not sure which blocks to connect? Describe your goal in plain language right below the canvas and the AI Assistant wires the right tools and characters automatically for free.",
+            chips: ["Free Workflow Builder", "6 Chat Languages", "Instant Undo"],
           },
           {
-            badge: "06 · Artistic Captions, AI Cards & Face Lock",
-            title: "13 caption styles, AI On-Screen Text stickers & drift-free wardrobe",
-            body: "Generate editable subtitle tracks with 13 artistic presets, bilingual Google Fonts, and transparent AI On-Screen Text sticker plates (torn paper, neon, 3D) while root-anchored wardrobe edits keep facial identity 100% locked from v1 to v10.",
-            chips: ["13 Captions & AI Text Cards", "Clip-Level Effects & Smart Transitions", "v1–v10 Face Lock"],
+            badge: "06 · 2K Posters, Life Shots & IP Lock",
+            title: "Consistent face, voice & product visuals across every run",
+            body: "Drop your saved AI Influencer or product blueprints into any Canvas workflow to create 2K lifestyle shots, posters, and video clips—running reliably in the background.",
+            chips: ["2K Posters & Life Shots", "Consistent Character IP", "Background Cloud Runs"],
           },
         ] satisfies PowertoolCard[],
       };
@@ -214,10 +209,10 @@ export function StudioPowertoolsBand({
           align="center"
           tone={isDark ? "dark" : "light"}
           primary={{
-            href: signedIn ? "/app" : "/sign-up",
-            label: signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart"),
+            href: canvasLaunchHref(signedIn),
+            label: isZh ? "免費進入 Scro Canvas" : "Open Scro Canvas",
           }}
-          secondary={{ href: "/right-tool", label: t("nav.featuresRightTool") }}
+          secondary={{ href: "/examples", label: t("nav.features") }}
         />
       </div>
     </section>

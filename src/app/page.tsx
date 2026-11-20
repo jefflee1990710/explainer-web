@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
+import { LandingCanvasShowcase } from "@/presentation/components/landing-canvas-showcase";
+import { LandingCanvasTemplates } from "@/presentation/components/landing-canvas-templates";
 import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingCatalog } from "@/presentation/components/landing-catalog";
 import { LandingFreeCredit } from "@/presentation/components/landing-free-credit";
-import { LandingExplainerReel } from "@/presentation/components/landing-explainer-reel";
 import { LandingHero } from "@/presentation/components/landing-hero";
-import { LandingDirector } from "@/presentation/components/landing-director";
-import { LandingIp } from "@/presentation/components/landing-ip";
-import { LandingKol } from "@/presentation/components/landing-kol";
 import { LandingSteps } from "@/presentation/components/landing-steps";
-import { LandingUseCases } from "@/presentation/components/landing-use-cases";
 import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { PLANS } from "@/service/billing/plans";
 import { catalogShowcaseStats } from "@/service/character/catalog-stats";
@@ -30,12 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-// Plans live on /pricing. Landing leads with explainer videos and the AI Influencer who hosts them.
+// Canvas-First Homepage: interactive workflow showcase, 6 one-click templates, 3 steps, AI Characters, and Canvas studio engine.
 export default async function HomePage() {
   const [session, locale] = await Promise.all([getAuthSession(), getRequestLocale()]);
   const messages = getMessages(locale);
   const siteUrl = getSiteUrl();
   const catalogStats = catalogShowcaseStats();
+  const signedIn = Boolean(session);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -67,7 +65,7 @@ export default async function HomePage() {
       {
         "@type": "SoftwareApplication",
         "@id": `${siteUrl}/#software`,
-        name: "Scro",
+        name: "Scro Canvas",
         applicationCategory: "MultimediaApplication",
         operatingSystem: "Web",
         url: siteUrl,
@@ -81,14 +79,14 @@ export default async function HomePage() {
           url: `${siteUrl}/pricing`,
         },
         featureList: [
-          "AI Influencer Identity Lock & Root-Anchored Custom Wardrobe",
-          "Up to 120s 1080p Lip-Sync Talking-Head & 2-Speaker Dialogue Q&A",
-          "21-Language Voice Cloning (including Hong Kong Cantonese) & Direct Mic Recording",
-          "Whiteboard Doodle & Paper Cutout 6-Diagram Explainer Videos",
-          "Scro Swap: SAM 3 Multi-Person Video Character Motion Swap & 17-Look Cinematic Relight",
-          "Teleport: AI Video Scene & Background Relocation",
-          "Poster Studio: 2K Social Posters with SAM 3 Person/Object/Text Inpainting",
-          "Multi-Track AI Video Editor with IG Viral SFX Peak Alignment & BGM Auto-Ducking",
+          "Scro Canvas Visual AI Workflow Studio with 6 One-Click Templates",
+          "Free Canvas AI Assistant that builds workflows from natural language",
+          "Up to 120s 1080p Lip-Sync Talking-Head Videos & 21-Language AI Voiceovers",
+          "Whiteboard, Paper Cutout & 3D Papercraft Automated Explainer Videos",
+          "Scro Swap Character & Outfit Replacement with 17 Cinematic Lighting Looks",
+          "Scene Teleport: Keep Subject Motion & Voice While Relocating Backgrounds",
+          "2K Posters, Lifestyle Photos & Consistent AI Character Identity Lock",
+          "Automated Multi-Clip Merging, Voice Mixing, Trimming & Aspect Formatting",
         ],
       },
     ],
@@ -100,17 +98,14 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <LandingHero signedIn={Boolean(session)} />
-      <LandingExplainerReel signedIn={Boolean(session)} />
+      <LandingHero signedIn={signedIn} />
+      <LandingCanvasShowcase signedIn={signedIn} />
+      <LandingCanvasTemplates signedIn={signedIn} />
+      <LandingSteps signedIn={signedIn} />
       <LandingCast />
-      <LandingIp />
-      <LandingCatalog stats={catalogStats} signedIn={Boolean(session)} />
-      <LandingKol />
-      <LandingUseCases signedIn={Boolean(session)} />
-      <LandingSteps signedIn={Boolean(session)} />
-      <StudioPowertoolsBand signedIn={Boolean(session)} />
-      <LandingDirector />
-      <LandingFreeCredit signedIn={Boolean(session)} />
+      <LandingCatalog stats={catalogStats} signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
+      <LandingFreeCredit signedIn={signedIn} />
     </PolicyLayout>
   );
 }

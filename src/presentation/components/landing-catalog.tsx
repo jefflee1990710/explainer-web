@@ -1,5 +1,6 @@
 "use client";
 
+import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -101,7 +102,7 @@ export function LandingCatalog({
             label: t("landing.catalog.cta"),
           }}
           secondary={{
-            href: signedIn ? "/app/life" : "/ai-influencer",
+            href: canvasLaunchHref(signedIn),
             label: t("landing.catalog.ctaSecondary"),
           }}
         />
