@@ -223,7 +223,6 @@ describe("canvas model catalog", () => {
     }> = [
       { slug: "bytedance-seed/seedream-5-0-pro", category: "image", output: "image", refMax: 14 },
       { slug: "bytedance-seed/seedream-5-0-lite", category: "image", output: "image", refMax: 14 },
-      { slug: "google/gemini-nano-banana-2.1", category: "image", output: "image", refMax: 14 },
       { slug: "bytedance-seed/seedream-5-5", category: "image", output: "image", refMax: 10 },
       { slug: "minimax/hailuo-3", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0", category: "video", output: "video", refMax: 4 },
@@ -249,7 +248,10 @@ describe("canvas model catalog", () => {
 
     assert.equal(findCanvasModel("openrouter:openai/gpt-5-image"), undefined);
     assert.equal(findCanvasModel("openrouter:openai/gpt-5-image-mini"), undefined);
-    assert.equal(findCanvasModel("openrouter:google/veo-3.1")?.category, "video");
+    assert.equal(findCanvasModel("openrouter:google/gemini-nano-banana-2.1"), undefined);
+    assert.equal(findCanvasModel("openrouter:openai/gpt-image-2"), undefined);
+    assert.equal(findCanvasModel("openrouter:google/veo-3.1"), undefined);
+    assert.equal(findCanvasModel("openrouter:google/veo-3.1-fast"), undefined);
 
     const avatar = findCanvasModel("openrouter:heygen/avatar-iv");
     assert.equal(avatar?.inputs.find((p) => p.id === "startImage")?.required, true);

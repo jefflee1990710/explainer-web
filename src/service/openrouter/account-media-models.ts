@@ -1,9 +1,11 @@
 import type { AspectRatio } from "@/model/project";
 
-// Snapshot of this OpenRouter account's image and video generation models.
-// Taken from GET /api/v1/images/models and GET /api/v1/videos/models.
-// openai/gpt-5-image and openai/gpt-5-image-mini are omitted on purpose.
-
+// Snapshot of OpenRouter image and video models this account can run on the canvas.
+// Each row was checked with the same POST body the canvas sends.
+// Kept: HTTP 200 (images) or 202 (videos), plus models whose only failure is a missing
+// reference image, video, or HTTPS audio that the canvas node supplies.
+// Dropped: provider Terms of Service 403s, including GPT Image, Gemini image, Omni, and Veo.
+// openai/gpt-5-image and openai/gpt-5-image-mini stay omitted; their POST is also 403.
 export type OpenRouterAccountImageModel = {
   id: string;
   name: string;
@@ -190,52 +192,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
     ]
   },
   {
-    "id": "openai/gpt-image-2.6-sunburst",
-    "name": "OpenAI: GPT Image 2.6 Sunburst",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4",
-      "2:1",
-      "1:2",
-      "3:1",
-      "1:3"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "openai/gpt-image-2.6-flare",
-    "name": "OpenAI: GPT Image 2.6 Flare",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4",
-      "2:1",
-      "1:2",
-      "3:1",
-      "1:3"
-    ],
-    "resolutions": []
-  },
-  {
     "id": "sourceful/riverflow-v2.6-pro",
     "name": "Sourceful: Riverflow V2.6 Pro",
     "refMin": 0,
@@ -362,33 +318,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
     ]
   },
   {
-    "id": "google/gemini-nano-banana-2.1",
-    "name": "Google: Nano Banana 2.1",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "1:4",
-      "1:8",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:1",
-      "4:3",
-      "4:5",
-      "5:4",
-      "8:1",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "1K",
-      "2K",
-      "4K"
-    ]
-  },
-  {
     "id": "tencent/hy-image-v3.5-preview",
     "name": "Tencent: Hy Image 3.5 Preview",
     "refMin": 0,
@@ -492,52 +421,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
       "4:5",
       "16:9",
       "9:16"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "openai/gpt-image-2.5-sunburst",
-    "name": "OpenAI: GPT Image 2.5 Sunburst",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4",
-      "2:1",
-      "1:2",
-      "3:1",
-      "1:3"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "openai/gpt-image-2.5-flare",
-    "name": "OpenAI: GPT Image 2.5 Flare",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4",
-      "2:1",
-      "1:2",
-      "3:1",
-      "1:3"
     ],
     "resolutions": []
   },
@@ -874,129 +757,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
     ]
   },
   {
-    "id": "google/gemini-3.1-flash-lite-image",
-    "name": "Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "1:4",
-      "1:8",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:1",
-      "4:3",
-      "4:5",
-      "5:4",
-      "8:1",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "1K"
-    ]
-  },
-  {
-    "id": "openai/gpt-image-2",
-    "name": "OpenAI: GPT Image 2",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4",
-      "2:1",
-      "1:2",
-      "3:1",
-      "1:3"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "openai/gpt-image-1-mini",
-    "name": "OpenAI: GPT Image 1 Mini",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "openai/gpt-image-1",
-    "name": "OpenAI: GPT Image 1",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "google/gemini-3.1-flash-image",
-    "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "1:4",
-      "1:8",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:1",
-      "4:3",
-      "4:5",
-      "5:4",
-      "8:1",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "512",
-      "1K",
-      "2K",
-      "4K"
-    ]
-  },
-  {
-    "id": "google/gemini-3-pro-image",
-    "name": "Google: Nano Banana Pro (Gemini 3 Pro Image)",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:3",
-      "4:5",
-      "5:4",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "1K",
-      "2K",
-      "4K"
-    ]
-  },
-  {
     "id": "sourceful/riverflow-v2.5-pro",
     "name": "Sourceful: Riverflow V2.5 Pro",
     "refMin": 0,
@@ -1274,53 +1034,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
     "resolutions": []
   },
   {
-    "id": "openai/gpt-5.4-image-2",
-    "name": "OpenAI: GPT-5.4 Image 2",
-    "refMin": 0,
-    "refMax": 16,
-    "aspects": [
-      "1:1",
-      "3:2",
-      "2:3",
-      "4:3",
-      "3:4",
-      "16:9",
-      "9:16",
-      "21:9",
-      "4:5",
-      "5:4"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "google/gemini-3.1-flash-image-preview",
-    "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image Preview)",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "1:4",
-      "1:8",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:1",
-      "4:3",
-      "4:5",
-      "5:4",
-      "8:1",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "512",
-      "1K",
-      "2K",
-      "4K"
-    ]
-  },
-  {
     "id": "sourceful/riverflow-v2-pro",
     "name": "Sourceful: Riverflow V2 Pro",
     "refMin": 0,
@@ -1404,7 +1117,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
       "21:9"
     ],
     "resolutions": [
-      "1K",
       "2K",
       "4K"
     ]
@@ -1457,48 +1169,6 @@ export const OPENROUTER_ACCOUNT_IMAGE_MODELS: readonly OpenRouterAccountImageMod
       "2:3",
       "16:9",
       "9:16",
-      "21:9"
-    ],
-    "resolutions": []
-  },
-  {
-    "id": "google/gemini-3-pro-image-preview",
-    "name": "Google: Nano Banana Pro (Gemini 3 Pro Image Preview)",
-    "refMin": 0,
-    "refMax": 14,
-    "aspects": [
-      "1:1",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:3",
-      "4:5",
-      "5:4",
-      "9:16",
-      "16:9",
-      "21:9"
-    ],
-    "resolutions": [
-      "1K",
-      "2K",
-      "4K"
-    ]
-  },
-  {
-    "id": "google/gemini-2.5-flash-image",
-    "name": "Google: Nano Banana (Gemini 2.5 Flash Image)",
-    "refMin": 0,
-    "refMax": 3,
-    "aspects": [
-      "1:1",
-      "2:3",
-      "3:2",
-      "3:4",
-      "4:3",
-      "4:5",
-      "5:4",
-      "9:16",
-      "16:9",
       "21:9"
     ],
     "resolutions": []
@@ -1575,71 +1245,6 @@ export const OPENROUTER_ACCOUNT_VIDEO_MODELS: readonly OpenRouterAccountVideoMod
       28,
       29,
       30
-    ],
-    "frames": [
-      "first_frame",
-      "last_frame"
-    ],
-    "avatar": false,
-    "videoIn": false
-  },
-  {
-    "id": "google/gemini-omni-1.2-flash",
-    "name": "Google: Gemini Omni 1.2 Flash",
-    "resolutions": [
-      "720p",
-      "1080p",
-      "4K",
-      "360p"
-    ],
-    "aspects": [
-      "16:9",
-      "9:16"
-    ],
-    "durations": [
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15
-    ],
-    "frames": [
-      "first_frame",
-      "last_frame"
-    ],
-    "avatar": false,
-    "videoIn": false
-  },
-  {
-    "id": "google/gemini-omni-1.1-flash",
-    "name": "Google: Gemini Omni 1.1 Flash",
-    "resolutions": [
-      "720p",
-      "1080p",
-      "4K",
-      "360p"
-    ],
-    "aspects": [
-      "16:9",
-      "9:16"
-    ],
-    "durations": [
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10
     ],
     "frames": [
       "first_frame",
@@ -2376,53 +1981,6 @@ export const OPENROUTER_ACCOUNT_VIDEO_MODELS: readonly OpenRouterAccountVideoMod
     "videoIn": false
   },
   {
-    "id": "google/veo-3.1-fast",
-    "name": "Google: Veo 3.1 Fast",
-    "resolutions": [
-      "720p",
-      "1080p",
-      "4K"
-    ],
-    "aspects": [
-      "16:9",
-      "9:16"
-    ],
-    "durations": [
-      4,
-      6,
-      8
-    ],
-    "frames": [
-      "first_frame",
-      "last_frame"
-    ],
-    "avatar": false,
-    "videoIn": false
-  },
-  {
-    "id": "google/veo-3.1-lite",
-    "name": "Google: Veo 3.1 Lite",
-    "resolutions": [
-      "720p",
-      "1080p"
-    ],
-    "aspects": [
-      "16:9",
-      "9:16"
-    ],
-    "durations": [
-      8,
-      4,
-      6
-    ],
-    "frames": [
-      "first_frame",
-      "last_frame"
-    ],
-    "avatar": false,
-    "videoIn": false
-  },
-  {
     "id": "kwaivgi/kling-video-o1",
     "name": "Kling: Video O1",
     "resolutions": [
@@ -2588,30 +2146,6 @@ export const OPENROUTER_ACCOUNT_VIDEO_MODELS: readonly OpenRouterAccountVideoMod
     ],
     "frames": [
       "first_frame"
-    ],
-    "avatar": false,
-    "videoIn": false
-  },
-  {
-    "id": "google/veo-3.1",
-    "name": "Google: Veo 3.1",
-    "resolutions": [
-      "720p",
-      "1080p",
-      "4K"
-    ],
-    "aspects": [
-      "16:9",
-      "9:16"
-    ],
-    "durations": [
-      4,
-      6,
-      8
-    ],
-    "frames": [
-      "first_frame",
-      "last_frame"
     ],
     "avatar": false,
     "videoIn": false

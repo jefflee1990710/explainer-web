@@ -80,7 +80,87 @@ describe("runCanvasAgentTurn", () => {
     });
     assert.equal(calls.length, 2);
     assert.equal(calls[1]!.tools, undefined);
+    assert.match(calls[1]!.system, /no more tool calls/);
+    assert.doesNotMatch(calls[1]!.system, /Models you may use/);
     assert.equal(res.reply, "Summary.");
+  });
+
+  it("stops on ask_user and returns the question without a summary call", async () => {
+    let count = 0;
+    const res = await runCanvasAgentTurn({
+      ...base,
+      message: "make product shots",
+      history: [],
+      generate: async ({ tools }) => {
+        count += 1;
+        await call(tools, "ask_user", {
+          question: "Which product?",
+          options: ["Bottle", "Mug"],
+          allowMultiple: true,
+        });
+        return { text: "", endedOnToolCalls: true };
+      },
+    });
+    assert.equal(count, 1);
+    assert.equal(res.reply, "Which product?");
+    assert.deepEqual(res.question?.options.map((o) => o.label), ["Bottle", "Mug"]);
+    assert.equal(res.question?.allowMultiple, true);
+    assert.equal(res.question?.allowOther, true);
+  });
+
+  it("runs a repair pass for unwired new nodes, then summarizes the fixed graph", async () => {
+    const calls: Call[] = [];
+    const nodes = ["a", "b"].map((name) => ({
+      id: `media-${name}`,
+      type: "media" as const,
+      position: { x: 0, y: 0 },
+      data: { label: name, mediaKind: "image" as const, mediaUrl: `https://x/${name}.png` },
+    }));
+    let editId: string | undefined;
+    const res = await runCanvasAgentTurn({
+      ...base,
+      nodes,
+      message: "edit b",
+      history: [],
+      generate: async (c) => {
+        calls.push(c);
+        if (calls.length === 1) {
+          editId = (await call(c.tools, "add_model_node", { modelId: "openrouter:krea/k3-edit", promptText: "red" })).nodeId;
+          return { text: "Done.", endedOnToolCalls: false };
+        }
+        if (calls.length === 2) {
+          await call(c.tools, "connect", { sourceId: "media-b", targetId: editId, targetPort: "refImages" });
+          return { text: "Fixed.", endedOnToolCalls: false };
+        }
+        return { text: "Ready to run.", endedOnToolCalls: false };
+      },
+    });
+    assert.equal(calls.length, 3);
+    assert.match(calls[1]!.system, /Gaps to fix/);
+    assert.match(calls[1]!.system, /media-a .*media-b/);
+    assert.equal(calls[2]!.tools, undefined);
+    assert.doesNotMatch(calls[2]!.system, /Still missing/);
+    assert.equal(res.reply, "Ready to run.");
+    assert.ok(res.edges.some((e) => e.source === "media-b" && e.target === editId));
+  });
+
+  it("names inputs that are still missing when nothing can feed them", async () => {
+    const calls: Call[] = [];
+    await runCanvasAgentTurn({
+      ...base,
+      message: "edit my photo",
+      history: [],
+      generate: async (c) => {
+        calls.push(c);
+        if (calls.length === 1) {
+          await call(c.tools, "add_model_node", { modelId: "openrouter:krea/k3-edit", promptText: "red" });
+        }
+        return { text: "ok", endedOnToolCalls: false };
+      },
+    });
+    assert.equal(calls.length, 3);
+    assert.match(calls[2]!.system, /Still missing/);
+    assert.match(calls[2]!.system, /No node on the canvas can feed it/);
   });
 
   it("skips the grace call when the first call answered", async () => {

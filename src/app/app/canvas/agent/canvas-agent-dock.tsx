@@ -204,7 +204,7 @@ export function CanvasAgentDock({
               <CanvasAgentEmpty copy={copy} disabled={busy} onPick={(text) => void send(text)} />
             ) : null}
 
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <CanvasAgentMessage
                 key={message.id}
                 copy={copy}
@@ -212,6 +212,10 @@ export function CanvasAgentDock({
                 role={message.role}
                 text={message.text}
                 ops={message.ops}
+                question={message.question}
+                questionAnswered={index < messages.length - 1 || pendingText !== null}
+                questionDisabled={busy}
+                onAnswer={(answer) => void send(answer)}
                 note={notes.get(message.id)}
                 canUndo={message.id === undoableId && !busy}
                 undone={undoneIds.has(message.id)}

@@ -1,0 +1,11 @@
+<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <title>Kling</title>
+  <defs>
+    <linearGradient id="kling" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5CE1FF"/>
+      <stop offset="0.55" stop-color="#7C6CFF"/>
+      <stop offset="1" stop-color="#FF4D8D"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#kling)" d="M4.2 3.2h4.1l5.2 6.55V3.2H17.8v17.6h-4.3V11.7l-5.15 9.1H4.2l5.7-9.35L4.2 3.2Z"/>
+</svg>

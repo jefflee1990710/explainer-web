@@ -1,8 +1,9 @@
 "use client";
 
-// Collapsible left drawer for /app/canvas with two tabs:
-// 1) Models (OpenRouter only, searchable, filterable, draggable or click-to-add)
-// 2) Assets (Local upload + Scro Characters, Products, and Recent Canvas Outputs)
+// Collapsible left drawer for /app/canvas:
+// 1) Models (generators, edit, cutout, upscale)
+// 2) Tools (Scro pipelines and FFmpeg)
+// 3) Assets (upload, characters, products, recent outputs)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -23,6 +24,7 @@ import type {
   CanvasLibraryAsset,
   CanvasLibraryAssetsResult,
 } from "@/service/canvas/projects";
+import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
 import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
 
@@ -34,15 +36,16 @@ const SIDEBAR_MIN_WIDTH = 220;
 const SIDEBAR_MAX_WIDTH = 520;
 const SIDEBAR_DEFAULT_WIDTH = 276;
 
-// Models are generative AI only. Scro tools, editors, and FFmpeg live on the Tools tab.
-const MODEL_CATEGORIES: CanvasModelCategory[] = ["image", "video", "audio"];
-const TOOL_CATEGORIES: CanvasModelCategory[] = [
-  "scro-tool",
+// Models hold generators plus edit, cutout, and upscale. Tools are Scro pipelines and FFmpeg.
+const MODEL_CATEGORIES: CanvasModelCategory[] = [
+  "image",
+  "video",
+  "audio",
   "editing",
   "segmentation",
   "upscale",
-  "ffmpeg",
 ];
+const TOOL_CATEGORIES: CanvasModelCategory[] = ["scro-tool", "ffmpeg"];
 
 export function CanvasSidebar({
   locale,
@@ -142,11 +145,12 @@ export function CanvasSidebar({
       if (!q) return true;
       return (
         spec.name.toLowerCase().includes(q) ||
+        canvasModelDisplayName(spec, locale).toLowerCase().includes(q) ||
         spec.providerModelId.toLowerCase().includes(q) ||
         spec.category.toLowerCase().includes(q)
       );
     });
-  }, [listedModels, query, activeCategory]);
+  }, [listedModels, query, activeCategory, locale]);
 
   return (
     <aside
@@ -160,7 +164,7 @@ export function CanvasSidebar({
         onPointerDown={startResize}
         className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
       />
-      {/* Models are image / video / audio. Tools hold Scro, edit, cutout, upscale, and FFmpeg. */}
+      {/* Models include image, video, audio, edit, cutout, and upscale. Tools are Scro and FFmpeg. */}
       <div className="grid grid-cols-3 gap-1 border-b border-white/8 p-2">
         <button
           type="button"
@@ -277,7 +281,7 @@ export function CanvasSidebar({
                     <div
                       key={spec.id}
                       draggable
-                      title={spec.name}
+                      title={canvasModelDisplayName(spec, locale)}
                       onDragStart={(e) => {
                         e.dataTransfer.setData(CANVAS_DRAG_MODEL_MIME, spec.id);
                         e.dataTransfer.effectAllowed = "copy";
@@ -292,7 +296,7 @@ export function CanvasSidebar({
                         />
                       </span>
                       <span className="line-clamp-2 w-full text-[10px] leading-3 font-semibold text-white/90">
-                        {spec.name}
+                        {canvasModelDisplayName(spec, locale)}
                       </span>
                     </div>
                   ))}

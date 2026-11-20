@@ -101,7 +101,7 @@ const NODE_TYPES = {
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const JOB_POLL_INTERVAL_MS = 3_000;
 // Pause between agent ops so the user can watch the graph being built.
-const AGENT_OP_STEP_MS = 250;
+const AGENT_OP_STEP_MS = 90;
 
 type FlowNode = Node<CanvasNodeData, CanvasNodeType>;
 

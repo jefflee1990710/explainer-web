@@ -2,7 +2,7 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
-import type { CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
 
 export type CanvasNodeType = "media" | "prompt" | "model";
 export type CanvasMediaKind = "image" | "video" | "audio";
@@ -134,6 +134,8 @@ export type CanvasAgentMessage = {
   language: string;
   // Graph edits made during this assistant turn (shown as chips with Undo).
   ops?: CanvasAgentOp[];
+  // Multiple-choice question the assistant is waiting on (answered by the next user message).
+  question?: CanvasAgentQuestion;
   createdAt: Date;
 };
 

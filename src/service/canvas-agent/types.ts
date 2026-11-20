@@ -28,3 +28,13 @@ export type CanvasAgentOp =
   | { kind: "move_node"; nodeId: string; position: { x: number; y: number } };
 
 export type CanvasAgentGraph = { nodes: CanvasNode[]; edges: CanvasEdge[] };
+
+// A clickable question the agent asks when it cannot build a working graph on its own.
+export type CanvasAgentQuestionOption = { id: string; label: string };
+export type CanvasAgentQuestion = {
+  question: string;
+  options: CanvasAgentQuestionOption[];
+  allowMultiple: boolean;
+  // Shows a free-text box for extra details or an answer that is not in the list.
+  allowOther: boolean;
+};

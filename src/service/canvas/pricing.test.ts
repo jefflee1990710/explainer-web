@@ -40,13 +40,11 @@ describe("canvas USD pricing", () => {
 
   it("prices OpenRouter image models at flat $0.15", () => {
     const seedream = findCanvasModel("openrouter:bytedance-seed/seedream-5-0-pro");
-    const nanoBanana = findCanvasModel("openrouter:google/gemini-nano-banana-2.1");
-    const gptImage = findCanvasModel("openrouter:openai/gpt-image-2");
-    assert.ok(seedream && nanoBanana && gptImage);
+    const seedreamLite = findCanvasModel("openrouter:bytedance-seed/seedream-5-0-lite");
+    assert.ok(seedream && seedreamLite);
 
     assert.equal(estimateCanvasModelCostUsd(seedream), 0.15);
-    assert.equal(estimateCanvasModelCostUsd(nanoBanana), 0.15);
-    assert.equal(estimateCanvasModelCostUsd(gptImage), 0.15);
+    assert.equal(estimateCanvasModelCostUsd(seedreamLite), 0.15);
   });
 
   it("prices OpenRouter standard video models at $0.10/s clamped to 5-15s", () => {

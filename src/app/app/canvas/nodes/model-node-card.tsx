@@ -18,6 +18,7 @@ import {
 import type { CanvasNodeData } from "@/model/canvas";
 import { formatUsd } from "@/service/billing/usd";
 import { findCanvasModel } from "@/service/canvas/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import {
   CATEGORY_LABELS,
@@ -53,6 +54,7 @@ export function ModelNodeCard({
     () => (data.modelId ? findCanvasModel(data.modelId, catalog) : undefined),
     [catalog, data.modelId],
   );
+  const displayName = spec ? canvasModelDisplayName(spec, locale) : "";
 
   const incomingByHandle = useMemo(() => {
     const map = new Map<string, number>();
@@ -179,7 +181,7 @@ export function ModelNodeCard({
               className="h-4 w-4"
             />
             <span className="truncate text-[12.5px] font-bold text-white">
-              {spec.name}
+              {displayName}
             </span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
@@ -795,7 +797,7 @@ export function ModelNodeCard({
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={data.outputUrl}
-                alt={spec.name}
+                alt={displayName}
                 className="max-h-[200px] w-full object-cover"
               />
             )}
@@ -806,7 +808,7 @@ export function ModelNodeCard({
                   onOpenLightbox({
                     url: data.outputUrl!,
                     kind: data.outputKind ?? spec.output.type,
-                    title: spec.name,
+                    title: displayName,
                   })
                 }
                 className="nodrag cursor-pointer rounded-md bg-black/70 p-1.5 text-white/90 transition hover:bg-black"

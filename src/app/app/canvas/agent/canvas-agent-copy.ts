@@ -24,6 +24,15 @@ export function canvasAgentCopy(isZh: boolean) {
         retry: "重試",
         error: "助手暫時無法回覆，請再試一次。",
         skipped: (n: number) => `${n} 個步驟因畫布已變動而略過`,
+        pickOne: "選一個",
+        pickMany: "可多選",
+        otherPlaceholder: "補充說明或其他答案（選填）",
+        submitAnswer: "送出答案",
+        answered: "已回答",
+        answerText: (labels: string[], extra: string) =>
+          [labels.length > 0 ? `我選：${labels.join("、")}` : "", extra ? `補充：${extra}` : ""]
+            .filter(Boolean)
+            .join("\n"),
         suggestions: [
           "幫我做一個文字 → 圖片 → 影片的 9:16 流程",
           "用 Seedream 生 4 張不同角度的產品照",
@@ -47,6 +56,15 @@ export function canvasAgentCopy(isZh: boolean) {
         retry: "Retry",
         error: "The assistant could not answer. Please try again.",
         skipped: (n: number) => `${n} step(s) skipped because the canvas changed`,
+        pickOne: "Pick one",
+        pickMany: "Pick any",
+        otherPlaceholder: "Add details or another answer (optional)",
+        submitAnswer: "Send answer",
+        answered: "Answered",
+        answerText: (labels: string[], extra: string) =>
+          [labels.length > 0 ? `My choice: ${labels.join(", ")}` : "", extra ? `More: ${extra}` : ""]
+            .filter(Boolean)
+            .join("\n"),
         suggestions: [
           "Build a text → image → video flow in 9:16",
           "Make 4 product shots from different angles with Seedream",

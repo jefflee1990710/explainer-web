@@ -1,20 +1,35 @@
 // One chat turn of the Scro canvas agent (Hermes-style loop): the model calls tools
-// until it answers in text or hits the step budget, then a no-tool grace call
-// makes sure the user always gets a summary.
+// until it answers, asks the user a question, or hits the step budget. New nodes that
+// cannot run yet get one repair pass plus deterministic wiring, and a no-tool summary
+// call makes sure the reply matches the final canvas.
 
-import { generateText, stepCountIs, type ToolSet } from "ai";
+import { generateText, hasToolCall, stepCountIs, type ToolSet } from "ai";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
-import { directorModel } from "@/service/director/model";
+import { directorModel, storyboardProviderOptions } from "@/service/director/model";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
 } from "@/service/canvas/projects";
-import { buildCanvasAgentSystemPrompt, canvasAgentLanguageRule } from "@/service/canvas-agent/prompt";
+import {
+  autofixCanvasAgentGaps,
+  describeCanvasAgentGaps,
+  findCanvasAgentGaps,
+} from "@/service/canvas-agent/gaps";
+import {
+  buildCanvasAgentRepairPrompt,
+  buildCanvasAgentSummaryPrompt,
+  buildCanvasAgentSystemPrompt,
+} from "@/service/canvas-agent/prompt";
 import { buildCanvasAgentTools, createWorkingGraph } from "@/service/canvas-agent/tools";
-import type { CanvasAgentLanguage, CanvasAgentOp } from "@/service/canvas-agent/types";
+import type {
+  CanvasAgentLanguage,
+  CanvasAgentOp,
+  CanvasAgentQuestion,
+} from "@/service/canvas-agent/types";
 
 export const CANVAS_AGENT_MAX_STEPS = 12;
+export const CANVAS_AGENT_REPAIR_STEPS = 6;
 export const CANVAS_AGENT_HISTORY_LIMIT = 20;
 
 export type CanvasAgentHistoryMessage = { role: "user" | "assistant"; text: string };
@@ -31,7 +46,10 @@ const defaultGenerate: CanvasAgentGenerate = async ({ system, messages, tools, m
     model: directorModel(),
     system,
     messages,
-    ...(tools ? { tools, stopWhen: stepCountIs(maxSteps) } : {}),
+    // Same low-thinking setting as storyboard planning, so each tool step stays fast.
+    providerOptions: storyboardProviderOptions(),
+    // ask_user hands the turn back to the user, so the loop stops right after it.
+    ...(tools ? { tools, stopWhen: [stepCountIs(maxSteps), hasToolCall("ask_user")] } : {}),
   });
   return { text: result.text.trim(), endedOnToolCalls: result.finishReason === "tool-calls" };
 };
@@ -46,7 +64,13 @@ export async function runCanvasAgentTurn(input: {
   assets: readonly CanvasLibraryAsset[];
   characters?: readonly CanvasLibraryCharacterOption[];
   generate?: CanvasAgentGenerate;
-}): Promise<{ reply: string; ops: CanvasAgentOp[]; nodes: CanvasNode[]; edges: CanvasEdge[] }> {
+}): Promise<{
+  reply: string;
+  ops: CanvasAgentOp[];
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  question?: CanvasAgentQuestion;
+}> {
   const generate = input.generate ?? defaultGenerate;
   const graph = createWorkingGraph(input);
   const system = buildCanvasAgentSystemPrompt({ language: input.language, graph });
@@ -66,17 +90,55 @@ export async function runCanvasAgentTurn(input: {
   });
 
   let reply = first.text;
-  if (first.endedOnToolCalls || !reply) {
-    // Step budget ran out mid-work: summarize what is on the canvas now, no more tools.
-    const grace = await generate({
-      system: `${buildCanvasAgentSystemPrompt({ language: input.language, graph })}
+  let needsSummary = first.endedOnToolCalls || !reply;
 
-You have no more tool calls this turn. Summarize what is on the canvas now and what is still missing. ${canvasAgentLanguageRule(input.language)}`,
+  // The graph must run as-is: one repair pass for new nodes with empty inputs,
+  // then wire whatever has a single obvious answer.
+  let gaps = graph.question ? [] : findCanvasAgentGaps(graph);
+  if (gaps.length > 0) {
+    const repair = await generate({
+      system: buildCanvasAgentRepairPrompt({
+        language: input.language,
+        graph,
+        gapLines: describeCanvasAgentGaps(graph, gaps),
+      }),
+      messages,
+      tools: buildCanvasAgentTools(graph),
+      maxSteps: CANVAS_AGENT_REPAIR_STEPS,
+    });
+    if (graph.question) {
+      reply = repair.text;
+      needsSummary = false;
+      gaps = [];
+    } else {
+      gaps = findCanvasAgentGaps(graph);
+      if (autofixCanvasAgentGaps(graph, gaps) > 0) gaps = findCanvasAgentGaps(graph);
+      // The first reply described a graph that has since changed.
+      needsSummary = true;
+    }
+  }
+
+  if (graph.question) {
+    // The dock shows the question itself, so the reply may be a single line.
+    reply = reply || graph.question.question;
+  } else if (needsSummary) {
+    const summary = await generate({
+      system: buildCanvasAgentSummaryPrompt({
+        language: input.language,
+        graph,
+        gapLines: gaps.length > 0 ? describeCanvasAgentGaps(graph, gaps) : undefined,
+      }),
       messages,
       maxSteps: 1,
     });
-    reply = grace.text;
+    reply = summary.text;
   }
 
-  return { reply, ops: graph.ops, nodes: graph.nodes, edges: graph.edges };
+  return {
+    reply,
+    ops: graph.ops,
+    nodes: graph.nodes,
+    edges: graph.edges,
+    ...(graph.question ? { question: graph.question } : {}),
+  };
 }

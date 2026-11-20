@@ -13,13 +13,15 @@ import type {
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
+import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
 } from "@/service/canvas/projects";
-import type { CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
 
 export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
+export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
 
 const COLUMN_GAP = 400;
 const ROW_GAP = 40;
@@ -35,6 +37,8 @@ export type CanvasAgentWorkingGraph = {
   characters: readonly CanvasLibraryCharacterOption[];
   ops: CanvasAgentOp[];
   addedNodes: number;
+  // Set by ask_user; the turn stops and the dock shows it as clickable options.
+  question?: CanvasAgentQuestion;
   nextId: () => string;
 };
 
@@ -131,6 +135,22 @@ function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
   return g.catalog.filter((spec) => spec.provider !== "mentalok" && spec.available !== false);
 }
 
+// One short line per model so the chat prompt stays small.
+export function canvasAgentModelLine(spec: CanvasModelSpec): string {
+  const ports = spec.inputs
+    .map((port) => {
+      const required = port.required ? "*" : "";
+      const many = port.multiple ? `x${port.maxConnections}` : "";
+      return `${port.id}${required}:${port.type}${many}`;
+    })
+    .join(",");
+  // Price of one run at the default length; video nodes are billed per run, not per second.
+  const cost = estimateCanvasModelCostUsd(spec);
+  const seconds = spec.output.type === "video" ? spec.defaultDurationSeconds : undefined;
+  const price = seconds ? `${cost}/${seconds}s` : String(cost);
+  return `${spec.id} | ${spec.name} | ${spec.output.type} | ${ports} | $${price}`;
+}
+
 function clip(text: string | undefined): string | undefined {
   if (!text) return undefined;
   return text.length > TEXT_PREVIEW ? `${text.slice(0, TEXT_PREVIEW)}…` : text;
@@ -212,24 +232,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
   },
 
   list_models(g: CanvasAgentWorkingGraph): CanvasAgentToolResult {
-    return {
-      models: agentModels(g).map((spec) => ({
-        id: spec.id,
-        name: spec.name,
-        output: spec.output.type,
-        inputs: spec.inputs.map((p) => ({
-          port: p.id,
-          type: p.type,
-          required: p.required,
-          maxConnections: p.multiple ? p.maxConnections : 1,
-        })),
-        supportsAspectRatio: Boolean(spec.supportsAspectRatio),
-        ...(spec.output.type === "video"
-          ? { minSeconds: spec.minDurationSeconds, maxSeconds: spec.maxDurationSeconds }
-          : {}),
-        basePriceUsd: spec.basePriceUsd,
-      })),
-    };
+    // id | name | output | ports (* required, xN max) | price
+    return { models: agentModels(g).map(canvasAgentModelLine) };
   },
 
   list_assets(g: CanvasAgentWorkingGraph): CanvasAgentToolResult {
@@ -256,6 +260,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     input: {
       modelId: string;
       prompt?: string;
+      promptText?: string;
+      wires?: Array<{ sourceId: string; targetPort: string }>;
       aspectRatio?: CanvasAspectRatio;
       durationSeconds?: number;
       toolParams?: Record<string, unknown>;
@@ -267,7 +273,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     }
     const paramError = validateToolParamsForModel(g, spec.id, input.toolParams);
     if (paramError) return { error: paramError };
-    return addNode(g, "model", {
+    const created = addNode(g, "model", {
       modelId: spec.id,
       presetId: spec.defaultPresetId,
       aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "9:16") : undefined,
@@ -277,6 +283,45 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       ...(input.toolParams ? { toolParams: input.toolParams } : {}),
       status: "idle",
     });
+    if (created.error || typeof created.nodeId !== "string") return created;
+
+    const nodeId = created.nodeId;
+    const wireErrors: string[] = [];
+    let promptNodeId: string | undefined;
+    const promptText = input.promptText?.trim();
+    if (promptText) {
+      const promptNode = addNode(g, "prompt", { label: "Prompt", text: promptText });
+      if (promptNode.error || typeof promptNode.nodeId !== "string") {
+        wireErrors.push(String(promptNode.error ?? "Could not add the prompt node"));
+      } else {
+        promptNodeId = promptNode.nodeId;
+        const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
+          sourceId: promptNodeId,
+          targetId: nodeId,
+          targetPort: "prompt",
+        });
+        if (linked.error) wireErrors.push(String(linked.error));
+      }
+    }
+    for (const wire of input.wires ?? []) {
+      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
+        sourceId: wire.sourceId,
+        targetId: nodeId,
+        targetPort: wire.targetPort,
+      });
+      if (linked.error) wireErrors.push(String(linked.error));
+    }
+
+    return {
+      ok: true,
+      nodeId,
+      ...(promptNodeId ? { promptNodeId } : {}),
+      ...(wireErrors.length > 0
+        ? {
+            error: `Node ${nodeId} exists. Wires failed: ${wireErrors.join(" | ")}. Use connect to fix those wires. Do not add this node again.`,
+          }
+        : {}),
+    };
   },
 
   add_media_node(g: CanvasAgentWorkingGraph, input: { assetId: string }): CanvasAgentToolResult {
@@ -398,6 +443,27 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return { ok: true };
   },
 
+  ask_user(
+    g: CanvasAgentWorkingGraph,
+    input: { question: string; options: string[]; allowMultiple?: boolean; allowOther?: boolean },
+  ): CanvasAgentToolResult {
+    if (g.question) return { error: "You already asked a question this turn. Stop and reply." };
+    const question = input.question.trim();
+    const labels = [...new Set(input.options.map((o) => o.trim()).filter(Boolean))].slice(
+      0,
+      CANVAS_AGENT_MAX_QUESTION_OPTIONS,
+    );
+    if (!question) return { error: "question is empty." };
+    if (labels.length < 2) return { error: "Give at least 2 different options." };
+    g.question = {
+      question,
+      options: labels.map((label, i) => ({ id: `opt-${i + 1}`, label })),
+      allowMultiple: input.allowMultiple ?? false,
+      allowOther: input.allowOther ?? true,
+    };
+    return { ok: true, note: "The question is shown to the user. End your turn now with one short sentence." };
+  },
+
   arrange_layout(g: CanvasAgentWorkingGraph): CanvasAgentToolResult {
     if (g.nodes.length === 0) return { ok: true, moved: 0 };
     let waves: string[][];
@@ -450,7 +516,8 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async () => H.get_canvas(g),
     }),
     list_models: tool({
-      description: "List the models you may add, with their input ports, output type, and price.",
+      description:
+        "The system prompt already lists every model. Call this only when an add_model_node error says the id is unknown.",
       inputSchema: empty,
       execute: async () => H.list_models(g),
     }),
@@ -465,10 +532,23 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async (input) => H.add_prompt_node(g, input),
     }),
     add_model_node: tool({
-      description: "Add a model, Scro tool, or FFmpeg node. modelId must come from list_models.",
+      description:
+        "Add one model, Scro tool, or FFmpeg node and wire it in the same call. modelId must be an exact id from the system prompt.",
       inputSchema: z.object({
         modelId: z.string(),
-        prompt: z.string().max(4000).optional().describe("Inline prompt, used when no prompt node is connected."),
+        prompt: z.string().max(4000).optional().describe("Inline prompt, only when you are not passing promptText."),
+        promptText: z
+          .string()
+          .max(4000)
+          .optional()
+          .describe("English prompt. Creates a prompt node and connects it to this model's prompt port."),
+        wires: z
+          .array(z.object({ sourceId: z.string(), targetPort: z.string() }))
+          .max(8)
+          .optional()
+          .describe(
+            'Connections onto this new node. Example: [{ sourceId: "media-1", targetPort: "refImages" }].',
+          ),
         aspectRatio: aspectRatio.optional(),
         durationSeconds: z.number().optional().describe("Video length in seconds."),
         toolParams: z
@@ -515,6 +595,20 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       description: "Tidy the whole canvas left to right in run order. Call once after building.",
       inputSchema: empty,
       execute: async () => H.arrange_layout(g),
+    }),
+    ask_user: tool({
+      description:
+        "Ask the user one multiple-choice question when you cannot build a working graph without their answer (missing product photo, which character, very different approaches). Ends your turn. Write the question and options in the chat language.",
+      inputSchema: z.object({
+        question: z.string().min(1).max(300),
+        options: z.array(z.string().min(1).max(80)).min(2).max(CANVAS_AGENT_MAX_QUESTION_OPTIONS),
+        allowMultiple: z.boolean().optional().describe("true when the user may pick more than one option."),
+        allowOther: z
+          .boolean()
+          .optional()
+          .describe("Show a free-text box for extra details. Defaults to true."),
+      }),
+      execute: async (input) => H.ask_user(g, input),
     }),
   };
 }

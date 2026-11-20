@@ -1,15 +1,16 @@
 "use client";
 
 // One chat bubble in the canvas agent dock. Assistant replies show what changed on
-// the canvas and, for the latest turn, an Undo button.
+// the canvas, an optional multiple-choice question, and, for the latest turn, an Undo button.
 
 import { Bot, RotateCcw } from "lucide-react";
 import { Spinner } from "@/presentation/components/spinner";
-import type { CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp, CanvasAgentQuestion as CanvasAgentQuestionData } from "@/service/canvas-agent/types";
 import {
   type CanvasAgentCopy,
   summarizeCanvasAgentOps,
 } from "@/app/app/canvas/agent/canvas-agent-copy";
+import { CanvasAgentQuestion } from "@/app/app/canvas/agent/canvas-agent-question";
 
 export function CanvasAgentMessage({
   copy,
@@ -23,12 +24,20 @@ export function CanvasAgentMessage({
   undone = false,
   onUndo,
   onRetry,
+  question,
+  questionAnswered = false,
+  questionDisabled = false,
+  onAnswer,
 }: {
   copy: CanvasAgentCopy;
   isZh: boolean;
   role: "user" | "assistant";
   text?: string;
   ops?: CanvasAgentOp[];
+  question?: CanvasAgentQuestionData;
+  questionAnswered?: boolean;
+  questionDisabled?: boolean;
+  onAnswer?: (text: string) => void;
   variant?: "normal" | "pending" | "error";
   note?: string;
   canUndo?: boolean;
@@ -47,6 +56,8 @@ export function CanvasAgentMessage({
   }
 
   const chips = ops ? summarizeCanvasAgentOps(ops, isZh) : [];
+  // The question card already shows this line, so the plain bubble would repeat it.
+  const hideText = Boolean(question && text?.trim() === question.question.trim());
 
   return (
     <div className="flex items-start gap-2">
@@ -59,7 +70,7 @@ export function CanvasAgentMessage({
             <Spinner className="h-3.5 w-3.5" />
             {text}
           </p>
-        ) : (
+        ) : hideText ? null : (
           <div
             role={variant === "error" ? "alert" : undefined}
             className={`rounded-2xl rounded-tl-md border px-3 py-2 text-[13px] leading-5 ${
@@ -80,6 +91,16 @@ export function CanvasAgentMessage({
             ) : null}
           </div>
         )}
+
+        {question && onAnswer ? (
+          <CanvasAgentQuestion
+            copy={copy}
+            question={question}
+            answered={questionAnswered}
+            disabled={questionDisabled}
+            onAnswer={onAnswer}
+          />
+        ) : null}
 
         {chips.length > 0 || note ? (
           <div className="flex flex-wrap items-center gap-1.5 px-0.5">

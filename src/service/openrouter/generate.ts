@@ -4,6 +4,7 @@ import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
 import { talkingHeadLanguageName } from "@/service/minimax/talking-head-reference";
 import {
+  OPENROUTER_ACCOUNT_IMAGE_MODELS,
   openRouterAccountVideoAspect,
   openRouterAccountVideoDuration,
   openRouterAccountVideoResolution,
@@ -125,32 +126,49 @@ export function openRouterImageBody(input: {
   referenceImageUrls?: Array<string | undefined>;
 }) {
   const refs = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
+  const account = OPENROUTER_ACCOUNT_IMAGE_MODELS.find((row) => row.id === input.model);
   const isOpenAiImage = /^openai\//i.test(input.model);
   // Seedream 5.0 Lite only accepts 2K / 4K; Seedream 5.0 Pro accepts 1K / 2K;
   // Nano Banana 2.1 accepts 1K / 2K / 4K.
   const isSeedreamLite = input.model === OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL;
   const isNanoBanana21 = input.model === OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL;
-  const resolution = isSeedreamLite
+  const requestedResolution = isSeedreamLite
     ? input.resolution === "4k"
-      ? ("4K" as const)
-      : ("2K" as const)
+      ? "4K"
+      : "2K"
     : isNanoBanana21 && input.resolution === "4k"
-      ? ("4K" as const)
+      ? "4K"
       : input.resolution === "2k" || input.resolution === "4k"
-        ? ("2K" as const)
-        : ("1K" as const);
+        ? "2K"
+        : "1K";
+  const resolution =
+    account && account.resolutions.length === 0
+      ? undefined
+      : account && !account.resolutions.includes(requestedResolution)
+        ? (["1K", "2K", "4K", "1.5K", "768", "512"].find((value) =>
+            account.resolutions.includes(value),
+          ) ?? account.resolutions[0])
+        : requestedResolution;
+  const requestedAspect = openRouterImageAspectRatio(input.model, input.aspectRatio);
+  const aspectRatio =
+    account && account.aspects.length > 0 && !account.aspects.includes(requestedAspect)
+      ? (["1:1", "16:9", "9:16", "3:2", "2:3", "4:3", "3:4"].find((value) =>
+          account.aspects.includes(value),
+        ) ?? account.aspects[0])
+      : requestedAspect;
+  const includeAspect = !account || account.aspects.length > 0;
   return {
     model: input.model,
     prompt: input.prompt,
-    aspect_ratio: openRouterImageAspectRatio(input.model, input.aspectRatio),
+    ...(includeAspect ? { aspect_ratio: aspectRatio } : {}),
     ...(isOpenAiImage
       ? {
           quality: input.quality || "medium",
           background: "opaque" as const,
         }
-      : {
-          resolution,
-        }),
+      : resolution
+        ? { resolution }
+        : {}),
     ...(refs.length > 0
       ? {
           input_references: refs.map((url) => ({
@@ -457,15 +475,18 @@ export function openRouterHeyGenAudioVideoBody(input: {
     ...(isAvatarIv
       ? {}
       : { duration: clampVideoDurationSeconds(input.durationSeconds ?? 5) }),
-    resolution: isAvatarIv
-      ? configured === "720p" && process.env.VIDEO_GENERATION_RESOLUTION === "720p"
-        ? "720p"
-        : "1080p"
-      : configured === "480p"
-        ? "480p"
-        : configured === "720p"
-          ? "768p"
-          : "2K",
+    resolution: (() => {
+      const fallback = isAvatarIv
+        ? configured === "720p" && process.env.VIDEO_GENERATION_RESOLUTION === "720p"
+          ? "720p"
+          : "1080p"
+        : configured === "480p"
+          ? "480p"
+          : configured === "720p"
+            ? "768p"
+            : "2K";
+      return openRouterAccountVideoResolution(model, fallback) ?? fallback;
+    })(),
     ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
     input_references: [
       {

@@ -35,13 +35,13 @@ function fresh(nodes: CanvasNode[] = []) {
 
 describe("canvas agent tools", () => {
   it("lists OpenRouter, Scro, and FFmpeg models (excluding legacy Mentalok)", () => {
-    const res = T.list_models(fresh()) as { models: Array<{ id: string }> };
+    const res = T.list_models(fresh()) as { models: string[] };
     assert.ok(res.models.length >= 22);
-    assert.ok(res.models.every((m) => !m.id.startsWith("mentalok:")));
-    assert.ok(res.models.some((m) => m.id === "scro:talking-head"));
-    assert.ok(res.models.some((m) => m.id === "scro:tts"));
-    assert.ok(res.models.some((m) => m.id === "ffmpeg:concat"));
-    assert.ok(res.models.some((m) => m.id === "ffmpeg:audio-mux"));
+    assert.ok(res.models.every((line) => !line.startsWith("mentalok:")));
+    assert.ok(res.models.some((line) => line.startsWith("scro:talking-head |")));
+    assert.ok(res.models.some((line) => line.startsWith("scro:tts |")));
+    assert.ok(res.models.some((line) => line.startsWith("ffmpeg:concat |")));
+    assert.ok(res.models.some((line) => line.startsWith("ffmpeg:audio-mux |")));
   });
 
   it("supports toolParams on Scro tools, audio -> refAudio wiring, and multi-video ffmpeg:concat", () => {
@@ -170,6 +170,39 @@ describe("canvas agent tools", () => {
     assert.equal(g.nodes.find((n) => n.id === m.nodeId)?.data.prompt, "z");
   });
 
+  it("wires the prompt and a reference image in the same add_model_node call", () => {
+    const g = fresh();
+    const media = T.add_media_node(g, { assetId: "char-1" }) as { nodeId: string };
+    const created = T.add_model_node(g, {
+      modelId: SEEDREAM,
+      promptText: "front view of the bottle",
+      wires: [{ sourceId: media.nodeId, targetPort: "refImages" }],
+    }) as { nodeId: string; promptNodeId: string; error?: string };
+
+    assert.equal(created.error, undefined);
+    assert.equal(
+      g.nodes.find((node) => node.id === created.promptNodeId)?.data.text,
+      "front view of the bottle",
+    );
+    assert.equal(g.edges.length, 2);
+    assert.ok(
+      g.edges.some(
+        (edge) =>
+          edge.source === created.promptNodeId &&
+          edge.target === created.nodeId &&
+          edge.targetHandle === "prompt",
+      ),
+    );
+    assert.ok(
+      g.edges.some(
+        (edge) =>
+          edge.source === media.nodeId &&
+          edge.target === created.nodeId &&
+          edge.targetHandle === "refImages",
+      ),
+    );
+  });
+
   it("adds a media node only for a known asset", () => {
     const g = fresh();
     assert.ok("error" in T.add_media_node(g, { assetId: "missing" }));
@@ -196,6 +229,22 @@ describe("canvas agent tools", () => {
     assert.ok(x(p.nodeId) < x(i.nodeId));
     assert.ok(x(i.nodeId) < x(v.nodeId));
     assert.ok(g.ops.some((o) => o.kind === "move_node"));
+  });
+
+  it("ask_user stores one question with deduped options and rejects a second ask", () => {
+    const g = fresh();
+    assert.ok(T.ask_user(g, { question: "Which?", options: ["A", "A", " "] }).error);
+    assert.equal(T.ask_user(g, { question: "Which?", options: ["A", "B", "A"] }).ok, true);
+    assert.deepEqual(g.question, {
+      question: "Which?",
+      options: [
+        { id: "opt-1", label: "A" },
+        { id: "opt-2", label: "B" },
+      ],
+      allowMultiple: false,
+      allowOther: true,
+    });
+    assert.ok(T.ask_user(g, { question: "Again?", options: ["C", "D"] }).error);
   });
 
   it("exposes every handler as an AI SDK tool", () => {

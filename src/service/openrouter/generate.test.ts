@@ -153,6 +153,18 @@ test("openRouterImageBody formats /api/v1/images payload with input_references",
   );
 });
 
+test("openRouterImageBody omits parameters a canvas image model does not accept", () => {
+  const panorama = openRouterImageBody({
+    model: "tencent/hy-world-2.1-panorama",
+    prompt: "a red square",
+    aspectRatio: "1:1",
+    resolution: "1k",
+  });
+  assert.equal(panorama.model, "tencent/hy-world-2.1-panorama");
+  assert.equal("aspect_ratio" in panorama, false);
+  assert.equal("resolution" in panorama, false);
+});
+
 test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seedance-2.0-fast and minimax/hailuo-3", () => {
   assert.deepEqual(
     openRouterClipVideoBody({
@@ -632,15 +644,17 @@ test("openRouterCanvasVideoBody supports text-only, first/last frames, reference
   ]);
   assert.equal(heygen.motion_prompt, "Warm confident delivery");
 
-  // Veo only accepts 4/6/8s, and Hailuo 2.3 only accepts 1080p.
-  const veo = openRouterCanvasVideoBody({
-    model: "google/veo-3.1",
+  // Gen-4.5 only lists 16:9 and 9:16. Hailuo 2.3 only accepts 1080p and 6s or 10s.
+  const gen45 = openRouterCanvasVideoBody({
+    model: "runway/gen-4.5",
     prompt: "A quiet street at dusk",
     aspectRatio: "1:1",
     durationSeconds: 5,
   });
-  assert.equal(veo.duration, 4);
-  assert.equal(veo.aspect_ratio, "16:9");
+  assert.equal(gen45.duration, 5);
+  assert.equal(gen45.aspect_ratio, "16:9");
+  assert.equal(gen45.resolution, "720p");
+  assert.equal("generate_audio" in gen45, false);
 
   const hailuo23 = openRouterCanvasVideoBody({
     model: "minimax/hailuo-2.3",

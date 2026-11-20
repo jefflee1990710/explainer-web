@@ -37,6 +37,13 @@ export type SendCanvasAgentMessageResult =
   | { ok: true; user: CanvasAgentMessageDto; reply: CanvasAgentMessageDto; ops: CanvasAgentOp[] }
   | { ok: false; error: string };
 
+// The model sees the options it offered last turn, so a short answer like "B, C" makes sense.
+function canvasAgentHistoryText(message: CanvasAgentMessage): string {
+  if (!message.question) return message.text;
+  const options = message.question.options.map((o) => o.label).join(" / ");
+  return `${message.text}\n[Asked the user: ${message.question.question} Options: ${options}]`;
+}
+
 export async function listCanvasAgentMessagesAction(
   canvasId: string,
 ): Promise<CanvasAgentMessageDto[]> {
@@ -76,7 +83,7 @@ export async function sendCanvasAgentMessageAction(
     turn = await runCanvasAgentTurn({
       language: input.language,
       message: text,
-      history: history.map((m) => ({ role: m.role, text: m.text })),
+      history: history.map((m) => ({ role: m.role, text: canvasAgentHistoryText(m) })),
       nodes: project.nodes,
       edges: project.edges,
       catalog,
@@ -107,6 +114,7 @@ export async function sendCanvasAgentMessageAction(
     text: turn.reply,
     language: input.language,
     ...(turn.ops.length > 0 ? { ops: turn.ops } : {}),
+    ...(turn.question ? { question: turn.question } : {}),
     // +1ms keeps the reply after the question when sorted by createdAt.
     createdAt: new Date(now + 1),
   };
