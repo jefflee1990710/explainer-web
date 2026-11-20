@@ -38,6 +38,7 @@ export type ResolvedCanvasInputs = {
   endImage?: string;
   refImages: string[];
   video?: string;
+  videos: string[];
   refAudio?: string;
 };
 
@@ -242,7 +243,7 @@ export function resolveNodeInputs(
   edges: readonly CanvasEdge[],
   catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
 ): ResolveNodeInputsResult {
-  const emptyInputs: ResolvedCanvasInputs = { refImages: [] };
+  const emptyInputs: ResolvedCanvasInputs = { refImages: [], videos: [] };
   const nodeById = new Map<string, CanvasNode>();
   for (const node of nodes) {
     nodeById.set(node.id, node);
@@ -285,7 +286,7 @@ export function resolveNodeInputs(
     }
   }
 
-  const inputs: ResolvedCanvasInputs = { refImages: [] };
+  const inputs: ResolvedCanvasInputs = { refImages: [], videos: [] };
   const missingUpstreamNodeIds: string[] = [];
   const missingRequiredFields: string[] = [];
   let promptFromNode = false;
@@ -346,6 +347,22 @@ export function resolveNodeInputs(
     }
   }
 
+  // Resolve multi-value videos preserving edge order up to model maxConnections.
+  const videosSpec = spec.inputs.find((port) => port.id === "videos");
+  const videoEdges = edgesByHandle.get("videos") ?? [];
+  const maxVideos = videosSpec?.maxConnections ?? videoEdges.length;
+  for (const edge of videoEdges) {
+    if (inputs.videos.length >= maxVideos) break;
+    const sourceNode = nodeById.get(edge.source);
+    if (!sourceNode) continue;
+    const url = extractMediaUrl(sourceNode);
+    if (url) {
+      inputs.videos.push(url);
+    } else {
+      addUnique(missingUpstreamNodeIds, sourceNode.id);
+    }
+  }
+
   // Verify every required port declared on the model spec has a value.
   for (const port of spec.inputs) {
     if (!port.required) continue;
@@ -355,6 +372,7 @@ export function resolveNodeInputs(
       (port.id === "startImage" && Boolean(inputs.startImage)) ||
       (port.id === "endImage" && Boolean(inputs.endImage)) ||
       (port.id === "video" && Boolean(inputs.video)) ||
+      (port.id === "videos" && inputs.videos.length > 0) ||
       (port.id === "refAudio" && Boolean(inputs.refAudio)) ||
       (port.id === "refImages" && inputs.refImages.length > 0);
     if (!satisfied) {

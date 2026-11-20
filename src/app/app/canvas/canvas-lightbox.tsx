@@ -37,7 +37,12 @@ export function CanvasLightbox({
       >
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-2.5">
           <span className="truncate text-sm font-semibold text-white">
-            {item.title || (item.kind === "video" ? "Video Preview" : "Image Preview")}
+            {item.title ||
+              (item.kind === "video"
+                ? "Video Preview"
+                : item.kind === "audio"
+                  ? "Audio Preview"
+                  : "Image Preview")}
           </span>
           <div className="flex items-center gap-2">
             <a
@@ -69,6 +74,10 @@ export function CanvasLightbox({
               autoPlay
               className="max-h-[78vh] max-w-[85vw] rounded-lg"
             />
+          ) : item.kind === "audio" ? (
+            <div className="w-[420px] max-w-[85vw] rounded-xl border border-amber-400/25 bg-[#141821] p-6">
+              <audio src={item.url} controls autoPlay className="w-full" />
+            </div>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img

@@ -1,13 +1,15 @@
 // Server-authoritative USD credit pricing for Interactive Node Canvas models.
 // Uses integer-scaled arithmetic from `src/service/billing/usd.ts` to avoid floating-point drift.
 
-import { formatUsd, mulUsd, roundUsd4 } from "@/service/billing/usd";
+import { formatUsd, mulUsd, roundUsd4, addUsd } from "@/service/billing/usd";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import {
   IMAGE_COST_USD,
   MIN_VIDEO_SECONDS,
   billedVideoSeconds,
+  scroSwapCostUsd,
   talkingHeadVideoCostUsd,
+  teleportCostUsd,
   videoCostUsd,
 } from "@/service/credit-costs";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
@@ -16,6 +18,20 @@ import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/ge
 export const CANVAS_MIN_CHARGE_USD = 0.005;
 export const DEFAULT_CANVAS_MENTALOK_MARKUP = 1.5;
 export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 60;
+export const CANVAS_TTS_COST_USD = 0.02;
+
+function explainerEstimateClips(durationSeconds: number): number {
+  if (durationSeconds <= 15) return 3;
+  if (durationSeconds <= 30) return 5;
+  if (durationSeconds <= 45) return 7;
+  return 9;
+}
+
+export function explainerEstimatedCostUsd(durationSeconds: number): number {
+  const clamped = Math.min(60, Math.max(15, Math.round(durationSeconds || 30)));
+  const clips = explainerEstimateClips(clamped);
+  return addUsd(mulUsd(IMAGE_COST_USD, clips), mulUsd(0.1, clamped));
+}
 
 // Reads Mentalok pricing markup from `CANVAS_MENTALOK_MARKUP`, defaulting to 1.5x.
 export function canvasMentalokMarkup(
@@ -41,6 +57,31 @@ export function estimateCanvasModelCostUsd(
   spec: CanvasModelSpec,
   params?: CanvasCostEstimateParams,
 ): number {
+  if (spec.provider === "ffmpeg") {
+    return 0;
+  }
+
+  if (spec.provider === "scro") {
+    const duration = params?.durationSeconds ?? spec.defaultDurationSeconds ?? MIN_VIDEO_SECONDS;
+    switch (spec.id) {
+      case "scro:tts":
+        return CANVAS_TTS_COST_USD;
+      case "scro:life":
+      case "scro:poster":
+        return IMAGE_COST_USD;
+      case "scro:talking-head":
+        return talkingHeadVideoCostUsd(duration);
+      case "scro:explainer":
+        return explainerEstimatedCostUsd(duration);
+      case "scro:swap":
+        return scroSwapCostUsd({ durationSeconds: duration, mediaKind: "video" });
+      case "scro:teleport":
+        return teleportCostUsd({ durationSeconds: duration });
+      default:
+        return spec.basePriceUsd;
+    }
+  }
+
   if (spec.provider === "mentalok") {
     const markup =
       params?.markup !== undefined && Number.isFinite(params.markup) && params.markup > 0

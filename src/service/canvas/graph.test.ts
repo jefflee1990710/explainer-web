@@ -423,6 +423,50 @@ describe("canvas graph — resolveNodeInputs", () => {
       ]);
     }
   });
+
+  it("validates audio output -> refAudio, rejects audio -> videos, and preserves videos order", () => {
+    const nodes: CanvasNode[] = [
+      modelNode("tts", "scro:tts", {
+        prompt: "Hello world",
+        status: "completed",
+        outputUrl: "https://blob.example/tts.mp3",
+        outputKind: "audio",
+      }),
+      mediaNode("v1", "video", "https://blob.example/clip1.mp4"),
+      mediaNode("v2", "video", "https://blob.example/clip2.mp4"),
+      modelNode("mux", "ffmpeg:audio-mux"),
+      modelNode("concat", "ffmpeg:concat"),
+    ];
+
+    const okAudio = validateEdgeConnection(nodes, [], {
+      source: "tts",
+      sourceHandle: "output",
+      target: "mux",
+      targetHandle: "refAudio",
+    });
+    assert.deepEqual(okAudio, { valid: true });
+
+    const badAudio = validateEdgeConnection(nodes, [], {
+      source: "tts",
+      sourceHandle: "output",
+      target: "concat",
+      targetHandle: "videos",
+    });
+    assert.equal(badAudio.valid, false);
+
+    const edges: CanvasEdge[] = [
+      edge("e1", "v1", "concat", "videos"),
+      edge("e2", "v2", "concat", "videos"),
+    ];
+    const resolved = resolveNodeInputs("concat", nodes, edges);
+    assert.equal(resolved.ok, true);
+    if (resolved.ok) {
+      assert.deepEqual(
+        (resolved.inputs as { videos?: string[] }).videos,
+        ["https://blob.example/clip1.mp4", "https://blob.example/clip2.mp4"],
+      );
+    }
+  });
 });
 
 describe("canvas graph — computeExecutionWaves", () => {

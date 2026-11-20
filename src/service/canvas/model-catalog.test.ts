@@ -12,16 +12,20 @@ describe("canvas model catalog", () => {
     clearMentalokCatalogCache();
   });
 
-  it("contains exactly 16 Mentalok models and 10 OpenRouter models with unique IDs", () => {
-    assert.equal(STATIC_CANVAS_MODELS.length, 26);
+  it("contains 16 Mentalok, 10 OpenRouter, 7 Scro, and 5 FFmpeg models with unique IDs", () => {
+    assert.equal(STATIC_CANVAS_MODELS.length, 38);
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
-    assert.equal(ids.size, 26);
+    assert.equal(ids.size, 38);
 
     const mentalok = STATIC_CANVAS_MODELS.filter((m) => m.provider === "mentalok");
     const openrouter = STATIC_CANVAS_MODELS.filter((m) => m.provider === "openrouter");
+    const scro = STATIC_CANVAS_MODELS.filter((m) => m.provider === "scro");
+    const ffmpeg = STATIC_CANVAS_MODELS.filter((m) => m.provider === "ffmpeg");
     assert.equal(mentalok.length, 16);
     assert.equal(openrouter.length, 10);
+    assert.equal(scro.length, 7);
+    assert.equal(ffmpeg.length, 5);
 
     for (const model of STATIC_CANVAS_MODELS) {
       assert.ok(model.presets.length > 0, `model ${model.id} must have presets`);
@@ -319,7 +323,7 @@ describe("canvas model catalog", () => {
       },
     });
     assert.equal(called, false);
-    assert.equal(withoutKey.length, 26);
+    assert.equal(withoutKey.length, 38);
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.runtimeStatus, "unavailable");
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.available, false);
     assert.equal(findCanvasModel("openrouter:minimax/hailuo-3", withoutKey)?.available, true);
@@ -330,7 +334,35 @@ describe("canvas model catalog", () => {
         throw new Error("network unreachable");
       },
     });
-    assert.equal(afterError.length, 26);
+    assert.equal(afterError.length, 38);
     assert.equal(findCanvasModel("mentalok:flux-schnell", afterError)?.basePriceUsd, 0.0012);
+  });
+
+  it("exposes Scro tool and FFmpeg specs with audio output and multi-video ports", () => {
+    const talking = findCanvasModel("scro:talking-head");
+    assert.ok(talking);
+    assert.equal(talking.provider, "scro");
+    assert.equal(talking.output.type, "video");
+    assert.equal(talking.maxDurationSeconds, 120);
+
+    const tts = findCanvasModel("scro:tts");
+    assert.ok(tts);
+    assert.equal(tts.provider, "scro");
+    assert.equal(tts.output.type, "audio");
+
+    const concat = findCanvasModel("ffmpeg:concat");
+    assert.ok(concat);
+    assert.equal(concat.provider, "ffmpeg");
+    const videosPort = concat.inputs.find((p) => p.id === "videos");
+    assert.ok(videosPort);
+    assert.equal(videosPort.type, "video");
+    assert.equal(videosPort.multiple, true);
+    assert.equal(videosPort.maxConnections, 8);
+    assert.equal(videosPort.required, true);
+
+    const extractAudio = findCanvasModel("ffmpeg:extract-audio");
+    assert.ok(extractAudio);
+    assert.equal(extractAudio.provider, "ffmpeg");
+    assert.equal(extractAudio.output.type, "audio");
   });
 });

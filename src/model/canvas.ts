@@ -14,8 +14,9 @@ export type CanvasNodeStatus =
   | "running"
   | "completed"
   | "failed";
-export type CanvasOutputKind = "image" | "video";
+export type CanvasOutputKind = "image" | "video" | "audio";
 export type CanvasJobStatus = "queued" | "running" | "completed" | "failed";
+export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg";
 
 // Serializable payload stored on each node in the Interactive Node Canvas Editor.
 export type CanvasNodeData = {
@@ -35,6 +36,7 @@ export type CanvasNodeData = {
   resolution?: CanvasResolution;
   durationSeconds?: number;
   seed?: number;
+  toolParams?: Record<string, unknown>;
   // Execution state cached on node for instant reload
   status?: CanvasNodeStatus;
   lastJobId?: string;
@@ -90,6 +92,7 @@ export type CanvasJob = {
   providerModelId: string;
   presetId?: string;
   status: CanvasJobStatus;
+  domainKind?: CanvasJobDomainKind;
   externalJobId?: string;
   statusUrl?: string;
   inputSnapshot: Record<string, unknown>;
@@ -133,14 +136,25 @@ export const canvasNodeStatusSchema = z.enum([
   "completed",
   "failed",
 ]);
-export const canvasOutputKindSchema = z.enum(["image", "video"]);
+export const canvasOutputKindSchema = z.enum(["image", "video", "audio"]);
 export const canvasJobStatusSchema = z.enum([
   "queued",
   "running",
   "completed",
   "failed",
 ]);
-export const canvasModelProviderSchema = z.enum(["mentalok", "openrouter"]);
+export const canvasJobDomainKindSchema = z.enum([
+  "video",
+  "jutsu",
+  "teleport",
+  "worker_ffmpeg",
+]);
+export const canvasModelProviderSchema = z.enum([
+  "mentalok",
+  "openrouter",
+  "scro",
+  "ffmpeg",
+]);
 
 export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   label: z.string().optional(),
@@ -156,6 +170,7 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   resolution: canvasResolutionSchema.optional(),
   durationSeconds: z.number().finite().positive().optional(),
   seed: z.number().int().optional(),
+  toolParams: z.record(z.string(), z.unknown()).optional(),
   status: canvasNodeStatusSchema.optional(),
   lastJobId: z.string().optional(),
   outputUrl: z.string().optional(),
@@ -211,6 +226,7 @@ export const canvasJobSchema: z.ZodType<CanvasJob> = z.object({
   providerModelId: z.string().min(1),
   presetId: z.string().optional(),
   status: canvasJobStatusSchema,
+  domainKind: canvasJobDomainKindSchema.optional(),
   externalJobId: z.string().optional(),
   statusUrl: z.string().optional(),
   inputSnapshot: z.record(z.string(), z.unknown()),

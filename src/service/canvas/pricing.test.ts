@@ -80,4 +80,26 @@ describe("canvas USD pricing", () => {
     assert.equal(formatCanvasModelCostUsd(flux, { markup: 1.5 }), "$0.005");
     assert.equal(formatCanvasModelCostUsd(seedream), "$0.15");
   });
+
+  it("prices Scro tools and FFmpeg utility nodes accurately", () => {
+    const concat = findCanvasModel("ffmpeg:concat");
+    const tts = findCanvasModel("scro:tts");
+    const talking = findCanvasModel("scro:talking-head");
+    const swap = findCanvasModel("scro:swap");
+    const teleport = findCanvasModel("scro:teleport");
+    const life = findCanvasModel("scro:life");
+    const poster = findCanvasModel("scro:poster");
+    const explainer = findCanvasModel("scro:explainer");
+    assert.ok(concat && tts && talking && swap && teleport && life && poster && explainer);
+
+    assert.equal(estimateCanvasModelCostUsd(concat), 0);
+    assert.equal(estimateCanvasModelCostUsd(tts), 0.02);
+    assert.equal(estimateCanvasModelCostUsd(talking, { durationSeconds: 90 }), 16.2);
+    assert.equal(estimateCanvasModelCostUsd(swap, { durationSeconds: 6 }), 0.75);
+    assert.equal(estimateCanvasModelCostUsd(teleport, { durationSeconds: 6 }), 0.75);
+    assert.equal(estimateCanvasModelCostUsd(life), 0.15);
+    assert.equal(estimateCanvasModelCostUsd(poster), 0.15);
+    // 30s explainer = 5 clips * $0.15 + 30s * $0.10/s = $3.75
+    assert.equal(estimateCanvasModelCostUsd(explainer, { durationSeconds: 30 }), 3.75);
+  });
 });

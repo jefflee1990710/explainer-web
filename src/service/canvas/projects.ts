@@ -73,16 +73,23 @@ export type CanvasLibraryAsset = {
   id: string;
   source: "character" | "product" | "canvas_output";
   name: string;
-  mediaKind: "image" | "video";
+  mediaKind: "image" | "video" | "audio";
   url: string;
   thumbnailUrl?: string;
   createdAt: string;
+};
+
+export type CanvasLibraryCharacterOption = {
+  id: string;
+  name: string;
+  previewUrl?: string;
 };
 
 export type CanvasLibraryAssetsResult = {
   characters: CanvasLibraryAsset[];
   products: CanvasLibraryAsset[];
   recentOutputs: CanvasLibraryAsset[];
+  characterOptions: CanvasLibraryCharacterOption[];
 };
 
 export type CreateCanvasProjectInput = {
@@ -346,15 +353,19 @@ export async function listCanvasLibraryAssets(
   ]);
 
   const characters: CanvasLibraryAsset[] = [];
+  const characterOptions: CanvasLibraryCharacterOption[] = [];
   for (const doc of characterDocs) {
     const character = doc as Character;
     if (!character._id) continue;
     const url = resolveCharacterPreviewUrl(character);
+    const id = character._id.toHexString();
+    const name = character.name || "Character";
+    characterOptions.push({ id, name, ...(url ? { previewUrl: url } : {}) });
     if (!url) continue;
     characters.push({
-      id: character._id.toHexString(),
+      id,
       source: "character",
-      name: character.name || "Character",
+      name,
       mediaKind: "image",
       url,
       thumbnailUrl: url,
@@ -382,7 +393,12 @@ export async function listCanvasLibraryAssets(
   for (const job of recentJobs) {
     const url = job.outputUrl?.trim();
     if (!url) continue;
-    const mediaKind = job.outputKind === "video" ? "video" : "image";
+    const mediaKind =
+      job.outputKind === "video"
+        ? "video"
+        : job.outputKind === "audio"
+          ? "audio"
+          : "image";
     recentOutputs.push({
       id: job._id.toHexString(),
       source: "canvas_output",
@@ -394,5 +410,5 @@ export async function listCanvasLibraryAssets(
     });
   }
 
-  return { characters, products, recentOutputs };
+  return { characters, products, recentOutputs, characterOptions };
 }

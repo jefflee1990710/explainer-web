@@ -28,11 +28,14 @@ export type CanvasPortType = "image" | "video" | "audio" | "text";
 export type CanvasModelCategory =
   | "image"
   | "video"
+  | "audio"
+  | "scro-tool"
+  | "ffmpeg"
   | "editing"
   | "segmentation"
   | "upscale";
 
-export type CanvasModelProvider = "mentalok" | "openrouter";
+export type CanvasModelProvider = "mentalok" | "openrouter" | "scro" | "ffmpeg";
 
 export type CanvasBilingualLabel = {
   "zh-Hant": string;
@@ -53,7 +56,7 @@ export type CanvasModelOutputSpec = {
   id: "output";
   label: string;
   labels: CanvasBilingualLabel;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
 };
 
 export type CanvasModelSpec = {
@@ -151,6 +154,18 @@ function videoPort(required = true): CanvasPortSpec {
   };
 }
 
+function videosPort(maxConnections = 8): CanvasPortSpec {
+  return {
+    id: "videos",
+    label: "多段影片 Videos",
+    labels: { "zh-Hant": "多段影片", en: "Videos" },
+    type: "video",
+    required: true,
+    multiple: true,
+    maxConnections,
+  };
+}
+
 function refAudioPort(required = false): CanvasPortSpec {
   return {
     id: "refAudio",
@@ -178,6 +193,15 @@ function videoOutput(): CanvasModelOutputSpec {
     label: "輸出影片 Video",
     labels: { "zh-Hant": "輸出影片", en: "Video" },
     type: "video",
+  };
+}
+
+function audioOutput(): CanvasModelOutputSpec {
+  return {
+    id: "output",
+    label: "輸出音訊 Audio",
+    labels: { "zh-Hant": "輸出音訊", en: "Audio" },
+    type: "audio",
   };
 }
 
@@ -564,9 +588,199 @@ const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = [
   },
 ];
 
+// 7 Scro production tool nodes (`scro:*`).
+export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
+  {
+    id: "scro:talking-head",
+    provider: "scro",
+    providerModelId: "talking-head",
+    name: "Talking Head 口播",
+    category: "scro-tool",
+    inputs: [promptPort(false), startImagePort(false), refAudioPort(false)],
+    output: videoOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: talkingHeadVideoCostUsd(15),
+    defaultDurationSeconds: 15,
+    minDurationSeconds: 5,
+    maxDurationSeconds: 120,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:explainer",
+    provider: "scro",
+    providerModelId: "explainer",
+    name: "Explainer 解說短片",
+    category: "scro-tool",
+    inputs: [promptPort(true), refImagesPort(4)],
+    output: videoOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: 3.75,
+    defaultDurationSeconds: 30,
+    minDurationSeconds: 15,
+    maxDurationSeconds: 60,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:swap",
+    provider: "scro",
+    providerModelId: "swap",
+    name: "Scro Swap 換角",
+    category: "scro-tool",
+    inputs: [videoPort(true), refImagesPort(6), promptPort(false)],
+    output: videoOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: 0.75,
+    defaultDurationSeconds: 6,
+    minDurationSeconds: 2,
+    maxDurationSeconds: 15,
+    supportsAspectRatio: false,
+    available: true,
+  },
+  {
+    id: "scro:teleport",
+    provider: "scro",
+    providerModelId: "teleport",
+    name: "Teleport 實景換場",
+    category: "scro-tool",
+    inputs: [videoPort(true), imagePort(false), promptPort(false)],
+    output: videoOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: 0.75,
+    defaultDurationSeconds: 6,
+    minDurationSeconds: 2,
+    maxDurationSeconds: 15,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:life",
+    provider: "scro",
+    providerModelId: "life",
+    name: "Life 生活照",
+    category: "scro-tool",
+    inputs: [promptPort(false), refImagesPort(2)],
+    output: imageOutput(),
+    presets: ["9:16", "1:1", "16:9", "3:4"],
+    defaultPresetId: "9:16",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:poster",
+    provider: "scro",
+    providerModelId: "poster",
+    name: "Poster 海報貼文",
+    category: "scro-tool",
+    inputs: [promptPort(true), refImagesPort(4)],
+    output: imageOutput(),
+    presets: ["9:16", "1:1", "16:9", "2:3"],
+    defaultPresetId: "9:16",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:tts",
+    provider: "scro",
+    providerModelId: "tts",
+    name: "ElevenLabs TTS 配音",
+    category: "audio",
+    inputs: [promptPort(true)],
+    output: audioOutput(),
+    presets: ["natural"],
+    defaultPresetId: "natural",
+    basePriceUsd: 0.02,
+    supportsAspectRatio: false,
+    available: true,
+  },
+];
+
+// 5 Vast.ai Worker FFmpeg utility nodes (`ffmpeg:*`).
+export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
+  {
+    id: "ffmpeg:concat",
+    provider: "ffmpeg",
+    providerModelId: "concat",
+    name: "FFmpeg 合併串接",
+    category: "ffmpeg",
+    inputs: [videosPort(8)],
+    output: videoOutput(),
+    presets: ["pad-200ms", "cut", "fade"],
+    defaultPresetId: "pad-200ms",
+    basePriceUsd: 0,
+    supportsAspectRatio: false,
+    available: true,
+  },
+  {
+    id: "ffmpeg:audio-mux",
+    provider: "ffmpeg",
+    providerModelId: "audio-mux",
+    name: "FFmpeg 音畫合成",
+    category: "ffmpeg",
+    inputs: [videoPort(true), refAudioPort(true)],
+    output: videoOutput(),
+    presets: ["replace", "mix-ducking"],
+    defaultPresetId: "replace",
+    basePriceUsd: 0,
+    supportsAspectRatio: false,
+    available: true,
+  },
+  {
+    id: "ffmpeg:trim-speed",
+    provider: "ffmpeg",
+    providerModelId: "trim-speed",
+    name: "FFmpeg 裁剪變速",
+    category: "ffmpeg",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["1.0x", "1.25x", "1.5x"],
+    defaultPresetId: "1.0x",
+    basePriceUsd: 0,
+    supportsAspectRatio: false,
+    available: true,
+  },
+  {
+    id: "ffmpeg:transform",
+    provider: "ffmpeg",
+    providerModelId: "transform",
+    name: "FFmpeg 比例／調色",
+    category: "ffmpeg",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: 0,
+    supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "ffmpeg:extract-audio",
+    provider: "ffmpeg",
+    providerModelId: "extract-audio",
+    name: "FFmpeg 抽離音訊",
+    category: "ffmpeg",
+    inputs: [videoPort(true)],
+    output: audioOutput(),
+    presets: ["mp3-192k"],
+    defaultPresetId: "mp3-192k",
+    basePriceUsd: 0,
+    supportsAspectRatio: false,
+    available: true,
+  },
+];
+
 export const STATIC_CANVAS_MODELS: readonly CanvasModelSpec[] = [
   ...MENTALOK_STATIC_MODELS,
   ...OPENROUTER_STATIC_MODELS,
+  ...SCRO_STATIC_MODELS,
+  ...FFMPEG_STATIC_MODELS,
 ];
 
 type MentalokCatalogCacheEntry = {
