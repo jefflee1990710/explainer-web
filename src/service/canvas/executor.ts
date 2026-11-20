@@ -10,7 +10,6 @@ import {
 } from "@/dao";
 import type {
   CanvasJob,
-  CanvasJobDomainKind,
   CanvasNode,
   CanvasNodeData,
   CanvasOutputKind,
