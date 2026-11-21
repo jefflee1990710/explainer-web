@@ -78,7 +78,9 @@ import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
 import { applyCanvasAgentOp } from "@/service/canvas-agent/apply-ops";
 import type { CanvasAgentGraph, CanvasAgentOp } from "@/service/canvas-agent/types";
 import {
+  CANVAS_AGENT_DOCK_SIDE_KEY,
   CanvasAgentDock,
+  type CanvasAgentDockSide,
   type CanvasAgentGraphSnapshot,
 } from "@/app/app/canvas/agent/canvas-agent-dock";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
@@ -243,6 +245,7 @@ function CanvasWorkspaceInner({
   const [assets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("bottom");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
@@ -282,6 +285,15 @@ function CanvasWorkspaceInner({
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
+
+  // Dock side is a layout preference, restored after mount so server HTML stays stable.
+  useEffect(() => {
+    const saved = window.localStorage.getItem(CANVAS_AGENT_DOCK_SIDE_KEY);
+    if (saved === "right" || saved === "bottom") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
+      setAgentDockSide(saved);
+    }
+  }, []);
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
@@ -1322,9 +1334,11 @@ function CanvasWorkspaceInner({
           />
         ) : null}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 ${agentDockSide === "right" ? "flex-row" : "flex-col"}`}
+        >
           <div
-            className="relative min-h-0 flex-1"
+            className="relative min-h-0 min-w-0 flex-1"
             onDragOver={handlePaneDragOver}
             onDragLeave={handlePaneDragLeave}
             onDrop={handlePaneDrop}
@@ -1423,10 +1437,15 @@ function CanvasWorkspaceInner({
           <CanvasAgentDock
             locale={locale}
             canvasId={activeProjectId}
+            side={agentDockSide}
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}
             onApplyOps={applyAgentOps}
             onUndo={undoAgentTurn}
+            onSideChange={(side) => {
+              setAgentDockSide(side);
+              window.localStorage.setItem(CANVAS_AGENT_DOCK_SIDE_KEY, side);
+            }}
           />
         </div>
       </div>
