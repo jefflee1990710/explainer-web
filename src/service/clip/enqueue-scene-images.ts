@@ -19,6 +19,8 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
+  // Canvas planner videos draw frames only when a canvas frame node runs.
+  if (project.canvasPlanOnly) return;
   const hasCast = (project.cast?.length ?? 0) > 0;
   if (!hasCast && !project.characterStillUrl) return;
   // Prop sheet / empty-set plates must finish first so frames can lock to them.

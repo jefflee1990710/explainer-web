@@ -24,6 +24,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
+import { runCanvasPlanPhaseB } from "@/service/canvas/explainer-plan-phase-b";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import {
   enqueueVideoLockJobs,
@@ -204,7 +205,9 @@ export async function runPhaseAJob(
     });
 
     const initialAutoVideoClips =
-      !options?.clipsOnly && nextPhaseA.clips.some((clip) => clip.clipNumber === 1)
+      !project.canvasPlanOnly &&
+      !options?.clipsOnly &&
+      nextPhaseA.clips.some((clip) => clip.clipNumber === 1)
         ? [1]
         : undefined;
 
@@ -238,8 +241,23 @@ export async function runPhaseAJob(
         console.error("[video-locks] enqueue failed", { projectId, error });
       });
     }
-    // Frames wait until locks are ready; lock completion re-calls this.
-    if (!options?.clipsOnly) {
+    if (project.canvasPlanOnly) {
+      // Canvas planner: store every clip's video prompt instead of drawing frames.
+      const planned = await projects.findOne({ _id: projectId });
+      const canvasPlan = planned
+        ? await runCanvasPlanPhaseB(planned)
+            .then((prompts) => ({ prompts }))
+            .catch((error: unknown) => ({
+              prompts: [],
+              error: errorMessage(error, "分鏡提示詞生成失敗"),
+            }))
+        : { prompts: [], error: "找不到影片" };
+      await projects.updateOne(
+        { _id: projectId, "phaseALock.token": token },
+        { $set: { canvasPlan, updatedAt: new Date() } },
+      );
+    } else if (!options?.clipsOnly) {
+      // Frames wait until locks are ready; lock completion re-calls this.
       await enqueueSceneImagesForNewVideo(projectId).catch(async (error: unknown) => {
         console.error("[frames] auto enqueue failed", { projectId, error });
         const fresh = await projects.findOne({ _id: projectId });
