@@ -1,7 +1,7 @@
 # Canvas Explainer Plan & Expand Design
 
 **Date:** 2026-11-21  
-**Status:** Approved direction (pending spec review)  
+**Status:** Approved (revised after code read: async planning, plan-only Phase A, frame node delegates to the frame pipeline)  
 **Scope:** `/app/canvas` Explainer Scro Tool node turns into a free storyboard planner that expands into an editable per-clip node graph (frame → video → voice → concat).
 
 ---
@@ -14,28 +14,30 @@ This design keeps the director (Gemini Phase A + Phase B) as the source of quali
 
 ### Relation to `2026-11-20-scro-canvas-tools-design.md`
 
-That spec's anti-goal "do NOT split Explainer into fragile micro-nodes that break Gemini multi-clip storyboard logic" still holds. Here the graph is **generated from** a completed director plan, not hand-built, so script, clip split, per-clip prompts, character lock, and voice rules are unchanged.
+That spec's anti-goal "do NOT split Explainer into fragile micro-nodes that break Gemini multi-clip storyboard logic" still holds. Here the graph is **generated from** a completed director plan, and the frame node renders through the existing frame pipeline, so script, clip split, per-clip prompts, character lock, prop/set locks, and image routing are unchanged.
 
 ---
 
 ## 2. Goals & Non-Goals
 
 ### Goals
-1. Dragging **Explainer** from the sidebar creates a **planner node**. Its primary action is `規劃分鏡（免費）` / `Plan storyboard (free)`.
-2. Planning runs `runPhaseA` + `runPhaseBForClip` for every clip, then expands one row per clip:
-   `Explainer Frame → Hailuo 3 video → Audio Mux ← TTS (1.25x)`, and all Audio Mux outputs feed one `FFmpeg Concat`.
-3. New Scro Tool node **`scro:explainer-frame`** renders the start still with the same backend the director uses today (Nano Banana 2.1 for diagram explainers, Seedream 5.0 Pro otherwise), $0.15 each.
-4. Planner node stays on the canvas showing the script and clip list. `重新規劃` asks for confirmation, then replaces the node group it expanded last time.
-5. `Run Flow` price becomes the plain sum of expanded nodes (frames $0.15, video $0.10/s, TTS $0.02, FFmpeg $0).
+1. Dragging **Explainer** from the sidebar creates a **planner node** (`toolParams.plannerMode: true`). Its primary action is `規劃分鏡（免費）` / `Plan storyboard (free)`.
+2. Planning runs in the background (worker), then the client expands one row per clip:
+   `Explainer Frame → Hailuo 3 video → Audio Mux ← TTS (1.25x)`, and all Audio Mux outputs feed `FFmpeg Concat`.
+3. New Scro Tool node **`scro:explainer-frame`** renders the clip's start still through the existing frame pipeline of the backing video (same references, locks, and Nano Banana 2.1 / Seedream routing), $0.15 each.
+4. Planner node stays on the canvas showing the script. `重新規劃` asks for confirmation, then replaces the node group it expanded last time.
+5. `Run Flow` price is the plain sum of expanded nodes (frames $0.15, video $0.10/s, TTS $0.02, FFmpeg $0). Planner nodes count $0 and are never executed by Run Flow.
 
 ### Non-Goals
-- No change to Talking Head, Scro Swap, Teleport, Life Photo, Poster (single provider call or single ComfyUI workflow; nothing useful to expand).
-- No grouping / collapsing UI for node rows (users chose flat per-clip nodes).
+- No change to Talking Head, Scro Swap, Teleport, Life Photo, Poster.
+- No grouping / collapsing UI for node rows.
+- No Undo for expansion (Undo exists only for canvas-agent turns). The re-plan confirmation protects the user instead.
 - No change to `/app/videos` history or non-canvas explainer flows.
 - No Nano Banana 2.1 as a general-purpose canvas image model.
 
 ### Compatibility
-- Existing saved graphs with one-click `scro:explainer` nodes (no `plannerMode`) still run through the current `submitScroAsyncNode` path and billing.
+- Saved graphs with one-click `scro:explainer` nodes (no `plannerMode`) still run through the current `submitScroAsyncNode` path and billing.
+- Starter template `explainer` and the canvas agent create planner nodes from now on.
 
 ---
 
@@ -43,85 +45,98 @@ That spec's anti-goal "do NOT split Explainer into fragile micro-nodes that brea
 
 1. Drag **Explainer** onto the canvas → planner node (prompt port + ref images port, director style, language, target duration, character, ratio — same fields as today).
 2. Wire a prompt (or type one) and press `規劃分鏡（免費）`.
-3. Node shows a loading state (Phase A, then Phase B per clip). No USD Credit is charged.
-4. On success the client inserts the expanded nodes to the right of the planner, one horizontal row per clip, plus one Concat node at the end. Insertion is recorded for Undo like template loading.
-5. User edits any node, deletes clips, or runs `Run Flow`. Per-node failures refund only that node.
-6. `重新規劃`: confirm dialog → delete the previously expanded node ids that still exist → insert the new group.
+3. The server action saves the graph, creates the backing `videos` doc (`skipBilling: true`, `canvasPlanOnly: true`), queues Phase A on the worker, and returns at once. The node shows `規劃中…`.
+4. The client polls `getCanvasExplainerPlanAction` every 3s. The plan is **ready** when Phase B prompts are stored and `stillBlocker(project)` returns null (character still + prop/set locks done), so every frame can render immediately.
+5. On ready the server returns the expansion; the client inserts the nodes to the right of the planner and stores `expandedNodeIds`, `planStatus: "expanded"`, and a short script summary on the planner.
+6. User edits any node, deletes clips, or runs `Run Flow`. Per-node failures refund only that node.
+7. `重新規劃`: confirm dialog → delete `expandedNodeIds` still present → start a new plan on a **new** backing video (old frames stay valid for nothing; simpler than resetting the old doc).
 
 ---
 
 ## 4. Expanded Graph Shape
 
-For each Phase A clip `n` (1..N):
+For each Phase A clip `n` (1..N), row y = `planner.y + (n-1) * 300`:
 
-| Node | `modelId` | Prefilled data |
-| --- | --- | --- |
-| Frame `n` | `scro:explainer-frame` | `prompt` = `buildFramePrompt(project, n, "start")`; `toolParams: { plannerVideoId, clipNumber: n }`; `aspectRatio` from planner |
-| Video `n` | `openrouter:minimax/hailuo-3` | `prompt` = Phase B prompt for clip `n`; `durationSeconds` = Phase B `durationSeconds` (5–15) |
-| Voice `n` | `scro:tts` | `prompt` = clip `englishVo`; `toolParams: { language, voicePreset or characterId, ttsSpeed: 1.25 for diagram explainers, else 1 }` |
-| Mux `n` | `ffmpeg:audio-mux` | `presetId: "replace"` |
+| Node | `modelId` | x offset | Prefilled data |
+| --- | --- | --- | --- |
+| Frame `n` | `scro:explainer-frame` | +420 | `prompt` = `buildFramePrompt(project, n, "start")`; `toolParams: { plannerVideoId, clipNumber: n }`; `aspectRatio` from planner |
+| Voice `n` | `scro:tts` | +420, y+150 | `prompt` = clip `englishVo`; `toolParams: { language, voicePreset or characterId, ttsSpeed: 1.25 }` |
+| Video `n` | `openrouter:minimax/hailuo-3` | +800 | `prompt` = Phase B prompt for clip `n`; `durationSeconds` = Phase B `durationSeconds` clamped 5–15 |
+| Mux `n` | `ffmpeg:audio-mux` | +1180 | `presetId: "replace"`, `toolParams: { ffmpegMixMode: "replace", ffmpegAudioGainDb: 0 }` |
 
 Edges per clip: `Frame.output → Video.startImage`, `Video.output → Mux.video`, `Voice.output → Mux.refAudio`, `Mux.output → Concat.videos`.
 
-Clips with no spoken line (same check the director voice pipeline uses in `src/service/director/spoken-line.ts`) or narration off skip Voice + Mux: `Video.output → Concat.videos` directly.
+Clips whose `englishVo` is empty or `isSilentSpokenLine` skip Voice + Mux: `Video.output → Concat.videos` directly.
 
-`ffmpeg:concat` accepts up to 8 `videos` inputs. When N > 8, chain a second Concat: first 8 into Concat A, `Concat A + remaining clips` into Concat B (final). Layout: clip rows stacked vertically, 4 columns (Frame, Voice, Video, Mux), Concat to the right, vertically centered.
+`ffmpeg:concat` accepts up to 8 `videos`. When N > 8: rows 1–8 feed Concat A; Concat A plus rows 9..N feed Concat B (final). Concat nodes sit at x +1560, vertically centered on their inputs.
 
-The planner node records `toolParams.expandedNodeIds: string[]` and `toolParams.plannerVideoId`.
+Voice preset: character with a cloned voice → `toolParams.characterId`; else by language and `voiceGender`: yue `cathy`/`alan`, zh `una`/`yu`, en `bella`/`brian`. All three planner directors are diagram explainers, so `ttsSpeed` is always 1.25 (matches the `atempo=1.25` the director pipeline applies).
 
 ---
 
 ## 5. Components
 
-### 5.1 `src/service/canvas/explainer-expand.ts` (new, pure)
-`buildExplainerExpansion(input: { plannerNodeId, plannerPosition, project: Project, phaseBPrompts: PhaseBPrompt[], framePrompts: string[], voice: {...}, idPrefix }) → { nodes: CanvasNode[]; edges: CanvasEdge[]; expandedNodeIds: string[] }`. No I/O, so it is unit-tested directly.
+### 5.1 Backing video: plan-only Phase A
+- `Project` gains `canvasPlanOnly?: boolean` and `canvasPlan?: { prompts: PhaseBPrompt[]; error?: string }`.
+- `runPhaseAJob`: when `canvasPlanOnly`, do not set `autoVideoClips`, keep the still + video-lock steps, skip `enqueueSceneImagesForNewVideo`, then run Phase B for every clip (`runCanvasPlanPhaseB`, concurrency 3) and store `canvasPlan`. Phase B failure stores `canvasPlan.error` and the plan shows failed.
+- `enqueueSceneImagesForNewVideo` returns early when `canvasPlanOnly` (lock completion re-calls it).
 
-### 5.2 `src/service/canvas/explainer-plan.ts` (new)
-`planCanvasExplainer({ clerkUserId, canvasId, nodeId })`:
-1. Loads the canvas + planner node, resolves wired prompt / ref images (`resolveNodeInputs` in `graph.ts`).
-2. Creates (or reuses on re-plan) the backing `videos` document exactly like the current `scro:explainer` dispatch (`skipBilling: true`, `creditsCharged: false`), so `buildFramePrompt`, cast, style, products and reference images stay identical.
-3. Runs `runPhaseA`, saves `phaseA`, runs `runPhaseBForClip` per clip (bounded concurrency), saves prompts.
-4. Builds `framePrompts` with `buildFramePrompt(project, n, "start")`.
-5. Returns `buildExplainerExpansion(...)` output plus the script summary. Charges nothing.
+### 5.2 `src/service/canvas/explainer-expand.ts` (new, pure)
+`buildExplainerExpansion(input) → { nodes, edges, expandedNodeIds }`. No I/O; unit-tested directly.
 
-### 5.3 Server Action `src/presentation/actions/canvas-explainer.ts` (new)
-`"use server"` wrapper: `planCanvasExplainerAction(canvasId, nodeId)` → `requireClerkUserId()` → `planCanvasExplainer`. No new REST route.
+### 5.3 `src/service/canvas/explainer-plan.ts` (new)
+- `createCanvasDirectorVideo(...)`: extracted from today's `scro:explainer` branch in `submitScroAsyncNode` so both paths insert the same doc. Planner adds `canvasPlanOnly: true` and `autoProduceAllClips: false`.
+- `startCanvasExplainerPlan({ clerkUserId, canvasId, nodeId })`: validates the planner node, resolves inputs with `resolveNodeInputs`, creates the doc, `schedulePhaseAWorkerTask`, returns `{ plannerVideoId }`. Charges nothing.
+- `readCanvasExplainerPlan({ clerkUserId, plannerVideoId, plannerNode })`: returns `planning | failed | ready(expansion, summary)`.
 
-### 5.4 `scro:explainer-frame` node
-- Catalog: `src/service/canvas/model-catalog.ts` `SCRO_STATIC_MODELS`, category `scro-tool`, inputs `[promptPort(true), refImagesPort(4)]`, output image, `basePriceUsd: IMAGE_COST_USD`, plus a new optional `CanvasModelSpec.hiddenInSidebar: true` so the sidebar skips it (only created by expansion; still resolvable by `findCanvasModel`).
-- Execution: `src/service/canvas/scro-dispatch.ts` sync branch. Loads `plannerVideoId` (ownership-checked), picks the route with `resolveImageRoute` / `imageRouteForSceneText` for that project's skill + style, attaches the same character / style / reference images the director pipeline attaches, uses the node's (possibly edited) prompt, persists to Blob via `persistMedia`. Falls back to Seedream 5.0 Pro + wired refs if the backing video was deleted.
-- Pricing: `estimateCanvasModelCostUsd` → `IMAGE_COST_USD`.
+### 5.4 Server Actions `src/presentation/actions/canvas-explainer.ts` (new)
+`startCanvasExplainerPlanAction` (saves the graph snapshot first, like `runCanvasNodeAction`) and `getCanvasExplainerPlanAction`. No REST route.
 
-### 5.5 Planner node UI
-- Files under `src/app/app/canvas/` (new components in their own files, `"use client"` where hooks are used): `explainer-planner-body.tsx` (fields + plan button + script/clip list), `explainer-replan-dialog.tsx` (confirmation, following existing dialog styling).
-- `canvas-workspace.tsx`: handler that calls the action and inserts nodes/edges the same way template loading does (`toFlowNodes` / `toFlowEdges`, `scheduleAutosave`, Undo entry). Re-plan removes `expandedNodeIds` still present first.
-- Planner node shows `免費` instead of a USD price; Run Flow price ignores planner nodes.
+### 5.5 `scro:explainer-frame` node
+- Catalog entry in `SCRO_STATIC_MODELS`: inputs `[promptPort(true)]`, image output, `basePriceUsd: IMAGE_COST_USD`, new optional `CanvasModelSpec.hiddenInSidebar: true`.
+- Async execution (`submitScroAsyncNode`, new `domainKind: "explainer_frame"`): loads the backing video (ownership-checked), returns an error when `stillBlocker` is non-null, writes the node prompt onto the frame `(clipNumber, "start")` with `promptEdited: true`, then `regenerateFrame(project, n, "start", undefined, { useStoredPrompt: true })`.
+- Poll (`pollScroAsyncJob`): frame `completed` → `blobUrl ?? outputUrl`; `failed` → frame error.
+- Billing: `$0.15` through the canvas job; the backing video stays `skipBilling: true`.
 
-### 5.6 Director rule files
-Hailuo start-only motion rules (locked camera, silent on-screen character, eyes/hands on teaching element) already live in each explainer director's own rule file and are emitted by Phase B. No shared prompt block is added. If any explainer director's Phase B output is missing those rules, the fix goes into that director's own file under `src/service/director/rules/`.
+### 5.6 Planner exclusion
+`isExplainerPlannerNode(node)` = `modelId === "scro:explainer" && toolParams.plannerMode === true`.
+- `computeExecutionWaves` skips planner nodes.
+- `submitCanvasNodeJob` rejects planner nodes with `INVALID_INPUTS` ("請按「規劃分鏡」").
+- Flow price and the node card show `免費` for planners.
 
-### 5.7 Canvas AI Assistant
-`src/service/canvas-agent/tools.ts` + `prompt.ts`: agent knows the planner mode, never adds `scro:explainer-frame` directly, and tells users to press `規劃分鏡` (planning is user-triggered because the agent never runs nodes).
+### 5.7 Planner UI (`src/app/app/canvas/nodes/`)
+- `explainer-planner-panel.tsx` (`"use client"`): plan button, `規劃中…` state, error, script summary, `重新規劃`.
+- `explainer-replan-dialog.tsx`: confirmation following existing dialog styling.
+- `model-node-card.tsx`: renders the panel instead of the Run button for planner nodes.
+- `canvas-workspace.tsx`: `onPlanExplainer(nodeId)` handler, 3s plan polling for nodes with `planStatus: "planning"`, insertion via `toFlowNodes` / `toFlowEdges`, `addModelNodeAt` sets `plannerMode: true` for `scro:explainer`.
+
+### 5.8 Director rule files
+Hailuo start-only motion rules already come from `runPhaseBForClip` (`DIAGRAM_EXPLAINER_VIDEO_GUARD` / `PAPERCRAFT_DIORAMA_VIDEO_GUARD`). No shared prompt block is added.
+
+### 5.9 Canvas AI Assistant
+`prompt.ts`: explainer nodes are planners; the agent adds and wires them, never adds `scro:explainer-frame`, and tells the user to press `規劃分鏡`.
 
 ---
 
 ## 6. Billing & Errors
-- Planning: free. Gemini cost is absorbed, same as today's free storyboard drafts.
-- Expanded nodes bill through the existing executor with per-node atomic refund on failure. No double charge: the backing `videos` doc stays `skipBilling: true`.
-- Planning failure (content filter, Gemini error, missing prompt): node shows the error; nothing is inserted; nothing is charged.
-- Re-plan only deletes ids in `expandedNodeIds`; user-added nodes and edges are untouched.
-- Rate limit: one in-flight plan per planner node (button disabled + server-side guard on the backing video `status`).
+- Planning: free (Gemini + still + locks are absorbed, same as today's free storyboard drafts). No frames are drawn until the user runs a frame node.
+- Expanded nodes bill through the existing executor with per-node atomic refund on failure.
+- Planning failure (content filter, Gemini error, missing prompt): planner shows the error; nothing is inserted; nothing is charged.
+- Re-plan only deletes ids in `expandedNodeIds`; user-added nodes and edges stay.
+- Double-click guard: plan button disabled while `planStatus === "planning"`.
 
 ---
 
 ## 7. Testing (no live provider calls)
-- `explainer-expand.test.ts`: node count for N=3 / 9 / 12, edges per clip, chained Concat when N > 8, no-dialogue clips skip Voice + Mux, TTS speed 1.25 only for diagram explainers, unique ids, layout positions.
-- `explainer-plan.test.ts`: mocked `runPhaseA` / `runPhaseBForClip`; asserts no wallet debit, backing video `skipBilling: true`, re-plan reuses the same video id.
-- `pricing.test.ts`: `scro:explainer-frame` = $0.15; expanded 60s/9-clip graph sum matches frames + video + TTS.
-- `scro-dispatch.test.ts`: frame node picks Nano Banana 2.1 route for paper-cutout skill and Seedream otherwise (mocked submit), ownership check on `plannerVideoId`.
-- `executor.test.ts`: legacy one-click `scro:explainer` still bills $7.35 for 60s.
+- `explainer-expand.test.ts`: node/edge counts for N=3/9/12, chained Concat when N > 8, silent clips skip Voice + Mux, voice preset mapping, unique ids.
+- `explainer-planner.test.ts`: `isExplainerPlannerNode`, planner price is 0, `computeExecutionWaves` skips planners.
+- `explainer-plan-phase-b.test.ts`: mocked Phase B runner; stores prompts in clip order; error captured.
+- `explainer-plan.test.ts`: `readCanvasExplainerPlan` states with mocked deps.
+- `scro-dispatch.test.ts`: frame submit writes stored prompt + calls `regenerateFrame`; refuses foreign video; poll maps frame status.
+- `pricing.test.ts`: `scro:explainer-frame` = $0.15.
+- `executor.test.ts`: legacy one-click `scro:explainer` still bills $7.35 for 60s; planner node is rejected.
 
 ---
 
 ## 8. Docs
-Same change updates `pipeline-models.md` and the model summary in `AGENTS.md`: Canvas Explainer planner (free Phase A/B), `scro:explainer-frame` image routing, expanded per-clip Hailuo 3 + ElevenLabs TTS (1.25x for diagram explainers) + FFmpeg Audio Mux + Concat.
+Same change updates `pipeline-models.md` and the model summary in `AGENTS.md`.
