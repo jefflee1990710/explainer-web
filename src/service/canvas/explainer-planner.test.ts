@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasNode } from "@/model/canvas";
 import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import { computeExecutionWaves } from "@/service/canvas/graph";
 
 const node = (data: CanvasNode["data"]): CanvasNode => ({
   id: "n1",
@@ -38,5 +39,16 @@ describe("explainer planner helpers", () => {
       planSummary: undefined,
     });
     assert.equal(readPlannerParams(node({ toolParams: { planStatus: "weird" } })).planStatus, undefined);
+  });
+});
+
+describe("planner exclusion", () => {
+  it("never schedules planner nodes in flow waves", () => {
+    const nodes: CanvasNode[] = [
+      node({ modelId: "scro:explainer", toolParams: { plannerMode: true } }),
+      { id: "tts", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts", prompt: "hi" } },
+    ];
+    assert.deepEqual(computeExecutionWaves(nodes, []), [["tts"]]);
+    assert.deepEqual(computeExecutionWaves(nodes, [], ["n1", "tts"]), [["tts"]]);
   });
 });

@@ -25,6 +25,7 @@ import {
   applyCompletedJobOutputs,
   resolveNodeInputs,
 } from "@/service/canvas/graph";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import {
   type CanvasModelSpec,
   findCanvasModel,
@@ -593,6 +594,14 @@ export async function submitCanvasNodeJob(
       ok: false,
       code: "INVALID_MODEL",
       error: `不支援的模型：${node.data.modelId || "(未選擇)"}`,
+    };
+  }
+
+  if (isExplainerPlannerNode(node)) {
+    return {
+      ok: false,
+      code: "INVALID_INPUTS",
+      error: "請按「規劃分鏡」，再執行展開後的節點",
     };
   }
 

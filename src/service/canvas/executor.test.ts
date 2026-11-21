@@ -993,4 +993,27 @@ describe("canvas executor", () => {
     // 60s = 9 clips * $0.15 + 60 * $0.10 = $7.35
     assert.equal(res.job.chargedUsd, 7.35);
   });
+
+  it("rejects running a planner node directly", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 20,
+      nodes: [
+        {
+          id: "exp",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "scro:explainer", prompt: "Explain inflation", toolParams: { plannerMode: true } },
+        },
+      ],
+    });
+    const res = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "exp" },
+      harness.deps,
+    );
+    assert.equal(res.ok, false);
+    if (res.ok) return;
+    assert.equal(res.code, "INVALID_INPUTS");
+    assert.equal(harness.wallet.creditUsd, 20);
+    assert.equal(harness.jobs.size, 0);
+  });
 });

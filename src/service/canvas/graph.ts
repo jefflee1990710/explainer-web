@@ -12,6 +12,7 @@ import {
   STATIC_CANVAS_MODELS,
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 
 export type CanvasEdgeCandidate = {
   source: string;
@@ -481,7 +482,8 @@ export function computeExecutionWaves(
   const modelOrder = new Map<string, number>();
   const allModelIds: string[] = [];
   for (const node of nodes) {
-    if (node.type === "model") {
+    // Planner nodes only plan; their expanded nodes do the work.
+    if (node.type === "model" && !isExplainerPlannerNode(node)) {
       modelOrder.set(node.id, allModelIds.length);
       allModelIds.push(node.id);
     }
