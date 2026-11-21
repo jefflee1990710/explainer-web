@@ -267,6 +267,19 @@ describe("canvas agent tools", () => {
     assert.ok(T.ask_user(g, { question: "Again?", options: ["C", "D"] }).error);
   });
 
+  it("ask_user refuses to offer a talking head when the user asked for an explainer", () => {
+    const options = ["Talking Head video of Jim explaining source code", "Multi-scene animated explainer"];
+    const asked = { ...fresh(), userMessage: "Use jim create explainer explain what is source code" };
+    assert.ok(T.ask_user(asked, { question: "How?", options }).error);
+    assert.equal(asked.question, undefined);
+
+    const zh = { ...fresh(), userMessage: "用 Jim 做一條解說片" };
+    assert.ok(T.ask_user(zh, { question: "點做？", options: ["Jim 口播", "動畫解說"] }).error);
+
+    const wantsTalkingHead = { ...fresh(), userMessage: "Jim talking head explainer about source code" };
+    assert.equal(T.ask_user(wantsTalkingHead, { question: "How?", options }).ok, true);
+  });
+
   it("exposes every handler as an AI SDK tool", () => {
     const tools = buildCanvasAgentTools(fresh());
     assert.deepEqual(Object.keys(tools).sort(), Object.keys(T).sort());

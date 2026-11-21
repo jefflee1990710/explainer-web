@@ -36,6 +36,7 @@ export type CanvasAgentWorkingGraph = {
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters: readonly CanvasLibraryCharacterOption[];
+  userMessage: string;
   ops: CanvasAgentOp[];
   addedNodes: number;
   // Set by ask_user; the turn stops and the dock shows it as clickable options.
@@ -51,6 +52,8 @@ export function createWorkingGraph(input: {
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters?: readonly CanvasLibraryCharacterOption[];
+  // This turn's user message; ask_user uses it to block questions the request already answers.
+  message?: string;
   nextId?: () => string;
 }): CanvasAgentWorkingGraph {
   const characters =
@@ -64,11 +67,15 @@ export function createWorkingGraph(input: {
     catalog: input.catalog,
     assets: input.assets,
     characters,
+    userMessage: input.message ?? "",
     ops: [],
     addedNodes: 0,
     nextId: input.nextId ?? (() => crypto.randomUUID().slice(0, 8)),
   };
 }
+
+const EXPLAINER_REQUEST = /explainer|解說|講解|解释|讲解/i;
+const TALKING_HEAD_WORDS = /talking[\s-]?head|口播|對鏡頭|对镜头|on[\s-]camera/i;
 
 const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "scro:talking-head": ["characterId", "language", "framing", "styleId"],
@@ -483,6 +490,17 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     );
     if (!question) return { error: "question is empty." };
     if (labels.length < 2) return { error: "Give at least 2 different options." };
+    // An explainer request already picks the tool; scro:explainer can feature the named character.
+    if (
+      EXPLAINER_REQUEST.test(g.userMessage) &&
+      !TALKING_HEAD_WORDS.test(g.userMessage) &&
+      labels.some((label) => TALKING_HEAD_WORDS.test(label))
+    ) {
+      return {
+        error:
+          'Do not ask: the user asked for an explainer. Add "scro:explainer" with the topic in "prompt" and, if they named a character, "toolParams.characterId" from list_assets().characters, then reply.',
+      };
+    }
     g.question = {
       question,
       options: labels.map((label, i) => ({ id: `opt-${i + 1}`, label })),
