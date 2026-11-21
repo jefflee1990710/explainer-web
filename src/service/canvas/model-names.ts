@@ -20,6 +20,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "Explainer 解説動画",
     ko: "Explainer 설명 영상",
   },
+  "scro:explainer-frame": {
+    "zh-Hant": "Explainer 分鏡靜幀",
+    "zh-Hans": "Explainer 分镜静帧",
+    ja: "Explainer 絵コンテ静止画",
+    ko: "Explainer 스토리보드 스틸",
+  },
   "scro:swap": {
     "zh-Hant": "Scro Swap 換角",
     "zh-Hans": "Scro Swap 换角",

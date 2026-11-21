@@ -68,6 +68,7 @@ export function estimateCanvasModelCostUsd(
         return CANVAS_TTS_COST_USD;
       case "scro:life":
       case "scro:poster":
+      case "scro:explainer-frame":
         return IMAGE_COST_USD;
       case "scro:talking-head":
         return talkingHeadVideoCostUsd(duration);

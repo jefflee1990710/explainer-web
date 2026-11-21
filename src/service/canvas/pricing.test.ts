@@ -100,4 +100,11 @@ describe("canvas USD pricing", () => {
     // 30s explainer = 5 clips * $0.15 + 30s * $0.10/s = $3.75
     assert.equal(estimateCanvasModelCostUsd(explainer, { durationSeconds: 30 }), 3.75);
   });
+
+  it("prices scro:explainer-frame at one image ($0.15)", () => {
+    const frame = findCanvasModel("scro:explainer-frame");
+    assert.ok(frame);
+    assert.equal(frame.hiddenInSidebar, true);
+    assert.equal(estimateCanvasModelCostUsd(frame), 0.15);
+  });
 });

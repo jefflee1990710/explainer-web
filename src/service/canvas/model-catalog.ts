@@ -71,6 +71,8 @@ export type CanvasModelSpec = {
   supportsResolution?: boolean;
   runtimeStatus?: MentalokRuntimeStatus;
   available?: boolean;
+  // Created only by other features (e.g. Explainer expansion); not listed in the sidebar or agent catalog.
+  hiddenInSidebar?: boolean;
 };
 
 export const MENTALOK_CATALOG_CACHE_TTL_MS = 60_000;
@@ -566,6 +568,21 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     minDurationSeconds: 15,
     maxDurationSeconds: 60,
     supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    id: "scro:explainer-frame",
+    provider: "scro",
+    providerModelId: "explainer-frame",
+    name: "Explainer Frame",
+    category: "scro-tool",
+    inputs: [promptPort(true)],
+    output: imageOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: false,
+    hiddenInSidebar: true,
     available: true,
   },
   {

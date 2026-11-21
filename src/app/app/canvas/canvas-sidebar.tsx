@@ -118,6 +118,7 @@ export function CanvasSidebar({
       models.filter((spec) => spec.provider === "openrouter").map((spec) => spec.category),
     );
     return models
+      .filter((spec) => !spec.hiddenInSidebar)
       .filter((spec) => spec.provider !== "mentalok" || !openRouterCategories.has(spec.category))
       .sort((a, b) => (providerRank[a.provider] ?? 9) - (providerRank[b.provider] ?? 9));
   }, [models]);

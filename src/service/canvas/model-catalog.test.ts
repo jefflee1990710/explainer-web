@@ -19,7 +19,8 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 5);
+    // 7 sidebar Scro tools + the hidden scro:explainer-frame.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 8 + 5);
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
     assert.equal(ids.size, STATIC_CANVAS_MODELS.length);
@@ -30,7 +31,11 @@ describe("canvas model catalog", () => {
     const ffmpeg = STATIC_CANVAS_MODELS.filter((m) => m.provider === "ffmpeg");
     assert.equal(mentalok.length, 16);
     assert.equal(openrouter.length, openRouterCount);
-    assert.equal(scro.length, 7);
+    assert.equal(scro.length, 8);
+    assert.deepEqual(
+      scro.filter((m) => m.hiddenInSidebar).map((m) => m.id),
+      ["scro:explainer-frame"],
+    );
     assert.equal(ffmpeg.length, 5);
 
     for (const model of STATIC_CANVAS_MODELS) {

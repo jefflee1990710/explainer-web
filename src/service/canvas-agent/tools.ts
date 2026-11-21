@@ -132,7 +132,9 @@ function validateToolParamsForModel(
 }
 
 function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
-  return g.catalog.filter((spec) => spec.provider !== "mentalok" && spec.available !== false);
+  return g.catalog.filter(
+    (spec) => spec.provider !== "mentalok" && spec.available !== false && !spec.hiddenInSidebar,
+  );
 }
 
 // One short line per model so the chat prompt stays small.
@@ -267,6 +269,9 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       toolParams?: Record<string, unknown>;
     },
   ): CanvasAgentToolResult {
+    if (findCanvasModel(input.modelId, g.catalog)?.hiddenInSidebar) {
+      return { error: `${input.modelId} is created by Explainer planning; add scro:explainer instead.` };
+    }
     const spec = agentModels(g).find((s) => s.id === input.modelId);
     if (!spec) {
       return { error: `Unknown model "${input.modelId}". Call list_models and use an exact id.` };
