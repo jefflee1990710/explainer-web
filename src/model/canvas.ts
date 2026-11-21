@@ -16,7 +16,7 @@ export type CanvasNodeStatus =
   | "failed";
 export type CanvasOutputKind = "image" | "video" | "audio";
 export type CanvasJobStatus = "queued" | "running" | "completed" | "failed";
-export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg";
+export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg" | "explainer_frame";
 
 // Serializable payload stored on each node in the Interactive Node Canvas Editor.
 export type CanvasNodeData = {
@@ -168,6 +168,7 @@ export const canvasJobDomainKindSchema = z.enum([
   "jutsu",
   "teleport",
   "worker_ffmpeg",
+  "explainer_frame",
 ]);
 export const canvasModelProviderSchema = z.enum([
   "mentalok",

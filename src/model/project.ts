@@ -612,6 +612,9 @@ export type Project = {
   skipBilling?: boolean;
   // Set for Canvas Explainer projects so all clips (1..N) auto-produce and concat into a reel.
   autoProduceAllClips?: boolean;
+  // Canvas Explainer planner: Phase A + Phase B only, no frames until a canvas frame node runs.
+  canvasPlanOnly?: boolean;
+  canvasPlan?: { prompts: PhaseBPrompt[]; error?: string };
   error?: string;
   createdAt: Date;
   updatedAt: Date;
