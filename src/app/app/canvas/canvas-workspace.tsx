@@ -58,7 +58,16 @@ import {
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
-import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import {
+  dropExpandedPlanners,
+  isExplainerPlannerNode,
+  readPlannerParams,
+} from "@/service/canvas/explainer-planner";
+import { replacePlannerWithExpansion } from "@/service/canvas/explainer-expand";
+import {
+  ExplainerPlanDialog,
+  type ExplainerPlanDialogValues,
+} from "@/app/app/canvas/explainer-plan-dialog";
 import {
   getCanvasExplainerPlanAction,
   startCanvasExplainerPlanAction,
@@ -266,11 +275,12 @@ function CanvasWorkspaceInner({
       : null,
   );
 
+  const [initialGraph] = useState(() => dropExpandedPlanners(initialProject));
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(
-    toFlowNodes(initialProject.nodes),
+    toFlowNodes(initialGraph.nodes),
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
-    toFlowEdges(initialProject.edges, initialProject.nodes, initialModels),
+    toFlowEdges(initialGraph.edges, initialGraph.nodes, initialModels),
   );
 
   // Refs hold latest graph state so async Run Flow waves and autosave never read stale closures.
@@ -503,11 +513,22 @@ function CanvasWorkspaceInner({
     }
   }, [reactFlow]);
 
+  // Explainer setup dialog opened by a sidebar drop or the Explainer template.
+  const [explainerDialog, setExplainerDialog] = useState<{
+    position: { x: number; y: number };
+    defaultTopic?: string;
+  } | null>(null);
+
   const addModelNodeAt = useCallback(
     (modelId: string, position?: { x: number; y: number }) => {
       const spec = findCanvasModel(modelId, models);
       if (!spec) return;
       const pos = position ?? getCenterPosition();
+      // Explainer never lands as an editable node: ask for the topic first, then plan.
+      if (spec.id === "scro:explainer") {
+        setExplainerDialog({ position: pos });
+        return;
+      }
       const newNode: FlowNode = {
         id: `model-${crypto.randomUUID().slice(0, 8)}`,
         type: "model",
@@ -515,19 +536,11 @@ function CanvasWorkspaceInner({
         data: {
           modelId: spec.id,
           presetId: spec.defaultPresetId,
-          aspectRatio: spec.supportsAspectRatio
-            ? spec.id === "scro:explainer"
-              ? "9:16"
-              : "16:9"
-            : undefined,
+          aspectRatio: spec.supportsAspectRatio ? "16:9" : undefined,
           resolution: spec.supportsResolution ? "2k" : undefined,
           durationSeconds: spec.defaultDurationSeconds,
           prompt: "",
           status: "idle",
-          // New Explainer drops are free planners that expand into per-clip nodes.
-          ...(spec.id === "scro:explainer"
-            ? { toolParams: { plannerMode: true, durationPreset: "30s" } }
-            : {}),
         },
       };
       setNodes((prev) => [...prev, newNode]);
@@ -762,37 +775,32 @@ function CanvasWorkspaceInner({
     [setNodes, syncWallet, applyJobUpdates, isZh],
   );
 
-  // Free Explainer planning: drop the previous expansion, then queue Phase A on the worker.
-  const onPlanExplainer = useCallback(
-    async (nodeId: string) => {
-      const planner = nodesRef.current.find((n) => n.id === nodeId);
-      if (!planner) return;
-      const stale = new Set(readPlannerParams(planner).expandedNodeIds);
-      const nextNodes = nodesRef.current
-        .filter((n) => !stale.has(n.id))
-        .map((n) =>
-          n.id === nodeId
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  toolParams: {
-                    ...n.data.toolParams,
-                    planStatus: "planning",
-                    expandedNodeIds: [],
-                    planError: undefined,
-                    planSummary: undefined,
-                    plannerVideoId: undefined,
-                  },
+  // Free Explainer planning: mark the card as planning, save the graph, then queue Phase A.
+  // `graph` lets callers that just added the card (dialog, AI assistant) pass the fresh state.
+  const startExplainerPlan = useCallback(
+    async (nodeId: string, graph?: { nodes: FlowNode[]; edges: Edge[] }) => {
+      const baseNodes = graph?.nodes ?? nodesRef.current;
+      const nextEdges = graph?.edges ?? edgesRef.current;
+      if (!baseNodes.some((n) => n.id === nodeId)) return;
+      const markPlanning = (n: FlowNode): FlowNode =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                toolParams: {
+                  ...n.data.toolParams,
+                  planStatus: "planning",
+                  planError: undefined,
+                  plannerVideoId: undefined,
                 },
-              }
-            : n,
-        );
-      const nextEdges = edgesRef.current.filter(
-        (e) => !stale.has(e.source) && !stale.has(e.target),
+              },
+            }
+          : n;
+      const nextNodes = baseNodes.map(markPlanning);
+      setNodes((prev) =>
+        prev.some((n) => n.id === nodeId) ? prev.map(markPlanning) : nextNodes,
       );
-      setNodes(nextNodes);
-      setEdges(nextEdges);
       try {
         const res = await startCanvasExplainerPlanAction({
           canvasId: activeProjectIdRef.current,
@@ -836,10 +844,49 @@ function CanvasWorkspaceInner({
       }
       scheduleAutosave();
     },
-    [setNodes, setEdges, scheduleAutosave],
+    [setNodes, scheduleAutosave],
   );
 
-  // Planner nodes waiting on the worker (polled like canvas jobs).
+  const onPlanExplainer = useCallback(
+    (nodeId: string) => void startExplainerPlan(nodeId),
+    [startExplainerPlan],
+  );
+
+  const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
+
+  // Dialog submit: place the planning card at the drop spot and start the free plan.
+  const submitExplainerDialog = useCallback(
+    (values: ExplainerPlanDialogValues) => {
+      const dialog = explainerDialog;
+      setExplainerDialog(null);
+      if (!dialog) return;
+      const card: FlowNode = {
+        id: `model-${crypto.randomUUID().slice(0, 8)}`,
+        type: "model",
+        position: dialog.position,
+        data: {
+          modelId: "scro:explainer",
+          aspectRatio: values.aspectRatio,
+          prompt: values.topic,
+          status: "idle",
+          toolParams: {
+            plannerMode: true,
+            skillSlug: values.skillSlug,
+            language: values.language,
+            durationPreset: values.durationPreset,
+            ...(values.characterId ? { characterId: values.characterId } : {}),
+          },
+        },
+      };
+      void startExplainerPlan(card.id, {
+        nodes: [...nodesRef.current, card],
+        edges: edgesRef.current,
+      });
+    },
+    [explainerDialog, startExplainerPlan],
+  );
+
+  // Planning cards waiting on the worker (polled like canvas jobs).
   const planningNodeIdsKey = useMemo(
     () =>
       nodes
@@ -881,33 +928,25 @@ function CanvasWorkspaceInner({
           }).catch(() => null);
           if (!alive || !state || state.status === "planning") continue;
           const planner = nodesRef.current.find((n) => n.id === nodeId);
-          // Another tick or a re-plan already handled this planner.
+          // Another tick already handled (or removed) this planning card.
           if (!planner || readPlannerParams(planner).planStatus !== "planning") continue;
           if (state.status === "failed") {
             setPlannerParams(nodeId, { planStatus: "failed", planError: state.error });
             scheduleAutosave();
             continue;
           }
-          const existing = new Set(nodesRef.current.map((n) => n.id));
-          const freshNodes = state.nodes.filter((n) => !existing.has(n.id));
-          setPlannerParams(nodeId, {
-            planStatus: "expanded",
-            expandedNodeIds: state.expandedNodeIds,
-            planSummary: state.summary,
-            planError: undefined,
-          });
-          setNodes((prev) => [...prev, ...toFlowNodes(freshNodes)]);
-          setEdges((prev) => {
-            const edgeIds = new Set(prev.map((e) => e.id));
-            return [
-              ...prev,
-              ...toFlowEdges(
-                state.edges.filter((e) => !edgeIds.has(e.id)),
-                [...toDomainNodes(nodesRef.current), ...state.nodes],
-                models,
-              ),
-            ];
-          });
+          // The planning card disappears; only the expanded per-clip nodes remain.
+          const allNodes = [...toDomainNodes(nodesRef.current), ...state.nodes];
+          const next = replacePlannerWithExpansion(
+            { nodes: nodesRef.current, edges: edgesRef.current },
+            nodeId,
+            {
+              nodes: toFlowNodes(state.nodes),
+              edges: toFlowEdges(state.edges, allNodes, models),
+            },
+          );
+          setNodes(next.nodes);
+          setEdges(next.edges);
           scheduleAutosave();
           window.setTimeout(() => {
             void reactFlow.fitView({ padding: 0.2, duration: 300 });
@@ -1087,6 +1126,12 @@ function CanvasWorkspaceInner({
   const handleApplyTemplate = useCallback(
     (templateId: CanvasStarterTemplateId) => {
       const { nodes: tplNodes, edges: tplEdges } = instantiateCanvasTemplate(templateId);
+      // The Explainer template opens the setup dialog with its sample topic instead of a node.
+      if (templateId === "explainer") {
+        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text;
+        setExplainerDialog({ position: getCenterPosition(), defaultTopic: sample });
+        return;
+      }
       setNodes((prev) => [...prev, ...toFlowNodes(tplNodes)]);
       setEdges((prev) => [
         ...prev,
@@ -1097,7 +1142,7 @@ function CanvasWorkspaceInner({
         void reactFlow.fitView({ padding: 0.2, duration: 300 });
       }, 60);
     },
-    [models, setNodes, setEdges, scheduleAutosave, reactFlow],
+    [models, setNodes, setEdges, scheduleAutosave, reactFlow, getCenterPosition],
   );
 
   // Canvas agent: the graph sent with each chat message, per-turn undo snapshots, and op replay.
@@ -1163,9 +1208,26 @@ function CanvasWorkspaceInner({
       window.setTimeout(() => {
         void reactFlow.fitView({ padding: 0.2, duration: 400 });
       }, 80);
+
+      // Explainer cards the assistant added start planning right away (free).
+      const agentPlanners = graph.nodes.filter(
+        (n) =>
+          isExplainerPlannerNode(n) &&
+          !readPlannerParams(n).plannerVideoId &&
+          ops.some((op) => op.kind === "add_node" && op.node.id === n.id),
+      );
+      if (agentPlanners.length > 0) {
+        const flowGraph = {
+          nodes: toFlowNodes(graph.nodes),
+          edges: toFlowEdges(graph.edges, graph.nodes, models),
+        };
+        for (const planner of agentPlanners) {
+          await startExplainerPlan(planner.id, flowGraph);
+        }
+      }
       return { skipped };
     },
-    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes],
+    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startExplainerPlan],
   );
 
   const undoAgentTurn = useCallback(
@@ -1261,10 +1323,6 @@ function CanvasWorkspaceInner({
     [reactFlow, addModelNodeAt, addAssetNodeAt, uploadAndPlaceFiles],
   );
 
-  // Changes only when nodes are added or removed, not on every drag.
-  const nodeIdsKey = nodes.map((n) => n.id).join(",");
-  const liveNodeIds = useMemo(() => new Set(nodeIdsKey.split(",")), [nodeIdsKey]);
-
   const nodeContextValue = useMemo(
     () => ({
       catalog: models,
@@ -1277,7 +1335,6 @@ function CanvasWorkspaceInner({
       onRunNode,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
-      liveNodeIds,
     }),
     [
       models,
@@ -1289,7 +1346,6 @@ function CanvasWorkspaceInner({
       onDeleteNode,
       onRunNode,
       onPlanExplainer,
-      liveNodeIds,
     ],
   );
 
@@ -1421,6 +1477,15 @@ function CanvasWorkspaceInner({
                 </div>
               </div>
             ) : null}
+
+            <ExplainerPlanDialog
+              open={explainerDialog !== null}
+              isZh={isZh}
+              defaultTopic={explainerDialog?.defaultTopic}
+              characterOptions={assets.characterOptions ?? []}
+              onCancel={closeExplainerDialog}
+              onSubmit={submitExplainerDialog}
+            />
 
             {/* Local file drop overlay */}
             {isDraggingFile ? (

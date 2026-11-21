@@ -72,13 +72,13 @@ export async function submitExplainerFrame(
   const videoHex = params.node.data.toolParams?.plannerVideoId;
   const clipNumber = params.node.data.toolParams?.clipNumber;
   if (typeof videoHex !== "string" || !ObjectId.isValid(videoHex) || typeof clipNumber !== "number") {
-    throw new Error("這個分鏡靜幀缺少規劃資料，請重新規劃分鏡");
+    throw new Error("這個分鏡靜幀缺少規劃資料，請刪除這組節點，再拖入 Explainer 重新建立");
   }
   const videoId = new ObjectId(videoHex);
   const project = await resolved.findVideo(videoId, params.clerkUserId);
-  if (!project?.phaseA) throw new Error("找不到這個解說的分鏡，請重新規劃");
+  if (!project?.phaseA) throw new Error("找不到這個解說的分鏡，請刪除這組節點，再拖入 Explainer 重新建立");
   if (!project.phaseA.clips.some((clip) => clip.clipNumber === clipNumber)) {
-    throw new Error("找不到這段分鏡，請重新規劃");
+    throw new Error("找不到這段分鏡，請刪除這組節點，再拖入 Explainer 重新建立");
   }
   const blocker = await resolved.stillBlocker(project);
   if (blocker) throw new Error(blocker);
@@ -87,7 +87,7 @@ export async function submitExplainerFrame(
   );
   await resolved.storeStartPrompt(videoId, clipNumber, params.prompt, hasFrame);
   const fresh = await resolved.findVideo(videoId, params.clerkUserId);
-  if (!fresh) throw new Error("找不到這個解說的分鏡，請重新規劃");
+  if (!fresh) throw new Error("找不到這個解說的分鏡，請刪除這組節點，再拖入 Explainer 重新建立");
   await resolved.regenerateStart(fresh, clipNumber);
   return {
     domainKind: "explainer_frame",

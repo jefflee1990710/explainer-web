@@ -4,6 +4,7 @@ import {
   EXPLAINER_HAILUO_MODEL_ID,
   buildExplainerExpansion,
   explainerVoicePreset,
+  replacePlannerWithExpansion,
   type ExplainerExpansionClip,
 } from "@/service/canvas/explainer-expand";
 
@@ -77,6 +78,31 @@ describe("buildExplainerExpansion", () => {
       const finals = concats.filter((c) => !out.edges.some((e) => e.source === c.id));
       assert.equal(finals.length, 1);
     }
+  });
+});
+
+describe("replacePlannerWithExpansion", () => {
+  it("removes the planning card and its wires, then adds new nodes once", () => {
+    const graph = {
+      nodes: [{ id: "topic" }, { id: "plan" }, { id: "keep" }],
+      edges: [
+        { id: "e1", source: "topic", target: "plan" },
+        { id: "e2", source: "topic", target: "keep" },
+      ],
+    };
+    const expansion = {
+      nodes: [{ id: "f1" }, { id: "keep" }],
+      edges: [{ id: "e3", source: "f1", target: "keep" }],
+    };
+    const out = replacePlannerWithExpansion(graph, "plan", expansion);
+    assert.deepEqual(out.nodes.map((n) => n.id), ["topic", "keep", "f1"]);
+    assert.deepEqual(out.edges.map((e) => e.id), ["e2", "e3"]);
+  });
+
+  it("starts the first row at the planning card position", () => {
+    const out = buildExplainerExpansion({ ...base, clips: clips(1) });
+    const frame = out.nodes.find((n) => n.data.modelId === "scro:explainer-frame")!;
+    assert.deepEqual(frame.position, base.origin);
   });
 });
 

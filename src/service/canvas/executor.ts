@@ -601,7 +601,7 @@ export async function submitCanvasNodeJob(
     return {
       ok: false,
       code: "INVALID_INPUTS",
-      error: "請按「規劃分鏡」，再執行展開後的節點",
+      error: "解說分鏡規劃完成後會展開成節點，請執行展開後的節點",
     };
   }
 

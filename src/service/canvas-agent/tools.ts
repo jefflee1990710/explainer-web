@@ -279,6 +279,18 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     }
     const paramError = validateToolParamsForModel(g, spec.id, input.toolParams);
     if (paramError) return { error: paramError };
+    // Explainer lands as a self-contained planning card that the canvas plans right after the turn.
+    if (spec.id === "scro:explainer") {
+      const topic = (input.prompt ?? input.promptText ?? "").trim();
+      if (!topic) return { error: "scro:explainer needs the topic or script in \"prompt\"." };
+      return addNode(g, "model", {
+        modelId: spec.id,
+        aspectRatio: input.aspectRatio ?? "9:16",
+        prompt: topic,
+        toolParams: { ...(input.toolParams ?? {}), plannerMode: true },
+        status: "idle",
+      });
+    }
     const created = addNode(g, "model", {
       modelId: spec.id,
       presetId: spec.defaultPresetId,
@@ -286,12 +298,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       resolution: spec.supportsResolution ? "2k" : undefined,
       durationSeconds: clampDuration(spec, input.durationSeconds),
       prompt: input.prompt ?? "",
-      // Explainer nodes are always free planners on the canvas.
-      ...(spec.id === "scro:explainer"
-        ? { toolParams: { ...(input.toolParams ?? {}), plannerMode: true } }
-        : input.toolParams
-          ? { toolParams: input.toolParams }
-          : {}),
+      ...(input.toolParams ? { toolParams: input.toolParams } : {}),
       status: "idle",
     });
     if (created.error || typeof created.nodeId !== "string") return created;
@@ -406,8 +413,12 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     const sourceNode = g.nodes.find((n) => n.id === input.sourceId);
     if (sourceNode && isExplainerPlannerNode(sourceNode)) {
       return {
-        error: "An Explainer planner has no output. Its expanded FFmpeg Concat node carries the final video.",
+        error: "An Explainer planning card has no output. Its expanded FFmpeg Concat node carries the final video.",
       };
+    }
+    const targetNode = g.nodes.find((n) => n.id === input.targetId);
+    if (targetNode && isExplainerPlannerNode(targetNode)) {
+      return { error: "An Explainer planning card takes no wires; put the topic in its \"prompt\"." };
     }
     const candidate = {
       source: input.sourceId,

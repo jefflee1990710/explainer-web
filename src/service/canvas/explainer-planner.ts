@@ -34,3 +34,19 @@ export function readPlannerParams(node: Pick<CanvasNode, "data">) {
     planSummary: str(params.planSummary),
   };
 }
+
+// Older canvases kept the Explainer node after expanding; its nodes already exist, so drop it on load.
+export function dropExpandedPlanners<E extends { source: string; target: string }>(graph: {
+  nodes: readonly CanvasNode[];
+  edges: readonly E[];
+}): { nodes: CanvasNode[]; edges: E[] } {
+  const stale = new Set(
+    graph.nodes
+      .filter((n) => isExplainerPlannerNode(n) && readPlannerParams(n).planStatus === "expanded")
+      .map((n) => n.id),
+  );
+  return {
+    nodes: graph.nodes.filter((n) => !stale.has(n.id)),
+    edges: graph.edges.filter((e) => !stale.has(e.source) && !stale.has(e.target)),
+  };
+}

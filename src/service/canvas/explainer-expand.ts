@@ -8,7 +8,8 @@ export const EXPLAINER_HAILUO_MODEL_ID = "openrouter:minimax/hailuo-3";
 const EXPLAINER_TTS_SPEED = 1.25;
 const CONCAT_MAX_INPUTS = 8;
 const ROW_HEIGHT = 300;
-const COL = { frame: 420, video: 800, mux: 1180, concat: 1560 } as const;
+// Rows start where the planning card sat; the card is removed once nodes land.
+const COL = { frame: 0, video: 380, mux: 760, concat: 1140 } as const;
 
 export type ExplainerExpansionClip = {
   clipNumber: number;
@@ -153,4 +154,23 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
   }
 
   return { nodes, edges, expandedNodeIds: nodes.map((n) => n.id) };
+}
+
+type GraphNode = { id: string };
+type GraphEdge = { id: string; source: string; target: string };
+
+// Swaps the planning card for its expanded nodes; ids already on the canvas are skipped.
+export function replacePlannerWithExpansion<N extends GraphNode, E extends GraphEdge>(
+  graph: { nodes: readonly N[]; edges: readonly E[] },
+  plannerId: string,
+  expansion: { nodes: readonly N[]; edges: readonly E[] },
+): { nodes: N[]; edges: E[] } {
+  const nodes = graph.nodes.filter((n) => n.id !== plannerId);
+  const edges = graph.edges.filter((e) => e.source !== plannerId && e.target !== plannerId);
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const edgeIds = new Set(edges.map((e) => e.id));
+  return {
+    nodes: [...nodes, ...expansion.nodes.filter((n) => !nodeIds.has(n.id))],
+    edges: [...edges, ...expansion.edges.filter((e) => !edgeIds.has(e.id))],
+  };
 }

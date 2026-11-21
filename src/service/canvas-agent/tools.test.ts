@@ -45,8 +45,9 @@ describe("canvas agent tools", () => {
     assert.ok(res.models.every((line) => !line.startsWith("scro:explainer-frame |")));
   });
 
-  it("adds Explainer as a free planner, never adds frame nodes, and never wires planner output", () => {
+  it("adds Explainer as a self-contained planning card with no wires in or out", () => {
     const g = fresh();
+    assert.ok("error" in T.add_model_node(g, { modelId: "scro:explainer" }));
     const exp = T.add_model_node(g, {
       modelId: "scro:explainer",
       promptText: "Explain inflation",
@@ -54,9 +55,13 @@ describe("canvas agent tools", () => {
     }) as { nodeId: string };
     const node = g.nodes.find((n) => n.id === exp.nodeId)!;
     assert.deepEqual(node.data.toolParams, { language: "en", plannerMode: true });
+    assert.equal(node.data.prompt, "Explain inflation");
+    assert.equal(g.nodes.filter((n) => n.type === "prompt").length, 0);
     assert.ok("error" in T.add_model_node(g, { modelId: "scro:explainer-frame" }));
     const concat = T.add_model_node(g, { modelId: "ffmpeg:concat" }) as { nodeId: string };
     assert.ok("error" in T.connect(g, { sourceId: exp.nodeId, targetId: concat.nodeId, targetPort: "videos" }));
+    const topic = T.add_prompt_node(g, { text: "x" }) as { nodeId: string };
+    assert.ok("error" in T.connect(g, { sourceId: topic.nodeId, targetId: exp.nodeId, targetPort: "prompt" }));
   });
 
   it("supports toolParams on Scro tools, audio -> refAudio wiring, and multi-video ffmpeg:concat", () => {

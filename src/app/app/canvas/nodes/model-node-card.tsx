@@ -20,8 +20,8 @@ import { formatUsd } from "@/service/billing/usd";
 import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
-import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
-import { ExplainerPlannerPanel } from "@/app/app/canvas/nodes/explainer-planner-panel";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import {
   CATEGORY_LABELS,
   PORT_COLOR_MAP,
@@ -49,7 +49,6 @@ export function ModelNodeCard({
     onRunNode,
     onOpenLightbox,
     onPlanExplainer,
-    liveNodeIds,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -69,6 +68,32 @@ export function ModelNodeCard({
     }
     return map;
   }, [edges, id]);
+
+  if (isExplainerPlannerNode({ type: "model", data })) {
+    return (
+      <>
+        {/* Invisible anchors keep wires into older planner nodes rendering */}
+        {[...incomingByHandle.keys()].map((handle) => (
+          <Handle
+            key={handle}
+            type="target"
+            id={handle}
+            position={Position.Left}
+            isConnectable={false}
+            style={{ opacity: 0 }}
+          />
+        ))}
+        <ExplainerPlanningCard
+          data={data}
+          isZh={isZh}
+          selected={Boolean(selected)}
+          disabled={isFlowRunning}
+          onPlan={() => onPlanExplainer(id)}
+          onRemove={() => onDeleteNode(id)}
+        />
+      </>
+    );
+  }
 
   if (!spec) {
     return (
@@ -138,10 +163,6 @@ export function ModelNodeCard({
   }
 
   const canRun = !isBusy && !isFlowRunning && missingRequiredLabels.length === 0;
-  const isPlanner = isExplainerPlannerNode({ type: "model", data });
-  const liveExpandedCount = isPlanner
-    ? readPlannerParams({ data }).expandedNodeIds.filter((nid) => liveNodeIds.has(nid)).length
-    : 0;
   const categoryLabel = isZh
     ? CATEGORY_LABELS[spec.category]["zh-Hant"]
     : CATEGORY_LABELS[spec.category].en;
@@ -756,18 +777,8 @@ export function ModelNodeCard({
           </div>
         ) : null}
 
-        {/* Explainer planners plan for free; every other node gets the single-node Run CTA */}
-        {isPlanner ? (
-          <ExplainerPlannerPanel
-            data={data}
-            isZh={isZh}
-            disabled={isFlowRunning}
-            missingLabels={missingRequiredLabels}
-            liveExpandedCount={liveExpandedCount}
-            onPlan={() => onPlanExplainer(id)}
-          />
-        ) : (
-          <button
+        {/* Single-node Run CTA */}
+        <button
             type="button"
             disabled={!canRun}
             onClick={() => onRunNode(id)}
@@ -796,7 +807,6 @@ export function ModelNodeCard({
               </>
             )}
           </button>
-        )}
 
         {/* Inline Output Preview */}
         {data.outputUrl ? (
@@ -850,20 +860,18 @@ export function ModelNodeCard({
         ) : null}
       </div>
 
-      {/* Right typed output handle (planners produce nodes, not media) */}
-      {isPlanner ? null : (
-        <Handle
-          type="source"
-          id="output"
-          position={Position.Right}
-          style={{
-            width: 13,
-            height: 13,
-            backgroundColor: outputColor,
-            border: "2px solid #0b0e13",
-          }}
-        />
-      )}
+      {/* Right typed output handle */}
+      <Handle
+        type="source"
+        id="output"
+        position={Position.Right}
+        style={{
+          width: 13,
+          height: 13,
+          backgroundColor: outputColor,
+          border: "2px solid #0b0e13",
+        }}
+      />
     </div>
   );
 }

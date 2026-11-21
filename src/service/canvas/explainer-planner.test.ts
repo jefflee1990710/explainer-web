@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasNode } from "@/model/canvas";
-import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import {
+  dropExpandedPlanners,
+  isExplainerPlannerNode,
+  readPlannerParams,
+} from "@/service/canvas/explainer-planner";
 import { computeExecutionWaves } from "@/service/canvas/graph";
 
 const node = (data: CanvasNode["data"]): CanvasNode => ({
@@ -39,6 +43,26 @@ describe("explainer planner helpers", () => {
       planSummary: undefined,
     });
     assert.equal(readPlannerParams(node({ toolParams: { planStatus: "weird" } })).planStatus, undefined);
+  });
+});
+
+describe("dropExpandedPlanners", () => {
+  it("removes only already-expanded planners and their wires", () => {
+    const planner = (id: string, planStatus?: string): CanvasNode => ({
+      id,
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: { modelId: "scro:explainer", toolParams: { plannerMode: true, planStatus } },
+    });
+    const out = dropExpandedPlanners({
+      nodes: [planner("done", "expanded"), planner("busy", "planning"), planner("idle")],
+      edges: [
+        { id: "e1", source: "p", target: "done" },
+        { id: "e2", source: "p", target: "busy" },
+      ],
+    });
+    assert.deepEqual(out.nodes.map((n) => n.id), ["busy", "idle"]);
+    assert.deepEqual(out.edges.map((e) => e.id), ["e2"]);
   });
 });
 
