@@ -58,6 +58,11 @@ import {
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import {
+  getCanvasExplainerPlanAction,
+  startCanvasExplainerPlanAction,
+} from "@/presentation/actions/canvas-explainer";
 import type {
   CanvasJobDto,
   CanvasLibraryAsset,
@@ -498,11 +503,19 @@ function CanvasWorkspaceInner({
         data: {
           modelId: spec.id,
           presetId: spec.defaultPresetId,
-          aspectRatio: spec.supportsAspectRatio ? "16:9" : undefined,
+          aspectRatio: spec.supportsAspectRatio
+            ? spec.id === "scro:explainer"
+              ? "9:16"
+              : "16:9"
+            : undefined,
           resolution: spec.supportsResolution ? "2k" : undefined,
           durationSeconds: spec.defaultDurationSeconds,
           prompt: "",
           status: "idle",
+          // New Explainer drops are free planners that expand into per-clip nodes.
+          ...(spec.id === "scro:explainer"
+            ? { toolParams: { plannerMode: true, durationPreset: "30s" } }
+            : {}),
         },
       };
       setNodes((prev) => [...prev, newNode]);
@@ -736,6 +749,168 @@ function CanvasWorkspaceInner({
     },
     [setNodes, syncWallet, applyJobUpdates, isZh],
   );
+
+  // Free Explainer planning: drop the previous expansion, then queue Phase A on the worker.
+  const onPlanExplainer = useCallback(
+    async (nodeId: string) => {
+      const planner = nodesRef.current.find((n) => n.id === nodeId);
+      if (!planner) return;
+      const stale = new Set(readPlannerParams(planner).expandedNodeIds);
+      const nextNodes = nodesRef.current
+        .filter((n) => !stale.has(n.id))
+        .map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  toolParams: {
+                    ...n.data.toolParams,
+                    planStatus: "planning",
+                    expandedNodeIds: [],
+                    planError: undefined,
+                    planSummary: undefined,
+                    plannerVideoId: undefined,
+                  },
+                },
+              }
+            : n,
+        );
+      const nextEdges = edgesRef.current.filter(
+        (e) => !stale.has(e.source) && !stale.has(e.target),
+      );
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+      try {
+        const res = await startCanvasExplainerPlanAction({
+          canvasId: activeProjectIdRef.current,
+          nodeId,
+          nodes: toDomainNodes(withRememberedJobOutputs(nextNodes, jobOutputRef.current)),
+          edges: toDomainEdges(nextEdges),
+          viewport: viewportRef.current,
+        });
+        setNodes((prev) =>
+          prev.map((n) =>
+            n.id === nodeId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    toolParams: res.ok
+                      ? { ...n.data.toolParams, plannerVideoId: res.plannerVideoId, planStatus: "planning" }
+                      : { ...n.data.toolParams, planStatus: "failed", planError: res.error },
+                  },
+                }
+              : n,
+          ),
+        );
+        if (!res.ok) toast.error(res.error);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Planning failed";
+        setNodes((prev) =>
+          prev.map((n) =>
+            n.id === nodeId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    toolParams: { ...n.data.toolParams, planStatus: "failed", planError: msg },
+                  },
+                }
+              : n,
+          ),
+        );
+        toast.error(msg);
+      }
+      scheduleAutosave();
+    },
+    [setNodes, setEdges, scheduleAutosave],
+  );
+
+  // Planner nodes waiting on the worker (polled like canvas jobs).
+  const planningNodeIdsKey = useMemo(
+    () =>
+      nodes
+        .filter((n) => {
+          if (n.type !== "model" || !isExplainerPlannerNode({ type: "model", data: n.data })) {
+            return false;
+          }
+          const plan = readPlannerParams(n);
+          return plan.planStatus === "planning" && Boolean(plan.plannerVideoId);
+        })
+        .map((n) => n.id)
+        .join(","),
+    [nodes],
+  );
+
+  useEffect(() => {
+    if (!planningNodeIdsKey) return;
+    const ids = planningNodeIdsKey.split(",");
+    let alive = true;
+    let inFlight = false;
+
+    const setPlannerParams = (nodeId: string, patch: Record<string, unknown>) =>
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === nodeId
+            ? { ...n, data: { ...n.data, toolParams: { ...n.data.toolParams, ...patch } } }
+            : n,
+        ),
+      );
+
+    const timer = window.setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        for (const nodeId of ids) {
+          const state = await getCanvasExplainerPlanAction({
+            canvasId: activeProjectIdRef.current,
+            nodeId,
+          }).catch(() => null);
+          if (!alive || !state || state.status === "planning") continue;
+          const planner = nodesRef.current.find((n) => n.id === nodeId);
+          // Another tick or a re-plan already handled this planner.
+          if (!planner || readPlannerParams(planner).planStatus !== "planning") continue;
+          if (state.status === "failed") {
+            setPlannerParams(nodeId, { planStatus: "failed", planError: state.error });
+            scheduleAutosave();
+            continue;
+          }
+          const existing = new Set(nodesRef.current.map((n) => n.id));
+          const freshNodes = state.nodes.filter((n) => !existing.has(n.id));
+          setPlannerParams(nodeId, {
+            planStatus: "expanded",
+            expandedNodeIds: state.expandedNodeIds,
+            planSummary: state.summary,
+            planError: undefined,
+          });
+          setNodes((prev) => [...prev, ...toFlowNodes(freshNodes)]);
+          setEdges((prev) => {
+            const edgeIds = new Set(prev.map((e) => e.id));
+            return [
+              ...prev,
+              ...toFlowEdges(
+                state.edges.filter((e) => !edgeIds.has(e.id)),
+                [...toDomainNodes(nodesRef.current), ...state.nodes],
+                models,
+              ),
+            ];
+          });
+          scheduleAutosave();
+          window.setTimeout(() => {
+            void reactFlow.fitView({ padding: 0.2, duration: 300 });
+          }, 60);
+        }
+      } finally {
+        inFlight = false;
+      }
+    }, JOB_POLL_INTERVAL_MS);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, reactFlow]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
   useEffect(() => {
@@ -1012,6 +1187,8 @@ function CanvasWorkspaceInner({
     let count = 0;
     for (const node of nodes) {
       if (node.type !== "model" || !node.data.modelId) continue;
+      // Planners are free and never run in a flow.
+      if (isExplainerPlannerNode({ type: "model", data: node.data })) continue;
       const spec = findCanvasModel(node.data.modelId, models);
       if (!spec) continue;
       count += 1;
@@ -1072,6 +1249,10 @@ function CanvasWorkspaceInner({
     [reactFlow, addModelNodeAt, addAssetNodeAt, uploadAndPlaceFiles],
   );
 
+  // Changes only when nodes are added or removed, not on every drag.
+  const nodeIdsKey = nodes.map((n) => n.id).join(",");
+  const liveNodeIds = useMemo(() => new Set(nodeIdsKey.split(",")), [nodeIdsKey]);
+
   const nodeContextValue = useMemo(
     () => ({
       catalog: models,
@@ -1083,6 +1264,8 @@ function CanvasWorkspaceInner({
       onDeleteNode,
       onRunNode,
       onOpenLightbox: setLightbox,
+      onPlanExplainer,
+      liveNodeIds,
     }),
     [
       models,
@@ -1093,6 +1276,8 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onPlanExplainer,
+      liveNodeIds,
     ],
   );
 

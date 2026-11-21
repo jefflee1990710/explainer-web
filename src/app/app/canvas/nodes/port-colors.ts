@@ -48,6 +48,10 @@ export type CanvasNodeActionsContextValue = {
   onDeleteNode: (nodeId: string) => void;
   onRunNode: (nodeId: string) => void;
   onOpenLightbox: (item: CanvasLightboxItem) => void;
+  // Free Explainer planning (planner nodes only).
+  onPlanExplainer: (nodeId: string) => void;
+  // Ids currently on the canvas, so planners can count which expanded nodes still exist.
+  liveNodeIds: ReadonlySet<string>;
 };
 
 export const CanvasNodeActionsContext =

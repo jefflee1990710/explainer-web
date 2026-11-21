@@ -12,6 +12,7 @@ import type {
 } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import type {
@@ -285,7 +286,12 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       resolution: spec.supportsResolution ? "2k" : undefined,
       durationSeconds: clampDuration(spec, input.durationSeconds),
       prompt: input.prompt ?? "",
-      ...(input.toolParams ? { toolParams: input.toolParams } : {}),
+      // Explainer nodes are always free planners on the canvas.
+      ...(spec.id === "scro:explainer"
+        ? { toolParams: { ...(input.toolParams ?? {}), plannerMode: true } }
+        : input.toolParams
+          ? { toolParams: input.toolParams }
+          : {}),
       status: "idle",
     });
     if (created.error || typeof created.nodeId !== "string") return created;
@@ -397,6 +403,12 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     g: CanvasAgentWorkingGraph,
     input: { sourceId: string; targetId: string; targetPort: string },
   ): CanvasAgentToolResult {
+    const sourceNode = g.nodes.find((n) => n.id === input.sourceId);
+    if (sourceNode && isExplainerPlannerNode(sourceNode)) {
+      return {
+        error: "An Explainer planner has no output. Its expanded FFmpeg Concat node carries the final video.",
+      };
+    }
     const candidate = {
       source: input.sourceId,
       sourceHandle: "output",

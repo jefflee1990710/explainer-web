@@ -59,6 +59,12 @@ describe("canvas starter templates", () => {
       }
 
       const waves = computeExecutionWaves(nodes, edges);
+      if (template.id === "explainer") {
+        // Only a free planner: nothing runs until it expands.
+        assert.deepEqual(waves, []);
+        assert.ok(nodes.some((n) => n.data.toolParams?.plannerMode === true));
+        continue;
+      }
       assert.ok(waves.length >= 1, `template ${template.id} should resolve to >= 1 wave`);
     }
   });

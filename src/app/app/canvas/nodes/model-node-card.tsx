@@ -20,6 +20,8 @@ import { formatUsd } from "@/service/billing/usd";
 import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import { ExplainerPlannerPanel } from "@/app/app/canvas/nodes/explainer-planner-panel";
 import {
   CATEGORY_LABELS,
   PORT_COLOR_MAP,
@@ -46,6 +48,8 @@ export function ModelNodeCard({
     onDeleteNode,
     onRunNode,
     onOpenLightbox,
+    onPlanExplainer,
+    liveNodeIds,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -134,6 +138,10 @@ export function ModelNodeCard({
   }
 
   const canRun = !isBusy && !isFlowRunning && missingRequiredLabels.length === 0;
+  const isPlanner = isExplainerPlannerNode({ type: "model", data });
+  const liveExpandedCount = isPlanner
+    ? readPlannerParams({ data }).expandedNodeIds.filter((nid) => liveNodeIds.has(nid)).length
+    : 0;
   const categoryLabel = isZh
     ? CATEGORY_LABELS[spec.category]["zh-Hant"]
     : CATEGORY_LABELS[spec.category].en;
@@ -391,7 +399,7 @@ export function ModelNodeCard({
         )}
 
         {/* Scro Tool & FFmpeg Node Controls */}
-        {spec.provider === "scro" ? (
+        {spec.provider === "scro" && spec.id !== "scro:explainer-frame" ? (
           <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
             {(spec.id === "scro:talking-head" ||
               spec.id === "scro:explainer" ||
@@ -748,36 +756,47 @@ export function ModelNodeCard({
           </div>
         ) : null}
 
-        {/* Single-node Run CTA */}
-        <button
-          type="button"
-          disabled={!canRun}
-          onClick={() => onRunNode(id)}
-          title={
-            missingRequiredLabels.length > 0
-              ? `${isZh ? "缺少必要輸入：" : "Missing required: "}${missingRequiredLabels.join(", ")}`
-              : undefined
-          }
-          className={`nodrag flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12px] font-bold transition ${
-            canRun
-              ? "bg-[#c6f24b] text-[#11141b] shadow-[0_6px_18px_rgba(198,242,75,0.2)] hover:brightness-105"
-              : "cursor-not-allowed bg-white/8 text-white/40"
-          }`}
-        >
-          {isBusy ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>{isZh ? "執行中…" : "Running…"}</span>
-            </>
-          ) : (
-            <>
-              <Play className="h-3.5 w-3.5 fill-current" />
-              <span>
-                Run · {formatUsd(estimatedUsd)}
-              </span>
-            </>
-          )}
-        </button>
+        {/* Explainer planners plan for free; every other node gets the single-node Run CTA */}
+        {isPlanner ? (
+          <ExplainerPlannerPanel
+            data={data}
+            isZh={isZh}
+            disabled={isFlowRunning}
+            missingLabels={missingRequiredLabels}
+            liveExpandedCount={liveExpandedCount}
+            onPlan={() => onPlanExplainer(id)}
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={!canRun}
+            onClick={() => onRunNode(id)}
+            title={
+              missingRequiredLabels.length > 0
+                ? `${isZh ? "缺少必要輸入：" : "Missing required: "}${missingRequiredLabels.join(", ")}`
+                : undefined
+            }
+            className={`nodrag flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12px] font-bold transition ${
+              canRun
+                ? "bg-[#c6f24b] text-[#11141b] shadow-[0_6px_18px_rgba(198,242,75,0.2)] hover:brightness-105"
+                : "cursor-not-allowed bg-white/8 text-white/40"
+            }`}
+          >
+            {isBusy ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{isZh ? "執行中…" : "Running…"}</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5 fill-current" />
+                <span>
+                  Run · {formatUsd(estimatedUsd)}
+                </span>
+              </>
+            )}
+          </button>
+        )}
 
         {/* Inline Output Preview */}
         {data.outputUrl ? (
@@ -831,18 +850,20 @@ export function ModelNodeCard({
         ) : null}
       </div>
 
-      {/* Right typed output handle */}
-      <Handle
-        type="source"
-        id="output"
-        position={Position.Right}
-        style={{
-          width: 13,
-          height: 13,
-          backgroundColor: outputColor,
-          border: "2px solid #0b0e13",
-        }}
-      />
+      {/* Right typed output handle (planners produce nodes, not media) */}
+      {isPlanner ? null : (
+        <Handle
+          type="source"
+          id="output"
+          position={Position.Right}
+          style={{
+            width: 13,
+            height: 13,
+            backgroundColor: outputColor,
+            border: "2px solid #0b0e13",
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -192,6 +192,7 @@ export function instantiateCanvasTemplate(
             durationSeconds: 30,
             prompt: "",
             toolParams: {
+              plannerMode: true,
               skillSlug: "cartoon-explainer-video-director",
               language: "yue",
               durationPreset: "30s",
