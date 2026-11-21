@@ -17,6 +17,7 @@ import type { Character } from "@/model/character";
 import type { JutsuMode, JutsuObjectEditMode } from "@/model/jutsu-job";
 import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/project";
 import type { ResolvedCanvasInputs } from "@/service/canvas/graph";
+import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/explainer-frame";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
 import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
@@ -362,10 +363,19 @@ export async function submitScroAsyncNode(
     inputs: ResolvedCanvasInputs;
   },
   deps?: Partial<ScroAsyncSubmitDeps>,
-): Promise<{ domainKind: "video" | "jutsu" | "teleport"; externalJobId: string }> {
+): Promise<{
+  domainKind: "video" | "jutsu" | "teleport" | "explainer_frame";
+  externalJobId: string;
+}> {
   const { clerkUserId, modelId, node, inputs } = params;
   const startSwapForUser = deps?.startSwapForUser ?? startScroSwapJobForUser;
   const startTeleportForUser = deps?.startTeleportForUser ?? startTeleportJobForUser;
+
+  if (modelId === "scro:explainer-frame") {
+    const prompt = inputs.prompt?.trim();
+    if (!prompt) throw new Error("分鏡靜幀需要提示詞");
+    return submitExplainerFrame({ clerkUserId, node, prompt });
+  }
 
   if (modelId === "scro:swap") {
     if (!inputs.video) throw new Error("Scro Swap 需要連接輸入影片");
@@ -542,7 +552,7 @@ export type PollScroAsyncDeps = {
 export async function pollScroAsyncJob(
   params: {
     clerkUserId: string;
-    domainKind: "video" | "jutsu" | "teleport";
+    domainKind: "video" | "jutsu" | "teleport" | "explainer_frame";
     externalJobId: string;
   },
   deps?: Partial<PollScroAsyncDeps>,
@@ -560,6 +570,13 @@ export async function pollScroAsyncJob(
     pollTeleport: pollTeleportJobStatusForUser,
     ...deps,
   };
+
+  if (params.domainKind === "explainer_frame") {
+    return pollExplainerFrame(
+      { clerkUserId: params.clerkUserId, externalJobId: params.externalJobId },
+      { findVideo: resolved.findVideo },
+    );
+  }
 
   if (params.domainKind === "video") {
     if (!ObjectId.isValid(params.externalJobId)) {

@@ -1466,14 +1466,15 @@ async function pollSingleCanvasJob(
       !job.externalJobId ||
       (job.domainKind !== "video" &&
         job.domainKind !== "jutsu" &&
-        job.domainKind !== "teleport")
+        job.domainKind !== "teleport" &&
+        job.domainKind !== "explainer_frame")
     ) {
       return job;
     }
     const pollRes = await resolved
       .pollScroAsyncJob({
         clerkUserId: job.clerkUserId,
-        domainKind: job.domainKind as "video" | "jutsu" | "teleport",
+        domainKind: job.domainKind,
         externalJobId: job.externalJobId,
       })
       .catch(() => ({ status: "running" as const }));
