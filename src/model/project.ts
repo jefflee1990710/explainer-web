@@ -614,7 +614,12 @@ export type Project = {
   autoProduceAllClips?: boolean;
   // Canvas Explainer planner: Phase A + Phase B only, no frames until a canvas frame node runs.
   canvasPlanOnly?: boolean;
-  canvasPlan?: { prompts: PhaseBPrompt[]; error?: string };
+  canvasPlan?: {
+    prompts: PhaseBPrompt[];
+    // Start-still prompts built exactly as the frame pipeline would submit them.
+    framePrompts?: { clipNumber: number; prompt: string }[];
+    error?: string;
+  };
   error?: string;
   createdAt: Date;
   updatedAt: Date;

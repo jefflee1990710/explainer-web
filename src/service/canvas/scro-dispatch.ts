@@ -437,86 +437,101 @@ export async function submitScroAsyncNode(
   }
 
   if (modelId === "scro:talking-head" || modelId === "scro:explainer") {
-    const users = await usersCollection();
-    const user = await users.findOne({ clerkUserId });
-    if (!user) throw new Error("找不到使用者");
-
-    const isTalking = modelId === "scro:talking-head";
-    const skillSlug = isTalking
-      ? "talking-head-director"
-      : readToolParamStr(node, "skillSlug") || "cartoon-explainer-video-director";
-    const skill = await findSelectableSkill(clerkUserId, skillSlug);
-    if (!skill) throw new Error(`找不到導演風格：${skillSlug}`);
-    const ruleSlug = behaviorSlug(skill);
-
-    const characterId = readToolParamStr(node, "characterId");
-    const characterIds = characterId ? [characterId] : [];
-    const styleId = readToolParamStr(node, "styleId") || (isTalking ? "cinematic-realistic" : "whiteboard");
-    const castResult = await buildCast(clerkUserId, styleId, characterIds, {});
-    if (!castResult.ok) throw new Error(castResult.error);
-
-    const productId = readToolParamStr(node, "productId");
-    const productResult = await buildProducts(clerkUserId, productId ? [productId] : []);
-    if (!productResult.ok) throw new Error(productResult.error);
-
-    const language = normalizeLanguage(readToolParamStr(node, "language"));
-    const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
-    const durationPreset = normalizeDurationPreset(readToolParamStr(node, "durationPreset"));
-    const now = new Date();
-
-    const videos = await videosCollection();
-    const insert = await videos.insertOne({
-      userId: user._id,
-      clerkUserId,
-      skillId: skill._id,
-      skillSlug: ruleSlug,
-      styleId,
-      source: inputs.prompt?.trim() || (isTalking ? "Canvas Talking Head" : "Canvas Explainer"),
-      ...(isTalking && inputs.prompt?.trim() ? { spokenScript: inputs.prompt.trim() } : {}),
-      aspectRatio,
-      durationPreset: isTalking ? "short" : durationPreset,
-      language,
-      narrationEnabled: true,
-      voiceGender: castResult.cast[0]?.voice?.gender ?? "female",
-      speechPace: "medium",
-      sceneTextEnabled: !isTalking,
-      sceneTextLanguage: language === "en" ? "en" : "zh-Hant",
-      subtitleLook: "handwritten",
-      textStyleId: "handwritten",
-      ...(isTalking && inputs.startImage ? { startImageUrl: inputs.startImage } : {}),
-      ...(isTalking && inputs.refAudio
-        ? {
-            uploadedVoUrl: inputs.refAudio,
-            uploadedVoDurationSeconds: Math.min(120, Math.max(5, Math.round(node.data.durationSeconds ?? 15))),
-          }
-        : {}),
-      ...(inputs.refImages.length > 0
-        ? {
-            referenceImages: inputs.refImages.slice(0, 4).map((url, idx) => ({
-              id: `R${idx + 1}`,
-              url,
-              name: `Ref ${idx + 1}`,
-              description: `Reference image ${idx + 1}`,
-              purpose: "scene" as const,
-            })),
-          }
-        : {}),
-      cast: castResult.cast,
-      ...(productResult.products.length ? { products: productResult.products } : {}),
-      status: "phase_a",
-      clips: [],
-      creditsCharged: false,
-      skipBilling: true,
-      autoProduceAllClips: true,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    schedulePhaseAWorkerTask(insert.insertedId);
-    return { domainKind: "video", externalJobId: insert.insertedId.toHexString() };
+    const videoId = await createCanvasDirectorVideo({ clerkUserId, modelId, node, inputs });
+    schedulePhaseAWorkerTask(videoId);
+    return { domainKind: "video", externalJobId: videoId.toHexString() };
   }
 
   throw new Error(`不支援的非同步 Scro 節點：${modelId}`);
+}
+
+// Inserts the backing `videos` doc for a canvas Talking Head / Explainer node (billing stays on canvas_jobs).
+export async function createCanvasDirectorVideo(params: {
+  clerkUserId: string;
+  modelId: "scro:talking-head" | "scro:explainer";
+  node: CanvasNode;
+  inputs: ResolvedCanvasInputs;
+  // Canvas Explainer planner: storyboard + prompts only, frames wait for frame nodes.
+  planOnly?: boolean;
+}): Promise<ObjectId> {
+  const { clerkUserId, modelId, node, inputs } = params;
+  const users = await usersCollection();
+  const user = await users.findOne({ clerkUserId });
+  if (!user) throw new Error("找不到使用者");
+
+  const isTalking = modelId === "scro:talking-head";
+  const skillSlug = isTalking
+    ? "talking-head-director"
+    : readToolParamStr(node, "skillSlug") || "cartoon-explainer-video-director";
+  const skill = await findSelectableSkill(clerkUserId, skillSlug);
+  if (!skill) throw new Error(`找不到導演風格：${skillSlug}`);
+  const ruleSlug = behaviorSlug(skill);
+
+  const characterId = readToolParamStr(node, "characterId");
+  const characterIds = characterId ? [characterId] : [];
+  const styleId = readToolParamStr(node, "styleId") || (isTalking ? "cinematic-realistic" : "whiteboard");
+  const castResult = await buildCast(clerkUserId, styleId, characterIds, {});
+  if (!castResult.ok) throw new Error(castResult.error);
+
+  const productId = readToolParamStr(node, "productId");
+  const productResult = await buildProducts(clerkUserId, productId ? [productId] : []);
+  if (!productResult.ok) throw new Error(productResult.error);
+
+  const language = normalizeLanguage(readToolParamStr(node, "language"));
+  const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
+  const durationPreset = normalizeDurationPreset(readToolParamStr(node, "durationPreset"));
+  const now = new Date();
+
+  const videos = await videosCollection();
+  const insert = await videos.insertOne({
+    userId: user._id,
+    clerkUserId,
+    skillId: skill._id,
+    skillSlug: ruleSlug,
+    styleId,
+    source: inputs.prompt?.trim() || (isTalking ? "Canvas Talking Head" : "Canvas Explainer"),
+    ...(isTalking && inputs.prompt?.trim() ? { spokenScript: inputs.prompt.trim() } : {}),
+    aspectRatio,
+    durationPreset: isTalking ? "short" : durationPreset,
+    language,
+    narrationEnabled: true,
+    voiceGender: castResult.cast[0]?.voice?.gender ?? "female",
+    speechPace: "medium",
+    sceneTextEnabled: !isTalking,
+    sceneTextLanguage: language === "en" ? "en" : "zh-Hant",
+    subtitleLook: "handwritten",
+    textStyleId: "handwritten",
+    ...(isTalking && inputs.startImage ? { startImageUrl: inputs.startImage } : {}),
+    ...(isTalking && inputs.refAudio
+      ? {
+          uploadedVoUrl: inputs.refAudio,
+          uploadedVoDurationSeconds: Math.min(120, Math.max(5, Math.round(node.data.durationSeconds ?? 15))),
+        }
+      : {}),
+    ...(inputs.refImages.length > 0
+      ? {
+          referenceImages: inputs.refImages.slice(0, 4).map((url, idx) => ({
+            id: `R${idx + 1}`,
+            url,
+            name: `Ref ${idx + 1}`,
+            description: `Reference image ${idx + 1}`,
+            purpose: "scene" as const,
+          })),
+        }
+      : {}),
+    cast: castResult.cast,
+    ...(productResult.products.length ? { products: productResult.products } : {}),
+    status: "phase_a",
+    clips: [],
+    creditsCharged: false,
+    skipBilling: true,
+    autoProduceAllClips: !params.planOnly,
+    ...(params.planOnly ? { canvasPlanOnly: true } : {}),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return insert.insertedId;
 }
 
 export type PollScroAsyncDeps = {

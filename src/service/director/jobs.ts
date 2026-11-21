@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ObjectId } from "mongodb";
+import type { Project } from "@/model/project";
 import {
   PHASE_A_LOCK_STALE_MS,
   phaseAFramesAlreadyDrawing,
@@ -24,7 +25,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
-import { runCanvasPlanPhaseB } from "@/service/canvas/explainer-plan-phase-b";
+import { planCanvasExplainer } from "@/service/canvas/explainer-plan-phase-b";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import {
   enqueueVideoLockJobs,
@@ -242,15 +243,13 @@ export async function runPhaseAJob(
       });
     }
     if (project.canvasPlanOnly) {
-      // Canvas planner: store every clip's video prompt instead of drawing frames.
+      // Canvas planner: store every clip's video and still prompts instead of drawing frames.
       const planned = await projects.findOne({ _id: projectId });
-      const canvasPlan = planned
-        ? await runCanvasPlanPhaseB(planned)
-            .then((prompts) => ({ prompts }))
-            .catch((error: unknown) => ({
-              prompts: [],
-              error: errorMessage(error, "分鏡提示詞生成失敗"),
-            }))
+      const canvasPlan: NonNullable<Project["canvasPlan"]> = planned
+        ? await planCanvasExplainer(planned).catch((error: unknown) => ({
+            prompts: [],
+            error: errorMessage(error, "分鏡提示詞生成失敗"),
+          }))
         : { prompts: [], error: "找不到影片" };
       await projects.updateOne(
         { _id: projectId, "phaseALock.token": token },

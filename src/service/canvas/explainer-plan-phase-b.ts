@@ -6,7 +6,29 @@ import { loadStoredSkill } from "@/service/director/load-skill";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { resolveSceneText } from "@/service/director/scene-text";
+import { withWrittenCanvas } from "@/service/director/written-chinese";
+import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+
+// Full canvas plan: every clip's video prompt plus its start-still prompt.
+export async function planCanvasExplainer(project: Project) {
+  const prompts = await runCanvasPlanPhaseB(project);
+  const framePrompts = await buildCanvasPlanFramePrompts(project);
+  return { prompts, framePrompts };
+}
+
+// Same prompt regenerateFrames would build (written-Chinese labels, style), so prefilled text matches the director.
+export async function buildCanvasPlanFramePrompts(project: Project) {
+  const written = await withWrittenCanvas(project);
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
+  return (written.phaseA?.clips ?? []).map((clip) => ({
+    clipNumber: clip.clipNumber,
+    prompt: frameSubmitPlan(written, clip.clipNumber, "start", undefined, style).prompt,
+  }));
+}
 
 // Runs one Phase B call per clip with bounded concurrency; results stay in clip order.
 export async function collectPhaseBPrompts(
