@@ -65,6 +65,11 @@ import {
 } from "@/service/canvas/explainer-planner";
 import { replacePlannerWithExpansion } from "@/service/canvas/explainer-expand";
 import {
+  layoutExplainerGroup,
+  shiftGroupClearOf,
+  type LayoutSize,
+} from "@/service/canvas/explainer-layout";
+import {
   ExplainerPlanDialog,
   type ExplainerPlanDialogValues,
 } from "@/app/app/canvas/explainer-plan-dialog";
@@ -380,9 +385,69 @@ function CanvasWorkspaceInner({
     };
   }, []);
 
+  // A freshly expanded Explainer group waiting for React Flow to measure its cards.
+  const pendingExplainerLayoutRef = useRef<{
+    ids: Set<string>;
+    edges: { source: string; target: string }[];
+    origin: { x: number; y: number };
+  } | null>(null);
+
+  // Re-lays out the group with real card sizes and moves it clear of other nodes.
+  const applyPendingExplainerLayout = useCallback(() => {
+    const pending = pendingExplainerLayoutRef.current;
+    if (!pending) return;
+    const live = reactFlow.getNodes();
+    const sizes = new Map<string, LayoutSize>();
+    for (const node of live) {
+      if (!pending.ids.has(node.id)) continue;
+      const width = node.measured?.width;
+      const height = node.measured?.height;
+      if (!width || !height) return;
+      sizes.set(node.id, { width, height });
+    }
+    pendingExplainerLayoutRef.current = null;
+    if (sizes.size === 0) return;
+    const sizeOf = (id: string) => sizes.get(id) ?? { width: 312, height: 400 };
+    const obstacles = live
+      .filter((n) => !pending.ids.has(n.id))
+      .map((n) => ({
+        x: n.position.x,
+        y: n.position.y,
+        width: n.measured?.width ?? 312,
+        height: n.measured?.height ?? 400,
+      }));
+    const positions = shiftGroupClearOf(
+      layoutExplainerGroup({
+        nodeIds: [...sizes.keys()],
+        edges: pending.edges,
+        origin: pending.origin,
+        sizeOf,
+      }),
+      sizeOf,
+      obstacles,
+    );
+    setNodes((prev) =>
+      prev.map((n) => {
+        const at = positions.get(n.id);
+        return at ? { ...n, position: at } : n;
+      }),
+    );
+    scheduleAutosave();
+    window.setTimeout(() => {
+      void reactFlow.fitView({
+        nodes: [...positions.keys()].map((id) => ({ id })),
+        padding: 0.15,
+        duration: 300,
+      });
+    }, 40);
+  }, [reactFlow, setNodes, scheduleAutosave]);
+
   const handleNodesChange: typeof onNodesChange = useCallback(
     (changes) => {
       onNodesChange(changes);
+      if (pendingExplainerLayoutRef.current && changes.getByType("dimensions").length > 0) {
+        window.requestAnimationFrame(applyPendingExplainerLayout);
+      }
       const meaningful =
         changes.getByType("position").length > 0 ||
         changes.getByType("remove").length > 0 ||
@@ -390,7 +455,7 @@ function CanvasWorkspaceInner({
         changes.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
-    [onNodesChange, scheduleAutosave],
+    [onNodesChange, scheduleAutosave, applyPendingExplainerLayout],
   );
 
   const handleEdgesChange: typeof onEdgesChange = useCallback(
@@ -945,12 +1010,16 @@ function CanvasWorkspaceInner({
               edges: toFlowEdges(state.edges, allNodes, models),
             },
           );
+          // Measured re-layout runs once the new cards render (and as a fallback after a beat).
+          pendingExplainerLayoutRef.current = {
+            ids: new Set(state.nodes.map((n) => n.id)),
+            edges: state.edges,
+            origin: planner.position,
+          };
           setNodes(next.nodes);
           setEdges(next.edges);
           scheduleAutosave();
-          window.setTimeout(() => {
-            void reactFlow.fitView({ padding: 0.2, duration: 300 });
-          }, 60);
+          window.setTimeout(applyPendingExplainerLayout, 600);
         }
       } finally {
         inFlight = false;
@@ -961,7 +1030,7 @@ function CanvasWorkspaceInner({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, reactFlow]);
+  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, applyPendingExplainerLayout]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
   useEffect(() => {

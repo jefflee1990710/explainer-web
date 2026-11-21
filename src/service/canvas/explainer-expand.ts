@@ -2,14 +2,12 @@
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
+import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
 
 export const EXPLAINER_HAILUO_MODEL_ID = "openrouter:minimax/hailuo-3";
 // Diagram explainers speed narration with atempo=1.25 in the director pipeline.
 const EXPLAINER_TTS_SPEED = 1.25;
 const CONCAT_MAX_INPUTS = 8;
-const ROW_HEIGHT = 300;
-// Rows start where the planning card sat; the card is removed once nodes land.
-const COL = { frame: 0, video: 380, mux: 760, concat: 1140 } as const;
 
 export type ExplainerExpansionClip = {
   clipNumber: number;
@@ -49,17 +47,18 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     edges.push({ id: `${source}->${target}:${targetHandle}`, source, sourceHandle: "output", target, targetHandle });
 
   // Final output per clip (mux, or the video for silent clips), in clip order.
-  const clipOutputs: { nodeId: string; y: number }[] = [];
+  const clipOutputs: string[] = [];
+  // Real positions come from layoutExplainerGroup once every node exists.
+  const unplaced = { x: input.origin.x, y: input.origin.y };
 
-  input.clips.forEach((clip, index) => {
-    const y = input.origin.y + index * ROW_HEIGHT;
+  input.clips.forEach((clip) => {
     const n = clip.clipNumber;
     const frameId = id(`frame-${n}`);
     const videoId = id(`video-${n}`);
     nodes.push({
       id: frameId,
       type: "model",
-      position: { x: input.origin.x + COL.frame, y },
+      position: { ...unplaced },
       data: {
         modelId: "scro:explainer-frame",
         presetId: input.aspectRatio,
@@ -72,7 +71,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     nodes.push({
       id: videoId,
       type: "model",
-      position: { x: input.origin.x + COL.video, y },
+      position: { ...unplaced },
       data: {
         modelId: EXPLAINER_HAILUO_MODEL_ID,
         presetId: input.aspectRatio,
@@ -86,7 +85,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
 
     const line = clip.spokenLine.trim();
     if (!line || isSilentSpokenLine(line)) {
-      clipOutputs.push({ nodeId: videoId, y });
+      clipOutputs.push(videoId);
       return;
     }
     const voiceId = id(`voice-${n}`);
@@ -94,7 +93,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     nodes.push({
       id: voiceId,
       type: "model",
-      position: { x: input.origin.x + COL.frame, y: y + ROW_HEIGHT / 2 },
+      position: { ...unplaced },
       data: {
         modelId: "scro:tts",
         presetId: "natural",
@@ -111,7 +110,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     nodes.push({
       id: muxId,
       type: "model",
-      position: { x: input.origin.x + COL.mux, y },
+      position: { ...unplaced },
       data: {
         modelId: "ffmpeg:audio-mux",
         presetId: "replace",
@@ -121,24 +120,22 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     });
     edge(videoId, muxId, "video");
     edge(voiceId, muxId, "refAudio");
-    clipOutputs.push({ nodeId: muxId, y });
+    clipOutputs.push(muxId);
   });
 
   // First concat takes up to 8 clips; each next one takes the previous concat + up to 7 clips.
   let remaining = [...clipOutputs];
-  let previous: { nodeId: string; y: number } | undefined;
+  let previous: string | undefined;
   let step = 0;
   while (remaining.length > 0 || !previous) {
     const room = previous ? CONCAT_MAX_INPUTS - 1 : CONCAT_MAX_INPUTS;
     const batch = remaining.slice(0, room);
     remaining = remaining.slice(room);
-    const ys = [...(previous ? [previous.y] : []), ...batch.map((b) => b.y)];
-    const centerY = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : input.origin.y;
     const concatId = id(`concat-${step + 1}`);
     nodes.push({
       id: concatId,
       type: "model",
-      position: { x: input.origin.x + COL.concat + step * 380, y: centerY },
+      position: { ...unplaced },
       data: {
         modelId: "ffmpeg:concat",
         presetId: "pad-200ms",
@@ -146,12 +143,19 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
         status: "idle",
       },
     });
-    if (previous) edge(previous.nodeId, concatId, "videos");
-    for (const item of batch) edge(item.nodeId, concatId, "videos");
-    previous = { nodeId: concatId, y: centerY };
+    if (previous) edge(previous, concatId, "videos");
+    for (const item of batch) edge(item, concatId, "videos");
+    previous = concatId;
     step += 1;
     if (batch.length === 0) break;
   }
+
+  const positions = layoutExplainerGroup({
+    nodeIds: nodes.map((n) => n.id),
+    edges,
+    origin: input.origin,
+  });
+  for (const node of nodes) node.position = positions.get(node.id) ?? node.position;
 
   return { nodes, edges, expandedNodeIds: nodes.map((n) => n.id) };
 }
