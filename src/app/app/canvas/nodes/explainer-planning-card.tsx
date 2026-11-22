@@ -1,10 +1,13 @@
 "use client";
 
-// Temporary card while an Explainer storyboard is being planned; replaced by the expanded nodes.
+// Temporary card while an Explainer or Talking Head plan runs; replaced by the expanded nodes.
 
 import { AlertCircle, Loader2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { readPlannerParams } from "@/service/canvas/explainer-planner";
+import {
+  readPlannerParams,
+  TALKING_HEAD_PLANNER_MODEL_ID,
+} from "@/service/canvas/explainer-planner";
 
 type Props = {
   data: CanvasNodeData;
@@ -20,6 +23,28 @@ export function ExplainerPlanningCard({ data, isZh, selected, disabled, onPlan, 
   const planning = planStatus === "planning";
   const failed = planStatus === "failed";
   const topic = (data.prompt ?? "").trim();
+  const isTalking = data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
+  const idleTitle = isTalking
+    ? isZh
+      ? "Talking Head 尚未規劃"
+      : "Talking Head not planned yet"
+    : isZh
+      ? "解說分鏡尚未規劃"
+      : "Explainer not planned yet";
+  const planningTitle = isTalking
+    ? isZh
+      ? "Talking Head 規劃中…"
+      : "Planning Talking Head…"
+    : isZh
+      ? "正在規劃解說分鏡…"
+      : "Planning explainer storyboard…";
+  const planningHint = isTalking
+    ? isZh
+      ? "約需 1–3 分鐘，完成後會換成開場靜幀，以及每段的配音、對嘴影片、去停頓、調色和拼接節點。"
+      : "About 1–3 minutes. This card turns into an opening still plus per-clip voice, lip-sync video, silence trim, grade, and concat nodes."
+    : isZh
+      ? "約需 1–3 分鐘，完成後會換成每段的靜幀、影片、配音和拼接節點。"
+      : "About 1–3 minutes. This card turns into per-clip still, video, voice, and concat nodes.";
 
   return (
     <div
@@ -37,16 +62,12 @@ export function ExplainerPlanningCard({ data, isZh, selected, disabled, onPlan, 
         )}
         <span className="text-[12.5px] font-bold">
           {planning
-            ? isZh
-              ? "正在規劃解說分鏡…"
-              : "Planning explainer storyboard…"
+            ? planningTitle
             : failed
               ? isZh
                 ? "分鏡規劃失敗"
                 : "Storyboard planning failed"
-              : isZh
-                ? "解說分鏡尚未規劃"
-                : "Explainer not planned yet"}
+              : idleTitle}
         </span>
       </div>
 
@@ -55,11 +76,7 @@ export function ExplainerPlanningCard({ data, isZh, selected, disabled, onPlan, 
       </p>
 
       {planning ? (
-        <p className="mt-2 text-[10.5px] text-white/45">
-          {isZh
-            ? "約需 1–3 分鐘，完成後會換成每段的靜幀、影片、配音和拼接節點。"
-            : "About 1–3 minutes. This card turns into per-clip still, video, voice, and concat nodes."}
-        </p>
+        <p className="mt-2 text-[10.5px] text-white/45">{planningHint}</p>
       ) : null}
 
       {failed && planError ? (

@@ -3,11 +3,11 @@
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
 import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
+import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
 
 export const EXPLAINER_HAILUO_MODEL_ID = "openrouter:minimax/hailuo-3";
 // Diagram explainers speed narration with atempo=1.25 in the director pipeline.
 const EXPLAINER_TTS_SPEED = 1.25;
-const CONCAT_MAX_INPUTS = 8;
 
 export type ExplainerExpansionClip = {
   clipNumber: number;
@@ -123,32 +123,20 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     clipOutputs.push(muxId);
   });
 
-  // First concat takes up to 8 clips; each next one takes the previous concat + up to 7 clips.
-  let remaining = [...clipOutputs];
-  let previous: string | undefined;
-  let step = 0;
-  while (remaining.length > 0 || !previous) {
-    const room = previous ? CONCAT_MAX_INPUTS - 1 : CONCAT_MAX_INPUTS;
-    const batch = remaining.slice(0, room);
-    remaining = remaining.slice(room);
-    const concatId = id(`concat-${step + 1}`);
-    nodes.push({
-      id: concatId,
-      type: "model",
-      position: { ...unplaced },
-      data: {
-        modelId: "ffmpeg:concat",
-        presetId: "pad-200ms",
-        toolParams: { ffmpegTransition: "pad-200ms" },
-        status: "idle",
-      },
-    });
-    if (previous) edge(previous, concatId, "videos");
-    for (const item of batch) edge(item, concatId, "videos");
-    previous = concatId;
-    step += 1;
-    if (batch.length === 0) break;
-  }
+  chainConcats(
+    clipOutputs,
+    (step) => {
+      const concatId = id(`concat-${step}`);
+      nodes.push({
+        id: concatId,
+        type: "model",
+        position: { ...unplaced },
+        data: { ...CONCAT_NODE_DATA, status: "idle" },
+      });
+      return concatId;
+    },
+    edge,
+  );
 
   const positions = layoutExplainerGroup({
     nodeIds: nodes.map((n) => n.id),

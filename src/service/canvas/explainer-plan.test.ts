@@ -80,4 +80,29 @@ describe("planStateFromVideo", () => {
     assert.match(ready.summary, /復利/);
     assert.match(ready.summary, /1\. 第一句/);
   });
+
+  it("expands a Talking Head planner into one frame and per-clip HeyGen rows", () => {
+    const thPlanner: CanvasNode = {
+      ...planner,
+      id: "th",
+      data: { ...planner.data, modelId: "scro:talking-head" },
+    };
+    const ready = planStateFromVideo({
+      ...args(
+        video({
+          talkingHeadPoseId: "handheld-selfie",
+          canvasPlan: { prompts, framePrompts: [{ clipNumber: 1, prompt: "open" }] },
+        }),
+      ),
+      plannerNode: thPlanner,
+    });
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    const frames = ready.nodes.filter((n) => n.data.modelId === "scro:director-frame");
+    assert.deepEqual(frames.map((n) => n.data.prompt), ["open"]);
+    const heygen = ready.nodes.filter((n) => n.data.modelId === "openrouter:heygen/avatar-iv");
+    assert.deepEqual(heygen.map((n) => n.data.prompt), ["v1", "v2"]);
+    const grade = ready.nodes.find((n) => n.data.modelId === "ffmpeg:color-grade");
+    assert.equal(grade?.data.toolParams?.gradeLook, "talking-head-selfie");
+  });
 });

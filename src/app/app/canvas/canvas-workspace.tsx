@@ -82,6 +82,10 @@ import {
   type ExplainerPlanDialogValues,
 } from "@/app/app/canvas/explainer-plan-dialog";
 import {
+  TalkingHeadDialog,
+  type TalkingHeadDialogValues,
+} from "@/app/app/canvas/talking-head-dialog";
+import {
   getCanvasExplainerPlanAction,
   startCanvasExplainerPlanAction,
 } from "@/presentation/actions/canvas-explainer";
@@ -598,6 +602,11 @@ function CanvasWorkspaceInner({
   } | null>(null);
   // Life / Poster / Swap / Teleport setup dialog; submit lands a visible node group.
   const [scroDialog, setScroDialog] = useState<ScroDialogState>(null);
+  // Talking Head setup dialog; submit lands a planning card like Explainer.
+  const [talkingHeadDialog, setTalkingHeadDialog] = useState<{
+    position: { x: number; y: number };
+    defaultScript?: string;
+  } | null>(null);
 
   const addModelNodeAt = useCallback(
     (modelId: string, position?: { x: number; y: number }) => {
@@ -607,6 +616,10 @@ function CanvasWorkspaceInner({
       // Explainer never lands as an editable node: ask for the topic first, then plan.
       if (spec.id === "scro:explainer") {
         setExplainerDialog({ position: pos });
+        return;
+      }
+      if (spec.id === "scro:talking-head") {
+        setTalkingHeadDialog({ position: pos });
         return;
       }
       const dialogTool = SCRO_DIALOG_TOOL_BY_MODEL[spec.id];
@@ -862,7 +875,7 @@ function CanvasWorkspaceInner({
 
   // Free Explainer planning: mark the card as planning, save the graph, then queue Phase A.
   // `graph` lets callers that just added the card (dialog, AI assistant) pass the fresh state.
-  const startExplainerPlan = useCallback(
+  const startDirectorPlan = useCallback(
     async (nodeId: string, graph?: { nodes: FlowNode[]; edges: Edge[] }) => {
       const baseNodes = graph?.nodes ?? nodesRef.current;
       const nextEdges = graph?.edges ?? edgesRef.current;
@@ -933,8 +946,8 @@ function CanvasWorkspaceInner({
   );
 
   const onPlanExplainer = useCallback(
-    (nodeId: string) => void startExplainerPlan(nodeId),
-    [startExplainerPlan],
+    (nodeId: string) => void startDirectorPlan(nodeId),
+    [startDirectorPlan],
   );
 
   const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
@@ -1010,12 +1023,45 @@ function CanvasWorkspaceInner({
           },
         },
       };
-      void startExplainerPlan(card.id, {
+      void startDirectorPlan(card.id, {
         nodes: [...nodesRef.current, card],
         edges: edgesRef.current,
       });
     },
-    [explainerDialog, startExplainerPlan],
+    [explainerDialog, startDirectorPlan],
+  );
+
+  const closeTalkingHeadDialog = useCallback(() => setTalkingHeadDialog(null), []);
+
+  // Talking Head submit: same free planning card, expanded into voice → HeyGen → grade rows.
+  const submitTalkingHeadDialog = useCallback(
+    (values: TalkingHeadDialogValues) => {
+      const dialog = talkingHeadDialog;
+      setTalkingHeadDialog(null);
+      if (!dialog) return;
+      const card: FlowNode = {
+        id: `model-${crypto.randomUUID().slice(0, 8)}`,
+        type: "model",
+        position: dialog.position,
+        data: {
+          modelId: "scro:talking-head",
+          aspectRatio: values.aspectRatio,
+          prompt: values.script,
+          status: "idle",
+          toolParams: {
+            plannerMode: true,
+            characterId: values.characterId,
+            language: values.language,
+            framing: values.framing,
+          },
+        },
+      };
+      void startDirectorPlan(card.id, {
+        nodes: [...nodesRef.current, card],
+        edges: edgesRef.current,
+      });
+    },
+    [talkingHeadDialog, startDirectorPlan],
   );
 
   // Planning cards waiting on the worker (polled like canvas jobs).
@@ -1082,7 +1128,7 @@ function CanvasWorkspaceInner({
             ids: new Set(state.nodes.map((n) => n.id)),
             edges: state.edges,
             origin: planner.position,
-            layout: "explainer",
+            layout: planner.data.modelId === "scro:talking-head" ? "depth" : "explainer",
           };
           setNodes(next.nodes);
           setEdges(next.edges);
@@ -1269,6 +1315,11 @@ function CanvasWorkspaceInner({
         setExplainerDialog({ position: getCenterPosition(), defaultTopic: sample });
         return;
       }
+      if (templateId === "talking-head") {
+        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text;
+        setTalkingHeadDialog({ position: getCenterPosition(), defaultScript: sample });
+        return;
+      }
       if (templateId === "scro-swap" || templateId === "teleport") {
         setScroDialog({
           tool: templateId === "scro-swap" ? "swap" : "teleport",
@@ -1366,12 +1417,12 @@ function CanvasWorkspaceInner({
           edges: toFlowEdges(graph.edges, graph.nodes, models),
         };
         for (const planner of agentPlanners) {
-          await startExplainerPlan(planner.id, flowGraph);
+          await startDirectorPlan(planner.id, flowGraph);
         }
       }
       return { skipped };
     },
-    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startExplainerPlan],
+    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startDirectorPlan],
   );
 
   const undoAgentTurn = useCallback(
@@ -1629,6 +1680,14 @@ function CanvasWorkspaceInner({
               characterOptions={assets.characterOptions ?? []}
               onCancel={closeExplainerDialog}
               onSubmit={submitExplainerDialog}
+            />
+            <TalkingHeadDialog
+              open={talkingHeadDialog !== null}
+              isZh={isZh}
+              defaultScript={talkingHeadDialog?.defaultScript}
+              characterOptions={assets.characterOptions ?? []}
+              onCancel={closeTalkingHeadDialog}
+              onSubmit={submitTalkingHeadDialog}
             />
             <ScroGroupDialogs
               state={scroDialog}

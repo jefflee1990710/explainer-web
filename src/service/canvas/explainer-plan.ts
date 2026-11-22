@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/explainer-planner";
 import { resolveNodeInputs } from "@/service/canvas/graph";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
+import { buildTalkingHeadExpansion } from "@/service/canvas/scro-groups/talking-head";
 import { createCanvasDirectorVideo } from "@/service/canvas/scro-dispatch";
 import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
 import { stillBlocker } from "@/service/higgsfield/pipeline";
@@ -105,9 +106,6 @@ export function planStateFromVideo(params: {
   if (video.status !== "production" || !video.phaseA || prompts.length === 0 || params.blocker) {
     return { status: "planning" };
   }
-  if (plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID) {
-    return { status: "failed", error: "Talking Head 展開尚未支援" };
-  }
   const toolParams = plannerNode.data.toolParams ?? {};
   const language = plannerLanguage(video.language ?? toolParams.language);
   const characterId =
@@ -119,13 +117,42 @@ export function planStateFromVideo(params: {
     (video.canvasPlan?.framePrompts ?? []).map((f) => [f.clipNumber, f.prompt]),
   );
   const phaseA = video.phaseA;
+  const voicePreset = explainerVoicePreset(language, video.voiceGender === "male" ? "male" : "female");
+  const summary = [
+    phaseA.localizedTitle || phaseA.englishTitle,
+    ...phaseA.clips.map((clip) => `${clip.clipNumber}. ${clip.englishVo}`),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID) {
+    const expansion = buildTalkingHeadExpansion({
+      idPrefix: params.idPrefix,
+      origin: plannerNode.position,
+      plannerVideoId: video._id.toHexString(),
+      aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
+      language,
+      characterId,
+      voicePreset,
+      framing: video.talkingHeadPoseId ?? "collarbone-close",
+      framePrompt: frameByClip.get(1) || params.buildFramePrompt(video, 1),
+      clips: phaseA.clips.map((clip) => ({
+        clipNumber: clip.clipNumber,
+        spokenLine: clip.englishVo ?? "",
+        heygenPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
+        durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
+      })),
+    });
+    return { status: "ready", ...expansion, summary };
+  }
+
   const expansion = buildExplainerExpansion({
     idPrefix: params.idPrefix,
     origin: plannerNode.position,
     plannerVideoId: video._id.toHexString(),
     aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
     language,
-    voicePreset: explainerVoicePreset(language, video.voiceGender === "male" ? "male" : "female"),
+    voicePreset,
     characterId,
     clips: phaseA.clips.map((clip) => ({
       clipNumber: clip.clipNumber,
@@ -137,12 +164,6 @@ export function planStateFromVideo(params: {
       spokenLine: clip.englishVo ?? "",
     })),
   });
-  const summary = [
-    phaseA.localizedTitle || phaseA.englishTitle,
-    ...phaseA.clips.map((clip) => `${clip.clipNumber}. ${clip.englishVo}`),
-  ]
-    .filter(Boolean)
-    .join("\n");
   return { status: "ready", ...expansion, summary };
 }
 
@@ -169,6 +190,6 @@ export async function readCanvasExplainerPlan(params: {
     blocker,
     plannerNode: loaded.node,
     buildFramePrompt: (project, clipNumber) => buildFramePrompt(project, clipNumber, "start"),
-    idPrefix: `exp-${plannerVideoId.slice(-6)}`,
+    idPrefix: `${loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID ? "th" : "exp"}-${plannerVideoId.slice(-6)}`,
   });
 }
