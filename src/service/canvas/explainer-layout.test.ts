@@ -24,7 +24,6 @@ const expansion = (n: number, silent: number[] = []) =>
   buildExplainerExpansion({
     idPrefix: "exp-abc123",
     origin: { x: 100, y: 50 },
-    plannerVideoId: "vid1",
     aspectRatio: "9:16",
     language: "en",
     voicePreset: "bella",
@@ -56,6 +55,27 @@ describe("layoutExplainerGroup", () => {
     const positions = new Map(out.nodes.map((n) => [n.id, n.position]));
     assertNoOverlap(boxes(positions, estimated));
     assert.deepEqual(positions.get("exp-abc123-frame-1"), { x: 100, y: 50 });
+  });
+
+  it("puts reference images in a left column beside the first frame they feed", () => {
+    const out = buildExplainerExpansion({
+      idPrefix: "exp-abc123",
+      origin: { x: 100, y: 50 },
+      aspectRatio: "9:16",
+      language: "en",
+      voicePreset: "bella",
+      clips: clips(4).map((clip) => ({
+        ...clip,
+        refUrls: clip.clipNumber === 3 ? ["https://a.png", "https://z.png"] : ["https://a.png", "https://b.png"],
+      })),
+    });
+    const positions = new Map(out.nodes.map((n) => [n.id, n.position]));
+    assertNoOverlap(boxes(positions, estimated));
+    const at = (id: string) => positions.get(`exp-abc123-${id}`)!;
+    assert.deepEqual(at("ref-1"), { x: 100, y: 50 });
+    assert.ok(at("frame-1").x >= 100 + EXPLAINER_ESTIMATED_SIZE.ref.width);
+    // "z" is first used by clip 3, so it waits for that row.
+    assert.ok(at("ref-3").y >= at("frame-3").y);
   });
 
   it("keeps the voice card below the video card so its wire never crosses it", () => {

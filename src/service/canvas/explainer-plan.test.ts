@@ -74,10 +74,29 @@ describe("planStateFromVideo", () => {
     const tts = ready.nodes.filter((n) => n.data.modelId === "scro:tts");
     assert.deepEqual(tts.map((n) => n.data.toolParams?.voicePreset), ["alan", "alan"]);
     assert.equal(tts[0]!.data.toolParams?.characterId, "c1");
-    const frames = ready.nodes.filter((n) => n.data.modelId === "scro:explainer-frame");
+    const frames = ready.nodes.filter((n) => n.data.modelId === "google:gemini-nano-banana-2.1");
     // Stored worker prompt wins; missing ones fall back to the local builder.
     assert.deepEqual(frames.map((n) => n.data.prompt), ["stored 1", "built 2"]);
     assert.match(ready.summary, /復利/);
+  });
+
+  it("passes each clip's reference images and resolution to the frame nodes", () => {
+    const ready = planStateFromVideo({
+      ...args(video({ canvasPlan: { prompts } })),
+      frameInputs: {
+        refsByClip: new Map([
+          [1, ["https://lock.png"]],
+          [2, ["https://lock.png", "https://prop.png"]],
+        ]),
+        resolution: "1k",
+      },
+    });
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    const media = ready.nodes.filter((n) => n.type === "media").map((n) => n.data.mediaUrl);
+    assert.deepEqual(media, ["https://lock.png", "https://prop.png"]);
+    const frames = ready.nodes.filter((n) => n.data.modelId === "google:gemini-nano-banana-2.1");
+    assert.ok(frames.every((n) => n.data.resolution === "1k"));
     assert.match(ready.summary, /1\. 第一句/);
   });
 
@@ -98,7 +117,7 @@ describe("planStateFromVideo", () => {
     });
     assert.equal(ready.status, "ready");
     if (ready.status !== "ready") return;
-    const frames = ready.nodes.filter((n) => n.data.modelId === "scro:director-frame");
+    const frames = ready.nodes.filter((n) => n.data.modelId === "openrouter:bytedance-seed/seedream-5-0-pro");
     assert.deepEqual(frames.map((n) => n.data.prompt), ["open"]);
     const heygen = ready.nodes.filter((n) => n.data.modelId === "openrouter:heygen/avatar-iv");
     assert.deepEqual(heygen.map((n) => n.data.prompt), ["v1", "v2"]);

@@ -58,6 +58,7 @@ import {
   submitOpenRouterCanvasVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
+import { hasGoogleStudioKey, submitGoogleStudioImage } from "@/service/google/studio-image";
 
 // Mentalok video models that accept a `keyframes` object (`startImage` / `endImage`).
 // Single-frame TI2V models (`wan-2-1`, `wan-2-2`, `ltx-video`) receive `imageUrl` instead.
@@ -104,6 +105,7 @@ export type CanvasExecutorDeps = {
   getCatalog: () => Promise<CanvasModelSpec[]>;
   hasMentalokKey: () => boolean;
   hasOpenRouterKey: () => boolean;
+  hasGoogleStudioKey: () => boolean;
   consumeCreditUsd: (clerkUserId: string, costUsd: number) => Promise<string>;
   refundCreditUsd: (
     clerkUserId: string,
@@ -116,6 +118,13 @@ export type CanvasExecutorDeps = {
     prompt: string;
     aspectRatio: AspectRatio | "2:3" | "3:4";
     quality?: "low" | "medium" | "high";
+    resolution?: "1k" | "2k" | "4k";
+    referenceImageUrls?: Array<string | undefined>;
+  }) => Promise<GenerationSubmitResult>;
+  submitGoogleStudioImage: (input: {
+    model: string;
+    prompt: string;
+    aspectRatio: AspectRatio | "2:3" | "3:4";
     resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;
   }) => Promise<GenerationSubmitResult>;
@@ -299,10 +308,12 @@ function createDefaultDeps(): CanvasExecutorDeps {
     getCatalog: () => getCanvasModelCatalog(),
     hasMentalokKey: () => hasMentalokApiKey(),
     hasOpenRouterKey: () => hasOpenRouterKey(),
+    hasGoogleStudioKey: () => hasGoogleStudioKey(),
     consumeCreditUsd,
     refundCreditUsd,
     getUserCreditUsd: defaultGetUserCreditUsd,
     submitOpenRouterImage: (input) => submitOpenRouterImage(input),
+    submitGoogleStudioImage: (input) => submitGoogleStudioImage(input),
     submitOpenRouterCanvasVideo: (input) => submitOpenRouterCanvasVideo(input),
     fetchOpenRouterStatus: (statusUrl) => fetchOpenRouterStatus(statusUrl),
     createMentalokJob: (payload) => createMentalokJob(payload),
@@ -627,6 +638,16 @@ export async function submitCanvasNodeJob(
       creditUsd,
     };
   }
+  if (spec.provider === "google" && !resolved.hasGoogleStudioKey()) {
+    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+    return {
+      ok: false,
+      code: "PROVIDER_UNAVAILABLE",
+      error:
+        "Google AI Studio 尚未設定 API Key（GOOGLE_GENERATIVE_AI_API_KEY），暫時無法執行此模型。",
+      creditUsd,
+    };
+  }
 
   const projectNodes = await hydrateMissingModelOutputs(project, resolved);
   const inputCheck = resolveNodeInputs(
@@ -903,9 +924,9 @@ async function executeDispatchedCanvasJob(
   const inputCheck = { inputs };
 
   try {
-    // Branch 1: Synchronous OpenRouter image generation -> persist directly to Blob.
-    if (spec.provider === "openrouter" && spec.category === "image") {
-      const response = await resolved.submitOpenRouterImage({
+    // Branch 1: Synchronous OpenRouter / Google AI Studio image generation -> persist directly to Blob.
+    if ((spec.provider === "openrouter" || spec.provider === "google") && spec.category === "image") {
+      const imageInput = {
         model: spec.providerModelId,
         prompt: inputCheck.inputs.prompt || "",
         aspectRatio: normalizeOpenRouterImageAspectRatio(
@@ -913,11 +934,17 @@ async function executeDispatchedCanvasJob(
         ),
         resolution: node.data.resolution,
         referenceImageUrls: inputCheck.inputs.refImages,
-      });
+      };
+      const response =
+        spec.provider === "google"
+          ? await resolved.submitGoogleStudioImage(imageInput)
+          : await resolved.submitOpenRouterImage(imageInput);
 
       const rawOutputUrl = response.images?.[0]?.url;
       if (response.status === "nsfw" || response.status === "failed" || !rawOutputUrl) {
-        throw new Error(response.error || "OpenRouter 圖片生成失敗");
+        throw new Error(
+          response.error || (spec.provider === "google" ? "Nano Banana 圖片生成失敗" : "OpenRouter 圖片生成失敗"),
+        );
       }
 
       const blobPath = buildCanvasBlobPathname(

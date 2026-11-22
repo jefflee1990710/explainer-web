@@ -10,7 +10,6 @@ import {
 const input = (clipCount: number, framing = "collarbone-close"): TalkingHeadExpansionInput => ({
   idPrefix: "th",
   origin: { x: 0, y: 0 },
-  plannerVideoId: "vid1",
   aspectRatio: "9:16",
   language: "yue",
   characterId: "c1",
@@ -28,9 +27,24 @@ const byModel = (nodes: ReturnType<typeof buildTalkingHeadExpansion>["nodes"], i
   nodes.filter((n) => n.data.modelId === id);
 
 describe("buildTalkingHeadExpansion", () => {
+  it("wires reference images into the Seedream opening still in order", () => {
+    const out = buildTalkingHeadExpansion({
+      ...input(1),
+      frameResolution: "2k",
+      frameRefUrls: ["https://lock.png", "https://photo.png", "https://lock.png"],
+    });
+    const frame = out.nodes.find((n) => n.id === "th-frame-1")!;
+    assert.equal(frame.data.modelId, "openrouter:bytedance-seed/seedream-5-0-pro");
+    assert.equal(frame.data.resolution, "2k");
+    const refs = out.edges
+      .filter((e) => e.target === frame.id && e.targetHandle === "refImages")
+      .map((e) => out.nodes.find((n) => n.id === e.source)!.data.mediaUrl);
+    assert.deepEqual(refs, ["https://lock.png", "https://photo.png"]);
+  });
+
   it("wires one shared frame into every clip's HeyGen node", () => {
     const out = buildTalkingHeadExpansion(input(2));
-    assert.equal(byModel(out.nodes, "scro:director-frame").length, 1);
+    assert.equal(byModel(out.nodes, "openrouter:bytedance-seed/seedream-5-0-pro").length, 1);
     const tts = byModel(out.nodes, "scro:tts");
     assert.equal(tts.length, 2);
     assert.deepEqual(tts[0]!.data.toolParams, {

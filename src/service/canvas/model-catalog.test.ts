@@ -19,8 +19,12 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    // 7 sidebar Scro tools + 4 hidden step nodes.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 11 + 7);
+    // 7 sidebar Scro tools + 4 hidden step nodes, plus Nano Banana 2.1 on Google AI Studio.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 1 + 11 + 7);
+    assert.deepEqual(
+      STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
+      ["google:gemini-nano-banana-2.1"],
+    );
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
     assert.equal(ids.size, STATIC_CANVAS_MODELS.length);

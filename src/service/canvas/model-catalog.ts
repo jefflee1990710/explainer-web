@@ -1,6 +1,6 @@
 // Canonical catalog for the Interactive Node Canvas Editor (/app/canvas):
 // 16 Mentalok models, every OpenRouter image and video model on this account
-// except GPT-5 Image, plus Scro tools and FFmpeg nodes.
+// except GPT-5 Image, Nano Banana 2.1 on Google AI Studio, plus Scro tools and FFmpeg nodes.
 
 import { IMAGE_COST_USD, talkingHeadVideoCostUsd, videoCostUsd } from "@/service/credit-costs";
 import {
@@ -15,6 +15,7 @@ import {
   OPENROUTER_ACCOUNT_IMAGE_MODELS,
   OPENROUTER_ACCOUNT_VIDEO_MODELS,
 } from "@/service/openrouter/account-media-models";
+import { GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL } from "@/service/google/studio-image";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/service/canvas/pricing";
 
@@ -30,7 +31,7 @@ export type CanvasModelCategory =
   | "segmentation"
   | "upscale";
 
-export type CanvasModelProvider = "mentalok" | "openrouter" | "scro" | "ffmpeg";
+export type CanvasModelProvider = "mentalok" | "openrouter" | "google" | "scro" | "ffmpeg";
 
 export type CanvasBilingualLabel = {
   "zh-Hant": string;
@@ -539,6 +540,27 @@ function buildOpenRouterAccountModels(): CanvasModelSpec[] {
 
 const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = buildOpenRouterAccountModels();
 
+export const NANO_BANANA_CANVAS_MODEL_ID = `google:${GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL}`;
+
+// Nano Banana 2.1 runs on Google AI Studio directly (OpenRouter's Gemini image route is ToS-blocked).
+const GOOGLE_STATIC_MODELS: CanvasModelSpec[] = [
+  {
+    id: NANO_BANANA_CANVAS_MODEL_ID,
+    provider: "google",
+    providerModelId: GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL,
+    name: "Nano Banana 2.1",
+    category: "image",
+    inputs: [promptPort(true), refImagesPort(14)],
+    output: imageOutput(),
+    presets: ["9:16", "16:9", "1:1", "4:3", "3:4"],
+    defaultPresetId: "16:9",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: true,
+    supportsResolution: true,
+    available: true,
+  },
+];
+
 // 7 Scro production tool nodes (`scro:*`).
 export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
   {
@@ -576,6 +598,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     available: true,
   },
   {
+    // Legacy: older expanded explainers only; new groups use a Nano Banana 2.1 image node.
     id: "scro:explainer-frame",
     provider: "scro",
     providerModelId: "explainer-frame",
@@ -591,7 +614,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     available: true,
   },
   {
-    // Same frame pipeline as Explainer Frame; used by Talking Head groups.
+    // Legacy: older Talking Head groups only; new groups use a Seedream 5.0 Pro image node.
     id: "scro:director-frame",
     provider: "scro",
     providerModelId: "director-frame",
@@ -826,6 +849,7 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
 export const STATIC_CANVAS_MODELS: readonly CanvasModelSpec[] = [
   ...MENTALOK_STATIC_MODELS,
   ...OPENROUTER_STATIC_MODELS,
+  ...GOOGLE_STATIC_MODELS,
   ...SCRO_STATIC_MODELS,
   ...FFMPEG_STATIC_MODELS,
 ];

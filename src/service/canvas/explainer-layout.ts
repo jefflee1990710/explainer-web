@@ -1,7 +1,8 @@
 // Pure: lays out an expanded Explainer group so cards and wires never overlap.
 //
-// Per clip row:   [frame] ──▶ [video] ──┐
-//                 [voice] ───────────────┴▶ [mux] ──▶ [concat]
+// Per clip row:   [ref] ──▶ [frame] ──▶ [video] ──┐
+//                           [voice] ───────────────┴▶ [mux] ──▶ [concat]
+// Reference images sit in their own left column beside the first row they feed.
 // The voice card sits below the taller of frame/video, so its wire to the mux runs
 // under the video card instead of through it. Chained concats step right per batch.
 
@@ -9,10 +10,11 @@ export type LayoutSize = { width: number; height: number };
 export type LayoutBox = { x: number; y: number; width: number; height: number };
 export type LayoutPoint = { x: number; y: number };
 
-type Role = "frame" | "video" | "voice" | "mux" | "concat";
+type Role = "ref" | "frame" | "video" | "voice" | "mux" | "concat";
 
 // Used before React Flow has measured the cards (server-side and first paint).
 export const EXPLAINER_ESTIMATED_SIZE: Record<Role, LayoutSize> = {
+  ref: { width: 260, height: 280 },
   frame: { width: 312, height: 440 },
   video: { width: 312, height: 560 },
   voice: { width: 312, height: 500 },
@@ -28,7 +30,7 @@ const MUX_AUDIO_HANDLE_OFFSET = 112;
 const CLEARANCE = 80;
 
 export function explainerNodeRole(id: string): { role: Role; index: number } | null {
-  const match = /-(frame|video|voice|mux|concat)-(\d+)$/.exec(id);
+  const match = /-(ref|frame|video|voice|mux|concat)-(\d+)$/.exec(id);
   return match ? { role: match[1] as Role, index: Number(match[2]) } : null;
 }
 
@@ -51,7 +53,8 @@ export function layoutExplainerGroup(params: {
     Math.max(0, ...roles.flatMap((r) => [...ids(r).values()].map((id) => size(id, r).width)));
 
   // Column x positions sized to the widest card in each column.
-  const xFrame = params.origin.x;
+  const xRef = params.origin.x;
+  const xFrame = xRef + (ids("ref").size ? colWidth("ref") + GAP_X : 0);
   const xVideo = xFrame + Math.max(colWidth("frame", "voice"), 1) + GAP_X;
   const xMux = xVideo + Math.max(colWidth("video"), 1) + GAP_X;
   const xConcat = xMux + (ids("mux").size ? colWidth("mux") + GAP_X : 0);
@@ -90,6 +93,18 @@ export function layoutExplainerGroup(params: {
       rowBottom = Math.max(rowBottom, rowTop + size(muxId, "mux").height);
     }
     rowTop = rowBottom + ROW_GAP;
+  }
+
+  // Each reference image lines up with the first frame it feeds, stacked so none overlap.
+  let refCursor = params.origin.y;
+  for (const [, refId] of [...ids("ref").entries()].sort((a, b) => a[0] - b[0])) {
+    const targetTops = params.edges
+      .filter((e) => e.source === refId)
+      .map((e) => out.get(e.target)?.y)
+      .filter((y): y is number => typeof y === "number");
+    const y = Math.max(refCursor, targetTops.length ? Math.min(...targetTops) : refCursor);
+    out.set(refId, { x: xRef, y });
+    refCursor = y + size(refId, "ref").height + GAP_Y;
   }
 
   // Each concat sits centred on the cards wired into it, one column further right per step.

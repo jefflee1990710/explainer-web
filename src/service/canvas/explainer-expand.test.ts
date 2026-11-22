@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  EXPLAINER_FRAME_MODEL_ID,
   EXPLAINER_HAILUO_MODEL_ID,
   buildExplainerExpansion,
   explainerVoicePreset,
@@ -21,7 +22,6 @@ function clips(n: number, silent: number[] = []): ExplainerExpansionClip[] {
 const base = {
   idPrefix: "x",
   origin: { x: 100, y: 50 },
-  plannerVideoId: "vid1",
   aspectRatio: "9:16" as const,
   language: "en" as const,
   voicePreset: "bella",
@@ -31,7 +31,7 @@ describe("buildExplainerExpansion", () => {
   it("builds frame, voice, video, mux per clip and one concat for 3 clips", () => {
     const out = buildExplainerExpansion({ ...base, clips: clips(3) });
     const byModel = (id: string) => out.nodes.filter((n) => n.data.modelId === id);
-    assert.equal(byModel("scro:explainer-frame").length, 3);
+    assert.equal(byModel(EXPLAINER_FRAME_MODEL_ID).length, 3);
     assert.equal(byModel("scro:tts").length, 3);
     assert.equal(byModel(EXPLAINER_HAILUO_MODEL_ID).length, 3);
     assert.equal(byModel("ffmpeg:audio-mux").length, 3);
@@ -43,9 +43,9 @@ describe("buildExplainerExpansion", () => {
 
   it("prefills prompts, params, and clamps durations to 5-15", () => {
     const out = buildExplainerExpansion({ ...base, characterId: "char1", clips: clips(2) });
-    const frame = out.nodes.find((n) => n.data.modelId === "scro:explainer-frame")!;
+    const frame = out.nodes.find((n) => n.data.modelId === EXPLAINER_FRAME_MODEL_ID)!;
     assert.equal(frame.data.prompt, "frame 1");
-    assert.deepEqual(frame.data.toolParams, { plannerVideoId: "vid1", clipNumber: 1 });
+    assert.equal(frame.data.toolParams, undefined);
     const videos = out.nodes.filter((n) => n.data.modelId === EXPLAINER_HAILUO_MODEL_ID);
     assert.deepEqual(videos.map((v) => v.data.durationSeconds), [5, 15]);
     assert.equal(videos[0]!.data.prompt, "video 1");
@@ -57,6 +57,26 @@ describe("buildExplainerExpansion", () => {
       ttsSpeed: 1.25,
       characterId: "char1",
     });
+  });
+
+  it("adds each reference image once and wires it into refImages in prompt order", () => {
+    const withRefs = clips(2).map((clip, i) => ({
+      ...clip,
+      refUrls: i === 0 ? ["https://a.png", "https://b.png"] : ["https://b.png", "https://c.png"],
+    }));
+    const out = buildExplainerExpansion({ ...base, frameResolution: "2k", clips: withRefs });
+    const media = out.nodes.filter((n) => n.type === "media");
+    assert.deepEqual(media.map((n) => n.data.mediaUrl), ["https://a.png", "https://b.png", "https://c.png"]);
+    assert.ok(media.every((n) => n.data.mediaKind === "image"));
+    const refsOf = (frameId: string) =>
+      out.edges
+        .filter((e) => e.target === frameId && e.targetHandle === "refImages")
+        .map((e) => out.nodes.find((n) => n.id === e.source)!.data.mediaUrl);
+    assert.deepEqual(refsOf("x-frame-1"), ["https://a.png", "https://b.png"]);
+    assert.deepEqual(refsOf("x-frame-2"), ["https://b.png", "https://c.png"]);
+    const frame = out.nodes.find((n) => n.id === "x-frame-1")!;
+    assert.equal(frame.data.modelId, "google:gemini-nano-banana-2.1");
+    assert.equal(frame.data.resolution, "2k");
   });
 
   it("wires silent clips straight into concat", () => {
@@ -101,7 +121,7 @@ describe("replacePlannerWithExpansion", () => {
 
   it("starts the first row at the planning card position", () => {
     const out = buildExplainerExpansion({ ...base, clips: clips(1) });
-    const frame = out.nodes.find((n) => n.data.modelId === "scro:explainer-frame")!;
+    const frame = out.nodes.find((n) => n.data.modelId === EXPLAINER_FRAME_MODEL_ID)!;
     assert.deepEqual(frame.position, base.origin);
   });
 });

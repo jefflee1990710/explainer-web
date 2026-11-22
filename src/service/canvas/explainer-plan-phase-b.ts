@@ -8,6 +8,7 @@ import { resolveRunSkill } from "@/service/director/run-skill";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
+import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { heyGenAvatarIvMotionPrompt } from "@/service/openrouter/generate";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 
@@ -47,10 +48,14 @@ export async function buildCanvasPlanFramePrompts(project: Project) {
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
-  return (written.phaseA?.clips ?? []).map((clip) => ({
-    clipNumber: clip.clipNumber,
-    prompt: frameSubmitPlan(written, clip.clipNumber, "start", undefined, style).prompt,
-  }));
+  return Promise.all(
+    (written.phaseA?.clips ?? []).map(async (clip) => {
+      const built = frameSubmitPlan(written, clip.clipNumber, "start", undefined, style).prompt;
+      // The image node sends this text as-is, so shorten it here like sendFrame does.
+      const prompt = await ensureFramePromptFits(built).catch(() => built);
+      return { clipNumber: clip.clipNumber, prompt };
+    }),
+  );
 }
 
 // Runs one Phase B call per clip with bounded concurrency; results stay in clip order.

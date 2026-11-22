@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/explainer-planner";
 import { resolveNodeInputs } from "@/service/canvas/graph";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
+import { type CanvasPlanFrameInputs, canvasPlanFrameInputs } from "@/service/canvas/plan-frame-inputs";
 import { buildTalkingHeadExpansion } from "@/service/canvas/scro-groups/talking-head";
 import { createCanvasDirectorVideo } from "@/service/canvas/scro-dispatch";
 import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
@@ -96,6 +97,7 @@ export function planStateFromVideo(params: {
   blocker: string | null;
   plannerNode: CanvasNode;
   buildFramePrompt: (project: Project, clipNumber: number) => string;
+  frameInputs?: CanvasPlanFrameInputs;
   idPrefix: string;
 }): CanvasExplainerPlanState {
   const { video, plannerNode } = params;
@@ -129,13 +131,14 @@ export function planStateFromVideo(params: {
     const expansion = buildTalkingHeadExpansion({
       idPrefix: params.idPrefix,
       origin: plannerNode.position,
-      plannerVideoId: video._id.toHexString(),
       aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
+      frameResolution: params.frameInputs?.resolution,
       language,
       characterId,
       voicePreset,
       framing: video.talkingHeadPoseId ?? "collarbone-close",
       framePrompt: frameByClip.get(1) || params.buildFramePrompt(video, 1),
+      frameRefUrls: params.frameInputs?.refsByClip.get(1),
       clips: phaseA.clips.map((clip) => ({
         clipNumber: clip.clipNumber,
         spokenLine: clip.englishVo ?? "",
@@ -149,8 +152,8 @@ export function planStateFromVideo(params: {
   const expansion = buildExplainerExpansion({
     idPrefix: params.idPrefix,
     origin: plannerNode.position,
-    plannerVideoId: video._id.toHexString(),
     aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
+    frameResolution: params.frameInputs?.resolution,
     language,
     voicePreset,
     characterId,
@@ -162,6 +165,7 @@ export function planStateFromVideo(params: {
       durationSeconds:
         promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
       spokenLine: clip.englishVo ?? "",
+      refUrls: params.frameInputs?.refsByClip.get(clip.clipNumber),
     })),
   });
   return { status: "ready", ...expansion, summary };
@@ -185,9 +189,18 @@ export async function readCanvasExplainerPlan(params: {
   // Lock check only once prompts exist; it may submit the character still.
   const ready = Boolean(video?.canvasPlan?.prompts?.length) && video?.status === "production";
   const blocker = video && ready ? await stillBlocker(video) : null;
+  // Locks exist once the blocker clears; read them for the reference image nodes.
+  const frameInputs =
+    video?.phaseA && ready && !blocker
+      ? await canvasPlanFrameInputs(
+          video,
+          video.phaseA.clips.map((clip) => clip.clipNumber),
+        )
+      : undefined;
   return planStateFromVideo({
     video,
     blocker,
+    frameInputs,
     plannerNode: loaded.node,
     buildFramePrompt: (project, clipNumber) => buildFramePrompt(project, clipNumber, "start"),
     idPrefix: `${loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID ? "th" : "exp"}-${plannerVideoId.slice(-6)}`,

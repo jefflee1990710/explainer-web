@@ -128,6 +128,7 @@ function createHarness(options: {
     getCatalog: async () => STATIC_CANVAS_MODELS.map((m) => ({ ...m })),
     hasMentalokKey: () => options.hasMentalokKey ?? true,
     hasOpenRouterKey: () => options.hasOpenRouterKey ?? true,
+    hasGoogleStudioKey: () => true,
     consumeCreditUsd: async (clerkUserId, costUsd) => {
       consumeCalls.push({ clerkUserId, costUsd });
       if (wallet.creditUsd < costUsd) {
@@ -146,6 +147,11 @@ function createHarness(options: {
       request_id: "or-img-1",
       status: "completed",
       images: [{ url: "data:image/png;base64,aGVsbG8=" }],
+    }),
+    submitGoogleStudioImage: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "google-img-1",
+      status: "completed",
+      images: [{ url: "data:image/png;base64,Z29vZ2xl" }],
     }),
     submitOpenRouterCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
       request_id: "or-vid-1",
@@ -290,6 +296,54 @@ describe("canvas executor", () => {
     assert.equal(updatedNode?.data.outputKind, "image");
     assert.equal(updatedNode?.data.lastCostUsd, 0.15);
     assert.equal(updatedNode?.data.outputUrl, harness.project.thumbnailUrl);
+  });
+
+  it("sends a Nano Banana 2.1 node to Google AI Studio with its wired reference images in order", async () => {
+    const calls: Array<{ model: string; prompt: string; referenceImageUrls?: Array<string | undefined> }> = [];
+    let openRouterCalled = false;
+    const harness = createHarness({
+      initialCreditUsd: 1.0,
+      nodes: [
+        { id: "ref-a", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "image", mediaUrl: "https://blob.vercel-storage.com/a.png" } },
+        { id: "ref-b", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "image", mediaUrl: "https://blob.vercel-storage.com/b.png" } },
+        {
+          id: "nb",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "google:gemini-nano-banana-2.1", prompt: "Whiteboard still", aspectRatio: "9:16" },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "ref-a", sourceHandle: "output", target: "nb", targetHandle: "refImages" },
+        { id: "e2", source: "ref-b", sourceHandle: "output", target: "nb", targetHandle: "refImages" },
+      ],
+      overrides: {
+        submitGoogleStudioImage: async (input) => {
+          calls.push(input);
+          return { request_id: "g1", status: "completed", images: [{ url: "data:image/png;base64,Z29vZ2xl" }] };
+        },
+        submitOpenRouterImage: async () => {
+          openRouterCalled = true;
+          throw new Error("should not be called");
+        },
+      },
+    });
+
+    const result = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "nb" },
+      harness.deps,
+    );
+
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.job.chargedUsd, 0.15);
+    assert.equal(openRouterCalled, false);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.model, "gemini-nano-banana-2.1");
+    assert.equal(calls[0]?.prompt, "Whiteboard still");
+    assert.deepEqual(calls[0]?.referenceImageUrls, [
+      "https://blob.vercel-storage.com/a.png",
+      "https://blob.vercel-storage.com/b.png",
+    ]);
   });
 
   it("submits Mentalok video asynchronously with mapped keyframes/refAudio/refImages, then polls and persists expiring URL to Blob", async () => {

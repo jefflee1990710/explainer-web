@@ -3,9 +3,12 @@
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
 import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
+import { NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/model-catalog";
 import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
 
 export const EXPLAINER_HAILUO_MODEL_ID = "openrouter:minimax/hailuo-3";
+// Explainer start stills use the same image model as the director pipeline.
+export const EXPLAINER_FRAME_MODEL_ID = NANO_BANANA_CANVAS_MODEL_ID;
 // Diagram explainers speed narration with atempo=1.25 in the director pipeline.
 const EXPLAINER_TTS_SPEED = 1.25;
 
@@ -15,13 +18,15 @@ export type ExplainerExpansionClip = {
   videoPrompt: string;
   durationSeconds: number;
   spokenLine: string;
+  // Character / prop / set locks for this still, in the order the prompt expects.
+  refUrls?: string[];
 };
 
 export type ExplainerExpansionInput = {
   idPrefix: string;
   origin: { x: number; y: number };
-  plannerVideoId: string;
   aspectRatio: CanvasAspectRatio;
+  frameResolution?: "1k" | "2k" | "4k";
   language: "yue" | "zh" | "en";
   voicePreset: string;
   characterId?: string;
@@ -50,6 +55,21 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
   const clipOutputs: string[] = [];
   // Real positions come from layoutExplainerGroup once every node exists.
   const unplaced = { x: input.origin.x, y: input.origin.y };
+  const refNodeByUrl = new Map<string, string>();
+  const refNode = (url: string) => {
+    const existing = refNodeByUrl.get(url);
+    if (existing) return existing;
+    const k = refNodeByUrl.size + 1;
+    const refId = id(`ref-${k}`);
+    nodes.push({
+      id: refId,
+      type: "media",
+      position: { ...unplaced },
+      data: { label: `參考圖 ${k}`, fileName: `參考圖 ${k}`, mediaKind: "image", mediaUrl: url },
+    });
+    refNodeByUrl.set(url, refId);
+    return refId;
+  };
 
   input.clips.forEach((clip) => {
     const n = clip.clipNumber;
@@ -60,14 +80,17 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
       type: "model",
       position: { ...unplaced },
       data: {
-        modelId: "scro:explainer-frame",
+        modelId: EXPLAINER_FRAME_MODEL_ID,
         presetId: input.aspectRatio,
         aspectRatio: input.aspectRatio,
+        ...(input.frameResolution ? { resolution: input.frameResolution } : {}),
         prompt: clip.framePrompt,
-        toolParams: { plannerVideoId: input.plannerVideoId, clipNumber: n },
         status: "idle",
       },
     });
+    for (const url of [...new Set(clip.refUrls ?? [])].slice(0, 14)) {
+      edge(refNode(url), frameId, "refImages");
+    }
     nodes.push({
       id: videoId,
       type: "model",

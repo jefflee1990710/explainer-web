@@ -113,7 +113,7 @@ export function CanvasSidebar({
   // OpenRouter models lead each group. Mentalok only fills categories that have no
   // OpenRouter model (image edit, SAM cutout, upscale), so older graphs still run.
   const availableModels = useMemo(() => {
-    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, openrouter: 2, mentalok: 3 };
+    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, google: 2, openrouter: 2, mentalok: 3 };
     const openRouterCategories = new Set(
       models.filter((spec) => spec.provider === "openrouter").map((spec) => spec.category),
     );

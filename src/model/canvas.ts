@@ -173,6 +173,7 @@ export const canvasJobDomainKindSchema = z.enum([
 export const canvasModelProviderSchema = z.enum([
   "mentalok",
   "openrouter",
+  "google",
   "scro",
   "ffmpeg",
 ]);
