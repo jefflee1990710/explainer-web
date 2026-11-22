@@ -90,6 +90,8 @@ const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "ffmpeg:trim-speed": ["ffmpegStartSec", "ffmpegEndSec", "ffmpegSpeed", "ffmpegTrimSilence"],
   "ffmpeg:transform": ["ffmpegCropMode", "ffmpegColorGrade"],
   "ffmpeg:extract-audio": [],
+  "ffmpeg:color-grade": ["gradeLook"],
+  "ffmpeg:smooth-silence": [],
 };
 
 const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
@@ -108,6 +110,7 @@ const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
   ffmpegMixMode: ["replace", "mix-ducking"],
   ffmpegCropMode: ["fit-pad", "center-crop"],
   ffmpegColorGrade: ["none", "h3-soft"],
+  gradeLook: ["jutsu", "talking-head", "talking-head-selfie"],
 };
 
 function validateToolParamsForModel(

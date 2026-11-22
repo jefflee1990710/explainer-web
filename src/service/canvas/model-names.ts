@@ -86,6 +86,18 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "FFmpeg 音声抽出",
     ko: "FFmpeg 오디오 추출",
   },
+  "ffmpeg:color-grade": {
+    "zh-Hant": "FFmpeg 調色",
+    "zh-Hans": "FFmpeg 调色",
+    ja: "FFmpeg カラーグレード",
+    ko: "FFmpeg 색보정",
+  },
+  "ffmpeg:smooth-silence": {
+    "zh-Hant": "FFmpeg 靜音修剪",
+    "zh-Hans": "FFmpeg 静音修剪",
+    ja: "FFmpeg 無音カット",
+    ko: "FFmpeg 무음 다듬기",
+  },
 };
 
 // Name to show for a canvas node in the given UI locale; falls back to the English catalog name.

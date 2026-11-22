@@ -16,6 +16,7 @@ import { buildVideoCodecArgs } from "@/service/ffmpeg/video-encoder";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { applyJutsuColorGradeBuffer, DEFAULT_JUTSU_COLOR_SETTINGS } from "@/service/jutsu/color-grade";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
+import { gradeTalkingHeadSensorTextureBuffer } from "@/service/style/realistic-grade";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 
 export type CanvasFfmpegLocalInputs = {
@@ -302,6 +303,13 @@ export function buildCanvasFfmpegArgs(
     ];
   }
 
+  if (modelId === "ffmpeg:color-grade" || modelId === "ffmpeg:smooth-silence") {
+    const videoFile = localInputs.videoFiles[0];
+    if (!videoFile) throw new Error("需要輸入影片");
+    // Post-only ops: copy here, then the grade / silence trim runs on the output buffer.
+    return ["-y", "-i", videoFile, "-c", "copy", outputFile];
+  }
+
   throw new Error(`不支援的 FFmpeg 節點：${modelId}`);
 }
 
@@ -312,6 +320,7 @@ export type ExecuteCanvasFfmpegDeps = {
   runFfmpeg: (dir: string, args: string[]) => Promise<void>;
   trimSilence: (buffer: Buffer) => Promise<Buffer>;
   applyColorGrade: (buffer: Buffer) => Promise<Buffer>;
+  gradeTalkingHead: (buffer: Buffer, options?: { handheldSelfie?: boolean }) => Promise<Buffer>;
   persistBuffer: (buffer: Buffer, pathname: string, contentType: string) => Promise<string>;
   updateCanvasJob: (
     jobId: ObjectId,
@@ -350,6 +359,7 @@ export async function executeCanvasFfmpegJob(
     trimSilence: (buffer) => trimClipSmoothSilence(buffer),
     applyColorGrade: (buffer) =>
       applyJutsuColorGradeBuffer(buffer, DEFAULT_JUTSU_COLOR_SETTINGS),
+    gradeTalkingHead: (buffer, options) => gradeTalkingHeadSensorTextureBuffer(buffer, options),
     persistBuffer,
     updateCanvasJob: async (id, clerkUserId, update) => {
       const col = await canvasJobsCollection();
@@ -449,6 +459,19 @@ export async function executeCanvasFfmpegJob(
       strParam(snapshot, "ffmpegColorGrade", "none") === "h3-soft"
     ) {
       outBuf = Buffer.from(await resolved.applyColorGrade(outBuf));
+    }
+    if (job.modelId === "ffmpeg:smooth-silence") {
+      outBuf = Buffer.from(await resolved.trimSilence(outBuf));
+    }
+    if (job.modelId === "ffmpeg:color-grade") {
+      const look = strParam(snapshot, "gradeLook", strParam(snapshot, "presetId", "jutsu"));
+      outBuf = Buffer.from(
+        look === "jutsu"
+          ? await resolved.applyColorGrade(outBuf)
+          : await resolved.gradeTalkingHead(outBuf, {
+              handheldSelfie: look === "talking-head-selfie",
+            }),
+      );
     }
 
     const ext = isAudioOut ? "mp3" : "mp4";

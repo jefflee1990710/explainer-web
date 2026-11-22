@@ -20,7 +20,7 @@ describe("canvas model catalog", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
     // 7 sidebar Scro tools + the hidden scro:explainer-frame.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 8 + 5);
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 8 + 7);
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
     assert.equal(ids.size, STATIC_CANVAS_MODELS.length);
@@ -36,7 +36,7 @@ describe("canvas model catalog", () => {
       scro.filter((m) => m.hiddenInSidebar).map((m) => m.id),
       ["scro:explainer-frame"],
     );
-    assert.equal(ffmpeg.length, 5);
+    assert.equal(ffmpeg.length, 7);
 
     for (const model of STATIC_CANVAS_MODELS) {
       assert.ok(model.presets.length > 0, `model ${model.id} must have presets`);

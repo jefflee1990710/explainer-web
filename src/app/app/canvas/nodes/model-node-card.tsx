@@ -723,6 +723,20 @@ export function ModelNodeCard({
                 </select>
               </div>
             ) : null}
+
+            {spec.id === "ffmpeg:color-grade" ? (
+              <select
+                value={String(toolParams.gradeLook ?? "jutsu")}
+                onChange={(e) => updateToolParam("gradeLook", e.target.value)}
+                className="nodrag w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+              >
+                <option value="jutsu">{isZh ? "H3 Soft（換角／換場）" : "H3 Soft (Swap / Teleport)"}</option>
+                <option value="talking-head">{isZh ? "口播膠片質感" : "Talking head sensor texture"}</option>
+                <option value="talking-head-selfie">
+                  {isZh ? "口播自拍手機質感" : "Talking head selfie texture"}
+                </option>
+              </select>
+            ) : null}
           </div>
         ) : null}
 

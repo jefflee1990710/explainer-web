@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
 import {
@@ -124,6 +126,81 @@ describe("canvas ffmpeg ops — arg builders", () => {
       "out.mp4",
     ).join(" ");
     assert.match(squareCrop, /1080:1080/);
+  });
+
+  it("copies the input for post-only ops", () => {
+    for (const id of ["ffmpeg:color-grade", "ffmpeg:smooth-silence"]) {
+      const args = buildCanvasFfmpegArgs(
+        id,
+        {},
+        { videoFiles: ["in.mp4"], hasAudioByVideo: [true] },
+        "out.mp4",
+      );
+      assert.deepEqual(args, ["-y", "-i", "in.mp4", "-c", "copy", "out.mp4"]);
+    }
+  });
+});
+
+describe("canvas ffmpeg ops — post-only nodes", () => {
+  async function runPostOnly(modelId: string, toolParams: Record<string, unknown>) {
+    const jobId = new ObjectId();
+    const calls: string[] = [];
+    let selfie: boolean | undefined;
+    const res = await executeCanvasFfmpegJob(jobId, {
+      findCanvasJob: async () => ({
+        _id: jobId,
+        clerkUserId: "user-1",
+        canvasId: new ObjectId(),
+        nodeId: "n1",
+        provider: "ffmpeg",
+        modelId,
+        providerModelId: modelId.replace("ffmpeg:", ""),
+        status: "queued",
+        domainKind: "worker_ffmpeg",
+        inputSnapshot: { video: "https://blob.example/in.mp4", toolParams },
+        chargedUsd: 0,
+        outputKind: "video",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+      downloadToFile: async (_url, dest) => writeFile(dest, Buffer.from("in")),
+      probeStderr: async () => "Stream #0:0: Video: h264\nStream #0:1: Audio: aac",
+      runFfmpeg: async (dir, args) => writeFile(join(dir, args[args.length - 1]!), Buffer.from("copy")),
+      trimSilence: async (buf) => {
+        calls.push("silence");
+        return buf;
+      },
+      applyColorGrade: async (buf) => {
+        calls.push("jutsu");
+        return buf;
+      },
+      gradeTalkingHead: async (buf, opts) => {
+        calls.push("talking-head");
+        selfie = opts?.handheldSelfie;
+        return buf;
+      },
+      persistBuffer: async () => "https://blob.example/out.mp4",
+      updateCanvasJob: async () => {},
+      updateCanvasNodeState: async () => {},
+    });
+    return { res, calls, selfie };
+  }
+
+  it("runs the talking-head selfie grade", async () => {
+    const out = await runPostOnly("ffmpeg:color-grade", { gradeLook: "talking-head-selfie" });
+    assert.equal(out.res.outcome, "completed");
+    assert.deepEqual(out.calls, ["talking-head"]);
+    assert.equal(out.selfie, true);
+  });
+
+  it("runs the jutsu grade by default", async () => {
+    const out = await runPostOnly("ffmpeg:color-grade", {});
+    assert.deepEqual(out.calls, ["jutsu"]);
+  });
+
+  it("runs smooth silence", async () => {
+    const out = await runPostOnly("ffmpeg:smooth-silence", {});
+    assert.deepEqual(out.calls, ["silence"]);
   });
 });
 
