@@ -1,8 +1,8 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import {
-  FRAME_COST_USD,
   MIN_VIDEO_SECONDS,
+  stillCostUsd,
   talkingHeadVideoCostUsd,
   videoCostUsd,
 } from "@/service/credit-costs";
@@ -132,7 +132,7 @@ export function clipFrameCost(
   clipNumber: number,
 ) {
   const clipProj = resolveClipProject(project, clipNumber);
-  if (clipDrawsNoEndStill(project, clipNumber)) return FRAME_COST_USD;
+  if (clipDrawsNoEndStill(project, clipNumber)) return stillCostUsd(clipProj.skillSlug);
   return talkingHeadFramesCost(clipProj.skillSlug, clipNumber);
 }
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
-import { FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
+import { EXPLAINER_STILL_COST_USD, FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
 import {
   canGenerateAllVideos,
   cardGenerationBadge,
@@ -67,19 +67,19 @@ test("no frames at all → no_frames", () => {
   assert.equal(clipStateFor(project(), 1).stage, "no_frames");
 });
 
-test("cinematic realistic bills the standard $0.10/s video rate", () => {
-  assert.equal(clipStateFor(project(), 1).videoCost, 0.5);
-  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 0.5);
+test("cinematic realistic bills the Hailuo 3 × 1.5 video rate", () => {
+  assert.equal(clipStateFor(project(), 1).videoCost, 0.975);
+  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 0.975);
 });
 
-test("sitting talking-head bills $0.18/s with no voice surcharge", () => {
+test("sitting talking-head bills HeyGen Avatar IV × 1.5 with no voice surcharge", () => {
   const talking = project({
     skillSlug: "talking-head-director",
     styleId: "realistic",
     language: "yue",
     phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
   });
-  assert.equal(clipStateFor(talking, 1).videoCost, 10.8);
+  assert.equal(clipStateFor(talking, 1).videoCost, 4.5);
 });
 
 test("one frame in flight → frames_generating", () => {
@@ -105,7 +105,7 @@ test("explainer directors need the start still only", () => {
     frames: [frame(1, "start", "completed")],
   });
   assert.equal(clipStateFor(p, 1).stage, "frames_ready");
-  assert.equal(clipStateFor(p, 1).frameCost, FRAME_COST_USD);
+  assert.equal(clipStateFor(p, 1).frameCost, EXPLAINER_STILL_COST_USD);
 
   const missing = project({
     skillSlug: "cartoon-explainer-video-director",
@@ -120,7 +120,7 @@ test("explainer directors need the start still only", () => {
     frames: [frame(1, "start", "completed")],
   });
   assert.equal(clipStateFor(diorama, 1).stage, "frames_ready");
-  assert.equal(clipStateFor(diorama, 1).frameCost, FRAME_COST_USD);
+  assert.equal(clipStateFor(diorama, 1).frameCost, EXPLAINER_STILL_COST_USD);
 
   const startOnly = project({
     skillSlug: "one-take-director",
@@ -286,8 +286,8 @@ test("one-take-director bills the OpenRouter 15 second cap", async () => {
     phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).videoCost, 1.5);
-  assert.equal(clipVideoCost(p, 1), 1.5);
+  assert.equal(clipStateFor(p, 1).videoCost, 2.925);
+  assert.equal(clipVideoCost(p, 1), 2.925);
 });
 
 test("redrawing the next talking-head start makes this video stale, not these frames", () => {

@@ -8,9 +8,9 @@ import {
   resolveExtendRefundUsd,
 } from "@/service/extend/pipeline";
 
-test("extendJobCostUsd charges $0.60 for a 6s extend video", () => {
+test("extendJobCostUsd charges Hailuo 3 × 1.5 for a 6s extend video", () => {
   assert.equal(EXTEND_CLIP_DURATION_SECONDS, 6);
-  assert.equal(extendJobCostUsd(), 0.6);
+  assert.equal(extendJobCostUsd(), 1.17);
   assert.equal(extendJobCostUsd(), videoCostUsd(EXTEND_CLIP_DURATION_SECONDS));
 });
 
@@ -31,10 +31,10 @@ test("resolveExtendRefundUsd converts legacy creditsCharged when chargedUsd is m
 });
 
 test("resolveExtendRefundUsd falls back to default 6s extend video cost when both fields are missing", () => {
-  assert.equal(resolveExtendRefundUsd({}), 0.6);
+  assert.equal(resolveExtendRefundUsd({}), 1.17);
   assert.equal(
     resolveExtendRefundUsd({ chargedUsd: undefined, creditsCharged: undefined }),
     videoCostUsd(EXTEND_CLIP_DURATION_SECONDS),
   );
-  assert.equal(resolveExtendRefundUsd({ chargedUsd: Number.NaN }), 0.6);
+  assert.equal(resolveExtendRefundUsd({ chargedUsd: Number.NaN }), 1.17);
 });

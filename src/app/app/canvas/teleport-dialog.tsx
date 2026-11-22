@@ -39,8 +39,8 @@ export function TeleportDialog({ open, isZh, videoOptions, imageOptions, onCance
       title={isZh ? "建立 Teleport 換場" : "New Teleport"}
       description={
         isZh
-          ? "會放入裁剪、換場渲染（$0.10/秒）和調色節點；用文字描述場景時會多一個 Seedream 場景圖節點（$0.15）。"
-          : "Adds trim, teleport render ($0.10/s), and colour grade nodes. A text scene adds a Seedream scene plate ($0.15)."
+          ? "會放入裁剪、換場渲染（$0.20/秒）和調色節點；用文字描述場景時會多一個 Seedream 場景圖節點（$0.14）。"
+          : "Adds trim, teleport render ($0.20/s), and colour grade nodes. A text scene adds a Seedream scene plate ($0.14)."
       }
       submitLabel={isZh ? "建立節點" : "Add nodes"}
       canSubmit={canSubmit}

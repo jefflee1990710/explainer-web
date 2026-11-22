@@ -181,8 +181,8 @@ describe("user changes frame image models", () => {
     const g = explainer();
     const before = findCanvasModel(NANO_BANANA_CANVAS_MODEL_ID)!;
     const after = findCanvasModel(LITE)!;
-    assert.equal(estimateCanvasModelCostUsd(before), 0.15);
-    assert.equal(estimateCanvasModelCostUsd(after), 0.15);
+    assert.equal(estimateCanvasModelCostUsd(before), 0.0504);
+    assert.equal(estimateCanvasModelCostUsd(after), 0.0525);
 
     const first = replaceMemberModel(g, "exp-020dc4-frame-1", LITE);
     const second = replaceMemberModel(g, "exp-020dc4-frame-2", LITE);

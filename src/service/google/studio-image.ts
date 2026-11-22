@@ -1,11 +1,14 @@
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import type { AspectRatio } from "@/model/project";
+import {
+  GOOGLE_STUDIO_IMAGE_MODELS,
+  GOOGLE_STUDIO_NANO_BANANA,
+  googleStudioBareModelId,
+} from "@/service/google/studio-price";
 
 // Nano Banana 2.1 on Google AI Studio. Explainer stills call this directly.
 export const GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL = "gemini-nano-banana-2.1";
-const OPENROUTER_NANO_BANANA_ALIAS = "google/gemini-nano-banana-2.1";
 const STUDIO_IMAGE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const MAX_REFERENCE_IMAGES = 14;
 
 type FetchOptions = {
   fetch?: typeof fetch;
@@ -24,15 +27,16 @@ export function hasGoogleStudioKey() {
   return Boolean(googleStudioApiKey());
 }
 
-// OpenRouter's Google slug is the same model. Callers keep one id.
+const STUDIO_IMAGE_IDS = new Set(GOOGLE_STUDIO_IMAGE_MODELS.map((model) => model.id));
+
+// Canvas and OpenRouter slugs for the same Google AI Studio image model.
 export function googleStudioImageModel(model: string): string | undefined {
-  if (
-    model === GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL ||
-    model === OPENROUTER_NANO_BANANA_ALIAS
-  ) {
-    return GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL;
-  }
-  return undefined;
+  const bare = googleStudioBareModelId(model);
+  return STUDIO_IMAGE_IDS.has(bare) ? bare : undefined;
+}
+
+function referenceLimit(model: string): number {
+  return GOOGLE_STUDIO_IMAGE_MODELS.find((item) => item.id === model)?.referenceImages ?? 14;
 }
 
 function imageSize(resolution?: "1k" | "2k" | "4k") {
@@ -43,12 +47,17 @@ function imageSize(resolution?: "1k" | "2k" | "4k") {
 
 // Request body for Gemini generateContent image output.
 export function googleStudioImageRequest(input: {
+  model?: string;
   prompt: string;
   aspectRatio: AspectRatio | "2:3" | "3:4";
   resolution?: "1k" | "2k" | "4k";
   referenceImages?: InlineImage[];
 }) {
-  const references = (input.referenceImages || []).slice(0, MAX_REFERENCE_IMAGES);
+  const model = googleStudioImageModel(input.model || "") || GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL;
+  const references = (input.referenceImages || []).slice(0, referenceLimit(model));
+  // Gemini 2.5 Flash Image only documents images up to 1024px and rejects imageSize.
+  const legacy = model === GOOGLE_STUDIO_NANO_BANANA;
+  const size = legacy ? "1K" : imageSize(input.resolution);
   return {
     contents: [
       {
@@ -63,10 +72,9 @@ export function googleStudioImageRequest(input: {
     ],
     generationConfig: {
       responseModalities: ["TEXT", "IMAGE"],
-      imageConfig: {
-        aspectRatio: input.aspectRatio,
-        imageSize: imageSize(input.resolution),
-      },
+      imageConfig: legacy
+        ? { aspectRatio: input.aspectRatio }
+        : { aspectRatio: input.aspectRatio, imageSize: size },
     },
   };
 }
@@ -119,7 +127,7 @@ function dataUrlImage(url: string): InlineImage | undefined {
   return { mimeType: match[1] || "image/png", data: match[2].replace(/\s/g, "") };
 }
 
-async function referenceImage(
+export async function googleStudioInlineImageFromUrl(
   url: string,
   fetchFn: typeof fetch,
 ): Promise<InlineImage> {
@@ -146,12 +154,16 @@ export async function submitGoogleStudioImage(
 ): Promise<GenerationSubmitResult> {
   const key = googleStudioApiKey();
   if (!key) throw new Error("尚未設定 GOOGLE_GENERATIVE_AI_API_KEY");
-  const model = googleStudioImageModel(input.model || "") || GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL;
+  const requested = input.model?.trim();
+  const model = requested
+    ? googleStudioImageModel(requested)
+    : GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL;
+  if (!model) throw new Error(`Google AI Studio 沒有這個圖片模型（${requested}）`);
   const fetchFn = options?.fetch ?? fetch;
   const urls = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
   const referenceImages: InlineImage[] = [];
-  for (const url of urls.slice(0, MAX_REFERENCE_IMAGES)) {
-    referenceImages.push(await referenceImage(url, fetchFn));
+  for (const url of urls.slice(0, referenceLimit(model))) {
+    referenceImages.push(await googleStudioInlineImageFromUrl(url, fetchFn));
   }
   const response = await fetchFn(`${STUDIO_IMAGE_URL}/${model}:generateContent`, {
     method: "POST",
@@ -161,6 +173,7 @@ export async function submitGoogleStudioImage(
     },
     body: JSON.stringify(
       googleStudioImageRequest({
+        model,
         prompt: input.prompt,
         aspectRatio: input.aspectRatio,
         resolution: input.resolution,

@@ -1,5 +1,6 @@
 import { formatUsd, formatUsdRate } from "@/service/billing/usd";
 import {
+  EXPLAINER_STILL_COST_USD,
   FRAME_COST_USD,
   IMAGE_COST_USD,
   TALKING_HEAD_COST_PER_SECOND_USD,
@@ -189,9 +190,9 @@ export function getGenerationApiDocs(locale: string): GenerationApiEndpointDoc[]
         "Turn product briefs or notes into multi-clip whiteboard doodle, paper cutout, or flat-vector explainer videos.",
       ),
       creditCost: tr(
-        `分鏡草稿免費 · 畫格 ${formatUsd(FRAME_COST_USD)}/張 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
-        `分镜草稿免费 · 画格 ${formatUsd(FRAME_COST_USD)}/张 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
-        `Free storyboard draft · ${formatUsd(FRAME_COST_USD)}/frame · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} video`,
+        `分鏡草稿免費 · 畫格 ${formatUsd(EXPLAINER_STILL_COST_USD)}/張 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
+        `分镜草稿免费 · 画格 ${formatUsd(EXPLAINER_STILL_COST_USD)}/张 · 影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}`,
+        `Free storyboard draft · ${formatUsd(EXPLAINER_STILL_COST_USD)}/frame · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} video`,
       ),
       method: "POST",
       endpoint: "/api/v1/explainers",

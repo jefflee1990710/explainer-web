@@ -531,7 +531,7 @@ export const briefEn = {
     approvedBack: "Save & back",
     approveTitle: "Approve storyboard & open Video",
     approvePricing:
-      "Approval is free. Each clip is generated separately: frames {frameCost} each, video billed per second ($0.10/s; talking-head $0.18/s).",
+      "Approval is free. Each clip is generated separately: frames {frameCost} each, video billed per second ($0.20/s; talking-head $0.08/s).",
     approveRemaining: "({remaining} left)",
     approveTip: "Try clip 1 first to see the look before running the rest.",
     approveSubscribeRequired: "Not subscribed; Video generate buttons need an active plan.",

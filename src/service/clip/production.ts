@@ -24,8 +24,8 @@ import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-jo
 import { isProductionLike } from "@/service/project-status";
 import {
   clipVideoCost,
-  FRAME_COST_USD,
   planGenerateAllVideos,
+  stillCostUsd,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
@@ -153,7 +153,7 @@ export async function generateClipFramesAction(
         skipEnd ? { strict: true } : {},
       );
       if (missed > 0) {
-        await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
+        await refundCreditUsd(user.clerkUserId, mulUsd(missed, stillCostUsd(project.skillSlug)), spendKey);
       }
       throw error;
     }

@@ -4,7 +4,7 @@ import type { ClipFrame, ProjectClip } from "@/model/project";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 import { addUsd, mulUsd } from "@/service/billing/usd";
 import {
-  FRAME_COST_USD,
+  SUBTITLE_PLATE_COST_USD,
   MIN_VIDEO_COST_USD,
   MIN_VIDEO_SECONDS,
   talkingHeadVideoCostUsd,
@@ -58,7 +58,7 @@ export function subtitlePlateCost(project: {
   ) {
     return 0;
   }
-  return mulUsd(FRAME_COST_USD, project.phaseA?.clips.length ?? 0);
+  return mulUsd(SUBTITLE_PLATE_COST_USD, project.phaseA?.clips.length ?? 0);
 }
 
 // Sum of video USD credit costs for these clips.

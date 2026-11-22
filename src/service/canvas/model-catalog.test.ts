@@ -19,11 +19,19 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    // 7 sidebar Scro tools + 4 hidden step nodes, plus Nano Banana 2.1 on Google AI Studio.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 1 + 11 + 7);
+    // 7 sidebar Scro tools + 4 hidden step nodes, plus Gemini image and Omni video on Google AI Studio.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 11 + 7);
     assert.deepEqual(
       STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
-      ["google:gemini-nano-banana-2.1"],
+      [
+        "google:gemini-nano-banana-2.1",
+        "google:gemini-3.1-flash-image",
+        "google:gemini-3.1-flash-lite-image",
+        "google:gemini-3-pro-image",
+        "google:gemini-2.5-flash-image",
+        "google:gemini-omni-1.2-flash",
+        "google:gemini-omni-1.1-flash",
+      ],
     );
 
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));

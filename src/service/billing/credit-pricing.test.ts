@@ -37,7 +37,7 @@ test("plans grant 1:1 USD monthly credit matching their list prices", () => {
   );
   for (const plan of Object.values(PLANS)) {
     assert.equal(plan.monthlyCreditUsd, plan.amountUsd);
-    assert.equal(planMarginPct(plan), 65);
+    assert.equal(planMarginPct(plan), 33);
   }
 });
 
@@ -72,48 +72,48 @@ test("a stored Stripe pack price is replaced when its creditUsd or amountUsd cha
   assert.equal(packProductName(pack), "Scro $50 儲值包 ($50.00 USD)");
 });
 
-test("image, frame, and blueprint USD constants match the standardized pricing table", () => {
-  assert.equal(IMAGE_COST_USD, 0.15);
-  assert.equal(FRAME_COST_USD, 0.15);
-  assert.equal(FRAMES_COST_USD, 0.3);
-  assert.equal(BLUEPRINT_COST_USD, 0.3);
+test("image, frame, and blueprint USD constants are OpenRouter price × 1.5", () => {
+  assert.equal(IMAGE_COST_USD, 0.135);
+  assert.equal(FRAME_COST_USD, 0.135);
+  assert.equal(FRAMES_COST_USD, 0.27);
+  assert.equal(BLUEPRINT_COST_USD, 0.27);
 });
 
-test("standard video is billed $0.10/s with a 5s ($0.50) minimum across styles and quality tiers", () => {
-  assert.equal(VIDEO_COST_PER_SECOND_USD, 0.1);
-  assert.equal(MIN_VIDEO_COST_USD, 0.5);
-  assert.equal(videoCostUsd(3), 0.5);
-  assert.equal(videoCostUsd(5), 0.5);
-  assert.equal(videoCostUsd(6.4), 0.6);
-  assert.equal(videoCostUsd(8), 0.8);
-  assert.equal(videoCostUsd(30), 1.5);
-  assert.equal(videoCostUsd(Number.NaN), 0.5);
-  assert.equal(videoCostUsd(6, "realistic", true, 15, "economy"), 0.6);
-  assert.equal(videoCostUsd(6, "doodle", true, 15, "economy"), 0.6);
-  assert.equal(videoCostUsd(6, "realistic", false, 15, "2k_cinema"), 0.6);
+test("standard video is billed Hailuo 3 × 1.5 with a 5s minimum across styles and quality tiers", () => {
+  assert.equal(VIDEO_COST_PER_SECOND_USD, 0.195);
+  assert.equal(MIN_VIDEO_COST_USD, 0.975);
+  assert.equal(videoCostUsd(3), 0.975);
+  assert.equal(videoCostUsd(5), 0.975);
+  assert.equal(videoCostUsd(6.4), 1.17);
+  assert.equal(videoCostUsd(8), 1.56);
+  assert.equal(videoCostUsd(30), 2.925);
+  assert.equal(videoCostUsd(Number.NaN), 0.975);
+  assert.equal(videoCostUsd(6, "realistic", true, 15, "economy"), 1.17);
+  assert.equal(videoCostUsd(6, "doodle", true, 15, "economy"), 1.17);
+  assert.equal(videoCostUsd(6, "realistic", false, 15, "2k_cinema"), 1.17);
 });
 
-test("talking-head video is billed $0.18/s up to 120 seconds", () => {
-  assert.equal(TALKING_HEAD_COST_PER_SECOND_USD, 0.18);
-  assert.equal(talkingHeadVideoCostUsd(5), 0.9);
-  assert.equal(talkingHeadVideoCostUsd(60), 10.8);
-  assert.equal(talkingHeadVideoCostUsd(150), 21.6);
+test("talking-head video is billed HeyGen Avatar IV × 1.5 up to 120 seconds", () => {
+  assert.equal(TALKING_HEAD_COST_PER_SECOND_USD, 0.075);
+  assert.equal(talkingHeadVideoCostUsd(5), 0.375);
+  assert.equal(talkingHeadVideoCostUsd(60), 4.5);
+  assert.equal(talkingHeadVideoCostUsd(150), 9);
 });
 
-test("scroSwapCostUsd and teleportCostUsd charge $0.15 for image and $0.15 + $0.10/s for video/gif", () => {
-  assert.equal(scroSwapCostUsd({ mediaKind: "image", durationSeconds: 6 }), 0.15);
-  assert.equal(scroSwapCostUsd({ mediaKind: "video", durationSeconds: 6 }), 0.75);
-  assert.equal(scroSwapCostUsd({ mediaKind: "gif", durationSeconds: 5 }), 0.65);
-  assert.equal(scroSwapCostUsd({ mediaKind: "video", durationSeconds: 2 }), 0.35);
-  assert.equal(teleportCostUsd({ durationSeconds: 6 }), 0.75);
-  assert.equal(teleportCostUsd({ durationSeconds: 10 }), 1.15);
+test("scroSwapCostUsd and teleportCostUsd charge the Seedream still plus Hailuo seconds", () => {
+  assert.equal(scroSwapCostUsd({ mediaKind: "image", durationSeconds: 6 }), 0.135);
+  assert.equal(scroSwapCostUsd({ mediaKind: "video", durationSeconds: 6 }), 1.305);
+  assert.equal(scroSwapCostUsd({ mediaKind: "gif", durationSeconds: 5 }), 1.11);
+  assert.equal(scroSwapCostUsd({ mediaKind: "video", durationSeconds: 2 }), 0.525);
+  assert.equal(teleportCostUsd({ durationSeconds: 6 }), 1.305);
+  assert.equal(teleportCostUsd({ durationSeconds: 10 }), 2.085);
 });
 
 test("chargedClipUsd reads chargedUsd first, falls back to legacy creditsCharged, then duration estimate", () => {
   assert.equal(chargedClipUsd({ chargedUsd: 0.75, creditsCharged: 99, durationSeconds: 5 }), 0.75);
   assert.equal(chargedClipUsd({ creditsCharged: 12, durationSeconds: 5 }), 0.48);
-  assert.equal(chargedClipUsd({ durationSeconds: 8 }), 0.8);
-  assert.equal(chargedClipUsd(undefined), 0.5);
+  assert.equal(chargedClipUsd({ durationSeconds: 8 }), 1.56);
+  assert.equal(chargedClipUsd(undefined), 0.975);
 });
 
 test("a new account receives $6.00 welcome USD credit covering a 10-clip board and preview clips", () => {
@@ -125,7 +125,7 @@ test("a new account receives $6.00 welcome USD credit covering a 10-clip board a
 test("upgrade is offered only when remaining USD credit cannot pay for the video", () => {
   assert.equal(needsVideoUpgradeUsd(0.25), true);
   assert.equal(needsVideoUpgradeUsd(0.49), true);
-  assert.equal(needsVideoUpgradeUsd(0.5), false);
+  assert.equal(needsVideoUpgradeUsd(0.975), false);
   assert.equal(needsVideoUpgradeUsd(0.75, 0.8), true);
   assert.equal(needsVideoUpgradeUsd(0.8, 0.8), false);
 });
@@ -139,18 +139,18 @@ test("localizedPackName and localizedPackBlurb format USD packs according to sel
   assert.equal(localizedPackName(pack, "zh-Hans"), "$50 充值包");
 });
 
-test("every 1:1 USD plan stays profitable at 30% off plus the full 25% affiliate stack", () => {
+test("a 50% OpenRouter markup does not cover a 30% promo plus the 25% affiliate stack", () => {
   for (const plan of Object.values(PLANS)) {
     const netUsd = plan.amountUsd * 0.7 * 0.75;
     const margin = typicalGrossMargin(netUsd, plan.monthlyCreditUsd);
-    assert.equal(margin > 0.3, true, `${plan.id} ${margin}`);
+    assert.equal(margin < 0, true, `${plan.id} ${margin}`);
   }
 });
 
-test("1:1 USD plans maintain healthy cash margin under worst-case 20% discount + 25% affiliate stack", () => {
+test("a 50% OpenRouter markup does not cover a 20% discount plus the 25% affiliate stack", () => {
   for (const plan of Object.values(PLANS)) {
     const netUsd = plan.amountUsd * 0.8 * 0.75;
     const margin = typicalGrossMargin(netUsd, plan.monthlyCreditUsd);
-    assert.equal(margin >= 0.4, true, `${plan.id} ${margin}`);
+    assert.equal(margin < 0, true, `${plan.id} ${margin}`);
   }
 });

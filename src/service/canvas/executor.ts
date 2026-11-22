@@ -59,6 +59,7 @@ import {
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
 import { hasGoogleStudioKey, submitGoogleStudioImage } from "@/service/google/studio-image";
+import { fetchGoogleStudioVideo, submitGoogleStudioVideo } from "@/service/google/studio-video";
 
 // Mentalok video models that accept a `keyframes` object (`startImage` / `endImage`).
 // Single-frame TI2V models (`wan-2-1`, `wan-2-2`, `ltx-video`) receive `imageUrl` instead.
@@ -128,6 +129,16 @@ export type CanvasExecutorDeps = {
     resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;
   }) => Promise<GenerationSubmitResult>;
+  submitGoogleStudioVideo: (input: {
+    model: string;
+    prompt?: string;
+    aspectRatio?: string;
+    durationSeconds?: number;
+    startImageUrl?: string;
+    endImageUrl?: string;
+    referenceImageUrls?: Array<string | undefined>;
+  }) => Promise<GenerationSubmitResult>;
+  fetchGoogleStudioVideo: (interactionId: string) => Promise<GenerationSubmitResult>;
   submitOpenRouterCanvasVideo: (
     input: OpenRouterCanvasVideoInput,
   ) => Promise<GenerationSubmitResult>;
@@ -314,6 +325,8 @@ function createDefaultDeps(): CanvasExecutorDeps {
     getUserCreditUsd: defaultGetUserCreditUsd,
     submitOpenRouterImage: (input) => submitOpenRouterImage(input),
     submitGoogleStudioImage: (input) => submitGoogleStudioImage(input),
+    submitGoogleStudioVideo: (input) => submitGoogleStudioVideo(input),
+    fetchGoogleStudioVideo: (interactionId) => fetchGoogleStudioVideo(interactionId),
     submitOpenRouterCanvasVideo: (input) => submitOpenRouterCanvasVideo(input),
     fetchOpenRouterStatus: (statusUrl) => fetchOpenRouterStatus(statusUrl),
     createMentalokJob: (payload) => createMentalokJob(payload),
@@ -726,8 +739,20 @@ export async function submitCanvasNodeJob(
     }
   }
 
+  if (
+    spec.provider === "google" &&
+    spec.category === "video" &&
+    inputCheck.inputs.startImage &&
+    inputCheck.inputs.endImage
+  ) {
+    // Omni interpolates two frames for at most 10 seconds.
+    resolvedDurationSeconds = Math.min(resolvedDurationSeconds ?? 10, 10);
+  }
+
   const costUsd = estimateCanvasModelCostUsd(spec, {
     durationSeconds: resolvedDurationSeconds,
+    resolution: node.data.resolution,
+    referenceImages: inputCheck.inputs.refImages?.length,
   });
 
   let spendEventKey: string | undefined;
@@ -901,6 +926,99 @@ export async function dispatchQueuedCanvasJobById(
   return res.job ?? null;
 }
 
+// Persist a provider video that finished in the submit response, or leave it running for polling.
+async function settleSubmittedVideo(input: {
+  response: GenerationSubmitResult;
+  initialJob: CanvasJob;
+  node: CanvasNode;
+  clerkUserId: string;
+  canvasObjectId: ObjectId;
+  jobId: ObjectId;
+  jobIdHex: string;
+  costUsd: number;
+  resolved: CanvasExecutorDeps;
+}): Promise<SubmitCanvasNodeJobResult> {
+  const { response, initialJob, node, clerkUserId, canvasObjectId, jobId, jobIdHex, costUsd, resolved } =
+    input;
+  const updatedAt = resolved.now();
+  if (response.status === "completed" && response.video?.url) {
+    const blobPath = buildCanvasBlobPathname(clerkUserId, jobIdHex, "video", response.video.url);
+    const permanentUrl = await resolved.persistMedia(response.video.url, blobPath);
+    await resolved.updateCanvasJob(jobId, clerkUserId, {
+      $set: {
+        status: "completed",
+        externalJobId: response.request_id,
+        statusUrl: response.status_url,
+        outputUrl: permanentUrl,
+        outputKind: "video",
+        updatedAt,
+      },
+      $unset: { error: "" },
+    });
+    await resolved.updateCanvasNodeState({
+      canvasId: canvasObjectId,
+      clerkUserId,
+      nodeId: node.id,
+      patch: {
+        status: "completed",
+        lastJobId: jobIdHex,
+        outputUrl: permanentUrl,
+        outputKind: "video",
+        lastCostUsd: costUsd,
+        lastError: undefined,
+      },
+      updatedAt,
+    });
+    const creditUsd = await resolved.getUserCreditUsd(clerkUserId);
+    return {
+      ok: true,
+      job: {
+        ...initialJob,
+        status: "completed",
+        externalJobId: response.request_id,
+        statusUrl: response.status_url,
+        outputUrl: permanentUrl,
+        outputKind: "video",
+        updatedAt,
+      },
+      creditUsd,
+    };
+  }
+
+  await resolved.updateCanvasJob(jobId, clerkUserId, {
+    $set: {
+      status: "running",
+      externalJobId: response.request_id,
+      statusUrl: response.status_url,
+      updatedAt,
+    },
+  });
+  await resolved.updateCanvasNodeState({
+    canvasId: canvasObjectId,
+    clerkUserId,
+    nodeId: node.id,
+    patch: {
+      status: "running",
+      lastJobId: jobIdHex,
+      lastCostUsd: costUsd,
+      lastError: undefined,
+    },
+    updatedAt,
+  });
+  const creditUsd = await resolved.getUserCreditUsd(clerkUserId);
+  return {
+    ok: true,
+    job: {
+      ...initialJob,
+      status: "running",
+      externalJobId: response.request_id,
+      statusUrl: response.status_url,
+      updatedAt,
+    },
+    creditUsd,
+  };
+}
+
 async function executeDispatchedCanvasJob(
   ctx: {
     initialJob: CanvasJob;
@@ -943,7 +1061,8 @@ async function executeDispatchedCanvasJob(
       const rawOutputUrl = response.images?.[0]?.url;
       if (response.status === "nsfw" || response.status === "failed" || !rawOutputUrl) {
         throw new Error(
-          response.error || (spec.provider === "google" ? "Nano Banana 圖片生成失敗" : "OpenRouter 圖片生成失敗"),
+          response.error ||
+            (spec.provider === "google" ? "Google AI Studio 圖片生成失敗" : "OpenRouter 圖片生成失敗"),
         );
       }
 
@@ -995,7 +1114,34 @@ async function executeDispatchedCanvasJob(
       return { ok: true, job: completedJob, creditUsd };
     }
 
-    // Branch 2: Asynchronous OpenRouter video generation.
+    // Branch 2: Google AI Studio Omni video. Create returns quickly; polling reads the interaction.
+    if (spec.provider === "google" && spec.category === "video") {
+      const response = await resolved.submitGoogleStudioVideo({
+        model: spec.providerModelId,
+        prompt: inputCheck.inputs.prompt,
+        aspectRatio: node.data.aspectRatio ?? node.data.presetId,
+        durationSeconds: node.data.durationSeconds ?? spec.defaultDurationSeconds ?? 10,
+        startImageUrl: inputCheck.inputs.startImage,
+        endImageUrl: inputCheck.inputs.endImage,
+        referenceImageUrls: inputCheck.inputs.refImages,
+      });
+      if (response.status === "failed" || response.status === "nsfw") {
+        throw new Error(response.error || "Google AI Studio 影片生成失敗");
+      }
+      return settleSubmittedVideo({
+        response,
+        initialJob,
+        node,
+        clerkUserId: input.clerkUserId,
+        canvasObjectId,
+        jobId,
+        jobIdHex,
+        costUsd,
+        resolved,
+      });
+    }
+
+    // Branch 3: Asynchronous OpenRouter video generation.
     if (spec.provider === "openrouter") {
       const response = await resolved.submitOpenRouterCanvasVideo({
         model: spec.providerModelId,
@@ -1601,6 +1747,33 @@ async function pollSingleCanvasJob(
       );
     }
 
+    return job;
+  }
+
+  if (job.provider === "google") {
+    if (!job.externalJobId || job.outputKind !== "video") return job;
+    let remote: GenerationSubmitResult;
+    try {
+      remote = await resolved.fetchGoogleStudioVideo(job.externalJobId);
+    } catch (error) {
+      console.warn("[canvas-executor] transient Google AI Studio poll error", {
+        jobId: job._id.toHexString(),
+        error: toErrorMessage(error, "Google AI Studio poll failed"),
+      });
+      return job;
+    }
+    if (remote.status === "completed") {
+      const rawUrl = remote.video?.url;
+      if (!rawUrl) return settleFailedJob(job, "Google AI Studio 任務已完成但未回傳影片", resolved);
+      return settleCompletedJob(job, rawUrl, resolved);
+    }
+    if (remote.status === "failed" || remote.status === "nsfw") {
+      const defaultMsg =
+        remote.status === "nsfw"
+          ? "內容觸發安全審核限制，已自動退還 USD Credit"
+          : "Google AI Studio 影片生成失敗";
+      return settleFailedJob(job, remote.error || defaultMsg, resolved);
+    }
     return job;
   }
 

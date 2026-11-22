@@ -27,7 +27,7 @@ import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
 import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { failUnsubmittedFrames, regenerateFrame } from "@/service/higgsfield/pipeline";
-import { FRAME_COST_USD } from "@/service/production-plan";
+import { stillCostUsd } from "@/service/production-plan";
 import { isProductionLike } from "@/service/project-status";
 
 type FramePromptResult =
@@ -282,8 +282,9 @@ export async function regenerateFramePromptAction(
       return { ok: false, error: "起始畫格還沒有圖，請先完成起始畫格" };
     }
 
-    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
-    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
+    const frameCost = stillCostUsd(project.skillSlug);
+    await assertCanSpendCreditUsd(user, frameCost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, frameCost);
     const attemptStartedAt = new Date();
     try {
       await regenerateFrame(project, target.clipNumber, target.position, undefined, {
@@ -299,7 +300,7 @@ export async function regenerateFramePromptAction(
         [target.position === "start" ? "end" : "start"],
         { strict: true },
       );
-      if (missed > 0) await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
+      if (missed > 0) await refundCreditUsd(user.clerkUserId, mulUsd(missed, frameCost), spendKey);
       throw error;
     }
 

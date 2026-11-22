@@ -73,7 +73,7 @@ test("checkoutUrls send popup returns to the done page", () => {
 });
 
 test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed users to spend welcome USD credit on images and Clip 1 preview, then prompt subscription on Clip 2+", () => {
-  // Unsubscribed user with $6.00 welcome credit can create a blueprint ($0.30), frame ($0.15), or Clip 1 preview ($0.50)
+  // Unsubscribed user with $6.00 welcome credit can create a blueprint ($0.27), frame ($0.135), or Clip 1 preview ($0.975)
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",

@@ -103,7 +103,7 @@ test("createPoseEdit refunds once when insert throws after consume", async () =>
   );
   assert.equal(inserts, 1);
   assert.equal(fails, 0);
-  assert.equal(FRAME_COST_USD, 0.15);
+  assert.equal(FRAME_COST_USD, 0.135);
   assert.deepEqual(refunds, [{ clerkUserId: "uid", cost: FRAME_COST_USD, spendKey: "spend-1" }]);
 });
 

@@ -1,8 +1,17 @@
 // Canonical catalog for the Interactive Node Canvas Editor (/app/canvas):
 // 16 Mentalok models, every OpenRouter image and video model on this account
-// except GPT-5 Image, Nano Banana 2.1 on Google AI Studio, plus Scro tools and FFmpeg nodes.
+// except GPT Image and Veo, Gemini image and Omni video on Google AI Studio,
+// plus Scro tools and FFmpeg nodes.
 
-import { IMAGE_COST_USD, talkingHeadVideoCostUsd, videoCostUsd } from "@/service/credit-costs";
+import { addUsd, mulUsd } from "@/service/billing/usd";
+import {
+  EXPLAINER_STILL_COST_USD,
+  IMAGE_COST_USD,
+  VIDEO_COST_PER_SECOND_USD,
+  scroSwapCostUsd,
+  talkingHeadVideoCostUsd,
+  teleportCostUsd,
+} from "@/service/credit-costs";
 import {
   type MentalokClientOptions,
   type MentalokModelSummary,
@@ -16,7 +25,19 @@ import {
   OPENROUTER_ACCOUNT_VIDEO_MODELS,
 } from "@/service/openrouter/account-media-models";
 import { GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL } from "@/service/google/studio-image";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
+import {
+  GOOGLE_STUDIO_IMAGE_MODELS,
+  GOOGLE_STUDIO_VIDEO_MODELS,
+  googleStudioImageSupportsResolution,
+  googleStudioImageUserUsd,
+  googleStudioVideoUserUsd,
+} from "@/service/google/studio-price";
+import {
+  defaultOpenRouterImageResolution,
+  defaultOpenRouterVideoResolution,
+  openRouterImageUserUsd,
+  openRouterVideoUserUsd,
+} from "@/service/openrouter/media-price";
 import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/service/canvas/pricing";
 
 export type CanvasPortType = "image" | "video" | "audio" | "text";
@@ -477,7 +498,9 @@ function buildOpenRouterAccountModels(): CanvasModelSpec[] {
       output: imageOutput(),
       presets,
       defaultPresetId: presets.includes("16:9") ? "16:9" : presets[0],
-      basePriceUsd: IMAGE_COST_USD,
+      basePriceUsd: openRouterImageUserUsd(model.id, {
+        resolution: defaultOpenRouterImageResolution(model.id),
+      }),
       supportsAspectRatio: model.aspects.length > 0,
       ...(supportsResolution ? { supportsResolution: true } : {}),
       available: true,
@@ -523,10 +546,10 @@ function buildOpenRouterAccountModels(): CanvasModelSpec[] {
       output: videoOutput(),
       presets,
       defaultPresetId,
-      basePriceUsd:
-        model.id === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
-          ? talkingHeadVideoCostUsd(5)
-          : videoCostUsd(Math.min(15, Math.max(5, defaultDurationSeconds))),
+      basePriceUsd: openRouterVideoUserUsd(model.id, {
+        durationSeconds: defaultDurationSeconds,
+        resolution: defaultOpenRouterVideoResolution(model.id),
+      }),
       defaultDurationSeconds,
       minDurationSeconds,
       maxDurationSeconds,
@@ -542,23 +565,40 @@ const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = buildOpenRouterAccountModels
 
 export const NANO_BANANA_CANVAS_MODEL_ID = `google:${GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL}`;
 
-// Nano Banana 2.1 runs on Google AI Studio directly (OpenRouter's Gemini image route is ToS-blocked).
+// Nano Banana and Gemini Omni run on Google AI Studio (OpenRouter's Gemini media route is ToS-blocked).
 const GOOGLE_STATIC_MODELS: CanvasModelSpec[] = [
-  {
-    id: NANO_BANANA_CANVAS_MODEL_ID,
+  ...GOOGLE_STUDIO_IMAGE_MODELS.map((model): CanvasModelSpec => ({
+    id: `google:${model.id}`,
     provider: "google",
-    providerModelId: GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL,
-    name: "Nano Banana 2.1",
+    providerModelId: model.id,
+    name: model.name,
     category: "image",
-    inputs: [promptPort(true), refImagesPort(14)],
+    inputs: [promptPort(true), refImagesPort(model.referenceImages)],
     output: imageOutput(),
     presets: ["9:16", "16:9", "1:1", "4:3", "3:4"],
     defaultPresetId: "16:9",
-    basePriceUsd: IMAGE_COST_USD,
+    basePriceUsd: googleStudioImageUserUsd(model.id),
     supportsAspectRatio: true,
-    supportsResolution: true,
+    supportsResolution: googleStudioImageSupportsResolution(model.id),
     available: true,
-  },
+  })),
+  ...GOOGLE_STUDIO_VIDEO_MODELS.map((model): CanvasModelSpec => ({
+    id: `google:${model.id}`,
+    provider: "google",
+    providerModelId: model.id,
+    name: model.name,
+    category: "video",
+    inputs: [promptPort(true), startImagePort(false), endImagePort(false), refImagesPort(model.referenceImages)],
+    output: videoOutput(),
+    presets: ["16:9", "9:16"],
+    defaultPresetId: "16:9",
+    basePriceUsd: googleStudioVideoUserUsd(model.id),
+    defaultDurationSeconds: model.defaultDurationSeconds,
+    minDurationSeconds: model.minDurationSeconds,
+    maxDurationSeconds: model.maxDurationSeconds,
+    supportsAspectRatio: true,
+    available: true,
+  })),
 ];
 
 // 7 Scro production tool nodes (`scro:*`).
@@ -590,7 +630,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: 3.75,
+    basePriceUsd: addUsd(mulUsd(EXPLAINER_STILL_COST_USD, 5), mulUsd(VIDEO_COST_PER_SECOND_USD, 30)),
     defaultDurationSeconds: 30,
     minDurationSeconds: 15,
     maxDurationSeconds: 60,
@@ -608,7 +648,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: imageOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: IMAGE_COST_USD,
+    basePriceUsd: EXPLAINER_STILL_COST_USD,
     supportsAspectRatio: false,
     hiddenInSidebar: true,
     available: true,
@@ -639,7 +679,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: 0.75,
+    basePriceUsd: scroSwapCostUsd({ durationSeconds: 6, mediaKind: "video" }),
     defaultDurationSeconds: 6,
     minDurationSeconds: 2,
     maxDurationSeconds: 15,
@@ -656,7 +696,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: 0.75,
+    basePriceUsd: teleportCostUsd({ durationSeconds: 6 }),
     defaultDurationSeconds: 6,
     minDurationSeconds: 2,
     maxDurationSeconds: 15,
@@ -674,7 +714,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: 0.75,
+    basePriceUsd: scroSwapCostUsd({ durationSeconds: 6, mediaKind: "video" }),
     defaultDurationSeconds: 6,
     minDurationSeconds: 2,
     maxDurationSeconds: 15,
@@ -692,7 +732,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
-    basePriceUsd: 0.6,
+    basePriceUsd: mulUsd(VIDEO_COST_PER_SECOND_USD, 6),
     defaultDurationSeconds: 6,
     minDurationSeconds: 2,
     maxDurationSeconds: 15,

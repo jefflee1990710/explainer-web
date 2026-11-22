@@ -35,7 +35,7 @@ import {
 } from "@/service/billing/credits";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { addUsd, mulUsd } from "@/service/billing/usd";
-import { FRAME_COST_USD } from "@/service/credit-costs";
+import { SUBTITLE_PLATE_COST_USD } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isSceneTextChoice, resolveSceneText, SCENE_TEXT_OFF } from "@/service/director/scene-text";
@@ -662,7 +662,7 @@ async function writeQueuedClip(videoId: ObjectId, token: string, jobId: string) 
     if (!account) throw new Error("專案不存在");
     await assertCanSpendCreditUsd(
       withUnlimitedCredits(account),
-      mulUsd(FRAME_COST_USD, drafted.length),
+      mulUsd(SUBTITLE_PLATE_COST_USD, drafted.length),
     );
   }
 
@@ -766,7 +766,7 @@ async function queueNewClipFrames(
 // failure refunds those credits and leaves no plate: export stays blocked and the studio's
 // retry button is the way to recover.
 async function queueNewClipPlates(clerkUserId: string, videoId: ObjectId, clipNumbers: number[]) {
-  const cost = mulUsd(FRAME_COST_USD, clipNumbers.length);
+  const cost = mulUsd(SUBTITLE_PLATE_COST_USD, clipNumbers.length);
   let spendKey: string | undefined;
   try {
     spendKey = await consumeCreditUsd(clerkUserId, cost);

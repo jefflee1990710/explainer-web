@@ -178,14 +178,14 @@ test("All languages convert on ElevenLabs first, and a cloned demo voice wins", 
     }),
     "v_scro",
   );
-  assert.equal(videoCostUsd(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 0.5);
+  assert.equal(videoCostUsd(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 0.975);
 });
 
-test("voice is included in the $0.10/s billed rate without extra surcharge", () => {
-  assert.equal(videoCostUsd(5, undefined, true), 0.5);
-  assert.equal(videoCostUsd(8, "realistic", true), 0.8);
-  assert.equal(videoCostUsd(3, undefined, true), 0.5);
-  assert.equal(videoCostUsd(5), 0.5);
+test("voice is included in the Hailuo 3 × 1.5 billed rate without extra surcharge", () => {
+  assert.equal(videoCostUsd(5, undefined, true), 0.975);
+  assert.equal(videoCostUsd(8, "realistic", true), 1.56);
+  assert.equal(videoCostUsd(3, undefined, true), 0.975);
+  assert.equal(videoCostUsd(5), 0.975);
 });
 
 test("whiteboard submit duration grows to cover a longer VO and stays put when VO fits", () => {

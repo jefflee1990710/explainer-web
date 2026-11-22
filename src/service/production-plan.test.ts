@@ -57,7 +57,7 @@ test("fills gaps only: frames for empty/failed, video for frames_ready/video_fai
     ],
     clips: [clip(1, "completed"), clip(4, "failed")],
   };
-  assert.equal(FRAMES_COST_USD, 0.3);
+  assert.equal(FRAMES_COST_USD, 0.27);
   assert.deepEqual(planRemaining(project), {
     frames: [5, 6],
     videos: [2, 4],
@@ -129,8 +129,8 @@ test("video cost follows each clip's storyboard duration in USD", () => {
     frames: [],
     clips: [],
   };
-  assert.equal(clipVideoCost(project, 2), 0.8);
-  assert.equal(cheapestVideoCost(project, [1, 2]), 0.5);
+  assert.equal(clipVideoCost(project, 2), 1.56);
+  assert.equal(cheapestVideoCost(project, [1, 2]), 0.975);
   assert.deepEqual(planGenerateAllVideos(project), { frames: [], videos: [], cost: 0 });
 });
 
@@ -254,7 +254,7 @@ test("overlay video waits until the subtitle is burned onto both stills", () => 
   assert.equal(autoVideoDecision(frames, [], 1, { merged: true }), "start");
 });
 
-test("clipVideoCost bills up to 120 seconds at $0.18/s for talking-head-director and caps other directors at 15 seconds ($0.10/s)", () => {
+test("clipVideoCost bills up to 120 seconds at HeyGen × 1.5 for talking-head-director and caps other directors at 15 seconds", () => {
   const talkingHead60s: ClipStageSource = {
     status: "production",
     skillSlug: "talking-head-director",
@@ -264,13 +264,13 @@ test("clipVideoCost bills up to 120 seconds at $0.18/s for talking-head-director
     frames: [],
     clips: [],
   };
-  // HeyGen Avatar IV is $0.05/s COGS; $0.18/s * 60s = $10.80 USD credit.
+  // HeyGen Avatar IV is $0.05/s; $0.075/s * 60s = $4.50 USD credit.
   assert.equal(
     planGenerateAllVideos({
       ...talkingHead60s,
       frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
     }).cost,
-    10.8,
+    4.5,
   );
 
   const cartoon60s: ClipStageSource = {
@@ -281,6 +281,6 @@ test("clipVideoCost bills up to 120 seconds at $0.18/s for talking-head-director
     frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
     clips: [],
   };
-  // non-talking-head remains capped at 15s: $0.10/s * 15s = $1.50 USD credit.
-  assert.equal(planGenerateAllVideos(cartoon60s).cost, 1.5);
+  // non-talking-head remains capped at 15s: $0.195/s * 15s = $2.925 USD credit.
+  assert.equal(planGenerateAllVideos(cartoon60s).cost, 2.925);
 });

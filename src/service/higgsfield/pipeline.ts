@@ -133,7 +133,7 @@ import {
   TALKING_HEAD_SKILL_SLUG,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
-import { chargedClipUsd, FRAME_COST_USD, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS } from "@/service/production-plan";
+import { chargedClipUsd, FRAME_COST_USD, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS, stillCostUsd } from "@/service/production-plan";
 import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
 import { isSilentSpokenLine, lockDialogueSpeech } from "@/service/director/spoken-line";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
@@ -1545,7 +1545,7 @@ export async function refundClaimedFailure(
   error: string,
 ) {
   if (!project.skipBilling) {
-    if (job.kind === "frame") await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (job.kind === "frame") await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
     if (isVideoLockJobKind(job.kind)) {
       await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
     }
@@ -1596,7 +1596,7 @@ export async function failDeferredEndIfNeeded(
     if (existing.status === "pending" && existing.awaits === "start") {
       const failed = await claimFailure(existing._id, error, "failed", { awaits: "start" });
       if (failed) {
-        if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+        if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
         await syncProjectFromJobs(projectId);
       }
       return;
@@ -1620,7 +1620,7 @@ export async function failDeferredEndIfNeeded(
       },
     },
   );
-  if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+  if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
 }
 
 // After this clip's start file lands, send the waiting end still. sendFrame
@@ -1786,7 +1786,7 @@ export async function failStartsAwaitingFirstStart(projectId: ObjectId, error: s
     const failed = await claimFailure(job._id, error, "failed", { awaits: "first-start" });
     if (!failed) continue;
     failedAny = true;
-    if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
     // The last clip's end was parked on this start.
     await failDeferredEndIfNeeded(projectId, job.clipIndex + 1, error);
   }
@@ -1813,7 +1813,7 @@ export async function failDeferredNextStartIfNeeded(
   if (existing?.status === "pending" && existing.awaits === "prev-end") {
     const failed = await claimFailure(existing._id, error, "failed", { awaits: "prev-end" });
     if (failed) {
-      if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+      if (!project.skipBilling) await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
       await syncProjectFromJobs(projectId);
     }
   }
@@ -1964,7 +1964,7 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
         },
       },
     );
-    if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, FRAME_COST_USD);
+    if (claimed && !project.skipBilling) await refundCreditUsd(project.clerkUserId, stillCostUsd(project.skillSlug));
   }
   // A charged clip video whose job never got inserted (or was lost) has nothing
   // to send or settle it. Fenced on the claim so a newer attempt is never failed.

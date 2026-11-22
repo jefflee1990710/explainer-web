@@ -4,16 +4,26 @@
 import { formatUsd, mulUsd, roundUsd4, addUsd } from "@/service/billing/usd";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import {
+  EXPLAINER_STILL_COST_USD,
   IMAGE_COST_USD,
   MIN_VIDEO_SECONDS,
-  billedVideoSeconds,
+  MAX_VIDEO_SECONDS,
   scroSwapCostUsd,
   talkingHeadVideoCostUsd,
   teleportCostUsd,
   VIDEO_COST_PER_SECOND_USD,
   videoCostUsd,
 } from "@/service/credit-costs";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
+import {
+  defaultOpenRouterImageResolution,
+  defaultOpenRouterVideoResolution,
+  openRouterImageUserUsd,
+  openRouterVideoUserUsd,
+} from "@/service/openrouter/media-price";
+import {
+  googleStudioImageUserUsd,
+  googleStudioVideoUserUsd,
+} from "@/service/google/studio-price";
 
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
@@ -31,7 +41,7 @@ function explainerEstimateClips(durationSeconds: number): number {
 export function explainerEstimatedCostUsd(durationSeconds: number): number {
   const clamped = Math.min(60, Math.max(15, Math.round(durationSeconds || 30)));
   const clips = explainerEstimateClips(clamped);
-  return addUsd(mulUsd(IMAGE_COST_USD, clips), mulUsd(0.1, clamped));
+  return addUsd(mulUsd(EXPLAINER_STILL_COST_USD, clips), mulUsd(VIDEO_COST_PER_SECOND_USD, clamped));
 }
 
 // Reads Mentalok pricing markup from `CANVAS_MENTALOK_MARKUP`, defaulting to 1.5x.
@@ -51,7 +61,17 @@ export function canvasMentalokMarkup(
 export type CanvasCostEstimateParams = {
   durationSeconds?: number;
   markup?: number;
+  resolution?: string;
+  referenceImages?: number;
 };
+
+function canvasVideoSeconds(spec: CanvasModelSpec, requested?: number): number {
+  const min = spec.minDurationSeconds ?? MIN_VIDEO_SECONDS;
+  const max = spec.maxDurationSeconds ?? MAX_VIDEO_SECONDS;
+  const fallback = spec.defaultDurationSeconds ?? min;
+  const rounded = requested !== undefined && Number.isFinite(requested) ? Math.round(requested) : fallback;
+  return Math.min(max, Math.max(min, rounded));
+}
 
 // Computes exact 4-decimal USD cost for executing one canvas model node.
 export function estimateCanvasModelCostUsd(
@@ -67,9 +87,10 @@ export function estimateCanvasModelCostUsd(
     switch (spec.id) {
       case "scro:tts":
         return CANVAS_TTS_COST_USD;
+      case "scro:explainer-frame":
+        return EXPLAINER_STILL_COST_USD;
       case "scro:life":
       case "scro:poster":
-      case "scro:explainer-frame":
       case "scro:director-frame":
         return IMAGE_COST_USD;
       case "scro:talking-head":
@@ -101,19 +122,41 @@ export function estimateCanvasModelCostUsd(
     return Math.max(CANVAS_MIN_CHARGE_USD, markedUp);
   }
 
+  if (spec.provider === "google" && spec.providerModelId) {
+    if (spec.category === "image") {
+      return googleStudioImageUserUsd(spec.providerModelId, {
+        resolution: params?.resolution,
+        referenceImages: params?.referenceImages,
+      });
+    }
+    if (spec.category === "video") {
+      return googleStudioVideoUserUsd(spec.providerModelId, {
+        durationSeconds: canvasVideoSeconds(spec, params?.durationSeconds),
+      });
+    }
+  }
+
+  if (spec.provider === "openrouter" && spec.providerModelId) {
+    if (spec.category === "image") {
+      return openRouterImageUserUsd(spec.providerModelId, {
+        resolution: params?.resolution || defaultOpenRouterImageResolution(spec.providerModelId),
+        referenceImages: params?.referenceImages,
+      });
+    }
+    if (spec.category === "video") {
+      return openRouterVideoUserUsd(spec.providerModelId, {
+        durationSeconds: canvasVideoSeconds(spec, params?.durationSeconds),
+        resolution: params?.resolution || defaultOpenRouterVideoResolution(spec.providerModelId),
+        referenceImages: params?.referenceImages,
+      });
+    }
+  }
+
   if (spec.category === "image") {
     return IMAGE_COST_USD;
   }
 
   const duration = params?.durationSeconds ?? spec.defaultDurationSeconds ?? MIN_VIDEO_SECONDS;
-
-  if (spec.providerModelId === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) {
-    // Clamp HeyGen Avatar IV to 5-120s per Canvas specification, billed at $0.18/s.
-    const clamped = billedVideoSeconds(duration, CANVAS_HEYGEN_MAX_VIDEO_SECONDS);
-    return talkingHeadVideoCostUsd(clamped);
-  }
-
-  // Standard OpenRouter video models: $0.10/s clamped to 5-15s.
   return videoCostUsd(duration);
 }
 

@@ -44,7 +44,7 @@ import {
 } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
 import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
-import { FRAME_COST_USD } from "@/service/production-plan";
+import { SUBTITLE_PLATE_COST_USD, stillCostUsd } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
   ClipFrame,
@@ -188,8 +188,9 @@ export async function regenerateFrameAction(
       revision = { remark };
     }
 
-    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
-    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
+    const frameCost = stillCostUsd(project.skillSlug);
+    await assertCanSpendCreditUsd(user, frameCost);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, frameCost);
 
     // Anything older than this belongs to a previous attempt and cannot prove
     // that this one was queued.
@@ -235,7 +236,7 @@ export async function regenerateFrameAction(
         { strict: true },
       );
       if (missed > 0) {
-        await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
+        await refundCreditUsd(user.clerkUserId, mulUsd(missed, stillCostUsd(project.skillSlug)), spendKey);
       }
       throw error;
     }
@@ -287,14 +288,14 @@ export async function retrySubtitlePlateAction(
       return { ok: false, error: "這段的字幕圖還在產生中，請稍後再重試" };
     }
 
-    await assertCanSpendCreditUsd(user, FRAME_COST_USD);
-    const spendKey = await consumeCreditUsd(user.clerkUserId, FRAME_COST_USD);
+    await assertCanSpendCreditUsd(user, SUBTITLE_PLATE_COST_USD);
+    const spendKey = await consumeCreditUsd(user.clerkUserId, SUBTITLE_PLATE_COST_USD);
     try {
       // Replaces only this clip's row and job; the row keeps the clip's current line.
       await enqueueSubtitlePlateJobs(project, [clipNumber]);
     } catch (error) {
       // No job was left behind, so nothing will refund this charge but us.
-      await refundCreditUsd(user.clerkUserId, FRAME_COST_USD, spendKey);
+      await refundCreditUsd(user.clerkUserId, SUBTITLE_PLATE_COST_USD, spendKey);
       throw error;
     }
 
@@ -492,7 +493,7 @@ export async function updateClipStoryboardAction(
           skipEnd ? { strict: true } : {},
         );
         if (missed > 0) {
-          await refundCreditUsd(user.clerkUserId, mulUsd(missed, FRAME_COST_USD), spendKey);
+          await refundCreditUsd(user.clerkUserId, mulUsd(missed, stillCostUsd(project.skillSlug)), spendKey);
         }
         throw error;
       }

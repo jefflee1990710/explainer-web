@@ -153,6 +153,16 @@ function createHarness(options: {
       status: "completed",
       images: [{ url: "data:image/png;base64,Z29vZ2xl" }],
     }),
+    submitGoogleStudioVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "google-vid-1",
+      status: "in_progress",
+      status_url: "https://generativelanguage.googleapis.com/v1beta/interactions/google-vid-1",
+    }),
+    fetchGoogleStudioVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "google-vid-1",
+      status: "completed",
+      video: { url: "data:video/mp4;base64,AAAA" },
+    }),
     submitOpenRouterCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
       request_id: "or-vid-1",
       status_url: "https://openrouter.ai/api/v1/videos/or-vid-1",
@@ -243,7 +253,7 @@ describe("canvas executor", () => {
     assert.equal(result.ok, false);
     if (!result.ok) {
       assert.equal(result.code, "INSUFFICIENT_CREDIT");
-      assert.equal(result.requiredUsd, 0.15);
+      assert.equal(result.requiredUsd, 0.0675);
       assert.equal(result.availableUsd, 0.05);
       assert.equal(result.creditUsd, 0.05);
     }
@@ -282,10 +292,10 @@ describe("canvas executor", () => {
     assert.equal(result.ok, true);
     if (result.ok) {
       assert.equal(result.job.status, "completed");
-      assert.equal(result.job.chargedUsd, 0.15);
+      assert.equal(result.job.chargedUsd, 0.135);
       assert.equal(result.job.outputKind, "image");
       assert.match(result.job.outputUrl || "", /^https:\/\/blob\.vercel-storage\.com\/canvas\/user_1\/.+\.png$/);
-      assert.equal(result.creditUsd, 0.85);
+      assert.equal(result.creditUsd, 0.865);
     }
     assert.equal(harness.persistedCalls.length, 1);
     assert.equal(harness.persistedCalls[0]?.url, "data:image/png;base64,aGVsbG8=");
@@ -294,7 +304,7 @@ describe("canvas executor", () => {
     const updatedNode = harness.project.nodes.find((n) => n.id === "img-node");
     assert.equal(updatedNode?.data.status, "completed");
     assert.equal(updatedNode?.data.outputKind, "image");
-    assert.equal(updatedNode?.data.lastCostUsd, 0.15);
+    assert.equal(updatedNode?.data.lastCostUsd, 0.135);
     assert.equal(updatedNode?.data.outputUrl, harness.project.thumbnailUrl);
   });
 
@@ -335,7 +345,7 @@ describe("canvas executor", () => {
     );
 
     assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.job.chargedUsd, 0.15);
+    if (result.ok) assert.equal(result.job.chargedUsd, 0.0504);
     assert.equal(openRouterCalled, false);
     assert.equal(calls.length, 1);
     assert.equal(calls[0]?.model, "gemini-nano-banana-2.1");
@@ -519,7 +529,7 @@ describe("canvas executor", () => {
     }
     assert.equal(harness.consumeCalls.length, 1);
     assert.equal(harness.refundCalls.length, 1);
-    assert.equal(harness.refundCalls[0]?.costUsd, 0.15);
+    assert.equal(harness.refundCalls[0]?.costUsd, 0.0675);
     assert.equal(harness.refundCalls[0]?.spendEventKey, "spend:user_1:1");
     assert.equal(harness.wallet.creditUsd, 1.0);
 
@@ -947,7 +957,7 @@ describe("canvas executor", () => {
     if (!res.ok) return;
     assert.equal(res.job.status, "running");
     assert.equal(res.job.domainKind, "video");
-    assert.equal(harness.wallet.creditUsd, 6.25); // 10 - 3.75
+    assert.equal(harness.wallet.creditUsd, 3.898); // 10 - 6.102
 
     pollStage = "failed";
     const polled = await pollCanvasJobs(
@@ -1005,8 +1015,8 @@ describe("canvas executor", () => {
     );
     assert.equal(res.ok, true);
     if (!res.ok) return;
-    // 25s * $0.18/s = $4.50
-    assert.equal(res.job.chargedUsd, 4.5);
+    // 25s * $0.075/s = $1.875
+    assert.equal(res.job.chargedUsd, 1.875);
     assert.equal(res.job.inputSnapshot.durationSeconds, 25);
   });
 
@@ -1057,8 +1067,8 @@ describe("canvas executor", () => {
     );
     assert.equal(res.ok, true);
     if (!res.ok) return;
-    // 90s * $0.18/s = $16.20
-    assert.equal(res.job.chargedUsd, 16.2);
+    // 90s * $0.075/s = $6.75
+    assert.equal(res.job.chargedUsd, 6.75);
     assert.equal(submitted[0]?.durationSeconds, 90);
   });
 
@@ -1096,8 +1106,8 @@ describe("canvas executor", () => {
     );
     assert.equal(res.ok, true);
     if (!res.ok) return;
-    // 60s = 9 clips * $0.15 + 60 * $0.10 = $7.35
-    assert.equal(res.job.chargedUsd, 7.35);
+    // 60s = 9 Nano Banana 1K stills * $0.0504 + 60 * $0.195 = $12.1536
+    assert.equal(res.job.chargedUsd, 12.1536);
   });
 
   it("rejects running a planner node directly", async () => {

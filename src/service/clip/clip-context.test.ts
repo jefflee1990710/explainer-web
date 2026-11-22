@@ -7,7 +7,7 @@ import {
   resolveClipProject,
 } from "@/service/clip/clip-context";
 import { clipStateFor, clipFrameCost } from "@/service/clip-stage";
-import { FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
+import { EXPLAINER_STILL_COST_USD, FRAME_COST_USD, FRAMES_COST_USD } from "@/service/credit-costs";
 import { clipEndIsNextStart, clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { frameSubmitPlan, framesWithClip } from "@/service/higgsfield/frame-prompts";
 import { clipVideoCost } from "@/service/production-plan";
@@ -223,13 +223,13 @@ describe("per-clip stage and steady-stills resolution", () => {
     assert.equal(clipFrameCost(project, 2), FRAME_COST_USD);
     // Clip 3 is papercraft-diorama (start-only explainer), so it draws no end still.
     assert.equal(clipDrawsNoEndStill(project, 3), true);
-    assert.equal(clipFrameCost(project, 3), FRAME_COST_USD);
+    assert.equal(clipFrameCost(project, 3), EXPLAINER_STILL_COST_USD);
 
     const state2 = clipStateFor(project, 2);
     assert.equal(state2.frameCost, FRAME_COST_USD);
-    assert.equal(clipVideoCost(project, 1), 0.9);
-    assert.equal(clipVideoCost(project, 2), 0.5);
-    assert.equal(state2.videoCost, 0.5);
+    assert.equal(clipVideoCost(project, 1), 0.375);
+    assert.equal(clipVideoCost(project, 2), 0.975);
+    assert.equal(state2.videoCost, 0.975);
   });
 
   it("isolates frameSubmitPlan anchors across director changes and builds per-clip frames in framesWithClip", () => {

@@ -30,8 +30,8 @@ export function LifeDialog({ open, isZh, characterOptions, onCancel, onSubmit }:
       title={isZh ? "建立生活照" : "New life photo"}
       description={
         isZh
-          ? "會放入角色圖、可編輯的提示詞和 Seedream 5.0 Pro 節點，按 Run 才扣 $0.15。"
-          : "Adds the character still, an editable prompt, and a Seedream 5.0 Pro node. Running it costs $0.15."
+          ? "會放入角色圖、可編輯的提示詞和 Seedream 5.0 Pro 節點，按 Run 才扣 $0.14。"
+          : "Adds the character still, an editable prompt, and a Seedream 5.0 Pro node. Running it costs $0.14."
       }
       submitLabel={isZh ? "建立節點" : "Add nodes"}
       canSubmit={Boolean(character)}

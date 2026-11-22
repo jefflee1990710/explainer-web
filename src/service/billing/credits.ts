@@ -58,7 +58,7 @@ export function evaluateCreditSpendGate({
     return sub;
   }
   // Users who have enough USD credit in their wallet (including the $6.00 free welcome grant)
-  // can spend it on affordable actions (blueprint $0.30, image $0.15, preview clip $0.50+).
+  // can spend it on affordable actions (blueprint $0.27, image $0.135, preview clip $0.975+).
   if (toUsdUnits(creditUsd) >= toUsdUnits(costUsd)) {
     return sub;
   }

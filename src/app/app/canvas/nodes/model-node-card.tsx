@@ -130,7 +130,18 @@ export function ModelNodeCard({
             : undefined;
   const durationSeconds =
     data.durationSeconds ?? durationPresetSec ?? spec.defaultDurationSeconds ?? 5;
-  const estimatedUsd = estimateCanvasModelCostUsd(spec, { durationSeconds });
+  const pricedSeconds =
+    spec.provider === "google" &&
+    spec.category === "video" &&
+    isStartImageWired &&
+    (incomingByHandle.get("endImage") ?? 0) > 0
+      ? Math.min(durationSeconds, 10)
+      : durationSeconds;
+  const estimatedUsd = estimateCanvasModelCostUsd(spec, {
+    durationSeconds: pricedSeconds,
+    resolution: data.resolution,
+    referenceImages: incomingByHandle.get("refImages") ?? 0,
+  });
   const activePreset =
     data.presetId && spec.presets.includes(data.presetId)
       ? data.presetId
@@ -361,7 +372,10 @@ export function ModelNodeCard({
                   }
                   className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
                 >
-                  {ASPECT_OPTIONS.map((r) => (
+                  {(spec.provider === "google"
+                    ? ASPECT_OPTIONS.filter((ratio) => spec.presets.includes(ratio))
+                    : ASPECT_OPTIONS
+                  ).map((r) => (
                     <option key={r} value={r}>
                       {r}
                     </option>

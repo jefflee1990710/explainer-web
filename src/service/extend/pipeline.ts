@@ -44,7 +44,7 @@ type ExtendJobDoc = ExtendJob & { _id: ObjectId };
 
 export const EXTEND_CLIP_DURATION_SECONDS = 6;
 
-// Standard Extend video cost in USD ($0.60 for 6s at $0.10/s).
+// Standard Extend video cost in USD ($1.17 for 6s at $0.195/s).
 export function extendJobCostUsd(): number {
   return videoCostUsd(EXTEND_CLIP_DURATION_SECONDS);
 }

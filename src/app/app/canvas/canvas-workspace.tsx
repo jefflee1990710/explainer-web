@@ -1609,11 +1609,15 @@ function CanvasWorkspaceInner({
         total,
         estimateCanvasModelCostUsd(spec, {
           durationSeconds: node.data.durationSeconds,
+          resolution: node.data.resolution,
+          referenceImages: edges.filter(
+            (edge) => edge.target === node.id && edge.targetHandle === "refImages",
+          ).length,
         }),
       );
     }
     return { flowEstimatedUsd: total, flowModelCount: count };
-  }, [nodes, models]);
+  }, [nodes, edges, models]);
 
   // Drag & drop onto canvas pane (supports local files, sidebar models, sidebar Scro assets).
   const handlePaneDragOver = useCallback((event: React.DragEvent) => {

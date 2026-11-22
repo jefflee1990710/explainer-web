@@ -5,7 +5,7 @@ import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { Project, SubtitlePlate } from "@/model/project";
 import { refundCreditUsd } from "@/service/billing/credits";
 import { legacyCreditsToUsd } from "@/service/billing/usd";
-import { FRAME_COST_USD } from "@/service/credit-costs";
+import { SUBTITLE_PLATE_COST_USD } from "@/service/credit-costs";
 import {
   isGreenKeyPixel,
   plateIsEmpty,
@@ -107,7 +107,7 @@ export async function enqueueSubtitlePlateJobs(
     clipNumber: clip.clipNumber,
     status: "queued",
     submittedAt,
-    chargedUsd: FRAME_COST_USD,
+    chargedUsd: SUBTITLE_PLATE_COST_USD,
     // The line this plate is drawn for; a later edit makes it stale.
     line: clip.englishVo?.trim() || undefined,
   }));
@@ -157,7 +157,7 @@ export async function enqueueSubtitlePlateJobs(
 }
 
 // Fail a completed plate whose clip line changed, and drop its job. No charge, no refund:
-// the plate was already paid for and delivered; the user retries it for FRAME_COST_USD.
+// the plate was already paid for and delivered; the user retries it for SUBTITLE_PLATE_COST_USD.
 export async function invalidatePlatesForChangedVo(
   projectId: ObjectId,
   clipNumbers: number[],
@@ -235,7 +235,7 @@ function subtitlePlateRefundUsd(
   if (typeof plate?.creditsCharged === "number" && Number.isFinite(plate.creditsCharged)) {
     return legacyCreditsToUsd(plate.creditsCharged);
   }
-  return FRAME_COST_USD;
+  return SUBTITLE_PLATE_COST_USD;
 }
 
 // Fail the plate row once (the status filter is the claim) and refund only the winner.

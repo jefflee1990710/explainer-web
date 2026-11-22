@@ -434,7 +434,7 @@ export const en: Messages = {
   characters: {
     title: "Characters",
     subtitle:
-      "Build reusable character blueprints. Each blueprint costs $0.30 (edits $0.15); edit from any version.",
+      "Build reusable character blueprints. Each blueprint costs $0.27 (edits $0.14); edit from any version.",
     create: "New character",
     createSimple: "Simple Create",
     createSimpleHint: "Name, style, photos, and an optional description.",
@@ -1159,7 +1159,7 @@ export const en: Messages = {
     voiceFillNeedsBlueprint: "Finish a blueprint first.",
     voiceSampleTitle: "Demo voice",
     voiceSampleHint:
-      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB) or record directly with the built-in mic. Videos with this character automatically use your cloned voice (1080p talking-head includes voice in its $0.18/s rate).",
+      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB) or record directly with the built-in mic. Videos with this character automatically use your cloned voice (1080p talking-head includes voice in its $0.08/s rate).",
     voiceSampleUpload: "Upload demo voice",
     voiceSampleReplace: "Replace",
     voiceSampleRemove: "Remove",
@@ -1247,7 +1247,7 @@ export const en: Messages = {
     bonusUnused: " · unused top-up {bonus}",
     periodEnds: " · period ends {date}",
     clipCostNote:
-      "Each 2K image or poster costs $0.15. Character blueprint costs $0.30. Standard video costs $0.10/s ($0.50 minimum). 1080p talking-head video (voice included) costs $0.18/s. Scro Swap & Teleport cost $0.15 + $0.10/s.",
+      "Each 2K image or poster costs $0.14. Character blueprint costs $0.27. Standard video costs $0.20/s ($0.98 minimum). 1080p talking-head video (voice included) costs $0.08/s. Scro Swap & Teleport cost $0.14 + $0.20/s.",
     videoUpgradeTitle: "Not enough USD Credit for a video",
     videoUpgradeBody: "A video costs {credits} USD Credit. Upgrade your plan to keep generating.",
     videoUpgradeCta: "Upgrade plan",
@@ -1397,7 +1397,7 @@ export const en: Messages = {
       s1Title: "Choose character & outfit",
       s1Body: "Lock face, wardrobe, and a simple set your audience will recognize.",
       s2Title: "Type the script or upload your voice",
-      s2Body: "Paste the lines or record/upload your own voice. Render up to 120s continuous 1080p talking-head clips, Dialogue Q&A, or B-Roll cutaways at just $0.18/s.",
+      s2Body: "Paste the lines or record/upload your own voice. Render up to 120s continuous 1080p talking-head clips, Dialogue Q&A, or B-Roll cutaways at just $0.08/s.",
       s3Title: "Generate with captions",
       s3Body: "Get a talking-head cut with on-screen captions — scroll-stop ready.",
     },

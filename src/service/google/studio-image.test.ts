@@ -10,6 +10,8 @@ import {
 
 test("Nano Banana 2.1 request asks Google AI Studio for the project ratio and size", () => {
   assert.equal(googleStudioImageModel("google/gemini-nano-banana-2.1"), "gemini-nano-banana-2.1");
+  assert.equal(googleStudioImageModel("google:gemini-3-pro-image"), "gemini-3-pro-image");
+  assert.equal(googleStudioImageModel("gemini-2.5-flash-image"), "gemini-2.5-flash-image");
   assert.equal(googleStudioImageModel("bytedance-seed/seedream-5-0-pro"), undefined);
 
   assert.deepEqual(
@@ -43,6 +45,15 @@ test("Nano Banana 2.1 request asks Google AI Studio for the project ratio and si
       resolution: "4k",
     }).generationConfig.imageConfig.imageSize,
     "4K",
+  );
+  assert.equal(
+    googleStudioImageRequest({
+      model: "gemini-2.5-flash-image",
+      prompt: "legacy",
+      aspectRatio: "1:1",
+      resolution: "4k",
+    }).generationConfig.imageConfig.imageSize,
+    undefined,
   );
 });
 

@@ -32,8 +32,8 @@ export function PosterDialog({ open, isZh, characterOptions, productOptions, onC
       title={isZh ? "建立海報貼文" : "New poster"}
       description={
         isZh
-          ? "會放入角色／產品圖、海報提示詞和 Seedream 5.0 Pro 節點，按 Run 才扣 $0.15。"
-          : "Adds the character / product stills, the poster prompt, and a Seedream 5.0 Pro node. Running it costs $0.15."
+          ? "會放入角色／產品圖、海報提示詞和 Seedream 5.0 Pro 節點，按 Run 才扣 $0.14。"
+          : "Adds the character / product stills, the poster prompt, and a Seedream 5.0 Pro node. Running it costs $0.14."
       }
       submitLabel={isZh ? "建立節點" : "Add nodes"}
       canSubmit={prompt.trim().length > 0}

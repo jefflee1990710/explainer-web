@@ -429,7 +429,7 @@ export const zhHant: Messages = {
   },
   characters: {
     title: "角色",
-    subtitle: "建立可重複使用的角色藍圖。每個版本扣 $0.30 USD Credit，可從任一版本再編輯。",
+    subtitle: "建立可重複使用的角色藍圖。每個版本扣 $0.27 USD Credit，可從任一版本再編輯。",
     create: "新增角色",
     createSimple: "簡單建立",
     createSimpleHint: "填名稱、風格、照片，描述可留空。",
@@ -1150,7 +1150,7 @@ export const zhHant: Messages = {
     voiceFillNeedsBlueprint: "請先完成一張藍圖。",
     voiceSampleTitle: "示範聲音",
     voiceSampleHint:
-      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內），或直接用內建麥克風錄音。之後用這個角色建立的影片都會自動套用這把專屬聲線（坐定對嘴口播已包含語音於 $0.18/s USD Credit 內，不另加收費）。",
+      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內），或直接用內建麥克風錄音。之後用這個角色建立的影片都會自動套用這把專屬聲線（坐定對嘴口播已包含語音於 $0.08/s USD Credit 內，不另加收費）。",
     voiceSampleUpload: "上傳示範聲音",
     voiceSampleReplace: "更換",
     voiceSampleRemove: "移除",
@@ -1237,7 +1237,7 @@ export const zhHant: Messages = {
     bonusUnused: " · 加值未用 {bonus}",
     periodEnds: " · 週期至 {date}",
     clipCostNote:
-      "每張 2K 畫格或海報 $0.15；角色藍圖 $0.30；一般影片每秒 $0.10（最少 $0.50）；1080p 對嘴口播每秒 $0.18（已含語音）；Scro Swap 與 Teleport 影片為 $0.15 + $0.10/s。",
+      "每張 2K 畫格或海報 $0.14；角色藍圖 $0.27；一般影片每秒 $0.20（最少 $0.98）；1080p 對嘴口播每秒 $0.08（已含語音）；Scro Swap 與 Teleport 影片為 $0.14 + $0.20/s。",
     videoUpgradeTitle: "USD Credit 不足以產生影片",
     videoUpgradeBody: "這支影片需要 {credits} USD Credit。升級方案或加值後即可繼續製作。",
     videoUpgradeCta: "升級方案",
@@ -1386,7 +1386,7 @@ export const zhHant: Messages = {
       s1Title: "揀角色同造型",
       s1Body: "鎖臉、衣櫃同一個簡單場景，觀眾一眼認得。",
       s2Title: "打出講稿或直接錄音上傳",
-      s2Body: "貼上講稿或直接上傳／麥克風錄製原聲。支援單段最長 120 秒 1080p 一鏡到底對嘴、雙人 Q&A 對談及口播穿插 B-Roll（每秒僅 $0.18 USD Credit）。",
+      s2Body: "貼上講稿或直接上傳／麥克風錄製原聲。支援單段最長 120 秒 1080p 一鏡到底對嘴、雙人 Q&A 對談及口播穿插 B-Roll（每秒僅 $0.08 USD Credit）。",
       s3Title: "生成連埋字幕",
       s3Body: "出一條有畫面字嘅口播，靜音都睇得明。",
     },

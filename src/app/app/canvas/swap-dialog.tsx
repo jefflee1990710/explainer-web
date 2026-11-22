@@ -44,8 +44,8 @@ export function SwapDialog({ open, isZh, videoOptions, referenceOptions, onCance
       title={isZh ? "建立 Scro Swap" : "New Scro Swap"}
       description={
         isZh
-          ? "會放入裁剪、換角渲染和調色節點。換角渲染按秒收費（$0.15 + $0.10/秒），其他 FFmpeg 節點免費。"
-          : "Adds trim, swap render, and colour grade nodes. The render costs $0.15 + $0.10/s; FFmpeg nodes are free."
+          ? "會放入裁剪、換角渲染和調色節點。換角渲染按秒收費（$0.14 + $0.20/秒），其他 FFmpeg 節點免費。"
+          : "Adds trim, swap render, and colour grade nodes. The render costs $0.14 + $0.20/s; FFmpeg nodes are free."
       }
       submitLabel={isZh ? "建立節點" : "Add nodes"}
       canSubmit={canSubmit}

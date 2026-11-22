@@ -34,7 +34,7 @@ export function StudioPowertoolsBand({
           {
             badge: "01 · 120 秒真人口播 & AI 配音",
             title: "輸入講稿或語音，一鍵生成自然對嘴口播",
-            body: "支援最長 120 秒 1080p 高清真人口播（$0.18/秒），並內置即時 AI 配音積木，支援廣東話、國語同英文等 21 國語言與語速微調。",
+            body: "支援最長 120 秒 1080p 高清真人口播（$0.08/秒），並內置即時 AI 配音積木，支援廣東話、國語同英文等 21 國語言與語速微調。",
             chips: ["120 秒 1080p 對嘴", "廣東話等 21 國配音", "語速自由微調"],
           },
           {
@@ -79,7 +79,7 @@ export function StudioPowertoolsBand({
           {
             badge: "01 · 120s Lip-Sync & AI Voice",
             title: "Up to 120s 1080p talking-head + instant AI voiceover",
-            body: "Generate natural 1080p talking-head videos up to 120 seconds ($0.18/s), or pair any clip with instant AI voiceovers in 21 languages including Cantonese, Mandarin, and English.",
+            body: "Generate natural 1080p talking-head videos up to 120 seconds ($0.08/s), or pair any clip with instant AI voiceovers in 21 languages including Cantonese, Mandarin, and English.",
             chips: ["120s 1080p Lip-Sync", "21-Language AI Voice", "Adjustable Speech Pace"],
           },
           {
@@ -125,7 +125,7 @@ export function StudioPowertoolsBand({
       {
         badge: "01 · 120 秒真人口播 & AI 配音",
         title: "输入讲稿或语音，一键生成自然对口型口播",
-        body: "支持最长 120 秒 1080p 高清真人口播（$0.18/秒），并内置即时 AI 配音积木，支持粤语、国语与英语等 21 国语言和语速微调。",
+        body: "支持最长 120 秒 1080p 高清真人口播（$0.08/秒），并内置即时 AI 配音积木，支持粤语、国语与英语等 21 国语言和语速微调。",
         chips: ["120 秒 1080p 对口型", "粤语等 21 国配音", "语速自由微调"],
       },
       {
