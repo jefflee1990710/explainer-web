@@ -271,7 +271,7 @@ function CanvasWorkspaceInner({
   const [assets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("bottom");
+  const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("right");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
