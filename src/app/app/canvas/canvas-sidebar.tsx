@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronLeft,
   Film,
   FolderHeart,
   Loader2,
@@ -16,6 +17,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
+import { CanvasSidebarRail } from "@/app/app/canvas/canvas-sidebar-rail";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
@@ -32,8 +34,8 @@ export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
-// Wide enough for "Models (999)" to stay on one line beside Tools and Assets.
-const SIDEBAR_MIN_WIDTH = 248;
+// Wide enough for "Models (999)" on one line, beside Tools, Assets, and the collapse button.
+const SIDEBAR_MIN_WIDTH = 280;
 const SIDEBAR_MAX_WIDTH = 520;
 const SIDEBAR_DEFAULT_WIDTH = 276;
 
@@ -50,20 +52,24 @@ const TOOL_CATEGORIES: CanvasModelCategory[] = ["scro-tool", "ffmpeg"];
 
 export function CanvasSidebar({
   locale,
+  collapsed,
   models,
   assets,
   isUploading,
   isRefreshingModels,
+  onToggleCollapsed,
   onAddModel,
   onAddAsset,
   onUploadFiles,
   onRefreshModels,
 }: {
   locale: string;
+  collapsed: boolean;
   models: readonly CanvasModelSpec[];
   assets: CanvasLibraryAssetsResult;
   isUploading: boolean;
   isRefreshingModels: boolean;
+  onToggleCollapsed: () => void;
   onAddModel: (modelId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
   onUploadFiles: (files: FileList | File[]) => void;
@@ -154,6 +160,12 @@ export function CanvasSidebar({
     });
   }, [listedModels, query, activeCategory, locale]);
 
+  const collapseLabel = isZh ? "收合面板" : "Collapse panel";
+  const expandLabel = isZh ? "展開面板" : "Expand panel";
+  if (collapsed) {
+    return <CanvasSidebarRail label={expandLabel} onExpand={onToggleCollapsed} />;
+  }
+
   return (
     <aside
       className="relative flex h-full shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95"
@@ -167,7 +179,8 @@ export function CanvasSidebar({
         className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
       />
       {/* Models include image, video, audio, edit, cutout, and upscale. Tools are Scro and FFmpeg. */}
-      <div className="grid grid-cols-3 gap-1 border-b border-white/8 p-2">
+      <div className="flex items-center gap-1 border-b border-white/8 p-2">
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
         <button
           type="button"
           onClick={() => {
@@ -209,6 +222,17 @@ export function CanvasSidebar({
         >
           <FolderHeart className="h-3 w-3 shrink-0" />
           <span className="whitespace-nowrap">{isZh ? "素材庫" : "Assets"}</span>
+        </button>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapseLabel}
+          aria-expanded
+          title={collapseLabel}
+          className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/8 hover:text-white"
+        >
+          <ChevronLeft className="h-4 w-4" />
         </button>
       </div>
 

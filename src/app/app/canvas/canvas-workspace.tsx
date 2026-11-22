@@ -125,6 +125,8 @@ import {
 } from "@/app/app/canvas/nodes/port-colors";
 import { PromptNodeCard } from "@/app/app/canvas/nodes/prompt-node-card";
 
+const SIDEBAR_OPEN_KEY = "scro.canvasSidebar.open";
+
 const NODE_TYPES = {
   media: MediaNodeCard,
   prompt: PromptNodeCard,
@@ -316,10 +318,19 @@ function CanvasWorkspaceInner({
   // Dock side is a layout preference, restored after mount so server HTML stays stable.
   useEffect(() => {
     const saved = window.localStorage.getItem(CANVAS_AGENT_DOCK_SIDE_KEY);
-    if (saved === "right" || saved === "bottom") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
-      setAgentDockSide(saved);
-    }
+    const savedSidebar = window.localStorage.getItem(SIDEBAR_OPEN_KEY);
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
+    if (saved === "right" || saved === "bottom") setAgentDockSide(saved);
+    if (savedSidebar === "0" || savedSidebar === "1") setSidebarOpen(savedSidebar === "1");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((open) => {
+      const next = !open;
+      window.localStorage.setItem(SIDEBAR_OPEN_KEY, next ? "1" : "0");
+      return next;
+    });
   }, []);
   useEffect(() => {
     edgesRef.current = edges;
@@ -1558,7 +1569,7 @@ function CanvasWorkspaceInner({
         flowModelCount={flowModelCount}
         isFlowRunning={isFlowRunning}
         flowWaveProgress={flowWaveProgress}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onToggleSidebar={toggleSidebar}
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
@@ -1571,19 +1582,19 @@ function CanvasWorkspaceInner({
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {sidebarOpen ? (
-          <CanvasSidebar
-            locale={locale}
-            models={models}
-            assets={assets}
-            isUploading={isUploading}
-            isRefreshingModels={isRefreshingModels}
-            onAddModel={(id) => addModelNodeAt(id)}
-            onAddAsset={(asset) => addAssetNodeAt(asset)}
-            onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
-            onRefreshModels={() => void handleRefreshModels()}
-          />
-        ) : null}
+        <CanvasSidebar
+          locale={locale}
+          collapsed={!sidebarOpen}
+          models={models}
+          assets={assets}
+          isUploading={isUploading}
+          isRefreshingModels={isRefreshingModels}
+          onToggleCollapsed={toggleSidebar}
+          onAddModel={(id) => addModelNodeAt(id)}
+          onAddAsset={(asset) => addAssetNodeAt(asset)}
+          onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
+          onRefreshModels={() => void handleRefreshModels()}
+        />
 
         <div
           className={`flex min-h-0 min-w-0 flex-1 ${agentDockSide === "right" ? "flex-row" : "flex-col"}`}
