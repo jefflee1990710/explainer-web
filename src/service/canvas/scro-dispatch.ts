@@ -37,7 +37,7 @@ import {
   pollTeleportJobStatusForUser,
   startTeleportJobForUser,
 } from "@/service/teleport/pipeline";
-import { synthesizeSpeech } from "@/service/voice/elevenlabs";
+import { synthesizeSpeech, synthesizeSpeechWithTimestamps } from "@/service/voice/elevenlabs";
 import {
   FEMALE_NARRATOR_VOICE_ID,
   MALE_NARRATOR_VOICE_ID,
@@ -209,6 +209,12 @@ export type ScroSyncDeps = {
     text: string,
     options?: { language?: string },
   ) => Promise<Buffer>;
+  // On-camera delivery (Talking Head): same ElevenLabs settings the director uses for HeyGen.
+  synthesizeConversational: (
+    voiceId: string,
+    text: string,
+    options: { conversational: true; language: VoLanguage },
+  ) => Promise<Buffer>;
   applyAudioSpeed: (buffer: Buffer, speed: number) => Promise<Buffer>;
   persistAudioBuffer: (buffer: Buffer, pathname: string, contentType: string) => Promise<string>;
   loadCharacterBlueprintUrl: (
@@ -231,6 +237,8 @@ export async function executeScroSyncNode(
 ): Promise<{ outputUrl: string; outputKind: "image" | "audio" }> {
   const resolved: ScroSyncDeps = {
     synthesizeSpeech: (voiceId, text, options) => synthesizeSpeech(voiceId, text, options),
+    synthesizeConversational: async (voiceId, text, options) =>
+      (await synthesizeSpeechWithTimestamps(voiceId, text, options)).audio,
     applyAudioSpeed: defaultApplyAudioSpeed,
     persistAudioBuffer: persistBuffer,
     loadCharacterBlueprintUrl: defaultLoadCharacterBlueprintUrl,
@@ -247,7 +255,13 @@ export async function executeScroSyncNode(
 
     let voiceIdToUse = voiceId;
     const characterId = readToolParamStr(params.node, "characterId");
-    if (characterId && ObjectId.isValid(characterId) && !deps?.synthesizeSpeech) {
+    const conversational = params.node.data.toolParams?.ttsConversational === true;
+    if (
+      characterId &&
+      ObjectId.isValid(characterId) &&
+      !deps?.synthesizeSpeech &&
+      !deps?.synthesizeConversational
+    ) {
       const col = await charactersCollection();
       const charDoc = (await col.findOne({
         _id: new ObjectId(characterId),
@@ -261,7 +275,9 @@ export async function executeScroSyncNode(
       }
     }
 
-    const raw = await resolved.synthesizeSpeech(voiceIdToUse, text, { language });
+    const raw = conversational
+      ? await resolved.synthesizeConversational(voiceIdToUse, text, { conversational: true, language })
+      : await resolved.synthesizeSpeech(voiceIdToUse, text, { language });
     const processed =
       Math.abs(speed - 1) >= 0.01 ? await resolved.applyAudioSpeed(raw, speed) : raw;
     const outputUrl = await resolved.persistAudioBuffer(
@@ -369,7 +385,7 @@ export async function submitScroAsyncNode(
   const startSwapForUser = deps?.startSwapForUser ?? startScroSwapJobForUser;
   const startTeleportForUser = deps?.startTeleportForUser ?? startTeleportJobForUser;
 
-  if (modelId === "scro:explainer-frame") {
+  if (modelId === "scro:explainer-frame" || modelId === "scro:director-frame") {
     const prompt = inputs.prompt?.trim();
     if (!prompt) throw new Error("分鏡靜幀需要提示詞");
     return submitExplainerFrame({ clerkUserId, node, prompt });
@@ -494,6 +510,7 @@ export async function createCanvasDirectorVideo(params: {
     styleId,
     source: inputs.prompt?.trim() || (isTalking ? "Canvas Talking Head" : "Canvas Explainer"),
     ...(isTalking && inputs.prompt?.trim() ? { spokenScript: inputs.prompt.trim() } : {}),
+    ...(isTalking ? { talkingHeadPoseId: readToolParamStr(node, "framing") ?? "collarbone-close" } : {}),
     aspectRatio,
     durationPreset: isTalking ? "short" : durationPreset,
     language,

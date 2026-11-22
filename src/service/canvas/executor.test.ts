@@ -956,6 +956,58 @@ describe("canvas executor", () => {
     assert.equal(res.job.inputSnapshot.durationSeconds, 25);
   });
 
+  it("sizes HeyGen Avatar IV to the wired voice for both price and submit", async () => {
+    const submitted: Array<{ durationSeconds?: number }> = [];
+    const harness = createHarness({
+      initialCreditUsd: 50,
+      nodes: [
+        {
+          id: "img",
+          type: "media",
+          position: { x: 0, y: 0 },
+          data: { mediaKind: "image", mediaUrl: "https://blob.example/face.png" },
+        },
+        {
+          id: "aud",
+          type: "media",
+          position: { x: 0, y: 300 },
+          data: { mediaKind: "audio", mediaUrl: "https://blob.example/speech.mp3" },
+        },
+        {
+          id: "hg",
+          type: "model",
+          position: { x: 300, y: 0 },
+          data: { modelId: "openrouter:heygen/avatar-iv", durationSeconds: 5 },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "img", sourceHandle: "output", target: "hg", targetHandle: "startImage" },
+        { id: "e2", source: "aud", sourceHandle: "output", target: "hg", targetHandle: "refAudio" },
+      ],
+      overrides: {
+        probeAudioDurationSec: async () => 89.2,
+        submitOpenRouterCanvasVideo: async (input: { durationSeconds?: number }) => {
+          submitted.push(input);
+          return {
+            request_id: "or-vid-1",
+            status_url: "https://openrouter.ai/api/v1/videos/or-vid-1",
+            status: "queued",
+          };
+        },
+      } as Partial<CanvasExecutorDeps>,
+    });
+
+    const res = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "hg" },
+      harness.deps,
+    );
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    // 90s * $0.18/s = $16.20
+    assert.equal(res.job.chargedUsd, 16.2);
+    assert.equal(submitted[0]?.durationSeconds, 90);
+  });
+
   it("uses toolParams.durationPreset for scro:explainer billing even when node.data.durationSeconds is stale", async () => {
     const harness = createHarness({
       initialCreditUsd: 20,

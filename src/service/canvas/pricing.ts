@@ -18,7 +18,7 @@ import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/ge
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
 export const DEFAULT_CANVAS_MENTALOK_MARKUP = 1.5;
-export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 60;
+export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 120;
 export const CANVAS_TTS_COST_USD = 0.02;
 
 function explainerEstimateClips(durationSeconds: number): number {
@@ -70,6 +70,7 @@ export function estimateCanvasModelCostUsd(
       case "scro:life":
       case "scro:poster":
       case "scro:explainer-frame":
+      case "scro:director-frame":
         return IMAGE_COST_USD;
       case "scro:talking-head":
         return talkingHeadVideoCostUsd(duration);
@@ -107,7 +108,7 @@ export function estimateCanvasModelCostUsd(
   const duration = params?.durationSeconds ?? spec.defaultDurationSeconds ?? MIN_VIDEO_SECONDS;
 
   if (spec.providerModelId === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL) {
-    // Clamp HeyGen Avatar IV to 5-60s per Canvas specification, billed at $0.18/s.
+    // Clamp HeyGen Avatar IV to 5-120s per Canvas specification, billed at $0.18/s.
     const clamped = billedVideoSeconds(duration, CANVAS_HEYGEN_MAX_VIDEO_SECONDS);
     return talkingHeadVideoCostUsd(clamped);
   }

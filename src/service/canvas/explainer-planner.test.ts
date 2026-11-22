@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { CanvasNode } from "@/model/canvas";
 import {
   dropExpandedPlanners,
+  isDirectorPlannerNode,
   isExplainerPlannerNode,
   readPlannerParams,
 } from "@/service/canvas/explainer-planner";
@@ -21,6 +22,14 @@ describe("explainer planner helpers", () => {
     assert.equal(isExplainerPlannerNode(node({ modelId: "scro:explainer" })), false);
     assert.equal(isExplainerPlannerNode(node({ modelId: "scro:tts", toolParams: { plannerMode: true } })), false);
     assert.equal(isExplainerPlannerNode({ type: "prompt", data: { toolParams: { plannerMode: true } } }), false);
+  });
+
+  it("treats Talking Head with plannerMode as a director planner", () => {
+    assert.equal(
+      isDirectorPlannerNode(node({ modelId: "scro:talking-head", toolParams: { plannerMode: true } })),
+      true,
+    );
+    assert.equal(isDirectorPlannerNode(node({ modelId: "scro:talking-head" })), false);
   });
 
   it("reads planner params defensively", () => {

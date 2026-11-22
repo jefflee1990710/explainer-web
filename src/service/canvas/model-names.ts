@@ -26,6 +26,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "Explainer 絵コンテ静止画",
     ko: "Explainer 스토리보드 스틸",
   },
+  "scro:director-frame": {
+    "zh-Hant": "分鏡靜幀",
+    "zh-Hans": "分镜静帧",
+    ja: "絵コンテ静止画",
+    ko: "스토리보드 스틸",
+  },
   "scro:swap": {
     "zh-Hant": "Scro Swap 換角",
     "zh-Hans": "Scro Swap 换角",

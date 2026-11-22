@@ -50,6 +50,7 @@ import {
   hasMentalokApiKey,
 } from "@/service/mentalok/client";
 import {
+  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
   OPENROUTER_VIDEOS_URL,
   type OpenRouterCanvasVideoInput,
   fetchOpenRouterStatus,
@@ -684,13 +685,18 @@ export async function submitCanvasNodeJob(
       ? durationPresetSec ?? node.data.durationSeconds
       : node.data.durationSeconds ?? durationPresetSec;
 
-  if (spec.id === "scro:talking-head") {
+  const isHeyGen = spec.providerModelId === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  if (spec.id === "scro:talking-head" || isHeyGen) {
     if (inputCheck.inputs.refAudio && resolved.probeAudioDurationSec) {
       const probed = await resolved.probeAudioDurationSec(inputCheck.inputs.refAudio);
       if (probed && Number.isFinite(probed) && probed > 0) {
         resolvedDurationSeconds = Math.min(120, Math.max(5, Math.ceil(probed)));
       }
-    } else if (resolvedDurationSeconds === undefined && inputCheck.inputs.prompt?.trim()) {
+    } else if (
+      !isHeyGen &&
+      resolvedDurationSeconds === undefined &&
+      inputCheck.inputs.prompt?.trim()
+    ) {
       const text = inputCheck.inputs.prompt.trim();
       const cjkChars = (text.match(/[\u4e00-\u9fff]/g) ?? []).length;
       const latinWords = text.replace(/[\u4e00-\u9fff]/g, " ").trim().split(/\s+/).filter(Boolean).length;
@@ -808,7 +814,11 @@ export async function submitCanvasNodeJob(
     {
       initialJob,
       spec,
-      node,
+      // Same as the worker path: submit the length that was priced.
+      node:
+        resolvedDurationSeconds !== undefined
+          ? { ...node, data: { ...node.data, durationSeconds: resolvedDurationSeconds } }
+          : node,
       inputs: inputCheck.inputs,
       presetId,
     },

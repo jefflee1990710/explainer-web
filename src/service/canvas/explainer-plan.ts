@@ -5,7 +5,11 @@ import { canvasProjectsCollection, videosCollection } from "@/dao";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import type { Project } from "@/model/project";
 import { buildExplainerExpansion, explainerVoicePreset } from "@/service/canvas/explainer-expand";
-import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import {
+  isDirectorPlannerNode,
+  readPlannerParams,
+  TALKING_HEAD_PLANNER_MODEL_ID,
+} from "@/service/canvas/explainer-planner";
 import { resolveNodeInputs } from "@/service/canvas/graph";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import { createCanvasDirectorVideo } from "@/service/canvas/scro-dispatch";
@@ -31,7 +35,7 @@ async function loadPlanner(clerkUserId: string, canvasId: string, nodeId: string
     clerkUserId,
   });
   const node = canvas?.nodes.find((n) => n.id === nodeId);
-  return canvas && node && isExplainerPlannerNode(node) ? { canvas, node } : null;
+  return canvas && node && isDirectorPlannerNode(node) ? { canvas, node } : null;
 }
 
 // Creates a plan-only backing video and queues Phase A on the worker. Free: nothing is charged.
@@ -49,11 +53,14 @@ export async function startCanvasExplainerPlan(params: {
     loaded.canvas.edges,
     catalog,
   );
-  if (!resolved.inputs.prompt?.trim()) return { ok: false, error: "請先輸入或連接解說主題" };
+  const isTalking = loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
+  if (!resolved.inputs.prompt?.trim()) {
+    return { ok: false, error: isTalking ? "請先輸入講稿" : "請先輸入或連接解說主題" };
+  }
   try {
     const videoId = await createCanvasDirectorVideo({
       clerkUserId: params.clerkUserId,
-      modelId: "scro:explainer",
+      modelId: isTalking ? "scro:talking-head" : "scro:explainer",
       node: loaded.node,
       inputs: resolved.inputs,
       planOnly: true,
@@ -97,6 +104,9 @@ export function planStateFromVideo(params: {
   const prompts = video.canvasPlan?.prompts ?? [];
   if (video.status !== "production" || !video.phaseA || prompts.length === 0 || params.blocker) {
     return { status: "planning" };
+  }
+  if (plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID) {
+    return { status: "failed", error: "Talking Head 展開尚未支援" };
   }
   const toolParams = plannerNode.data.toolParams ?? {};
   const language = plannerLanguage(video.language ?? toolParams.language);

@@ -424,6 +424,7 @@ export function ModelNodeCard({
         {/* Scro Tool & FFmpeg Node Controls */}
         {spec.provider === "scro" &&
         spec.id !== "scro:explainer-frame" &&
+        spec.id !== "scro:director-frame" &&
         spec.id !== "scro:teleport-render" ? (
           <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
             {(spec.id === "scro:talking-head" ||

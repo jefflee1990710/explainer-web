@@ -8,6 +8,7 @@ import { resolveRunSkill } from "@/service/director/run-skill";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
+import { heyGenAvatarIvMotionPrompt } from "@/service/openrouter/generate";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 
 // Full canvas plan: every clip's video prompt plus its start-still prompt.
@@ -15,6 +16,28 @@ export async function planCanvasExplainer(project: Project) {
   const prompts = await runCanvasPlanPhaseB(project);
   const framePrompts = await buildCanvasPlanFramePrompts(project);
   return { prompts, framePrompts };
+}
+
+// Talking Head plan: HeyGen motion prompt per clip (same text the director pipeline submits).
+export function talkingHeadPlanPrompts(project: Project): PhaseBPrompt[] {
+  return (project.phaseA?.clips ?? []).map((clip) => ({
+    clipNumber: clip.clipNumber,
+    durationSeconds: clip.durationSeconds,
+    prompt: heyGenAvatarIvMotionPrompt(project.talkingHeadPoseId, {
+      spokenScript: clip.englishVo,
+      directorMotionNote: clip.motionCamera,
+      motionPrompt: clip.motionPrompt,
+      language: project.language,
+    }),
+  }));
+}
+
+// One opening still is shared by every Talking Head clip, so only Clip 1 needs a frame prompt.
+export async function planCanvasTalkingHead(project: Project) {
+  const framePrompts = (await buildCanvasPlanFramePrompts(project)).filter(
+    (frame) => frame.clipNumber === 1,
+  );
+  return { prompts: talkingHeadPlanPrompts(project), framePrompts };
 }
 
 // Same prompt regenerateFrames would build (written-Chinese labels, style), so prefilled text matches the director.

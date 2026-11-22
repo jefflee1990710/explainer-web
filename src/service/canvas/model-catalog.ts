@@ -16,6 +16,7 @@ import {
   OPENROUTER_ACCOUNT_VIDEO_MODELS,
 } from "@/service/openrouter/account-media-models";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
+import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/service/canvas/pricing";
 
 export type CanvasPortType = "image" | "video" | "audio" | "text";
 
@@ -486,8 +487,12 @@ function buildOpenRouterAccountModels(): CanvasModelSpec[] {
     const presets = ratioPresets(model.aspects, "16:9");
     const durations = model.durations.filter((value) => value > 0);
     const minDurationSeconds = durations.length > 0 ? Math.min(...durations) : 5;
-    const maxDurationSeconds =
-      durations.length > 0 ? Math.max(...durations) : model.avatar ? 60 : 15;
+    // HeyGen length follows the wired voice, up to the canvas cap.
+    const maxDurationSeconds = model.avatar
+      ? CANVAS_HEYGEN_MAX_VIDEO_SECONDS
+      : durations.length > 0
+        ? Math.max(...durations)
+        : 15;
     const defaultDurationSeconds = durations.includes(5) ? 5 : (durations[0] ?? 5);
     const inputs: CanvasPortSpec[] = [];
     if (model.avatar) {
@@ -575,6 +580,22 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     provider: "scro",
     providerModelId: "explainer-frame",
     name: "Explainer Frame",
+    category: "scro-tool",
+    inputs: [promptPort(true)],
+    output: imageOutput(),
+    presets: ["9:16", "16:9", "1:1"],
+    defaultPresetId: "9:16",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: false,
+    hiddenInSidebar: true,
+    available: true,
+  },
+  {
+    // Same frame pipeline as Explainer Frame; used by Talking Head groups.
+    id: "scro:director-frame",
+    provider: "scro",
+    providerModelId: "director-frame",
+    name: "Director Frame",
     category: "scro-tool",
     inputs: [promptPort(true)],
     output: imageOutput(),

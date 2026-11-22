@@ -25,7 +25,11 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
-import { planCanvasExplainer } from "@/service/canvas/explainer-plan-phase-b";
+import {
+  planCanvasExplainer,
+  planCanvasTalkingHead,
+} from "@/service/canvas/explainer-plan-phase-b";
+import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import {
   enqueueVideoLockJobs,
@@ -245,8 +249,11 @@ export async function runPhaseAJob(
     if (project.canvasPlanOnly) {
       // Canvas planner: store every clip's video and still prompts instead of drawing frames.
       const planned = await projects.findOne({ _id: projectId });
+      const planCanvas = isTalkingHeadSkill(planned?.skillSlug)
+        ? planCanvasTalkingHead
+        : planCanvasExplainer;
       const canvasPlan: NonNullable<Project["canvasPlan"]> = planned
-        ? await planCanvasExplainer(planned).catch((error: unknown) => ({
+        ? await planCanvas(planned).catch((error: unknown) => ({
             prompts: [],
             error: errorMessage(error, "分鏡提示詞生成失敗"),
           }))

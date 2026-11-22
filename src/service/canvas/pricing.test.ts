@@ -59,15 +59,22 @@ describe("canvas USD pricing", () => {
     assert.equal(estimateCanvasModelCostUsd(seedance, { durationSeconds: 30 }), 1.5);
   });
 
-  it("prices OpenRouter HeyGen Avatar IV at $0.18/s clamped to 5-60s", () => {
+  it("prices OpenRouter HeyGen Avatar IV at $0.18/s clamped to 5-120s", () => {
     const avatar = findCanvasModel("openrouter:heygen/avatar-iv");
     assert.ok(avatar);
 
     assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 2 }), 0.9);
     assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 5 }), 0.9);
     assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 10 }), 1.8);
-    assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 60 }), 10.8);
-    assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 120 }), 10.8);
+    assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 90 }), 16.2);
+    assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 120 }), 21.6);
+    assert.equal(estimateCanvasModelCostUsd(avatar, { durationSeconds: 200 }), 21.6);
+  });
+
+  it("prices the Director Frame like one image", () => {
+    const frame = findCanvasModel("scro:director-frame");
+    assert.ok(frame);
+    assert.equal(estimateCanvasModelCostUsd(frame), 0.15);
   });
 
   it("formats estimated costs cleanly with formatUsd", () => {

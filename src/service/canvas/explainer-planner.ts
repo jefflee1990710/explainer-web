@@ -8,13 +8,23 @@ export type ExplainerPlanStatus = "planning" | "expanded" | "failed";
 
 const PLAN_STATUSES: readonly ExplainerPlanStatus[] = ["planning", "expanded", "failed"];
 
-export function isExplainerPlannerNode(node: Pick<CanvasNode, "type" | "data">): boolean {
+export const TALKING_HEAD_PLANNER_MODEL_ID = "scro:talking-head";
+
+// Director tools that plan for free on a planning card before expanding into nodes.
+export const PLANNER_MODEL_IDS: readonly string[] = [
+  EXPLAINER_PLANNER_MODEL_ID,
+  TALKING_HEAD_PLANNER_MODEL_ID,
+];
+
+export function isDirectorPlannerNode(node: Pick<CanvasNode, "type" | "data">): boolean {
   return (
     node.type === "model" &&
-    node.data.modelId === EXPLAINER_PLANNER_MODEL_ID &&
+    PLANNER_MODEL_IDS.includes(node.data.modelId ?? "") &&
     node.data.toolParams?.plannerMode === true
   );
 }
+
+export const isExplainerPlannerNode = isDirectorPlannerNode;
 
 function str(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;

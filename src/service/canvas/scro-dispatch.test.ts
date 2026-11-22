@@ -120,6 +120,32 @@ describe("scro canvas dispatch — sync execution", () => {
     assert.equal(out.outputUrl, "https://blob.example/canvas/user-1/job123.mp3");
   });
 
+  it("uses conversational ElevenLabs delivery when ttsConversational is set", async () => {
+    const calls: unknown[] = [];
+    await executeScroSyncNode(
+      {
+        clerkUserId: "user-1",
+        jobIdHex: "job-conv",
+        modelId: "scro:tts",
+        node: makeNode("tts2", "scro:tts", {
+          toolParams: { language: "en", voicePreset: "brian", ttsConversational: true },
+        }),
+        inputs: emptyInputs({ prompt: "Hi there" }),
+      },
+      {
+        synthesizeSpeech: async () => {
+          throw new Error("narration path should not run");
+        },
+        synthesizeConversational: async (_voice, _text, options) => {
+          calls.push(options);
+          return Buffer.from("mp3");
+        },
+        persistAudioBuffer: async () => "https://blob.example/a.mp3",
+      },
+    );
+    assert.deepEqual(calls, [{ conversational: true, language: "en" }]);
+  });
+
   it("runs scro:life and scro:poster via Seedream 5.0 Pro and returns image Blob URL", async () => {
     let seenPrompt = "";
     const lifeOut = await executeScroSyncNode(
@@ -342,6 +368,20 @@ describe("scro canvas dispatch — skipBilling, autoProduceAllClips & polling", 
     assert.equal(seen?.sectionLength, 9);
     assert.equal(seen?.applyColorFix, false);
     assert.equal(seen?.objectChangeTo, "red jacket");
+  });
+
+  it("routes scro:director-frame through the explainer frame submit", async () => {
+    await assert.rejects(
+      submitScroAsyncNode({
+        clerkUserId: "u1",
+        canvasIdHex: new ObjectId().toHexString(),
+        jobIdHex: "job-df",
+        modelId: "scro:director-frame",
+        node: makeNode("df1", "scro:director-frame"),
+        inputs: emptyInputs({ prompt: "opening still" }),
+      }),
+      /缺少規劃資料/,
+    );
   });
 
   it("runs teleport-render with the wired scene and no final grade", async () => {

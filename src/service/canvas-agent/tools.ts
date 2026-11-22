@@ -84,7 +84,7 @@ const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "scro:teleport": [],
   "scro:life": ["characterId", "poseId"],
   "scro:poster": ["characterId", "productId", "styleId"],
-  "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed"],
+  "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed", "ttsConversational"],
   "ffmpeg:concat": ["ffmpegTransition"],
   "ffmpeg:audio-mux": ["ffmpegMixMode", "ffmpegAudioGainDb"],
   "ffmpeg:trim-speed": ["ffmpegStartSec", "ffmpegEndSec", "ffmpegSpeed", "ffmpegTrimSilence"],
