@@ -41,14 +41,19 @@ import {
   refreshCanvasModelsAction,
   renameCanvasProjectAction,
   runCanvasFlowAction,
+  generateCanvasCharacterOutfitAction,
   runCanvasNodeAction,
   saveCanvasProjectAction,
   stopCanvasFlowAction,
   uploadCanvasMediaAction,
 } from "@/presentation/actions/canvas";
+import {
+  refreshCharacterAction,
+  saveCharacterPresetAction,
+} from "@/presentation/actions/characters";
 import { notifyCreditsChanged } from "@/presentation/components/app/billing/credits-changed";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { addUsd, formatUsd } from "@/service/billing/usd";
+import { formatUsd } from "@/service/billing/usd";
 import {
   computeExecutionWaves,
   getNodeOutputPortType,
@@ -58,7 +63,6 @@ import {
   type CanvasModelSpec,
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import {
   addContextRef,
   contextMenuChoices,
@@ -144,6 +148,7 @@ import {
   type CanvasViewLayout,
 } from "@/app/app/canvas/canvas-view-layout";
 import { useStudioChrome } from "@/presentation/studio/studio-chrome";
+import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import {
@@ -152,6 +157,15 @@ import {
   PORT_COLOR_MAP,
 } from "@/app/app/canvas/nodes/port-colors";
 import { PromptNodeCard } from "@/app/app/canvas/nodes/prompt-node-card";
+import {
+  canvasOutfitPresetName,
+  characterOutfitEditInstruction,
+  characterOutfitPort,
+  findCharacterNodeAt,
+  libraryAssetNodeDraft,
+  outfitHandleForPart,
+  outfitWiresFromGraph,
+} from "@/service/canvas/character-node";
 
 const SIDEBAR_OPEN_KEY = "scro.canvasSidebar.open";
 
@@ -159,6 +173,7 @@ const NODE_TYPES = {
   media: MediaNodeCard,
   prompt: PromptNodeCard,
   model: ModelNodeCard,
+  character: CharacterNodeCard,
   [GROUP_FRAME_TYPE]: GroupFrameNodeCard,
 } as const;
 
@@ -638,10 +653,12 @@ function CanvasWorkspaceInner({
           ? findCanvasModel(tgtNode.data.modelId, models)
           : undefined;
       const tgtPort = tgtSpec?.inputs.find((p) => p.id === connection.targetHandle);
+      const outfitPort =
+        tgtNode?.type === "character" ? characterOutfitPort(connection.targetHandle ?? "") : undefined;
+      const replaceSingle = (tgtPort && !tgtPort.multiple) || (outfitPort && !outfitPort.multiple);
 
       setEdges((prev) => {
-        const cleaned =
-          tgtPort && !tgtPort.multiple
+        const cleaned = replaceSingle
             ? prev.filter(
                 (e) =>
                   !(
@@ -731,21 +748,46 @@ function CanvasWorkspaceInner({
   const addAssetNodeAt = useCallback(
     (asset: CanvasLibraryAsset, position?: { x: number; y: number }) => {
       const pos = position ?? getCenterPosition();
+      const draft = libraryAssetNodeDraft(asset);
+      const id = `${draft.type}-${crypto.randomUUID().slice(0, 8)}`;
+      let place = pos;
+      let outfitEdge: CanvasEdge | undefined;
+      if (asset.source === "outfit" && position) {
+        const targetId = findCharacterNodeAt(nodesRef.current, position);
+        if (targetId) {
+          const handle = outfitHandleForPart(asset.outfitPart);
+          place = { x: pos.x - 320, y: pos.y };
+          const port = characterOutfitPort(handle);
+          if (port && !port.multiple) {
+            setEdges((prev) =>
+              prev.filter((edge) => !(edge.target === targetId && edge.targetHandle === handle)),
+            );
+          }
+          outfitEdge = {
+            id: `e-${crypto.randomUUID().slice(0, 8)}`,
+            source: id,
+            sourceHandle: "output",
+            target: targetId,
+            targetHandle: handle,
+          };
+        }
+      }
       const newNode: FlowNode = {
-        id: `media-${crypto.randomUUID().slice(0, 8)}`,
-        type: "media",
-        position: pos,
-        data: {
-          label: asset.name,
-          fileName: asset.name,
-          mediaKind: asset.mediaKind,
-          mediaUrl: asset.url,
-        },
+        id,
+        type: draft.type,
+        position: place,
+        data: draft.data,
       };
       setNodes((prev) => [...prev, newNode]);
+      if (outfitEdge) {
+        const stroke = PORT_COLOR_MAP.image;
+        setEdges((prev) =>
+          addEdge({ ...outfitEdge, style: { stroke, strokeWidth: 2 } }, prev),
+        );
+      }
       scheduleAutosave();
     },
-    [getCenterPosition, setNodes, scheduleAutosave],
+    [getCenterPosition, setNodes, setEdges, scheduleAutosave],
   );
 
   const addPromptNode = useCallback((position?: { x: number; y: number }) => {
@@ -1071,6 +1113,16 @@ function CanvasWorkspaceInner({
             label: n.data.fileName ?? n.data.label ?? n.id,
             mediaKind: n.data.mediaKind,
             url: n.data.mediaUrl,
+          }];
+        }
+        if (n.type === "character") {
+          const url = n.data.outputUrl || n.data.mediaUrl;
+          if (!url) return [];
+          return [{
+            nodeId: n.id,
+            label: n.data.label ?? n.data.fileName ?? n.id,
+            mediaKind: "image",
+            url,
           }];
         }
         if (n.type === "model" && n.data.outputUrl && n.data.outputKind) {
@@ -1622,30 +1674,17 @@ function CanvasWorkspaceInner({
     }
   }, [isZh]);
 
-  // Estimate whole-flow USD cost for all model nodes currently on canvas.
-  const { flowEstimatedUsd, flowModelCount } = useMemo(() => {
-    let total = 0;
+  // Runnable model nodes. Planners are free and never run in a flow.
+  const flowModelCount = useMemo(() => {
     let count = 0;
     for (const node of nodes) {
       if (node.type !== "model" || !node.data.modelId) continue;
-      // Planners are free and never run in a flow.
       if (isExplainerPlannerNode({ type: "model", data: node.data })) continue;
-      const spec = findCanvasModel(node.data.modelId, models);
-      if (!spec) continue;
+      if (!findCanvasModel(node.data.modelId, models)) continue;
       count += 1;
-      total = addUsd(
-        total,
-        estimateCanvasModelCostUsd(spec, {
-          durationSeconds: node.data.durationSeconds,
-          resolution: node.data.resolution,
-          referenceImages: edges.filter(
-            (edge) => edge.target === node.id && edge.targetHandle === "refImages",
-          ).length,
-        }),
-      );
     }
-    return { flowEstimatedUsd: total, flowModelCount: count };
-  }, [nodes, edges, models]);
+    return count;
+  }, [nodes, models]);
 
   // Drag & drop onto canvas pane (supports local files, sidebar models, sidebar Scro assets).
   const handlePaneDragOver = useCallback((event: React.DragEvent) => {
@@ -1699,6 +1738,161 @@ function CanvasWorkspaceInner({
     [reactFlow, addModelNodeAt, addPromptNode, addAssetNodeAt, uploadAndPlaceFiles],
   );
 
+  const onGenerateOutfit = useCallback(
+    async (nodeId: string) => {
+      const node = nodesRef.current.find((item) => item.id === nodeId);
+      const characterId = node?.data.characterId;
+      if (!node || node.type !== "character" || !characterId) {
+        toast.error(isZh ? "這個角色節點缺少角色資料" : "This character node is missing its character");
+        return;
+      }
+      const wires = outfitWiresFromGraph(
+        nodeId,
+        toDomainNodes(nodesRef.current),
+        toDomainEdges(edgesRef.current),
+      );
+      const instruction = characterOutfitEditInstruction(wires);
+      if (!instruction) {
+        toast.error(isZh ? "先把穿搭接到角色節點" : "Connect an outfit to the character first");
+        return;
+      }
+      const presetName = canvasOutfitPresetName(wires);
+      setNodes((prev) =>
+        prev.map((item) =>
+          item.id === nodeId
+            ? { ...item, data: { ...item.data, status: "queued", lastError: undefined } }
+            : item,
+        ),
+      );
+      const result = await generateCanvasCharacterOutfitAction({ characterId, instruction });
+      if (!result.ok) {
+        setNodes((prev) =>
+          prev.map((item) =>
+            item.id === nodeId
+              ? { ...item, data: { ...item.data, status: "failed", lastError: result.error } }
+              : item,
+          ),
+        );
+        toast.error(result.error);
+        return;
+      }
+      setNodes((prev) =>
+        prev.map((item) =>
+          item.id === nodeId
+            ? {
+                ...item,
+                data: {
+                  ...item.data,
+                  status: "running",
+                  lastCostUsd: result.chargedUsd,
+                  toolParams: {
+                    ...(item.data.toolParams ?? {}),
+                    versionId: result.versionId,
+                    presetName,
+                    presetSaved: false,
+                  },
+                },
+              }
+            : item,
+        ),
+      );
+      scheduleAutosave();
+      toast.success(isZh ? "已開始生成新造型" : "Outfit generation started");
+    },
+    [isZh, scheduleAutosave, setNodes],
+  );
+
+  const outfitWatchKey = useMemo(
+    () =>
+      nodes
+        .filter(
+          (node) =>
+            node.type === "character" &&
+            (node.data.status === "queued" || node.data.status === "running"),
+        )
+        .map((node) => node.id)
+        .join(","),
+    [nodes],
+  );
+
+  // Follow the character blueprint job and paint the new outfit onto the node.
+  useEffect(() => {
+    if (!outfitWatchKey) return;
+    let alive = true;
+
+    const tick = async () => {
+      const pending = nodesRef.current.filter(
+        (node) =>
+          node.type === "character" &&
+          (node.data.status === "queued" || node.data.status === "running") &&
+          node.data.characterId &&
+          typeof node.data.toolParams?.versionId === "string",
+      );
+      const byCharacter = new Map<string, FlowNode[]>();
+      for (const node of pending) {
+        const characterId = node.data.characterId ?? "";
+        const list = byCharacter.get(characterId) ?? [];
+        list.push(node);
+        byCharacter.set(characterId, list);
+      }
+
+      for (const [characterId, group] of byCharacter) {
+        const result = await refreshCharacterAction(characterId);
+        if (!alive || !result.ok) continue;
+        const updates = new Map<string, Partial<CanvasNodeData>>();
+        for (const node of group) {
+          const versionId = String(node.data.toolParams?.versionId ?? "");
+          const version = result.character.versions.find((item) => item.id === versionId);
+          if (!version) continue;
+          if (version.status === "failed") {
+            updates.set(node.id, {
+              status: "failed",
+              lastError: version.error || (isZh ? "生成造型失敗" : "Outfit generation failed"),
+            });
+            continue;
+          }
+          const url = version.blueprintUrl || version.portraitUrl || version.profileUrl;
+          if (version.status !== "completed" || !url) {
+            updates.set(node.id, { status: "running" });
+            continue;
+          }
+          if (node.data.toolParams?.presetSaved !== true) {
+            const presetName =
+              typeof node.data.toolParams?.presetName === "string"
+                ? node.data.toolParams.presetName
+                : "新造型";
+            void saveCharacterPresetAction(characterId, versionId, presetName);
+          }
+          updates.set(node.id, {
+            status: "completed",
+            outputUrl: url,
+            outputKind: "image",
+            lastError: undefined,
+            toolParams: { ...(node.data.toolParams ?? {}), presetSaved: true },
+          });
+        }
+        if (updates.size === 0) continue;
+        setNodes((prev) =>
+          prev.map((node) => {
+            const patch = updates.get(node.id);
+            if (!patch) return node;
+            return { ...node, data: { ...node.data, ...patch } };
+          }),
+        );
+        scheduleAutosave();
+      }
+    };
+
+    void tick();
+    const timer = window.setInterval(() => {
+      void tick();
+    }, JOB_POLL_INTERVAL_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [outfitWatchKey, isZh, scheduleAutosave, setNodes]);
+
   const nodeContextValue = useMemo(
     () => ({
       catalog: models,
@@ -1709,6 +1903,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onGenerateOutfit,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
     }),
@@ -1721,6 +1916,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onGenerateOutfit,
       onPlanExplainer,
     ],
   );
@@ -1735,7 +1931,6 @@ function CanvasWorkspaceInner({
         saveStatus={saveStatus}
         creditUsd={creditUsd}
         viewLayout={viewLayout}
-        flowEstimatedUsd={flowEstimatedUsd}
         flowModelCount={flowModelCount}
         isFlowRunning={isFlowRunning}
         flowWaveProgress={flowWaveProgress}
@@ -1818,7 +2013,7 @@ function CanvasWorkspaceInner({
                         ? "transparent"
                         : n.type === "media"
                           ? "#38bdf8"
-                          : n.type === "prompt"
+                          : n.type === "prompt" || n.type === "character"
                             ? "#c6f24b"
                             : "#a78bfa"
                     }

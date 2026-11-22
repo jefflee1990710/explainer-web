@@ -12,6 +12,7 @@ import { canvasProjectsCollection, usersCollection } from "@/dao";
 import { requireAppUser } from "@/service/auth";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
+import { generateCanvasCharacterOutfit } from "@/service/canvas/character-outfit";
 import {
   type SubmitCanvasNodeJobErrorCode,
   pollCanvasJobs,
@@ -415,4 +416,13 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
       : {}),
     creditUsd,
   };
+}
+
+// Character node: branch a new outfit from the pieces wired into that person.
+export async function generateCanvasCharacterOutfitAction(input: {
+  characterId: string;
+  instruction: string;
+}) {
+  await requireAppUser();
+  return generateCanvasCharacterOutfit(input);
 }

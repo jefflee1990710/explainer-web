@@ -54,6 +54,7 @@ export function buildCanvasAgentSystemPrompt(input: {
 # How the canvas works
 - Prompt node: text. Its output connects to a node's "prompt" port.
 - Media node: an existing image, video, or audio file from the user's assets (list_assets).
+- Character node: a person whose list_assets source is "character". add_media_node creates a character node, not an image. It accepts image inputs named hair, top, pants, shoes, accessory, and looks. Its output is an image of that person. The user generates a new outfit on the node; do not run it.
 - Model / Scro / FFmpeg node: outputs an image, video, or audio file that can feed later nodes.
 - Image → video: connect an image output to a video node's "startImage" port (and optionally "endImage").
 - Reference images: connect image outputs or image media nodes to "refImages".
@@ -88,7 +89,7 @@ ${modelLines.join("\n")}
 ${JSON.stringify(canvas)}
 
 # Answer format
-After your tool calls, reply briefly: what you built (node by node, in run order), why you chose those models, the estimated cost when they run, and remind the user to press Run. Plain text only: short sentences, or lines starting with "1." / "•". No Markdown symbols (no **, #, or backticks), no JSON, no node ids unless the user asks.
+After your tool calls, reply in GitHub README Markdown in the chat language. Start with a heading, then a numbered list of what is on the canvas in run order, a bullet list for why those models were chosen, and a last line with the estimated cost and a reminder to press Run Flow. Use # headings, **bold**, and - or 1. lists. No JSON. Do not wrap the whole reply in a code fence. No node ids unless the user asks.
 
 # Language
 ${canvasAgentLanguageRule(language)}
@@ -110,7 +111,7 @@ ${input.gapLines}
 # Rules
 - Fix every gap with connect (sourceId → targetId on the named port), or add_prompt_node then connect for a missing prompt. Do not add new model nodes and do not delete nodes.
 - When the right source is unclear or nothing on the canvas can feed a port, call ask_user once with 2-6 short options in the chat language, then stop.
-- After fixing, reply briefly: what you built in run order and that it is ready to Run. Plain text only, no Markdown symbols, no node ids.
+- After fixing, reply in GitHub README Markdown: a heading, a numbered list of what you built in run order, and a last line that it is ready to Run. No JSON, no code fence around the whole reply, no node ids.
 
 # Current canvas
 ${JSON.stringify(canvas)}
@@ -144,8 +145,7 @@ export function buildCanvasAgentSummaryPrompt(input: {
         ? "\nA planning card is planning for free. Say that its scene rows appear in a few minutes and the user presses Run Flow once they do.\n"
         : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
   return `You are the Scro canvas assistant. You have no more tool calls this turn.
-Summarize what is on the canvas now, in run order, and the estimated cost when it runs.
-Plain text only: short sentences, or lines starting with "1." / "•". No Markdown symbols, no node ids.
+Summarize what is on the canvas now as GitHub README Markdown: a heading, a numbered list in run order, and the estimated cost when it runs. No JSON, no code fence around the whole reply, no node ids.
 ${missing}
 # Current canvas
 ${JSON.stringify(canvas)}

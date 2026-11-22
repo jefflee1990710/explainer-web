@@ -14,6 +14,7 @@ import type {
 } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
+import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import {
   canvasGroupsForProject,
@@ -68,7 +69,12 @@ export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
 const COLUMN_GAP = 400;
 const ROW_GAP = 40;
 // Rough card heights so arranged columns do not overlap.
-const NODE_HEIGHT: Record<CanvasNode["type"], number> = { prompt: 190, media: 230, model: 430 };
+const NODE_HEIGHT: Record<CanvasNode["type"], number> = {
+  prompt: 190,
+  media: 230,
+  model: 430,
+  character: 520,
+};
 const TEXT_PREVIEW = 240;
 
 export type CanvasAgentWorkingGraph = {
@@ -266,6 +272,14 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
     ...(node.type === "media"
       ? { mediaKind: node.data.mediaKind, name: node.data.fileName ?? node.data.label }
       : {}),
+    ...(node.type === "character"
+      ? {
+          name: node.data.label,
+          characterId: node.data.characterId,
+          status: node.data.status ?? "idle",
+          hasOutput: Boolean(node.data.outputUrl),
+        }
+      : {}),
     ...(node.type === "model"
       ? {
           modelId: node.data.modelId,
@@ -421,12 +435,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
   add_media_node(g: CanvasAgentWorkingGraph, input: { assetId: string }): CanvasAgentToolResult {
     const asset = g.assets.find((a) => a.id === input.assetId);
     if (!asset) return { error: `Unknown asset "${input.assetId}". Call list_assets first.` };
-    return addNode(g, "media", {
-      label: asset.name,
-      fileName: asset.name,
-      mediaKind: asset.mediaKind,
-      mediaUrl: asset.url,
-    });
+    const draft = libraryAssetNodeDraft(asset);
+    return addNode(g, draft.type, draft.data);
   },
 
   add_scro_group(g: CanvasAgentWorkingGraph, input: ScroGroupToolInput): CanvasAgentToolResult {
@@ -571,7 +581,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     const target = g.nodes.find((n) => n.id === input.targetId);
     const spec = target?.data.modelId ? findCanvasModel(target.data.modelId, g.catalog) : undefined;
     const port = spec?.inputs.find((p) => p.id === input.targetPort);
-    if (port && !port.multiple) {
+    const outfitPort = target?.type === "character" ? characterOutfitPort(input.targetPort) : undefined;
+    if ((port && !port.multiple) || (outfitPort && !outfitPort.multiple)) {
       for (const old of g.edges.filter(
         (e) => e.target === input.targetId && e.targetHandle === input.targetPort,
       )) {
@@ -821,7 +832,8 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async (input) => H.add_scro_group(g, input),
     }),
     add_media_node: tool({
-      description: "Add a media node from one of the user's assets (see list_assets).",
+      description:
+        "Add one asset from list_assets. A character asset becomes a character node. An outfit or any other file becomes a media node.",
       inputSchema: z.object({ assetId: z.string() }),
       execute: async (input) => H.add_media_node(g, input),
     }),

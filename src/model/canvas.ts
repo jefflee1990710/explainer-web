@@ -4,7 +4,7 @@ import { objectIdSchema } from "@/model/primitives";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
 
-export type CanvasNodeType = "media" | "prompt" | "model";
+export type CanvasNodeType = "media" | "prompt" | "model" | "character";
 export type CanvasMediaKind = "image" | "video" | "audio";
 export type CanvasAspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
 export type CanvasResolution = "1k" | "2k" | "4k";
@@ -21,10 +21,11 @@ export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpe
 // Serializable payload stored on each node in the Interactive Node Canvas Editor.
 export type CanvasNodeData = {
   label?: string;
-  // Media node fields
+  // Media node fields. A character node reuses the preview URL and adds characterId.
   mediaKind?: CanvasMediaKind;
   mediaUrl?: string;
   fileName?: string;
+  characterId?: string;
   // Prompt node fields
   text?: string;
   // Model node fields
@@ -172,7 +173,7 @@ export type CanvasAgentMessage = {
   createdAt: Date;
 };
 
-export const canvasNodeTypeSchema = z.enum(["media", "prompt", "model"]);
+export const canvasNodeTypeSchema = z.enum(["media", "prompt", "model", "character"]);
 export const canvasMediaKindSchema = z.enum(["image", "video", "audio"]);
 export const canvasAspectRatioSchema = z.enum([
   "16:9",
@@ -216,6 +217,7 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   mediaKind: canvasMediaKindSchema.optional(),
   mediaUrl: z.string().optional(),
   fileName: z.string().optional(),
+  characterId: z.string().optional(),
   text: z.string().optional(),
   modelId: z.string().optional(),
   presetId: z.string().optional(),

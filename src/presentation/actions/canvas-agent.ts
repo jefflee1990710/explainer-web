@@ -90,7 +90,7 @@ export async function sendCanvasAgentMessageAction(
       edges: project.edges,
       groups: project.groups,
       catalog,
-      assets: [...library.characters, ...library.products, ...library.recentOutputs],
+      assets: [...library.characters, ...library.outfits, ...library.products, ...library.recentOutputs],
       characters: library.characterOptions,
     });
   } catch (error) {

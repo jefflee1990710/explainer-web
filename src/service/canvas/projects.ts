@@ -24,6 +24,7 @@ import {
   canvasViewportSchema,
 } from "@/model/canvas";
 import type { Character } from "@/model/character";
+import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
 import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
@@ -85,12 +86,16 @@ export type CanvasJobDto = {
 
 export type CanvasLibraryAsset = {
   id: string;
-  source: "character" | "product" | "canvas_output";
+  source: "character" | "product" | "canvas_output" | "outfit";
   name: string;
   mediaKind: "image" | "video" | "audio";
   url: string;
   thumbnailUrl?: string;
   createdAt: string;
+  // Set on outfit tiles so a drop lands on the matching character input.
+  outfitPart?: "hair" | "top" | "pants" | "shoes" | "accessory" | "look";
+  outfitPrompt?: string;
+  characterId?: string;
 };
 
 export type CanvasLibraryCharacterOption = {
@@ -101,6 +106,7 @@ export type CanvasLibraryCharacterOption = {
 
 export type CanvasLibraryAssetsResult = {
   characters: CanvasLibraryAsset[];
+  outfits: CanvasLibraryAsset[];
   products: CanvasLibraryAsset[];
   recentOutputs: CanvasLibraryAsset[];
   characterOptions: CanvasLibraryCharacterOption[];
@@ -364,10 +370,11 @@ function resolveCharacterPreviewUrl(character: Character): string | undefined {
 export async function listCanvasLibraryAssets(
   clerkUserId: string,
 ): Promise<CanvasLibraryAssetsResult> {
-  const [charactersCol, productsCol, jobsCol] = await Promise.all([
+  const [charactersCol, productsCol, jobsCol, wardrobeItems] = await Promise.all([
     charactersCollection(),
     productsCollection(),
     canvasJobsCollection(),
+    listCustomWardrobeItems(clerkUserId),
   ]);
 
   const [characterDocs, productDocs, recentJobs] = await Promise.all([
@@ -385,6 +392,7 @@ export async function listCanvasLibraryAssets(
   ]);
 
   const characters: CanvasLibraryAsset[] = [];
+  const outfits: CanvasLibraryAsset[] = [];
   const characterOptions: CanvasLibraryCharacterOption[] = [];
   for (const doc of characterDocs) {
     const character = doc as Character;
@@ -393,15 +401,49 @@ export async function listCanvasLibraryAssets(
     const id = character._id.toHexString();
     const name = character.name || "Character";
     characterOptions.push({ id, name, ...(url ? { previewUrl: url } : {}) });
+    if (url) {
+      characters.push({
+        id,
+        source: "character",
+        name,
+        mediaKind: "image",
+        url,
+        thumbnailUrl: url,
+        createdAt: (character.updatedAt ?? character.createdAt ?? new Date()).toISOString(),
+      });
+    }
+    for (const preset of character.presets ?? []) {
+      const version = character.versions.find((item) => item.id.equals(preset.versionId));
+      const lookUrl = version?.portraitUrl || version?.profileUrl || version?.blueprintUrl;
+      if (!version || version.status !== "completed" || !lookUrl) continue;
+      outfits.push({
+        id: `outfit-${id}-${preset.id.toHexString()}`,
+        source: "outfit",
+        name: `${name} · ${preset.name}`,
+        mediaKind: "image",
+        url: lookUrl,
+        thumbnailUrl: lookUrl,
+        createdAt: preset.createdAt.toISOString(),
+        outfitPart: "look",
+        outfitPrompt: version.editInstruction || preset.name,
+        characterId: id,
+      });
+    }
+  }
+
+  for (const item of wardrobeItems) {
+    const url = item.previewImageUrl || item.referenceImageUrl;
     if (!url) continue;
-    characters.push({
-      id,
-      source: "character",
-      name,
+    outfits.push({
+      id: `wardrobe-${item.id}`,
+      source: "outfit",
+      name: item.nameZh || item.name,
       mediaKind: "image",
       url,
       thumbnailUrl: url,
-      createdAt: (character.updatedAt ?? character.createdAt ?? new Date()).toISOString(),
+      createdAt: item.createdAt,
+      outfitPart: item.part,
+      outfitPrompt: item.prompt,
     });
   }
 
@@ -442,5 +484,5 @@ export async function listCanvasLibraryAssets(
     });
   }
 
-  return { characters, products, recentOutputs, characterOptions };
+  return { characters, outfits, products, recentOutputs, characterOptions };
 }

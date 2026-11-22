@@ -17,6 +17,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
+import { CanvasOutfitList } from "@/app/app/canvas/canvas-outfit-list";
 import { CanvasSidebarRail } from "@/app/app/canvas/canvas-sidebar-rail";
 import {
   CanvasPromptTool,
@@ -397,6 +398,11 @@ export function CanvasSidebar({
             items={assets.characters}
             onAddAsset={onAddAsset}
             emptyText={isZh ? "尚無角色圖片" : "No character assets yet"}
+          />
+          <CanvasOutfitList
+            isZh={isZh}
+            items={assets.outfits ?? []}
+            onAddAsset={onAddAsset}
           />
           <AssetSection
             title={isZh ? "我的產品 Products" : "Products"}

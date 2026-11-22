@@ -35,7 +35,6 @@ export function CanvasTopbar({
   saveStatus,
   creditUsd,
   viewLayout,
-  flowEstimatedUsd,
   flowModelCount,
   isFlowRunning,
   flowWaveProgress,
@@ -55,7 +54,6 @@ export function CanvasTopbar({
   saveStatus: SaveStatus;
   creditUsd: number;
   viewLayout: CanvasViewLayout;
-  flowEstimatedUsd: number;
   flowModelCount: number;
   isFlowRunning: boolean;
   flowWaveProgress: { current: number; total: number } | null;
@@ -302,10 +300,7 @@ export function CanvasTopbar({
             }`}
           >
             <Play className="h-3.5 w-3.5 fill-current" />
-            <span>
-              Run Flow
-              {flowModelCount > 0 ? ` · ${formatUsd(flowEstimatedUsd)}` : ""}
-            </span>
+            <span>Run Flow</span>
           </button>
         )}
       </div>

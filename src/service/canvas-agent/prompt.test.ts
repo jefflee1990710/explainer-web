@@ -41,6 +41,8 @@ describe("canvas agent prompt", () => {
   it("states that the agent never runs generation", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "zh-Hant", graph: graph() });
     assert.match(text, /never run/i);
+    assert.match(text, /GitHub README Markdown/);
+    assert.doesNotMatch(text, /No Markdown symbols/);
     assert.match(text, /Run/);
     assert.match(text, /batch_delete_nodes/);
     assert.match(text, /batch_update_nodes/);

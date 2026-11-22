@@ -603,3 +603,32 @@ describe("canvas graph — completed output recovery", () => {
     assert.equal(restored[0]?.data.status, "completed");
   });
 });
+
+describe("canvas graph — character outfit inputs", () => {
+  const person = {
+    id: "character-1",
+    type: "character" as const,
+    position: { x: 0, y: 0 },
+    data: { characterId: "char-1", mediaUrl: "https://blob.example/jim.png", label: "Jim" },
+  };
+
+  it("accepts an image on an outfit input and rejects the wrong type", () => {
+    assert.equal(getNodeOutputPortType(person), "image");
+    const image = mediaNode("cloth", "image", "https://blob.example/blazer.png");
+    assert.equal(
+      validateEdgeConnection([image, person], [], {
+        source: "cloth",
+        target: "character-1",
+        targetHandle: "top",
+      }).valid,
+      true,
+    );
+    const video = mediaNode("clip", "video", "https://blob.example/clip.mp4");
+    const rejected = validateEdgeConnection([video, person], [], {
+      source: "clip",
+      target: "character-1",
+      targetHandle: "top",
+    });
+    assert.equal(rejected.valid, false);
+  });
+});

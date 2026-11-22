@@ -12,6 +12,7 @@ import {
   STATIC_CANVAS_MODELS,
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
+import { characterOutfitPort } from "@/service/canvas/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 
 export type CanvasEdgeCandidate = {
@@ -68,6 +69,9 @@ export function getNodeOutputPortType(
   }
   if (node.type === "prompt") {
     return "text";
+  }
+  if (node.type === "character") {
+    return "image";
   }
   if (node.type === "model") {
     if (!node.data.modelId) return null;
@@ -132,10 +136,6 @@ export function validateEdgeConnection(
     return { valid: false, reason: "Cannot connect a node to itself" };
   }
 
-  if (targetNode.type !== "model") {
-    return { valid: false, reason: "Target node does not accept inputs" };
-  }
-
   const sourceHandle = candidate.sourceHandle || "output";
   if (sourceHandle !== "output") {
     return {
@@ -152,19 +152,42 @@ export function validateEdgeConnection(
     };
   }
 
-  const targetSpec = targetNode.data.modelId
-    ? findCanvasModel(targetNode.data.modelId, catalog)
-    : undefined;
-  if (!targetSpec) {
-    return { valid: false, reason: "Target model specification not found" };
+  const targetHandle = candidate.targetHandle ?? "";
+  let targetPort: { id: string; type: CanvasPortType; multiple?: boolean; maxConnections: number } | undefined;
+  let targetLabel = "node";
+
+  if (targetNode.type === "character") {
+    const outfit = characterOutfitPort(targetHandle);
+    if (!outfit) {
+      return {
+        valid: false,
+        reason: `Character node has no outfit input "${targetHandle}"`,
+      };
+    }
+    targetPort = {
+      id: outfit.id,
+      type: "image",
+      multiple: outfit.multiple,
+      maxConnections: outfit.maxConnections,
+    };
+    targetLabel = "character";
+  } else if (targetNode.type !== "model") {
+    return { valid: false, reason: "Target node does not accept inputs" };
+  } else {
+    const targetSpec = targetNode.data.modelId
+      ? findCanvasModel(targetNode.data.modelId, catalog)
+      : undefined;
+    if (!targetSpec) {
+      return { valid: false, reason: "Target model specification not found" };
+    }
+    targetLabel = targetSpec.name;
+    targetPort = targetSpec.inputs.find((port) => port.id === targetHandle);
   }
 
-  const targetHandle = candidate.targetHandle ?? "";
-  const targetPort = targetSpec.inputs.find((port) => port.id === targetHandle);
   if (!targetPort) {
     return {
       valid: false,
-      reason: `Target model "${targetSpec.name}" has no input port "${targetHandle}"`,
+      reason: `Target ${targetLabel} has no input port "${targetHandle}"`,
     };
   }
 
@@ -232,6 +255,12 @@ function extractMediaUrl(sourceNode: CanvasNode): string | undefined {
   if (sourceNode.type === "model") {
     const trimmed = sourceNode.data.outputUrl?.trim();
     return trimmed ? trimmed : undefined;
+  }
+  if (sourceNode.type === "character") {
+    const generated = sourceNode.data.outputUrl?.trim();
+    if (generated) return generated;
+    const preview = sourceNode.data.mediaUrl?.trim();
+    return preview ? preview : undefined;
   }
   return undefined;
 }
@@ -414,7 +443,7 @@ export function mergeCanvasNodeSnapshots(
   const previousById = new Map(existing.map((node) => [node.id, node]));
   return incoming.map((node) => {
     const previous = previousById.get(node.id);
-    if (!previous || previous.type !== "model" || node.type !== "model") {
+    if (!previous || previous.type !== node.type || (node.type !== "model" && node.type !== "character")) {
       return node;
     }
     const previousUrl = previous.data.outputUrl?.trim();

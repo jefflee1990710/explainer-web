@@ -11,6 +11,7 @@ import {
   summarizeCanvasAgentOps,
 } from "@/app/app/canvas/agent/canvas-agent-copy";
 import { CanvasAgentQuestion } from "@/app/app/canvas/agent/canvas-agent-question";
+import { CanvasAgentReadme } from "@/app/app/canvas/agent/canvas-agent-readme";
 
 export function CanvasAgentMessage({
   copy,
@@ -79,7 +80,7 @@ export function CanvasAgentMessage({
                 : "border-white/10 bg-white/5 text-white/90"
             }`}
           >
-            <p className="whitespace-pre-wrap">{text}</p>
+            {text ? <CanvasAgentReadme text={text} /> : null}
             {variant === "error" && onRetry ? (
               <button
                 type="button"

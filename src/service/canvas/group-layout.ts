@@ -1,12 +1,15 @@
 // Pure: column layout for a group of new canvas nodes, ordered by wiring depth.
 
+import type { CanvasNodeType } from "@/model/canvas";
+
 export type LayoutSize = { width: number; height: number };
 
 // Used before React Flow has measured the cards.
-export const GROUP_ESTIMATED_SIZE: Record<"prompt" | "media" | "model", LayoutSize> = {
+export const GROUP_ESTIMATED_SIZE: Record<CanvasNodeType, LayoutSize> = {
   prompt: { width: 280, height: 220 },
   media: { width: 260, height: 280 },
   model: { width: 312, height: 480 },
+  character: { width: 280, height: 520 },
 };
 
 const GAP_X = 90;
