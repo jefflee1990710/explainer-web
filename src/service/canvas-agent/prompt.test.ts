@@ -45,5 +45,6 @@ describe("canvas agent prompt", () => {
     assert.match(text, /batch_delete_nodes/);
     assert.match(text, /batch_update_nodes/);
     assert.match(text, /batch_add_nodes/);
+    assert.match(text, /call replace_explainer once/);
   });
 });

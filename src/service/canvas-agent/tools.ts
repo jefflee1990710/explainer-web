@@ -31,6 +31,11 @@ import {
   runBatchUpdateNodes,
 } from "@/service/canvas-agent/batch-tools";
 import {
+  type ReplaceExplainerInput,
+  replaceExplainer,
+  soleCanvasCharacterId,
+} from "@/service/canvas-agent/explainer-replace";
+import {
   buildAgentScroGroup,
   SCRO_GROUP_MODEL_IDS,
   SCRO_GROUP_TOOLS,
@@ -318,11 +323,20 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     if (spec.id === "scro:explainer") {
       const topic = (input.prompt ?? input.promptText ?? "").trim();
       if (!topic) return { error: "scro:explainer needs the topic or script in \"prompt\"." };
+      // With no character named, reuse the one character already on the canvas.
+      const characterId =
+        typeof input.toolParams?.characterId === "string" && input.toolParams.characterId.trim()
+          ? undefined
+          : soleCanvasCharacterId(g, g.nodes);
       return addNode(g, "model", {
         modelId: spec.id,
         aspectRatio: input.aspectRatio ?? "9:16",
         prompt: topic,
-        toolParams: { ...(input.toolParams ?? {}), plannerMode: true },
+        toolParams: {
+          ...(characterId ? { characterId } : {}),
+          ...(input.toolParams ?? {}),
+          plannerMode: true,
+        },
         status: "idle",
       });
     }
@@ -551,6 +565,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return { ok: true };
   },
 
+  replace_explainer(g: CanvasAgentWorkingGraph, input: ReplaceExplainerInput): CanvasAgentToolResult {
+    return replaceExplainer(g, input, CANVAS_AGENT_MAX_ADDED_NODES);
+  },
+
   batch_delete_nodes(
     g: CanvasAgentWorkingGraph,
     input: { nodeIds: string[] },
@@ -760,6 +778,26 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       description: "Delete one node and its edges. Prefer batch_delete_nodes when removing 2+ nodes.",
       inputSchema: z.object({ nodeId: z.string() }),
       execute: async (input) => H.delete_node(g, input),
+    }),
+    replace_explainer: tool({
+      description:
+        "Replace an Explainer already on the canvas (its expanded exp-<prefix>-* rows or its planning card) with a new topic or full script in ONE step. Removes the whole old group and adds a new free planning card in the same place, keeping the character (e.g. Jim), language, director style, and frame shape unless you override them.",
+      inputSchema: z.object({
+        prompt: z.string().min(1).max(4000).describe("New topic or the user's full script, copied as given."),
+        nodeId: z.string().optional().describe("Any node of the Explainer to replace. Needed only when the canvas has several."),
+        characterId: z.string().optional().describe("Only when the user asks for a different character."),
+        language: z.enum(["yue", "zh", "en"]).optional(),
+        skillSlug: z
+          .enum([
+            "cartoon-explainer-video-director",
+            "paper-cutout-explainer-video-director",
+            "papercraft-diorama-director",
+          ])
+          .optional(),
+        durationPreset: z.enum(["15s", "30s", "45s", "60s"]).optional(),
+        aspectRatio: aspectRatio.optional(),
+      }),
+      execute: async (input) => H.replace_explainer(g, input),
     }),
     batch_delete_nodes: tool({
       description:

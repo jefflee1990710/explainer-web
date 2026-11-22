@@ -67,7 +67,9 @@ export function buildCanvasAgentSystemPrompt(input: {
   - tool "talking-head": script in "prompt", "characterId", optional "language" and "framing" ("collarbone-close" | "waist-up" | "handheld-selfie" | "full-body"). Use it only when the user asks the character to speak to camera (口播 / talking head). It lands as a free planning card that turns into an opening still plus per-clip TTS → HeyGen Avatar IV → Smooth Silence → Color Grade rows and an FFmpeg Concat. Tell the user it is planning (free) and to press Run Flow once the nodes appear.
 - Scro Tool Nodes:
   - "scro:explainer": takes a topic/script ("prompt") and optional "toolParams.characterId" (from list_assets().characters; that character appears in every scene as the on-screen teacher), "skillSlug" ("cartoon-explainer-video-director" | "paper-cutout-explainer-video-director" | "papercraft-diorama-director"), "language" ("yue"|"zh"|"en"), "durationPreset" ("15s"|"30s"|"45s"|"60s"). When the user asks for an explainer (解說片 / explain what X is), use "scro:explainer" directly, with "characterId" when they name a character; do not ask whether they want a talking head instead. Use add_scro_group tool "talking-head" only when they ask the character to speak to camera (口播 / talking head). Put the full topic or script in its "prompt" and do not wire anything into or out of it. It lands as a temporary planning card and the canvas starts free storyboard planning automatically right after your turn; within a few minutes the card turns into per-clip reference images → Nano Banana 2.1 still → MiniMax Hailuo 3 → Audio Mux ← TTS rows and an FFmpeg Concat. Tell the user it is planning (free) and that they press Run Flow once the nodes appear. Never build those rows yourself or add "scro:explainer-frame".
-  - Updating an expanded Explainer ("exp-<prefix>-*" nodes) or Talking Head ("th-<prefix>-*" nodes): for small tweaks to existing clips (spoken lines, language, duration, or visual wording), call batch_update_nodes on those nodes in one step. When the user replaces the topic, full script/transcript, or clip structure, read characterId and language from the existing voice-* (scro:tts) toolParams and aspectRatio from frame-* in # Current canvas, call batch_delete_nodes once with all "exp-<prefix>-*" (or "th-<prefix>-*") ids of that group, then add one new "scro:explainer" card (or add_scro_group tool "talking-head") with the new script so free planning rebuilds every scene, motion prompt, and voice line cleanly.
+  - Updating an Explainer already on the canvas ("exp-<prefix>-*" nodes, or a scro:explainer planning card): when the user gives a new topic, script, or transcript, or says "update / change the explainer", call replace_explainer once with the new content in "prompt" and stop calling tools. It removes the whole old group and plans the new script with the same explainer structure (reference images → Nano Banana still → Hailuo → Audio Mux ← TTS → Concat) and the same character, language, style, and frame shape. Never rebuild an Explainer by hand from image, video, or TTS nodes, never keep some old clips as the "new" ones, and never delete its nodes one by one. Only for small wording tweaks to existing clips (one spoken line, one visual detail) use batch_update_nodes in one step.
+  - Characters already on the canvas: when a character's photo (for example Jim) is on the canvas and the user does not name another one, reuse that character's characterId for scro:explainer, Talking Head, and TTS. replace_explainer and add_model_node do this for you when there is exactly one.
+  - Updating a Talking Head ("th-<prefix>-*" nodes) with a new script: read characterId, language, and framing from its voice-* and frame-* nodes, call batch_delete_nodes once with every "th-<prefix>-*" id, then add_scro_group tool "talking-head" with the new script.
   - "scro:tts": script in "prompt", optional "toolParams.characterId" (cloned voice), "language", "voicePreset", "ttsSpeed".
 - FFmpeg Nodes ($0.00): "ffmpeg:concat", "ffmpeg:audio-mux", "ffmpeg:trim-speed", "ffmpeg:transform", "ffmpeg:extract-audio", "ffmpeg:color-grade" ("toolParams.gradeLook": "jutsu" | "talking-head" | "talking-head-selfie"), "ffmpeg:smooth-silence" (trims long pauses).
 - A model with no connected prompt node uses its inline prompt field.
@@ -126,11 +128,16 @@ export function buildCanvasAgentSummaryPrompt(input: {
     input.hitStepLimit &&
     input.graph.addedNodes === 0 &&
     input.graph.ops.some((op) => op.kind === "remove_node");
+  const addedPlanner = input.graph.ops.some(
+    (op) => op.kind === "add_node" && op.node.data.toolParams?.plannerMode === true,
+  );
   const missing = input.gapLines
     ? `\n# Still missing\n${input.gapLines}\nSay plainly which node still needs which input and what the user can add (for example upload a photo). Do not say it is ready.\n`
     : removedOnly
       ? `\n# Step limit reached\nYou ran out of tool steps after removing old nodes and before adding the replacement nodes. State plainly what was removed and ask the user to reply "continue" to finish adding the new nodes. Do not say the canvas is ready to Run.\n`
-      : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
+      : addedPlanner
+        ? "\nA planning card is planning for free. Say that its scene rows appear in a few minutes and the user presses Run Flow once they do.\n"
+        : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
   return `You are the Scro canvas assistant. You have no more tool calls this turn.
 Summarize what is on the canvas now, in run order, and the estimated cost when it runs.
 Plain text only: short sentences, or lines starting with "1." / "•". No Markdown symbols, no node ids.
