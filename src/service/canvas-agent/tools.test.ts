@@ -38,7 +38,8 @@ describe("canvas agent tools", () => {
     const res = T.list_models(fresh()) as { models: string[] };
     assert.ok(res.models.length >= 22);
     assert.ok(res.models.every((line) => !line.startsWith("mentalok:")));
-    assert.ok(res.models.some((line) => line.startsWith("scro:talking-head |")));
+    assert.ok(res.models.every((line) => !line.startsWith("scro:talking-head |")));
+    assert.ok(res.models.every((line) => !line.startsWith("scro:life |")));
     assert.ok(res.models.some((line) => line.startsWith("scro:tts |")));
     assert.ok(res.models.some((line) => line.startsWith("ffmpeg:concat |")));
     assert.ok(res.models.some((line) => line.startsWith("ffmpeg:audio-mux |")));
@@ -72,13 +73,12 @@ describe("canvas agent tools", () => {
       toolParams: { language: "yue", voicePreset: "alan" },
     }) as { nodeId: string };
     const th = T.add_model_node(g, {
-      modelId: "scro:talking-head",
+      modelId: "openrouter:heygen/avatar-iv",
       aspectRatio: "9:16",
-      toolParams: { characterId: "char-1", language: "yue" },
     }) as { nodeId: string };
-    assert.deepEqual(
-      (g.nodes.find((n) => n.id === th.nodeId)?.data.toolParams as Record<string, unknown>)?.characterId,
-      "char-1",
+    assert.equal(
+      (g.nodes.find((n) => n.id === tts.nodeId)?.data.toolParams as Record<string, unknown>)?.voicePreset,
+      "alan",
     );
 
     const eAudio = T.connect(g, { sourceId: tts.nodeId, targetId: th.nodeId, targetPort: "refAudio" });
@@ -108,10 +108,94 @@ describe("canvas agent tools", () => {
     assert.ok("error" in badParam);
 
     const badChar = T.add_model_node(g, {
-      modelId: "scro:talking-head",
+      modelId: "scro:tts",
+      prompt: "Hi",
       toolParams: { characterId: "missing-char-999" },
     });
     assert.ok("error" in badChar);
+  });
+
+  it("sends the five Scro group tools to add_scro_group", () => {
+    const g = fresh();
+    for (const modelId of ["scro:life", "scro:poster", "scro:swap", "scro:teleport", "scro:talking-head"]) {
+      const res = T.add_model_node(g, { modelId, prompt: "x" }) as { error?: string };
+      assert.match(res.error ?? "", /add_scro_group/);
+    }
+    assert.equal(g.ops.length, 0);
+  });
+
+  it("add_scro_group builds a wired Life group as add_node / add_edge ops", () => {
+    const g = fresh();
+    const res = T.add_scro_group(g, { tool: "life", characterId: "char-1", prompt: "cafe window" }) as {
+      ok: boolean;
+      nodeIds: string[];
+      outputNodeId: string;
+    };
+    assert.equal(res.ok, true);
+    assert.equal(res.nodeIds.length, 3);
+    assert.equal(g.ops.filter((o) => o.kind === "add_node").length, 3);
+    assert.equal(g.ops.filter((o) => o.kind === "add_edge").length, 2);
+    assert.equal(g.nodes.find((n) => n.id === res.outputNodeId)?.data.modelId, SEEDREAM);
+    assert.equal(g.addedNodes, 3);
+  });
+
+  it("add_scro_group wires Swap from an existing canvas video without a new video node", () => {
+    const g = fresh([
+      {
+        id: "clip",
+        type: "media",
+        position: { x: 0, y: 0 },
+        data: { mediaKind: "video", mediaUrl: "https://blob.example/clip.mp4" },
+      },
+    ]);
+    const res = T.add_scro_group(g, {
+      tool: "swap",
+      videoNodeId: "clip",
+      characterId: "char-1",
+      sectionLength: 9,
+    }) as { ok: boolean; nodeIds: string[] };
+    assert.equal(res.ok, true);
+    assert.ok(!res.nodeIds.includes("clip"));
+    assert.ok(g.edges.some((e) => e.source === "clip" && e.targetHandle === "video"));
+    const render = g.nodes.find((n) => n.data.modelId === "scro:swap-render");
+    assert.equal(render?.data.durationSeconds, 9);
+  });
+
+  it("add_scro_group names the missing field", () => {
+    const g = fresh();
+    assert.match(String(T.add_scro_group(g, { tool: "life" }).error), /characterId/);
+    assert.match(String(T.add_scro_group(g, { tool: "swap", characterId: "char-1" }).error), /videoNodeId/);
+    assert.match(String(T.add_scro_group(g, { tool: "teleport", videoAssetId: "nope" }).error), /nope/);
+    assert.match(String(T.add_scro_group(g, { tool: "talking-head", characterId: "char-1" }).error), /script/);
+    assert.equal(g.ops.length, 0);
+  });
+
+  it("add_scro_group adds a Talking Head planning card with no wires", () => {
+    const g = fresh();
+    const res = T.add_scro_group(g, {
+      tool: "talking-head",
+      characterId: "char-1",
+      prompt: "Hi everyone",
+      framing: "waist-up",
+    }) as { nodeId: string };
+    const card = g.nodes.find((n) => n.id === res.nodeId)!;
+    assert.equal(card.data.modelId, "scro:talking-head");
+    assert.deepEqual(card.data.toolParams, {
+      plannerMode: true,
+      characterId: "char-1",
+      language: "yue",
+      framing: "waist-up",
+    });
+    assert.equal(g.edges.length, 0);
+  });
+
+  it("add_scro_group never adds part of a group past the node limit", () => {
+    const g = fresh();
+    g.addedNodes = CANVAS_AGENT_MAX_ADDED_NODES - 2;
+    const res = T.add_scro_group(g, { tool: "life", characterId: "char-1", prompt: "park" });
+    assert.match(String(res.error), /limit/);
+    assert.equal(g.ops.length, 0);
+    assert.equal(g.nodes.length, 0);
   });
 
   it("builds prompt → image and logs ops in order", () => {

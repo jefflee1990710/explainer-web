@@ -20,6 +20,12 @@ import type {
   CanvasLibraryCharacterOption,
 } from "@/service/canvas/projects";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
+import {
+  buildAgentScroGroup,
+  SCRO_GROUP_MODEL_IDS,
+  SCRO_GROUP_TOOLS,
+  type ScroGroupToolInput,
+} from "@/service/canvas-agent/scro-group-tool";
 
 export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
 export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
@@ -144,7 +150,11 @@ function validateToolParamsForModel(
 
 function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
   return g.catalog.filter(
-    (spec) => spec.provider !== "mentalok" && spec.available !== false && !spec.hiddenInSidebar,
+    (spec) =>
+      spec.provider !== "mentalok" &&
+      spec.available !== false &&
+      !spec.hiddenInSidebar &&
+      !SCRO_GROUP_MODEL_IDS.includes(spec.id),
   );
 }
 
@@ -283,6 +293,11 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     if (findCanvasModel(input.modelId, g.catalog)?.hiddenInSidebar) {
       return { error: `${input.modelId} is created by Explainer planning; add scro:explainer instead.` };
     }
+    if (SCRO_GROUP_MODEL_IDS.includes(input.modelId)) {
+      return {
+        error: `${input.modelId} is built as a visible node group. Call add_scro_group with tool "${input.modelId.slice("scro:".length)}" instead.`,
+      };
+    }
     const spec = agentModels(g).find((s) => s.id === input.modelId);
     if (!spec) {
       return { error: `Unknown model "${input.modelId}". Call list_models and use an exact id.` };
@@ -361,6 +376,51 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       mediaKind: asset.mediaKind,
       mediaUrl: asset.url,
     });
+  },
+
+  add_scro_group(g: CanvasAgentWorkingGraph, input: ScroGroupToolInput): CanvasAgentToolResult {
+    const aspect = input.aspectRatio ?? "9:16";
+    const text = input.prompt?.trim() ?? "";
+
+    if (input.tool === "talking-head") {
+      if (!text) return { error: "talking-head needs the script in \"prompt\"." };
+      if (!input.characterId) return { error: "talking-head needs characterId from list_assets().characters." };
+      if (!g.characters.some((c) => c.id === input.characterId)) {
+        return { error: `Unknown characterId "${input.characterId}". Call list_assets() and use an exact id.` };
+      }
+      // Planning card: the canvas plans it for free right after this turn, then expands it.
+      return addNode(g, "model", {
+        modelId: "scro:talking-head",
+        aspectRatio: aspect,
+        prompt: text,
+        toolParams: {
+          plannerMode: true,
+          characterId: input.characterId,
+          language: input.language ?? "yue",
+          framing: input.framing ?? "collarbone-close",
+        },
+        status: "idle",
+      });
+    }
+
+    const built = buildAgentScroGroup(g, input, aspect, text);
+    if ("error" in built) return { error: built.error };
+    const group = built.group;
+    if (g.addedNodes + group.nodes.length > CANVAS_AGENT_MAX_ADDED_NODES) {
+      return {
+        error: `This group adds ${group.nodes.length} nodes, over the limit of ${CANVAS_AGENT_MAX_ADDED_NODES} new nodes per message.`,
+      };
+    }
+    for (const node of group.nodes) {
+      g.nodes.push(node);
+      g.ops.push({ kind: "add_node", node });
+    }
+    g.addedNodes += group.nodes.length;
+    for (const edge of group.edges) {
+      g.edges.push(edge);
+      g.ops.push({ kind: "add_edge", edge });
+    }
+    return { ok: true, nodeIds: group.nodes.map((n) => n.id), outputNodeId: group.outputNodeId };
   },
 
   update_node(
@@ -606,6 +666,36 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
           .describe("Tool-specific parameters such as characterId, language, skillSlug, swapMode, ffmpegTransition, ffmpegMixMode."),
       }),
       execute: async (input) => H.add_model_node(g, input),
+    }),
+    add_scro_group: tool({
+      description:
+        "Build a Scro tool (life, poster, swap, teleport, talking-head) as visible, wired nodes in one call. Talking-head lands as a free planning card that expands into voice → HeyGen → grade rows.",
+      inputSchema: z.object({
+        tool: z.enum(SCRO_GROUP_TOOLS),
+        characterId: z.string().optional().describe("From list_assets().characters."),
+        productId: z.string().optional().describe("Product asset id from list_assets() (poster)."),
+        videoNodeId: z.string().optional().describe("Canvas node whose output is the source video (swap, teleport)."),
+        videoAssetId: z.string().optional().describe("Video asset id when the source is not on the canvas yet."),
+        sceneNodeId: z.string().optional().describe("Canvas image node for the teleport scene."),
+        sceneAssetId: z.string().optional().describe("Image asset id for the teleport scene."),
+        sceneText: z.string().max(1000).optional().describe("Teleport scene described in words when no photo."),
+        referenceAssetId: z.string().optional().describe("Swap reference image asset id (instead of characterId)."),
+        prompt: z
+          .string()
+          .max(4000)
+          .optional()
+          .describe("life: scene. poster: design prompt. swap: edit / change-to / light prompt. teleport: mood. talking-head: script."),
+        mode: z.enum(["character", "object", "relight", "colorfix"]).optional().describe("swap only. Default character."),
+        objectTarget: z.string().optional(),
+        objectEditMode: z.enum(["change", "add", "remove"]).optional(),
+        lightLookId: z.string().optional(),
+        sectionStart: z.number().optional().describe("Seconds into the source video (swap, teleport)."),
+        sectionLength: z.number().optional().describe("2–15 seconds rendered (swap, teleport). Default 6."),
+        language: z.enum(["yue", "zh", "en"]).optional().describe("talking-head only."),
+        framing: z.enum(["collarbone-close", "waist-up", "handheld-selfie", "full-body"]).optional(),
+        aspectRatio: aspectRatio.optional(),
+      }),
+      execute: async (input) => H.add_scro_group(g, input),
     }),
     add_media_node: tool({
       description: "Add a media node from one of the user's assets (see list_assets).",

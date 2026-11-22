@@ -28,8 +28,12 @@ describe("canvas agent prompt", () => {
   it("lists OpenRouter, Scro, and FFmpeg models and the current nodes", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "en", graph: graph() });
     assert.match(text, /openrouter:minimax\/hailuo-3/);
-    assert.match(text, /scro:talking-head/);
+    assert.match(text, /scro:tts/);
+    assert.match(text, /add_scro_group/);
+    assert.match(text, /tool "talking-head"/);
+    assert.doesNotMatch(text, /^scro:life \|/m);
     assert.match(text, /ffmpeg:concat/);
+    assert.match(text, /ffmpeg:smooth-silence/);
     assert.match(text, /prompt-abc/);
     assert.doesNotMatch(text, /mentalok:/);
   });
