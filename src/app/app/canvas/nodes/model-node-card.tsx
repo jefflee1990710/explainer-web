@@ -396,7 +396,9 @@ export function ModelNodeCard({
             {spec.category === "video" ||
             spec.id === "scro:talking-head" ||
             spec.id === "scro:swap" ||
-            spec.id === "scro:teleport" ? (
+            spec.id === "scro:teleport" ||
+            spec.id === "scro:swap-render" ||
+            spec.id === "scro:teleport-render" ? (
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-white/50">
                   {isZh ? "秒數" : "Duration"} ({durationSeconds}s)
@@ -420,7 +422,9 @@ export function ModelNodeCard({
         )}
 
         {/* Scro Tool & FFmpeg Node Controls */}
-        {spec.provider === "scro" && spec.id !== "scro:explainer-frame" ? (
+        {spec.provider === "scro" &&
+        spec.id !== "scro:explainer-frame" &&
+        spec.id !== "scro:teleport-render" ? (
           <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
             {(spec.id === "scro:talking-head" ||
               spec.id === "scro:explainer" ||
@@ -562,7 +566,7 @@ export function ModelNodeCard({
               </div>
             ) : null}
 
-            {spec.id === "scro:swap" ? (
+            {spec.id === "scro:swap" || spec.id === "scro:swap-render" ? (
               <div className="space-y-1.5">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-white/50">
@@ -576,7 +580,9 @@ export function ModelNodeCard({
                     <option value="character">{isZh ? "角色替換 (Character)" : "Character Swap"}</option>
                     <option value="object">{isZh ? "物件／穿搭替換 (Object)" : "Object / Outfit"}</option>
                     <option value="relight">{isZh ? "電影打光 (Relight)" : "Relight Video"}</option>
-                    <option value="colorfix">{isZh ? "H3 Soft 調色" : "H3 Soft Color Fix"}</option>
+                    {spec.id === "scro:swap" ? (
+                      <option value="colorfix">{isZh ? "H3 Soft 調色" : "H3 Soft Color Fix"}</option>
+                    ) : null}
                   </select>
                 </div>
                 {toolParams.swapMode === "object" ? (

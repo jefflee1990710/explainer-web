@@ -107,4 +107,16 @@ describe("canvas USD pricing", () => {
     assert.equal(frame.hiddenInSidebar, true);
     assert.equal(estimateCanvasModelCostUsd(frame), 0.15);
   });
+
+  it("prices swap-render like Swap and teleport-render without the plate image", () => {
+    const swapRender = findCanvasModel("scro:swap-render");
+    const teleportRender = findCanvasModel("scro:teleport-render");
+    assert.ok(swapRender && teleportRender);
+    assert.equal(swapRender.hiddenInSidebar, true);
+    assert.equal(teleportRender.hiddenInSidebar, true);
+    assert.equal(estimateCanvasModelCostUsd(swapRender, { durationSeconds: 6 }), 0.75);
+    assert.equal(estimateCanvasModelCostUsd(teleportRender, { durationSeconds: 6 }), 0.6);
+    assert.equal(estimateCanvasModelCostUsd(teleportRender, { durationSeconds: 20 }), 1.5);
+    assert.equal(estimateCanvasModelCostUsd(teleportRender, { durationSeconds: 1 }), 0.2);
+  });
 });

@@ -375,8 +375,10 @@ export async function submitScroAsyncNode(
     return submitExplainerFrame({ clerkUserId, node, prompt });
   }
 
-  if (modelId === "scro:swap") {
+  if (modelId === "scro:swap" || modelId === "scro:swap-render") {
     if (!inputs.video) throw new Error("Scro Swap 需要連接輸入影片");
+    // Render steps leave the grade to the group's FFmpeg Color Grade node.
+    const applyColorFix = modelId === "scro:swap";
     const rawMode = readToolParamStr(node, "swapMode") ?? "character";
     const modeMap: Record<string, JutsuMode> = {
       character: "character_swap",
@@ -405,7 +407,7 @@ export async function submitScroAsyncNode(
         objectTarget,
         objectChangeTo: mode === "object_swap" ? inputs.prompt : undefined,
         keepSourceAudio: true,
-        applyColorFix: true,
+        applyColorFix,
       },
       { skipBilling: true },
     );
@@ -413,8 +415,11 @@ export async function submitScroAsyncNode(
     return { domainKind: "jutsu", externalJobId: res.job.id };
   }
 
-  if (modelId === "scro:teleport") {
+  if (modelId === "scro:teleport" || modelId === "scro:teleport-render") {
     if (!inputs.video) throw new Error("Teleport 需要連接輸入影片");
+    if (modelId === "scro:teleport-render" && !inputs.image) {
+      throw new Error("Teleport 需要連接場景圖");
+    }
     const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
     const res = await startTeleportForUser(
       clerkUserId,
@@ -426,7 +431,7 @@ export async function submitScroAsyncNode(
         sceneImageUrl: inputs.image,
         scenePrompt: inputs.prompt,
         keepSourceAudio: true,
-        applyColorFix: true,
+        applyColorFix: modelId === "scro:teleport",
       },
       { skipBilling: true },
     );

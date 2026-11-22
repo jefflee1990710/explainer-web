@@ -315,6 +315,72 @@ describe("scro canvas dispatch — skipBilling, autoProduceAllClips & polling", 
     ]);
   });
 
+  it("runs swap-render on the whole input without the final grade", async () => {
+    let seen: Record<string, unknown> | undefined;
+    const out = await submitScroAsyncNode(
+      {
+        clerkUserId: "u1",
+        canvasIdHex: new ObjectId().toHexString(),
+        jobIdHex: "job-sr",
+        modelId: "scro:swap-render",
+        node: makeNode("sr1", "scro:swap-render", {
+          durationSeconds: 9,
+          toolParams: { swapMode: "object", objectTarget: "jacket" },
+        }),
+        inputs: emptyInputs({ video: "https://blob.example/trim.mp4", prompt: "red jacket" }),
+      },
+      {
+        startSwapForUser: async (_uid, input) => {
+          seen = input as unknown as Record<string, unknown>;
+          return { ok: true, job: { id: "jutsu-2" } as never };
+        },
+      },
+    );
+    assert.deepEqual(out, { domainKind: "jutsu", externalJobId: "jutsu-2" });
+    assert.equal(seen?.mode, "object_swap");
+    assert.equal(seen?.sectionStart, 0);
+    assert.equal(seen?.sectionLength, 9);
+    assert.equal(seen?.applyColorFix, false);
+    assert.equal(seen?.objectChangeTo, "red jacket");
+  });
+
+  it("runs teleport-render with the wired scene and no final grade", async () => {
+    let seen: Record<string, unknown> | undefined;
+    const base = {
+      clerkUserId: "u1",
+      canvasIdHex: new ObjectId().toHexString(),
+      jobIdHex: "job-tr",
+      modelId: "scro:teleport-render",
+      node: makeNode("tr1", "scro:teleport-render", { durationSeconds: 5, aspectRatio: "9:16" }),
+    };
+    const deps = {
+      startTeleportForUser: async (_uid: string, input: unknown) => {
+        seen = input as Record<string, unknown>;
+        return { ok: true as const, job: { id: "tp-2" } as never };
+      },
+    };
+    await assert.rejects(
+      submitScroAsyncNode({ ...base, inputs: emptyInputs({ video: "https://blob.example/v.mp4" }) }, deps),
+      /場景/,
+    );
+    const out = await submitScroAsyncNode(
+      {
+        ...base,
+        inputs: emptyInputs({
+          video: "https://blob.example/v.mp4",
+          image: "https://blob.example/scene.png",
+          prompt: "golden hour",
+        }),
+      },
+      deps,
+    );
+    assert.deepEqual(out, { domainKind: "teleport", externalJobId: "tp-2" });
+    assert.equal(seen?.sceneImageUrl, "https://blob.example/scene.png");
+    assert.equal(seen?.scenePrompt, "golden hour");
+    assert.equal(seen?.sectionLength, 5);
+    assert.equal(seen?.applyColorFix, false);
+  });
+
   it("rejects scro:life when characterId does not resolve to an owned blueprint", async () => {
     await assert.rejects(
       () =>

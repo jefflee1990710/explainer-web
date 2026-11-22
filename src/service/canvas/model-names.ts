@@ -38,6 +38,18 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "Teleport 背景チェンジ",
     ko: "Teleport 배경 전환",
   },
+  "scro:swap-render": {
+    "zh-Hant": "Scro Swap 換角渲染",
+    "zh-Hans": "Scro Swap 换角渲染",
+    ja: "Scro Swap 差し替えレンダー",
+    ko: "Scro Swap 교체 렌더",
+  },
+  "scro:teleport-render": {
+    "zh-Hant": "Teleport 換場渲染",
+    "zh-Hans": "Teleport 换场渲染",
+    ja: "Teleport 背景レンダー",
+    ko: "Teleport 배경 렌더",
+  },
   "scro:life": {
     "zh-Hant": "Life 生活照",
     "zh-Hans": "Life 生活照",

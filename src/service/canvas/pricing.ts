@@ -10,6 +10,7 @@ import {
   scroSwapCostUsd,
   talkingHeadVideoCostUsd,
   teleportCostUsd,
+  VIDEO_COST_PER_SECOND_USD,
   videoCostUsd,
 } from "@/service/credit-costs";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
@@ -75,9 +76,16 @@ export function estimateCanvasModelCostUsd(
       case "scro:explainer":
         return explainerEstimatedCostUsd(duration);
       case "scro:swap":
+      case "scro:swap-render":
         return scroSwapCostUsd({ durationSeconds: duration, mediaKind: "video" });
       case "scro:teleport":
         return teleportCostUsd({ durationSeconds: duration });
+      case "scro:teleport-render":
+        // The scene image comes from a wired node, so no plate charge here.
+        return mulUsd(
+          VIDEO_COST_PER_SECOND_USD,
+          Math.min(15, Math.max(2, Math.round(duration))),
+        );
       default:
         return spec.basePriceUsd;
     }
