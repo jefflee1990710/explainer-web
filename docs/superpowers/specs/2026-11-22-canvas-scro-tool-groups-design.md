@@ -109,7 +109,7 @@ Dialog: character (required), script, language, framing (`collarbone-close` / `w
 - One `scro:director-frame` feeds every clip (later clips follow Clip 1's start, as in the director).
 - `color-grade` uses `talking-head-selfie` when framing is `handheld-selfie`.
 - No concat when there is one clip; concat chains every 8 inputs like Explainer.
-- Layout in `talking-head-layout.ts`: the still on the left, one row per clip, TTS under its HeyGen node.
+- Layout uses the generic depth layout (`group-layout.ts`) shared by every group: the still and TTS nodes in the first column, then HeyGen, smooth silence, grade, and concat columns.
 - No re-plan: delete the group and drop again.
 
 ## Section 4: Pricing, legacy, assistant, errors, tests, docs
@@ -127,7 +127,7 @@ Assistant:
 Errors:
 
 - Dialogs validate required fields before submit.
-- `swap-render` / `teleport-render` reject inputs longer than 15s and tell the user to adjust the trim node. Missing Comfy shows on the node (Teleport fails, Swap falls back to the cloud path).
+- `swap-render` / `teleport-render` use the node's `durationSeconds` (the dialog's trim length, clamped 2–15s) as the section from 0s, so a longer input is cut to that length. Missing Comfy shows on the node (Teleport fails, Swap falls back to the cloud path).
 - Talking Head plan failures show on the card with retry and remove.
 
 Tests (pure functions and mocks, no paid provider calls):
