@@ -18,6 +18,7 @@ import type { JutsuMode, JutsuObjectEditMode } from "@/model/jutsu-job";
 import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/project";
 import type { ResolvedCanvasInputs } from "@/service/canvas/graph";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/explainer-frame";
+import { buildLifePhotoPrompt } from "@/service/canvas/scro-groups/life";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
 import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
@@ -285,10 +286,7 @@ export async function executeScroSyncNode(
     if (characterId && !blueprintUrl) {
       throw new Error("找不到指定角色或角色定裝圖尚未完成");
     }
-    const scene = params.inputs.prompt?.trim() || "Candid natural daylight lifestyle portrait";
-    const prompt =
-      `Candid lifestyle photograph of the reference character. Scene and mood: ${scene}. ` +
-      `Natural candid framing, authentic textures, soft realistic lighting.`;
+    const prompt = buildLifePhotoPrompt(params.inputs.prompt ?? "");
     const res = await resolved.submitImage({
       model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
       prompt,
