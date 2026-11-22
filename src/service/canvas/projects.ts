@@ -11,6 +11,7 @@ import {
 } from "@/dao";
 import {
   type CanvasEdge,
+  type CanvasGroup,
   type CanvasJob,
   type CanvasJobStatus,
   type CanvasNode,
@@ -18,11 +19,13 @@ import {
   type CanvasProject,
   type CanvasViewport,
   canvasEdgeSchema,
+  canvasGroupSchema,
   canvasNodeSchema,
   canvasViewportSchema,
 } from "@/model/canvas";
 import type { Character } from "@/model/character";
 import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
+import { canvasGroupsForProject } from "@/service/canvas/groups";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 
 export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
@@ -54,6 +57,7 @@ export type CanvasProjectDto = {
   viewport: CanvasViewport;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups: CanvasGroup[];
   activeFlowRun?: CanvasFlowRunDto;
   createdAt: string;
   updatedAt: string;
@@ -114,12 +118,14 @@ export type SaveCanvasProjectPatch = {
   title?: string;
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
+  groups?: CanvasGroup[];
   viewport?: CanvasViewport;
   thumbnailUrl?: string;
 };
 
 const nodesArraySchema = z.array(canvasNodeSchema);
 const edgesArraySchema = z.array(canvasEdgeSchema);
+const groupsArraySchema = z.array(canvasGroupSchema).max(200);
 
 function normalizeCanvasTitle(raw?: string): string {
   const trimmed = (raw || "").trim();
@@ -136,6 +142,7 @@ export function serializeCanvasProject(project: CanvasProject): CanvasProjectDto
     viewport: project.viewport,
     nodes: project.nodes,
     edges: project.edges,
+    groups: canvasGroupsForProject(project.nodes, project.groups),
     ...(project.activeFlowRun
       ? {
           activeFlowRun: {
@@ -259,7 +266,7 @@ export async function getOrCreateDefaultCanvasProject(
   return createCanvasProject(clerkUserId);
 }
 
-// Saves partial updates (title, nodes, edges, viewport, thumbnailUrl) to an owned canvas.
+// Saves partial updates (title, nodes, edges, groups, viewport, thumbnailUrl) to an owned canvas.
 export async function saveCanvasProject(
   clerkUserId: string,
   canvasId: string,
@@ -292,6 +299,9 @@ export async function saveCanvasProject(
   }
   if (patch.edges !== undefined) {
     setFields.edges = edgesArraySchema.parse(patch.edges);
+  }
+  if (patch.groups !== undefined) {
+    setFields.groups = groupsArraySchema.parse(patch.groups);
   }
   if (patch.viewport !== undefined) {
     setFields.viewport = canvasViewportSchema.parse(patch.viewport);

@@ -128,3 +128,32 @@ describe("applyCanvasAgentOps", () => {
     assert.equal(res.graph.nodes[0]?.data.text, "a dog");
   });
 });
+
+describe("applyCanvasAgentOp — groups", () => {
+  const n = (id: string) => ({ id, type: "prompt" as const, position: { x: 0, y: 0 }, data: {} });
+  const group = { id: "g1", title: "G", color: "slate" as const, kind: "custom" as const, memberIds: ["a", "b"] };
+
+  it("adds a group with only the members that still exist", () => {
+    const res = applyCanvasAgentOp({ nodes: [n("a")], edges: [] }, { kind: "add_group", group });
+    assert.equal(res.applied, true);
+    assert.deepEqual(res.graph.groups?.[0]?.memberIds, ["a"]);
+    const none = applyCanvasAgentOp({ nodes: [], edges: [] }, { kind: "add_group", group });
+    assert.equal(none.applied, false);
+  });
+
+  it("prunes membership on remove_node and drops empty groups", () => {
+    const graph = { nodes: [n("a"), n("b")], edges: [], groups: [group] };
+    const one = applyCanvasAgentOp(graph, { kind: "remove_node", nodeId: "a" }).graph;
+    assert.deepEqual(one.groups?.[0]?.memberIds, ["b"]);
+    const two = applyCanvasAgentOp(one, { kind: "remove_node", nodeId: "b" }).graph;
+    assert.deepEqual(two.groups, []);
+  });
+
+  it("updates and removes groups, skipping unknown ids", () => {
+    const graph = { nodes: [n("a"), n("b")], edges: [], groups: [group] };
+    const renamed = applyCanvasAgentOp(graph, { kind: "update_group", groupId: "g1", patch: { title: "New" } });
+    assert.equal(renamed.graph.groups?.[0]?.title, "New");
+    assert.equal(applyCanvasAgentOp(graph, { kind: "remove_group", groupId: "nope" }).applied, false);
+    assert.deepEqual(applyCanvasAgentOp(graph, { kind: "remove_group", groupId: "g1" }).graph.groups, []);
+  });
+});

@@ -6,6 +6,7 @@ import type { WorkerTask } from "@/model/worker-task";
 import {
   executeCanvasFlowTask,
   executeCanvasNodeTask,
+  filterFlowWaves,
   startCanvasFlowRun,
   stopCanvasFlowRun,
 } from "@/service/canvas/worker-runner";
@@ -337,5 +338,14 @@ describe("canvas worker runner — multi-wave flow", () => {
     assert.equal(res.outcome, "completed");
     assert.equal(project.activeFlowRun?.status, "failed");
     assert.deepEqual(markedFailed, [{ nodeId: "img", error: "USD Credit 餘額不足" }]);
+  });
+});
+
+describe("filterFlowWaves", () => {
+  it("keeps only group members and drops empty waves", () => {
+    assert.deepEqual(
+      filterFlowWaves([["a", "x"], ["y"], ["b"]], ["a", "b"]),
+      [["a"], ["b"]],
+    );
   });
 });

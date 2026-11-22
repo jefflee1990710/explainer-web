@@ -110,5 +110,10 @@ export function summarizeCanvasAgentOps(ops: readonly CanvasAgentOp[], isZh: boo
   if (removed) chips.push(isZh ? `刪除 ${removed} 個節點` : `−${removed} node${removed > 1 ? "s" : ""}`);
   if (unlinked) chips.push(isZh ? `移除 ${unlinked} 條線` : `−${unlinked} link${unlinked > 1 ? "s" : ""}`);
   if (count("move_node")) chips.push(isZh ? "整理排版" : "Tidied layout");
+  const grouped = count("add_group");
+  if (grouped) chips.push(isZh ? `新增 ${grouped} 個群組` : `+${grouped} group${grouped > 1 ? "s" : ""}`);
+  if (count("update_group")) chips.push(isZh ? "更新群組" : "Updated group");
+  const ungrouped = count("remove_group");
+  if (ungrouped) chips.push(isZh ? `移除 ${ungrouped} 個群組` : `−${ungrouped} group${ungrouped > 1 ? "s" : ""}`);
   return chips;
 }

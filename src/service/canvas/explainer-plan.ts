@@ -2,7 +2,7 @@
 
 import { ObjectId } from "mongodb";
 import { canvasProjectsCollection, videosCollection } from "@/dao";
-import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import type { CanvasEdge, CanvasGroup, CanvasGroupKind, CanvasNode } from "@/model/canvas";
 import type { Project } from "@/model/project";
 import { buildExplainerExpansion, explainerVoicePreset } from "@/service/canvas/explainer-expand";
 import {
@@ -11,6 +11,7 @@ import {
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
 import { resolveNodeInputs } from "@/service/canvas/graph";
+import { defaultGroupColor, defaultGroupTitle, readGroupParams } from "@/service/canvas/groups";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import { type CanvasPlanFrameInputs, canvasPlanFrameInputs } from "@/service/canvas/plan-frame-inputs";
 import { buildTalkingHeadExpansion } from "@/service/canvas/scro-groups/talking-head";
@@ -28,6 +29,8 @@ export type CanvasExplainerPlanState =
       edges: CanvasEdge[];
       expandedNodeIds: string[];
       summary: string;
+      // Frame around the expanded nodes; its id is the node id prefix.
+      group: CanvasGroup;
     };
 
 async function loadPlanner(clerkUserId: string, canvasId: string, nodeId: string) {
@@ -91,6 +94,31 @@ function plannerLanguage(raw: unknown): "yue" | "zh" | "en" {
   return raw === "zh" || raw === "en" ? raw : "yue";
 }
 
+// Group for an expanded plan, keeping the planner card's settings for a later replace.
+function planGroup(params: {
+  id: string;
+  kind: CanvasGroupKind;
+  title: string | undefined;
+  plannerNode: CanvasNode;
+  memberIds: string[];
+  language: string;
+  framing?: string;
+}): CanvasGroup {
+  return {
+    id: params.id,
+    title: defaultGroupTitle(params.kind, params.title),
+    color: defaultGroupColor(params.kind),
+    kind: params.kind,
+    memberIds: params.memberIds,
+    params: {
+      ...readGroupParams([params.plannerNode]),
+      aspectRatio: params.plannerNode.data.aspectRatio ?? "9:16",
+      language: params.language,
+      ...(params.framing ? { framing: params.framing } : {}),
+    },
+  };
+}
+
 // Pure: maps the backing video to planning / failed / ready (with the expanded nodes).
 export function planStateFromVideo(params: {
   video: Project | null;
@@ -146,7 +174,16 @@ export function planStateFromVideo(params: {
         durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
       })),
     });
-    return { status: "ready", ...expansion, summary };
+    const group = planGroup({
+      id: params.idPrefix,
+      kind: "talking-head",
+      title: phaseA.localizedTitle || phaseA.englishTitle,
+      plannerNode,
+      memberIds: expansion.nodes.map((n) => n.id),
+      language,
+      framing: video.talkingHeadPoseId ?? "collarbone-close",
+    });
+    return { status: "ready", ...expansion, summary, group };
   }
 
   const expansion = buildExplainerExpansion({
@@ -168,7 +205,15 @@ export function planStateFromVideo(params: {
       refUrls: params.frameInputs?.refsByClip.get(clip.clipNumber),
     })),
   });
-  return { status: "ready", ...expansion, summary };
+  const group = planGroup({
+    id: params.idPrefix,
+    kind: "explainer",
+    title: phaseA.localizedTitle || phaseA.englishTitle,
+    plannerNode,
+    memberIds: expansion.nodes.map((n) => n.id),
+    language,
+  });
+  return { status: "ready", ...expansion, summary, group };
 }
 
 export async function readCanvasExplainerPlan(params: {

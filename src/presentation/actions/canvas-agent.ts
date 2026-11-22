@@ -4,7 +4,7 @@
 // Chat is free: the agent only edits the graph and never runs generation.
 
 import { ObjectId } from "mongodb";
-import type { CanvasAgentMessage, CanvasEdge, CanvasNode, CanvasViewport } from "@/model/canvas";
+import type { CanvasAgentMessage, CanvasEdge, CanvasGroup, CanvasNode, CanvasViewport } from "@/model/canvas";
 import { requireAppUser } from "@/service/auth";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import { listCanvasLibraryAssets, saveCanvasProject } from "@/service/canvas/projects";
@@ -30,6 +30,7 @@ export type SendCanvasAgentMessageInput = {
   language: CanvasAgentLanguage;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups?: CanvasGroup[];
   viewport: CanvasViewport;
 };
 
@@ -68,6 +69,7 @@ export async function sendCanvasAgentMessageAction(
   const project = await saveCanvasProject(user.clerkUserId, input.canvasId, {
     nodes: input.nodes,
     edges: input.edges,
+    ...(input.groups ? { groups: input.groups } : {}),
     viewport: input.viewport,
   });
   if (!project) return { ok: false, error: "Canvas not found" };
@@ -86,6 +88,7 @@ export async function sendCanvasAgentMessageAction(
       history: history.map((m) => ({ role: m.role, text: canvasAgentHistoryText(m) })),
       nodes: project.nodes,
       edges: project.edges,
+      groups: project.groups,
       catalog,
       assets: [...library.characters, ...library.products, ...library.recentOutputs],
       characters: library.characterOptions,
@@ -122,7 +125,11 @@ export async function sendCanvasAgentMessageAction(
   await Promise.all([
     appendCanvasAgentMessages([userDoc, replyDoc]),
     turn.ops.length > 0
-      ? saveCanvasProject(user.clerkUserId, input.canvasId, { nodes: turn.nodes, edges: turn.edges })
+      ? saveCanvasProject(user.clerkUserId, input.canvasId, {
+          nodes: turn.nodes,
+          edges: turn.edges,
+          groups: turn.groups,
+        })
       : Promise.resolve(null),
   ]);
 

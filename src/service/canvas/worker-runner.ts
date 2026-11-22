@@ -185,8 +185,14 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
   };
 }
 
+// Keeps only the listed nodes in each wave and drops waves left empty.
+export function filterFlowWaves(waves: string[][], nodeIds: readonly string[]): string[][] {
+  const keep = new Set(nodeIds);
+  return waves.map((wave) => wave.filter((id) => keep.has(id))).filter((wave) => wave.length > 0);
+}
+
 export async function startCanvasFlowRun(
-  params: { clerkUserId: string; canvasId: string },
+  params: { clerkUserId: string; canvasId: string; nodeIds?: string[] },
   deps?: Partial<CanvasFlowWorkerDeps>,
 ): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunState }
@@ -205,6 +211,7 @@ export async function startCanvasFlowRun(
   let waves: string[][];
   try {
     waves = computeExecutionWaves(project.nodes, project.edges);
+    if (params.nodeIds) waves = filterFlowWaves(waves, params.nodeIds);
   } catch (error) {
     return {
       ok: false,

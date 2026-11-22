@@ -36,7 +36,7 @@ type Props = {
   assets: CanvasLibraryAssetsResult;
   canvasMedia: readonly CanvasMediaItem[];
   onCancel: () => void;
-  onGroup: (group: ScroGroup) => void;
+  onGroup: (group: ScroGroup, tool: ScroDialogTool) => void;
 };
 
 export function ScroGroupDialogs({ state, isZh, assets, canvasMedia, onCancel, onGroup }: Props) {
@@ -71,7 +71,7 @@ export function ScroGroupDialogs({ state, isZh, assets, canvasMedia, onCancel, o
           isZh={isZh}
           characterOptions={choices.characters}
           onCancel={onCancel}
-          onSubmit={(values) => onGroup(buildLifeGroup(ctx(), values))}
+          onSubmit={(values) => onGroup(buildLifeGroup(ctx(), values), "life")}
         />
       );
     case "poster":
@@ -82,7 +82,7 @@ export function ScroGroupDialogs({ state, isZh, assets, canvasMedia, onCancel, o
           characterOptions={choices.characters}
           productOptions={choices.products}
           onCancel={onCancel}
-          onSubmit={(values) => onGroup(buildPosterGroup(ctx(), values))}
+          onSubmit={(values) => onGroup(buildPosterGroup(ctx(), values), "poster")}
         />
       );
     case "swap":
@@ -93,7 +93,7 @@ export function ScroGroupDialogs({ state, isZh, assets, canvasMedia, onCancel, o
           videoOptions={choices.videos}
           referenceOptions={choices.images}
           onCancel={onCancel}
-          onSubmit={(values) => onGroup(buildSwapGroup(ctx(), values))}
+          onSubmit={(values) => onGroup(buildSwapGroup(ctx(), values), "swap")}
         />
       );
     case "teleport":
@@ -104,7 +104,7 @@ export function ScroGroupDialogs({ state, isZh, assets, canvasMedia, onCancel, o
           videoOptions={choices.videos}
           imageOptions={choices.images}
           onCancel={onCancel}
-          onSubmit={(values) => onGroup(buildTeleportGroup(ctx(), values))}
+          onSubmit={(values) => onGroup(buildTeleportGroup(ctx(), values), "teleport")}
         />
       );
   }

@@ -45,6 +45,9 @@ describe("canvas agent prompt", () => {
     assert.match(text, /batch_delete_nodes/);
     assert.match(text, /batch_update_nodes/);
     assert.match(text, /batch_add_nodes/);
-    assert.match(text, /call replace_explainer once/);
+    assert.match(text, /call replace_group once/);
+    assert.match(text, /\[Context\]/);
+    assert.match(text, /update_group with that group's memberIds/);
+    assert.match(text, /replace_group does not re-plan Swap or Teleport/);
   });
 });

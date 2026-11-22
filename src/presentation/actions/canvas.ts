@@ -312,6 +312,8 @@ export async function runCanvasFlowAction(input: {
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
   viewport?: CanvasViewport;
+  // Run group: only these nodes run, in dependency order.
+  nodeIds?: string[];
 }): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunDto; creditUsd: number }
   | { ok: false; error: string }
@@ -329,6 +331,7 @@ export async function runCanvasFlowAction(input: {
   const started = await startCanvasFlowRun({
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
+    ...(input.nodeIds ? { nodeIds: input.nodeIds } : {}),
   });
   if (!started.ok) return started;
 

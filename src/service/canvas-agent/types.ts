@@ -1,6 +1,6 @@
 // Shared types for the Scro canvas agent (chat dock below /app/canvas).
 
-import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
+import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasNodeData } from "@/model/canvas";
 
 export const CANVAS_AGENT_LANGUAGES = ["zh-Hant", "yue", "en", "zh-Hans", "ja", "ko"] as const;
 export type CanvasAgentLanguage = (typeof CANVAS_AGENT_LANGUAGES)[number];
@@ -25,9 +25,16 @@ export type CanvasAgentOp =
   | { kind: "remove_node"; nodeId: string }
   | { kind: "add_edge"; edge: CanvasEdge }
   | { kind: "remove_edge"; edgeId: string }
-  | { kind: "move_node"; nodeId: string; position: { x: number; y: number } };
+  | { kind: "move_node"; nodeId: string; position: { x: number; y: number } }
+  | { kind: "add_group"; group: CanvasGroup }
+  | {
+      kind: "update_group";
+      groupId: string;
+      patch: Partial<Pick<CanvasGroup, "title" | "color" | "collapsed" | "memberIds">>;
+    }
+  | { kind: "remove_group"; groupId: string };
 
-export type CanvasAgentGraph = { nodes: CanvasNode[]; edges: CanvasEdge[] };
+export type CanvasAgentGraph = { nodes: CanvasNode[]; edges: CanvasEdge[]; groups?: CanvasGroup[] };
 
 // A clickable question the agent asks when it cannot build a working graph on its own.
 export type CanvasAgentQuestionOption = { id: string; label: string };

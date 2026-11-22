@@ -19,12 +19,13 @@ import {
   useReactFlow,
   type Connection,
   type Edge,
-  type Node,
+  type NodeChangeset,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import type {
   CanvasEdge,
+  CanvasGroup,
   CanvasNode,
   CanvasNodeData,
   CanvasNodeStatus,
@@ -59,6 +60,13 @@ import {
 } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import {
+  addContextRef,
+  contextMenuChoices,
+  removeContextRef,
+  type CanvasAgentContextRef,
+  type ContextMenuChoice,
+} from "@/service/canvas-agent/context-block";
+import {
   dropExpandedPlanners,
   isExplainerPlannerNode,
   readPlannerParams,
@@ -71,11 +79,24 @@ import {
 } from "@/service/canvas/explainer-layout";
 import { layoutGroupByDepth } from "@/service/canvas/group-layout";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
+import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/groups";
 import {
   SCRO_DIALOG_TOOL_BY_MODEL,
   ScroGroupDialogs,
   type ScroDialogState,
+  type ScroDialogTool,
 } from "@/app/app/canvas/scro-group-dialogs";
+import { CanvasGroupActionsContext } from "@/app/app/canvas/groups/group-actions-context";
+import { GroupFrameNodeCard } from "@/app/app/canvas/groups/group-frame-node";
+import {
+  type CanvasFlowNode,
+  type DisplayNode,
+  GROUP_FRAME_TYPE,
+  groupIdFromFrameId,
+} from "@/app/app/canvas/groups/group-frames";
+import { GroupSelectionBar } from "@/app/app/canvas/groups/group-selection-bar";
+import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
+import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
 import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
 import {
   ExplainerPlanDialog,
@@ -131,6 +152,7 @@ const NODE_TYPES = {
   media: MediaNodeCard,
   prompt: PromptNodeCard,
   model: ModelNodeCard,
+  [GROUP_FRAME_TYPE]: GroupFrameNodeCard,
 } as const;
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
@@ -138,7 +160,7 @@ const JOB_POLL_INTERVAL_MS = 3_000;
 // Pause between agent ops so the user can watch the graph being built.
 const AGENT_OP_STEP_MS = 90;
 
-type FlowNode = Node<CanvasNodeData, CanvasNodeType>;
+type FlowNode = CanvasFlowNode;
 
 // Job results remembered before React paints, so the next flow wave can save them.
 type RememberedJobOutput = {
@@ -264,7 +286,7 @@ function CanvasWorkspaceInner({
   const { locale } = useI18n();
   const router = useRouter();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const reactFlow = useReactFlow();
+  const reactFlow = useReactFlow<DisplayNode, Edge>();
 
   const [projects, setProjects] = useState<CanvasProjectSummaryDto[]>(initialProjects);
   const activeProjectId = initialProject.id;
@@ -274,6 +296,8 @@ function CanvasWorkspaceInner({
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("right");
+  const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
+  const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
@@ -310,6 +334,16 @@ function CanvasWorkspaceInner({
   const activeProjectIdRef = useRef(activeProjectId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flowAbortRef = useRef(false);
+  // Groups mark the canvas dirty before scheduleAutosave exists below, so they call it through a ref.
+  const autosaveRef = useRef<() => void>(() => {});
+  const requestAutosave = useCallback(() => autosaveRef.current(), []);
+  const groupsApi = useCanvasGroups({
+    initialGroups: initialProject.groups ?? [],
+    nodes,
+    setNodes,
+    scheduleAutosave: requestAutosave,
+  });
+  const { snapshotGroups, splitNodeChanges, addGroup, updateGroups, resetGroups } = groupsApi;
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -369,6 +403,7 @@ function CanvasWorkspaceInner({
       const res = await saveCanvasProjectAction(activeProjectIdRef.current, {
         nodes: currentNodes,
         edges: currentEdges,
+        groups: snapshotGroups(currentNodes),
         viewport: viewportRef.current,
       });
       if (!res.ok) {
@@ -392,7 +427,7 @@ function CanvasWorkspaceInner({
     } catch {
       setSaveStatus("error");
     }
-  }, []);
+  }, [snapshotGroups]);
 
   const scheduleAutosave = useCallback(() => {
     setSaveStatus("dirty");
@@ -401,6 +436,9 @@ function CanvasWorkspaceInner({
       void flushSaveNow();
     }, AUTOSAVE_DEBOUNCE_MS);
   }, [flushSaveNow]);
+  useEffect(() => {
+    autosaveRef.current = scheduleAutosave;
+  }, [scheduleAutosave]);
 
   useEffect(() => {
     return () => {
@@ -434,7 +472,7 @@ function CanvasWorkspaceInner({
     if (sizes.size === 0) return;
     const sizeOf = (id: string) => sizes.get(id) ?? { width: 312, height: 400 };
     const obstacles = live
-      .filter((n) => !pending.ids.has(n.id))
+      .filter((n) => !pending.ids.has(n.id) && n.type !== GROUP_FRAME_TYPE)
       .map((n) => ({
         x: n.position.x,
         y: n.position.y,
@@ -470,8 +508,12 @@ function CanvasWorkspaceInner({
     }, 40);
   }, [reactFlow, setNodes, scheduleAutosave]);
 
-  const handleNodesChange: typeof onNodesChange = useCallback(
-    (changes) => {
+  const handleNodesChange = useCallback(
+    (allChanges: NodeChangeset<DisplayNode>) => {
+      // Frame drags move the group's members; the rest are ordinary node changes.
+      const { nodeChanges: changes, frameDragEnded } = splitNodeChanges(allChanges);
+      if (frameDragEnded) scheduleAutosave();
+      if (changes.isEmpty()) return;
       onNodesChange(changes);
       if (pendingGroupLayoutRef.current && changes.getByType("dimensions").length > 0) {
         window.requestAnimationFrame(applyPendingGroupLayout);
@@ -483,7 +525,7 @@ function CanvasWorkspaceInner({
         changes.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
-    [onNodesChange, scheduleAutosave, applyPendingGroupLayout],
+    [onNodesChange, scheduleAutosave, applyPendingGroupLayout, splitNodeChanges],
   );
 
   const handleEdgesChange: typeof onEdgesChange = useCallback(
@@ -966,12 +1008,19 @@ function CanvasWorkspaceInner({
 
   // Adds a dialog-built group, then re-lays it out with measured card sizes.
   const insertScroGroup = useCallback(
-    (group: ScroGroup) => {
+    (group: ScroGroup, tool: ScroDialogTool) => {
       const origin = scroDialog?.position ?? group.nodes[0]?.position ?? { x: 0, y: 0 };
       setScroDialog(null);
       const allNodes = [...toDomainNodes(nodesRef.current), ...group.nodes];
       setNodes((prev) => [...prev, ...toFlowNodes(group.nodes)]);
       setEdges((prev) => [...prev, ...toFlowEdges(group.edges, allNodes, models)]);
+      addGroup({
+        id: group.groupId,
+        title: defaultGroupTitle(tool),
+        color: defaultGroupColor(tool),
+        kind: tool,
+        memberIds: group.nodes.map((n) => n.id),
+      });
       pendingGroupLayoutRef.current = {
         ids: new Set(group.nodes.map((n) => n.id)),
         edges: group.edges,
@@ -981,7 +1030,7 @@ function CanvasWorkspaceInner({
       scheduleAutosave();
       window.setTimeout(applyPendingGroupLayout, 600);
     },
-    [scroDialog, models, setNodes, setEdges, scheduleAutosave, applyPendingGroupLayout],
+    [scroDialog, models, setNodes, setEdges, addGroup, scheduleAutosave, applyPendingGroupLayout],
   );
 
   // Images and videos already on the canvas, offered first in the setup dialogs.
@@ -1143,6 +1192,7 @@ function CanvasWorkspaceInner({
           };
           setNodes(next.nodes);
           setEdges(next.edges);
+          addGroup(state.group);
           scheduleAutosave();
           window.setTimeout(applyPendingGroupLayout, 600);
         }
@@ -1155,7 +1205,7 @@ function CanvasWorkspaceInner({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, applyPendingGroupLayout]);
+  }, [planningNodeIdsKey, models, setNodes, setEdges, addGroup, scheduleAutosave, applyPendingGroupLayout]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
   useEffect(() => {
@@ -1228,8 +1278,8 @@ function CanvasWorkspaceInner({
     };
   }, [isFlowRunning, isZh, setEdges, setNodes, syncWallet]);
 
-  // Worker-backed multi-wave Run Flow trigger.
-  const handleRunFlow = useCallback(async () => {
+  // Worker-backed multi-wave Run Flow trigger; nodeIds limits it to one group.
+  const startFlowRun = useCallback(async (nodeIds?: string[]) => {
     const currentNodes = toDomainNodes(
       withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
     );
@@ -1242,6 +1292,7 @@ function CanvasWorkspaceInner({
       toast.error(err instanceof Error ? err.message : "Invalid graph");
       return;
     }
+    if (nodeIds) waves = waves.map((w) => w.filter((id) => nodeIds.includes(id))).filter((w) => w.length);
     if (waves.length === 0) return;
 
     const res = await runCanvasFlowAction({
@@ -1249,6 +1300,7 @@ function CanvasWorkspaceInner({
       nodes: currentNodes,
       edges: currentEdges,
       viewport: viewportRef.current,
+      ...(nodeIds ? { nodeIds } : {}),
     });
     if (!res.ok) {
       toast.error(res.error);
@@ -1261,6 +1313,73 @@ function CanvasWorkspaceInner({
       total: res.activeFlowRun.totalWaves,
     });
   }, [syncWallet]);
+
+  const handleRunFlow = useCallback(() => void startFlowRun(), [startFlowRun]);
+
+  // Run group: only the group's model nodes run, in dependency order.
+  const handleRunGroup = useCallback(
+    (groupId: string) => {
+      const group = groupsApi.groups.find((g) => g.id === groupId);
+      if (!group) return;
+      const members = new Set(group.memberIds);
+      const runnable = nodesRef.current
+        .filter((n) => members.has(n.id) && n.type === "model")
+        .map((n) => n.id);
+      if (runnable.length === 0) return;
+      void startFlowRun(runnable);
+    },
+    [groupsApi.groups, startFlowRun],
+  );
+
+  const groupContextValue = useMemo(
+    () => ({
+      isZh,
+      isFlowRunning,
+      onRename: groupsApi.renameGroup,
+      onColor: groupsApi.recolorGroup,
+      onToggleCollapse: groupsApi.toggleCollapse,
+      onRun: handleRunGroup,
+      onUngroup: groupsApi.ungroup,
+    }),
+    [
+      isZh,
+      isFlowRunning,
+      groupsApi.renameGroup,
+      groupsApi.recolorGroup,
+      groupsApi.toggleCollapse,
+      groupsApi.ungroup,
+      handleRunGroup,
+    ],
+  );
+
+  const { groupSelection, ungroupSelection } = groupsApi;
+  const groupSelectedNodes = useCallback(
+    () => groupSelection(isZh ? "群組" : "Group"),
+    [groupSelection, isZh],
+  );
+  const { selectionInGroup, selectionIsOneGroup } = useMemo(() => {
+    const selected = new Set(groupsApi.selectedIds);
+    return {
+      selectionInGroup: groupsApi.groups.some((g) => g.memberIds.some((id) => selected.has(id))),
+      // Selection already matches one group exactly, so grouping again would do nothing.
+      selectionIsOneGroup: groupsApi.groups.some(
+        (g) => g.memberIds.length === selected.size && g.memberIds.every((id) => selected.has(id)),
+      ),
+    };
+  }, [groupsApi.groups, groupsApi.selectedIds]);
+
+  // Cmd/Ctrl+G groups the selection; Shift+Cmd/Ctrl+G ungroups it.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "g") return;
+      const target = event.target;
+      if (target instanceof Element && target.closest("input, textarea, [contenteditable='true']")) return;
+      const handled = event.shiftKey ? ungroupSelection() : groupSelectedNodes();
+      if (handled) event.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [groupSelectedNodes, ungroupSelection]);
 
   const handleStopFlow = useCallback(async () => {
     flowAbortRef.current = true;
@@ -1360,18 +1479,24 @@ function CanvasWorkspaceInner({
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
+    const domain = toDomainNodes(withRememberedJobOutputs(nodesRef.current, jobOutputRef.current));
     return {
-      nodes: toDomainNodes(withRememberedJobOutputs(nodesRef.current, jobOutputRef.current)),
+      nodes: domain,
       edges: toDomainEdges(edgesRef.current),
+      groups: snapshotGroups(domain),
       viewport: viewportRef.current,
     };
-  }, []);
+  }, [snapshotGroups]);
 
   const applyAgentOps = useCallback(
     async (messageId: string, ops: CanvasAgentOp[]) => {
       const before = getAgentGraph();
-      agentSnapshotsRef.current.set(messageId, { nodes: before.nodes, edges: before.edges });
-      let graph: CanvasAgentGraph = { nodes: before.nodes, edges: before.edges };
+      agentSnapshotsRef.current.set(messageId, {
+        nodes: before.nodes,
+        edges: before.edges,
+        groups: before.groups,
+      });
+      let graph: CanvasAgentGraph = { nodes: before.nodes, edges: before.edges, groups: before.groups };
       let skipped = 0;
 
       for (const op of ops) {
@@ -1407,6 +1532,13 @@ function CanvasWorkspaceInner({
           case "remove_edge":
             setEdges((prev) => prev.filter((e) => e.id !== op.edgeId));
             break;
+          case "add_group":
+          case "update_group":
+          case "remove_group": {
+            const nextGroups: CanvasGroup[] = graph.groups ?? [];
+            updateGroups(() => nextGroups);
+            break;
+          }
         }
       }
 
@@ -1433,7 +1565,7 @@ function CanvasWorkspaceInner({
       }
       return { skipped };
     },
-    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startDirectorPlan],
+    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startDirectorPlan, updateGroups],
   );
 
   const undoAgentTurn = useCallback(
@@ -1443,9 +1575,10 @@ function CanvasWorkspaceInner({
       agentSnapshotsRef.current.delete(messageId);
       setNodes(toFlowNodes(snapshot.nodes));
       setEdges(toFlowEdges(snapshot.edges, snapshot.nodes, models));
+      resetGroups(snapshot.groups ?? []);
       scheduleAutosave();
     },
-    [models, scheduleAutosave, setEdges, setNodes],
+    [models, resetGroups, scheduleAutosave, setEdges, setNodes],
   );
 
   const handleRefreshModels = useCallback(async () => {
@@ -1606,49 +1739,90 @@ function CanvasWorkspaceInner({
             onDrop={handlePaneDrop}
           >
             <CanvasNodeActionsContext.Provider value={nodeContextValue}>
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={NODE_TYPES}
-                onNodesChange={handleNodesChange}
-                onEdgesChange={handleEdgesChange}
-                onConnect={handleConnect}
-                isValidConnection={isValidConnection}
-                defaultViewport={initialProject.viewport}
-                onMoveEnd={(_event, viewport) => {
-                  viewportRef.current = viewport;
-                  scheduleAutosave();
-                }}
-                deleteKeyCode={["Backspace", "Delete"]}
-                // Mac trackpad: two fingers moving together pan the canvas. Pinch arrives as ctrl+wheel and zooms.
-                panOnScroll
-                panOnScrollSpeed={1}
-                zoomOnScroll={false}
-                zoomOnPinch
-                fitView={initialProject.nodes.length > 0 && initialProject.viewport.x === 0 && initialProject.viewport.y === 0}
-                className="dark"
-                proOptions={{ hideAttribution: true }}
-              >
-                <Background
-                  variant={BackgroundVariant.Dots}
-                  gap={22}
-                  size={1.2}
-                  color="#262e3e"
-                />
-                <Controls className="!border-white/10 !bg-[#12161f]/90" />
-                <MiniMap
-                  nodeColor={(n) =>
-                    n.type === "media"
-                      ? "#38bdf8"
-                      : n.type === "prompt"
-                        ? "#c6f24b"
-                        : "#a78bfa"
-                  }
-                  maskColor="rgba(11, 14, 19, 0.72)"
-                  className="!rounded-xl !border !border-white/10 !bg-[#12161f]/90"
-                />
-              </ReactFlow>
+              <CanvasGroupActionsContext.Provider value={groupContextValue}>
+                <ReactFlow
+                  nodes={groupsApi.displayNodes}
+                  edges={edges}
+                  nodeTypes={NODE_TYPES}
+                  onNodesChange={handleNodesChange}
+                  onEdgesChange={handleEdgesChange}
+                  onNodeContextMenu={(event, flowNode) => {
+                    event.preventDefault();
+                    setNodeMenu({ x: event.clientX, y: event.clientY, nodeId: flowNode.id });
+                  }}
+                  onConnect={handleConnect}
+                  isValidConnection={isValidConnection}
+                  defaultViewport={initialProject.viewport}
+                  onMoveEnd={(_event, viewport) => {
+                    viewportRef.current = viewport;
+                    scheduleAutosave();
+                  }}
+                  deleteKeyCode={["Backspace", "Delete"]}
+                  // Mac trackpad: two fingers moving together pan the canvas. Pinch arrives as ctrl+wheel and zooms.
+                  panOnScroll
+                  panOnScrollSpeed={1}
+                  zoomOnScroll={false}
+                  zoomOnPinch
+                  fitView={initialProject.nodes.length > 0 && initialProject.viewport.x === 0 && initialProject.viewport.y === 0}
+                  className="dark"
+                  proOptions={{ hideAttribution: true }}
+                >
+                  <Background
+                    variant={BackgroundVariant.Dots}
+                    gap={22}
+                    size={1.2}
+                    color="#262e3e"
+                  />
+                  <Controls className="!border-white/10 !bg-[#12161f]/90" />
+                  <MiniMap
+                    nodeColor={(n) =>
+                      n.type === GROUP_FRAME_TYPE
+                        ? "transparent"
+                        : n.type === "media"
+                          ? "#38bdf8"
+                          : n.type === "prompt"
+                            ? "#c6f24b"
+                            : "#a78bfa"
+                    }
+                    maskColor="rgba(11, 14, 19, 0.72)"
+                    className="!rounded-xl !border !border-white/10 !bg-[#12161f]/90"
+                  />
+                </ReactFlow>
+              </CanvasGroupActionsContext.Provider>
             </CanvasNodeActionsContext.Provider>
+
+            {nodeMenu ? (
+              <CanvasNodeMenu
+                x={nodeMenu.x}
+                y={nodeMenu.y}
+                isZh={isZh}
+                choices={contextMenuChoices({
+                  frame: groupIdFromFrameId(nodeMenu.nodeId) !== null,
+                  groupId:
+                    groupIdFromFrameId(nodeMenu.nodeId) ??
+                    groupsApi.groups.find((group) => group.memberIds.includes(nodeMenu.nodeId))?.id ??
+                    null,
+                })}
+                onPick={(choice: ContextMenuChoice) => {
+                  const ref: CanvasAgentContextRef =
+                    choice.kind === "group"
+                      ? { kind: "group", id: choice.groupId }
+                      : { kind: "node", id: nodeMenu.nodeId };
+                  setContextRefs((prev) => addContextRef(prev, ref));
+                  setNodeMenu(null);
+                }}
+                onClose={() => setNodeMenu(null)}
+              />
+            ) : null}
+
+            <GroupSelectionBar
+              isZh={isZh}
+              selectedCount={groupsApi.selectedIds.length}
+              canGroup={groupsApi.selectedIds.length >= 2 && !selectionIsOneGroup}
+              canUngroup={selectionInGroup}
+              onGroup={groupSelectedNodes}
+              onUngroup={ungroupSelection}
+            />
 
             {/* Empty canvas onboarding overlay */}
             {domainNodes.length === 0 ? (
@@ -1732,6 +1906,11 @@ function CanvasWorkspaceInner({
             side={agentDockSide}
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}
+            contextRefs={contextRefs}
+            contextNodes={domainNodes}
+            contextGroups={groupsApi.groups}
+            onRemoveContext={(ref) => setContextRefs((prev) => removeContextRef(prev, ref))}
+            onContextConsumed={() => setContextRefs([])}
             onApplyOps={applyAgentOps}
             onUndo={undoAgentTurn}
             onSideChange={(side) => {

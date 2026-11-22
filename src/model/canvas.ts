@@ -84,6 +84,37 @@ export type CanvasFlowRunState = {
   updatedAt: Date;
 };
 
+export type CanvasGroupKind =
+  | "explainer"
+  | "talking-head"
+  | "life"
+  | "poster"
+  | "swap"
+  | "teleport"
+  | "custom";
+export type CanvasGroupColor = "lime" | "sky" | "violet" | "amber" | "rose" | "slate";
+
+// Settings a director group was planned with, so a replacement keeps them.
+export type CanvasGroupParams = {
+  characterId?: string;
+  language?: string;
+  skillSlug?: string;
+  durationPreset?: string;
+  aspectRatio?: CanvasAspectRatio;
+  framing?: string;
+};
+
+// A titled frame around related nodes. A node belongs to at most one group; groups do not nest.
+export type CanvasGroup = {
+  id: string;
+  title: string;
+  color: CanvasGroupColor;
+  kind: CanvasGroupKind;
+  memberIds: string[];
+  collapsed?: boolean;
+  params?: CanvasGroupParams;
+};
+
 // Persisted multi-project canvas document in the `canvas_projects` collection.
 export type CanvasProject = {
   _id: ObjectId;
@@ -93,6 +124,8 @@ export type CanvasProject = {
   viewport: CanvasViewport;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  // Missing on canvases saved before groups existed; those get groups inferred once on load.
+  groups?: CanvasGroup[];
   activeFlowRun?: CanvasFlowRunState;
   createdAt: Date;
   updatedAt: Date;
@@ -240,6 +273,36 @@ export const canvasFlowRunStateSchema: z.ZodType<CanvasFlowRunState> = z.object(
   updatedAt: z.date(),
 });
 
+export const canvasGroupKindSchema = z.enum([
+  "explainer",
+  "talking-head",
+  "life",
+  "poster",
+  "swap",
+  "teleport",
+  "custom",
+]);
+export const canvasGroupColorSchema = z.enum(["lime", "sky", "violet", "amber", "rose", "slate"]);
+
+export const canvasGroupSchema: z.ZodType<CanvasGroup> = z.object({
+  id: z.string().min(1).max(80),
+  title: z.string().max(120),
+  color: canvasGroupColorSchema,
+  kind: canvasGroupKindSchema,
+  memberIds: z.array(z.string().min(1)).max(400),
+  collapsed: z.boolean().optional(),
+  params: z
+    .object({
+      characterId: z.string().optional(),
+      language: z.string().optional(),
+      skillSlug: z.string().optional(),
+      durationPreset: z.string().optional(),
+      aspectRatio: canvasAspectRatioSchema.optional(),
+      framing: z.string().optional(),
+    })
+    .optional(),
+});
+
 export const canvasProjectSchema: z.ZodType<CanvasProject> = z.object({
   _id: objectIdSchema,
   clerkUserId: z.string().min(1),
@@ -248,6 +311,7 @@ export const canvasProjectSchema: z.ZodType<CanvasProject> = z.object({
   viewport: canvasViewportSchema,
   nodes: z.array(canvasNodeSchema),
   edges: z.array(canvasEdgeSchema),
+  groups: z.array(canvasGroupSchema).optional(),
   activeFlowRun: canvasFlowRunStateSchema.optional(),
   createdAt: z.date(),
   updatedAt: z.date(),

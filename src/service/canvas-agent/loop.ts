@@ -4,8 +4,9 @@
 // call makes sure the reply matches the final canvas.
 
 import { generateText, hasToolCall, stepCountIs, type ToolSet } from "ai";
-import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import { directorModel, storyboardProviderOptions } from "@/service/director/model";
+import { normalizeCanvasGroups } from "@/service/canvas/groups";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import type {
   CanvasLibraryAsset,
@@ -60,6 +61,7 @@ export async function runCanvasAgentTurn(input: {
   history: readonly CanvasAgentHistoryMessage[];
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups?: CanvasGroup[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters?: readonly CanvasLibraryCharacterOption[];
@@ -69,6 +71,7 @@ export async function runCanvasAgentTurn(input: {
   ops: CanvasAgentOp[];
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups: CanvasGroup[];
   question?: CanvasAgentQuestion;
 }> {
   const generate = input.generate ?? defaultGenerate;
@@ -142,6 +145,7 @@ export async function runCanvasAgentTurn(input: {
     ops: graph.ops,
     nodes: graph.nodes,
     edges: graph.edges,
+    groups: normalizeCanvasGroups(graph.groups, graph.nodes),
     ...(graph.question ? { question: graph.question } : {}),
   };
 }

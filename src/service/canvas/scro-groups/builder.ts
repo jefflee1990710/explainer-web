@@ -11,7 +11,8 @@ export type GroupMediaRef =
   | { nodeId: string }
   | { url: string; name: string; mediaKind: CanvasMediaKind };
 
-export type ScroGroup = { nodes: CanvasNode[]; edges: CanvasEdge[]; outputNodeId: string };
+// groupId is the id prefix; the canvas frame around these nodes uses it as its id.
+export type ScroGroup = { groupId: string; nodes: CanvasNode[]; edges: CanvasEdge[]; outputNodeId: string };
 
 export type GroupContext = { idPrefix: string; origin: { x: number; y: number } };
 
@@ -59,7 +60,7 @@ export function createGroupBuilder(ctx: GroupContext) {
         sizeOf: (nodeId) => GROUP_ESTIMATED_SIZE[typeById.get(nodeId) ?? "model"],
       });
       for (const node of nodes) node.position = positions.get(node.id) ?? node.position;
-      return { nodes, edges, outputNodeId };
+      return { groupId: ctx.idPrefix, nodes, edges, outputNodeId };
     },
   };
 }

@@ -7,12 +7,20 @@ import { z } from "zod";
 import type {
   CanvasAspectRatio,
   CanvasEdge,
+  CanvasGroup,
+  CanvasGroupColor,
   CanvasNode,
   CanvasNodeData,
 } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import {
+  canvasGroupsForProject,
+  defaultGroupColor,
+  defaultGroupTitle,
+  withGroup,
+} from "@/service/canvas/groups";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import type {
@@ -30,11 +38,23 @@ import {
   runBatchDeleteNodes,
   runBatchUpdateNodes,
 } from "@/service/canvas-agent/batch-tools";
+import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
 import {
-  type ReplaceExplainerInput,
-  replaceExplainer,
-  soleCanvasCharacterId,
-} from "@/service/canvas-agent/explainer-replace";
+  deleteGroup,
+  describeGroups,
+  groupIdSchema,
+  groupNodes,
+  groupNodesSchema,
+  type ReplaceGroupInput,
+  replaceGroup,
+  replaceGroupSchema,
+  type UpdateGroupNodesInput,
+  ungroup,
+  updateGroup,
+  updateGroupNodes,
+  updateGroupNodesSchema,
+  updateGroupSchema,
+} from "@/service/canvas-agent/group-tools";
 import {
   buildAgentScroGroup,
   SCRO_GROUP_MODEL_IDS,
@@ -54,6 +74,7 @@ const TEXT_PREVIEW = 240;
 export type CanvasAgentWorkingGraph = {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups: CanvasGroup[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters: readonly CanvasLibraryCharacterOption[];
@@ -70,6 +91,8 @@ export type CanvasAgentToolResult = Record<string, unknown>;
 export function createWorkingGraph(input: {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  // Missing on older canvases; groups are then inferred from node id prefixes.
+  groups?: CanvasGroup[];
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters?: readonly CanvasLibraryCharacterOption[];
@@ -85,6 +108,7 @@ export function createWorkingGraph(input: {
   return {
     nodes: input.nodes.map((n) => ({ ...n, data: { ...n.data } })),
     edges: [...input.edges],
+    groups: canvasGroupsForProject(input.nodes, input.groups),
     catalog: input.catalog,
     assets: input.assets,
     characters,
@@ -233,9 +257,11 @@ function addNode(
 
 function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
   const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
+  const groupId = g.groups.find((gr) => gr.memberIds.includes(node.id))?.id;
   return {
     id: node.id,
     type: node.type,
+    ...(groupId ? { groupId } : {}),
     ...(node.type === "prompt" ? { text: clip(node.data.text) } : {}),
     ...(node.type === "media"
       ? { mediaKind: node.data.mediaKind, name: node.data.fileName ?? node.data.label }
@@ -259,6 +285,7 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
 export const CANVAS_AGENT_TOOL_HANDLERS = {
   get_canvas(g: CanvasAgentWorkingGraph): CanvasAgentToolResult {
     return {
+      groups: describeGroups(g),
       nodes: g.nodes.map((n) => describeNode(g, n)),
       edges: g.edges.map((e) => ({
         id: e.id,
@@ -444,7 +471,22 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       g.edges.push(edge);
       g.ops.push({ kind: "add_edge", edge });
     }
-    return { ok: true, nodeIds: group.nodes.map((n) => n.id), outputNodeId: group.outputNodeId };
+    const frame: CanvasGroup = {
+      id: group.groupId,
+      title: defaultGroupTitle(input.tool),
+      color: defaultGroupColor(input.tool),
+      kind: input.tool,
+      memberIds: group.nodes.map((n) => n.id),
+      params: { aspectRatio: aspect, ...(input.characterId ? { characterId: input.characterId } : {}) },
+    };
+    g.groups = withGroup(g.groups, frame);
+    g.ops.push({ kind: "add_group", group: frame });
+    return {
+      ok: true,
+      groupId: frame.id,
+      nodeIds: group.nodes.map((n) => n.id),
+      outputNodeId: group.outputNodeId,
+    };
   },
 
   update_node(
@@ -565,8 +607,40 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return { ok: true };
   },
 
-  replace_explainer(g: CanvasAgentWorkingGraph, input: ReplaceExplainerInput): CanvasAgentToolResult {
-    return replaceExplainer(g, input, CANVAS_AGENT_MAX_ADDED_NODES);
+  replace_group(g: CanvasAgentWorkingGraph, input: ReplaceGroupInput): CanvasAgentToolResult {
+    return replaceGroup(g, input, CANVAS_AGENT_MAX_ADDED_NODES);
+  },
+
+  update_group_nodes(g: CanvasAgentWorkingGraph, input: UpdateGroupNodesInput): CanvasAgentToolResult {
+    return updateGroupNodes(g, CANVAS_AGENT_TOOL_HANDLERS, input);
+  },
+
+  group_nodes(
+    g: CanvasAgentWorkingGraph,
+    input: { nodeIds: string[]; title?: string; color?: CanvasGroupColor },
+  ): CanvasAgentToolResult {
+    return groupNodes(g, input);
+  },
+
+  update_group(
+    g: CanvasAgentWorkingGraph,
+    input: {
+      groupId: string;
+      title?: string;
+      color?: CanvasGroupColor;
+      collapsed?: boolean;
+      memberIds?: string[];
+    },
+  ): CanvasAgentToolResult {
+    return updateGroup(g, input);
+  },
+
+  ungroup(g: CanvasAgentWorkingGraph, input: { groupId: string }): CanvasAgentToolResult {
+    return ungroup(g, input);
+  },
+
+  delete_group(g: CanvasAgentWorkingGraph, input: { groupId: string }): CanvasAgentToolResult {
+    return deleteGroup(g, CANVAS_AGENT_TOOL_HANDLERS, input);
   },
 
   batch_delete_nodes(
@@ -669,7 +743,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
   const H = CANVAS_AGENT_TOOL_HANDLERS;
   return {
     get_canvas: tool({
-      description: "Read every node and edge currently on the canvas.",
+      description: "Read every group, node, and edge currently on the canvas. Nodes in a group carry its groupId.",
       inputSchema: empty,
       execute: async () => H.get_canvas(g),
     }),
@@ -779,25 +853,38 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       inputSchema: z.object({ nodeId: z.string() }),
       execute: async (input) => H.delete_node(g, input),
     }),
-    replace_explainer: tool({
+    replace_group: tool({
       description:
-        "Replace an Explainer already on the canvas (its expanded exp-<prefix>-* rows or its planning card) with a new topic or full script in ONE step. Removes the whole old group and adds a new free planning card in the same place, keeping the character (e.g. Jim), language, director style, and frame shape unless you override them.",
-      inputSchema: z.object({
-        prompt: z.string().min(1).max(4000).describe("New topic or the user's full script, copied as given."),
-        nodeId: z.string().optional().describe("Any node of the Explainer to replace. Needed only when the canvas has several."),
-        characterId: z.string().optional().describe("Only when the user asks for a different character."),
-        language: z.enum(["yue", "zh", "en"]).optional(),
-        skillSlug: z
-          .enum([
-            "cartoon-explainer-video-director",
-            "paper-cutout-explainer-video-director",
-            "papercraft-diorama-director",
-          ])
-          .optional(),
-        durationPreset: z.enum(["15s", "30s", "45s", "60s"]).optional(),
-        aspectRatio: aspectRatio.optional(),
-      }),
-      execute: async (input) => H.replace_explainer(g, input),
+        "Replace an Explainer or Talking Head group (or a lone planning card) with a new topic or full script in ONE step. Removes the whole old group and adds a new free planning card in the same place, keeping the character (e.g. Jim), language, director style, framing, and frame shape unless you override them.",
+      inputSchema: replaceGroupSchema,
+      execute: async (input) => H.replace_group(g, input),
+    }),
+    update_group_nodes: tool({
+      description:
+        "Apply the same change to every model node of one group in one atomic step, optionally only members with an id role (voice, video, frame, mux, grade) or one modelId. Example: all clip videos to 6 seconds, or every voice to language yue.",
+      inputSchema: updateGroupNodesSchema,
+      execute: async (input) => H.update_group_nodes(g, input),
+    }),
+    group_nodes: tool({
+      description: "Draw a titled frame around existing nodes. A node already in another group moves into the new one.",
+      inputSchema: groupNodesSchema,
+      execute: async (input) => H.group_nodes(g, input),
+    }),
+    update_group: tool({
+      description:
+        "Rename a group, change its frame color, collapse / expand it, or replace its memberIds after swapping a node for a new one.",
+      inputSchema: updateGroupSchema,
+      execute: async (input) => H.update_group(g, input),
+    }),
+    ungroup: tool({
+      description: "Remove a group's frame and keep its nodes.",
+      inputSchema: groupIdSchema,
+      execute: async (input) => H.ungroup(g, input),
+    }),
+    delete_group: tool({
+      description: "Delete a group and every node in it in one atomic step. Refuses while a member is generating.",
+      inputSchema: groupIdSchema,
+      execute: async (input) => H.delete_group(g, input),
     }),
     batch_delete_nodes: tool({
       description:

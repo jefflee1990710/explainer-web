@@ -4,11 +4,16 @@
 // edge. Graph edits come back as ops that the workspace replays onto the live canvas.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CanvasEdge, CanvasNode, CanvasViewport } from "@/model/canvas";
+import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasViewport } from "@/model/canvas";
 import {
   clearCanvasAgentMessagesAction,
   sendCanvasAgentMessageAction,
 } from "@/presentation/actions/canvas-agent";
+import {
+  composeCanvasAgentMessage,
+  formatCanvasAgentContext,
+  type CanvasAgentContextRef,
+} from "@/service/canvas-agent/context-block";
 import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
 import {
   type CanvasAgentLanguage,
@@ -21,6 +26,7 @@ import {
   defaultCanvasAgentLanguage,
 } from "@/app/app/canvas/agent/canvas-agent-copy";
 import { CanvasAgentClearDialog } from "@/app/app/canvas/agent/canvas-agent-clear-dialog";
+import { CanvasAgentContextChips } from "@/app/app/canvas/agent/canvas-agent-context-chips";
 import { CanvasAgentComposer } from "@/app/app/canvas/agent/canvas-agent-composer";
 import { CanvasAgentEmpty } from "@/app/app/canvas/agent/canvas-agent-empty";
 import {
@@ -47,6 +53,7 @@ export type { CanvasAgentDockSide };
 export type CanvasAgentGraphSnapshot = {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups: CanvasGroup[];
   viewport: CanvasViewport;
 };
 
@@ -58,6 +65,11 @@ export function CanvasAgentDock({
   side,
   initialMessages,
   getGraph,
+  contextRefs,
+  contextNodes,
+  contextGroups,
+  onRemoveContext,
+  onContextConsumed,
   onApplyOps,
   onUndo,
   onSideChange,
@@ -67,6 +79,11 @@ export function CanvasAgentDock({
   side: CanvasAgentDockSide;
   initialMessages: CanvasAgentMessageDto[];
   getGraph: () => CanvasAgentGraphSnapshot;
+  contextRefs: readonly CanvasAgentContextRef[];
+  contextNodes: readonly CanvasNode[];
+  contextGroups: readonly CanvasGroup[];
+  onRemoveContext: (ref: CanvasAgentContextRef) => void;
+  onContextConsumed: () => void;
   onApplyOps: (messageId: string, ops: CanvasAgentOp[]) => Promise<{ skipped: number }>;
   onUndo: (messageId: string) => Promise<void>;
   onSideChange: (side: CanvasAgentDockSide) => void;
@@ -89,7 +106,17 @@ export function CanvasAgentDock({
   const [undoneIds, setUndoneIds] = useState<ReadonlySet<string>>(new Set());
   const [notes, setNotes] = useState<ReadonlyMap<string, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const seenContextCount = useRef(contextRefs.length);
   const busy = phase !== null;
+
+  // A new right-click chip opens the dock so the user can see what they attached.
+  useEffect(() => {
+    if (contextRefs.length > seenContextCount.current) {
+      setCollapsed(false);
+      window.localStorage.setItem(COLLAPSED_KEY, "0");
+    }
+    seenContextCount.current = contextRefs.length;
+  }, [contextRefs.length]);
 
   // Saved dock preferences are read after mount so server and client HTML match.
   useEffect(() => {
@@ -159,14 +186,19 @@ export function CanvasAgentDock({
   const send = useCallback(
     async (text: string) => {
       if (busy) return;
+      const message = composeCanvasAgentMessage(
+        text,
+        formatCanvasAgentContext(contextRefs, contextNodes, contextGroups),
+      );
+      onContextConsumed();
       setFailedText(null);
-      setPendingText(text);
+      setPendingText(message);
       setPhase("thinking");
       try {
         const graph = getGraph();
-        const res = await sendCanvasAgentMessageAction({ canvasId, text, language, ...graph });
+        const res = await sendCanvasAgentMessageAction({ canvasId, text: message, language, ...graph });
         if (!res.ok) {
-          setFailedText(text);
+          setFailedText(message);
           return;
         }
         setMessages((prev) => [...prev, res.user, res.reply]);
@@ -180,12 +212,23 @@ export function CanvasAgentDock({
           }
         }
       } catch {
-        setFailedText(text);
+        setFailedText(message);
       } finally {
         setPhase(null);
       }
     },
-    [busy, canvasId, copy, getGraph, language, onApplyOps],
+    [
+      busy,
+      canvasId,
+      contextGroups,
+      contextNodes,
+      contextRefs,
+      copy,
+      getGraph,
+      language,
+      onApplyOps,
+      onContextConsumed,
+    ],
   );
 
   const undo = useCallback(
@@ -326,6 +369,13 @@ export function CanvasAgentDock({
             ) : null}
           </div>
 
+          <CanvasAgentContextChips
+            refs={contextRefs}
+            nodes={contextNodes}
+            groups={contextGroups}
+            isZh={isZh}
+            onRemove={onRemoveContext}
+          />
           <CanvasAgentComposer copy={copy} busy={busy} onSend={(text) => void send(text)} />
         </>
       ) : null}
