@@ -32,7 +32,8 @@ export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
-const SIDEBAR_MIN_WIDTH = 220;
+// Wide enough for "Models (999)" to stay on one line beside Tools and Assets.
+const SIDEBAR_MIN_WIDTH = 248;
 const SIDEBAR_MAX_WIDTH = 520;
 const SIDEBAR_DEFAULT_WIDTH = 276;
 
@@ -173,14 +174,14 @@ export function CanvasSidebar({
             setTab("models");
             setCategory(null);
           }}
-          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] py-1.5 text-xs font-semibold transition ${
+          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
             tab === "models"
               ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
               : "text-white/60 hover:bg-white/6 hover:text-white"
           }`}
         >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>{isZh ? `模型 (${modelCount})` : `Models (${modelCount})`}</span>
+          <Sparkles className="h-3 w-3 shrink-0" />
+          <span className="whitespace-nowrap">{isZh ? `模型 (${modelCount})` : `Models (${modelCount})`}</span>
         </button>
         <button
           type="button"
@@ -188,26 +189,26 @@ export function CanvasSidebar({
             setTab("tools");
             setCategory(null);
           }}
-          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] py-1.5 text-xs font-semibold transition ${
+          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
             tab === "tools"
               ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
               : "text-white/60 hover:bg-white/6 hover:text-white"
           }`}
         >
-          <Film className="h-3.5 w-3.5" />
-          <span>{isZh ? "工具" : "Tools"}</span>
+          <Film className="h-3 w-3 shrink-0" />
+          <span className="whitespace-nowrap">{isZh ? "工具" : "Tools"}</span>
         </button>
         <button
           type="button"
           onClick={() => setTab("assets")}
-          className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] py-1.5 text-xs font-semibold transition ${
+          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
             tab === "assets"
               ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
               : "text-white/60 hover:bg-white/6 hover:text-white"
           }`}
         >
-          <FolderHeart className="h-3.5 w-3.5" />
-          <span>{isZh ? "素材庫" : "Assets"}</span>
+          <FolderHeart className="h-3 w-3 shrink-0" />
+          <span className="whitespace-nowrap">{isZh ? "素材庫" : "Assets"}</span>
         </button>
       </div>
 

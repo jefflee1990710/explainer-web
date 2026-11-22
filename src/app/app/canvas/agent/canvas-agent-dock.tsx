@@ -20,6 +20,7 @@ import {
   canvasAgentCopy,
   defaultCanvasAgentLanguage,
 } from "@/app/app/canvas/agent/canvas-agent-copy";
+import { CanvasAgentClearDialog } from "@/app/app/canvas/agent/canvas-agent-clear-dialog";
 import { CanvasAgentComposer } from "@/app/app/canvas/agent/canvas-agent-composer";
 import { CanvasAgentEmpty } from "@/app/app/canvas/agent/canvas-agent-empty";
 import {
@@ -79,6 +80,9 @@ export function CanvasAgentDock({
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [phase, setPhase] = useState<Phase | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState("");
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [failedText, setFailedText] = useState<string | null>(null);
   const [undoableId, setUndoableId] = useState<string | null>(null);
@@ -194,12 +198,26 @@ export function CanvasAgentDock({
   );
 
   const clear = useCallback(async () => {
-    if (!window.confirm(copy.clearConfirm)) return;
-    await clearCanvasAgentMessagesAction(canvasId);
-    setMessages([]);
-    setUndoableId(null);
-    setFailedText(null);
-  }, [canvasId, copy.clearConfirm]);
+    setClearing(true);
+    setClearError("");
+    try {
+      const res = await clearCanvasAgentMessagesAction(canvasId);
+      if (!res.ok) {
+        setClearError(copy.clearError);
+        return;
+      }
+      setMessages([]);
+      setUndoableId(null);
+      setFailedText(null);
+      setPendingText(null);
+      setNotes(new Map());
+      setConfirmClear(false);
+    } catch {
+      setClearError(copy.clearError);
+    } finally {
+      setClearing(false);
+    }
+  }, [canvasId, copy.clearError]);
 
   const placedRight = side === "right";
 
@@ -234,13 +252,26 @@ export function CanvasAgentDock({
         language={language}
         side={side}
         collapsed={collapsed}
-        busy={busy}
+        busy={busy || clearing}
         hasMessages={messages.length > 0}
         onLanguageChange={changeLanguage}
         onToggleSide={toggleSide}
-        onClear={() => void clear()}
+        onClear={() => {
+          setClearError("");
+          setConfirmClear(true);
+        }}
         onToggleCollapsed={toggleCollapsed}
       />
+
+      {confirmClear ? (
+        <CanvasAgentClearDialog
+          copy={copy}
+          clearing={clearing}
+          error={clearError}
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => void clear()}
+        />
+      ) : null}
 
       {!collapsed ? (
         <>
