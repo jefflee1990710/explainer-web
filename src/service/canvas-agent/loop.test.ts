@@ -176,4 +176,27 @@ describe("runCanvasAgentTurn", () => {
     });
     assert.equal(count, 1);
   });
+
+  it("warns in the summary prompt when step limit hit after deleting nodes without adding replacements", async () => {
+    const calls: Call[] = [];
+    await runCanvasAgentTurn({
+      ...base,
+      nodes: [
+        { id: "exp-1-frame-1", type: "model", position: { x: 0, y: 0 }, data: { modelId: "google:gemini-nano-banana-2.1" } },
+      ],
+      message: "update the explainer script",
+      history: [],
+      generate: async (c) => {
+        calls.push(c);
+        if (calls.length === 1) {
+          await call(c.tools, "delete_node", { nodeId: "exp-1-frame-1" });
+          return { text: "", endedOnToolCalls: true };
+        }
+        return { text: "Removed old nodes; reply continue to add the new explainer.", endedOnToolCalls: false };
+      },
+    });
+    assert.equal(calls.length, 2);
+    assert.match(calls[1]!.system, /Step limit reached/);
+    assert.doesNotMatch(calls[1]!.system, /The new nodes are wired and ready/);
+  });
 });

@@ -42,5 +42,8 @@ describe("canvas agent prompt", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "zh-Hant", graph: graph() });
     assert.match(text, /never run/i);
     assert.match(text, /Run/);
+    assert.match(text, /batch_delete_nodes/);
+    assert.match(text, /batch_update_nodes/);
+    assert.match(text, /batch_add_nodes/);
   });
 });

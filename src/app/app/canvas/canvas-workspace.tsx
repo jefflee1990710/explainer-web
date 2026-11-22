@@ -1620,6 +1620,11 @@ function CanvasWorkspaceInner({
                   scheduleAutosave();
                 }}
                 deleteKeyCode={["Backspace", "Delete"]}
+                // Mac trackpad: two fingers moving together pan the canvas. Pinch arrives as ctrl+wheel and zooms.
+                panOnScroll
+                panOnScrollSpeed={1}
+                zoomOnScroll={false}
+                zoomOnPinch
                 fitView={initialProject.nodes.length > 0 && initialProject.viewport.x === 0 && initialProject.viewport.y === 0}
                 className="dark"
                 proOptions={{ hideAttribution: true }}

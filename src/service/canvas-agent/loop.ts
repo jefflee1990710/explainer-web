@@ -90,6 +90,7 @@ export async function runCanvasAgentTurn(input: {
   });
 
   let reply = first.text;
+  let hitStepLimit = first.endedOnToolCalls;
   let needsSummary = first.endedOnToolCalls || !reply;
 
   // The graph must run as-is: one repair pass for new nodes with empty inputs,
@@ -106,6 +107,7 @@ export async function runCanvasAgentTurn(input: {
       tools: buildCanvasAgentTools(graph),
       maxSteps: CANVAS_AGENT_REPAIR_STEPS,
     });
+    hitStepLimit = repair.endedOnToolCalls;
     if (graph.question) {
       reply = repair.text;
       needsSummary = false;
@@ -127,6 +129,7 @@ export async function runCanvasAgentTurn(input: {
         language: input.language,
         graph,
         gapLines: gaps.length > 0 ? describeCanvasAgentGaps(graph, gaps) : undefined,
+        hitStepLimit,
       }),
       messages,
       maxSteps: 1,

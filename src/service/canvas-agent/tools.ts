@@ -21,6 +21,16 @@ import type {
 } from "@/service/canvas/projects";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
 import {
+  type BatchAddNodeItem,
+  type BatchUpdateNodeItem,
+  batchDeleteNodesSchema,
+  batchUpdateNodesSchema,
+  createBatchAddNodesSchema,
+  runBatchAddNodes,
+  runBatchDeleteNodes,
+  runBatchUpdateNodes,
+} from "@/service/canvas-agent/batch-tools";
+import {
   buildAgentScroGroup,
   SCRO_GROUP_MODEL_IDS,
   SCRO_GROUP_TOOLS,
@@ -541,6 +551,27 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return { ok: true };
   },
 
+  batch_delete_nodes(
+    g: CanvasAgentWorkingGraph,
+    input: { nodeIds: string[] },
+  ): CanvasAgentToolResult {
+    return runBatchDeleteNodes(g, CANVAS_AGENT_TOOL_HANDLERS, input);
+  },
+
+  batch_update_nodes(
+    g: CanvasAgentWorkingGraph,
+    input: { updates: BatchUpdateNodeItem[] },
+  ): CanvasAgentToolResult {
+    return runBatchUpdateNodes(g, CANVAS_AGENT_TOOL_HANDLERS, input);
+  },
+
+  batch_add_nodes(
+    g: CanvasAgentWorkingGraph,
+    input: { nodes: BatchAddNodeItem[] },
+  ): CanvasAgentToolResult {
+    return runBatchAddNodes(g, CANVAS_AGENT_TOOL_HANDLERS, input);
+  },
+
   ask_user(
     g: CanvasAgentWorkingGraph,
     input: { question: string; options: string[]; allowMultiple?: boolean; allowOther?: boolean },
@@ -726,9 +757,27 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
       execute: async (input) => H.disconnect(g, input),
     }),
     delete_node: tool({
-      description: "Delete a node and its edges. Nodes that are generating cannot be deleted.",
+      description: "Delete one node and its edges. Prefer batch_delete_nodes when removing 2+ nodes.",
       inputSchema: z.object({ nodeId: z.string() }),
       execute: async (input) => H.delete_node(g, input),
+    }),
+    batch_delete_nodes: tool({
+      description:
+        "Delete multiple nodes and their edges in one atomic step (e.g. an entire expanded exp-<prefix>-* or th-<prefix>-* group before replacing it). Rolls back if any id is unknown or running.",
+      inputSchema: batchDeleteNodesSchema,
+      execute: async (input) => H.batch_delete_nodes(g, input),
+    }),
+    batch_update_nodes: tool({
+      description:
+        "Update multiple nodes in one atomic step (prompts, prompt-node text, aspectRatio, durationSeconds, toolParams across clips). Rolls back if any item fails.",
+      inputSchema: batchUpdateNodesSchema,
+      execute: async (input) => H.batch_update_nodes(g, input),
+    }),
+    batch_add_nodes: tool({
+      description:
+        "Add and wire multiple model, media, or prompt nodes in one atomic step. Give earlier items a key so later items in the same call can reference them in wires[].sourceId. Rolls back if any item or wire fails.",
+      inputSchema: createBatchAddNodesSchema(CANVAS_AGENT_MAX_ADDED_NODES),
+      execute: async (input) => H.batch_add_nodes(g, input),
     }),
     arrange_layout: tool({
       description: "Tidy the whole canvas left to right in run order. Call once after building.",

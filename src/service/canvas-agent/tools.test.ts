@@ -364,6 +364,156 @@ describe("canvas agent tools", () => {
     assert.equal(T.ask_user(wantsTalkingHead, { question: "How?", options }).ok, true);
   });
 
+  it("batch_delete_nodes removes an entire 14-node expanded Explainer in one step and rolls back on error", () => {
+    const expandedIds = [
+      "exp-020dc4-ref-1",
+      "exp-020dc4-frame-1",
+      "exp-020dc4-frame-2",
+      "exp-020dc4-frame-3",
+      "exp-020dc4-video-1",
+      "exp-020dc4-video-2",
+      "exp-020dc4-video-3",
+      "exp-020dc4-voice-1",
+      "exp-020dc4-voice-2",
+      "exp-020dc4-voice-3",
+      "exp-020dc4-mux-1",
+      "exp-020dc4-mux-2",
+      "exp-020dc4-mux-3",
+      "exp-020dc4-concat-1",
+    ];
+    const initial: CanvasNode[] = [
+      { id: "media-jim", type: "media", position: { x: 0, y: 0 }, data: { label: "Jim", mediaKind: "image", mediaUrl: asset.url } },
+      ...expandedIds.map((id, i) => ({
+        id,
+        type: (id.includes("-ref-") ? "media" : "model") as CanvasNode["type"],
+        position: { x: i * 10, y: 0 },
+        data: id.includes("-ref-")
+          ? { label: "參考圖 1", mediaKind: "image" as const, mediaUrl: asset.url }
+          : { modelId: SEEDREAM, status: "idle" as const },
+      })),
+    ];
+    const g = fresh(initial);
+
+    // Unknown id in the list leaves all 15 nodes untouched.
+    const bad = T.batch_delete_nodes(g, { nodeIds: [expandedIds[0]!, "exp-missing"] });
+    assert.ok("error" in bad);
+    assert.equal(g.nodes.length, 15);
+    assert.equal(g.ops.length, 0);
+
+    // Running node in the list also blocks partial deletion.
+    g.nodes.find((n) => n.id === "exp-020dc4-video-2")!.data.status = "running";
+    const busy = T.batch_delete_nodes(g, { nodeIds: expandedIds });
+    assert.ok("error" in busy);
+    assert.equal(g.nodes.length, 15);
+    g.nodes.find((n) => n.id === "exp-020dc4-video-2")!.data.status = "idle";
+
+    const ok = T.batch_delete_nodes(g, { nodeIds: expandedIds }) as { ok: boolean; deletedCount: number };
+    assert.equal(ok.ok, true);
+    assert.equal(ok.deletedCount, 14);
+    assert.deepEqual(g.nodes.map((n) => n.id), ["media-jim"]);
+    assert.equal(g.ops.filter((o) => o.kind === "remove_node").length, 14);
+  });
+
+  it("batch_update_nodes edits multiple nodes atomically and rolls back if any item fails", () => {
+    const g = fresh();
+    const p = T.add_prompt_node(g, { text: "old text" }) as { nodeId: string };
+    const v = T.add_model_node(g, { modelId: HAILUO, prompt: "old motion", durationSeconds: 5 }) as { nodeId: string };
+    const tts = T.add_model_node(g, {
+      modelId: "scro:tts",
+      prompt: "old line",
+      toolParams: { language: "en", voicePreset: "brian" },
+    }) as { nodeId: string };
+    const opsBefore = g.ops.length;
+
+    const failed = T.batch_update_nodes(g, {
+      updates: [
+        { nodeId: p.nodeId, text: "mutated" },
+        { nodeId: tts.nodeId, toolParams: { language: "invalid-lang" } },
+      ],
+    });
+    assert.ok("error" in failed);
+    assert.equal(g.nodes.find((n) => n.id === p.nodeId)?.data.text, "old text");
+    assert.equal(g.ops.length, opsBefore);
+
+    const ok = T.batch_update_nodes(g, {
+      updates: [
+        { nodeId: p.nodeId, text: "new text" },
+        { nodeId: v.nodeId, prompt: "new motion", durationSeconds: 10 },
+        { nodeId: tts.nodeId, prompt: "new line", toolParams: { language: "yue", voicePreset: "alan" } },
+      ],
+    }) as { ok: boolean; updatedCount: number };
+    assert.equal(ok.ok, true);
+    assert.equal(ok.updatedCount, 3);
+    assert.equal(g.nodes.find((n) => n.id === p.nodeId)?.data.text, "new text");
+    assert.equal(g.nodes.find((n) => n.id === v.nodeId)?.data.durationSeconds, 10);
+    assert.equal(
+      (g.nodes.find((n) => n.id === tts.nodeId)?.data.toolParams as Record<string, unknown>)?.language,
+      "yue",
+    );
+  });
+
+  it("batch_add_nodes builds and wires a multi-shot pipeline via local keys and rolls back on failure", () => {
+    const g = fresh();
+
+    // Bad wire targetPort on the last node rolls back earlier nodes in the same batch.
+    const bad = T.batch_add_nodes(g, {
+      nodes: [
+        { key: "ref", assetId: "char-1" },
+        { key: "img1", modelId: SEEDREAM, prompt: "shot 1", wires: [{ sourceId: "ref", targetPort: "videos" }] },
+      ],
+    });
+    assert.ok("error" in bad);
+    assert.doesNotMatch(String(bad.error), /Do not add this node again/);
+    assert.equal(g.nodes.length, 0);
+    assert.equal(g.ops.length, 0);
+    assert.equal(g.addedNodes, 0);
+
+    const ok = T.batch_add_nodes(g, {
+      nodes: [
+        { key: "ref", assetId: "char-1" },
+        {
+          key: "img1",
+          modelId: SEEDREAM,
+          promptText: "Mia holding mug front view",
+          wires: [{ sourceId: "ref", targetPort: "refImages" }],
+        },
+        {
+          key: "vid1",
+          modelId: HAILUO,
+          prompt: "slow push in",
+          wires: [{ sourceId: "img1", targetPort: "startImage" }],
+        },
+        {
+          key: "img2",
+          modelId: SEEDREAM,
+          prompt: "Mia sipping coffee side view",
+          wires: [{ sourceId: "ref", targetPort: "refImages" }],
+        },
+        {
+          key: "vid2",
+          modelId: HAILUO,
+          prompt: "gentle pan",
+          wires: [{ sourceId: "img2", targetPort: "startImage" }],
+        },
+        {
+          key: "concat",
+          modelId: "ffmpeg:concat",
+          wires: [
+            { sourceId: "vid1", targetPort: "videos" },
+            { sourceId: "vid2", targetPort: "videos" },
+          ],
+        },
+      ],
+    }) as { ok: boolean; addedCount: number; created: Array<{ key?: string; nodeId: string }> };
+
+    assert.equal(ok.ok, true);
+    // 1 media + (1 image + 1 prompt) + 1 video + 1 image + 1 video + 1 concat = 7 nodes.
+    assert.equal(ok.addedCount, 7);
+    assert.equal(g.nodes.length, 7);
+    const concatId = ok.created.find((c) => c.key === "concat")!.nodeId;
+    assert.equal(g.edges.filter((e) => e.target === concatId && e.targetHandle === "videos").length, 2);
+  });
+
   it("exposes every handler as an AI SDK tool", () => {
     const tools = buildCanvasAgentTools(fresh());
     assert.deepEqual(Object.keys(tools).sort(), Object.keys(T).sort());

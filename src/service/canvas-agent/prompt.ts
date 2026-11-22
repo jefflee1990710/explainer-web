@@ -46,7 +46,8 @@ export function buildCanvasAgentSystemPrompt(input: {
 - Call ask_user only when you cannot build a working graph without the user: the needed product or character photo is not on the canvas or in list_assets, it is unclear which of several images or characters to use, or two approaches give very different results. Never ask "talking head or explainer" when the user said explainer: build "scro:explainer", with the named character as "characterId". Ask once per turn, give 2-6 short options in the chat language, set allowMultiple when more than one answer makes sense, and end your turn right after. You may build the parts that do not depend on the answer first.
 - Write prompts for model nodes in English with concrete visual detail (subject, setting, lighting, camera), even when chatting in another language.
 - The model list and the current canvas in this prompt are already complete. Do not call list_models or get_canvas unless a tool error says an id is missing.
-- Add each new model with one add_model_node call that also wires it: promptText creates and connects the prompt node; wires connects existing media or model outputs (refImages, startImage, endImage, refAudio, video, videos, image). A new model that should use a reference image is not finished until that wire is in the same call.
+- Add each new model with add_model_node (or batch_add_nodes when adding 2+ nodes) so it also wires in the same call: promptText creates and connects the prompt node; wires connects existing media or model outputs (refImages, startImage, endImage, refAudio, video, videos, image), or an earlier batch item's key. A new model that should use a reference image is not finished until that wire is in the same call.
+- Whenever you add, edit, or delete 2 or more nodes, use batch_add_nodes, batch_update_nodes, or batch_delete_nodes instead of looping single-node calls so you never run out of steps.
 - Use connect only to rewire nodes that already exist.
 - After the nodes are wired, call arrange_layout once, then reply. Do not keep calling tools.
 
@@ -66,6 +67,7 @@ export function buildCanvasAgentSystemPrompt(input: {
   - tool "talking-head": script in "prompt", "characterId", optional "language" and "framing" ("collarbone-close" | "waist-up" | "handheld-selfie" | "full-body"). Use it only when the user asks the character to speak to camera (口播 / talking head). It lands as a free planning card that turns into an opening still plus per-clip TTS → HeyGen Avatar IV → Smooth Silence → Color Grade rows and an FFmpeg Concat. Tell the user it is planning (free) and to press Run Flow once the nodes appear.
 - Scro Tool Nodes:
   - "scro:explainer": takes a topic/script ("prompt") and optional "toolParams.characterId" (from list_assets().characters; that character appears in every scene as the on-screen teacher), "skillSlug" ("cartoon-explainer-video-director" | "paper-cutout-explainer-video-director" | "papercraft-diorama-director"), "language" ("yue"|"zh"|"en"), "durationPreset" ("15s"|"30s"|"45s"|"60s"). When the user asks for an explainer (解說片 / explain what X is), use "scro:explainer" directly, with "characterId" when they name a character; do not ask whether they want a talking head instead. Use add_scro_group tool "talking-head" only when they ask the character to speak to camera (口播 / talking head). Put the full topic or script in its "prompt" and do not wire anything into or out of it. It lands as a temporary planning card and the canvas starts free storyboard planning automatically right after your turn; within a few minutes the card turns into per-clip reference images → Nano Banana 2.1 still → MiniMax Hailuo 3 → Audio Mux ← TTS rows and an FFmpeg Concat. Tell the user it is planning (free) and that they press Run Flow once the nodes appear. Never build those rows yourself or add "scro:explainer-frame".
+  - Updating an expanded Explainer ("exp-<prefix>-*" nodes) or Talking Head ("th-<prefix>-*" nodes): for small tweaks to existing clips (spoken lines, language, duration, or visual wording), call batch_update_nodes on those nodes in one step. When the user replaces the topic, full script/transcript, or clip structure, read characterId and language from the existing voice-* (scro:tts) toolParams and aspectRatio from frame-* in # Current canvas, call batch_delete_nodes once with all "exp-<prefix>-*" (or "th-<prefix>-*") ids of that group, then add one new "scro:explainer" card (or add_scro_group tool "talking-head") with the new script so free planning rebuilds every scene, motion prompt, and voice line cleanly.
   - "scro:tts": script in "prompt", optional "toolParams.characterId" (cloned voice), "language", "voicePreset", "ttsSpeed".
 - FFmpeg Nodes ($0.00): "ffmpeg:concat", "ffmpeg:audio-mux", "ffmpeg:trim-speed", "ffmpeg:transform", "ffmpeg:extract-audio", "ffmpeg:color-grade" ("toolParams.gradeLook": "jutsu" | "talking-head" | "talking-head-selfie"), "ffmpeg:smooth-silence" (trims long pauses).
 - A model with no connected prompt node uses its inline prompt field.
@@ -116,11 +118,19 @@ export function buildCanvasAgentSummaryPrompt(input: {
   graph: CanvasAgentWorkingGraph;
   // Inputs still empty after repair; the reply must name them instead of saying "ready".
   gapLines?: string;
+  // True when the tool loop stopped on step limit instead of finishing on its own.
+  hitStepLimit?: boolean;
 }): string {
   const canvas = CANVAS_AGENT_TOOL_HANDLERS.get_canvas(input.graph);
+  const removedOnly =
+    input.hitStepLimit &&
+    input.graph.addedNodes === 0 &&
+    input.graph.ops.some((op) => op.kind === "remove_node");
   const missing = input.gapLines
     ? `\n# Still missing\n${input.gapLines}\nSay plainly which node still needs which input and what the user can add (for example upload a photo). Do not say it is ready.\n`
-    : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
+    : removedOnly
+      ? `\n# Step limit reached\nYou ran out of tool steps after removing old nodes and before adding the replacement nodes. State plainly what was removed and ask the user to reply "continue" to finish adding the new nodes. Do not say the canvas is ready to Run.\n`
+      : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
   return `You are the Scro canvas assistant. You have no more tool calls this turn.
 Summarize what is on the canvas now, in run order, and the estimated cost when it runs.
 Plain text only: short sentences, or lines starting with "1." / "•". No Markdown symbols, no node ids.
