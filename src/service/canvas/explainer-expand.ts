@@ -6,7 +6,7 @@ import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
 import { NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/model-catalog";
 import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
 
-export const EXPLAINER_HAILUO_MODEL_ID = "openrouter:minimax/hailuo-3";
+export const EXPLAINER_HAILUO_MODEL_ID = "minimax:MiniMax-H3";
 // Explainer start stills use the same image model as the director pipeline.
 export const EXPLAINER_FRAME_MODEL_ID = NANO_BANANA_CANVAS_MODEL_ID;
 // Diagram explainers speed narration with atempo=1.25 in the director pipeline.

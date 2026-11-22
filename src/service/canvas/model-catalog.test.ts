@@ -37,12 +37,19 @@ describe("canvas model catalog", () => {
     const ids = new Set(STATIC_CANVAS_MODELS.map((m) => m.id));
     assert.equal(ids.size, STATIC_CANVAS_MODELS.length);
 
+    const minimaxAccountCount = [
+      ...OPENROUTER_ACCOUNT_IMAGE_MODELS,
+      ...OPENROUTER_ACCOUNT_VIDEO_MODELS,
+    ].filter((model) => model.id.startsWith("minimax/")).length;
     const mentalok = STATIC_CANVAS_MODELS.filter((m) => m.provider === "mentalok");
     const openrouter = STATIC_CANVAS_MODELS.filter((m) => m.provider === "openrouter");
+    const minimax = STATIC_CANVAS_MODELS.filter((m) => m.provider === "minimax");
     const scro = STATIC_CANVAS_MODELS.filter((m) => m.provider === "scro");
     const ffmpeg = STATIC_CANVAS_MODELS.filter((m) => m.provider === "ffmpeg");
     assert.equal(mentalok.length, 16);
-    assert.equal(openrouter.length, openRouterCount);
+    assert.equal(minimax.length, minimaxAccountCount);
+    assert.equal(openrouter.length, openRouterCount - minimaxAccountCount);
+    assert.equal(openrouter.some((model) => model.providerModelId.startsWith("minimax/")), false);
     assert.equal(scro.length, 11);
     assert.deepEqual(
       scro.filter((m) => m.hiddenInSidebar).map((m) => m.id),
@@ -241,7 +248,6 @@ describe("canvas model catalog", () => {
       { slug: "bytedance-seed/seedream-5-0-pro", category: "image", output: "image", refMax: 14 },
       { slug: "bytedance-seed/seedream-5-0-lite", category: "image", output: "image", refMax: 14 },
       { slug: "bytedance-seed/seedream-5-5", category: "image", output: "image", refMax: 10 },
-      { slug: "minimax/hailuo-3", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0-fast", category: "video", output: "video", refMax: 4 },
       { slug: "bytedance/seedance-2.0-mini", category: "video", output: "video", refMax: 4 },
@@ -355,7 +361,11 @@ describe("canvas model catalog", () => {
     assert.equal(withoutKey.length, STATIC_CANVAS_MODELS.length);
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.runtimeStatus, "unavailable");
     assert.equal(findCanvasModel("mentalok:flux-schnell", withoutKey)?.available, false);
-    assert.equal(findCanvasModel("openrouter:minimax/hailuo-3", withoutKey)?.available, true);
+    const hailuo = findCanvasModel("openrouter:minimax/hailuo-3", withoutKey);
+    assert.equal(hailuo?.id, "minimax:MiniMax-H3");
+    assert.equal(hailuo?.provider, "minimax");
+    assert.equal(hailuo?.providerModelId, "MiniMax-H3");
+    assert.equal(hailuo?.available, true);
 
     const afterError = await getCanvasModelCatalog({
       apiKey: "mtk_live_test",

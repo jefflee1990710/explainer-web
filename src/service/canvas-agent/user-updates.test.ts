@@ -19,7 +19,7 @@ import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 const JIM = "6afaa18cbdd00015c634043e";
 const CATHY = "6afaa18cbdd00015c6340000";
 const LITE = "openrouter:bytedance-seed/seedream-5-0-lite";
-const HAILUO = "openrouter:minimax/hailuo-3";
+const HAILUO = "minimax:MiniMax-H3";
 const BLOB = "https://blob.example/characters";
 
 const assets: CanvasLibraryAsset[] = [

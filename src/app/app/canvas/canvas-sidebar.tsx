@@ -3,7 +3,7 @@
 // Collapsible left drawer for /app/canvas:
 // 1) Models (generators, edit, cutout, upscale)
 // 2) Tools (Scro pipelines and FFmpeg)
-// 3) Assets (upload, characters, products, recent outputs)
+// 3) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -17,7 +17,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { CanvasOutfitList } from "@/app/app/canvas/canvas-outfit-list";
+import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
 import { CanvasSidebarRail } from "@/app/app/canvas/canvas-sidebar-rail";
 import {
   CanvasPromptTool,
@@ -84,6 +84,7 @@ export function CanvasSidebar({
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const [tab, setTab] = useState<"models" | "tools" | "assets">("models");
+  const [assetPane, setAssetPane] = useState<"library" | "outfit">("library");
   const [query, setQuery] = useState("");
   // null shows every group of the current tab. There is no "All" chip.
   const [category, setCategory] = useState<CanvasModelCategory | null>(null);
@@ -127,7 +128,14 @@ export function CanvasSidebar({
   // OpenRouter models lead each group. Mentalok only fills categories that have no
   // OpenRouter model (image edit, SAM cutout, upscale), so older graphs still run.
   const availableModels = useMemo(() => {
-    const providerRank: Record<string, number> = { scro: 0, ffmpeg: 1, google: 2, openrouter: 2, mentalok: 3 };
+    const providerRank: Record<string, number> = {
+      scro: 0,
+      ffmpeg: 1,
+      google: 2,
+      openrouter: 2,
+      minimax: 2,
+      mentalok: 3,
+    };
     const openRouterCategories = new Set(
       models.filter((spec) => spec.provider === "openrouter").map((spec) => spec.category),
     );
@@ -350,6 +358,38 @@ export function CanvasSidebar({
           </div>
         </div>
       ) : (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex gap-1 border-b border-white/6 px-2.5 py-2">
+            {(
+              [
+                { id: "library" as const, zh: "素材", en: "Library" },
+                { id: "outfit" as const, zh: "穿搭", en: "Outfit" },
+              ]
+            ).map((pane) => {
+              const active = assetPane === pane.id;
+              return (
+                <button
+                  key={pane.id}
+                  type="button"
+                  onClick={() => setAssetPane(pane.id)}
+                  className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                    active
+                      ? "bg-[#c6f24b] text-[#11141b]"
+                      : "bg-white/6 text-white/60 hover:bg-white/12 hover:text-white"
+                  }`}
+                >
+                  {isZh ? pane.zh : pane.en}
+                </button>
+              );
+            })}
+          </div>
+          {assetPane === "outfit" ? (
+            <CanvasOutfitTab
+              isZh={isZh}
+              userOutfits={assets.outfits ?? []}
+              onAddAsset={onAddAsset}
+            />
+          ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2.5">
           {/* Local file upload */}
           <input
@@ -399,11 +439,6 @@ export function CanvasSidebar({
             onAddAsset={onAddAsset}
             emptyText={isZh ? "尚無角色圖片" : "No character assets yet"}
           />
-          <CanvasOutfitList
-            isZh={isZh}
-            items={assets.outfits ?? []}
-            onAddAsset={onAddAsset}
-          />
           <AssetSection
             title={isZh ? "我的產品 Products" : "Products"}
             items={assets.products}
@@ -416,6 +451,8 @@ export function CanvasSidebar({
             onAddAsset={onAddAsset}
             emptyText={isZh ? "尚無生成紀錄" : "No recent canvas outputs"}
           />
+        </div>
+          )}
         </div>
       )}
     </aside>

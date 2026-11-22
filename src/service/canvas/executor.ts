@@ -59,6 +59,14 @@ import {
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
 import { hasGoogleStudioKey, submitGoogleStudioImage } from "@/service/google/studio-image";
+import {
+  type MinimaxCanvasImageInput,
+  type MinimaxCanvasVideoInput,
+  fetchMinimaxCanvasVideo,
+  submitMinimaxCanvasImage,
+  submitMinimaxCanvasVideo,
+} from "@/service/minimax/official-canvas";
+import { minimaxApiKey } from "@/service/minimax/talking-head-reference";
 import { fetchGoogleStudioVideo, submitGoogleStudioVideo } from "@/service/google/studio-video";
 
 // Mentalok video models that accept a `keyframes` object (`startImage` / `endImage`).
@@ -106,6 +114,7 @@ export type CanvasExecutorDeps = {
   getCatalog: () => Promise<CanvasModelSpec[]>;
   hasMentalokKey: () => boolean;
   hasOpenRouterKey: () => boolean;
+  hasMinimaxKey: () => boolean;
   hasGoogleStudioKey: () => boolean;
   consumeCreditUsd: (clerkUserId: string, costUsd: number) => Promise<string>;
   refundCreditUsd: (
@@ -143,6 +152,9 @@ export type CanvasExecutorDeps = {
     input: OpenRouterCanvasVideoInput,
   ) => Promise<GenerationSubmitResult>;
   fetchOpenRouterStatus: (statusUrl: string) => Promise<GenerationSubmitResult>;
+  submitMinimaxCanvasImage: (input: MinimaxCanvasImageInput) => Promise<GenerationSubmitResult>;
+  submitMinimaxCanvasVideo: (input: MinimaxCanvasVideoInput) => Promise<GenerationSubmitResult>;
+  fetchMinimaxCanvasVideo: (statusUrl: string) => Promise<GenerationSubmitResult>;
   createMentalokJob: (payload: MentalokCreateJobPayload) => Promise<MentalokJobRecord>;
   getMentalokJob: (jobId: string) => Promise<MentalokJobRecord>;
   ensureMentalokUrl: (mediaUrl: string) => Promise<string>;
@@ -319,6 +331,7 @@ function createDefaultDeps(): CanvasExecutorDeps {
     getCatalog: () => getCanvasModelCatalog(),
     hasMentalokKey: () => hasMentalokApiKey(),
     hasOpenRouterKey: () => hasOpenRouterKey(),
+    hasMinimaxKey: () => Boolean(minimaxApiKey()),
     hasGoogleStudioKey: () => hasGoogleStudioKey(),
     consumeCreditUsd,
     refundCreditUsd,
@@ -329,6 +342,9 @@ function createDefaultDeps(): CanvasExecutorDeps {
     fetchGoogleStudioVideo: (interactionId) => fetchGoogleStudioVideo(interactionId),
     submitOpenRouterCanvasVideo: (input) => submitOpenRouterCanvasVideo(input),
     fetchOpenRouterStatus: (statusUrl) => fetchOpenRouterStatus(statusUrl),
+    submitMinimaxCanvasImage: (input) => submitMinimaxCanvasImage(input),
+    submitMinimaxCanvasVideo: (input) => submitMinimaxCanvasVideo(input),
+    fetchMinimaxCanvasVideo: (statusUrl) => fetchMinimaxCanvasVideo(statusUrl),
     createMentalokJob: (payload) => createMentalokJob(payload),
     getMentalokJob: (jobId) => getMentalokJob(jobId),
     ensureMentalokUrl: (mediaUrl) => ensureMentalokUrl(mediaUrl),
@@ -648,6 +664,15 @@ export async function submitCanvasNodeJob(
       code: "PROVIDER_UNAVAILABLE",
       error:
         "OpenRouter 尚未設定 API Key（OPENROUTER_API_KEY），暫時無法執行此模型。",
+      creditUsd,
+    };
+  }
+  if (spec.provider === "minimax" && !resolved.hasMinimaxKey()) {
+    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+    return {
+      ok: false,
+      code: "PROVIDER_UNAVAILABLE",
+      error: "MiniMax 尚未設定 API Key（MINIMAX_API_KEY），暫時無法執行此模型。",
       creditUsd,
     };
   }
@@ -1043,7 +1068,10 @@ async function executeDispatchedCanvasJob(
 
   try {
     // Branch 1: Synchronous OpenRouter / Google AI Studio image generation -> persist directly to Blob.
-    if ((spec.provider === "openrouter" || spec.provider === "google") && spec.category === "image") {
+    if (
+      (spec.provider === "openrouter" || spec.provider === "google" || spec.provider === "minimax") &&
+      spec.category === "image"
+    ) {
       const imageInput = {
         model: spec.providerModelId,
         prompt: inputCheck.inputs.prompt || "",
@@ -1056,14 +1084,19 @@ async function executeDispatchedCanvasJob(
       const response =
         spec.provider === "google"
           ? await resolved.submitGoogleStudioImage(imageInput)
-          : await resolved.submitOpenRouterImage(imageInput);
+          : spec.provider === "minimax"
+            ? await resolved.submitMinimaxCanvasImage(imageInput)
+            : await resolved.submitOpenRouterImage(imageInput);
 
       const rawOutputUrl = response.images?.[0]?.url;
       if (response.status === "nsfw" || response.status === "failed" || !rawOutputUrl) {
-        throw new Error(
-          response.error ||
-            (spec.provider === "google" ? "Google AI Studio 圖片生成失敗" : "OpenRouter 圖片生成失敗"),
-        );
+        const fallback =
+          spec.provider === "google"
+            ? "Google AI Studio 圖片生成失敗"
+            : spec.provider === "minimax"
+              ? "MiniMax 圖片生成失敗"
+              : "OpenRouter 圖片生成失敗";
+        throw new Error(response.error || fallback);
       }
 
       const blobPath = buildCanvasBlobPathname(
@@ -1141,9 +1174,9 @@ async function executeDispatchedCanvasJob(
       });
     }
 
-    // Branch 3: Asynchronous OpenRouter video generation.
-    if (spec.provider === "openrouter") {
-      const response = await resolved.submitOpenRouterCanvasVideo({
+    // Branch 3: Asynchronous video. MiniMax uses the official API; other models stay on OpenRouter.
+    if (spec.provider === "openrouter" || spec.provider === "minimax") {
+      const videoInput = {
         model: spec.providerModelId,
         prompt: inputCheck.inputs.prompt,
         aspectRatio: normalizeOpenRouterVideoAspectRatio(
@@ -1151,15 +1184,22 @@ async function executeDispatchedCanvasJob(
         ),
         durationSeconds:
           node.data.durationSeconds ?? spec.defaultDurationSeconds ?? 5,
+        resolution: node.data.resolution,
         startImageUrl: inputCheck.inputs.startImage,
         endImageUrl: inputCheck.inputs.endImage,
         referenceImageUrls: inputCheck.inputs.refImages,
         audioUrl: inputCheck.inputs.refAudio,
         videoUrl: inputCheck.inputs.video,
-      });
+      };
+      const response = spec.provider === "minimax"
+        ? await resolved.submitMinimaxCanvasVideo(videoInput)
+        : await resolved.submitOpenRouterCanvasVideo(videoInput);
 
       if (response.status === "failed" || response.status === "nsfw") {
-        throw new Error(response.error || "OpenRouter 影片生成失敗");
+        throw new Error(
+          response.error ||
+            (spec.provider === "minimax" ? "MiniMax 影片生成失敗" : "OpenRouter 影片生成失敗"),
+        );
       }
 
       const updatedAt = resolved.now();
@@ -1772,6 +1812,33 @@ async function pollSingleCanvasJob(
         remote.status === "nsfw"
           ? "內容觸發安全審核限制，已自動退還 USD Credit"
           : "Google AI Studio 影片生成失敗";
+      return settleFailedJob(job, remote.error || defaultMsg, resolved);
+    }
+    return job;
+  }
+
+  if (job.provider === "minimax") {
+    if (!job.statusUrl) return job;
+    let remote: GenerationSubmitResult;
+    try {
+      remote = await resolved.fetchMinimaxCanvasVideo(job.statusUrl);
+    } catch (error) {
+      console.warn("[canvas-executor] transient MiniMax poll error", {
+        jobId: job._id.toHexString(),
+        error: toErrorMessage(error, "MiniMax poll failed"),
+      });
+      return job;
+    }
+    if (remote.status === "completed") {
+      const rawUrl = remote.video?.url;
+      if (!rawUrl) return settleFailedJob(job, "MiniMax 任務已完成但未回傳影片", resolved);
+      return settleCompletedJob(job, rawUrl, resolved);
+    }
+    if (remote.status === "failed" || remote.status === "nsfw") {
+      const defaultMsg =
+        remote.status === "nsfw"
+          ? "內容觸發安全審核限制，已自動退還 USD Credit"
+          : "MiniMax 影片生成失敗";
       return settleFailedJob(job, remote.error || defaultMsg, resolved);
     }
     return job;

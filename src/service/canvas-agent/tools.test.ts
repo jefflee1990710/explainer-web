@@ -11,7 +11,7 @@ import {
 } from "@/service/canvas-agent/tools";
 
 const SEEDREAM = "openrouter:bytedance-seed/seedream-5-0-pro";
-const HAILUO = "openrouter:minimax/hailuo-3";
+const HAILUO = "minimax:MiniMax-H3";
 
 const asset: CanvasLibraryAsset = {
   id: "char-1",

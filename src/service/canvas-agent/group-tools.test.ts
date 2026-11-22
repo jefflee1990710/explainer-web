@@ -20,7 +20,7 @@ function canvas(extraNodes: CanvasNode[] = []) {
     { id: "media-5c839307", type: "media", position: { x: 542, y: 1199 }, data: { label: "Jim", mediaKind: "image", mediaUrl: JIM_PHOTO } },
     { id: "exp-020dc4-ref-1", type: "media", position: { x: 538, y: 1524 }, data: { label: "參考圖 1", mediaKind: "image", mediaUrl: JIM_LOCK } },
     model("exp-020dc4-frame-1", "google:gemini-nano-banana-2.1", { aspectRatio: "9:16" }),
-    model("exp-020dc4-video-1", "openrouter:minimax/hailuo-3", { aspectRatio: "9:16" }),
+    model("exp-020dc4-video-1", "minimax:MiniMax-H3", { aspectRatio: "9:16" }),
     ...extraNodes,
   ];
   const edges: CanvasEdge[] = [
@@ -89,7 +89,7 @@ describe("replace_group", () => {
   it("asks for groupId when several director groups are on the canvas, and changes nothing", () => {
     const g = canvas([
       model("exp-abcdef-frame-1", "google:gemini-nano-banana-2.1"),
-      model("exp-abcdef-video-1", "openrouter:minimax/hailuo-3"),
+      model("exp-abcdef-video-1", "minimax:MiniMax-H3"),
     ]);
     const res = T.replace_group(g, { prompt: "new" });
     assert.match(String(res.error), /groupId/);

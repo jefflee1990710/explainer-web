@@ -208,6 +208,7 @@ export const canvasModelProviderSchema = z.enum([
   "mentalok",
   "openrouter",
   "google",
+  "minimax",
   "scro",
   "ffmpeg",
 ]);

@@ -128,6 +128,7 @@ function createHarness(options: {
     getCatalog: async () => STATIC_CANVAS_MODELS.map((m) => ({ ...m })),
     hasMentalokKey: () => options.hasMentalokKey ?? true,
     hasOpenRouterKey: () => options.hasOpenRouterKey ?? true,
+    hasMinimaxKey: () => true,
     hasGoogleStudioKey: () => true,
     consumeCreditUsd: async (clerkUserId, costUsd) => {
       consumeCalls.push({ clerkUserId, costUsd });
@@ -173,6 +174,22 @@ function createHarness(options: {
       status_url: "https://openrouter.ai/api/v1/videos/or-vid-1",
       status: "completed",
       video: { url: "https://openrouter.ai/api/v1/videos/or-vid-1/content?index=0" },
+    }),
+    submitMinimaxCanvasImage: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "mm-img-1",
+      status: "completed",
+      images: [{ url: "https://cdn.minimax.io/image.jpg" }],
+    }),
+    submitMinimaxCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "mm-vid-1",
+      status_url: "https://api.minimax.io/v2/query/video_generation/mm-vid-1",
+      status: "queued",
+    }),
+    fetchMinimaxCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "mm-vid-1",
+      status_url: "https://api.minimax.io/v2/query/video_generation/mm-vid-1",
+      status: "completed",
+      video: { url: "https://cdn.minimax.io/mm-vid-1.mp4" },
     }),
     createMentalokJob: async (payload): Promise<MentalokJobRecord> => {
       mentalokPayloads.push(payload);
@@ -650,6 +667,8 @@ describe("canvas executor", () => {
     );
     assert.equal(submitted.ok, true);
     if (!submitted.ok) return;
+    assert.equal(submitted.job.provider, "minimax");
+    assert.match(submitted.job.statusUrl || "", /^https:\/\/api\.minimax\.io\//);
 
     const jobId = submitted.job._id.toHexString();
     // First poll hits transient Blob error -> stays running, no refund.

@@ -24,6 +24,7 @@ import {
   googleStudioImageUserUsd,
   googleStudioVideoUserUsd,
 } from "@/service/google/studio-price";
+import { minimaxCanvasBillingSlug } from "@/service/minimax/official-canvas";
 
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
@@ -136,17 +137,20 @@ export function estimateCanvasModelCostUsd(
     }
   }
 
-  if (spec.provider === "openrouter" && spec.providerModelId) {
+  if ((spec.provider === "openrouter" || spec.provider === "minimax") && spec.providerModelId) {
+    const pricedId = spec.provider === "minimax"
+      ? minimaxCanvasBillingSlug(spec.providerModelId)
+      : spec.providerModelId;
     if (spec.category === "image") {
-      return openRouterImageUserUsd(spec.providerModelId, {
-        resolution: params?.resolution || defaultOpenRouterImageResolution(spec.providerModelId),
+      return openRouterImageUserUsd(pricedId, {
+        resolution: params?.resolution || defaultOpenRouterImageResolution(pricedId),
         referenceImages: params?.referenceImages,
       });
     }
     if (spec.category === "video") {
-      return openRouterVideoUserUsd(spec.providerModelId, {
+      return openRouterVideoUserUsd(pricedId, {
         durationSeconds: canvasVideoSeconds(spec, params?.durationSeconds),
-        resolution: params?.resolution || defaultOpenRouterVideoResolution(spec.providerModelId),
+        resolution: params?.resolution || defaultOpenRouterVideoResolution(pricedId),
         referenceImages: params?.referenceImages,
       });
     }

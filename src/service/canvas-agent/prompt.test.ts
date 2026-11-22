@@ -27,7 +27,7 @@ describe("canvas agent prompt", () => {
 
   it("lists OpenRouter, Scro, and FFmpeg models and the current nodes", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "en", graph: graph() });
-    assert.match(text, /openrouter:minimax\/hailuo-3/);
+    assert.match(text, /minimax:MiniMax-H3/);
     assert.match(text, /scro:tts/);
     assert.match(text, /add_scro_group/);
     assert.match(text, /tool "talking-head"/);

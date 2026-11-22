@@ -39,6 +39,10 @@ import {
   openRouterVideoUserUsd,
 } from "@/service/openrouter/media-price";
 import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/service/canvas/pricing";
+import {
+  MINIMAX_CANVAS_LEGACY_IDS,
+  officialMinimaxCanvasModel,
+} from "@/service/minimax/official-canvas";
 
 export type CanvasPortType = "image" | "video" | "audio" | "text";
 
@@ -52,7 +56,7 @@ export type CanvasModelCategory =
   | "segmentation"
   | "upscale";
 
-export type CanvasModelProvider = "mentalok" | "openrouter" | "google" | "scro" | "ffmpeg";
+export type CanvasModelProvider = "mentalok" | "openrouter" | "google" | "minimax" | "scro" | "ffmpeg";
 
 export type CanvasBilingualLabel = {
   "zh-Hant": string;
@@ -561,7 +565,32 @@ function buildOpenRouterAccountModels(): CanvasModelSpec[] {
   return [...images, ...videos];
 }
 
-const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = buildOpenRouterAccountModels();
+// MiniMax's OpenRouter routes have no provider endpoints. Those specs call api.minimax.io instead.
+function partitionMinimaxModels(models: CanvasModelSpec[]): {
+  openrouter: CanvasModelSpec[];
+  minimax: CanvasModelSpec[];
+} {
+  const openrouter: CanvasModelSpec[] = [];
+  const minimax: CanvasModelSpec[] = [];
+  for (const spec of models) {
+    const official = officialMinimaxCanvasModel(spec.providerModelId);
+    if (!official) {
+      openrouter.push(spec);
+      continue;
+    }
+    minimax.push({
+      ...spec,
+      id: `minimax:${official}`,
+      provider: "minimax",
+      providerModelId: official,
+    });
+  }
+  return { openrouter, minimax };
+}
+
+const ACCOUNT_MEDIA_MODELS = partitionMinimaxModels(buildOpenRouterAccountModels());
+const OPENROUTER_STATIC_MODELS: CanvasModelSpec[] = ACCOUNT_MEDIA_MODELS.openrouter;
+const MINIMAX_STATIC_MODELS: CanvasModelSpec[] = ACCOUNT_MEDIA_MODELS.minimax;
 
 export const NANO_BANANA_CANVAS_MODEL_ID = `google:${GOOGLE_STUDIO_NANO_BANANA_2_1_IMAGE_MODEL}`;
 
@@ -889,6 +918,7 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
 export const STATIC_CANVAS_MODELS: readonly CanvasModelSpec[] = [
   ...MENTALOK_STATIC_MODELS,
   ...OPENROUTER_STATIC_MODELS,
+  ...MINIMAX_STATIC_MODELS,
   ...GOOGLE_STATIC_MODELS,
   ...SCRO_STATIC_MODELS,
   ...FFMPEG_STATIC_MODELS,
@@ -912,9 +942,10 @@ export function findCanvasModel(
   id: string,
   catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
 ): CanvasModelSpec | undefined {
+  const canonical = MINIMAX_CANVAS_LEGACY_IDS[id] ?? id;
   return (
-    catalog.find((model) => model.id === id) ??
-    catalog.find((model) => model.providerModelId === id)
+    catalog.find((model) => model.id === canonical) ??
+    catalog.find((model) => model.providerModelId === canonical || model.providerModelId === id)
   );
 }
 
