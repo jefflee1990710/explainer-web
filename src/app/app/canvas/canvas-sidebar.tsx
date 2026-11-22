@@ -18,6 +18,10 @@ import {
   Upload,
 } from "lucide-react";
 import { CanvasSidebarRail } from "@/app/app/canvas/canvas-sidebar-rail";
+import {
+  CanvasPromptTool,
+  canvasPromptToolVisible,
+} from "@/app/app/canvas/canvas-prompt-tool";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
@@ -60,6 +64,7 @@ export function CanvasSidebar({
   onToggleCollapsed,
   onAddModel,
   onAddAsset,
+  onAddPromptNode,
   onUploadFiles,
   onRefreshModels,
 }: {
@@ -72,6 +77,7 @@ export function CanvasSidebar({
   onToggleCollapsed: () => void;
   onAddModel: (modelId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
+  onAddPromptNode: () => void;
   onUploadFiles: (files: FileList | File[]) => void;
   onRefreshModels: () => void;
 }) {
@@ -289,13 +295,18 @@ export function CanvasSidebar({
 
           {/* Model list, grouped by kind when showing everything */}
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
+            {tab === "tools" && canvasPromptToolVisible(query, activeCategory !== null) ? (
+              <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
+                <CanvasPromptTool isZh={isZh} onAdd={onAddPromptNode} />
+              </div>
+            ) : null}
             {(activeCategory
               ? [{ label: "", models: filteredModels }]
               : visibleCategories.map((cat) => ({
                   label: isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en,
                   models: filteredModels.filter((spec) => spec.category === cat),
                 }))
-            ).map((section) => (
+            ).map((section) => section.models.length === 0 ? null : (
               <div key={section.label || "flat"} className="space-y-1.5">
                 {section.label ? (
                   <p className="px-1 pt-2 text-[10px] font-bold tracking-wide text-white/40 uppercase first:pt-0">
@@ -329,7 +340,8 @@ export function CanvasSidebar({
                 </div>
               </div>
             ))}
-            {filteredModels.length === 0 ? (
+            {filteredModels.length === 0 &&
+            !(tab === "tools" && canvasPromptToolVisible(query, activeCategory !== null)) ? (
               <p className="py-6 text-center text-xs text-white/40">
                 {isZh ? "找不到符合的模型" : "No matching models"}
               </p>

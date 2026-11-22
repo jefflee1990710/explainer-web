@@ -1,7 +1,7 @@
 "use client";
 
-// Top bar for /app/canvas: project switcher/CRUD, auto-save status, starter templates,
-// + Prompt shortcut, Fit View, USD credit badge, and primary Run Flow button.
+// Top bar for /app/canvas: app menu, project switcher, Editor/Agent layout,
+// Fit View, USD credit badge, and primary Run Flow button.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -9,25 +9,21 @@ import {
   Check,
   ChevronDown,
   FolderPlus,
-  LayoutTemplate,
   Loader2,
   Maximize,
+  Menu,
   PanelLeftClose,
-  PanelLeftOpen,
   Pencil,
   Play,
-  Plus,
   Square,
   Trash2,
-  Type,
   Wallet,
 } from "lucide-react";
+import { CanvasViewLayoutSwitch } from "@/app/app/canvas/canvas-view-layout-switch";
+import type { CanvasViewLayout } from "@/app/app/canvas/canvas-view-layout";
+import { useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { formatUsd } from "@/service/billing/usd";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
-import {
-  CANVAS_STARTER_TEMPLATES,
-  type CanvasStarterTemplateId,
-} from "@/service/canvas/templates";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
 
@@ -38,18 +34,16 @@ export function CanvasTopbar({
   activeTitle,
   saveStatus,
   creditUsd,
-  sidebarOpen,
+  viewLayout,
   flowEstimatedUsd,
   flowModelCount,
   isFlowRunning,
   flowWaveProgress,
-  onToggleSidebar,
+  onViewLayout,
   onSelectProject,
   onCreateProject,
   onRenameProject,
   onDeleteProject,
-  onApplyTemplate,
-  onAddPromptNode,
   onFitView,
   onRunFlow,
   onStopFlow,
@@ -60,25 +54,23 @@ export function CanvasTopbar({
   activeTitle: string;
   saveStatus: SaveStatus;
   creditUsd: number;
-  sidebarOpen: boolean;
+  viewLayout: CanvasViewLayout;
   flowEstimatedUsd: number;
   flowModelCount: number;
   isFlowRunning: boolean;
   flowWaveProgress: { current: number; total: number } | null;
-  onToggleSidebar: () => void;
+  onViewLayout: (layout: CanvasViewLayout) => void;
   onSelectProject: (projectId: string) => void;
   onCreateProject: () => void;
   onRenameProject: (nextTitle: string) => void;
   onDeleteProject: (projectId: string) => void;
-  onApplyTemplate: (templateId: CanvasStarterTemplateId) => void;
-  onAddPromptNode: () => void;
   onFitView: () => void;
   onRunFlow: () => void;
   onStopFlow: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
+  const { railHidden, toggleRail } = useStudioChrome();
   const [projectsOpen, setProjectsOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(activeTitle);
 
@@ -119,15 +111,12 @@ export function CanvasTopbar({
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
-          onClick={onToggleSidebar}
-          title={sidebarOpen ? "Hide panel" : "Show panel"}
+          onClick={toggleRail}
+          title={railHidden ? (isZh ? "開啟選單" : "Open menu") : isZh ? "關閉選單" : "Close menu"}
+          aria-pressed={!railHidden}
           className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/5 text-white/75 transition hover:border-white/20 hover:text-white"
         >
-          {sidebarOpen ? (
-            <PanelLeftClose className="h-4 w-4" />
-          ) : (
-            <PanelLeftOpen className="h-4 w-4" />
-          )}
+          {railHidden ? <Menu className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
 
         {editingTitle ? (
@@ -157,10 +146,7 @@ export function CanvasTopbar({
           <div className="relative flex items-center gap-1">
             <button
               type="button"
-              onClick={() => {
-                setProjectsOpen((v) => !v);
-                setTemplatesOpen(false);
-              }}
+              onClick={() => setProjectsOpen((v) => !v)}
               className="flex h-8 max-w-[220px] cursor-pointer items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/5 px-2.5 text-xs font-semibold text-white transition hover:border-white/20 hover:bg-white/8"
             >
               <span className="truncate">{activeTitle}</span>
@@ -265,60 +251,9 @@ export function CanvasTopbar({
         </span>
       </div>
 
-      {/* Center: Quick templates & + Prompt node */}
+      {/* Center: Editor / Agent layout, then Fit View */}
       <div className="flex items-center gap-1.5">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              setTemplatesOpen((v) => !v);
-              setProjectsOpen(false);
-            }}
-            className="flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/5 px-2.5 text-xs font-medium text-white/85 transition hover:border-white/20 hover:bg-white/10"
-          >
-            <LayoutTemplate className="h-3.5 w-3.5 text-[#c6f24b]" />
-            <span className="hidden md:inline">
-              {isZh ? "快速範本" : "Templates"}
-            </span>
-          </button>
-
-          {templatesOpen ? (
-            <div className="absolute top-10 left-1/2 z-40 w-72 -translate-x-1/2 overflow-hidden rounded-[14px] border border-white/12 bg-[#12161f] p-1.5 shadow-2xl">
-              <div className="px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-white/45">
-                {isZh ? "一鍵套用新手工作流" : "Starter Workflows"}
-              </div>
-              {CANVAS_STARTER_TEMPLATES.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => {
-                    setTemplatesOpen(false);
-                    onApplyTemplate(tpl.id);
-                  }}
-                  className="flex w-full cursor-pointer flex-col items-start rounded-[10px] px-2.5 py-2 text-left transition hover:bg-white/8"
-                >
-                  <span className="text-xs font-semibold text-white">
-                    {isZh ? tpl.name["zh-Hant"] : tpl.name.en}
-                  </span>
-                  <span className="mt-0.5 text-[11px] text-white/50">
-                    {isZh ? tpl.description["zh-Hant"] : tpl.description.en}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={onAddPromptNode}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/5 px-2.5 text-xs font-medium text-white/85 transition hover:border-white/20 hover:bg-white/10"
-        >
-          <Plus className="h-3.5 w-3.5 text-[#c6f24b]" />
-          <Type className="h-3.5 w-3.5 text-[#c6f24b]" />
-          <span className="hidden sm:inline">Prompt</span>
-        </button>
-
+        <CanvasViewLayoutSwitch locale={locale} layout={viewLayout} onChange={onViewLayout} />
         <button
           type="button"
           onClick={onFitView}

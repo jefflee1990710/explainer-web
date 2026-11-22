@@ -63,6 +63,9 @@ export function CanvasAgentDock({
   locale,
   canvasId,
   side,
+  hidden = false,
+  expandToken = 0,
+  lockSide = false,
   initialMessages,
   getGraph,
   contextRefs,
@@ -77,6 +80,12 @@ export function CanvasAgentDock({
   locale: LocaleId;
   canvasId: string;
   side: CanvasAgentDockSide;
+  // Editor layout keeps the dock mounted but out of the layout.
+  hidden?: boolean;
+  // Increments when the user picks Agent so a previously collapsed chat opens.
+  expandToken?: number;
+  // Agent layout stays on the right edge.
+  lockSide?: boolean;
   initialMessages: CanvasAgentMessageDto[];
   getGraph: () => CanvasAgentGraphSnapshot;
   contextRefs: readonly CanvasAgentContextRef[];
@@ -135,6 +144,13 @@ export function CanvasAgentDock({
     setCollapsed(savedCollapsed);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  useEffect(() => {
+    if (expandToken === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- parent asked the chat to open
+    setCollapsed(false);
+    window.localStorage.setItem(COLLAPSED_KEY, "0");
+  }, [expandToken]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -267,9 +283,11 @@ export function CanvasAgentDock({
   return (
     <div
       className={
-        placedRight
-          ? "relative flex h-full min-h-0 shrink-0 flex-col border-l border-white/10 bg-[#0e121a]"
-          : "relative flex shrink-0 flex-col border-t border-white/10 bg-[#0e121a]"
+        hidden
+          ? "hidden"
+          : placedRight
+            ? "relative flex h-full min-h-0 shrink-0 flex-col border-l border-white/10 bg-[#0e121a]"
+            : "relative flex shrink-0 flex-col border-t border-white/10 bg-[#0e121a]"
       }
       style={
         placedRight
@@ -298,6 +316,7 @@ export function CanvasAgentDock({
         busy={busy || clearing}
         hasMessages={messages.length > 0}
         onLanguageChange={changeLanguage}
+        lockSide={lockSide}
         onToggleSide={toggleSide}
         onClear={() => {
           setClearError("");

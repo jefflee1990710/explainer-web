@@ -5,6 +5,7 @@ import { BrandMark } from "@/presentation/components/brand-mark";
 import { isFullBleedStudioPath } from "@/presentation/components/app/director-dock/director-dock-config";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { RouteTransitionProvider, useRouteTransition } from "@/presentation/studio/route-transition";
+import { StudioChromeProvider, useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { StudioNav } from "@/presentation/studio/studio-nav";
 import {
   hasSeenStudioNavTutorial,
@@ -101,6 +102,7 @@ function StudioShellInner({
   const { theme } = useStudioTheme();
 
   return (
+    <StudioChromeProvider>
     <div
       data-studio-theme={theme}
       className="studio-app flex h-dvh w-full flex-col"
@@ -119,6 +121,7 @@ function StudioShellInner({
           host never sits on top of the page. */}
       <div id="studio-dialog-root" className="pointer-events-none fixed top-0 left-0 z-[100] h-0 w-0" />
     </div>
+    </StudioChromeProvider>
   );
 }
 
@@ -150,6 +153,7 @@ function StudioMainSlot({ children }: { children: React.ReactNode }) {
 // Left sidebar inspired by OpenArt reference: expanded by default (256px) with a collapse toggle button in the top-right.
 function StudioRail({ items, children }: { items: StudioNavItem[]; children: React.ReactNode }) {
   const { activePathname } = useRouteTransition();
+  const { railHidden } = useStudioChrome();
   const isVideoEditorRoute = /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(activePathname);
   const [navTourOpen, setNavTourOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -201,6 +205,9 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
       return next;
     });
   }
+
+  // Canvas layouts own the left edge, so the app menu stays closed until its button opens it.
+  if (railHidden) return null;
 
   return (
     <aside

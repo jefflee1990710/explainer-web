@@ -21,6 +21,7 @@ export function CanvasAgentHeader({
   collapsed,
   busy,
   hasMessages,
+  lockSide,
   onLanguageChange,
   onToggleSide,
   onClear,
@@ -32,6 +33,7 @@ export function CanvasAgentHeader({
   collapsed: boolean;
   busy: boolean;
   hasMessages: boolean;
+  lockSide?: boolean;
   onLanguageChange: (language: CanvasAgentLanguage) => void;
   onToggleSide: () => void;
   onClear: () => void;
@@ -55,9 +57,11 @@ export function CanvasAgentHeader({
         >
           <Bot className="h-3.5 w-3.5" />
         </button>
-        <IconButton label={sideLabel} onClick={onToggleSide}>
-          <SideIcon className="h-3.5 w-3.5" />
-        </IconButton>
+        {lockSide ? null : (
+          <IconButton label={sideLabel} onClick={onToggleSide}>
+            <SideIcon className="h-3.5 w-3.5" />
+          </IconButton>
+        )}
         <div className="flex-1" />
         <IconButton label={copy.expand} onClick={onToggleCollapsed}>
           <CollapseIcon className="h-4 w-4" />
@@ -96,9 +100,11 @@ export function CanvasAgentHeader({
         </select>
       </label>
 
-      <IconButton label={sideLabel} onClick={onToggleSide}>
-        <SideIcon className="h-3.5 w-3.5" />
-      </IconButton>
+      {lockSide ? null : (
+        <IconButton label={sideLabel} onClick={onToggleSide}>
+          <SideIcon className="h-3.5 w-3.5" />
+        </IconButton>
+      )}
       <IconButton label={copy.clear} onClick={onClear} disabled={busy || !hasMessages}>
         <Trash2 className="h-3.5 w-3.5" />
       </IconButton>

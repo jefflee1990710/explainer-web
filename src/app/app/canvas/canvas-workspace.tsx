@@ -136,7 +136,14 @@ import {
   CANVAS_DRAG_MODEL_MIME,
   CanvasSidebar,
 } from "@/app/app/canvas/canvas-sidebar";
+import { CANVAS_DRAG_PROMPT_MIME } from "@/app/app/canvas/canvas-prompt-tool";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
+import {
+  CANVAS_VIEW_LAYOUT_KEY,
+  canvasViewLayoutFromStorage,
+  type CanvasViewLayout,
+} from "@/app/app/canvas/canvas-view-layout";
+import { useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import {
@@ -295,7 +302,11 @@ function CanvasWorkspaceInner({
   const [assets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [viewLayout, setViewLayout] = useState<CanvasViewLayout>("editor");
+  // Bumps when Agent is chosen so the chat opens even if it was collapsed before.
+  const [agentOpenToken, setAgentOpenToken] = useState(0);
   const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("right");
+  const { hideRail } = useStudioChrome();
   const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
   const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -349,15 +360,32 @@ function CanvasWorkspaceInner({
     nodesRef.current = nodes;
   }, [nodes]);
 
-  // Dock side is a layout preference, restored after mount so server HTML stays stable.
+  // Dock side and the Editor/Agent preset are restored after mount so server HTML stays stable.
   useEffect(() => {
     const saved = window.localStorage.getItem(CANVAS_AGENT_DOCK_SIDE_KEY);
-    const savedSidebar = window.localStorage.getItem(SIDEBAR_OPEN_KEY);
+    const savedLayout = canvasViewLayoutFromStorage(
+      window.localStorage.getItem(CANVAS_VIEW_LAYOUT_KEY),
+    );
     /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
     if (saved === "right" || saved === "bottom") setAgentDockSide(saved);
-    if (savedSidebar === "0" || savedSidebar === "1") setSidebarOpen(savedSidebar === "1");
+    if (savedLayout === "agent") {
+      setViewLayout("agent");
+      setAgentOpenToken(1);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  const chooseViewLayout = useCallback(
+    (next: CanvasViewLayout) => {
+      setViewLayout(next);
+      window.localStorage.setItem(CANVAS_VIEW_LAYOUT_KEY, next);
+      // Both presets keep the app menu closed. Editor reopens models and tools.
+      hideRail();
+      if (next === "editor") setSidebarOpen(true);
+      if (next === "agent") setAgentOpenToken((token) => token + 1);
+    },
+    [hideRail],
+  );
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((open) => {
@@ -720,8 +748,8 @@ function CanvasWorkspaceInner({
     [getCenterPosition, setNodes, scheduleAutosave],
   );
 
-  const addPromptNode = useCallback(() => {
-    const pos = getCenterPosition();
+  const addPromptNode = useCallback((position?: { x: number; y: number }) => {
+    const pos = position ?? getCenterPosition();
     const newNode: FlowNode = {
       id: `prompt-${crypto.randomUUID().slice(0, 8)}`,
       type: "prompt",
@@ -1648,6 +1676,11 @@ function CanvasWorkspaceInner({
         return;
       }
 
+      if (event.dataTransfer.getData(CANVAS_DRAG_PROMPT_MIME) === "prompt") {
+        addPromptNode(position);
+        return;
+      }
+
       const rawAsset = event.dataTransfer.getData(CANVAS_DRAG_ASSET_MIME);
       if (rawAsset) {
         try {
@@ -1663,7 +1696,7 @@ function CanvasWorkspaceInner({
         void uploadAndPlaceFiles(event.dataTransfer.files, position);
       }
     },
-    [reactFlow, addModelNodeAt, addAssetNodeAt, uploadAndPlaceFiles],
+    [reactFlow, addModelNodeAt, addPromptNode, addAssetNodeAt, uploadAndPlaceFiles],
   );
 
   const nodeContextValue = useMemo(
@@ -1701,40 +1734,41 @@ function CanvasWorkspaceInner({
         activeTitle={activeTitle}
         saveStatus={saveStatus}
         creditUsd={creditUsd}
-        sidebarOpen={sidebarOpen}
+        viewLayout={viewLayout}
         flowEstimatedUsd={flowEstimatedUsd}
         flowModelCount={flowModelCount}
         isFlowRunning={isFlowRunning}
         flowWaveProgress={flowWaveProgress}
-        onToggleSidebar={toggleSidebar}
+        onViewLayout={chooseViewLayout}
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
         onDeleteProject={handleDeleteProject}
-        onApplyTemplate={handleApplyTemplate}
-        onAddPromptNode={addPromptNode}
         onFitView={() => void reactFlow.fitView({ padding: 0.2, duration: 250 })}
         onRunFlow={handleRunFlow}
         onStopFlow={handleStopFlow}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <CanvasSidebar
-          locale={locale}
-          collapsed={!sidebarOpen}
-          models={models}
-          assets={assets}
-          isUploading={isUploading}
-          isRefreshingModels={isRefreshingModels}
-          onToggleCollapsed={toggleSidebar}
-          onAddModel={(id) => addModelNodeAt(id)}
-          onAddAsset={(asset) => addAssetNodeAt(asset)}
-          onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
-          onRefreshModels={() => void handleRefreshModels()}
-        />
+        {viewLayout === "editor" ? (
+          <CanvasSidebar
+            locale={locale}
+            collapsed={!sidebarOpen}
+            models={models}
+            assets={assets}
+            isUploading={isUploading}
+            isRefreshingModels={isRefreshingModels}
+            onToggleCollapsed={toggleSidebar}
+            onAddModel={(id) => addModelNodeAt(id)}
+            onAddAsset={(asset) => addAssetNodeAt(asset)}
+            onAddPromptNode={() => addPromptNode()}
+            onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
+            onRefreshModels={() => void handleRefreshModels()}
+          />
+        ) : null}
 
         <div
-          className={`flex min-h-0 min-w-0 flex-1 ${agentDockSide === "right" ? "flex-row" : "flex-col"}`}
+          className={`flex min-h-0 min-w-0 flex-1 ${viewLayout === "agent" || agentDockSide === "right" ? "flex-row" : "flex-col"}`}
         >
           <div
             className="relative min-h-0 min-w-0 flex-1"
@@ -1813,6 +1847,7 @@ function CanvasWorkspaceInner({
                       ? { kind: "group", id: choice.groupId }
                       : { kind: "node", id: nodeMenu.nodeId };
                   setContextRefs((prev) => addContextRef(prev, ref));
+                  chooseViewLayout("agent");
                   setNodeMenu(null);
                 }}
                 onClose={() => setNodeMenu(null)}
@@ -1907,7 +1942,10 @@ function CanvasWorkspaceInner({
           <CanvasAgentDock
             locale={locale}
             canvasId={activeProjectId}
-            side={agentDockSide}
+            hidden={viewLayout !== "agent"}
+            expandToken={agentOpenToken}
+            lockSide={viewLayout === "agent"}
+            side={viewLayout === "agent" ? "right" : agentDockSide}
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}
             contextRefs={contextRefs}
