@@ -69,6 +69,14 @@ import {
   shiftGroupClearOf,
   type LayoutSize,
 } from "@/service/canvas/explainer-layout";
+import { layoutGroupByDepth } from "@/service/canvas/group-layout";
+import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
+import {
+  SCRO_DIALOG_TOOL_BY_MODEL,
+  ScroGroupDialogs,
+  type ScroDialogState,
+} from "@/app/app/canvas/scro-group-dialogs";
+import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
 import {
   ExplainerPlanDialog,
   type ExplainerPlanDialogValues,
@@ -385,16 +393,18 @@ function CanvasWorkspaceInner({
     };
   }, []);
 
-  // A freshly expanded Explainer group waiting for React Flow to measure its cards.
-  const pendingExplainerLayoutRef = useRef<{
+  // A freshly added node group waiting for React Flow to measure its cards.
+  // Explainer keeps its row layout; every other group uses the depth columns.
+  const pendingGroupLayoutRef = useRef<{
     ids: Set<string>;
     edges: { source: string; target: string }[];
     origin: { x: number; y: number };
+    layout: "explainer" | "depth";
   } | null>(null);
 
   // Re-lays out the group with real card sizes and moves it clear of other nodes.
-  const applyPendingExplainerLayout = useCallback(() => {
-    const pending = pendingExplainerLayoutRef.current;
+  const applyPendingGroupLayout = useCallback(() => {
+    const pending = pendingGroupLayoutRef.current;
     if (!pending) return;
     const live = reactFlow.getNodes();
     const sizes = new Map<string, LayoutSize>();
@@ -405,7 +415,7 @@ function CanvasWorkspaceInner({
       if (!width || !height) return;
       sizes.set(node.id, { width, height });
     }
-    pendingExplainerLayoutRef.current = null;
+    pendingGroupLayoutRef.current = null;
     if (sizes.size === 0) return;
     const sizeOf = (id: string) => sizes.get(id) ?? { width: 312, height: 400 };
     const obstacles = live
@@ -416,13 +426,16 @@ function CanvasWorkspaceInner({
         width: n.measured?.width ?? 312,
         height: n.measured?.height ?? 400,
       }));
+    const layoutInput = {
+      nodeIds: [...sizes.keys()],
+      edges: pending.edges,
+      origin: pending.origin,
+      sizeOf,
+    };
     const positions = shiftGroupClearOf(
-      layoutExplainerGroup({
-        nodeIds: [...sizes.keys()],
-        edges: pending.edges,
-        origin: pending.origin,
-        sizeOf,
-      }),
+      pending.layout === "explainer"
+        ? layoutExplainerGroup(layoutInput)
+        : layoutGroupByDepth(layoutInput),
       sizeOf,
       obstacles,
     );
@@ -445,8 +458,8 @@ function CanvasWorkspaceInner({
   const handleNodesChange: typeof onNodesChange = useCallback(
     (changes) => {
       onNodesChange(changes);
-      if (pendingExplainerLayoutRef.current && changes.getByType("dimensions").length > 0) {
-        window.requestAnimationFrame(applyPendingExplainerLayout);
+      if (pendingGroupLayoutRef.current && changes.getByType("dimensions").length > 0) {
+        window.requestAnimationFrame(applyPendingGroupLayout);
       }
       const meaningful =
         changes.getByType("position").length > 0 ||
@@ -455,7 +468,7 @@ function CanvasWorkspaceInner({
         changes.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
-    [onNodesChange, scheduleAutosave, applyPendingExplainerLayout],
+    [onNodesChange, scheduleAutosave, applyPendingGroupLayout],
   );
 
   const handleEdgesChange: typeof onEdgesChange = useCallback(
@@ -583,6 +596,8 @@ function CanvasWorkspaceInner({
     position: { x: number; y: number };
     defaultTopic?: string;
   } | null>(null);
+  // Life / Poster / Swap / Teleport setup dialog; submit lands a visible node group.
+  const [scroDialog, setScroDialog] = useState<ScroDialogState>(null);
 
   const addModelNodeAt = useCallback(
     (modelId: string, position?: { x: number; y: number }) => {
@@ -592,6 +607,11 @@ function CanvasWorkspaceInner({
       // Explainer never lands as an editable node: ask for the topic first, then plan.
       if (spec.id === "scro:explainer") {
         setExplainerDialog({ position: pos });
+        return;
+      }
+      const dialogTool = SCRO_DIALOG_TOOL_BY_MODEL[spec.id];
+      if (dialogTool) {
+        setScroDialog({ tool: dialogTool, position: pos });
         return;
       }
       const newNode: FlowNode = {
@@ -918,6 +938,53 @@ function CanvasWorkspaceInner({
   );
 
   const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
+  const closeScroDialog = useCallback(() => setScroDialog(null), []);
+
+  // Adds a dialog-built group, then re-lays it out with measured card sizes.
+  const insertScroGroup = useCallback(
+    (group: ScroGroup) => {
+      const origin = scroDialog?.position ?? group.nodes[0]?.position ?? { x: 0, y: 0 };
+      setScroDialog(null);
+      const allNodes = [...toDomainNodes(nodesRef.current), ...group.nodes];
+      setNodes((prev) => [...prev, ...toFlowNodes(group.nodes)]);
+      setEdges((prev) => [...prev, ...toFlowEdges(group.edges, allNodes, models)]);
+      pendingGroupLayoutRef.current = {
+        ids: new Set(group.nodes.map((n) => n.id)),
+        edges: group.edges,
+        origin,
+        layout: "depth",
+      };
+      scheduleAutosave();
+      window.setTimeout(applyPendingGroupLayout, 600);
+    },
+    [scroDialog, models, setNodes, setEdges, scheduleAutosave, applyPendingGroupLayout],
+  );
+
+  // Images and videos already on the canvas, offered first in the setup dialogs.
+  const canvasMedia = useMemo<CanvasMediaItem[]>(
+    () =>
+      nodes.flatMap((n): CanvasMediaItem[] => {
+        if (n.type === "media" && n.data.mediaUrl && n.data.mediaKind) {
+          return [{
+            nodeId: n.id,
+            label: n.data.fileName ?? n.data.label ?? n.id,
+            mediaKind: n.data.mediaKind,
+            url: n.data.mediaUrl,
+          }];
+        }
+        if (n.type === "model" && n.data.outputUrl && n.data.outputKind) {
+          const spec = n.data.modelId ? findCanvasModel(n.data.modelId, models) : undefined;
+          return [{
+            nodeId: n.id,
+            label: spec?.name ?? n.data.modelId ?? n.id,
+            mediaKind: n.data.outputKind,
+            url: n.data.outputUrl,
+          }];
+        }
+        return [];
+      }),
+    [nodes, models],
+  );
 
   // Dialog submit: place the planning card at the drop spot and start the free plan.
   const submitExplainerDialog = useCallback(
@@ -1011,15 +1078,16 @@ function CanvasWorkspaceInner({
             },
           );
           // Measured re-layout runs once the new cards render (and as a fallback after a beat).
-          pendingExplainerLayoutRef.current = {
+          pendingGroupLayoutRef.current = {
             ids: new Set(state.nodes.map((n) => n.id)),
             edges: state.edges,
             origin: planner.position,
+            layout: "explainer",
           };
           setNodes(next.nodes);
           setEdges(next.edges);
           scheduleAutosave();
-          window.setTimeout(applyPendingExplainerLayout, 600);
+          window.setTimeout(applyPendingGroupLayout, 600);
         }
       } finally {
         inFlight = false;
@@ -1030,7 +1098,7 @@ function CanvasWorkspaceInner({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, applyPendingExplainerLayout]);
+  }, [planningNodeIdsKey, models, setNodes, setEdges, scheduleAutosave, applyPendingGroupLayout]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
   useEffect(() => {
@@ -1199,6 +1267,13 @@ function CanvasWorkspaceInner({
       if (templateId === "explainer") {
         const sample = tplNodes.find((n) => n.type === "prompt")?.data.text;
         setExplainerDialog({ position: getCenterPosition(), defaultTopic: sample });
+        return;
+      }
+      if (templateId === "scro-swap" || templateId === "teleport") {
+        setScroDialog({
+          tool: templateId === "scro-swap" ? "swap" : "teleport",
+          position: getCenterPosition(),
+        });
         return;
       }
       setNodes((prev) => [...prev, ...toFlowNodes(tplNodes)]);
@@ -1554,6 +1629,14 @@ function CanvasWorkspaceInner({
               characterOptions={assets.characterOptions ?? []}
               onCancel={closeExplainerDialog}
               onSubmit={submitExplainerDialog}
+            />
+            <ScroGroupDialogs
+              state={scroDialog}
+              isZh={isZh}
+              assets={assets}
+              canvasMedia={canvasMedia}
+              onCancel={closeScroDialog}
+              onGroup={insertScroGroup}
             />
 
             {/* Local file drop overlay */}
