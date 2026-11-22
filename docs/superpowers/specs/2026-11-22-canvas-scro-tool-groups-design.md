@@ -1,7 +1,7 @@
 # Canvas Scro tools as visible node groups
 
 Date: 2026-11-22
-Status: approved in chat, pending spec review
+Status: implemented (2026-11-22). Planning adjustments: swap-render / teleport-render use the node's `durationSeconds` (clamped 2–15s) instead of rejecting long inputs, and Talking Head uses the generic `group-layout.ts` depth layout. The assistant's `add_scro_group` builds Life / Poster / Swap / Teleport groups with fixed layout positions; only dialog inserts get the measured re-layout.
 
 ## Goal
 
