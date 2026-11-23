@@ -74,6 +74,14 @@ export type PaperCutoutSurfaceOptions = {
   customBackground?: boolean;
 };
 
+// The blue in the studio reference: wall and floor are one cyclorama, not a flat sheet.
+export function isStudioBluePaperCutout(options?: PaperCutoutSurfaceOptions): boolean {
+  return !options?.customBackground && options?.backgroundId === "studio-blue";
+}
+
+export const STUDIO_BLUE_LOCKED_CAMERA =
+  "100% locked and stationary on one three-quarter view of the studio-blue cyclorama (blue wall and blue floor meeting in one corner)";
+
 /** Resolve the full-bleed collage background lock for the chosen preset or uploaded reference image. */
 export function paperCutoutCanvasLock(options?: PaperCutoutSurfaceOptions): string {
   if (options?.customBackground) {
@@ -85,11 +93,17 @@ export function paperCutoutCanvasLock(options?: PaperCutoutSurfaceOptions): stri
   if (preset.id === "wood-cardboard") {
     return "Paper-cutout collage lock (every style): flat craft collage on a single consistent dark warm-brown vertically-grained wooden craft board (never a gridded cutting mat, never floor tiles, felt, plain black paper, 3D room, studio, sky, or easel). The wooden board IS the background: wood grain fills 100% of the frame edge-to-edge — never show the board's edges, corners, frame, thickness, wall, table, or white margin, and never a shadow cast by the board itself. Camera looks square-on at the flat board; it never tilts. Every piece is a paper cutout with a thick irregular white scissor border.";
   }
+  if (preset.id === "studio-blue") {
+    return "Paper-cutout collage lock (studio blue): the backdrop is a seamless studio cyclorama. The vertical wall and the floor are the same solid saturated matte blue (wall about #1C3F65, floor about #14457E) and meet in one soft corner. That blue fills every part of the frame that is not a paper cutout, the character, or a prop. A light wooden table may sit on the blue floor; the table is a prop, not the backdrop. Never wood grain, kraft, cream paper, a blueprint grid, concrete, clouds, sky blue, or a second wall colour on the backdrop. Every diagram piece is a paper cutout with a thick irregular white scissor border.";
+  }
   return `Paper-cutout collage lock (every style): flat craft collage on a single consistent ${preset.surfacePrompt} (${preset.forbidSurfaces}). The ${preset.surfaceNoun} IS the background: its surface texture fills 100% of the frame edge-to-edge — never show outer edges, corners, frame, thickness, wall, or white margin, and never a shadow cast by the ${preset.surfaceNoun} itself. Camera looks square-on (perpendicular) at the flat ${preset.surfaceNoun} with even overhead light; the surface never tilts in perspective. Every diagram piece, icon, and prop is a separate paper cutout with a thick irregular white scissor border: kraft background cutouts, full-colour hero character and key concept pieces, soft drop shadows cast only by the cutouts onto the ${preset.surfaceNoun}.`;
 }
 
 /** Resolve the Phase A camera & light lock for the chosen paper-cutout background surface. */
 export function paperCutoutCameraRule(options?: PaperCutoutSurfaceOptions): string {
+  if (isStudioBluePaperCutout(options)) {
+    return `Paper-cutout camera & light lock (every clip, overrides any square-on or flat-board angle wording elsewhere): every Camera line is ${STUDIO_BLUE_LOCKED_CAMERA}. NEVER zoom in, NEVER push in, NEVER pull out, NEVER pan, NEVER orbit, and never a new angle inside the clip. Soft even studio light on the blue wall and floor — never a spotlight and never a second wall colour.`;
+  }
   const surfaceNoun = options?.customBackground
     ? "collage background surface"
     : resolvePaperCutoutBackground(options?.backgroundId ?? DEFAULT_PAPER_CUTOUT_BACKGROUND_ID)
@@ -105,6 +119,9 @@ export function paperCutoutVideoCanvasLock(options?: PaperCutoutSurfaceOptions):
   const preset = resolvePaperCutoutBackground(
     options?.backgroundId ?? DEFAULT_PAPER_CUTOUT_BACKGROUND_ID,
   );
+  if (preset.id === "studio-blue") {
+    return "Keep the seamless studio-blue cyclorama (wall about #1C3F65, floor about #14457E, one soft corner) edge-to-edge for the whole clip, exactly as the first frame. Paper cutouts keep thick irregular white scissor borders and move as rigid paste (no morphing). The blue backdrop does not change colour.";
+  }
   return `Keep the whole canvas edge-to-edge as a paper-cutout craft collage on a ${preset.surfacePrompt}: thick irregular white scissor borders on every piece, colour hero on mono/kraft background cutouts, rigid paste motion (no morphing).`;
 }
 

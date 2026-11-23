@@ -17,6 +17,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
+import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
 import { CanvasSidebarIcons } from "@/app/app/canvas/canvas-sidebar-icons";
 import {
@@ -63,7 +64,7 @@ const TOOL_CATEGORIES: CanvasModelCategory[] = ["scro-tool", "ffmpeg"];
 
 export function CanvasSidebar({
   locale,
-  collapsed,
+  collapsed = false,
   models,
   assets,
   isUploading,
@@ -77,12 +78,12 @@ export function CanvasSidebar({
   onRefreshModels,
 }: {
   locale: string;
-  collapsed: boolean;
+  collapsed?: boolean;
   models: readonly CanvasModelSpec[];
   assets: CanvasLibraryAssetsResult;
   isUploading: boolean;
   isRefreshingModels: boolean;
-  onToggleCollapsed: () => void;
+  onToggleCollapsed?: () => void;
   onAddModel: (modelId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
   onAddPromptNode: () => void;
@@ -197,9 +198,9 @@ export function CanvasSidebar({
         onTab={(next) => {
           setTab(next);
           setCategory(null);
-          onToggleCollapsed();
+          onToggleCollapsed?.();
         }}
-        onExpand={onToggleCollapsed}
+        onExpand={() => onToggleCollapsed?.()}
       />
     );
   }
@@ -262,16 +263,18 @@ export function CanvasSidebar({
           <span className="whitespace-nowrap">{isZh ? "素材庫" : "Assets"}</span>
         </button>
         </div>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          aria-label={collapseLabel}
-          aria-expanded
-          title={collapseLabel}
-          className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/8 hover:text-white"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+        {onToggleCollapsed ? (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapseLabel}
+            aria-expanded
+            title={collapseLabel}
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/8 hover:text-white"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       {tab !== "assets" ? (
@@ -417,6 +420,7 @@ export function CanvasSidebar({
             />
           ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2.5">
+          <CanvasAssetStudios isZh={isZh} />
           {/* Local file upload */}
           <input
             ref={fileInputRef}

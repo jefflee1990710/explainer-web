@@ -6,9 +6,11 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   explainerCanvasKind,
   isDiagramExplainerSkill,
+  isStudioBluePaperCutout,
   paperCutoutCameraRule,
   paperCutoutCanvasLock,
   paperCutoutVideoCanvasLock,
+  STUDIO_BLUE_LOCKED_CAMERA,
   WHITEBOARD_CANVAS_LOCK,
   type ExplainerCanvasKind,
 } from "@/service/director/explainer-family";
@@ -619,14 +621,16 @@ export function cartoonHookCameraRule(
   hasCharacter: boolean,
   smoothMotion?: boolean,
   realistic?: boolean,
+  lockedCamera?: string,
 ) {
   const faceNote =
     "Eyes and hands stay on the teaching element. Lips and jaw stay sealed. Never look into the lens, never lip-sync, and never wave at the camera. This includes Clip 1.";
+  const camera = lockedCamera ?? "100% locked and stationary square-on to the board";
   if (smoothMotion) {
     if (!hasCharacter) {
-      return "Clip 1 is the hook: keep the camera 100% locked and stationary square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan, NO jump cut). Open with FAST PACING: each cutout move finishes in under 0.6 seconds (slide in, unfold 摺開, tear open 撕開, or draw stroke-by-stroke 畫出), then the next beat starts at once. Do not stretch one glide across the clip. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Show every in-between frame. No skipped frame and no new angle.";
+      return `Clip 1 is the hook: keep the camera ${camera} (NO zoom-in, NO push-in, NO pull-out, NO camera pan, NO jump cut). Open with FAST PACING: each cutout move finishes in under 0.6 seconds (slide in, unfold 摺開, tear open 撕開, or draw stroke-by-stroke 畫出), then the next beat starts at once. Do not stretch one glide across the clip. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Show every in-between frame. No skipped frame and no new angle.`;
     }
-    return `Clip 1 is the hook: keep the camera 100% locked and stationary square-on to the board (NO zoom-in, NO push-in, NO pull-out, NO camera pan, NO jump cut). Open with FAST PACING: each teaching-element move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Never a close-up of the face. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Both Camera lines keep the exact same locked framing and side. Show every in-between frame. No skipped frame, no orbit, and no new angle. ${faceNote} Later clips do not repeat this hook.`;
+    return `Clip 1 is the hook: keep the camera ${camera} (NO zoom-in, NO push-in, NO pull-out, NO camera pan, NO jump cut). Open with FAST PACING: each teaching-element move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Never a close-up of the face. Foreground, midground, and background stay rigid cardboard cutout layers—never morph, warp, or melt the background. Both Camera lines keep the exact same locked framing and side. Show every in-between frame. No skipped frame, no orbit, and no new angle. ${faceNote} Later clips do not repeat this hook.`;
   }
   if (!hasCharacter) {
     return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. Never a close-up of a face. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
@@ -728,13 +732,18 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).";
   const graphNoun = canvas === "paper-cutout" ? "paper-cutout explanation collage" : "whiteboard explanation graph";
   const pieceNoun = canvas === "paper-cutout" ? "cutout piece" : "drawn element";
-  // Paper-cutout board must stay square-on; only framing changes between clips.
+  // Paper-cutout stays locked. Studio blue uses the cyclorama angle; every other board stays square-on.
   const flatBoard = canvas === "paper-cutout";
+  const studioBlue = flatBoard && isStudioBluePaperCutout(surfaceOpts);
+  const lockedCamera = studioBlue
+    ? STUDIO_BLUE_LOCKED_CAMERA
+    : "100% locked and stationary square-on to the board";
+  const flatCamera = `Camera is ${lockedCamera} inside every clip (NO zoom-in, NO push-in, NO pull-out, NO pan).`;
   const smoothAngleRule = flatBoard
-    ? "Camera is 100% locked and stationary square-on to the board inside every clip (NO zoom-in, NO push-in, NO pull-out, NO pan)."
+    ? flatCamera
     : "A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip.";
   const angleRule = flatBoard
-    ? "Camera is 100% locked and stationary square-on to the board inside every clip (NO zoom-in, NO push-in, NO pull-out, NO pan)."
+    ? flatCamera
     : "Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out.";
   const physicsNoun =
     canvas === "paper-cutout"
@@ -774,12 +783,12 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "",
     hasCharacter
       ? smooth
-        ? `motionCamera plays every gesture and element transition with FAST PACING: each move finishes in under 0.6 seconds, then the next beat starts at once (elements sliding in/out 滑入／滑出, unfolding 摺開, tearing open 撕開, drawing lines 畫出, or flipping along their edge 翻轉, with at most one single directional arrow in the entire clip) while the character points quickly at each focus point. Do not stretch one glide across the clip, and do not write slow, gentle, gradual, or ease-in-out. Timestamp each short beat. Show every in-between pose. ${physicsNoun}. Keep the camera 100% locked and stationary square-on to the board (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO pan, ZERO jump cut). A card flip rotates through its edge as a rigid card. Never a cut, never a jump, and never a skipped frame.`
+        ? `motionCamera plays every gesture and element transition with FAST PACING: each move finishes in under 0.6 seconds, then the next beat starts at once (elements sliding in/out 滑入／滑出, unfolding 摺開, tearing open 撕開, drawing lines 畫出, or flipping along their edge 翻轉, with at most one single directional arrow in the entire clip) while the character points quickly at each focus point. Do not stretch one glide across the clip, and do not write slow, gentle, gradual, or ease-in-out. Timestamp each short beat. Show every in-between pose. ${physicsNoun}. Keep the camera ${lockedCamera} (ZERO zoom-in, ZERO push-in, ZERO pull-out, ZERO pan, ZERO jump cut). A card flip rotates through its edge as a rigid card. Never a cut, never a jump, and never a skipped frame.`
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a clean sequence of on-screen whiteboard visual beats every 1.5–2 seconds while the graph responds (a card flip, chart bars or trend lines stepping up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges, and at most one single directional arrow per clip — never spam multiple arrows, never use blank grey slash/tape strips, and never leave a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
-      : `${physicsNoun}, with cards, charts, and shapes animating at FAST PACING: each move finishes in under 0.6 seconds, then the next beat starts at once (at most one directional arrow per clip; no blank slash strips or tape stickers). Do not stretch one glide across the clip. Keep the camera 100% locked and stationary square-on (no zoom-in, no push-in, no pull-out, no pan).`,
+      : `${physicsNoun}, with cards, charts, and shapes animating at FAST PACING: each move finishes in under 0.6 seconds, then the next beat starts at once (at most one directional arrow per clip; no blank slash strips or tape stickers). Do not stretch one glide across the clip. Keep the camera ${studioBlue ? lockedCamera : "100% locked and stationary square-on"} (no zoom-in, no push-in, no pull-out, no pan).`,
     teachingElementsRule(pieceNoun, graphNoun),
-    // Paper-cutout hook is always a flat push-in / pull-out (no orbit, overhead drop, or dutch tilt).
-    cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic),
+    // Paper-cutout hook stays on the locked camera (no orbit, overhead drop, or dutch tilt).
+    cartoonHookCameraRule(hasCharacter, smooth || flatBoard, realistic, studioBlue ? lockedCamera : undefined),
     flatBoard ? paperCutoutCameraRule(surfaceOpts) : "",
     "On-canvas beat text (EXPLAIN THE BEAT ON THE BOARD): on-screen text is mandatory and cannot be turned off. `englishVo` is spoken ONLY by the off-screen narrator at a brisk pace — NEVER transcribe or dump the full `englishVo` paragraph onto the still. Clip 1 draws exactly ONE on-screen text, the BIG, BOLD HOOK TITLE inside 「」 (4–8 words / 6–12 CJK characters), and no other captions, so the viewer focuses on that title. Clips 2+ may show more elements and draw (1) ONE short beat takeaway/headline inside 「」 (4–8 words / 6–12 CJK characters) plus (2) 2–3 short explanatory captions inside 「」 (3–6 words / 4–8 CJK characters) on the pieces they explain. Never write `Subtitle:`. Across the clip, `startScene` shows State A's elements and its allowed 「」 text, `endScene` is the written State B landing, and motion moves from the start still toward that written endScene. There is no last-frame image.",
   ]
@@ -859,10 +868,14 @@ export function cartoonNarratorFrameLock(
   const actingStill = realistic
     ? " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line at natural real-person intensity, gaze and hands on the named teaching element (never a blank, deadpan, or expressionless face; never cartoon/illustration)."
     : " FACIAL EXPRESSION & BODY LOCK: face and body act the emotion of this clip's spoken line with a vivid, expressive facial expression, gaze and hands on the named teaching element; never the blueprint's default face.";
+  const studioBlue = canvas === "paper-cutout" && isStudioBluePaperCutout({
+    backgroundId: options?.backgroundId,
+    customBackground: options?.customBackground,
+  });
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? `HOOK CAMERA: Clip 1 keeps a 100% locked stationary square-on camera (no zoom-in or push-in).${hookTitleStill}`
+        ? `HOOK CAMERA: Clip 1 keeps a ${studioBlue ? STUDIO_BLUE_LOCKED_CAMERA : "100% locked stationary square-on camera"} (no zoom-in or push-in).${hookTitleStill}`
         : `HOOK CAMERA: framing stays on the teaching element, not a close-up of the face.${hookTitleStill}`
       : "";
   const cameraMatch = steady
@@ -954,6 +967,16 @@ export function cartoonNarratorVideoLock(
         : "";
     return `Silent visual-only 3D papercraft diorama video (off-screen narrator voiceover is muxed externally): only the first frame is attached. There is no last-frame image. Keep the diorama camera steady on the set. ${dioramaChar}${feetStay} ${backdrop} FAST PACING: each folded 300gsm cardstock mechanism, prop, and 「」 label move finishes in under 0.6 seconds on the way from the first frame toward the written State B landing, then the next beat starts at once. Do not stretch one glide across the clip. Cardstock geometry stays rigid (never morph, melt, or dissolve). Keep every prop, label, and pan fully inside the frame; do not slide them off an edge. Keep every 「」 strip in the center cluster from the first frame; do not park a label against an edge.`;
   }
+  const studioBlue = canvas === "paper-cutout" && isStudioBluePaperCutout({
+    backgroundId: options?.backgroundId,
+    customBackground: options?.customBackground,
+  });
+  const smoothMotion = studioBlue
+    ? SMOOTH_MOTION.replace(
+        "keep the camera 100% stationary and locked square-on to the board",
+        `keep the camera ${STUDIO_BLUE_LOCKED_CAMERA}`,
+      )
+    : SMOOTH_MOTION;
   const canvasVoice =
     canvas === "paper-cutout"
       ? paperCutoutVideoCanvasLock({
@@ -969,10 +992,10 @@ export function cartoonNarratorVideoLock(
     const graphHook =
       options?.clipNumber === 1
         ? smooth
-          ? " HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in, NO pull-out, NO camera jump) while the elements move with FAST PACING — each move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Eyes stay on the teaching element. Lips and jaw stay sealed. Never look into the lens. Show every in-between frame. No skipped frame, no jump cut, and no new angle."
+          ? ` HOOK CAMERA: keep the camera ${studioBlue ? STUDIO_BLUE_LOCKED_CAMERA : "100% locked and stationary square-on"} (NO zoom-in, NO push-in, NO pull-out, NO camera jump) while the elements move with FAST PACING — each move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Eyes stay on the teaching element. Lips and jaw stay sealed. Never look into the lens. Show every in-between frame. No skipped frame, no jump cut, and no new angle.`
           : " HOOK CAMERA: move the teaching element, sharp and fast, no slow glide and no blur. Never a close-up of a face and never a look into the lens. Lips and jaw stay sealed."
         : "";
-    const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
+    const glide = smooth ? ` ${smoothMotion}` : "";
     const noCastFace = realistic
       ? "Mouth stays firmly closed while the face acts the line's emotion at natural real-person intensity (never a blank or deadpan stare; no exaggerated facial expressions and no lip-sync), and reacts naturally to the diagram or props."
       : "Mouth stays closed or shows vivid facial expressions (active eyebrows, expressive eyes, and clear emotional reactions), and reacts to the diagram or props.";
@@ -987,10 +1010,10 @@ export function cartoonNarratorVideoLock(
   const hook =
     options?.clipNumber === 1
       ? smooth
-        ? ` HOOK CAMERA: keep the camera 100% locked and stationary square-on (NO zoom-in, NO push-in, NO pull-out, NO camera jump) while the elements and the pointing hand move with FAST PACING — each move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Show every in-between frame. No skipped frame, no jump cut, and no new angle. In this locked full-board view, ${hookFace}. The character stays silent.`
+        ? ` HOOK CAMERA: keep the camera ${studioBlue ? STUDIO_BLUE_LOCKED_CAMERA : "100% locked and stationary square-on"} (NO zoom-in, NO push-in, NO pull-out, NO camera jump) while the elements and the pointing hand move with FAST PACING — each move finishes in under 0.6 seconds, then the next beat starts at once. Do not stretch one glide across the clip. Show every in-between frame. No skipped frame, no jump cut, and no new angle. In this locked full-board view, ${hookFace}. The character stays silent.`
         : ` HOOK CAMERA: play the move on the teaching element, sharp and fast in the first second, no slow glide and no blur. Never a close-up of the face. ${hookFace}. The character stays silent.`
       : "";
-  const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
+  const beats = smooth ? smoothMotion : SNAP_MOTION;
   const faceBeats = realistic
     ? "Facial expression and body language follow the line's emotion at natural real-person intensity (natural blinks, living eye focus, real muscle movement in the brows, eyes, and cheeks; never a blank or deadpan stare; never exaggerated cartoon grimaces) while the mouth stays softly closed with zero jaw or mouth articulation and zero lip-sync."
     : "Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) that follow the line's emotion across the beats while the mouth stays closed.";

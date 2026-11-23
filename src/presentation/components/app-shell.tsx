@@ -7,7 +7,7 @@ import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache"
 import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-banner";
 import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
+import { StudioShell } from "@/presentation/studio/studio-shell";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
 import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 // Logged-in chrome. Page content sits in the studio shell.
@@ -45,42 +45,9 @@ export function AppShell({
     activeTasks,
   );
 
-  const items: StudioNavItem[] = [
-    {
-      href: "/app",
-      label: locale === "zh-Hant" ? "Home 首頁" : locale === "zh-Hans" ? "Home 首页" : "Home",
-      icon: "home",
-      section: "home",
-    },
-    {
-      href: "/app/canvas",
-      label: locale === "zh-Hant" ? "Canvas 畫布" : locale === "zh-Hans" ? "Canvas 画布" : "Canvas",
-      icon: "canvas",
-      section: "home",
-    },
-    // CHARACTER & ASSETS
-    { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
-    { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
-    { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },
-    { href: "/app/products", label: t("nav.products"), icon: "products", section: "assets" },
-    {
-      href: "/app/videos",
-      label: locale === "en" ? "Video" : "影片庫 Video",
-      icon: "videos",
-      section: "assets",
-    },
-    {
-      href: "/app/tasks",
-      label: t("nav.tasks"),
-      icon: "tasks",
-      section: "assets",
-      badge: runningCount,
-    },
-  ];
-
   return (
     <StudioShell
-      items={items}
+      taskBadge={runningCount}
       banner={
         signupDiscountPercent > 0 ? (
           <SignupPromoBanner

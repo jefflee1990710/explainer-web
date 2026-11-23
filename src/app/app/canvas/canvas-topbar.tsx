@@ -1,7 +1,6 @@
 "use client";
 
-// Top bar for /app/canvas: app menu, project switcher, Editor/Agent layout,
-// Fit View, USD credit badge, and primary Run Flow button.
+// Top bar for /app/canvas: project switcher, Fit View, USD credit badge, and Run Flow.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -11,17 +10,12 @@ import {
   FolderPlus,
   Loader2,
   Maximize,
-  Menu,
-  PanelLeftClose,
   Pencil,
   Play,
   Square,
   Trash2,
   Wallet,
 } from "lucide-react";
-import { CanvasViewLayoutSwitch } from "@/app/app/canvas/canvas-view-layout-switch";
-import type { CanvasViewLayout } from "@/app/app/canvas/canvas-view-layout";
-import { useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { formatUsd } from "@/service/billing/usd";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
 
@@ -34,11 +28,9 @@ export function CanvasTopbar({
   activeTitle,
   saveStatus,
   creditUsd,
-  viewLayout,
   flowModelCount,
   isFlowRunning,
   flowWaveProgress,
-  onViewLayout,
   onSelectProject,
   onCreateProject,
   onRenameProject,
@@ -53,11 +45,9 @@ export function CanvasTopbar({
   activeTitle: string;
   saveStatus: SaveStatus;
   creditUsd: number;
-  viewLayout: CanvasViewLayout;
   flowModelCount: number;
   isFlowRunning: boolean;
   flowWaveProgress: { current: number; total: number } | null;
-  onViewLayout: (layout: CanvasViewLayout) => void;
   onSelectProject: (projectId: string) => void;
   onCreateProject: () => void;
   onRenameProject: (nextTitle: string) => void;
@@ -67,7 +57,6 @@ export function CanvasTopbar({
   onStopFlow: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const { railExpanded, toggleRail } = useStudioChrome();
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(activeTitle);
@@ -105,18 +94,8 @@ export function CanvasTopbar({
 
   return (
     <header className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 border-b border-white/8 bg-[#0e121a]/95 px-3 backdrop-blur-md">
-      {/* Left: sidebar toggle, project switcher, inline rename, save pill */}
+      {/* Left: project switcher, inline rename, save pill */}
       <div className="flex min-w-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={toggleRail}
-          title={railExpanded ? (isZh ? "只顯示圖示" : "Icons only") : isZh ? "完整選單" : "Full menu"}
-          aria-pressed={railExpanded}
-          className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/5 text-white/75 transition hover:border-white/20 hover:text-white"
-        >
-          {railExpanded ? <PanelLeftClose className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </button>
-
         {editingTitle ? (
           <div className="flex items-center gap-1">
             <input
@@ -249,9 +228,7 @@ export function CanvasTopbar({
         </span>
       </div>
 
-      {/* Center: Editor / Agent layout, then Fit View */}
       <div className="flex items-center gap-1.5">
-        <CanvasViewLayoutSwitch locale={locale} layout={viewLayout} onChange={onViewLayout} />
         <button
           type="button"
           onClick={onFitView}

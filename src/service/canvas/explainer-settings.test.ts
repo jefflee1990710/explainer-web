@@ -29,6 +29,7 @@ const PAPER: ExplainerSettings = {
 describe("explainer settings", () => {
   it("offers each director's preset backgrounds and none for the whiteboard", () => {
     assert.ok(explainerBackgroundPresets("paper-cutout-explainer-video-director").some((bg) => bg.id === "blueprint-paper"));
+    assert.ok(explainerBackgroundPresets("paper-cutout-explainer-video-director").some((bg) => bg.id === "studio-blue"));
     assert.equal(explainerBackgroundPresets("papercraft-diorama-director").length, 6);
     assert.equal(explainerBackgroundPresets("cartoon-explainer-video-director").length, 0);
   });

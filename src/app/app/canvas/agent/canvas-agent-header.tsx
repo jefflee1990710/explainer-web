@@ -72,17 +72,12 @@ export function CanvasAgentHeader({
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/8 px-3">
-      <button
-        type="button"
-        onClick={onToggleCollapsed}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
-        aria-label={collapsed ? copy.expand : copy.collapse}
-      >
+      <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#c6f24b]/15 text-[#c6f24b]">
           <Bot className="h-3.5 w-3.5" />
         </span>
         <span className="truncate text-xs font-bold text-white">{copy.title}</span>
-      </button>
+      </div>
 
       <label className="flex items-center gap-1.5 text-[11px] text-white/50">
         <span className={side === "bottom" ? "hidden sm:inline" : "sr-only"}>{copy.language}</span>
@@ -108,9 +103,11 @@ export function CanvasAgentHeader({
       <IconButton label={copy.clear} onClick={onClear} disabled={busy || !hasMessages}>
         <Trash2 className="h-3.5 w-3.5" />
       </IconButton>
-      <IconButton label={collapsed ? copy.expand : copy.collapse} onClick={onToggleCollapsed}>
-        <CollapseIcon className="h-4 w-4" />
-      </IconButton>
+      {lockSide ? null : (
+        <IconButton label={collapsed ? copy.expand : copy.collapse} onClick={onToggleCollapsed}>
+          <CollapseIcon className="h-4 w-4" />
+        </IconButton>
+      )}
     </div>
   );
 }

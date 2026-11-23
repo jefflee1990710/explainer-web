@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AvatarCreditRing } from "@/presentation/components/auth/avatar-credit-ring";
 import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
-import { useStudioChrome } from "@/presentation/studio/studio-chrome";
-import { StudioRailHint } from "@/presentation/studio/studio-rail-hint";
 import { useCreditSnapshot } from "@/presentation/studio/use-credit-snapshot";
 import { creditProgressUsd } from "@/service/billing/credit-balance";
 import { formatUsd } from "@/service/billing/usd";
 
-// Rail footer. Clicking the signed-in row opens Account links (Usage, Billing, Invoices, MCP, Affiliate, Settings) and sign out.
+// Header account control. Clicking the avatar opens Usage, Billing, Invoices, MCP, Affiliate, Settings, and sign out.
 export function SignedInAccount({
   email,
   name,
@@ -40,7 +38,6 @@ export function SignedInAccount({
   creditLimitUsd: number;
   creditsLabel?: string;
 }) {
-  const { railExpanded } = useStudioChrome();
   const [open, setOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -90,30 +87,23 @@ export function SignedInAccount({
       aria-expanded={open}
       aria-haspopup="menu"
       aria-label={name || email}
-      title={railExpanded ? email : undefined}
+      title={email}
       onClick={() => setOpen((value) => !value)}
-      className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-data-[expanded=true]/rail:justify-start"
+      className="flex cursor-pointer items-center rounded-full p-0.5 hover:bg-[var(--studio-fill)]"
     >
       <AvatarCreditRing ratio={ratio} label={creditsLabel}>
         {avatar}
       </AvatarCreditRing>
-      <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-data-[expanded=true]/rail:block">
-        {email}
-      </span>
     </button>
   );
 
   return (
-    <div ref={rootRef} className="relative w-full">
-      {railExpanded || open ? (
-        accountButton
-      ) : (
-        <StudioRailHint label={name || email}>{accountButton}</StudioRailHint>
-      )}
+    <div ref={rootRef} className="relative">
+      {accountButton}
       {open ? (
         <div
           role="menu"
-          className="absolute bottom-full left-0 z-50 mb-2 w-56 overflow-hidden rounded-xl border border-[var(--studio-line)] bg-[var(--studio-panel)] p-1.5 shadow-xl"
+          className="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--studio-line)] bg-[var(--studio-panel)] p-1.5 shadow-xl"
         >
           <div className="mb-1 border-b border-[var(--studio-line)] px-2.5 py-1.5">
             {name ? (

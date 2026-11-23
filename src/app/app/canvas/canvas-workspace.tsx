@@ -131,9 +131,7 @@ import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
 import { applyCanvasAgentOp } from "@/service/canvas-agent/apply-ops";
 import type { CanvasAgentGraph, CanvasAgentOp } from "@/service/canvas-agent/types";
 import {
-  CANVAS_AGENT_DOCK_SIDE_KEY,
   CanvasAgentDock,
-  type CanvasAgentDockSide,
   type CanvasAgentGraphSnapshot,
 } from "@/app/app/canvas/agent/canvas-agent-dock";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
@@ -144,11 +142,6 @@ import {
 } from "@/app/app/canvas/canvas-sidebar";
 import { CANVAS_DRAG_PROMPT_MIME } from "@/app/app/canvas/canvas-prompt-tool";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
-import {
-  CANVAS_VIEW_LAYOUT_KEY,
-  canvasViewLayoutFromStorage,
-  type CanvasViewLayout,
-} from "@/app/app/canvas/canvas-view-layout";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
 import {
@@ -185,8 +178,6 @@ import {
   outfitHandleForPart,
   outfitWiresFromGraph,
 } from "@/service/canvas/character-node";
-
-const SIDEBAR_OPEN_KEY = "scro.canvasSidebar.open";
 
 // Settings wires take the settings kind's color instead of a port color.
 function settingsStroke(node: CanvasNode | undefined): string | undefined {
@@ -341,11 +332,6 @@ function CanvasWorkspaceInner({
   const [models, setModels] = useState<CanvasModelSpec[]>(initialModels);
   const [assets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [viewLayout, setViewLayout] = useState<CanvasViewLayout>("editor");
-  // Bumps when Agent is chosen so the chat opens even if it was collapsed before.
-  const [agentOpenToken, setAgentOpenToken] = useState(0);
-  const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("right");
   const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
   const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -399,38 +385,6 @@ function CanvasWorkspaceInner({
     nodesRef.current = nodes;
   }, [nodes]);
 
-  // Dock side and the Editor/Agent preset are restored after mount so server HTML stays stable.
-  useEffect(() => {
-    const saved = window.localStorage.getItem(CANVAS_AGENT_DOCK_SIDE_KEY);
-    const savedLayout = canvasViewLayoutFromStorage(
-      window.localStorage.getItem(CANVAS_VIEW_LAYOUT_KEY),
-    );
-    /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
-    if (saved === "right" || saved === "bottom") setAgentDockSide(saved);
-    if (savedLayout === "agent") {
-      setViewLayout("agent");
-      setAgentOpenToken(1);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
-
-  const chooseViewLayout = useCallback(
-    (next: CanvasViewLayout) => {
-      setViewLayout(next);
-      window.localStorage.setItem(CANVAS_VIEW_LAYOUT_KEY, next);
-      if (next === "editor") setSidebarOpen(true);
-      if (next === "agent") setAgentOpenToken((token) => token + 1);
-    },
-    [],
-  );
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarOpen((open) => {
-      const next = !open;
-      window.localStorage.setItem(SIDEBAR_OPEN_KEY, next ? "1" : "0");
-      return next;
-    });
-  }, []);
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
@@ -2143,11 +2097,9 @@ function CanvasWorkspaceInner({
         activeTitle={activeTitle}
         saveStatus={saveStatus}
         creditUsd={creditUsd}
-        viewLayout={viewLayout}
         flowModelCount={flowModelCount}
         isFlowRunning={isFlowRunning}
         flowWaveProgress={flowWaveProgress}
-        onViewLayout={chooseViewLayout}
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
@@ -2158,27 +2110,21 @@ function CanvasWorkspaceInner({
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {viewLayout === "editor" ? (
-          <CanvasSidebar
-            locale={locale}
-            collapsed={!sidebarOpen}
-            models={models}
-            assets={assets}
-            isUploading={isUploading}
-            isRefreshingModels={isRefreshingModels}
-            onToggleCollapsed={toggleSidebar}
-            onAddModel={(id) => addModelNodeAt(id)}
-            onAddAsset={(asset) => addAssetNodeAt(asset)}
-            onAddPromptNode={() => addPromptNode()}
-            onAddSettingsNode={(kind) => addSettingsNode(kind)}
-            onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
-            onRefreshModels={() => void handleRefreshModels()}
-          />
-        ) : null}
+        <CanvasSidebar
+          locale={locale}
+          models={models}
+          assets={assets}
+          isUploading={isUploading}
+          isRefreshingModels={isRefreshingModels}
+          onAddModel={(id) => addModelNodeAt(id)}
+          onAddAsset={(asset) => addAssetNodeAt(asset)}
+          onAddPromptNode={() => addPromptNode()}
+          onAddSettingsNode={(kind) => addSettingsNode(kind)}
+          onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
+          onRefreshModels={() => void handleRefreshModels()}
+        />
 
-        <div
-          className={`flex min-h-0 min-w-0 flex-1 ${viewLayout === "agent" || agentDockSide === "right" ? "flex-row" : "flex-col"}`}
-        >
+        <div className="flex min-h-0 min-w-0 flex-1 flex-row">
           <div
             className="relative min-h-0 min-w-0 flex-1"
             onDragOver={handlePaneDragOver}
@@ -2256,7 +2202,6 @@ function CanvasWorkspaceInner({
                       ? { kind: "group", id: choice.groupId }
                       : { kind: "node", id: nodeMenu.nodeId };
                   setContextRefs((prev) => addContextRef(prev, ref));
-                  chooseViewLayout("agent");
                   setNodeMenu(null);
                 }}
                 onClose={() => setNodeMenu(null)}
@@ -2351,10 +2296,8 @@ function CanvasWorkspaceInner({
           <CanvasAgentDock
             locale={locale}
             canvasId={activeProjectId}
-            hidden={viewLayout !== "agent"}
-            expandToken={agentOpenToken}
-            lockSide={viewLayout === "agent"}
-            side={viewLayout === "agent" ? "right" : agentDockSide}
+            lockSide
+            side="right"
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}
             contextRefs={contextRefs}
@@ -2364,10 +2307,7 @@ function CanvasWorkspaceInner({
             onContextConsumed={() => setContextRefs([])}
             onApplyOps={applyAgentOps}
             onUndo={undoAgentTurn}
-            onSideChange={(side) => {
-              setAgentDockSide(side);
-              window.localStorage.setItem(CANVAS_AGENT_DOCK_SIDE_KEY, side);
-            }}
+            onSideChange={() => {}}
           />
         </div>
       </div>

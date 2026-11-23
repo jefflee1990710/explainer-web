@@ -7,6 +7,7 @@ export const PAPER_CUTOUT_BACKGROUND_IDS = [
   "concrete",
   "office-table",
   "sky",
+  "studio-blue",
 ] as const;
 
 export type PaperCutoutBackgroundId = (typeof PAPER_CUTOUT_BACKGROUND_IDS)[number];
@@ -109,6 +110,22 @@ export const PAPER_CUTOUT_PRESET_BACKGROUNDS: readonly DirectorPresetBackground[
     previewPrompt:
       "Flat square-on full-bleed background of sky-blue craft paper with a few soft minimal white paper-cutout clouds near the corners, tactile paper grain, even overhead craft lighting, edge-to-edge, no text, no people.",
     previewUrl: "/director-backgrounds/paper-cutout/sky.webp",
+  },
+  {
+    id: "studio-blue",
+    nameEn: "Studio Blue Cyclorama",
+    nameZhHant: "實色攝影棚藍",
+    nameZhHans: "实色摄影棚蓝",
+    descriptionEn: "Seamless saturated studio blue. The wall and the floor are the same blue.",
+    descriptionZhHant: "無縫飽和攝影棚藍。牆同地板同一種藍，木桌同剪紙擺喺前面。",
+    surfaceNoun: "studio-blue cyclorama",
+    surfacePrompt:
+      "seamless saturated matte studio-blue cyclorama, vertical wall about #1C3F65 and floor about #14457E, the same blue meeting in one soft corner",
+    forbidSurfaces:
+      "never wood grain, kraft, or cream paper on the backdrop, never a blueprint grid, never concrete, never clouds, never a lighter sky blue, never a second wall colour",
+    previewPrompt:
+      "Seamless photo-studio cyclorama, wall and floor the same saturated matte blue (wall about #1C3F65, floor about #14457E), one soft corner, empty set, no table, no people, no text.",
+    previewUrl: "/director-backgrounds/paper-cutout/studio-blue.webp",
   },
 ] as const;
 

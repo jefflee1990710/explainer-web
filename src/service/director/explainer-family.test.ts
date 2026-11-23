@@ -213,6 +213,7 @@ test("paper-cutout director defines preset backgrounds on IDirector and resolves
     "concrete",
     "office-table",
     "sky",
+    "studio-blue",
   ]);
   for (const bg of director.presetBackgrounds) {
     assert.match(bg.previewUrl, /^\/director-backgrounds\/paper-cutout\/.+\.webp$/);
@@ -244,6 +245,25 @@ test("paper-cutout director defines preset backgrounds on IDirector and resolves
     backgroundId: "sky",
   });
   assert.match(skyVideo, /sky/i);
+
+  // Studio blue is the cyclorama from the reference still: wall and floor, not a flat board.
+  const studioBlue = cartoonExplainerDirectorBlock({
+    hasCharacter: true,
+    canvas: "paper-cutout",
+    backgroundId: "studio-blue",
+  });
+  assert.match(studioBlue, /#1C3F65/);
+  assert.match(studioBlue, /three-quarter view of the studio-blue cyclorama/);
+  assert.doesNotMatch(studioBlue, /never a three-quarter/);
+  assert.doesNotMatch(studioBlue, /wooden board IS the background/);
+  const studioFrame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {
+    hasCharacter: true,
+    clipNumber: 1,
+    backgroundId: "studio-blue",
+    steadyStills: true,
+  });
+  assert.match(studioFrame, /seamless studio cyclorama/);
+  assert.match(studioFrame, /three-quarter view of the studio-blue cyclorama/);
 
   // Uploaded custom background image overrides preset surface
   const customFrame = cartoonNarratorFrameLock(PAPER_CUTOUT_EXPLAINER_SKILL_SLUG, {

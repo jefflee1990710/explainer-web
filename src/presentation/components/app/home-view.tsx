@@ -1,43 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DEFAULT_HOT_TOPICS, type HotTopicItem } from "@/model/hot-topic";
 import { getOrGenerateUserHotTopicsAction } from "@/presentation/actions/hot-topics";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { HomeInfluencerCreateForm } from "@/presentation/components/app/home-influencer-create-form";
 import { HomeToolPreview } from "@/presentation/components/app/home-tool-preview";
-import { VideoGridCard } from "@/presentation/components/app/projects/[id]/video-grid-card";
 import { Spinner } from "@/presentation/components/spinner";
-import type {
-  PublicCharacter,
-  PublicStyle,
-  PublicVideoCard,
-} from "@/presentation/serialize";
-import { videoListStage } from "@/service/video/list-stage";
 
 export function HomeView({
-  videos,
-  characters,
-  credits,
-  subscribed,
   initialHotTopics,
   hotTopicsNeedRefresh = false,
 }: {
-  videos: PublicVideoCard[];
-  characters: PublicCharacter[];
-  styles: PublicStyle[];
-  credits: number;
-  subscribed: boolean;
   initialHotTopics?: HotTopicItem[];
   hotTopicsNeedRefresh?: boolean;
 }) {
   const { locale } = useI18n();
-  const router = useRouter();
-  const [localCharacters, setLocalCharacters] = useState<PublicCharacter[]>(characters);
-  const [postedIds, setPostedIds] = useState<Record<string, string>>({});
-  const [archivedIds, setArchivedIds] = useState<Record<string, string | null>>({});
   const [hotTopics, setHotTopics] = useState<HotTopicItem[]>(
     () => (initialHotTopics && initialHotTopics.length >= 3 ? initialHotTopics : [...DEFAULT_HOT_TOPICS]),
   );
@@ -77,9 +55,6 @@ export function HomeView({
       setLoadingHotTopics(false);
     }
   }
-
-  const recentVideos = videos.slice(0, 4);
-  const displayCharacters = localCharacters.slice(0, 6);
 
   const copy =
     locale === "zh-Hant"
@@ -231,6 +206,12 @@ export function HomeView({
             {copy.heroSubtitle}
           </p>
         </div>
+        <Link
+          href="/app/canvas"
+          className="inline-flex h-11 items-center rounded-xl bg-[#c6f24b] px-4 text-sm font-bold text-[#12141c] transition hover:brightness-105"
+        >
+          {locale === "en" ? "Open Canvas" : "開啟 Canvas"}
+        </Link>
       </header>
 
       {/* Each card loops the sample clip for that tool. */}
@@ -278,144 +259,6 @@ export function HomeView({
             </Link>
           ))}
         </div>
-      </section>
-
-      {/* 2. AI Influencer Quick Create Section */}
-      <section
-        aria-label={copy.influencerTitle}
-        className="rounded-2xl border border-[var(--studio-line)] bg-[var(--studio-panel)] p-5 sm:p-6"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#c6f24b] text-xs font-extrabold text-[#12141c]">
-                ✦
-              </span>
-              <h2 className="font-display text-lg font-bold text-[var(--studio-ink)]">
-                {copy.influencerTitle}
-              </h2>
-            </div>
-            <p className="mt-1.5 text-xs leading-5 text-[var(--studio-muted)] sm:text-sm">
-              {copy.influencerSubtitle}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/app/characters/generate"
-              className="inline-flex min-h-10 items-center rounded-xl border border-[var(--studio-line)] bg-[var(--studio-fill)] px-3.5 py-2 text-xs font-bold text-[var(--studio-ink)] transition hover:border-[#c6f24b]/60"
-            >
-              {copy.customGeneratorBtn}
-            </Link>
-            <Link
-              href="/app/characters"
-              className="inline-flex min-h-10 items-center px-2 text-xs font-semibold text-[var(--studio-muted)] transition hover:text-[var(--studio-ink)]"
-            >
-              {copy.viewAllCharacters}
-            </Link>
-          </div>
-        </div>
-
-        <HomeInfluencerCreateForm
-          credits={credits}
-          subscribed={subscribed}
-          onCreated={(created) => {
-            setLocalCharacters((prev) => [created, ...prev]);
-            router.push(`/app/characters/${created.id}`);
-          }}
-        />
-
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {displayCharacters.map((char) => (
-            <Link
-              key={char.id}
-              href={`/app/room/${char.id}`}
-              className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-xl border border-[var(--studio-line)] bg-[#12141c] transition hover:border-[#c6f24b]/70"
-            >
-              {char.previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={char.previewUrl}
-                  alt={char.name}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover object-top transition duration-300 group-hover:scale-105"
-                />
-              ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-              <div className="relative z-10 p-2.5">
-                <p className="truncate font-display text-xs font-bold text-white">
-                  {char.name}
-                </p>
-                <p className="truncate text-[10px] text-white/70">
-                  {locale === "en" ? "Open Studio →" : "進入角色空間 →"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. Recent Videos Section */}
-      <section aria-label={copy.recentVideosTitle} className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold text-[var(--studio-ink)]">
-            {copy.recentVideosTitle}
-          </h2>
-          <Link
-            href="/app/videos"
-            className="text-xs font-bold text-[var(--studio-muted)] transition hover:text-[var(--studio-ink)]"
-          >
-            {copy.viewAllVideos}
-          </Link>
-        </div>
-
-        {recentVideos.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--studio-line)] bg-[var(--studio-panel)] p-8 text-center">
-            <p className="font-display text-base font-bold text-[var(--studio-ink)]">
-              {copy.emptyVideosTitle}
-            </p>
-            <p className="mt-1 text-xs text-[var(--studio-muted)]">
-              {copy.emptyVideosDesc}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {recentVideos.map((video) => {
-              const stage = videoListStage({
-                status: video.status,
-                tags: video.tags,
-                postedAt: postedIds[video.id] || video.postedAt,
-                archivedAt:
-                  archivedIds[video.id] !== undefined
-                    ? archivedIds[video.id] ?? undefined
-                    : video.archivedAt,
-              });
-              return (
-                <VideoGridCard
-                  key={video.id}
-                  folderId={video.projectId || ""}
-                  video={video}
-                  stage={stage}
-                  onPosted={(id) =>
-                    setPostedIds((current) => ({
-                      ...current,
-                      [id]: new Date().toISOString(),
-                    }))
-                  }
-                  onArchived={(id) =>
-                    setArchivedIds((current) => ({
-                      ...current,
-                      [id]: new Date().toISOString(),
-                    }))
-                  }
-                  onUnarchived={(id) =>
-                    setArchivedIds((current) => ({ ...current, [id]: null }))
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
       </section>
 
       {/* 4. Hot Topics to Start Generating (4-hour LLM lazy loading based on user recent creations) */}

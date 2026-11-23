@@ -132,7 +132,7 @@ export function CanvasAgentDock({
     const savedLanguage = window.localStorage.getItem(LANGUAGE_KEY);
     const savedHeight = Number(window.localStorage.getItem(HEIGHT_KEY));
     const savedWidth = Number(window.localStorage.getItem(WIDTH_KEY));
-    const savedCollapsed = window.localStorage.getItem(COLLAPSED_KEY) === "1";
+    const savedCollapsed = !lockSide && window.localStorage.getItem(COLLAPSED_KEY) === "1";
     /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
     if (isCanvasAgentLanguage(savedLanguage)) setLanguage(savedLanguage);
     if (Number.isFinite(savedHeight) && savedHeight >= MIN_HEIGHT) {
@@ -143,7 +143,7 @@ export function CanvasAgentDock({
     }
     setCollapsed(savedCollapsed);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [lockSide]);
 
   useEffect(() => {
     if (expandToken === 0) return;
