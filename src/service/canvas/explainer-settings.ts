@@ -1,6 +1,6 @@
 // Pure, client-safe helpers for the canvas Explainer Settings node.
 
-import { explainerSettingsPatch } from "@/service/canvas/settings/registry";
+import { explainerSettingsPatch } from "@/service/canvas/settings/explainer-data";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import type { DirectorPresetBackground } from "@/model/director";
 import {

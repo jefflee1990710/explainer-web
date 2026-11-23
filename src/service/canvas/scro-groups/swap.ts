@@ -7,6 +7,7 @@ import {
   type GroupMediaRef,
   type ScroGroup,
 } from "@/service/canvas/scro-groups/builder";
+import { clampSectionLength, trimToolParams } from "@/service/canvas/settings/section";
 
 export type SwapGroupInput = {
   video: GroupMediaRef;
@@ -23,18 +24,10 @@ export type SwapGroupInput = {
   aspectRatio: CanvasAspectRatio;
 };
 
-// Comfy renders 2–15s per job.
-export function clampSectionLength(seconds: number): number {
-  return Math.min(15, Math.max(2, Math.round(Number.isFinite(seconds) ? seconds : 6)));
-}
+export { clampSectionLength };
 
 export function buildTrimNode(start: number, length: number) {
-  const from = Math.max(0, Number.isFinite(start) ? start : 0);
-  return {
-    modelId: "ffmpeg:trim-speed",
-    presetId: "1.0x",
-    toolParams: { ffmpegStartSec: from, ffmpegEndSec: from + length, ffmpegSpeed: 1 },
-  };
+  return { modelId: "ffmpeg:trim-speed", presetId: "1.0x", toolParams: trimToolParams(start, length) };
 }
 
 export function buildSwapGroup(ctx: GroupContext, input: SwapGroupInput): ScroGroup {

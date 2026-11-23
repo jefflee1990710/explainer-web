@@ -1,6 +1,6 @@
 // Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
-import { explainerSettingsOf } from "@/service/canvas/settings/registry";
+import { explainerSettingsOf } from "@/service/canvas/settings/explainer-data";
 import type { CanvasNodeData } from "@/model/canvas";
 import { explainerSettingsChanges } from "@/service/canvas/explainer-settings";
 
