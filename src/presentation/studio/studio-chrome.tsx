@@ -1,38 +1,55 @@
 "use client";
 
-// Lets a page hide the studio rail. On /app/canvas the rail stays closed
-// until the canvas menu button opens it, and it comes back on other pages.
+// The app menu stays on screen. Full width and icons are the only two modes.
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { STUDIO_RAIL_COLLAPSED_KEY, studioRailCollapsed } from "@/presentation/studio/studio-rail-mode";
 
 type StudioChromeValue = {
-  railHidden: boolean;
+  railExpanded: boolean;
   toggleRail: () => void;
-  hideRail: () => void;
 };
 
 const StudioChromeContext = createContext<StudioChromeValue | null>(null);
 
+function readCollapsed(onCanvas: boolean): boolean {
+  try {
+    return studioRailCollapsed(window.localStorage.getItem(STUDIO_RAIL_COLLAPSED_KEY), onCanvas);
+  } catch {
+    return onCanvas;
+  }
+}
+
+function writeCollapsed(collapsed: boolean) {
+  try {
+    window.localStorage.setItem(STUDIO_RAIL_COLLAPSED_KEY, collapsed ? "1" : "0");
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
 export function StudioChromeProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "";
   const onCanvas = pathname.startsWith("/app/canvas");
-  // The pin is tied to the current path, so leaving the canvas closes it again.
-  const [pin, setPin] = useState({ path: "", open: false });
-  const pinnedOpen = pin.path === pathname && pin.open;
+  const [collapsed, setCollapsed] = useState(onCanvas);
 
-  const hideRail = useCallback(() => setPin({ path: pathname, open: false }), [pathname]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
+    setCollapsed(readCollapsed(onCanvas));
+  }, [onCanvas]);
+
   const toggleRail = useCallback(() => {
-    setPin((current) => {
-      const open = current.path === pathname && current.open;
-      return { path: pathname, open: !open };
+    setCollapsed((current) => {
+      const next = !current;
+      writeCollapsed(next);
+      return next;
     });
-  }, [pathname]);
-  const railHidden = onCanvas && !pinnedOpen;
+  }, []);
 
   const value = useMemo(
-    () => ({ railHidden, toggleRail, hideRail }),
-    [railHidden, toggleRail, hideRail],
+    () => ({ railExpanded: !collapsed, toggleRail }),
+    [collapsed, toggleRail],
   );
 
   return <StudioChromeContext.Provider value={value}>{children}</StudioChromeContext.Provider>;
@@ -41,9 +58,8 @@ export function StudioChromeProvider({ children }: { children: ReactNode }) {
 export function useStudioChrome(): StudioChromeValue {
   return (
     useContext(StudioChromeContext) ?? {
-      railHidden: false,
+      railExpanded: true,
       toggleRail: () => {},
-      hideRail: () => {},
     }
   );
 }

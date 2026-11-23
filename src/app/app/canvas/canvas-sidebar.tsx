@@ -1,6 +1,6 @@
 "use client";
 
-// Collapsible left drawer for /app/canvas:
+// Left drawer for /app/canvas. It stays on screen as a full-width panel or an icon column:
 // 1) Models (generators, edit, cutout, upscale)
 // 2) Tools (Scro pipelines and FFmpeg)
 // 3) Assets (library upload, or the Outfit tab: saved looks + system defaults)
@@ -18,7 +18,7 @@ import {
   Upload,
 } from "lucide-react";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
-import { CanvasSidebarRail } from "@/app/app/canvas/canvas-sidebar-rail";
+import { CanvasSidebarIcons } from "@/app/app/canvas/canvas-sidebar-icons";
 import {
   CanvasPromptTool,
   canvasPromptToolVisible,
@@ -175,10 +175,21 @@ export function CanvasSidebar({
     });
   }, [listedModels, query, activeCategory, locale]);
 
-  const collapseLabel = isZh ? "收合面板" : "Collapse panel";
-  const expandLabel = isZh ? "展開面板" : "Expand panel";
+  const collapseLabel = isZh ? "只顯示圖示" : "Icons only";
   if (collapsed) {
-    return <CanvasSidebarRail label={expandLabel} onExpand={onToggleCollapsed} />;
+    return (
+      <CanvasSidebarIcons
+        locale={locale}
+        tab={tab}
+        modelCount={modelCount}
+        onTab={(next) => {
+          setTab(next);
+          setCategory(null);
+          onToggleCollapsed();
+        }}
+        onExpand={onToggleCollapsed}
+      />
+    );
   }
 
   return (

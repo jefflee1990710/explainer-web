@@ -147,7 +147,6 @@ import {
   canvasViewLayoutFromStorage,
   type CanvasViewLayout,
 } from "@/app/app/canvas/canvas-view-layout";
-import { useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
@@ -320,7 +319,6 @@ function CanvasWorkspaceInner({
   // Bumps when Agent is chosen so the chat opens even if it was collapsed before.
   const [agentOpenToken, setAgentOpenToken] = useState(0);
   const [agentDockSide, setAgentDockSide] = useState<CanvasAgentDockSide>("right");
-  const { hideRail } = useStudioChrome();
   const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
   const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -393,12 +391,10 @@ function CanvasWorkspaceInner({
     (next: CanvasViewLayout) => {
       setViewLayout(next);
       window.localStorage.setItem(CANVAS_VIEW_LAYOUT_KEY, next);
-      // Both presets keep the app menu closed. Editor reopens models and tools.
-      hideRail();
       if (next === "editor") setSidebarOpen(true);
       if (next === "agent") setAgentOpenToken((token) => token + 1);
     },
-    [hideRail],
+    [],
   );
 
   const toggleSidebar = useCallback(() => {

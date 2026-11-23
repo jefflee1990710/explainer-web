@@ -6,6 +6,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { useRouteTransition } from "@/presentation/studio/route-transition";
 import type { StudioNavItem, StudioNavSection } from "@/presentation/studio/studio-shell";
 import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
+import { StudioRailHint } from "@/presentation/studio/studio-rail-hint";
 
 const GROUP_SECTIONS: StudioNavSection[] = [
   "create",
@@ -188,12 +189,11 @@ function StudioHomePillLink({
   active: boolean;
   forceExpanded?: boolean;
 }) {
-  return (
+  const link = (
     <Link
       href={item.href}
       data-rail-tour={item.href}
       aria-label={item.label}
-      title={item.label}
       aria-current={active ? "page" : undefined}
       className={`studio-home-pill group relative flex cursor-pointer items-center rounded-[13px] border text-[13px] font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
@@ -222,6 +222,7 @@ function StudioHomePillLink({
       {forceExpanded ? <NavPending /> : null}
     </Link>
   );
+  return forceExpanded ? link : <StudioRailHint label={item.label}>{link}</StudioRailHint>;
 }
 
 function StudioToolTileLink({
@@ -233,12 +234,11 @@ function StudioToolTileLink({
   active: boolean;
   forceExpanded?: boolean;
 }) {
-  return (
+  const link = (
     <Link
       href={item.href}
       data-rail-tour={item.href}
       aria-label={item.label}
-      title={item.label}
       aria-current={active ? "page" : undefined}
       className={`studio-tool-tile group relative flex cursor-pointer items-center rounded-[13px] border font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
@@ -291,6 +291,7 @@ function StudioToolTileLink({
       ) : null}
     </Link>
   );
+  return forceExpanded ? link : <StudioRailHint label={item.label}>{link}</StudioRailHint>;
 }
 
 function StudioNavLink({
@@ -302,12 +303,11 @@ function StudioNavLink({
   active: boolean;
   forceExpanded?: boolean;
 }) {
-  return (
+  const link = (
     <Link
       href={item.href}
       data-rail-tour={item.href}
       aria-label={item.label}
-      title={item.label}
       aria-current={active ? "page" : undefined}
       className={`group flex cursor-pointer items-center rounded-[11px] border text-[12.5px] transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
         forceExpanded
@@ -358,6 +358,7 @@ function StudioNavLink({
       {forceExpanded ? <NavPending /> : null}
     </Link>
   );
+  return forceExpanded ? link : <StudioRailHint label={item.label}>{link}</StudioRailHint>;
 }
 
 function NavPending() {

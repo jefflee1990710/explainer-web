@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { isFullBleedStudioPath } from "@/presentation/components/app/director-dock/director-dock-config";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { RouteTransitionProvider, useRouteTransition } from "@/presentation/studio/route-transition";
 import { StudioChromeProvider, useStudioChrome } from "@/presentation/studio/studio-chrome";
 import { StudioNav } from "@/presentation/studio/studio-nav";
+import { StudioRailHint } from "@/presentation/studio/studio-rail-hint";
 import {
   hasSeenStudioNavTutorial,
   StudioNavFeatureDiscovery,
@@ -50,8 +52,6 @@ export type StudioNavItem = {
   tag?: string;
   imageUrl?: string;
 };
-
-const SIDEBAR_COLLAPSED_STORAGE_KEY = "scro:studio-sidebar-collapsed";
 
 // Logged-in frame: full-height OpenArt-inspired left sidebar and a scrolling main slot.
 export function StudioShell({
@@ -152,25 +152,21 @@ function StudioMainSlot({ children }: { children: React.ReactNode }) {
 
 // Left sidebar inspired by OpenArt reference: expanded by default (256px) with a collapse toggle button in the top-right.
 function StudioRail({ items, children }: { items: StudioNavItem[]; children: React.ReactNode }) {
+  const { locale } = useI18n();
   const { activePathname } = useRouteTransition();
-  const { railHidden } = useStudioChrome();
+  const { railExpanded, toggleRail } = useStudioChrome();
   const isVideoEditorRoute = /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(activePathname);
   const [navTourOpen, setNavTourOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const showNavTour = navTourOpen && !isVideoEditorRoute;
-  const expanded = showNavTour || !collapsed;
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
-      if (saved === "1") {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCollapsed(true);
-      }
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
+  const expanded = showNavTour || railExpanded;
+  const isZh = locale === "zh-Hant" || locale === "zh-Hans";
+  const modeLabel = expanded
+    ? isZh
+      ? "只顯示圖示"
+      : "Icons only"
+    : isZh
+      ? "完整選單"
+      : "Full menu";
 
   useEffect(() => {
     const closeNavTour = () => setNavTourOpen(false);
@@ -194,21 +190,6 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
     }
   }, [isVideoEditorRoute]);
 
-  function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-  }
-
-  // Canvas layouts own the left edge, so the app menu stays closed until its button opens it.
-  if (railHidden) return null;
-
   return (
     <aside
       data-expanded={expanded ? "true" : "false"}
@@ -223,19 +204,24 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
             : "flex-col items-center justify-center gap-1.5"
         }`}
       >
-        <BrandMark
-          href="/app"
-          wordClassName={`text-xl font-bold tracking-tight text-[var(--studio-ink)] ${
-            expanded ? "inline" : "hidden"
-          }`}
-        />
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--studio-muted)] transition hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)]"
-        >
+        {expanded ? (
+          <BrandMark
+            href="/app"
+            wordClassName="inline text-xl font-bold tracking-tight text-[var(--studio-ink)]"
+          />
+        ) : (
+          <StudioRailHint label="Scro">
+            <BrandMark href="/app" wordClassName="hidden" />
+          </StudioRailHint>
+        )}
+        <StudioRailHint label={expanded ? "" : modeLabel}>
+          <button
+            type="button"
+            onClick={toggleRail}
+            aria-label={modeLabel}
+            title={modeLabel}
+            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--studio-muted)] transition hover:bg-[var(--studio-fill)] hover:text-[var(--studio-ink)]"
+          >
           <svg
             viewBox="0 0 24 24"
             className="h-4 w-4"
@@ -250,6 +236,7 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
             <path d="M9 4v16" />
           </svg>
         </button>
+        </StudioRailHint>
       </div>
       <StudioNav items={items} forceExpanded={expanded} />
       <div

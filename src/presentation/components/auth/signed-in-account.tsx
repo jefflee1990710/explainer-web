@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AvatarCreditRing } from "@/presentation/components/auth/avatar-credit-ring";
 import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
+import { useStudioChrome } from "@/presentation/studio/studio-chrome";
+import { StudioRailHint } from "@/presentation/studio/studio-rail-hint";
 import { useCreditSnapshot } from "@/presentation/studio/use-credit-snapshot";
 import { creditProgressUsd } from "@/service/billing/credit-balance";
 import { formatUsd } from "@/service/billing/usd";
@@ -18,7 +20,7 @@ export function SignedInAccount({
   usageLabel = "用量與儲值 Usage",
   billingLabel = "信用卡與付款 Billing",
   invoicesLabel = "帳單紀錄 Invoices",
-  mcpLabel = "MCP",
+  mcpLabel = "API & MCP",
   affiliateLabel,
   creditUsd: initialCreditUsd,
   creditLimitUsd: initialLimitUsd,
@@ -38,6 +40,7 @@ export function SignedInAccount({
   creditLimitUsd: number;
   creditsLabel?: string;
 }) {
+  const { railExpanded } = useStudioChrome();
   const [open, setOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -81,23 +84,32 @@ export function SignedInAccount({
   const menuItemClass =
     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[var(--studio-ink)] hover:bg-[var(--studio-fill)]";
 
+  const accountButton = (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-haspopup="menu"
+      aria-label={name || email}
+      title={railExpanded ? email : undefined}
+      onClick={() => setOpen((value) => !value)}
+      className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-data-[expanded=true]/rail:justify-start"
+    >
+      <AvatarCreditRing ratio={ratio} label={creditsLabel}>
+        {avatar}
+      </AvatarCreditRing>
+      <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-data-[expanded=true]/rail:block">
+        {email}
+      </span>
+    </button>
+  );
+
   return (
     <div ref={rootRef} className="relative w-full">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        title={email}
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-data-[expanded=true]/rail:justify-start"
-      >
-        <AvatarCreditRing ratio={ratio} label={creditsLabel}>
-          {avatar}
-        </AvatarCreditRing>
-        <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-data-[expanded=true]/rail:block">
-          {email}
-        </span>
-      </button>
+      {railExpanded || open ? (
+        accountButton
+      ) : (
+        <StudioRailHint label={name || email}>{accountButton}</StudioRailHint>
+      )}
       {open ? (
         <div
           role="menu"

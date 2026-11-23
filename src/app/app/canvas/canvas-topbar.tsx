@@ -67,7 +67,7 @@ export function CanvasTopbar({
   onStopFlow: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const { railHidden, toggleRail } = useStudioChrome();
+  const { railExpanded, toggleRail } = useStudioChrome();
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(activeTitle);
@@ -110,11 +110,11 @@ export function CanvasTopbar({
         <button
           type="button"
           onClick={toggleRail}
-          title={railHidden ? (isZh ? "開啟選單" : "Open menu") : isZh ? "關閉選單" : "Close menu"}
-          aria-pressed={!railHidden}
+          title={railExpanded ? (isZh ? "只顯示圖示" : "Icons only") : isZh ? "完整選單" : "Full menu"}
+          aria-pressed={railExpanded}
           className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/5 text-white/75 transition hover:border-white/20 hover:text-white"
         >
-          {railHidden ? <Menu className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {railExpanded ? <PanelLeftClose className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
 
         {editingTitle ? (

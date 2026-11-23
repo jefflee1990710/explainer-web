@@ -76,12 +76,6 @@ export function AppShell({
       section: "assets",
       badge: runningCount,
     },
-    {
-      href: "/app/mcp",
-      label: locale === "en" ? "API & MCP" : "API 與 MCP",
-      icon: "mcp",
-      section: "assets",
-    },
   ];
 
   return (
@@ -108,7 +102,7 @@ export function AppShell({
           usageLabel={locale === "en" ? "Usage & USD Credit" : "用量與儲值 Usage"}
           billingLabel={locale === "en" ? "Billing & Card" : "信用卡與付款 Billing"}
           invoicesLabel={locale === "en" ? "Invoices" : "帳單紀錄 Invoices"}
-          mcpLabel={locale === "en" ? "API Keys & Docs" : "API 金鑰與文件"}
+          mcpLabel={locale === "en" ? "API & MCP" : "API 與 MCP"}
           affiliateLabel={affiliateEnabled ? t("nav.affiliate") : undefined}
           creditUsd={creditUsd}
           creditLimitUsd={creditLimitUsd}
