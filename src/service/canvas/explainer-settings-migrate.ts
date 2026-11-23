@@ -1,5 +1,5 @@
-// Older canvas Explainer groups were expanded before the Explainer Settings node existed.
-// On load they get one, read from the plan-only backing video the group came from.
+// On load, older canvases get their settings nodes: Explainer (from the backing video)
+// and Swap / Teleport (from their own nodes).
 
 import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasProject } from "@/model/canvas";
 import type { ExplainerSettingsNodeData } from "@/model/explainer-settings";
@@ -13,7 +13,7 @@ import {
   topicFromPlanSource,
 } from "@/service/canvas/explainer-settings";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
-import { upgradeLegacySettingsNodes } from "@/service/canvas/settings/migrate";
+import { upgradeLegacySettingsNodes, withToolSettingsNodes } from "@/service/canvas/settings/migrate";
 
 const FRAME_ID = /-frame-\d+$/;
 const COLUMN_GAP = 90;
@@ -60,10 +60,23 @@ export function withExplainerSettingsNodes(
   return { nodes, edges, groups, changed };
 }
 
-// Adds missing settings nodes and saves them. Groups whose backing video is gone stay as they are.
-export async function ensureExplainerSettingsNodes(loaded: CanvasProject): Promise<CanvasProject> {
+// Adds missing settings nodes and saves them: Explainer groups read their backing video
+// (groups whose video is gone stay as they are); Swap / Teleport groups read their own nodes.
+export async function ensureSettingsNodes(loaded: CanvasProject): Promise<CanvasProject> {
   const upgraded = upgradeLegacySettingsNodes(loaded.nodes);
-  const project = upgraded.changed ? { ...loaded, nodes: upgraded.nodes } : loaded;
+  const tool = withToolSettingsNodes({
+    nodes: upgraded.nodes,
+    edges: loaded.edges,
+    groups: canvasGroupsForProject(upgraded.nodes, loaded.groups),
+  });
+  const project: CanvasProject =
+    upgraded.changed || tool.changed
+      ? { ...loaded, nodes: tool.nodes, edges: tool.edges, ...(tool.changed ? { groups: tool.groups } : {}) }
+      : loaded;
+  const dirty = upgraded.changed || tool.changed;
+  const save = (p: CanvasProject) =>
+    persist(p, { nodes: p.nodes, edges: p.edges, ...(p.groups ? { groups: p.groups } : {}) });
+
   const groups = canvasGroupsForProject(project.nodes, project.groups);
   const missing = explainerGroupsMissingSettings(project.nodes, groups);
   const suffixes = new Map(
@@ -71,7 +84,7 @@ export async function ensureExplainerSettingsNodes(loaded: CanvasProject): Promi
       .map((g) => [g.id, GROUP_VIDEO_SUFFIX.exec(g.id)?.[1]?.toLowerCase()] as const)
       .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
   );
-  if (suffixes.size === 0) return upgraded.changed ? persist(project, { nodes: project.nodes }) : project;
+  if (suffixes.size === 0) return dirty ? save(project) : project;
 
   const videos = await (await videosCollection())
     .find(
@@ -104,8 +117,8 @@ export async function ensureExplainerSettingsNodes(loaded: CanvasProject): Promi
     });
   }
   const next = withExplainerSettingsNodes({ nodes: project.nodes, edges: project.edges, groups }, dataByGroupId);
-  if (!next.changed) return upgraded.changed ? persist(project, { nodes: project.nodes }) : project;
-  return persist(project, { nodes: next.nodes, edges: next.edges, groups: next.groups });
+  if (!next.changed) return dirty ? save(project) : project;
+  return save({ ...project, nodes: next.nodes, edges: next.edges, groups: next.groups });
 }
 
 async function persist(

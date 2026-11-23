@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
-import { ensureExplainerSettingsNodes } from "@/service/canvas/explainer-settings-migrate";
+import { ensureSettingsNodes } from "@/service/canvas/explainer-settings-migrate";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import {
   createCanvasProject,
@@ -58,8 +58,8 @@ export default async function CanvasPage({
     getCanvasModelCatalog(),
     listCanvasLibraryAssets(user.clerkUserId),
   ]);
-  // Older Explainer groups get their Explainer Settings node before the editor opens.
-  const activeProject = await ensureExplainerSettingsNodes(loadedProject);
+  // Older groups get their settings nodes before the editor opens.
+  const activeProject = await ensureSettingsNodes(loadedProject);
 
   const [allProjects, agentMessages] = await Promise.all([
     listCanvasProjects(user.clerkUserId),
