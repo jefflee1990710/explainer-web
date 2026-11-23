@@ -1,7 +1,9 @@
 // Pure helper shared by every Scro tool group: creates nodes and wires, then lays out the new nodes.
 
 import type { CanvasEdge, CanvasMediaKind, CanvasNode, CanvasNodeData } from "@/model/canvas";
+import type { CanvasSettingsData } from "@/model/canvas-settings";
 import { GROUP_ESTIMATED_SIZE, layoutGroupByDepth } from "@/service/canvas/group-layout";
+import { settingsKindDef } from "@/service/canvas/settings/registry";
 import { OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/openrouter/generate";
 
 export const SEEDREAM_MODEL_ID = `openrouter:${OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL}`;
@@ -41,6 +43,9 @@ export function createGroupBuilder(ctx: GroupContext) {
     },
     model(suffix: string, data: CanvasNodeData): string {
       return add(suffix, "model", { status: "idle", ...data });
+    },
+    settings(suffix: string, data: CanvasSettingsData): string {
+      return add(suffix, "settings", { label: settingsKindDef(data.kind).label.zh, settings: data });
     },
     wire(source: string, target: string, targetHandle: string) {
       edges.push({

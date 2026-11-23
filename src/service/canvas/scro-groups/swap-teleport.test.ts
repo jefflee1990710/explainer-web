@@ -22,8 +22,12 @@ describe("buildSwapGroup", () => {
       sectionLength: 6,
       aspectRatio: "9:16",
     });
-    assert.equal(g.nodes.length, 2);
-    assert.deepEqual(wires(g), ["g-video>g-grade:video"]);
+    assert.equal(g.nodes.length, 3);
+    assert.deepEqual(wires(g), ["g-settings>g-grade:settings", "g-video>g-grade:video"]);
+    assert.deepEqual(node(g, "g-settings").data.settings, {
+      kind: "swap",
+      values: { swapMode: "colorfix", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
+    });
     assert.equal(node(g, "g-grade").data.toolParams?.gradeLook, "jutsu");
   });
 
@@ -42,6 +46,9 @@ describe("buildSwapGroup", () => {
       "g-instruction>g-render:prompt",
       "g-reference>g-render:refImages",
       "g-render>g-grade:video",
+      "g-settings>g-grade:settings",
+      "g-settings>g-render:settings",
+      "g-settings>g-trim:settings",
       "g-trim>g-render:video",
     ]);
     assert.deepEqual(node(g, "g-trim").data.toolParams, {
@@ -81,13 +88,16 @@ describe("buildTeleportGroup", () => {
     assert.deepEqual(wires(g), [
       "g-render>g-grade:video",
       "g-scene>g-render:image",
+      "g-settings>g-grade:settings",
+      "g-settings>g-render:settings",
+      "g-settings>g-trim:settings",
       "g-trim>g-render:video",
       "g-video>g-trim:video",
     ]);
     assert.equal(node(g, "g-scene").type, "media");
   });
 
-  it("draws a scene plate from text and wires the mood", () => {
+  it("draws a scene plate from text and keeps the mood in the settings", () => {
     const g = buildTeleportGroup(ctx, {
       video: clip,
       scene: { kind: "text", text: "Tokyo street at night" },
@@ -102,6 +112,8 @@ describe("buildTeleportGroup", () => {
       buildTeleportScenePlatePrompt("Tokyo street at night", "9:16"),
     );
     assert.ok(wires(g).includes("g-scene-prompt>g-scene:prompt"));
-    assert.ok(wires(g).includes("g-mood>g-render:prompt"));
+    assert.ok(!g.nodes.some((n) => n.id === "g-mood"));
+    const settings = node(g, "g-settings").data.settings;
+    assert.equal(settings?.kind === "teleport" ? settings.values.mood : undefined, "neon rain");
   });
 });

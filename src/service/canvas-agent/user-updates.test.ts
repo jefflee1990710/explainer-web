@@ -263,12 +263,12 @@ describe("user updates Swap and Teleport from the agent", () => {
     assert.equal(bySuffix(g, created.groupId, "scene").data.modelId, SEEDREAM_MODEL_ID);
 
     must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "scene-prompt").id, text: "a night market, no rain" }));
-    must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "mood").id, text: "warm lantern light" }));
     must(T.update_group_nodes(g, { groupId: created.groupId, role: "trim", toolParams: { ffmpegEndSec: 12 } }));
     must(T.update_group_nodes(g, { groupId: created.groupId, role: "render", durationSeconds: 12 }));
 
     assert.equal(bySuffix(g, created.groupId, "scene-prompt").data.text, "a night market, no rain");
-    assert.equal(bySuffix(g, created.groupId, "mood").data.text, "warm lantern light");
+    const settings = bySuffix(g, created.groupId, "settings").data.settings;
+    assert.equal(settings?.kind === "teleport" ? settings.values.mood : undefined, "colder light");
     assert.equal(bySuffix(g, created.groupId, "render").data.durationSeconds, 12);
 
     const plate = replaceMemberModel(g, `${created.groupId}-scene`, LITE);
