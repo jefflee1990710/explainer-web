@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
 import type { CanvasEdge, CanvasJob, CanvasNode, CanvasNodeData, CanvasProject } from "@/model/canvas";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { findCanvasModel, STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import {
   type CanvasExecutorDeps,
   pollCanvasJobs,
@@ -805,6 +806,53 @@ describe("canvas executor", () => {
       harness.project.nodes.find((node) => node.id === "img")?.data.status,
       "completed",
     );
+  });
+
+  it("prices and submits a swap render with the wired settings length", async () => {
+    const harness = createHarness({
+      initialCreditUsd: 100,
+      overrides: { enqueueCanvasNodeWorkerTask: async () => {} },
+      nodes: [
+        { id: "src", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "video", mediaUrl: "https://x/v.mp4" } },
+        {
+          id: "s",
+          type: "settings",
+          position: { x: 0, y: 0 },
+          data: {
+            settings: {
+              kind: "swap",
+              values: { swapMode: "character", sectionStart: 0, sectionLength: 10, aspectRatio: "9:16", gradeLook: "jutsu" },
+            },
+          },
+        },
+        {
+          id: "r",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: {
+            modelId: "scro:swap-render",
+            durationSeconds: 4,
+            aspectRatio: "9:16",
+            prompt: "",
+            toolParams: { swapMode: "character" },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "src", sourceHandle: "output", target: "r", targetHandle: "video" },
+        { id: "e2", source: "s", sourceHandle: "output", target: "r", targetHandle: "settings" },
+      ],
+    });
+    const result = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "r", queueToWorker: true },
+      harness.deps,
+    );
+    assert.equal(result.ok, true, JSON.stringify(result));
+    const job = [...harness.jobs.values()][0]!;
+    assert.equal(job.inputSnapshot?.durationSeconds, 10);
+    const spec = findCanvasModel("scro:swap-render")!;
+    assert.notEqual(estimateCanvasModelCostUsd(spec, { durationSeconds: 4 }), estimateCanvasModelCostUsd(spec, { durationSeconds: 10 }));
+    assert.deepEqual(harness.consumeCalls.map((c) => c.costUsd), [estimateCanvasModelCostUsd(spec, { durationSeconds: 10 })]);
   });
 
   it("skips consumeCreditUsd for $0 ffmpeg:concat, enqueues canvas_ffmpeg worker task, and polls completion", async () => {
