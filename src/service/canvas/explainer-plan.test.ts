@@ -1,3 +1,4 @@
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
@@ -98,7 +99,7 @@ describe("planStateFromVideo", () => {
     if (ready.status !== "ready") return;
     const settings = ready.nodes.find((n) => n.type === "settings");
     assert.equal(settings?.id, "p-settings");
-    assert.deepEqual(settings?.data.explainerSettings, {
+    assert.deepEqual(settings ? explainerSettingsOf(settings.data) : undefined, {
       plannerVideoId: videoId.toHexString(),
       topic: "Compound interest",
       applied: {

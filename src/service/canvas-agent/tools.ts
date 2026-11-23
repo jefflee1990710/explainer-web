@@ -297,10 +297,10 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
         }
       : {}),
     // Explainer Settings: change these only through update_explainer_settings.
-    ...(node.type === "settings" && node.data.explainerSettings
+    ...(node.data.settings?.kind === "explainer"
       ? {
-          explainerSettings: node.data.explainerSettings.applied,
-          ...(node.data.explainerSettings.pending ? { pendingSettings: node.data.explainerSettings.pending } : {}),
+          explainerSettings: node.data.settings.applied,
+          ...(node.data.settings.pending ? { pendingSettings: node.data.settings.pending } : {}),
         }
       : {}),
     ...(node.type === "model"

@@ -1,3 +1,4 @@
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasGroup, CanvasNode } from "@/model/canvas";
@@ -19,7 +20,7 @@ function canvas(extra: CanvasNode[] = []) {
     id: "exp-023928-settings",
     type: "settings",
     position: { x: 0, y: 0 },
-    data: { explainerSettings: { plannerVideoId: "v1", topic: "Founder lies", applied: APPLIED } },
+    data: { settings: { kind: "explainer", plannerVideoId: "v1", topic: "Founder lies", applied: APPLIED } },
   };
   const frame: CanvasNode = {
     id: "exp-023928-frame-1",
@@ -61,8 +62,8 @@ describe("update_explainer_settings", () => {
     assert.equal(res.ok, true);
     assert.deepEqual(res.changed, ["backgroundId"]);
     const node = g.nodes.find((x) => x.id === "exp-023928-settings")!;
-    assert.deepEqual(node.data.explainerSettings?.pending, { ...APPLIED, backgroundId: "blueprint-paper" });
-    assert.deepEqual(node.data.explainerSettings?.applied, APPLIED);
+    assert.deepEqual(explainerSettingsOf(node.data)?.pending, { ...APPLIED, backgroundId: "blueprint-paper" });
+    assert.deepEqual(explainerSettingsOf(node.data)?.applied, APPLIED);
     assert.equal(g.ops.length, 1);
     assert.equal(g.ops[0]?.kind, "update_node");
   });
@@ -77,7 +78,7 @@ describe("update_explainer_settings", () => {
   it("resets the background to the new director's default when only the art style changes", () => {
     const g = canvas();
     updateExplainerSettings(g, { artStyle: "papercraft-diorama-director" });
-    const pending = g.nodes.find((x) => x.type === "settings")!.data.explainerSettings?.pending;
+    const pending = explainerSettingsOf(g.nodes.find((x) => x.type === "settings")!.data)?.pending;
     assert.equal(pending?.skillSlug, "papercraft-diorama-director");
     assert.equal(pending?.backgroundId, "cobalt");
   });

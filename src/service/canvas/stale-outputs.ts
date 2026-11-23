@@ -1,5 +1,6 @@
 // Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import type { CanvasNodeData } from "@/model/canvas";
 import { explainerSettingsChanges } from "@/service/canvas/explainer-settings";
 
@@ -105,7 +106,7 @@ export function outdatedNodeReasons(
   const reasons = new Map<string, OutdatedReason>();
   const byId = new Map(nodes.map((n) => [n.id, n]));
   for (const node of nodes) {
-    const settings = node.data.explainerSettings;
+    const settings = explainerSettingsOf(node.data);
     if (node.type !== "settings" || !settings?.draft) continue;
     if (explainerSettingsChanges(settings.applied, settings.draft).changed.length === 0) continue;
     for (const id of downstreamNodeIds(edges, [node.id])) {

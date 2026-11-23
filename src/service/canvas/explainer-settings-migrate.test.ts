@@ -1,3 +1,4 @@
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasGroup, CanvasNode } from "@/model/canvas";
@@ -55,7 +56,7 @@ describe("explainer settings migration", () => {
     const settings = res.nodes.find((n) => n.id === "exp-023928-settings");
     assert.equal(settings?.type, "settings");
     assert.deepEqual(settings?.position, { x: 100 - 390, y: 50 });
-    assert.deepEqual(settings?.data.explainerSettings, DATA);
+    assert.deepEqual(settings ? explainerSettingsOf(settings.data) : undefined, DATA);
     assert.deepEqual(
       res.edges.map((e) => e.target),
       ["exp-023928-frame-1", "exp-023928-frame-2"],

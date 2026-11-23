@@ -1,3 +1,4 @@
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
@@ -124,12 +125,12 @@ describe("stale outputs", () => {
       id: "s",
       type: "settings",
       position: { x: 0, y: 0 },
-      data: { explainerSettings: { plannerVideoId: "v", topic: "t", applied, draft: { ...applied, backgroundId: "sky" } } },
+      data: { settings: { kind: "explainer", plannerVideoId: "v", topic: "t", applied, draft: { ...applied, backgroundId: "sky" } } },
     };
     const nodes = [settings, model("f"), model("v", { outputUrl: undefined }), model("x", { staleOutputUrl: "https://blob/x" })];
     const reasons = outdatedNodeReasons(nodes, [edge("s", "f"), edge("f", "v")]);
     assert.deepEqual([...reasons], [["f", "settings"], ["x", "inputs"]]);
-    const clean = { ...settings, data: { explainerSettings: { ...settings.data.explainerSettings!, draft: applied } } };
+    const clean = { ...settings, data: { settings: { kind: "explainer" as const, ...explainerSettingsOf(settings.data)!, draft: applied } } };
     assert.equal(outdatedNodeReasons([clean, model("f")], [edge("s", "f")]).size, 0);
   });
 });

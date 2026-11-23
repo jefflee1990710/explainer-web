@@ -1,3 +1,4 @@
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasGroup, CanvasNode } from "@/model/canvas";
@@ -135,7 +136,7 @@ describe("explainer settings", () => {
     });
     assert.equal(node.id, "exp-abc123-settings");
     assert.equal(node.type, "settings");
-    assert.equal(node.data.explainerSettings?.plannerVideoId, "v1");
+    assert.equal(explainerSettingsOf(node.data)?.plannerVideoId, "v1");
     assert.deepEqual(explainerSettingsEdges("exp-abc123", ["exp-abc123-frame-1"]), [
       {
         id: "exp-abc123-settings->exp-abc123-frame-1:settings",

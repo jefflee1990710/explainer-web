@@ -3,12 +3,9 @@ import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
-import {
-  type ExplainerSettingsNodeData,
-  explainerSettingsNodeDataSchema,
-} from "@/model/explainer-settings";
+import { type CanvasSettingsData, canvasSettingsDataSchema } from "@/model/canvas-settings";
 
-// "settings" is the Explainer Settings node; it never runs and has no output port.
+// "settings" holds a tool's settings (Explainer, Swap, Teleport); it never runs.
 export type CanvasNodeType = "media" | "prompt" | "model" | "character" | "settings";
 export type CanvasMediaKind = "image" | "video" | "audio";
 export type CanvasAspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
@@ -54,8 +51,8 @@ export type CanvasNodeData = {
   outputClearedAt?: string;
   // outputUrl that was made before an input changed; equal to outputUrl means "old version".
   staleOutputUrl?: string;
-  // Explainer Settings node fields
-  explainerSettings?: ExplainerSettingsNodeData;
+  // Settings node fields (`type: "settings"`); `kind` says which tool the settings are for.
+  settings?: CanvasSettingsData;
 };
 
 export type CanvasNode = {
@@ -250,7 +247,7 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   lastCostUsd: z.number().finite().nonnegative().optional(),
   outputClearedAt: z.string().optional(),
   staleOutputUrl: z.string().optional(),
-  explainerSettings: explainerSettingsNodeDataSchema.optional(),
+  settings: canvasSettingsDataSchema.optional(),
 });
 
 export const canvasNodeSchema: z.ZodType<CanvasNode> = z.object({

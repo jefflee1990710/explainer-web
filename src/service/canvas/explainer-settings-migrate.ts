@@ -13,6 +13,7 @@ import {
   topicFromPlanSource,
 } from "@/service/canvas/explainer-settings";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
+import { upgradeLegacySettingsNodes } from "@/service/canvas/settings/migrate";
 
 const FRAME_ID = /-frame-\d+$/;
 const COLUMN_GAP = 90;
@@ -60,7 +61,9 @@ export function withExplainerSettingsNodes(
 }
 
 // Adds missing settings nodes and saves them. Groups whose backing video is gone stay as they are.
-export async function ensureExplainerSettingsNodes(project: CanvasProject): Promise<CanvasProject> {
+export async function ensureExplainerSettingsNodes(loaded: CanvasProject): Promise<CanvasProject> {
+  const upgraded = upgradeLegacySettingsNodes(loaded.nodes);
+  const project = upgraded.changed ? { ...loaded, nodes: upgraded.nodes } : loaded;
   const groups = canvasGroupsForProject(project.nodes, project.groups);
   const missing = explainerGroupsMissingSettings(project.nodes, groups);
   const suffixes = new Map(
@@ -68,7 +71,7 @@ export async function ensureExplainerSettingsNodes(project: CanvasProject): Prom
       .map((g) => [g.id, GROUP_VIDEO_SUFFIX.exec(g.id)?.[1]?.toLowerCase()] as const)
       .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
   );
-  if (suffixes.size === 0) return project;
+  if (suffixes.size === 0) return upgraded.changed ? persist(project, { nodes: project.nodes }) : project;
 
   const videos = await (await videosCollection())
     .find(
@@ -101,12 +104,18 @@ export async function ensureExplainerSettingsNodes(project: CanvasProject): Prom
     });
   }
   const next = withExplainerSettingsNodes({ nodes: project.nodes, edges: project.edges, groups }, dataByGroupId);
-  if (!next.changed) return project;
+  if (!next.changed) return upgraded.changed ? persist(project, { nodes: project.nodes }) : project;
+  return persist(project, { nodes: next.nodes, edges: next.edges, groups: next.groups });
+}
 
+async function persist(
+  project: CanvasProject,
+  patch: Partial<Pick<CanvasProject, "nodes" | "edges" | "groups">>,
+): Promise<CanvasProject> {
   const updatedAt = new Date();
   await (await canvasProjectsCollection()).updateOne(
     { _id: project._id, clerkUserId: project.clerkUserId },
-    { $set: { nodes: next.nodes, edges: next.edges, groups: next.groups, updatedAt } },
+    { $set: { ...patch, updatedAt } },
   );
-  return { ...project, nodes: next.nodes, edges: next.edges, groups: next.groups, updatedAt };
+  return { ...project, ...patch, updatedAt };
 }

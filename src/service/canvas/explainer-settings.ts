@@ -1,5 +1,6 @@
 // Pure, client-safe helpers for the canvas Explainer Settings node.
 
+import { explainerSettingsPatch } from "@/service/canvas/settings/registry";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import type { DirectorPresetBackground } from "@/model/director";
 import {
@@ -207,7 +208,7 @@ export function buildExplainerSettingsNode(input: {
     id: explainerSettingsNodeId(input.groupId),
     type: "settings",
     position: input.position,
-    data: { label: "解說設定", explainerSettings: input.data },
+    data: { label: "解說設定", ...explainerSettingsPatch(input.data) },
   };
 }
 

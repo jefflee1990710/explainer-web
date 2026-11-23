@@ -27,6 +27,7 @@ import type { Character } from "@/model/character";
 import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
 import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
+import { upgradeLegacySettingsNodes } from "@/service/canvas/settings/migrate";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 
 export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
@@ -292,7 +293,8 @@ export async function saveCanvasProject(
     setFields.title = normalizeCanvasTitle(patch.title);
   }
   if (patch.nodes !== undefined) {
-    const parsedNodes = nodesArraySchema.parse(patch.nodes);
+    // A tab opened before settings kinds still sends `explainerSettings`; convert it before the schema drops it.
+    const parsedNodes = nodesArraySchema.parse(upgradeLegacySettingsNodes(patch.nodes as CanvasNode[]).nodes);
     // A flow wave can save the graph before the completed output is painted.
     // Keep the stored URL so the downstream node can still read it.
     const existing = await projects.findOne(

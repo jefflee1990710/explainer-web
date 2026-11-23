@@ -1,6 +1,7 @@
 // Canvas agent tools that act on whole groups: replace a director group with a new
 // planning card, edit many members at once, and create, rename, ungroup, or delete groups.
 
+import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { z } from "zod";
 import {
   type CanvasAspectRatio,
@@ -182,7 +183,10 @@ export function replaceGroup(
   const skillSlug = str(input.skillSlug) ?? str(old.skillSlug);
   const durationPreset = str(input.durationPreset) ?? str(old.durationPreset);
   // The old Explainer Settings (background, text style and language, presenter) carry over.
-  const priorSettings = target.nodes.find((n) => n.type === "settings")?.data.explainerSettings?.applied;
+  const priorSettings = (() => {
+    const node = target.nodes.find((n) => n.type === "settings");
+    return node ? explainerSettingsOf(node.data)?.applied : undefined;
+  })();
   const look =
     priorSettings && !isTalking
       ? explainerSettingsToolParams(

@@ -3,6 +3,7 @@
 // Explainer Settings node: one place for an Explainer group's background, on-screen text style
 // and language, presenter position, and art style. Wired into every start-still frame.
 
+import { explainerSettingsOf, explainerSettingsPatch } from "@/service/canvas/settings/registry";
 import { useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Check, Loader2, RefreshCw, SlidersHorizontal, Undo2 } from "lucide-react";
@@ -36,7 +37,7 @@ export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { 
   const { locale, isFlowRunning, onApplyExplainerSettings, onUpdateNodeData } = useCanvasNodeActions();
   const { t } = useI18n();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const settings = data.explainerSettings;
+  const settings = explainerSettingsOf(data);
   const [busy, setBusy] = useState<"apply" | "replan" | null>(null);
   if (!settings) return null;
 
@@ -47,7 +48,7 @@ export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { 
   const pick = (a: { zh: string; en: string }) => (isZh ? a.zh : a.en);
   // Edits are saved as a draft on the node so downstream previews can show they are old.
   const writeDraft = (draft: ExplainerSettings | undefined) =>
-    onUpdateNodeData(id, { explainerSettings: { ...settings, draft } });
+    onUpdateNodeData(id, explainerSettingsPatch({ ...settings, draft }));
   // A new art style resets the background to that director's default.
   const update = (patch: Partial<ExplainerSettings>) =>
     writeDraft(

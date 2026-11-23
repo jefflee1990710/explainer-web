@@ -15,6 +15,7 @@ import {
   explainerSettingsChanges,
   normalizeExplainerSettings,
 } from "@/service/canvas/explainer-settings";
+import { explainerSettingsOf, explainerSettingsPatch } from "@/service/canvas/settings/registry";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 
 type Result = Record<string, unknown>;
@@ -39,7 +40,7 @@ export const updateExplainerSettingsSchema = z.object({
 export type UpdateExplainerSettingsInput = z.infer<typeof updateExplainerSettingsSchema>;
 
 function settingsNodes(g: CanvasAgentWorkingGraph): CanvasNode[] {
-  return g.nodes.filter((n) => n.type === "settings" && n.data.explainerSettings);
+  return g.nodes.filter((n) => n.type === "settings" && explainerSettingsOf(n.data));
 }
 
 function pickSettingsNode(g: CanvasAgentWorkingGraph, groupId?: string): CanvasNode | { error: string } {
@@ -58,7 +59,7 @@ function pickSettingsNode(g: CanvasAgentWorkingGraph, groupId?: string): CanvasN
 export function updateExplainerSettings(g: CanvasAgentWorkingGraph, input: UpdateExplainerSettingsInput): Result {
   const picked = pickSettingsNode(g, input.groupId);
   if ("error" in picked) return picked;
-  const data = picked.data.explainerSettings!;
+  const data = explainerSettingsOf(picked.data)!;
   const group = g.groups.find((gr) => gr.memberIds.includes(picked.id));
   const busy = g.nodes.filter(
     (n) => group?.memberIds.includes(n.id) && (n.data.status === "queued" || n.data.status === "running"),
@@ -84,7 +85,7 @@ export function updateExplainerSettings(g: CanvasAgentWorkingGraph, input: Updat
   const { changed, restyleOnly } = explainerSettingsChanges(data.applied, next);
   if (changed.length === 0) return { error: "These are already the Explainer's settings; nothing changes." };
 
-  const patch = { explainerSettings: { ...data, pending: next } };
+  const patch = explainerSettingsPatch({ ...data, pending: next });
   picked.data = { ...picked.data, ...patch };
   g.ops.push({ kind: "update_node", nodeId: picked.id, patch });
   return {

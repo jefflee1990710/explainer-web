@@ -4,6 +4,7 @@
 // Handles local/library drag-and-drop, typed connection guardrails, 800ms debounced
 // MongoDB auto-save, 3s active-job polling, live USD balance updates, and multi-wave Run Flow.
 
+import { explainerSettingsOf, explainerSettingsPatch } from "@/service/canvas/settings/registry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -1129,7 +1130,7 @@ function CanvasWorkspaceInner({
   const onApplyExplainerSettings = useCallback(
     async (nodeId: string, next: ExplainerSettings, options?: { replan?: boolean }) => {
       const settingsNode = nodesRef.current.find((n) => n.id === nodeId);
-      const data = settingsNode?.data.explainerSettings;
+      const data = settingsNode ? explainerSettingsOf(settingsNode.data) : undefined;
       if (!settingsNode || !data) return;
       const writeSettings = (applied: ExplainerSettings) =>
         setNodes((prev) =>
@@ -1137,7 +1138,7 @@ function CanvasWorkspaceInner({
             n.id === nodeId
               ? {
                   ...n,
-                  data: { ...n.data, explainerSettings: { ...data, applied, pending: undefined, draft: undefined } },
+                  data: { ...n.data, ...explainerSettingsPatch({ ...data, applied, pending: undefined, draft: undefined }) },
                 }
               : n,
           ),
@@ -1789,12 +1790,12 @@ function CanvasWorkspaceInner({
       }
 
       // Settings the assistant changed apply through the same path as the node's Apply button.
-      const pendingSettings = graph.nodes.filter((n) => n.type === "settings" && n.data.explainerSettings?.pending);
+      const pendingSettings = graph.nodes.filter((n) => n.type === "settings" && explainerSettingsOf(n.data)?.pending);
       if (pendingSettings.length > 0) {
         // Let React commit the replayed ops so the refs hold this turn's graph.
         await new Promise((resolve) => window.setTimeout(resolve, AGENT_OP_STEP_MS));
         for (const node of pendingSettings) {
-          await onApplyExplainerSettings(node.id, node.data.explainerSettings!.pending!);
+          await onApplyExplainerSettings(node.id, explainerSettingsOf(node.data)!.pending!);
         }
       }
       return { skipped };
