@@ -25,6 +25,12 @@ import {
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/stale-outputs";
+import {
+  settingsControlledFields,
+  updateSettings,
+  updateSettingsSchema,
+  type UpdateSettingsInput,
+} from "@/service/canvas-agent/settings-tool";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
@@ -303,6 +309,10 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           ...(node.data.settings.pending ? { pendingSettings: node.data.settings.pending } : {}),
         }
       : {}),
+    // Swap / Teleport settings: change these only through update_settings.
+    ...(node.data.settings && node.data.settings.kind !== "explainer"
+      ? { settingsKind: node.data.settings.kind, settings: node.data.settings.values }
+      : {}),
     ...(node.type === "model"
       ? {
           modelId: node.data.modelId,
@@ -550,6 +560,16 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       input.toolParams !== undefined
     ) {
       if (node.type !== "model") return { error: "prompt, aspectRatio, durationSeconds and toolParams only apply to model nodes." };
+      const controlled = settingsControlledFields(g, node.id);
+      const blocked = [
+        ...(["prompt", "aspectRatio", "durationSeconds"] as const).filter((k) => input[k] !== undefined && controlled.has(k)),
+        ...Object.keys(input.toolParams ?? {}).filter((k) => controlled.has(`toolParams.${k}`)),
+      ];
+      if (blocked.length > 0) {
+        return {
+          error: `${blocked.join(", ")} on "${node.id}" come from its wired settings node; change them with update_settings.`,
+        };
+      }
       const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
       if (input.prompt !== undefined) patch.prompt = input.prompt;
       if (input.aspectRatio !== undefined) {
@@ -707,6 +727,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
 
   update_explainer_settings(g: CanvasAgentWorkingGraph, input: UpdateExplainerSettingsInput): CanvasAgentToolResult {
     return updateExplainerSettings(g, input);
+  },
+
+  update_settings(g: CanvasAgentWorkingGraph, input: UpdateSettingsInput): CanvasAgentToolResult {
+    return updateSettings(g, input);
   },
 
   ask_user(
@@ -910,6 +934,12 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
         "Change an expanded Explainer's background, on-screen text style, on-screen text language, presenter position, or art style. Text style alone rebuilds the start stills in place; anything else re-plans the Explainer for free with the same voiceover. Never edit frame prompts for these.",
       inputSchema: updateExplainerSettingsSchema,
       execute: async (input) => H.update_explainer_settings(g, input),
+    }),
+    update_settings: tool({
+      description:
+        "Change a Swap or Teleport group's settings node: section start / length, ratio, swap mode, object, light look, mood, or final grade. The values apply when those nodes run. Never patch the trim, render, or grade nodes for these.",
+      inputSchema: updateSettingsSchema,
+      execute: async (input) => H.update_settings(g, input),
     }),
     update_group_nodes: tool({
       description:
