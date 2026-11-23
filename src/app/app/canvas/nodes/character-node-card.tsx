@@ -18,7 +18,8 @@ export function CharacterNodeCard({
   data,
   selected,
 }: NodeProps & { data: CanvasNodeData }) {
-  const { edges, locale, onDeleteNode, onOpenLightbox, onGenerateOutfit } = useCanvasNodeActions();
+  const { edges, locale, onDeleteNode, onOpenLightbox, onGenerateOutfit, onUpdateNodeData } =
+    useCanvasNodeActions();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const color = PORT_COLOR_MAP.image;
   const name = data.label || data.fileName || (isZh ? "角色" : "Character");
@@ -110,6 +111,23 @@ export function CharacterNodeCard({
         {data.status === "failed" && data.lastError ? (
           <p className="text-[11px] leading-4 text-rose-300">{data.lastError}</p>
         ) : null}
+        <label className="nodrag flex cursor-pointer items-center gap-1.5 text-[10.5px] text-white/70">
+          <input
+            type="checkbox"
+            disabled={busy}
+            checked={data.toolParams?.updateDefaultOutfit === true}
+            onChange={(event) =>
+              onUpdateNodeData(id, {
+                toolParams: {
+                  ...(data.toolParams ?? {}),
+                  updateDefaultOutfit: event.target.checked,
+                },
+              })
+            }
+            className="nodrag accent-[#c6f24b]"
+          />
+          {isZh ? "更新角色預設造型" : "Update default outfit"}
+        </label>
         <button
           type="button"
           disabled={busy || incoming.size === 0 || !onGenerateOutfit}

@@ -3,7 +3,7 @@
 // Shared port colors, runtime status styles, and React Context for Canvas node cards.
 
 import { createContext, useContext } from "react";
-import type { CanvasEdge, CanvasNodeData } from "@/model/canvas";
+import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
@@ -40,6 +40,7 @@ export type CanvasLightboxItem = {
 
 export type CanvasNodeActionsContextValue = {
   catalog: readonly CanvasModelSpec[];
+  nodes: readonly CanvasNode[];
   edges: readonly CanvasEdge[];
   characterOptions: readonly CanvasLibraryCharacterOption[];
   locale: string;
@@ -47,6 +48,13 @@ export type CanvasNodeActionsContextValue = {
   onUpdateNodeData: (nodeId: string, patch: Partial<CanvasNodeData>) => void;
   onDeleteNode: (nodeId: string) => void;
   onRunNode: (nodeId: string) => void;
+  // Reorders one incoming edge on a multi-connection handle, such as concat videos.
+  onReorderTargetEdges: (
+    nodeId: string,
+    targetHandle: string,
+    fromIndex: number,
+    toIndex: number,
+  ) => void;
   // Character node: generate a new outfit from the connected wardrobe inputs.
   onGenerateOutfit?: (nodeId: string) => void;
   onOpenLightbox: (item: CanvasLightboxItem) => void;

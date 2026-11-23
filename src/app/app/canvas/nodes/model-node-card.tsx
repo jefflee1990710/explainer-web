@@ -21,6 +21,8 @@ import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
+import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import {
   CATEGORY_LABELS,
@@ -628,7 +630,9 @@ export function ModelNodeCard({
         {spec.provider === "ffmpeg" ? (
           <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
             {spec.id === "ffmpeg:concat" ? (
-              <div className="flex flex-col gap-1">
+              <>
+                <ConcatVideoOrder nodeId={id} isZh={isZh} />
+                <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-white/50">
                   {isZh ? "轉場方式" : "Transition"}
                 </label>
@@ -641,7 +645,8 @@ export function ModelNodeCard({
                   <option value="cut">{isZh ? "硬切 (Hard Cut)" : "Hard Cut"}</option>
                   <option value="fade">{isZh ? "淡入淡出 (Crossfade)" : "Crossfade"}</option>
                 </select>
-              </div>
+                </div>
+              </>
             ) : null}
 
             {spec.id === "ffmpeg:audio-mux" ? (
@@ -880,16 +885,20 @@ export function ModelNodeCard({
               >
                 <Maximize2 className="h-3 w-3" />
               </button>
-              <a
-                href={data.outputUrl}
-                download
-                target="_blank"
-                rel="noreferrer"
-                className="nodrag cursor-pointer rounded-md bg-black/70 p-1.5 text-white/90 transition hover:bg-black"
-                title={isZh ? "下載檔案" : "Download"}
+              <CanvasDownloadButton
+                url={data.outputUrl}
+                title={displayName}
+                kind={
+                  (data.outputKind ?? spec.output.type) === "audio"
+                    ? "audio"
+                    : (data.outputKind ?? spec.output.type) === "video"
+                      ? "video"
+                      : "image"
+                }
+                className="rounded-md bg-black/70 p-1.5 text-white/90 transition hover:bg-black"
               >
                 <Download className="h-3 w-3" />
-              </a>
+              </CanvasDownloadButton>
             </div>
           </div>
         ) : null}

@@ -49,7 +49,6 @@ import {
 } from "@/presentation/actions/canvas";
 import {
   refreshCharacterAction,
-  saveCharacterPresetAction,
 } from "@/presentation/actions/characters";
 import { notifyCreditsChanged } from "@/presentation/components/app/billing/credits-changed";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -57,6 +56,7 @@ import { formatUsd } from "@/service/billing/usd";
 import {
   computeExecutionWaves,
   getNodeOutputPortType,
+  reorderTargetHandleEdges,
   validateEdgeConnection,
 } from "@/service/canvas/graph";
 import {
@@ -158,7 +158,6 @@ import {
 } from "@/app/app/canvas/nodes/port-colors";
 import { PromptNodeCard } from "@/app/app/canvas/nodes/prompt-node-card";
 import {
-  canvasOutfitPresetName,
   characterOutfitEditInstruction,
   characterOutfitPort,
   findCharacterNodeAt,
@@ -604,6 +603,15 @@ function CanvasWorkspaceInner({
       scheduleAutosave();
     },
     [setNodes, setEdges, scheduleAutosave],
+  );
+
+  // Concat (and any multi-video handle) renders in edge order, so moving a row rewrites that order.
+  const onReorderTargetEdges = useCallback(
+    (nodeId: string, targetHandle: string, fromIndex: number, toIndex: number) => {
+      setEdges((prev) => reorderTargetHandleEdges(prev, nodeId, targetHandle, fromIndex, toIndex));
+      scheduleAutosave();
+    },
+    [setEdges, scheduleAutosave],
   );
 
   // Guardrail connection check (prevents incompatible port types, self-loops, cycles, over-capacity).
@@ -1756,7 +1764,6 @@ function CanvasWorkspaceInner({
         toast.error(isZh ? "先把穿搭接到角色節點" : "Connect an outfit to the character first");
         return;
       }
-      const presetName = canvasOutfitPresetName(wires);
       setNodes((prev) =>
         prev.map((item) =>
           item.id === nodeId
@@ -1764,7 +1771,12 @@ function CanvasWorkspaceInner({
             : item,
         ),
       );
-      const result = await generateCanvasCharacterOutfitAction({ characterId, instruction });
+      const updateDefaultOutfit = node.data.toolParams?.updateDefaultOutfit === true;
+      const result = await generateCanvasCharacterOutfitAction({
+        characterId,
+        instruction,
+        updateDefaultOutfit,
+      });
       if (!result.ok) {
         setNodes((prev) =>
           prev.map((item) =>
@@ -1788,8 +1800,6 @@ function CanvasWorkspaceInner({
                   toolParams: {
                     ...(item.data.toolParams ?? {}),
                     versionId: result.versionId,
-                    presetName,
-                    presetSaved: false,
                   },
                 },
               }
@@ -1856,19 +1866,11 @@ function CanvasWorkspaceInner({
             updates.set(node.id, { status: "running" });
             continue;
           }
-          if (node.data.toolParams?.presetSaved !== true) {
-            const presetName =
-              typeof node.data.toolParams?.presetName === "string"
-                ? node.data.toolParams.presetName
-                : "新造型";
-            void saveCharacterPresetAction(characterId, versionId, presetName);
-          }
           updates.set(node.id, {
             status: "completed",
             outputUrl: url,
             outputKind: "image",
             lastError: undefined,
-            toolParams: { ...(node.data.toolParams ?? {}), presetSaved: true },
           });
         }
         if (updates.size === 0) continue;
@@ -1896,6 +1898,7 @@ function CanvasWorkspaceInner({
   const nodeContextValue = useMemo(
     () => ({
       catalog: models,
+      nodes: domainNodes,
       edges: domainEdges,
       characterOptions: assets.characterOptions ?? [],
       locale,
@@ -1903,12 +1906,14 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onReorderTargetEdges,
       onGenerateOutfit,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
     }),
     [
       models,
+      domainNodes,
       domainEdges,
       assets.characterOptions,
       locale,
@@ -1916,6 +1921,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onReorderTargetEdges,
       onGenerateOutfit,
       onPlanExplainer,
     ],

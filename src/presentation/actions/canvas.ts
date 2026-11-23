@@ -422,6 +422,7 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
 export async function generateCanvasCharacterOutfitAction(input: {
   characterId: string;
   instruction: string;
+  updateDefaultOutfit?: boolean;
 }) {
   await requireAppUser();
   return generateCanvasCharacterOutfit(input);

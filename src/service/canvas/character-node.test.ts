@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { CanvasLibraryAsset } from "@/service/canvas/projects";
 import {
   canvasOutfitPresetName,
+  canvasOutfitVersionFlags,
   characterOutfitEditInstruction,
   findCharacterNodeAt,
   libraryAssetNodeDraft,
@@ -86,5 +87,10 @@ describe("canvas character nodes", () => {
       ),
       undefined,
     );
+  });
+
+  it("keeps the character outfit unless the canvas checkbox asks to update the default", () => {
+    assert.deepEqual(canvasOutfitVersionFlags(false), { canvasOneOff: true });
+    assert.deepEqual(canvasOutfitVersionFlags(true), {});
   });
 });

@@ -151,6 +151,34 @@ test("completionDefaults skips isBaseCandidate versions and sets baseVersionId o
   assert.deepEqual(candidateDefaults, {});
 });
 
+test("completionDefaults leaves the current outfit in place for a canvas one-off", () => {
+  const currentId = new ObjectId();
+  const oneOffId = new ObjectId();
+  const char = {
+    _id: new ObjectId(),
+    userId: new ObjectId(),
+    clerkUserId: "u1",
+    name: "Aria",
+    styleId: "realistic",
+    defaultVersionId: currentId,
+    versions: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } satisfies Character;
+
+  const defaults = completionDefaults(
+    char,
+    {
+      id: oneOffId,
+      styleId: "realistic",
+      parentVersionId: currentId,
+      canvasOneOff: true,
+    } as CharacterVersion,
+    "realistic",
+  );
+  assert.deepEqual(defaults, {});
+});
+
 test("syncProjectCastFromCharacters detects in-flight top-level and per-clip cast versions and updates completed blueprintUrls", () => {
   const charId = new ObjectId();
   const vQueuedId = new ObjectId();

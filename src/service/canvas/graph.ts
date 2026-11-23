@@ -265,6 +265,46 @@ function extractMediaUrl(sourceNode: CanvasNode): string | undefined {
   return undefined;
 }
 
+// Moves one edge on a multi-input handle, keeping every other edge in place.
+// FFmpeg Concat reads `videos` in this edge order, so the node list and the render stay aligned.
+export function reorderTargetHandleEdges<
+  T extends { target: string; targetHandle?: string | null },
+>(
+  edges: readonly T[],
+  targetId: string,
+  targetHandle: string,
+  fromIndex: number,
+  toIndex: number,
+): T[] {
+  if (fromIndex === toIndex) return [...edges];
+  const matching: T[] = [];
+  const positions: number[] = [];
+  edges.forEach((edge, index) => {
+    if (edge.target === targetId && edge.targetHandle === targetHandle) {
+      matching.push(edge);
+      positions.push(index);
+    }
+  });
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= matching.length ||
+    toIndex >= matching.length
+  ) {
+    return [...edges];
+  }
+  const reordered = [...matching];
+  const [moved] = reordered.splice(fromIndex, 1);
+  if (!moved) return [...edges];
+  reordered.splice(toIndex, 0, moved);
+  const next = [...edges];
+  positions.forEach((position, index) => {
+    const edge = reordered[index];
+    if (edge) next[position] = edge;
+  });
+  return next;
+}
+
 // Collects and validates all inputs for a target model node from incoming edges
 // (preferring connected Prompt nodes over inline prompt text) and upstream outputs.
 export function resolveNodeInputs(

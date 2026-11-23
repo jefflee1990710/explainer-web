@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import { charactersCollection } from "@/dao";
 import type { Character, CharacterVersion } from "@/model/character";
 import { requireAppUser } from "@/service/auth";
+import { canvasOutfitVersionFlags } from "@/service/canvas/character-node";
 import { editCharacterVersionAction } from "@/service/character/actions";
 import { BLUEPRINT_COST_USD, FRAME_COST_USD } from "@/service/credit-costs";
 
@@ -29,10 +30,11 @@ function completedParent(character: Character): CharacterVersion | undefined {
   return undefined;
 }
 
-// Branches a blueprint version. The canvas polls that version until the new outfit image exists.
+// Branches a blueprint for this canvas node. The default outfit changes only when the checkbox is on.
 export async function generateCanvasCharacterOutfit(input: {
   characterId: string;
   instruction: string;
+  updateDefaultOutfit?: boolean;
 }): Promise<GenerateCanvasCharacterOutfitResult> {
   const instruction = input.instruction.trim();
   if (!instruction) return { ok: false, error: "請先接上至少一件穿搭" };
@@ -53,6 +55,7 @@ export async function generateCanvasCharacterOutfit(input: {
     input.characterId,
     parent.id.toHexString(),
     instruction,
+    canvasOutfitVersionFlags(input.updateDefaultOutfit === true),
   );
   if (!result.ok) return result;
 

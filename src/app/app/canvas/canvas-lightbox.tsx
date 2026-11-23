@@ -4,6 +4,7 @@
 
 import { useEffect } from "react";
 import { Download, X } from "lucide-react";
+import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import type { CanvasLightboxItem } from "@/app/app/canvas/nodes/port-colors";
 
 export function CanvasLightbox({
@@ -45,16 +46,15 @@ export function CanvasLightbox({
                   : "Image Preview")}
           </span>
           <div className="flex items-center gap-2">
-            <a
-              href={item.url}
-              download
-              target="_blank"
-              rel="noreferrer"
+            <CanvasDownloadButton
+              url={item.url}
+              title={item.title}
+              kind={item.kind}
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/8 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-white/15"
             >
               <Download className="h-3.5 w-3.5" />
               Download
-            </a>
+            </CanvasDownloadButton>
             <button
               type="button"
               onClick={onClose}

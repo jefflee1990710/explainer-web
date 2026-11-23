@@ -160,6 +160,11 @@ export function characterOutfitEditInstruction(wires: readonly OutfitWire[]): st
   return lines.join("; ").slice(0, 1200);
 }
 
+// Unchecked keeps this canvas look off the character. Checked replaces the default outfit.
+export function canvasOutfitVersionFlags(updateDefaultOutfit: boolean): { canvasOneOff?: true } {
+  return updateDefaultOutfit ? {} : { canvasOneOff: true };
+}
+
 export function canvasOutfitPresetName(wires: readonly OutfitWire[]): string {
   const bits = wires
     .map((wire) => (wire.name || wire.prompt || "").replace(/\s+/g, " ").trim())

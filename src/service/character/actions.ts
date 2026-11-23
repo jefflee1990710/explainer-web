@@ -235,6 +235,7 @@ export async function editCharacterVersionAction(
   characterId: string,
   fromVersionId: string,
   editInstruction: string,
+  options?: { canvasOneOff?: boolean },
 ): Promise<CharacterResult> {
   try {
     const user = await requireAppUser();
@@ -289,6 +290,7 @@ export async function editCharacterVersionAction(
       status: "queued",
       creditsCharged: true,
       chargedUsd: cost,
+      ...(options?.canvasOneOff ? { canvasOneOff: true } : {}),
       createdAt: now,
       submittedAt: now,
     };

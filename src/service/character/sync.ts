@@ -145,14 +145,17 @@ async function syncCharacterProfile(
   }
 }
 
-// Always promote the latest completed non-candidate blueprint of its style to default,
-// and record the initial realistic v1 blueprint as baseVersionId.
+// Promote a completed blueprint to that style's default, and record the initial realistic v1 as baseVersionId.
+// A canvas one-off outfit stays off the character's current look.
 export function completionDefaults(
   character: Character,
-  version: Pick<CharacterVersion, "id" | "parentVersionId" | "sourceRealisticVersionId" | "isBaseCandidate">,
+  version: Pick<
+    CharacterVersion,
+    "id" | "parentVersionId" | "sourceRealisticVersionId" | "isBaseCandidate" | "canvasOneOff"
+  >,
   styleId: string,
 ) {
-  if (version.isBaseCandidate) return {};
+  if (version.isBaseCandidate || version.canvasOneOff) return {};
   return {
     [`styleDefaults.${styleId}`]: version.id,
     ...(styleId !== character.styleId ? {} : { defaultVersionId: version.id }),

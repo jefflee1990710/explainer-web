@@ -6,6 +6,7 @@ import {
   computeExecutionWaves,
   getNodeOutputPortType,
   mergeCanvasNodeSnapshots,
+  reorderTargetHandleEdges,
   resolveNodeInputs,
   validateEdgeConnection,
 } from "@/service/canvas/graph";
@@ -630,5 +631,50 @@ describe("canvas graph — character outfit inputs", () => {
       targetHandle: "top",
     });
     assert.equal(rejected.valid, false);
+  });
+});
+
+describe("canvas graph — reorderTargetHandleEdges", () => {
+  const nodes: CanvasNode[] = [
+    mediaNode("v1", "video", "https://blob.example/clip1.mp4"),
+    mediaNode("v2", "video", "https://blob.example/clip2.mp4"),
+    mediaNode("v3", "video", "https://blob.example/clip3.mp4"),
+    mediaNode("audio", "audio", "https://blob.example/vo.mp3"),
+    modelNode("concat", "ffmpeg:concat"),
+    modelNode("mux", "ffmpeg:audio-mux"),
+  ];
+
+  it("moves one videos edge and keeps concat input order", () => {
+    const edges: CanvasEdge[] = [
+      edge("e1", "v1", "concat", "videos"),
+      edge("mux-audio", "audio", "mux", "refAudio"),
+      edge("e2", "v2", "concat", "videos"),
+      edge("e3", "v3", "concat", "videos"),
+    ];
+
+    const moved = reorderTargetHandleEdges(edges, "concat", "videos", 0, 2);
+    assert.deepEqual(
+      moved.map((item) => item.id),
+      ["e2", "mux-audio", "e3", "e1"],
+    );
+
+    const resolved = resolveNodeInputs("concat", nodes, moved);
+    assert.equal(resolved.ok, true);
+    if (resolved.ok) {
+      assert.deepEqual(resolved.inputs.videos, [
+        "https://blob.example/clip2.mp4",
+        "https://blob.example/clip3.mp4",
+        "https://blob.example/clip1.mp4",
+      ]);
+    }
+  });
+
+  it("leaves the graph unchanged when the move is out of range", () => {
+    const edges: CanvasEdge[] = [
+      edge("e1", "v1", "concat", "videos"),
+      edge("e2", "v2", "concat", "videos"),
+    ];
+    assert.deepEqual(reorderTargetHandleEdges(edges, "concat", "videos", 0, 5), edges);
+    assert.deepEqual(reorderTargetHandleEdges(edges, "concat", "videos", 1, 1), edges);
   });
 });
