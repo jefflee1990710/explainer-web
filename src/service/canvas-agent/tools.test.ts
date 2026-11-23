@@ -452,6 +452,52 @@ describe("canvas agent tools", () => {
     );
   });
 
+  it("clears the edited node and every downstream preview so Run group regenerates them", () => {
+    const done = { status: "completed" as const, outputUrl: "https://blob/x", lastJobId: "j" };
+    const node = (id: string, modelId: string, extra = {}): CanvasNode => ({
+      id,
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: { modelId, ...done, ...extra },
+    });
+    let n = 0;
+    const g = createWorkingGraph({
+      nodes: [
+        node("exp-a-frame-1", "google:gemini-nano-banana-2.1", { prompt: "wood board" }),
+        node("exp-a-video-1", HAILUO),
+        node("exp-a-voice-1", "scro:tts"),
+        node("exp-a-mux-1", "ffmpeg:audio-mux"),
+        node("exp-a-concat-1", "ffmpeg:concat"),
+      ],
+      edges: [
+        { id: "e1", source: "exp-a-frame-1", sourceHandle: "output", target: "exp-a-video-1", targetHandle: "startImage" },
+        { id: "e2", source: "exp-a-video-1", sourceHandle: "output", target: "exp-a-mux-1", targetHandle: "video" },
+        { id: "e3", source: "exp-a-voice-1", sourceHandle: "output", target: "exp-a-mux-1", targetHandle: "refAudio" },
+        { id: "e4", source: "exp-a-mux-1", sourceHandle: "output", target: "exp-a-concat-1", targetHandle: "videos" },
+      ],
+      catalog: STATIC_CANVAS_MODELS,
+      assets: [asset],
+      nextId: () => `id${++n}`,
+      now: () => "2026-11-23T08:00:00.000Z",
+    });
+    assert.ok(!("error" in T.update_node(g, { nodeId: "exp-a-frame-1", prompt: "blue board" })));
+    const clear = g.ops.find((op) => op.kind === "clear_output");
+    assert.deepEqual(clear, {
+      kind: "clear_output",
+      nodeIds: ["exp-a-frame-1", "exp-a-video-1", "exp-a-mux-1", "exp-a-concat-1"],
+      clearedAt: "2026-11-23T08:00:00.000Z",
+    });
+    const byId = new Map(g.nodes.map((x) => [x.id, x]));
+    assert.equal(byId.get("exp-a-video-1")?.data.outputUrl, undefined);
+    assert.equal(byId.get("exp-a-voice-1")?.data.outputUrl, "https://blob/x");
+    assert.equal(byId.get("exp-a-frame-1")?.data.prompt, "blue board");
+
+    // Unwiring the voice changes what the mux renders, so the mux (already cleared) stays idle.
+    g.ops.length = 0;
+    assert.ok(!("error" in T.disconnect(g, { edgeId: "e3" })));
+    assert.equal(g.ops.filter((op) => op.kind === "clear_output").length, 0);
+  });
+
   it("batch_add_nodes builds and wires a multi-shot pipeline via local keys and rolls back on failure", () => {
     const g = fresh();
 

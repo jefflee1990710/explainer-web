@@ -603,6 +603,63 @@ describe("canvas graph — completed output recovery", () => {
     assert.equal(restored[0]?.data.outputUrl, "https://blob.example/new.png");
     assert.equal(restored[0]?.data.status, "completed");
   });
+
+  it("does not restore an output the user or assistant just cleared", () => {
+    const existing = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "completed",
+        outputUrl: "https://blob.example/old.png",
+      }),
+    ];
+    const incoming = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "idle",
+        outputClearedAt: "2026-11-23T08:00:00.000Z",
+      }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.outputUrl, undefined);
+  });
+
+  it("still restores a new output when a stale snapshot carries the same clear stamp", () => {
+    const stamp = "2026-11-23T08:00:00.000Z";
+    const existing = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "completed",
+        outputUrl: "https://blob.example/new.png",
+        outputClearedAt: stamp,
+      }),
+    ];
+    const incoming = [
+      modelNode("img", "mentalok:flux-2-klein-4b", { status: "idle", outputClearedAt: stamp }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.outputUrl, "https://blob.example/new.png");
+  });
+
+  it("ignores jobs that finished before the preview was cleared", () => {
+    const nodes = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "idle",
+        outputClearedAt: "2026-11-23T08:00:00.000Z",
+      }),
+    ];
+    const before = applyCompletedJobOutputs(nodes, [
+      { nodeId: "img", outputUrl: "https://blob.example/old.png", updatedAt: new Date("2026-11-23T07:59:00.000Z") },
+    ]);
+    assert.equal(before[0]?.data.outputUrl, undefined);
+    const after = applyCompletedJobOutputs(nodes, [
+      { nodeId: "img", outputUrl: "https://blob.example/new.png", updatedAt: new Date("2026-11-23T08:01:00.000Z") },
+    ]);
+    assert.equal(after[0]?.data.outputUrl, "https://blob.example/new.png");
+  });
+
+  it("gives the Explainer Settings node no output port", () => {
+    assert.equal(
+      getNodeOutputPortType({ id: "s", type: "settings", position: { x: 0, y: 0 }, data: {} }),
+      null,
+    );
+  });
 });
 
 describe("canvas graph — character outfit inputs", () => {

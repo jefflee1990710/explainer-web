@@ -3,8 +3,13 @@ import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
+import {
+  type ExplainerSettingsNodeData,
+  explainerSettingsNodeDataSchema,
+} from "@/model/explainer-settings";
 
-export type CanvasNodeType = "media" | "prompt" | "model" | "character";
+// "settings" is the Explainer Settings node; it never runs and has no output port.
+export type CanvasNodeType = "media" | "prompt" | "model" | "character" | "settings";
 export type CanvasMediaKind = "image" | "video" | "audio";
 export type CanvasAspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
 export type CanvasResolution = "1k" | "2k" | "4k";
@@ -45,6 +50,10 @@ export type CanvasNodeData = {
   outputKind?: CanvasOutputKind;
   lastError?: string;
   lastCostUsd?: number;
+  // ISO time an input change cleared this preview; older outputs must not come back.
+  outputClearedAt?: string;
+  // Explainer Settings node fields
+  explainerSettings?: ExplainerSettingsNodeData;
 };
 
 export type CanvasNode = {
@@ -173,7 +182,7 @@ export type CanvasAgentMessage = {
   createdAt: Date;
 };
 
-export const canvasNodeTypeSchema = z.enum(["media", "prompt", "model", "character"]);
+export const canvasNodeTypeSchema = z.enum(["media", "prompt", "model", "character", "settings"]);
 export const canvasMediaKindSchema = z.enum(["image", "video", "audio"]);
 export const canvasAspectRatioSchema = z.enum([
   "16:9",
@@ -235,6 +244,8 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   outputKind: canvasOutputKindSchema.optional(),
   lastError: z.string().optional(),
   lastCostUsd: z.number().finite().nonnegative().optional(),
+  outputClearedAt: z.string().optional(),
+  explainerSettings: explainerSettingsNodeDataSchema.optional(),
 });
 
 export const canvasNodeSchema: z.ZodType<CanvasNode> = z.object({

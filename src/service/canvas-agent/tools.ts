@@ -24,6 +24,7 @@ import {
 } from "@/service/canvas/groups";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+import { clearStaleOutputs, isGenerationInputPatch } from "@/service/canvas/stale-outputs";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
@@ -40,6 +41,11 @@ import {
   runBatchUpdateNodes,
 } from "@/service/canvas-agent/batch-tools";
 import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
+import {
+  type UpdateExplainerSettingsInput,
+  updateExplainerSettings,
+  updateExplainerSettingsSchema,
+} from "@/service/canvas-agent/explainer-settings-tool";
 import {
   deleteGroup,
   describeGroups,
@@ -74,6 +80,7 @@ const NODE_HEIGHT: Record<CanvasNode["type"], number> = {
   media: 230,
   model: 430,
   character: 520,
+  settings: 460,
 };
 const TEXT_PREVIEW = 240;
 
@@ -90,6 +97,8 @@ export type CanvasAgentWorkingGraph = {
   // Set by ask_user; the turn stops and the dock shows it as clickable options.
   question?: CanvasAgentQuestion;
   nextId: () => string;
+  // ISO time stamped on previews this turn clears.
+  now: () => string;
 };
 
 export type CanvasAgentToolResult = Record<string, unknown>;
@@ -105,6 +114,7 @@ export function createWorkingGraph(input: {
   // This turn's user message; ask_user uses it to block questions the request already answers.
   message?: string;
   nextId?: () => string;
+  now?: () => string;
 }): CanvasAgentWorkingGraph {
   const characters =
     input.characters ??
@@ -122,7 +132,17 @@ export function createWorkingGraph(input: {
     ops: [],
     addedNodes: 0,
     nextId: input.nextId ?? (() => crypto.randomUUID().slice(0, 8)),
+    now: input.now ?? (() => new Date().toISOString()),
   };
+}
+
+// Clears the changed nodes' previews and everything downstream, logged as one op.
+export function markStale(g: CanvasAgentWorkingGraph, changedIds: readonly string[]): void {
+  const clearedAt = g.now();
+  const res = clearStaleOutputs(g.nodes, g.edges, changedIds, clearedAt);
+  if (res.clearedIds.length === 0) return;
+  g.nodes = res.nodes;
+  g.ops.push({ kind: "clear_output", nodeIds: res.clearedIds, clearedAt });
 }
 
 const EXPLAINER_REQUEST = /explainer|解說|講解|解释|讲解/i;
@@ -278,6 +298,13 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           characterId: node.data.characterId,
           status: node.data.status ?? "idle",
           hasOutput: Boolean(node.data.outputUrl),
+        }
+      : {}),
+    // Explainer Settings: change these only through update_explainer_settings.
+    ...(node.type === "settings" && node.data.explainerSettings
+      ? {
+          explainerSettings: node.data.explainerSettings.applied,
+          ...(node.data.explainerSettings.pending ? { pendingSettings: node.data.explainerSettings.pending } : {}),
         }
       : {}),
     ...(node.type === "model"
@@ -547,8 +574,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     }
     if (Object.keys(patch).length === 0) return { error: "Nothing to update." };
 
+    const changed = isGenerationInputPatch(node.data, patch);
     node.data = { ...node.data, ...patch };
     g.ops.push({ kind: "update_node", nodeId: node.id, patch });
+    if (changed) markStale(g, [node.id]);
     return { ok: true, nodeId: node.id };
   },
 
@@ -594,15 +623,18 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     const edge: CanvasEdge = { id: `e-${g.nextId()}`, ...candidate };
     g.edges.push(edge);
     g.ops.push({ kind: "add_edge", edge });
+    markStale(g, [edge.target]);
     return { ok: true, edgeId: edge.id };
   },
 
   disconnect(g: CanvasAgentWorkingGraph, input: { edgeId: string }): CanvasAgentToolResult {
-    if (!g.edges.some((e) => e.id === input.edgeId)) {
+    const removed = g.edges.find((e) => e.id === input.edgeId);
+    if (!removed) {
       return { error: `Edge "${input.edgeId}" does not exist.` };
     }
     g.edges = g.edges.filter((e) => e.id !== input.edgeId);
     g.ops.push({ kind: "remove_edge", edgeId: input.edgeId });
+    markStale(g, [removed.target]);
     return { ok: true };
   },
 
@@ -673,6 +705,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     input: { nodes: BatchAddNodeItem[] },
   ): CanvasAgentToolResult {
     return runBatchAddNodes(g, CANVAS_AGENT_TOOL_HANDLERS, input);
+  },
+
+  update_explainer_settings(g: CanvasAgentWorkingGraph, input: UpdateExplainerSettingsInput): CanvasAgentToolResult {
+    return updateExplainerSettings(g, input);
   },
 
   ask_user(
@@ -870,6 +906,12 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
         "Replace an Explainer or Talking Head group (or a lone planning card) with a new topic or full script in ONE step. Removes the whole old group and adds a new free planning card in the same place, keeping the character (e.g. Jim), language, director style, framing, and frame shape unless you override them.",
       inputSchema: replaceGroupSchema,
       execute: async (input) => H.replace_group(g, input),
+    }),
+    update_explainer_settings: tool({
+      description:
+        "Change an expanded Explainer's background, on-screen text style, on-screen text language, presenter position, or art style. Text style alone rebuilds the start stills in place; anything else re-plans the Explainer for free with the same voiceover. Never edit frame prompts for these.",
+      inputSchema: updateExplainerSettingsSchema,
+      execute: async (input) => H.update_explainer_settings(g, input),
     }),
     update_group_nodes: tool({
       description:

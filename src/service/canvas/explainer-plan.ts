@@ -10,6 +10,7 @@ import {
   readPlannerParams,
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
+import { explainerSettingsFromVideo, topicFromPlanSource } from "@/service/canvas/explainer-settings";
 import { resolveNodeInputs } from "@/service/canvas/graph";
 import { defaultGroupColor, defaultGroupTitle, readGroupParams } from "@/service/canvas/groups";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
@@ -194,6 +195,11 @@ export function planStateFromVideo(params: {
     language,
     voicePreset,
     characterId,
+    settings: {
+      plannerVideoId: video._id.toHexString(),
+      topic: topicFromPlanSource(video.source ?? ""),
+      applied: explainerSettingsFromVideo(video),
+    },
     clips: phaseA.clips.map((clip) => ({
       clipNumber: clip.clipNumber,
       framePrompt:

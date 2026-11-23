@@ -53,6 +53,27 @@ describe("applyCanvasAgentOp", () => {
     assert.equal(m?.data.modelId, model.data.modelId);
   });
 
+  it("clears the listed previews and skips when none of them exist", () => {
+    const done: CanvasAgentGraph = {
+      nodes: [prompt, { ...model, data: { ...model.data, status: "completed", outputUrl: "https://blob/m1.png", lastJobId: "j1" } }],
+      edges: [edge],
+    };
+    const res = applyCanvasAgentOp(done, {
+      kind: "clear_output",
+      nodeIds: ["m1"],
+      clearedAt: "2026-11-23T08:00:00.000Z",
+    });
+    assert.equal(res.applied, true);
+    const m = res.graph.nodes.find((n) => n.id === "m1");
+    assert.equal(m?.data.outputUrl, undefined);
+    assert.equal(m?.data.status, "idle");
+    assert.equal(m?.data.outputClearedAt, "2026-11-23T08:00:00.000Z");
+    assert.equal(
+      applyCanvasAgentOp(done, { kind: "clear_output", nodeIds: ["x"], clearedAt: "t" }).applied,
+      false,
+    );
+  });
+
   it("skips update and move for a missing node", () => {
     assert.equal(
       applyCanvasAgentOp(graph(), { kind: "update_node", nodeId: "x", patch: {} }).applied,

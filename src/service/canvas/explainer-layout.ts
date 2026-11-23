@@ -10,10 +10,11 @@ export type LayoutSize = { width: number; height: number };
 export type LayoutBox = { x: number; y: number; width: number; height: number };
 export type LayoutPoint = { x: number; y: number };
 
-type Role = "ref" | "frame" | "video" | "voice" | "mux" | "concat";
+type Role = "settings" | "ref" | "frame" | "video" | "voice" | "mux" | "concat";
 
 // Used before React Flow has measured the cards (server-side and first paint).
 export const EXPLAINER_ESTIMATED_SIZE: Record<Role, LayoutSize> = {
+  settings: { width: 300, height: 460 },
   ref: { width: 260, height: 280 },
   frame: { width: 312, height: 440 },
   video: { width: 312, height: 560 },
@@ -30,6 +31,7 @@ const MUX_AUDIO_HANDLE_OFFSET = 112;
 const CLEARANCE = 80;
 
 export function explainerNodeRole(id: string): { role: Role; index: number } | null {
+  if (id.endsWith("-settings")) return { role: "settings", index: 0 };
   const match = /-(ref|frame|video|voice|mux|concat)-(\d+)$/.exec(id);
   return match ? { role: match[1] as Role, index: Number(match[2]) } : null;
 }
@@ -53,7 +55,8 @@ export function layoutExplainerGroup(params: {
     Math.max(0, ...roles.flatMap((r) => [...ids(r).values()].map((id) => size(id, r).width)));
 
   // Column x positions sized to the widest card in each column.
-  const xRef = params.origin.x;
+  const xSettings = params.origin.x;
+  const xRef = xSettings + (ids("settings").size ? colWidth("settings") + GAP_X : 0);
   const xFrame = xRef + (ids("ref").size ? colWidth("ref") + GAP_X : 0);
   const xVideo = xFrame + Math.max(colWidth("frame", "voice"), 1) + GAP_X;
   const xMux = xVideo + Math.max(colWidth("video"), 1) + GAP_X;
@@ -61,6 +64,8 @@ export function layoutExplainerGroup(params: {
   const concatStep = Math.max(colWidth("concat"), 1) + GAP_X;
 
   const out = new Map<string, LayoutPoint>();
+  const settingsId = ids("settings").get(0);
+  if (settingsId) out.set(settingsId, { x: xSettings, y: params.origin.y });
   const clipNumbers = [...new Set([...ids("frame").keys(), ...ids("video").keys()])].sort(
     (a, b) => a - b,
   );

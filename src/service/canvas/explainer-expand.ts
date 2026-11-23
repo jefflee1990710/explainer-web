@@ -1,6 +1,8 @@
 // Pure: turns a finished Explainer plan into per-clip canvas nodes and edges.
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
+import type { ExplainerSettingsNodeData } from "@/model/explainer-settings";
+import { buildExplainerSettingsNode, explainerSettingsEdges } from "@/service/canvas/explainer-settings";
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
 import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
 import { NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/model-catalog";
@@ -30,6 +32,8 @@ export type ExplainerExpansionInput = {
   language: "yue" | "zh" | "en";
   voicePreset: string;
   characterId?: string;
+  // Explainer Settings node data; the node is wired into every frame.
+  settings?: ExplainerSettingsNodeData;
   clips: ExplainerExpansionClip[];
 };
 
@@ -71,6 +75,10 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     return refId;
   };
 
+  if (input.settings) {
+    nodes.push(buildExplainerSettingsNode({ groupId: input.idPrefix, position: { ...unplaced }, data: input.settings }));
+  }
+
   input.clips.forEach((clip) => {
     const n = clip.clipNumber;
     const frameId = id(`frame-${n}`);
@@ -91,6 +99,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     for (const url of [...new Set(clip.refUrls ?? [])].slice(0, 14)) {
       edge(refNode(url), frameId, "refImages");
     }
+    if (input.settings) edges.push(...explainerSettingsEdges(input.idPrefix, [frameId]));
     nodes.push({
       id: videoId,
       type: "model",

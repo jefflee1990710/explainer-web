@@ -9,9 +9,11 @@ import type { CanvasLightboxItem } from "@/app/app/canvas/nodes/port-colors";
 
 export function CanvasLightbox({
   item,
+  projectTitle,
   onClose,
 }: {
   item: CanvasLightboxItem | null;
+  projectTitle: string;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -48,6 +50,7 @@ export function CanvasLightbox({
           <div className="flex items-center gap-2">
             <CanvasDownloadButton
               url={item.url}
+              project={projectTitle}
               title={item.title}
               kind={item.kind}
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/8 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-white/15"

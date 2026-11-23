@@ -10,6 +10,7 @@ export const GROUP_ESTIMATED_SIZE: Record<CanvasNodeType, LayoutSize> = {
   media: { width: 260, height: 280 },
   model: { width: 312, height: 480 },
   character: { width: 280, height: 520 },
+  settings: { width: 280, height: 460 },
 };
 
 const GAP_X = 90;

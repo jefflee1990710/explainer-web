@@ -489,6 +489,9 @@ export function mergeCanvasNodeSnapshots(
     const previousUrl = previous.data.outputUrl?.trim();
     const incomingUrl = node.data.outputUrl?.trim();
     if (!previousUrl || incomingUrl) return node;
+    // A new clear stamp means the client cleared this preview on purpose.
+    const clearedAt = node.data.outputClearedAt;
+    if (clearedAt && clearedAt !== previous.data.outputClearedAt) return node;
     return {
       ...node,
       data: {
@@ -525,6 +528,9 @@ export function applyCompletedJobOutputs(
     if (node.type !== "model" || node.data.outputUrl?.trim()) return node;
     const job = latestByNodeId.get(node.id);
     if (!job?.outputUrl) return node;
+    // Outputs from before an input change belong to the old inputs.
+    const clearedAt = node.data.outputClearedAt ? Date.parse(node.data.outputClearedAt) : NaN;
+    if (Number.isFinite(clearedAt) && job.updatedAt.getTime() <= clearedAt) return node;
     changed = true;
     return {
       ...node,

@@ -4,6 +4,7 @@
 
 import { createContext, useContext } from "react";
 import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
+import type { ExplainerSettings } from "@/model/explainer-settings";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
@@ -44,6 +45,7 @@ export type CanvasNodeActionsContextValue = {
   edges: readonly CanvasEdge[];
   characterOptions: readonly CanvasLibraryCharacterOption[];
   locale: string;
+  projectTitle: string;
   isFlowRunning: boolean;
   onUpdateNodeData: (nodeId: string, patch: Partial<CanvasNodeData>) => void;
   onDeleteNode: (nodeId: string) => void;
@@ -60,6 +62,8 @@ export type CanvasNodeActionsContextValue = {
   onOpenLightbox: (item: CanvasLightboxItem) => void;
   // Starts or retries free Explainer planning on a planning card.
   onPlanExplainer: (nodeId: string) => void;
+  // Explainer Settings node: restyles the frames in place, or re-plans the group for free.
+  onApplyExplainerSettings: (nodeId: string, next: ExplainerSettings) => Promise<void>;
 };
 
 export const CanvasNodeActionsContext =

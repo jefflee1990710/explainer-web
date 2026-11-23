@@ -16,6 +16,10 @@ import {
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
 import {
+  explainerSettingsToolParams,
+  normalizeExplainerSettings,
+} from "@/service/canvas/explainer-settings";
+import {
   defaultGroupColor,
   defaultGroupTitle,
   isDirectorGroupKind,
@@ -177,6 +181,14 @@ export function replaceGroup(
   const language = input.language ?? str(old.language) ?? (isTalking ? "yue" : undefined);
   const skillSlug = str(input.skillSlug) ?? str(old.skillSlug);
   const durationPreset = str(input.durationPreset) ?? str(old.durationPreset);
+  // The old Explainer Settings (background, text style and language, presenter) carry over.
+  const priorSettings = target.nodes.find((n) => n.type === "settings")?.data.explainerSettings?.applied;
+  const look =
+    priorSettings && !isTalking
+      ? explainerSettingsToolParams(
+          normalizeExplainerSettings({ ...priorSettings, ...(skillSlug ? { skillSlug } : {}) }),
+        )
+      : {};
   const toolParams: Record<string, unknown> = isTalking
     ? {
         plannerMode: true,
@@ -189,6 +201,7 @@ export function replaceGroup(
         ...(language ? { language } : {}),
         ...(skillSlug ? { skillSlug } : {}),
         ...(durationPreset ? { durationPreset } : {}),
+        ...look,
         plannerMode: true,
       };
 

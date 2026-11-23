@@ -9,6 +9,10 @@ import {
   readCanvasExplainerPlan,
   startCanvasExplainerPlan,
 } from "@/service/canvas/explainer-plan";
+import {
+  type RestyleCanvasExplainerResult,
+  restyleCanvasExplainer,
+} from "@/service/canvas/explainer-restyle";
 import { saveCanvasProject } from "@/service/canvas/projects";
 
 export async function startCanvasExplainerPlanAction(input: {
@@ -33,6 +37,15 @@ export async function startCanvasExplainerPlanAction(input: {
     canvasId: input.canvasId,
     nodeId: input.nodeId,
   });
+}
+
+// Explainer Settings: a text-style-only change rebuilds the start-still prompts in place.
+export async function restyleCanvasExplainerAction(input: {
+  plannerVideoId: string;
+  textStyleId: string;
+}): Promise<RestyleCanvasExplainerResult> {
+  const user = await requireAppUser();
+  return restyleCanvasExplainer({ clerkUserId: user.clerkUserId, ...input });
 }
 
 export async function getCanvasExplainerPlanAction(input: {

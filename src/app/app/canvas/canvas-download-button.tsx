@@ -13,12 +13,14 @@ import {
 
 export function CanvasDownloadButton({
   url,
+  project,
   title,
   kind,
   className,
   children,
 }: {
   url: string;
+  project?: string;
   title?: string;
   kind: CanvasDownloadKind;
   className: string;
@@ -41,7 +43,7 @@ export function CanvasDownloadButton({
         event.stopPropagation();
         if (saving) return;
         setSaving(true);
-        void downloadCanvasFile(url, canvasDownloadFilename(title, url, kind))
+        void downloadCanvasFile(url, canvasDownloadFilename(project, title, url, kind))
           .catch(() => {
             toast.error(isZh ? "下載失敗，請再試一次" : "Download failed. Try again.");
           })

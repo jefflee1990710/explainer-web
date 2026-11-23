@@ -21,6 +21,8 @@ import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { EXPLAINER_SETTINGS_HANDLE } from "@/service/canvas/explainer-settings";
+import { EXPLAINER_SETTINGS_COLOR } from "@/app/app/canvas/nodes/explainer-settings-options";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
@@ -45,6 +47,7 @@ export function ModelNodeCard({
     edges,
     characterOptions,
     locale,
+    projectTitle,
     isFlowRunning,
     onUpdateNodeData,
     onDeleteNode,
@@ -316,6 +319,29 @@ export function ModelNodeCard({
             </div>
           );
         })}
+        {/* Explainer Settings wire: shows which settings node styles this frame. */}
+        {(incomingByHandle.get(EXPLAINER_SETTINGS_HANDLE) ?? 0) > 0 ? (
+          <div className="relative flex items-center justify-between px-3.5 py-0.5 text-[11px]">
+            <Handle
+              type="target"
+              id={EXPLAINER_SETTINGS_HANDLE}
+              position={Position.Left}
+              isConnectable={false}
+              style={{
+                width: 11,
+                height: 11,
+                backgroundColor: EXPLAINER_SETTINGS_COLOR,
+                border: `2px solid ${EXPLAINER_SETTINGS_COLOR}`,
+                left: -6,
+              }}
+            />
+            <span className="flex items-center gap-1.5 text-white/80">
+              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: EXPLAINER_SETTINGS_COLOR }} />
+              <span>{isZh ? "解說設定" : "Explainer Settings"}</span>
+            </span>
+            <span className="text-[10px] text-white/45">{isZh ? "已連" : "Wired"}</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Inline prompt & compact model parameters */}
@@ -887,6 +913,7 @@ export function ModelNodeCard({
               </button>
               <CanvasDownloadButton
                 url={data.outputUrl}
+                project={projectTitle}
                 title={displayName}
                 kind={
                   (data.outputKind ?? spec.output.type) === "audio"

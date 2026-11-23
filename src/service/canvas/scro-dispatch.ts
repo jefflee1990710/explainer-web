@@ -18,6 +18,7 @@ import type { JutsuMode, JutsuObjectEditMode } from "@/model/jutsu-job";
 import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/project";
 import type { ResolvedCanvasInputs } from "@/service/canvas/graph";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/explainer-frame";
+import { explainerVideoLookFields } from "@/service/canvas/explainer-settings";
 import { buildLifePhotoPrompt } from "@/service/canvas/scro-groups/life";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
@@ -499,6 +500,8 @@ export async function createCanvasDirectorVideo(params: {
   const language = normalizeLanguage(readToolParamStr(node, "language"));
   const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
   const durationPreset = normalizeDurationPreset(readToolParamStr(node, "durationPreset"));
+  // Explainer Settings (background, text style, on-screen text language) the card was planned with.
+  const look = isTalking ? undefined : explainerVideoLookFields(node.data.toolParams, ruleSlug, language);
   const now = new Date();
 
   const videos = await videosCollection();
@@ -521,6 +524,7 @@ export async function createCanvasDirectorVideo(params: {
     sceneTextLanguage: language === "en" ? "en" : "zh-Hant",
     subtitleLook: "handwritten",
     textStyleId: "handwritten",
+    ...(look ?? {}),
     ...(isTalking && inputs.startImage ? { startImageUrl: inputs.startImage } : {}),
     ...(isTalking && inputs.refAudio
       ? {

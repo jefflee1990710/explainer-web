@@ -112,6 +112,7 @@ import {
 } from "@/app/app/canvas/talking-head-dialog";
 import {
   getCanvasExplainerPlanAction,
+  restyleCanvasExplainerAction,
   startCanvasExplainerPlanAction,
 } from "@/presentation/actions/canvas-explainer";
 import type {
@@ -148,6 +149,18 @@ import {
   type CanvasViewLayout,
 } from "@/app/app/canvas/canvas-view-layout";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
+import { ExplainerSettingsNodeCard } from "@/app/app/canvas/nodes/explainer-settings-node-card";
+import { EXPLAINER_SETTINGS_COLOR } from "@/app/app/canvas/nodes/explainer-settings-options";
+import type { ExplainerSettings } from "@/model/explainer-settings";
+import {
+  buildExplainerReplanCard,
+  explainerSettingsChanges,
+} from "@/service/canvas/explainer-settings";
+import {
+  clearNodeOutput,
+  clearStaleOutputs,
+  isGenerationInputPatch,
+} from "@/service/canvas/stale-outputs";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import {
@@ -172,6 +185,7 @@ const NODE_TYPES = {
   prompt: PromptNodeCard,
   model: ModelNodeCard,
   character: CharacterNodeCard,
+  settings: ExplainerSettingsNodeCard,
   [GROUP_FRAME_TYPE]: GroupFrameNodeCard,
 } as const;
 
@@ -243,7 +257,8 @@ function toFlowEdges(
     const src = nodeMap.get(e.source);
     const tgt = nodeMap.get(e.target);
     const portType = src ? getNodeOutputPortType(src, catalog) : null;
-    const stroke = portType ? PORT_COLOR_MAP[portType] : "#c6f24b";
+    const stroke =
+      src?.type === "settings" ? EXPLAINER_SETTINGS_COLOR : portType ? PORT_COLOR_MAP[portType] : "#c6f24b";
     const isTargetRunning =
       tgt?.type === "model" &&
       (tgt.data.status === "queued" || tgt.data.status === "running");
@@ -566,8 +581,31 @@ function CanvasWorkspaceInner({
     [onNodesChange, scheduleAutosave, applyPendingGroupLayout, splitNodeChanges],
   );
 
+  // Clears the previews of changed nodes and everything downstream so Run regenerates them.
+  const clearStale = useCallback(
+    (changedIds: readonly string[]) => {
+      if (changedIds.length === 0) return;
+      const { clearedIds } = clearStaleOutputs(
+        toDomainNodes(nodesRef.current),
+        toDomainEdges(edgesRef.current),
+        changedIds,
+        new Date().toISOString(),
+      );
+      if (clearedIds.length === 0) return;
+      const clearedAt = new Date().toISOString();
+      const ids = new Set(clearedIds);
+      for (const id of ids) jobOutputRef.current.delete(id);
+      setNodes((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, data: clearNodeOutput(n.data, clearedAt) } : n)));
+    },
+    [setNodes],
+  );
+
   const handleEdgesChange: typeof onEdgesChange = useCallback(
     (changes) => {
+      // Targets that lose an input wire get their previews cleared.
+      const removedIds = new Set(changes.getByType("remove").map((c) => c.id));
+      const staleTargets = edgesRef.current.filter((e) => removedIds.has(e.id)).map((e) => e.target);
+      clearStale(staleTargets);
       onEdgesChange(changes);
       const meaningful =
         changes.getByType("remove").length > 0 ||
@@ -575,30 +613,34 @@ function CanvasWorkspaceInner({
         changes.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
-    [onEdgesChange, scheduleAutosave],
+    [onEdgesChange, scheduleAutosave, clearStale],
   );
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, patch: Partial<CanvasNodeData>) => {
+      const current = nodesRef.current.find((n) => n.id === nodeId);
+      const stale = current ? isGenerationInputPatch(current.data, patch) : false;
       setNodes((prev) =>
         prev.map((n) =>
           n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n,
         ),
       );
+      if (stale) clearStale([nodeId]);
       scheduleAutosave();
     },
-    [setNodes, scheduleAutosave],
+    [setNodes, scheduleAutosave, clearStale],
   );
 
   const onDeleteNode = useCallback(
     (nodeId: string) => {
+      clearStale(edgesRef.current.filter((e) => e.source === nodeId).map((e) => e.target));
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
       setEdges((prev) =>
         prev.filter((e) => e.source !== nodeId && e.target !== nodeId),
       );
       scheduleAutosave();
     },
-    [setNodes, setEdges, scheduleAutosave],
+    [setNodes, setEdges, scheduleAutosave, clearStale],
   );
 
   // Concat (and any multi-video handle) renders in edge order, so moving a row rewrites that order.
@@ -680,9 +722,10 @@ function CanvasWorkspaceInner({
           cleaned,
         );
       });
+      if (connection.target) clearStale([connection.target]);
       scheduleAutosave();
     },
-    [models, setEdges, scheduleAutosave],
+    [models, setEdges, scheduleAutosave, clearStale],
   );
 
   const getCenterPosition = useCallback(() => {
@@ -1075,6 +1118,86 @@ function CanvasWorkspaceInner({
   const onPlanExplainer = useCallback(
     (nodeId: string) => void startDirectorPlan(nodeId),
     [startDirectorPlan],
+  );
+
+  // Explainer Settings: a text style change rewrites the frame prompts in place; anything
+  // else swaps the group for a free planning card that keeps the voiceover word for word.
+  const onApplyExplainerSettings = useCallback(
+    async (nodeId: string, next: ExplainerSettings) => {
+      const settingsNode = nodesRef.current.find((n) => n.id === nodeId);
+      const data = settingsNode?.data.explainerSettings;
+      if (!settingsNode || !data) return;
+      const writeSettings = (applied: ExplainerSettings) =>
+        setNodes((prev) =>
+          prev.map((n) =>
+            n.id === nodeId
+              ? { ...n, data: { ...n.data, explainerSettings: { ...data, applied, pending: undefined } } }
+              : n,
+          ),
+        );
+      const { changed, restyleOnly } = explainerSettingsChanges(data.applied, next);
+      if (changed.length === 0) {
+        writeSettings(data.applied);
+        scheduleAutosave();
+        return;
+      }
+
+      const domain = toDomainNodes(nodesRef.current);
+      const group = snapshotGroups(domain).find((g) => g.memberIds.includes(nodeId));
+      if (!group) {
+        toast.error(isZh ? "找不到這組解說" : "This Explainer group is missing");
+        return;
+      }
+      const members = new Set(group.memberIds);
+      if (domain.some((n) => members.has(n.id) && (n.data.status === "queued" || n.data.status === "running"))) {
+        toast.error(isZh ? "這組解說還在生成中，完成後再改設定" : "This Explainer is still generating; try again when it finishes");
+        return;
+      }
+
+      if (restyleOnly) {
+        const res = await restyleCanvasExplainerAction({
+          plannerVideoId: data.plannerVideoId,
+          textStyleId: next.textStyleId,
+        });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        const prompts = new Map(res.framePrompts.map((f) => [`${group.id}-frame-${f.clipNumber}`, f.prompt]));
+        setNodes((prev) =>
+          prev.map((n) => {
+            const prompt = prompts.get(n.id);
+            return prompt ? { ...n, data: { ...n.data, prompt } } : n;
+          }),
+        );
+        writeSettings(next);
+        clearStale([...prompts.keys()]);
+        scheduleAutosave();
+        toast.success(isZh ? "已更新文字樣式，按 Run group 重新生成" : "Text style updated; press Run group to regenerate");
+        return;
+      }
+
+      const card = buildExplainerReplanCard({
+        nodes: domain,
+        group,
+        settings: data,
+        next,
+        cardId: `model-${crypto.randomUUID().slice(0, 8)}`,
+        position: settingsNode.position,
+      });
+      const outsideTargets = edgesRef.current
+        .filter((e) => members.has(e.source) && !members.has(e.target))
+        .map((e) => e.target);
+      const nextNodes = [...nodesRef.current.filter((n) => !members.has(n.id)), ...toFlowNodes([card])];
+      const nextEdges = edgesRef.current.filter((e) => !members.has(e.source) && !members.has(e.target));
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+      // Nodes outside the group that used its output lose that input.
+      clearStale(outsideTargets);
+      updateGroups((prev) => prev.filter((g) => g.id !== group.id));
+      await startDirectorPlan(card.id, { nodes: nextNodes, edges: nextEdges });
+    },
+    [setNodes, setEdges, scheduleAutosave, snapshotGroups, isZh, clearStale, updateGroups, startDirectorPlan],
   );
 
   const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
@@ -1616,6 +1739,14 @@ function CanvasWorkspaceInner({
           case "remove_edge":
             setEdges((prev) => prev.filter((e) => e.id !== op.edgeId));
             break;
+          case "clear_output": {
+            const ids = new Set(op.nodeIds);
+            for (const id of ids) jobOutputRef.current.delete(id);
+            setNodes((prev) =>
+              prev.map((n) => (ids.has(n.id) ? { ...n, data: clearNodeOutput(n.data, op.clearedAt) } : n)),
+            );
+            break;
+          }
           case "add_group":
           case "update_group":
           case "remove_group": {
@@ -1647,9 +1778,29 @@ function CanvasWorkspaceInner({
           await startDirectorPlan(planner.id, flowGraph);
         }
       }
+
+      // Settings the assistant changed apply through the same path as the node's Apply button.
+      const pendingSettings = graph.nodes.filter((n) => n.type === "settings" && n.data.explainerSettings?.pending);
+      if (pendingSettings.length > 0) {
+        // Let React commit the replayed ops so the refs hold this turn's graph.
+        await new Promise((resolve) => window.setTimeout(resolve, AGENT_OP_STEP_MS));
+        for (const node of pendingSettings) {
+          await onApplyExplainerSettings(node.id, node.data.explainerSettings!.pending!);
+        }
+      }
       return { skipped };
     },
-    [getAgentGraph, models, reactFlow, scheduleAutosave, setEdges, setNodes, startDirectorPlan, updateGroups],
+    [
+      getAgentGraph,
+      models,
+      reactFlow,
+      scheduleAutosave,
+      setEdges,
+      setNodes,
+      startDirectorPlan,
+      updateGroups,
+      onApplyExplainerSettings,
+    ],
   );
 
   const undoAgentTurn = useCallback(
@@ -1898,6 +2049,7 @@ function CanvasWorkspaceInner({
       edges: domainEdges,
       characterOptions: assets.characterOptions ?? [],
       locale,
+      projectTitle: activeTitle,
       isFlowRunning,
       onUpdateNodeData,
       onDeleteNode,
@@ -1906,6 +2058,7 @@ function CanvasWorkspaceInner({
       onGenerateOutfit,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
+      onApplyExplainerSettings,
     }),
     [
       models,
@@ -1913,6 +2066,7 @@ function CanvasWorkspaceInner({
       domainEdges,
       assets.characterOptions,
       locale,
+      activeTitle,
       isFlowRunning,
       onUpdateNodeData,
       onDeleteNode,
@@ -1920,6 +2074,7 @@ function CanvasWorkspaceInner({
       onReorderTargetEdges,
       onGenerateOutfit,
       onPlanExplainer,
+      onApplyExplainerSettings,
     ],
   );
 
@@ -2160,7 +2315,11 @@ function CanvasWorkspaceInner({
         </div>
       </div>
 
-      <CanvasLightbox item={lightbox} onClose={() => setLightbox(null)} />
+      <CanvasLightbox
+        item={lightbox}
+        projectTitle={activeTitle}
+        onClose={() => setLightbox(null)}
+      />
     </div>
   );
 }

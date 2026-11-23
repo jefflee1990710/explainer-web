@@ -80,6 +80,38 @@ describe("planStateFromVideo", () => {
     assert.match(ready.summary, /復利/);
   });
 
+  it("adds an Explainer Settings node that the group frame includes", () => {
+    const ready = planStateFromVideo(
+      args(
+        video({
+          canvasPlan: { prompts },
+          source: "Compound interest",
+          skillSlug: "paper-cutout-explainer-video-director",
+          directorBackgroundId: "sky",
+          subtitleLook: "neon",
+          sceneTextEnabled: true,
+          sceneTextLanguage: "zh-Hant",
+        }),
+      ),
+    );
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    const settings = ready.nodes.find((n) => n.type === "settings");
+    assert.equal(settings?.id, "p-settings");
+    assert.deepEqual(settings?.data.explainerSettings, {
+      plannerVideoId: videoId.toHexString(),
+      topic: "Compound interest",
+      applied: {
+        skillSlug: "paper-cutout-explainer-video-director",
+        backgroundId: "sky",
+        textStyleId: "neon",
+        sceneTextLanguage: "zh-Hant",
+        presenterPosition: "auto",
+      },
+    });
+    assert.ok(ready.group.memberIds.includes("p-settings"));
+  });
+
   it("passes each clip's reference images and resolution to the frame nodes", () => {
     const ready = planStateFromVideo({
       ...args(video({ canvasPlan: { prompts } })),

@@ -30,16 +30,19 @@ function cleanTitle(title: string | undefined): string {
     .slice(0, 80);
 }
 
-// File name shown in the browser save dialog.
+// File name shown in the browser save dialog: "{project} - {node}.ext".
 export function canvasDownloadFilename(
-  title: string | undefined,
+  project: string | undefined,
+  node: string | undefined,
   url: string,
   kind: CanvasDownloadKind,
 ): string {
-  const cleaned = cleanTitle(title);
-  if (cleaned && fileExtension(cleaned)) return cleaned;
+  const projectName = cleanTitle(project);
+  const nodeName = cleanTitle(node);
+  const base = [projectName, nodeName].filter(Boolean).join(" - ");
+  if (base && fileExtension(base)) return base;
   const ext = extensionFromUrl(url) ?? KIND_EXTENSION[kind];
-  return `${cleaned || "canvas-output"}.${ext}`;
+  return `${base || "canvas-output"}.${ext}`;
 }
 
 // Fetches the output and hands a same-origin blob to the browser download.

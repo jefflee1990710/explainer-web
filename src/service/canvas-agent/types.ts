@@ -26,6 +26,8 @@ export type CanvasAgentOp =
   | { kind: "add_edge"; edge: CanvasEdge }
   | { kind: "remove_edge"; edgeId: string }
   | { kind: "move_node"; nodeId: string; position: { x: number; y: number } }
+  // Previews made stale by an input change go back to idle so Run regenerates them.
+  | { kind: "clear_output"; nodeIds: string[]; clearedAt: string }
   | { kind: "add_group"; group: CanvasGroup }
   | {
       kind: "update_group";
