@@ -92,7 +92,7 @@ export function updateExplainerSettings(g: CanvasAgentWorkingGraph, input: Updat
     settingsNodeId: picked.id,
     changed,
     note: restyleOnly
-      ? "After your reply the canvas rebuilds every start-still prompt with the new text style (free) and clears those previews. Tell the user to press Run group."
+      ? "After your reply the canvas rebuilds every start-still prompt with the new text style (free) and marks those previews as old versions. Tell the user to press Run group."
       : "After your reply the canvas re-plans this Explainer for free with the same topic and voiceover lines; it becomes a new group in about 1–2 minutes. Tell the user to press Run group when the rows appear. Do not edit frame prompts yourself.",
   };
 }

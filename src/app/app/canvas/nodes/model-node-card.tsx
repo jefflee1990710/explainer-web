@@ -27,6 +27,12 @@ import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import {
+  OUTDATED_BADGE_CLASS,
+  OutdatedBanner,
+  OutdatedPreviewTag,
+  outdatedBadgeText,
+} from "@/app/app/canvas/nodes/outdated-notice";
+import {
   CATEGORY_LABELS,
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -54,6 +60,7 @@ export function ModelNodeCard({
     onRunNode,
     onOpenLightbox,
     onPlanExplainer,
+    outdatedNodes,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -183,8 +190,12 @@ export function ModelNodeCard({
     ? CATEGORY_LABELS[spec.category]["zh-Hant"]
     : CATEGORY_LABELS[spec.category].en;
 
-  const statusBadge =
-    status === "running" || status === "queued"
+  // Old preview after an upstream change; hidden while a new run is in progress.
+  const outdated = isBusy ? undefined : outdatedNodes.get(id);
+
+  const statusBadge = outdated
+    ? { text: outdatedBadgeText(isZh), cls: OUTDATED_BADGE_CLASS }
+    : status === "running" || status === "queued"
       ? {
           text: isZh
             ? status === "queued"
@@ -843,6 +854,8 @@ export function ModelNodeCard({
           </div>
         ) : null}
 
+        {outdated ? <OutdatedBanner reason={outdated} isZh={isZh} /> : null}
+
         {/* Single-node Run CTA */}
         <button
             type="button"
@@ -876,7 +889,12 @@ export function ModelNodeCard({
 
         {/* Inline Output Preview */}
         {data.outputUrl ? (
-          <div className="relative overflow-hidden rounded-[10px] border border-white/10 bg-black/50">
+          <div
+            className={`relative overflow-hidden rounded-[10px] border bg-black/50 ${
+              outdated ? "border-amber-400/40 opacity-70" : "border-white/10"
+            }`}
+          >
+            {outdated ? <OutdatedPreviewTag isZh={isZh} /> : null}
             {(data.outputKind ?? spec.output.type) === "video" ? (
               <video
                 src={data.outputUrl}

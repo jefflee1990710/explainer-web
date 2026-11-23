@@ -11,6 +11,7 @@ import type {
   CanvasPortType,
 } from "@/service/canvas/model-catalog";
 import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { OutdatedReason } from "@/service/canvas/stale-outputs";
 
 export const PORT_COLOR_MAP: Record<CanvasPortType, string> = {
   image: "#38bdf8",
@@ -63,7 +64,9 @@ export type CanvasNodeActionsContextValue = {
   // Starts or retries free Explainer planning on a planning card.
   onPlanExplainer: (nodeId: string) => void;
   // Explainer Settings node: restyles the frames in place, or re-plans the group for free.
-  onApplyExplainerSettings: (nodeId: string, next: ExplainerSettings) => Promise<void>;
+  onApplyExplainerSettings: (nodeId: string, next: ExplainerSettings, options?: { replan?: boolean }) => Promise<void>;
+  // Nodes whose preview is an old version and why.
+  outdatedNodes: ReadonlyMap<string, OutdatedReason>;
 };
 
 export const CanvasNodeActionsContext =

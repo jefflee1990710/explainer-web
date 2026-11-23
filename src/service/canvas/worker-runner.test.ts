@@ -223,6 +223,68 @@ describe("canvas worker runner — multi-wave flow", () => {
     assert.equal(project.activeFlowRun?.status, "completed");
   });
 
+  it("reuses a current completed node but regenerates one marked as an old version", async () => {
+    const done = (id: string) => ({ status: "completed" as const, outputUrl: `https://blob.example/${id}` });
+    const project = makeProject(
+      [
+        { id: "a", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts", prompt: "hi", ...done("a") } },
+        {
+          id: "b",
+          type: "model",
+          position: { x: 300, y: 0 },
+          data: { modelId: "scro:tts", prompt: "yo", ...done("b"), staleOutputUrl: "https://blob.example/b" },
+        },
+      ],
+      [],
+    );
+    const submitted: string[] = [];
+    const flowDeps = {
+      findCanvasProject: async () => ({ ...project }),
+      setActiveFlowRun: async (_id: ObjectId, _uid: string, run: CanvasFlowRunState) => {
+        project.activeFlowRun = run;
+      },
+      scheduleFlowTask: () => {},
+      submitNodeQueued: async ({ nodeId }: { nodeId: string }) => {
+        submitted.push(nodeId);
+        const job = {
+          _id: new ObjectId(),
+          clerkUserId: "user-1",
+          canvasId: project._id,
+          nodeId,
+          provider: "openrouter",
+          modelId: "scro:tts",
+          providerModelId: "tts",
+          status: "queued",
+          inputSnapshot: {},
+          chargedUsd: 0.02,
+          outputKind: "audio",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as CanvasJob;
+        return { ok: true as const, job, creditUsd: 9 };
+      },
+      findCanvasJobsByIds: async () => [],
+    };
+    await startCanvasFlowRun({ clerkUserId: "user-1", canvasId: project._id.toHexString() }, flowDeps);
+    await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: project.activeFlowRun!.flowRunId, clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      flowDeps,
+    );
+    assert.deepEqual(submitted, ["b"]);
+  });
+
   it("halts gracefully when stopCanvasFlowRun sets aborted = true", async () => {
     const project = makeProject([
       {

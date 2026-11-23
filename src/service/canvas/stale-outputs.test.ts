@@ -6,6 +6,9 @@ import {
   clearStaleOutputs,
   downstreamNodeIds,
   isGenerationInputPatch,
+  isOutputStale,
+  markStaleOutputs,
+  outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
 
 const CLEARED_AT = "2026-11-23T08:00:00.000Z";
@@ -89,5 +92,44 @@ describe("stale outputs", () => {
     assert.equal(isGenerationInputPatch(data, { outputUrl: "https://blob/x", status: "completed" }), false);
     assert.equal(isGenerationInputPatch(data, { prompt: "a", toolParams: { ttsSpeed: 1 } }), false);
     assert.equal(isGenerationInputPatch(data, { label: "renamed" }), false);
+  });
+
+  it("keeps old previews but marks them stale downstream, skipping running nodes", () => {
+    const nodes = [ref, model("f"), model("v"), model("voice"), model("m", { status: "running" }), model("c")];
+    const edges = [edge("ref", "f"), edge("f", "v"), edge("v", "m"), edge("voice", "m"), edge("m", "c")];
+    const res = markStaleOutputs(nodes, edges, ["f"]);
+    assert.deepEqual(res.staleIds, ["f", "v", "c"]);
+    const byId = new Map(res.nodes.map((n) => [n.id, n]));
+    assert.equal(byId.get("f")?.data.outputUrl, "https://blob/f");
+    assert.equal(isOutputStale(byId.get("f")!.data), true);
+    assert.equal(isOutputStale(byId.get("voice")!.data), false);
+    assert.equal(isOutputStale(byId.get("m")!.data), false);
+  });
+
+  it("a regenerated output (new URL) is no longer stale", () => {
+    const stale = { ...model("f").data, staleOutputUrl: "https://blob/f" };
+    assert.equal(isOutputStale(stale), true);
+    assert.equal(isOutputStale({ ...stale, outputUrl: "https://blob/f-v2" }), false);
+  });
+
+  it("reports unapplied Explainer Settings edits on downstream nodes with output", () => {
+    const applied = {
+      skillSlug: "paper-cutout-explainer-video-director" as const,
+      backgroundId: "wood-cardboard",
+      textStyleId: "handwritten" as const,
+      sceneTextLanguage: "zh-Hant" as const,
+      presenterPosition: "auto" as const,
+    };
+    const settings: CanvasNode = {
+      id: "s",
+      type: "settings",
+      position: { x: 0, y: 0 },
+      data: { explainerSettings: { plannerVideoId: "v", topic: "t", applied, draft: { ...applied, backgroundId: "sky" } } },
+    };
+    const nodes = [settings, model("f"), model("v", { outputUrl: undefined }), model("x", { staleOutputUrl: "https://blob/x" })];
+    const reasons = outdatedNodeReasons(nodes, [edge("s", "f"), edge("f", "v")]);
+    assert.deepEqual([...reasons], [["f", "settings"], ["x", "inputs"]]);
+    const clean = { ...settings, data: { explainerSettings: { ...settings.data.explainerSettings!, draft: applied } } };
+    assert.equal(outdatedNodeReasons([clean, model("f")], [edge("s", "f")]).size, 0);
   });
 });

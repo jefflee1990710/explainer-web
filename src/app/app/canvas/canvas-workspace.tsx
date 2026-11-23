@@ -157,9 +157,9 @@ import {
   explainerSettingsChanges,
 } from "@/service/canvas/explainer-settings";
 import {
-  clearNodeOutput,
-  clearStaleOutputs,
   isGenerationInputPatch,
+  markStaleOutputs,
+  outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
@@ -428,6 +428,8 @@ function CanvasWorkspaceInner({
 
   const domainNodes = useMemo(() => toDomainNodes(nodes), [nodes]);
   const domainEdges = useMemo(() => toDomainEdges(edges), [edges]);
+  // Nodes whose preview is an old version, shown with a "needs regenerating" badge.
+  const outdatedNodes = useMemo(() => outdatedNodeReasons(domainNodes, domainEdges), [domainNodes, domainEdges]);
 
   const syncWallet = useCallback(
     (nextCreditUsd?: number) => {
@@ -581,21 +583,22 @@ function CanvasWorkspaceInner({
     [onNodesChange, scheduleAutosave, applyPendingGroupLayout, splitNodeChanges],
   );
 
-  // Clears the previews of changed nodes and everything downstream so Run regenerates them.
-  const clearStale = useCallback(
+  // Marks the previews of changed nodes and everything downstream as old versions; Run regenerates them.
+  const markStale = useCallback(
     (changedIds: readonly string[]) => {
       if (changedIds.length === 0) return;
-      const { clearedIds } = clearStaleOutputs(
+      const { staleIds } = markStaleOutputs(
         toDomainNodes(nodesRef.current),
         toDomainEdges(edgesRef.current),
         changedIds,
-        new Date().toISOString(),
       );
-      if (clearedIds.length === 0) return;
-      const clearedAt = new Date().toISOString();
-      const ids = new Set(clearedIds);
-      for (const id of ids) jobOutputRef.current.delete(id);
-      setNodes((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, data: clearNodeOutput(n.data, clearedAt) } : n)));
+      if (staleIds.length === 0) return;
+      const ids = new Set(staleIds);
+      setNodes((prev) =>
+        prev.map((n) =>
+          ids.has(n.id) && n.data.outputUrl ? { ...n, data: { ...n.data, staleOutputUrl: n.data.outputUrl } } : n,
+        ),
+      );
     },
     [setNodes],
   );
@@ -605,7 +608,7 @@ function CanvasWorkspaceInner({
       // Targets that lose an input wire get their previews cleared.
       const removedIds = new Set(changes.getByType("remove").map((c) => c.id));
       const staleTargets = edgesRef.current.filter((e) => removedIds.has(e.id)).map((e) => e.target);
-      clearStale(staleTargets);
+      markStale(staleTargets);
       onEdgesChange(changes);
       const meaningful =
         changes.getByType("remove").length > 0 ||
@@ -613,7 +616,7 @@ function CanvasWorkspaceInner({
         changes.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
-    [onEdgesChange, scheduleAutosave, clearStale],
+    [onEdgesChange, scheduleAutosave, markStale],
   );
 
   const onUpdateNodeData = useCallback(
@@ -625,22 +628,22 @@ function CanvasWorkspaceInner({
           n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n,
         ),
       );
-      if (stale) clearStale([nodeId]);
+      if (stale) markStale([nodeId]);
       scheduleAutosave();
     },
-    [setNodes, scheduleAutosave, clearStale],
+    [setNodes, scheduleAutosave, markStale],
   );
 
   const onDeleteNode = useCallback(
     (nodeId: string) => {
-      clearStale(edgesRef.current.filter((e) => e.source === nodeId).map((e) => e.target));
+      markStale(edgesRef.current.filter((e) => e.source === nodeId).map((e) => e.target));
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
       setEdges((prev) =>
         prev.filter((e) => e.source !== nodeId && e.target !== nodeId),
       );
       scheduleAutosave();
     },
-    [setNodes, setEdges, scheduleAutosave, clearStale],
+    [setNodes, setEdges, scheduleAutosave, markStale],
   );
 
   // Concat (and any multi-video handle) renders in edge order, so moving a row rewrites that order.
@@ -722,10 +725,10 @@ function CanvasWorkspaceInner({
           cleaned,
         );
       });
-      if (connection.target) clearStale([connection.target]);
+      if (connection.target) markStale([connection.target]);
       scheduleAutosave();
     },
-    [models, setEdges, scheduleAutosave, clearStale],
+    [models, setEdges, scheduleAutosave, markStale],
   );
 
   const getCenterPosition = useCallback(() => {
@@ -1121,9 +1124,10 @@ function CanvasWorkspaceInner({
   );
 
   // Explainer Settings: a text style change rewrites the frame prompts in place; anything
-  // else swaps the group for a free planning card that keeps the voiceover word for word.
+  // else, or an explicit Replan, swaps the group for a free planning card that keeps the
+  // voiceover word for word.
   const onApplyExplainerSettings = useCallback(
-    async (nodeId: string, next: ExplainerSettings) => {
+    async (nodeId: string, next: ExplainerSettings, options?: { replan?: boolean }) => {
       const settingsNode = nodesRef.current.find((n) => n.id === nodeId);
       const data = settingsNode?.data.explainerSettings;
       if (!settingsNode || !data) return;
@@ -1131,12 +1135,16 @@ function CanvasWorkspaceInner({
         setNodes((prev) =>
           prev.map((n) =>
             n.id === nodeId
-              ? { ...n, data: { ...n.data, explainerSettings: { ...data, applied, pending: undefined } } }
+              ? {
+                  ...n,
+                  data: { ...n.data, explainerSettings: { ...data, applied, pending: undefined, draft: undefined } },
+                }
               : n,
           ),
         );
-      const { changed, restyleOnly } = explainerSettingsChanges(data.applied, next);
-      if (changed.length === 0) {
+      const { changed, restyleOnly: restyleOnlyChange } = explainerSettingsChanges(data.applied, next);
+      const restyleOnly = restyleOnlyChange && !options?.replan;
+      if (changed.length === 0 && !options?.replan) {
         writeSettings(data.applied);
         scheduleAutosave();
         return;
@@ -1171,7 +1179,7 @@ function CanvasWorkspaceInner({
           }),
         );
         writeSettings(next);
-        clearStale([...prompts.keys()]);
+        markStale([...prompts.keys()]);
         scheduleAutosave();
         toast.success(isZh ? "已更新文字樣式，按 Run group 重新生成" : "Text style updated; press Run group to regenerate");
         return;
@@ -1193,11 +1201,11 @@ function CanvasWorkspaceInner({
       setNodes(nextNodes);
       setEdges(nextEdges);
       // Nodes outside the group that used its output lose that input.
-      clearStale(outsideTargets);
+      markStale(outsideTargets);
       updateGroups((prev) => prev.filter((g) => g.id !== group.id));
       await startDirectorPlan(card.id, { nodes: nextNodes, edges: nextEdges });
     },
-    [setNodes, setEdges, scheduleAutosave, snapshotGroups, isZh, clearStale, updateGroups, startDirectorPlan],
+    [setNodes, setEdges, scheduleAutosave, snapshotGroups, isZh, markStale, updateGroups, startDirectorPlan],
   );
 
   const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
@@ -1739,11 +1747,12 @@ function CanvasWorkspaceInner({
           case "remove_edge":
             setEdges((prev) => prev.filter((e) => e.id !== op.edgeId));
             break;
-          case "clear_output": {
+          case "mark_stale": {
             const ids = new Set(op.nodeIds);
-            for (const id of ids) jobOutputRef.current.delete(id);
             setNodes((prev) =>
-              prev.map((n) => (ids.has(n.id) ? { ...n, data: clearNodeOutput(n.data, op.clearedAt) } : n)),
+              prev.map((n) =>
+                ids.has(n.id) && n.data.outputUrl ? { ...n, data: { ...n.data, staleOutputUrl: n.data.outputUrl } } : n,
+              ),
             );
             break;
           }
@@ -2059,6 +2068,7 @@ function CanvasWorkspaceInner({
       onOpenLightbox: setLightbox,
       onPlanExplainer,
       onApplyExplainerSettings,
+      outdatedNodes,
     }),
     [
       models,
@@ -2075,6 +2085,7 @@ function CanvasWorkspaceInner({
       onGenerateOutfit,
       onPlanExplainer,
       onApplyExplainerSettings,
+      outdatedNodes,
     ],
   );
 

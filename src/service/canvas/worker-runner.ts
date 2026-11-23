@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/executor";
 import { executeCanvasFfmpegJob } from "@/service/canvas/ffmpeg-ops";
 import { computeExecutionWaves } from "@/service/canvas/graph";
+import { isOutputStale } from "@/service/canvas/stale-outputs";
 import { scheduleCanvasFlowWorkerTask } from "@/service/worker/schedule";
 import type { WorkerTaskExecutionResult } from "@/service/worker/task-executor";
 
@@ -343,7 +344,8 @@ export async function executeCanvasFlowTask(
         continue;
       }
       const node = fresh.nodes.find((n) => n.id === nodeId);
-      if (node?.data.status === "completed" && node.data.outputUrl?.trim()) {
+      // Completed nodes are reused unless their preview is an old version.
+      if (node?.data.status === "completed" && node.data.outputUrl?.trim() && !isOutputStale(node.data)) {
         continue;
       }
       runnableIds.push(nodeId);

@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Check, Loader2, SlidersHorizontal } from "lucide-react";
+import { Check, Loader2, RefreshCw, SlidersHorizontal, Undo2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import {
   EXPLAINER_PRESENTER_POSITIONS,
@@ -13,7 +13,9 @@ import {
   EXPLAINER_SKILL_SLUGS,
   type ExplainerSettings,
 } from "@/model/explainer-settings";
-import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
+import type { SubtitleLook } from "@/model/subtitle-look-id";
+import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
+import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   explainerBackgroundPresets,
@@ -31,22 +33,24 @@ import {
 import { useCanvasNodeActions } from "@/app/app/canvas/nodes/port-colors";
 
 export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { data: CanvasNodeData }) {
-  const { locale, isFlowRunning, onApplyExplainerSettings } = useCanvasNodeActions();
+  const { locale, isFlowRunning, onApplyExplainerSettings, onUpdateNodeData } = useCanvasNodeActions();
   const { t } = useI18n();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const settings = data.explainerSettings;
-  const [draft, setDraft] = useState<ExplainerSettings | null>(null);
-  const [applying, setApplying] = useState(false);
+  const [busy, setBusy] = useState<"apply" | "replan" | null>(null);
   if (!settings) return null;
 
   const applied = settings.applied;
-  const value = draft ?? applied;
+  const value = settings.draft ?? applied;
   const { changed, restyleOnly } = explainerSettingsChanges(applied, value);
   const backgrounds = explainerBackgroundPresets(value.skillSlug);
   const pick = (a: { zh: string; en: string }) => (isZh ? a.zh : a.en);
+  // Edits are saved as a draft on the node so downstream previews can show they are old.
+  const writeDraft = (draft: ExplainerSettings | undefined) =>
+    onUpdateNodeData(id, { explainerSettings: { ...settings, draft } });
   // A new art style resets the background to that director's default.
   const update = (patch: Partial<ExplainerSettings>) =>
-    setDraft(
+    writeDraft(
       normalizeExplainerSettings({
         ...value,
         ...(patch.skillSlug && patch.skillSlug !== value.skillSlug ? { backgroundId: undefined } : {}),
@@ -54,15 +58,15 @@ export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { 
       }),
     );
 
-  const apply = async () => {
-    setApplying(true);
+  const run = async (mode: "apply" | "replan") => {
+    setBusy(mode);
     try {
-      await onApplyExplainerSettings(id, value);
-      setDraft(null);
+      await onApplyExplainerSettings(id, value, mode === "replan" ? { replan: true } : undefined);
     } finally {
-      setApplying(false);
+      setBusy(null);
     }
   };
+  const locked = busy !== null || isFlowRunning;
 
   return (
     <div
@@ -96,40 +100,46 @@ export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { 
           </select>
         </label>
 
-        <label className={DIALOG_LABEL}>
+        <div className={DIALOG_LABEL}>
           {isZh ? "背景" : "Background"}
-          <select
-            value={value.backgroundId ?? ""}
-            disabled={backgrounds.length === 0}
-            onChange={(e) => update({ backgroundId: e.target.value })}
-            className={`${DIALOG_FIELD} disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            {backgrounds.length === 0 ? (
+          {backgrounds.length === 0 ? (
+            <select disabled value="" className={`${DIALOG_FIELD} disabled:cursor-not-allowed disabled:opacity-50`}>
               <option value="">{isZh ? "白板（此畫風固定）" : "Whiteboard (fixed for this style)"}</option>
-            ) : (
-              backgrounds.map((bg) => (
-                <option key={bg.id} value={bg.id}>
-                  {isZh ? bg.nameZhHant : bg.nameEn}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
+            </select>
+          ) : (
+            <CanvasPreviewSelect
+              value={value.backgroundId ?? ""}
+              ariaLabel={isZh ? "背景" : "Background"}
+              options={backgrounds.map((bg) => ({
+                value: bg.id,
+                label: isZh ? bg.nameZhHant : bg.nameEn,
+                sublabel: isZh ? bg.descriptionZhHant : bg.descriptionEn,
+                previewUrl: bg.previewUrl,
+                swatch: bg.swatch,
+              }))}
+              onChange={(backgroundId) => update({ backgroundId })}
+            />
+          )}
+        </div>
 
-        <label className={DIALOG_LABEL}>
+        <div className={DIALOG_LABEL}>
           {isZh ? "畫面文字樣式" : "On-screen text style"}
-          <select
+          <CanvasPreviewSelect
             value={value.textStyleId}
-            onChange={(e) => update({ textStyleId: e.target.value as SubtitleLook })}
-            className={DIALOG_FIELD}
-          >
-            {SUBTITLE_LOOK_IDS.map((look) => (
-              <option key={look} value={look}>
-                {subtitleLookLabel(t, look).label}
-              </option>
-            ))}
-          </select>
-        </label>
+            ariaLabel={isZh ? "畫面文字樣式" : "On-screen text style"}
+            options={SYSTEM_TEXT_STYLE_ORDER.map((look) => {
+              const copy = subtitleLookLabel(t, look);
+              return {
+                value: look,
+                label: copy.label,
+                sublabel: copy.sublabel,
+                previewUrl: systemTextStylePreview(look),
+                previewFit: "contain" as const,
+              };
+            })}
+            onChange={(look) => update({ textStyleId: look as SubtitleLook })}
+          />
+        </div>
 
         <label className={DIALOG_LABEL}>
           {isZh ? "畫面文字語言" : "On-screen text language"}
@@ -162,41 +172,58 @@ export function ExplainerSettingsNodeCard({ id, data, selected }: NodeProps & { 
         </label>
 
         {changed.length > 0 ? (
-          <p className="rounded-[8px] bg-white/5 px-2 py-1.5 text-[10.5px] leading-relaxed text-white/55">
+          <p className="rounded-[8px] border border-amber-400/30 bg-amber-500/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-amber-100">
             {restyleOnly
               ? isZh
-                ? "會即時重寫每段靜幀的提示詞（免費），並清除舊預覽，之後按 Run group 重新生成。"
-                : "Rewrites every start-still prompt now (free) and clears the old previews; press Run group afterwards."
+                ? "設定未套用，下游預覽已標示為舊版本。按「套用」會免費重寫每段靜幀提示詞，之後按 Run group 重新生成。"
+                : "Not applied yet; downstream previews are marked as old. Apply rewrites every start-still prompt (free); then press Run group."
               : isZh
-                ? "會用相同主題和旁白免費重新規劃這組解說（約 1–2 分鐘），整組節點會換成新的。"
-                : "Re-plans this Explainer for free with the same topic and voiceover (about 1–2 minutes); the whole group is replaced."}
+                ? "設定未套用，下游預覽已標示為舊版本。這項更改需要免費重新規劃（約 1–2 分鐘），旁白逐字保留，整組節點會換成新的。"
+                : "Not applied yet; downstream previews are marked as old. This change needs a free re-plan (about 1–2 minutes) that keeps the voiceover word for word and replaces the group."}
           </p>
         ) : null}
 
         <div className="flex gap-2">
-          <button
-            type="button"
-            disabled={changed.length === 0 || applying || isFlowRunning}
-            onClick={() => void apply()}
-            className="nodrag inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#c6f24b] px-3 py-1.5 text-[11.5px] font-bold text-[#11141b] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {applying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            {restyleOnly || changed.length === 0
-              ? isZh
-                ? "套用"
-                : "Apply"
-              : isZh
-                ? "套用並重新規劃（免費）"
-                : "Apply and re-plan (free)"}
-          </button>
-          {draft && changed.length > 0 ? (
+          {changed.length > 0 && restyleOnly ? (
             <button
               type="button"
-              disabled={applying}
-              onClick={() => setDraft(null)}
-              className="nodrag cursor-pointer rounded-[10px] border border-white/10 px-2.5 text-[11px] text-white/55 transition hover:bg-white/8"
+              disabled={locked}
+              onClick={() => void run("apply")}
+              className="nodrag inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#c6f24b] px-3 py-1.5 text-[11.5px] font-bold text-[#11141b] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isZh ? "還原" : "Reset"}
+              {busy === "apply" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {isZh ? "套用" : "Apply"}
+            </button>
+          ) : null}
+          {/* Replan is always available: re-runs planning with these settings, keeping the voiceover. */}
+          <button
+            type="button"
+            disabled={locked}
+            onClick={() => void run("replan")}
+            title={
+              isZh
+                ? "用目前設定免費重新規劃這組解說，旁白逐字保留"
+                : "Re-plan this Explainer for free with these settings, keeping the voiceover"
+            }
+            className={`nodrag inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11.5px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+              changed.length > 0 && !restyleOnly
+                ? "bg-[#c6f24b] text-[#11141b] hover:brightness-105"
+                : "border border-white/12 text-white/80 hover:bg-white/8"
+            }`}
+          >
+            {busy === "replan" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {isZh ? "重新規劃（免費）" : "Replan (free)"}
+          </button>
+          {changed.length > 0 ? (
+            <button
+              type="button"
+              // Discarding a draft never touches outputs, so it stays available during a run.
+              disabled={busy !== null}
+              onClick={() => writeDraft(undefined)}
+              title={isZh ? "還原為目前套用的設定" : "Back to the applied settings"}
+              className="nodrag cursor-pointer rounded-[10px] border border-white/10 px-2 text-white/55 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
             </button>
           ) : null}
         </div>

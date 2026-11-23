@@ -8,6 +8,7 @@ import type { CanvasNodeData } from "@/model/canvas";
 import { BLUEPRINT_COST_USD } from "@/service/credit-costs";
 import { formatUsd } from "@/service/billing/usd";
 import { CHARACTER_OUTFIT_PORTS } from "@/service/canvas/character-node";
+import { OutdatedBanner, OutdatedPreviewTag } from "@/app/app/canvas/nodes/outdated-notice";
 import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -18,7 +19,7 @@ export function CharacterNodeCard({
   data,
   selected,
 }: NodeProps & { data: CanvasNodeData }) {
-  const { edges, locale, onDeleteNode, onOpenLightbox, onGenerateOutfit, onUpdateNodeData } =
+  const { edges, locale, onDeleteNode, onOpenLightbox, onGenerateOutfit, onUpdateNodeData, outdatedNodes } =
     useCanvasNodeActions();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const color = PORT_COLOR_MAP.image;
@@ -28,6 +29,7 @@ export function CharacterNodeCard({
     edges.filter((edge) => edge.target === id && edge.targetHandle).map((edge) => edge.targetHandle),
   );
   const resultUrl = data.outputUrl?.trim();
+  const outdated = busy ? undefined : outdatedNodes.get(id);
 
   return (
     <div
@@ -102,8 +104,10 @@ export function CharacterNodeCard({
       </div>
 
       <div className="space-y-2 p-2.5">
+        {outdated ? <OutdatedBanner reason={outdated} isZh={isZh} /> : null}
         {resultUrl ? (
-          <div className="relative overflow-hidden rounded-[10px] bg-black/40">
+          <div className={`relative overflow-hidden rounded-[10px] bg-black/40 ${outdated ? "opacity-70" : ""}`}>
+            {outdated ? <OutdatedPreviewTag isZh={isZh} /> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={resultUrl} alt={isZh ? "新造型" : "New outfit"} className="max-h-[140px] w-full object-contain" />
           </div>

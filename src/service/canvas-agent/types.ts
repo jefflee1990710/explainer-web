@@ -27,7 +27,8 @@ export type CanvasAgentOp =
   | { kind: "remove_edge"; edgeId: string }
   | { kind: "move_node"; nodeId: string; position: { x: number; y: number } }
   // Previews made stale by an input change go back to idle so Run regenerates them.
-  | { kind: "clear_output"; nodeIds: string[]; clearedAt: string }
+  // Keeps these previews but marks them as old versions that Run regenerates.
+  | { kind: "mark_stale"; nodeIds: string[] }
   | { kind: "add_group"; group: CanvasGroup }
   | {
       kind: "update_group";

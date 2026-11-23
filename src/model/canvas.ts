@@ -52,6 +52,8 @@ export type CanvasNodeData = {
   lastCostUsd?: number;
   // ISO time an input change cleared this preview; older outputs must not come back.
   outputClearedAt?: string;
+  // outputUrl that was made before an input changed; equal to outputUrl means "old version".
+  staleOutputUrl?: string;
   // Explainer Settings node fields
   explainerSettings?: ExplainerSettingsNodeData;
 };
@@ -245,6 +247,7 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   lastError: z.string().optional(),
   lastCostUsd: z.number().finite().nonnegative().optional(),
   outputClearedAt: z.string().optional(),
+  staleOutputUrl: z.string().optional(),
   explainerSettings: explainerSettingsNodeDataSchema.optional(),
 });
 

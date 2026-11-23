@@ -34,6 +34,8 @@ export type ExplainerSettingsNodeData = {
   applied: ExplainerSettings;
   // Written by the assistant; the client applies it after replaying the turn.
   pending?: ExplainerSettings;
+  // Unapplied dropdown edits; downstream previews show as old until Apply or Replan.
+  draft?: ExplainerSettings;
 };
 
 export const explainerSettingsSchema: z.ZodType<ExplainerSettings> = z.object({
@@ -49,4 +51,5 @@ export const explainerSettingsNodeDataSchema: z.ZodType<ExplainerSettingsNodeDat
   topic: z.string(),
   applied: explainerSettingsSchema,
   pending: explainerSettingsSchema.optional(),
+  draft: explainerSettingsSchema.optional(),
 });

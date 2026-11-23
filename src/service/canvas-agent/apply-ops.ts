@@ -2,7 +2,6 @@
 // the agent's edits onto the live graph, where the user may have changed things.
 
 import { withGroup } from "@/service/canvas/groups";
-import { clearNodeOutput } from "@/service/canvas/stale-outputs";
 import type { CanvasAgentGraph, CanvasAgentOp } from "@/service/canvas-agent/types";
 
 export function applyCanvasAgentOp(
@@ -32,13 +31,15 @@ export function applyCanvasAgentOp(
         applied: true,
       };
 
-    case "clear_output": {
+    case "mark_stale": {
       const ids = new Set(op.nodeIds.filter(hasNode));
       if (ids.size === 0) return skip;
       return {
         graph: {
           ...graph,
-          nodes: nodes.map((n) => (ids.has(n.id) ? { ...n, data: clearNodeOutput(n.data, op.clearedAt) } : n)),
+          nodes: nodes.map((n) =>
+            ids.has(n.id) && n.data.outputUrl ? { ...n, data: { ...n.data, staleOutputUrl: n.data.outputUrl } } : n,
+          ),
         },
         applied: true,
       };

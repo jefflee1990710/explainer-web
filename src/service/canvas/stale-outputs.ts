@@ -1,6 +1,7 @@
-// Pure: clears canvas previews made stale by an input change, plus everything downstream.
+// Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
 import type { CanvasNodeData } from "@/model/canvas";
+import { explainerSettingsChanges } from "@/service/canvas/explainer-settings";
 
 type GraphNode = { id: string; type: string; data: CanvasNodeData };
 type GraphEdge = { source: string; target: string };
@@ -64,6 +65,57 @@ function hasStaleState(node: GraphNode): boolean {
   const status = node.data.status;
   if (status === "queued" || status === "running") return false;
   return Boolean(node.data.outputUrl) || status === "completed" || status === "failed";
+}
+
+// The preview was made before an input changed. A new output gets a new URL, which ends it.
+export function isOutputStale(data: CanvasNodeData): boolean {
+  return Boolean(data.outputUrl && data.staleOutputUrl === data.outputUrl);
+}
+
+// Keeps the old preview, marked as an old version that Run must regenerate.
+export function markStaleOutputs<N extends GraphNode>(
+  nodes: readonly N[],
+  edges: readonly GraphEdge[],
+  changedIds: readonly string[],
+): { nodes: N[]; staleIds: string[] } {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const staleIds = downstreamNodeIds(edges, changedIds).filter((id) => {
+    const node = byId.get(id);
+    if (!node || (node.type !== "model" && node.type !== "character")) return false;
+    if (node.data.status === "queued" || node.data.status === "running") return false;
+    return Boolean(node.data.outputUrl) && !isOutputStale(node.data);
+  });
+  if (staleIds.length === 0) return { nodes: [...nodes], staleIds };
+  const stale = new Set(staleIds);
+  return {
+    nodes: nodes.map((n) =>
+      stale.has(n.id) ? { ...n, data: { ...n.data, staleOutputUrl: n.data.outputUrl } } : n,
+    ),
+    staleIds,
+  };
+}
+
+// Why a node's preview is an old version: its inputs changed, or an unapplied Explainer Settings edit.
+export type OutdatedReason = "inputs" | "settings";
+
+export function outdatedNodeReasons(
+  nodes: readonly GraphNode[],
+  edges: readonly GraphEdge[],
+): Map<string, OutdatedReason> {
+  const reasons = new Map<string, OutdatedReason>();
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  for (const node of nodes) {
+    const settings = node.data.explainerSettings;
+    if (node.type !== "settings" || !settings?.draft) continue;
+    if (explainerSettingsChanges(settings.applied, settings.draft).changed.length === 0) continue;
+    for (const id of downstreamNodeIds(edges, [node.id])) {
+      if (id !== node.id && byId.get(id)?.data.outputUrl) reasons.set(id, "settings");
+    }
+  }
+  for (const node of nodes) {
+    if (isOutputStale(node.data)) reasons.set(node.id, "inputs");
+  }
+  return reasons;
 }
 
 export function clearStaleOutputs<N extends GraphNode>(

@@ -24,7 +24,7 @@ import {
 } from "@/service/canvas/groups";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
-import { clearStaleOutputs, isGenerationInputPatch } from "@/service/canvas/stale-outputs";
+import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/stale-outputs";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
@@ -97,8 +97,6 @@ export type CanvasAgentWorkingGraph = {
   // Set by ask_user; the turn stops and the dock shows it as clickable options.
   question?: CanvasAgentQuestion;
   nextId: () => string;
-  // ISO time stamped on previews this turn clears.
-  now: () => string;
 };
 
 export type CanvasAgentToolResult = Record<string, unknown>;
@@ -114,7 +112,6 @@ export function createWorkingGraph(input: {
   // This turn's user message; ask_user uses it to block questions the request already answers.
   message?: string;
   nextId?: () => string;
-  now?: () => string;
 }): CanvasAgentWorkingGraph {
   const characters =
     input.characters ??
@@ -132,17 +129,15 @@ export function createWorkingGraph(input: {
     ops: [],
     addedNodes: 0,
     nextId: input.nextId ?? (() => crypto.randomUUID().slice(0, 8)),
-    now: input.now ?? (() => new Date().toISOString()),
   };
 }
 
-// Clears the changed nodes' previews and everything downstream, logged as one op.
+// Marks the changed nodes' previews and everything downstream as old versions, logged as one op.
 export function markStale(g: CanvasAgentWorkingGraph, changedIds: readonly string[]): void {
-  const clearedAt = g.now();
-  const res = clearStaleOutputs(g.nodes, g.edges, changedIds, clearedAt);
-  if (res.clearedIds.length === 0) return;
+  const res = markStaleOutputs(g.nodes, g.edges, changedIds);
+  if (res.staleIds.length === 0) return;
   g.nodes = res.nodes;
-  g.ops.push({ kind: "clear_output", nodeIds: res.clearedIds, clearedAt });
+  g.ops.push({ kind: "mark_stale", nodeIds: res.staleIds });
 }
 
 const EXPLAINER_REQUEST = /explainer|解說|講解|解释|讲解/i;
@@ -298,6 +293,7 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           characterId: node.data.characterId,
           status: node.data.status ?? "idle",
           hasOutput: Boolean(node.data.outputUrl),
+          ...(isOutputStale(node.data) ? { outdated: true } : {}),
         }
       : {}),
     // Explainer Settings: change these only through update_explainer_settings.
@@ -318,6 +314,8 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
           status: node.data.status ?? "idle",
           hasOutput: Boolean(node.data.outputUrl),
+          // The preview predates an input change; Run regenerates it.
+          ...(isOutputStale(node.data) ? { outdated: true } : {}),
         }
       : {}),
   };

@@ -478,24 +478,23 @@ describe("canvas agent tools", () => {
       catalog: STATIC_CANVAS_MODELS,
       assets: [asset],
       nextId: () => `id${++n}`,
-      now: () => "2026-11-23T08:00:00.000Z",
     });
     assert.ok(!("error" in T.update_node(g, { nodeId: "exp-a-frame-1", prompt: "blue board" })));
-    const clear = g.ops.find((op) => op.kind === "clear_output");
-    assert.deepEqual(clear, {
-      kind: "clear_output",
+    const stale = g.ops.find((op) => op.kind === "mark_stale");
+    assert.deepEqual(stale, {
+      kind: "mark_stale",
       nodeIds: ["exp-a-frame-1", "exp-a-video-1", "exp-a-mux-1", "exp-a-concat-1"],
-      clearedAt: "2026-11-23T08:00:00.000Z",
     });
     const byId = new Map(g.nodes.map((x) => [x.id, x]));
-    assert.equal(byId.get("exp-a-video-1")?.data.outputUrl, undefined);
-    assert.equal(byId.get("exp-a-voice-1")?.data.outputUrl, "https://blob/x");
+    assert.equal(byId.get("exp-a-video-1")?.data.outputUrl, "https://blob/x");
+    assert.equal(byId.get("exp-a-video-1")?.data.staleOutputUrl, "https://blob/x");
+    assert.equal(byId.get("exp-a-voice-1")?.data.staleOutputUrl, undefined);
     assert.equal(byId.get("exp-a-frame-1")?.data.prompt, "blue board");
 
-    // Unwiring the voice changes what the mux renders, so the mux (already cleared) stays idle.
+    // Unwiring the voice changes what the mux renders, but the mux is already marked old.
     g.ops.length = 0;
     assert.ok(!("error" in T.disconnect(g, { edgeId: "e3" })));
-    assert.equal(g.ops.filter((op) => op.kind === "clear_output").length, 0);
+    assert.equal(g.ops.filter((op) => op.kind === "mark_stale").length, 0);
   });
 
   it("batch_add_nodes builds and wires a multi-shot pipeline via local keys and rolls back on failure", () => {
