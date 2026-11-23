@@ -71,6 +71,7 @@ describe("update_settings", () => {
     const g = canvas();
     assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", values: { sectionLength: 40 } }));
     assert.ok("error" in updateSettings(g, { groupId: "missing", values: {} }));
+    assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", values: { swapMode: "colorfix" } }));
   });
 
   it("refuses direct edits to fields the settings node controls", () => {

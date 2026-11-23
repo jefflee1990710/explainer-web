@@ -10,6 +10,7 @@ import {
 } from "@/model/canvas-settings";
 import { settingsOverridesById, settingsStaleTargets } from "@/service/canvas/settings/apply";
 import { settingsChangedKeys } from "@/service/canvas/settings/registry";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { markStaleOutputs } from "@/service/canvas/stale-outputs";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 
@@ -53,6 +54,18 @@ export function updateSettings(g: CanvasAgentWorkingGraph, input: UpdateSettings
     return { error: `Invalid settings: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}` };
   }
   const next = { kind: current.kind, values: parsed.data } as CanvasSettingsData;
+  if (current.kind === "swap" && next.kind === "swap") {
+    // Color fix has no render step, so switching to or from it needs a new Swap group.
+    const rendersVideo = g.edges.some(
+      (e) =>
+        e.source === picked.id &&
+        e.targetHandle === SETTINGS_HANDLE &&
+        g.nodes.find((n) => n.id === e.target)?.data.modelId === "scro:swap-render",
+    );
+    if (rendersVideo ? next.values.swapMode === "colorfix" : current.values.swapMode === "colorfix" && next.values.swapMode !== "colorfix") {
+      return { error: "Switching to or from color fix changes the group's steps; delete the group and add a new Swap group instead." };
+    }
+  }
   const changed = settingsChangedKeys(current, next);
   if (changed.length === 0) return { error: "These are already the settings; nothing changes." };
 

@@ -21,8 +21,9 @@ import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { EXPLAINER_SETTINGS_HANDLE } from "@/service/canvas/explainer-settings";
-import { EXPLAINER_SETTINGS_COLOR } from "@/app/app/canvas/nodes/explainer-settings-options";
+import { mergeSettingsPatch } from "@/service/canvas/settings/apply";
+import { acceptsAnySettings, settingsKindDef } from "@/service/canvas/settings/registry";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
@@ -50,6 +51,7 @@ export function ModelNodeCard({
 }: NodeProps & { data: CanvasNodeData }) {
   const {
     catalog,
+    nodes,
     edges,
     characterOptions,
     locale,
@@ -61,6 +63,7 @@ export function ModelNodeCard({
     onOpenLightbox,
     onPlanExplainer,
     outdatedNodes,
+    settingsOverrides,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -115,10 +118,30 @@ export function ModelNodeCard({
     );
   }
 
-  const toolParams = data.toolParams ?? {};
+  // What the node will actually run with: its own values with the wired settings on top.
+  const override = settingsOverrides.get(id);
+  const effective = override ? mergeSettingsPatch(data, override) : data;
+  const controlled = (field: string) =>
+    Boolean(
+      override &&
+        (field.startsWith("toolParams.")
+          ? override.toolParams && field.slice("toolParams.".length) in override.toolParams
+          : override[field as "aspectRatio" | "durationSeconds" | "prompt"] !== undefined),
+    );
+  const settingsEdge = edges.find((e) => e.target === id && e.targetHandle === SETTINGS_HANDLE);
+  const wiredSettings = settingsEdge ? nodes.find((n) => n.id === settingsEdge.source)?.data.settings : undefined;
+  const wiredSettingsDef = wiredSettings ? settingsKindDef(wiredSettings.kind) : undefined;
+  const wiredSettingsLabel = wiredSettingsDef ? (isZh ? wiredSettingsDef.label.zh : wiredSettingsDef.label.en) : undefined;
+  const controlledTitle = wiredSettingsLabel
+    ? isZh
+      ? `由「${wiredSettingsLabel}」節點控制`
+      : `Controlled by ${wiredSettingsLabel}`
+    : undefined;
+
+  const toolParams = effective.toolParams ?? {};
   const updateToolParam = (key: string, value: unknown) => {
     onUpdateNodeData(id, {
-      toolParams: { ...toolParams, [key]: value },
+      toolParams: { ...(data.toolParams ?? {}), [key]: value },
     });
   };
 
@@ -141,7 +164,7 @@ export function ModelNodeCard({
             ? 30
             : undefined;
   const durationSeconds =
-    data.durationSeconds ?? durationPresetSec ?? spec.defaultDurationSeconds ?? 5;
+    effective.durationSeconds ?? durationPresetSec ?? spec.defaultDurationSeconds ?? 5;
   const pricedSeconds =
     spec.provider === "google" &&
     spec.category === "video" &&
@@ -155,8 +178,8 @@ export function ModelNodeCard({
     referenceImages: incomingByHandle.get("refImages") ?? 0,
   });
   const activePreset =
-    data.presetId && spec.presets.includes(data.presetId)
-      ? data.presetId
+    effective.presetId && spec.presets.includes(effective.presetId)
+      ? effective.presetId
       : spec.defaultPresetId;
 
   // Check if all required non-prompt ports are wired (prompt can come inline or wired).
@@ -330,27 +353,31 @@ export function ModelNodeCard({
             </div>
           );
         })}
-        {/* Explainer Settings wire: shows which settings node styles this frame. */}
-        {(incomingByHandle.get(EXPLAINER_SETTINGS_HANDLE) ?? 0) > 0 ? (
+        {/* Settings wire: which settings node controls this node. */}
+        {acceptsAnySettings({ id, type: "model", data }) ? (
           <div className="relative flex items-center justify-between px-3.5 py-0.5 text-[11px]">
             <Handle
               type="target"
-              id={EXPLAINER_SETTINGS_HANDLE}
+              id={SETTINGS_HANDLE}
               position={Position.Left}
-              isConnectable={false}
               style={{
                 width: 11,
                 height: 11,
-                backgroundColor: EXPLAINER_SETTINGS_COLOR,
-                border: `2px solid ${EXPLAINER_SETTINGS_COLOR}`,
+                backgroundColor: wiredSettingsDef?.color ?? "#0b0e13",
+                border: `2px solid ${wiredSettingsDef?.color ?? "#64748b"}`,
                 left: -6,
               }}
             />
             <span className="flex items-center gap-1.5 text-white/80">
-              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: EXPLAINER_SETTINGS_COLOR }} />
-              <span>{isZh ? "解說設定" : "Explainer Settings"}</span>
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: wiredSettingsDef?.color ?? "#64748b" }}
+              />
+              <span>{wiredSettingsLabel ?? (isZh ? "設定" : "Settings")}</span>
             </span>
-            <span className="text-[10px] text-white/45">{isZh ? "已連" : "Wired"}</span>
+            <span className="text-[10px] text-white/45">
+              {wiredSettingsLabel ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
+            </span>
           </div>
         ) : null}
       </div>
@@ -366,13 +393,15 @@ export function ModelNodeCard({
             </div>
           ) : (
             <textarea
-              value={data.prompt ?? ""}
+              value={effective.prompt ?? ""}
               onChange={(e) => onUpdateNodeData(id, { prompt: e.target.value })}
+              disabled={controlled("prompt")}
+              title={controlled("prompt") ? controlledTitle : undefined}
               rows={3}
               placeholder={
                 isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
               }
-              className="nodrag nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
+              className="nodrag disabled:cursor-not-allowed disabled:opacity-50 nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
             />
           )
         ) : null}
@@ -403,13 +432,15 @@ export function ModelNodeCard({
                   {isZh ? "比例" : "Ratio"}
                 </label>
                 <select
-                  value={data.aspectRatio ?? "16:9"}
+                  value={effective.aspectRatio ?? "16:9"}
+                  disabled={controlled("aspectRatio")}
+                  title={controlled("aspectRatio") ? controlledTitle : undefined}
                   onChange={(e) =>
                     onUpdateNodeData(id, {
                       aspectRatio: e.target.value as CanvasNodeData["aspectRatio"],
                     })
                   }
-                  className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
+                  className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
                 >
                   {(spec.provider === "google"
                     ? ASPECT_OPTIONS.filter((ratio) => spec.presets.includes(ratio))
@@ -461,13 +492,15 @@ export function ModelNodeCard({
                   min={spec.minDurationSeconds ?? 5}
                   max={spec.maxDurationSeconds ?? 15}
                   value={durationSeconds}
+                  disabled={controlled("durationSeconds")}
+                  title={controlled("durationSeconds") ? controlledTitle : undefined}
                   onChange={(e) => {
                     const parsed = Number(e.target.value);
                     if (Number.isFinite(parsed)) {
                       onUpdateNodeData(id, { durationSeconds: parsed });
                     }
                   }}
-                  className="nodrag rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
+                  className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
                 />
               </div>
             ) : null}
@@ -628,8 +661,10 @@ export function ModelNodeCard({
                   </label>
                   <select
                     value={String(toolParams.swapMode ?? "character")}
+                    disabled={controlled("toolParams.swapMode")}
+                    title={controlled("toolParams.swapMode") ? controlledTitle : undefined}
                     onChange={(e) => updateToolParam("swapMode", e.target.value)}
-                    className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                    className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                   >
                     <option value="character">{isZh ? "角色替換 (Character)" : "Character Swap"}</option>
                     <option value="object">{isZh ? "物件／穿搭替換 (Object)" : "Object / Outfit"}</option>
@@ -644,14 +679,18 @@ export function ModelNodeCard({
                     <input
                       type="text"
                       value={String(toolParams.objectTarget ?? "")}
+                      disabled={controlled("toolParams.objectTarget")}
+                      title={controlled("toolParams.objectTarget") ? controlledTitle : undefined}
                       onChange={(e) => updateToolParam("objectTarget", e.target.value)}
                       placeholder={isZh ? "目標物 (e.g. jacket)" : "Target (e.g. jacket)"}
-                      className="nodrag rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                      className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     />
                     <select
                       value={String(toolParams.objectEditMode ?? "change")}
+                      disabled={controlled("toolParams.objectEditMode")}
+                      title={controlled("toolParams.objectEditMode") ? controlledTitle : undefined}
                       onChange={(e) => updateToolParam("objectEditMode", e.target.value)}
-                      className="nodrag cursor-pointer rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                      className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     >
                       <option value="change">Change</option>
                       <option value="add">Add</option>
@@ -725,15 +764,19 @@ export function ModelNodeCard({
                     min={0}
                     step={0.1}
                     value={Number(toolParams.ffmpegStartSec ?? 0)}
+                    disabled={controlled("toolParams.ffmpegStartSec")}
+                    title={controlled("toolParams.ffmpegStartSec") ? controlledTitle : undefined}
                     onChange={(e) => updateToolParam("ffmpegStartSec", Number(e.target.value))}
                     placeholder="Start s"
-                    className="nodrag rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                    className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                   />
                   <input
                     type="number"
                     min={0}
                     step={0.1}
                     value={toolParams.ffmpegEndSec !== undefined ? Number(toolParams.ffmpegEndSec) : ""}
+                    disabled={controlled("toolParams.ffmpegEndSec")}
+                    title={controlled("toolParams.ffmpegEndSec") ? controlledTitle : undefined}
                     onChange={(e) =>
                       updateToolParam(
                         "ffmpegEndSec",
@@ -741,7 +784,7 @@ export function ModelNodeCard({
                       )
                     }
                     placeholder="End s"
-                    className="nodrag rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                    className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                   />
                   <input
                     type="number"
@@ -790,8 +833,10 @@ export function ModelNodeCard({
             {spec.id === "ffmpeg:color-grade" ? (
               <select
                 value={String(toolParams.gradeLook ?? "jutsu")}
+                disabled={controlled("toolParams.gradeLook")}
+                title={controlled("toolParams.gradeLook") ? controlledTitle : undefined}
                 onChange={(e) => updateToolParam("gradeLook", e.target.value)}
-                className="nodrag w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
+                className="nodrag disabled:cursor-not-allowed disabled:opacity-50 w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
               >
                 <option value="jutsu">{isZh ? "H3 Soft（換角／換場）" : "H3 Soft (Swap / Teleport)"}</option>
                 <option value="talking-head">{isZh ? "口播膠片質感" : "Talking head sensor texture"}</option>

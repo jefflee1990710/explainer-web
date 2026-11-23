@@ -2,6 +2,7 @@
 
 // Shared port colors, runtime status styles, and React Context for Canvas node cards.
 
+import type { SettingsPatch } from "@/service/canvas/settings/types";
 import { createContext, useContext } from "react";
 import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import type { ExplainerSettings } from "@/model/explainer-settings";
@@ -67,6 +68,8 @@ export type CanvasNodeActionsContextValue = {
   onApplyExplainerSettings: (nodeId: string, next: ExplainerSettings, options?: { replan?: boolean }) => Promise<void>;
   // Nodes whose preview is an old version and why.
   outdatedNodes: ReadonlyMap<string, OutdatedReason>;
+  // Values each wired settings node writes over its target at run time.
+  settingsOverrides: ReadonlyMap<string, SettingsPatch>;
 };
 
 export const CanvasNodeActionsContext =

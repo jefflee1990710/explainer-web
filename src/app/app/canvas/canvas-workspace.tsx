@@ -150,8 +150,15 @@ import {
   type CanvasViewLayout,
 } from "@/app/app/canvas/canvas-view-layout";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
-import { ExplainerSettingsNodeCard } from "@/app/app/canvas/nodes/explainer-settings-node-card";
-import { EXPLAINER_SETTINGS_COLOR } from "@/app/app/canvas/nodes/explainer-settings-options";
+import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
+import {
+  CANVAS_DRAG_SETTINGS_MIME,
+  isHandAddedSettingsKind,
+  type HandAddedSettingsKind,
+} from "@/app/app/canvas/canvas-settings-tool";
+import { settingsOverridesById, settingsStaleTargets } from "@/service/canvas/settings/apply";
+import { defaultSettings, settingsKindDef } from "@/service/canvas/settings/registry";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import type { ExplainerSettings } from "@/model/explainer-settings";
 import {
   buildExplainerReplanCard,
@@ -181,12 +188,17 @@ import {
 
 const SIDEBAR_OPEN_KEY = "scro.canvasSidebar.open";
 
+// Settings wires take the settings kind's color instead of a port color.
+function settingsStroke(node: CanvasNode | undefined): string | undefined {
+  return node?.type === "settings" && node.data.settings ? settingsKindDef(node.data.settings.kind).color : undefined;
+}
+
 const NODE_TYPES = {
   media: MediaNodeCard,
   prompt: PromptNodeCard,
   model: ModelNodeCard,
   character: CharacterNodeCard,
-  settings: ExplainerSettingsNodeCard,
+  settings: SettingsNodeCard,
   [GROUP_FRAME_TYPE]: GroupFrameNodeCard,
 } as const;
 
@@ -258,8 +270,7 @@ function toFlowEdges(
     const src = nodeMap.get(e.source);
     const tgt = nodeMap.get(e.target);
     const portType = src ? getNodeOutputPortType(src, catalog) : null;
-    const stroke =
-      src?.type === "settings" ? EXPLAINER_SETTINGS_COLOR : portType ? PORT_COLOR_MAP[portType] : "#c6f24b";
+    const stroke = settingsStroke(src) ?? (portType ? PORT_COLOR_MAP[portType] : "#c6f24b");
     const isTargetRunning =
       tgt?.type === "model" &&
       (tgt.data.status === "queued" || tgt.data.status === "running");
@@ -431,6 +442,7 @@ function CanvasWorkspaceInner({
   const domainEdges = useMemo(() => toDomainEdges(edges), [edges]);
   // Nodes whose preview is an old version, shown with a "needs regenerating" badge.
   const outdatedNodes = useMemo(() => outdatedNodeReasons(domainNodes, domainEdges), [domainNodes, domainEdges]);
+  const settingsOverrides = useMemo(() => settingsOverridesById(domainNodes, domainEdges), [domainNodes, domainEdges]);
 
   const syncWallet = useCallback(
     (nextCreditUsd?: number) => {
@@ -624,12 +636,18 @@ function CanvasWorkspaceInner({
     (nodeId: string, patch: Partial<CanvasNodeData>) => {
       const current = nodesRef.current.find((n) => n.id === nodeId);
       const stale = current ? isGenerationInputPatch(current.data, patch) : false;
+      // A Swap / Teleport settings edit only makes the targets whose run values change old.
+      const settingsTargets =
+        current?.type === "settings" && patch.settings && patch.settings.kind !== "explainer"
+          ? settingsStaleTargets(toDomainNodes(nodesRef.current), toDomainEdges(edgesRef.current), nodeId, patch.settings)
+          : [];
       setNodes((prev) =>
         prev.map((n) =>
           n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n,
         ),
       );
       if (stale) markStale([nodeId]);
+      if (settingsTargets.length > 0) markStale(settingsTargets);
       scheduleAutosave();
     },
     [setNodes, scheduleAutosave, markStale],
@@ -695,7 +713,7 @@ function CanvasWorkspaceInner({
       const srcNode = currentNodes.find((n) => n.id === connection.source);
       const tgtNode = currentNodes.find((n) => n.id === connection.target);
       const portType = srcNode ? getNodeOutputPortType(srcNode, models) : null;
-      const stroke = portType ? PORT_COLOR_MAP[portType] : "#c6f24b";
+      const stroke = settingsStroke(srcNode) ?? (portType ? PORT_COLOR_MAP[portType] : "#c6f24b");
 
       // If target handle is single-value, replace existing edge smoothly.
       const tgtSpec =
@@ -705,7 +723,10 @@ function CanvasWorkspaceInner({
       const tgtPort = tgtSpec?.inputs.find((p) => p.id === connection.targetHandle);
       const outfitPort =
         tgtNode?.type === "character" ? characterOutfitPort(connection.targetHandle ?? "") : undefined;
-      const replaceSingle = (tgtPort && !tgtPort.multiple) || (outfitPort && !outfitPort.multiple);
+      const replaceSingle =
+        connection.targetHandle === SETTINGS_HANDLE ||
+        (tgtPort && !tgtPort.multiple) ||
+        (outfitPort && !outfitPort.multiple);
 
       setEdges((prev) => {
         const cleaned = replaceSingle
@@ -839,6 +860,21 @@ function CanvasWorkspaceInner({
       scheduleAutosave();
     },
     [getCenterPosition, setNodes, setEdges, scheduleAutosave],
+  );
+
+  // Hand-added Swap / Teleport Settings node with default values; wire it onto trim / render / grade nodes.
+  const addSettingsNode = useCallback(
+    (kind: HandAddedSettingsKind, position?: { x: number; y: number }) => {
+      const newNode: FlowNode = {
+        id: `settings-${crypto.randomUUID().slice(0, 8)}`,
+        type: "settings",
+        position: position ?? getCenterPosition(),
+        data: { label: settingsKindDef(kind).label.zh, settings: defaultSettings(kind) },
+      };
+      setNodes((prev) => [...prev, newNode]);
+      scheduleAutosave();
+    },
+    [getCenterPosition, setNodes, scheduleAutosave],
   );
 
   const addPromptNode = useCallback((position?: { x: number; y: number }) => {
@@ -1885,6 +1921,12 @@ function CanvasWorkspaceInner({
         return;
       }
 
+      const settingsKind = event.dataTransfer.getData(CANVAS_DRAG_SETTINGS_MIME);
+      if (isHandAddedSettingsKind(settingsKind)) {
+        addSettingsNode(settingsKind, position);
+        return;
+      }
+
       const rawAsset = event.dataTransfer.getData(CANVAS_DRAG_ASSET_MIME);
       if (rawAsset) {
         try {
@@ -1900,7 +1942,7 @@ function CanvasWorkspaceInner({
         void uploadAndPlaceFiles(event.dataTransfer.files, position);
       }
     },
-    [reactFlow, addModelNodeAt, addPromptNode, addAssetNodeAt, uploadAndPlaceFiles],
+    [reactFlow, addModelNodeAt, addPromptNode, addSettingsNode, addAssetNodeAt, uploadAndPlaceFiles],
   );
 
   const onGenerateOutfit = useCallback(
@@ -2070,6 +2112,7 @@ function CanvasWorkspaceInner({
       onPlanExplainer,
       onApplyExplainerSettings,
       outdatedNodes,
+      settingsOverrides,
     }),
     [
       models,
@@ -2087,6 +2130,7 @@ function CanvasWorkspaceInner({
       onPlanExplainer,
       onApplyExplainerSettings,
       outdatedNodes,
+      settingsOverrides,
     ],
   );
 
@@ -2126,6 +2170,7 @@ function CanvasWorkspaceInner({
             onAddModel={(id) => addModelNodeAt(id)}
             onAddAsset={(asset) => addAssetNodeAt(asset)}
             onAddPromptNode={() => addPromptNode()}
+            onAddSettingsNode={(kind) => addSettingsNode(kind)}
             onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
             onRefreshModels={() => void handleRefreshModels()}
           />

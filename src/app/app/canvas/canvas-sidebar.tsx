@@ -23,6 +23,12 @@ import {
   CanvasPromptTool,
   canvasPromptToolVisible,
 } from "@/app/app/canvas/canvas-prompt-tool";
+import {
+  CanvasSettingsTool,
+  canvasSettingsToolVisible,
+  HAND_ADDED_SETTINGS_KINDS,
+  type HandAddedSettingsKind,
+} from "@/app/app/canvas/canvas-settings-tool";
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
@@ -66,6 +72,7 @@ export function CanvasSidebar({
   onAddModel,
   onAddAsset,
   onAddPromptNode,
+  onAddSettingsNode,
   onUploadFiles,
   onRefreshModels,
 }: {
@@ -79,6 +86,7 @@ export function CanvasSidebar({
   onAddModel: (modelId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
   onAddPromptNode: () => void;
+  onAddSettingsNode: (kind: HandAddedSettingsKind) => void;
   onUploadFiles: (files: FileList | File[]) => void;
   onRefreshModels: () => void;
 }) {
@@ -160,6 +168,10 @@ export function CanvasSidebar({
 
   // A chip from the other tab does not apply here, so the groups show instead.
   const activeCategory = category && visibleCategories.includes(category) ? category : null;
+  const promptToolVisible = canvasPromptToolVisible(query, activeCategory !== null);
+  const settingsTools = HAND_ADDED_SETTINGS_KINDS.filter((kind) =>
+    canvasSettingsToolVisible(kind, query, activeCategory !== null),
+  );
 
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -315,9 +327,12 @@ export function CanvasSidebar({
 
           {/* Model list, grouped by kind when showing everything */}
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
-            {tab === "tools" && canvasPromptToolVisible(query, activeCategory !== null) ? (
+            {tab === "tools" && (promptToolVisible || settingsTools.length > 0) ? (
               <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
-                <CanvasPromptTool isZh={isZh} onAdd={onAddPromptNode} />
+                {promptToolVisible ? <CanvasPromptTool isZh={isZh} onAdd={onAddPromptNode} /> : null}
+                {settingsTools.map((kind) => (
+                  <CanvasSettingsTool key={kind} isZh={isZh} kind={kind} onAdd={onAddSettingsNode} />
+                ))}
               </div>
             ) : null}
             {(activeCategory
@@ -361,7 +376,7 @@ export function CanvasSidebar({
               </div>
             ))}
             {filteredModels.length === 0 &&
-            !(tab === "tools" && canvasPromptToolVisible(query, activeCategory !== null)) ? (
+            !(tab === "tools" && (promptToolVisible || settingsTools.length > 0)) ? (
               <p className="py-6 text-center text-xs text-white/40">
                 {isZh ? "找不到符合的模型" : "No matching models"}
               </p>
