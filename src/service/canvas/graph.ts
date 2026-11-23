@@ -14,6 +14,8 @@ import {
 } from "@/service/canvas/model-catalog";
 import { characterOutfitPort } from "@/service/canvas/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { settingsAccepts } from "@/service/canvas/settings/registry";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 
 export type CanvasEdgeCandidate = {
   source: string;
@@ -142,6 +144,23 @@ export function validateEdgeConnection(
       valid: false,
       reason: `Unsupported source handle "${sourceHandle}"`,
     };
+  }
+
+  // Settings edges carry no port value; the kind decides which targets may take them.
+  const settingsHandle = candidate.targetHandle ?? "";
+  if (sourceNode.type === "settings" || settingsHandle === SETTINGS_HANDLE) {
+    const settings = sourceNode.type === "settings" ? sourceNode.data.settings : undefined;
+    if (!settings || settingsHandle !== SETTINGS_HANDLE || !settingsAccepts(settings, targetNode)) {
+      return { valid: false, reason: "This settings node cannot connect to that input" };
+    }
+    const existing = edges.filter((e) => e.target === targetNode.id && e.targetHandle === SETTINGS_HANDLE);
+    if (existing.some((e) => e.source === sourceNode.id)) {
+      return { valid: false, reason: "These nodes are already connected" };
+    }
+    if (existing.length > 0 && !options?.allowReplaceSingle) {
+      return { valid: false, reason: "This node already has a settings node" };
+    }
+    return { valid: true };
   }
 
   const sourcePortType = getNodeOutputPortType(sourceNode, catalog);

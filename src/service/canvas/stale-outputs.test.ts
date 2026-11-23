@@ -133,4 +133,18 @@ describe("stale outputs", () => {
     const clean = { ...settings, data: { settings: { kind: "explainer" as const, ...explainerSettingsOf(settings.data)!, draft: applied } } };
     assert.equal(outdatedNodeReasons([clean, model("f")], [edge("s", "f")]).size, 0);
   });
+  it("does not derive old versions from Swap settings, which mark stale on edit", () => {
+    const swapSettings: CanvasNode = {
+      id: "s",
+      type: "settings",
+      position: { x: 0, y: 0 },
+      data: {
+        settings: {
+          kind: "swap",
+          values: { swapMode: "character", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
+        },
+      },
+    };
+    assert.equal(outdatedNodeReasons([swapSettings, model("g")], [edge("s", "g")]).size, 0);
+  });
 });

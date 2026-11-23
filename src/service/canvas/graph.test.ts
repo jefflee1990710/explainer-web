@@ -735,3 +735,52 @@ describe("canvas graph — reorderTargetHandleEdges", () => {
     assert.deepEqual(reorderTargetHandleEdges(edges, "concat", "videos", 1, 1), edges);
   });
 });
+
+describe("canvas graph — settings edges", () => {
+  const settingsNode: CanvasNode = {
+    id: "s",
+    type: "settings",
+    position: { x: 0, y: 0 },
+    data: {
+      settings: {
+        kind: "swap",
+        values: { swapMode: "character", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
+      },
+    },
+  };
+  const grade: CanvasNode = { id: "g", type: "model", position: { x: 0, y: 0 }, data: { modelId: "ffmpeg:color-grade" } };
+  const tts: CanvasNode = { id: "t", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts" } };
+  const candidate = (target: string, targetHandle = "settings") => ({
+    source: "s",
+    sourceHandle: "output",
+    target,
+    targetHandle,
+  });
+
+  it("allows a settings node onto an accepted target's settings handle", () => {
+    assert.deepEqual(validateEdgeConnection([settingsNode, grade], [], candidate("g")), { valid: true });
+  });
+
+  it("rejects targets the kind does not accept and non-settings handles", () => {
+    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, false);
+    assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g", "video")).valid, false);
+  });
+
+  it("rejects a second settings wire unless replacing", () => {
+    const existing: CanvasEdge[] = [{ id: "e", source: "s2", sourceHandle: "output", target: "g", targetHandle: "settings" }];
+    const other = { ...settingsNode, id: "s2" };
+    assert.equal(validateEdgeConnection([settingsNode, other, grade], existing, candidate("g")).valid, false);
+    assert.deepEqual(
+      validateEdgeConnection([settingsNode, other, grade], existing, candidate("g"), undefined, { allowReplaceSingle: true }),
+      { valid: true },
+    );
+  });
+
+  it("rejects a normal output onto a settings handle", () => {
+    const prompt: CanvasNode = { id: "p", type: "prompt", position: { x: 0, y: 0 }, data: { text: "x" } };
+    assert.equal(
+      validateEdgeConnection([prompt, grade], [], { source: "p", sourceHandle: "output", target: "g", targetHandle: "settings" }).valid,
+      false,
+    );
+  });
+});

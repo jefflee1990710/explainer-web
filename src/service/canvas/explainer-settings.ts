@@ -23,9 +23,10 @@ import {
 import type { SceneTextChoice } from "@/model/project";
 import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
 import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 
 // Frame target handle the settings edges land on. It is not a model input.
-export const EXPLAINER_SETTINGS_HANDLE = "settings";
+export const EXPLAINER_SETTINGS_HANDLE = SETTINGS_HANDLE;
 
 // Marker lines the plan source uses; everything from the first marker on is not the topic.
 const PRESENTER_MARKER = "【版面】";

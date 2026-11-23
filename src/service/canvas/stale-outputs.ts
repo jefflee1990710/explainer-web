@@ -96,7 +96,8 @@ export function markStaleOutputs<N extends GraphNode>(
   };
 }
 
-// Why a node's preview is an old version: its inputs changed, or an unapplied Explainer Settings edit.
+// Why a node's preview is an old version: its inputs changed, or an unapplied Explainer Settings draft.
+// Swap / Teleport settings edits are stored as staleOutputUrl, so they report "inputs".
 export type OutdatedReason = "inputs" | "settings";
 
 export function outdatedNodeReasons(
