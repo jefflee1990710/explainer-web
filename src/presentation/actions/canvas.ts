@@ -35,6 +35,7 @@ import {
   serializeCanvasProject,
 } from "@/service/canvas/projects";
 import {
+  executeCanvasFlowTask,
   startCanvasFlowRun,
   stopCanvasFlowRun,
 } from "@/service/canvas/worker-runner";
@@ -380,12 +381,33 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
     return { nodes: [], creditUsd: 0 };
   }
 
-  // In local dev without an external Vast worker, nudge in-flight wave jobs on poll.
-  if (!shouldUseWorkerQueueOnly() && project.activeFlowRun?.activeWaveJobIds?.length) {
-    await pollCanvasJobs({
-      clerkUserId: user.clerkUserId,
-      canvasId,
-      jobIds: project.activeFlowRun.activeWaveJobIds,
+  // Local dev has no Vast worker. Polling settles the current wave and, once its
+  // jobs are done, advances or finishes the flow. Otherwise a restarted dev server
+  // leaves activeFlowRun running and locks Replan.
+  if (!shouldUseWorkerQueueOnly() && project.activeFlowRun?.status === "running") {
+    if (project.activeFlowRun.activeWaveJobIds?.length) {
+      await pollCanvasJobs({
+        clerkUserId: user.clerkUserId,
+        canvasId,
+        jobIds: project.activeFlowRun.activeWaveJobIds,
+      }).catch(() => {});
+    }
+    const now = new Date();
+    await executeCanvasFlowTask({
+      _id: new ObjectId(),
+      kind: "canvas_flow",
+      lane: "cpu",
+      status: "in_progress",
+      targetId: canvasId,
+      payload: {
+        flowRunId: project.activeFlowRun.flowRunId,
+        clerkUserId: user.clerkUserId,
+      },
+      attempts: 1,
+      maxAttempts: 5,
+      nextAttemptAt: now,
+      createdAt: now,
+      updatedAt: now,
     }).catch(() => {});
     project =
       (await col.findOne({

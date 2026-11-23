@@ -176,6 +176,7 @@ describe("canvas worker runner — multi-wave flow", () => {
       },
       findCanvasJobsByIds: async (_cid: ObjectId, _uid: string, ids: ObjectId[]) =>
         ids.map((id) => jobs.get(id.toHexString())!).filter(Boolean),
+      claimFlowStep: async () => true,
     };
 
     const startRes = await startCanvasFlowRun(
@@ -264,6 +265,7 @@ describe("canvas worker runner — multi-wave flow", () => {
         return { ok: true as const, job, creditUsd: 9 };
       },
       findCanvasJobsByIds: async () => [],
+      claimFlowStep: async () => true,
     };
     await startCanvasFlowRun({ clerkUserId: "user-1", canvasId: project._id.toHexString() }, flowDeps);
     await executeCanvasFlowTask(
@@ -395,11 +397,64 @@ describe("canvas worker runner — multi-wave flow", () => {
         markNodeFailed: async (_cid, _uid, nodeId, error) => {
           markedFailed.push({ nodeId, error });
         },
+        claimFlowStep: async () => true,
       },
     );
     assert.equal(res.outcome, "completed");
     assert.equal(project.activeFlowRun?.status, "failed");
     assert.deepEqual(markedFailed, [{ nodeId: "img", error: "USD Credit 餘額不足" }]);
+  });
+
+  it("does not submit a wave while another step holds the flow lock", async () => {
+    const project = makeProject([
+      {
+        id: "img",
+        type: "model",
+        position: { x: 0, y: 0 },
+        data: { modelId: "openrouter:bytedance-seed/seedream-5-0-pro", prompt: "Fox" },
+      },
+    ]);
+    project.activeFlowRun = {
+      flowRunId: "flow-lock",
+      status: "running",
+      currentWave: 1,
+      totalWaves: 1,
+      waveIndex: 0,
+      waves: [["img"]],
+      activeWaveJobIds: [],
+      failedNodeIds: [],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    let submitted = 0;
+    const res = await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: "flow-lock", clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        findCanvasProject: async () => ({ ...project }),
+        claimFlowStep: async () => false,
+        submitNodeQueued: async () => {
+          submitted += 1;
+          return { ok: false, error: "should not submit" };
+        },
+      },
+    );
+    assert.equal(res.outcome, "requeue");
+    if (res.outcome === "requeue") assert.equal(res.stage, "flow_locked");
+    assert.equal(submitted, 0);
+    assert.equal(project.activeFlowRun?.status, "running");
   });
 });
 

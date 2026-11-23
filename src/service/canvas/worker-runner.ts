@@ -126,8 +126,17 @@ export type CanvasFlowWorkerDeps = {
     clerkUserId: string,
     jobIds: ObjectId[],
   ) => Promise<CanvasJob[]>;
+  // True when this caller owns the flow step. False means another step is in progress.
+  claimFlowStep: (canvasId: ObjectId, clerkUserId: string, flowRunId: string) => Promise<boolean>;
   now: () => Date;
 };
+
+// Drop the step lease before saving, so the next poll can take the following wave.
+function flowRunWithoutLock(run: CanvasFlowRunState): CanvasFlowRunState {
+  const next = { ...run };
+  delete next.stepLockUntil;
+  return next;
+}
 
 function defaultFlowDeps(): CanvasFlowWorkerDeps {
   return {
@@ -181,6 +190,25 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
       if (jobIds.length === 0) return [];
       const col = await canvasJobsCollection();
       return col.find({ _id: { $in: jobIds }, canvasId, clerkUserId }).toArray();
+    },
+    claimFlowStep: async (canvasId, clerkUserId, flowRunId) => {
+      const col = await canvasProjectsCollection();
+      const now = new Date();
+      const res = await col.updateOne(
+        {
+          _id: canvasId,
+          clerkUserId,
+          "activeFlowRun.flowRunId": flowRunId,
+          "activeFlowRun.status": "running",
+          $or: [
+            { "activeFlowRun.stepLockUntil": { $exists: false } },
+            { "activeFlowRun.stepLockUntil": null },
+            { "activeFlowRun.stepLockUntil": { $lte: now } },
+          ],
+        },
+        { $set: { "activeFlowRun.stepLockUntil": new Date(now.getTime() + 20_000) } },
+      );
+      return res.modifiedCount === 1;
     },
     now: () => new Date(),
   };
@@ -285,9 +313,26 @@ export async function executeCanvasFlowTask(
     return { outcome: "completed", stage: `flow_${run.status}` };
   }
 
-  const failedSet = new Set(run.failedNodeIds ?? []);
-  let waveIndex = run.waveIndex;
-  let activeWaveJobIds = [...(run.activeWaveJobIds ?? [])];
+  // One owner per step. The page poll and the local after() loop both call this.
+  const claimed = await resolved.claimFlowStep(canvasObjectId, clerkUserId, flowRunId);
+  if (!claimed) {
+    return { outcome: "requeue", delayMs: 3_000, stage: "flow_locked" };
+  }
+  const owned = await resolved.findCanvasProject(canvasObjectId, clerkUserId);
+  const ownedRun = owned?.activeFlowRun;
+  if (!owned || !ownedRun || ownedRun.flowRunId !== flowRunId) {
+    return { outcome: "completed", stage: "flow_superseded" };
+  }
+  if (ownedRun.aborted || ownedRun.status === "stopped") {
+    return { outcome: "completed", stage: "flow_aborted" };
+  }
+  if (ownedRun.status === "completed" || ownedRun.status === "failed") {
+    return { outcome: "completed", stage: `flow_${ownedRun.status}` };
+  }
+
+  const failedSet = new Set(ownedRun.failedNodeIds ?? []);
+  let waveIndex = ownedRun.waveIndex;
+  let activeWaveJobIds = [...(ownedRun.activeWaveJobIds ?? [])];
 
   // 1. Poll any in-flight jobs from the current wave.
   if (activeWaveJobIds.length > 0) {
@@ -307,7 +352,7 @@ export async function executeCanvasFlowTask(
 
     if (stillRunning) {
       const updatedRun: CanvasFlowRunState = {
-        ...run,
+        ...flowRunWithoutLock(ownedRun),
         failedNodeIds: [...failedSet],
         updatedAt: resolved.now(),
       };
@@ -315,7 +360,7 @@ export async function executeCanvasFlowTask(
       return {
         outcome: "requeue",
         delayMs: 3_000,
-        progress: Math.min(95, Math.round(((waveIndex + 0.5) / Math.max(1, run.waves.length)) * 100)),
+        progress: Math.min(95, Math.round(((waveIndex + 0.5) / Math.max(1, ownedRun.waves.length)) * 100)),
         stage: `wave_${waveIndex + 1}_running`,
       };
     }
@@ -326,13 +371,13 @@ export async function executeCanvasFlowTask(
   }
 
   // 2. Start the next runnable wave.
-  while (waveIndex < run.waves.length) {
+  while (waveIndex < ownedRun.waves.length) {
     const fresh = await resolved.findCanvasProject(canvasObjectId, clerkUserId);
     if (!fresh?.activeFlowRun || fresh.activeFlowRun.aborted) {
       return { outcome: "completed", stage: "flow_aborted" };
     }
 
-    const wave = run.waves[waveIndex] ?? [];
+    const wave = ownedRun.waves[waveIndex] ?? [];
     const runnableIds: string[] = [];
 
     for (const nodeId of wave) {
@@ -383,10 +428,10 @@ export async function executeCanvasFlowTask(
 
     if (newJobIds.length > 0) {
       const nextRun: CanvasFlowRunState = {
-        ...run,
+        ...flowRunWithoutLock(ownedRun),
         status: "running",
         currentWave: waveIndex + 1,
-        totalWaves: run.waves.length,
+        totalWaves: ownedRun.waves.length,
         waveIndex,
         activeWaveJobIds: newJobIds,
         failedNodeIds: [...failedSet],
@@ -396,7 +441,7 @@ export async function executeCanvasFlowTask(
       return {
         outcome: "requeue",
         delayMs: 3_000,
-        progress: Math.min(95, Math.round(((waveIndex + 0.2) / Math.max(1, run.waves.length)) * 100)),
+        progress: Math.min(95, Math.round(((waveIndex + 0.2) / Math.max(1, ownedRun.waves.length)) * 100)),
         stage: `wave_${waveIndex + 1}_queued`,
       };
     }
@@ -406,11 +451,11 @@ export async function executeCanvasFlowTask(
 
   const finalStatus = failedSet.size > 0 ? "failed" : "completed";
   const finishedRun: CanvasFlowRunState = {
-    ...run,
+    ...flowRunWithoutLock(ownedRun),
     status: finalStatus,
-    currentWave: run.waves.length,
-    totalWaves: run.waves.length,
-    waveIndex: run.waves.length,
+    currentWave: ownedRun.waves.length,
+    totalWaves: ownedRun.waves.length,
+    waveIndex: ownedRun.waves.length,
     activeWaveJobIds: [],
     failedNodeIds: [...failedSet],
     ...(failedSet.size > 0 ? { error: `${failedSet.size} 個節點執行失敗` } : {}),

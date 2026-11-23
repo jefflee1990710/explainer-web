@@ -94,6 +94,8 @@ export type CanvasFlowRunState = {
   error?: string;
   startedAt: Date;
   updatedAt: Date;
+  // Short lease so a poll and the local runner cannot start the same wave twice.
+  stepLockUntil?: Date;
 };
 
 export type CanvasGroupKind =
@@ -288,6 +290,7 @@ export const canvasFlowRunStateSchema: z.ZodType<CanvasFlowRunState> = z.object(
   error: z.string().optional(),
   startedAt: z.date(),
   updatedAt: z.date(),
+  stepLockUntil: z.date().optional(),
 });
 
 export const canvasGroupKindSchema = z.enum([
