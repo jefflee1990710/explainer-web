@@ -111,13 +111,16 @@ describe("explainer director", () => {
       },
       { id: "photo", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "image", mediaUrl: "https://x/p.png" } },
     ];
-    const wired = [{ id: "e", source: "jim", target: "dir", targetHandle: "character" }];
+    const wired = [{ source: "jim", target: "dir", targetHandle: "character" }];
     assert.deepEqual(wiredDirectorCharacter("dir", nodes, wired), {
       nodeId: "jim",
       characterId: "jim-id",
       label: "Jim",
     });
-    assert.equal(wiredDirectorCharacter("dir", nodes, [{ id: "e", source: "photo", target: "dir", targetHandle: "character" }]), undefined);
+    assert.equal(
+      wiredDirectorCharacter("dir", nodes, [{ source: "photo", target: "dir", targetHandle: "character" }]),
+      undefined,
+    );
     const node = director({ characterId: "dropdown" });
     const next = directorNodeWithWiredCharacter(node, nodes, wired);
     assert.equal(next.data.toolParams?.characterId, "jim-id");
