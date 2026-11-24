@@ -15,7 +15,7 @@ import type {
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
 import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/character-node";
-import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { isExplainerPlannerNode, TALKING_HEAD_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
 import {
   canvasGroupsForProject,
   defaultGroupColor,
@@ -161,8 +161,8 @@ const TALKING_HEAD_WORDS = /talking[\s-]?head|口播|對鏡頭|对镜头|on[\s-]
 const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "scro:talking-head": ["characterId", "language", "framing", "styleId"],
   "scro:explainer": ["characterId", "language", "skillSlug", "durationPreset", "styleId", "productId"],
-  "scro:swap": ["characterId", "swapMode", "lightLookId", "objectTarget", "objectEditMode"],
-  "scro:teleport": [],
+  "scro:swap": ["characterId", "swapMode", "lightLookId", "objectTarget", "objectEditMode", "sectionStart", "sectionLength"],
+  "scro:teleport": ["sectionStart", "sectionLength", "sceneText"],
   "scro:life": ["characterId", "poseId"],
   "scro:poster": ["characterId", "productId", "styleId"],
   "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed", "ttsConversational"],
@@ -512,7 +512,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         return { error: `Unknown characterId "${input.characterId}". Call list_assets() and use an exact id.` };
       }
       // Planning card: the canvas plans it for free right after this turn, then expands it.
-      return addNode(g, "model", {
+      const created = addNode(g, "model", {
         modelId: "scro:talking-head",
         aspectRatio: aspect,
         prompt: text,
@@ -524,6 +524,96 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         },
         status: "idle",
       });
+      if (created.error || typeof created.nodeId !== "string") return created;
+      const source = g.nodes.find(
+        (n) => n.type === "character" && n.data.characterId === input.characterId,
+      );
+      if (!source) return created;
+      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
+        sourceId: source.id,
+        targetId: created.nodeId,
+        targetPort: DIRECTOR_CHARACTER_HANDLE,
+      });
+      if (linked.error) {
+        return { ...created, error: `Node ${created.nodeId} exists. Character wire failed: ${linked.error}` };
+      }
+      return created;
+    }
+
+    if (input.tool === "swap" || input.tool === "teleport") {
+      // Director card: the user presses Build on the canvas to expand trim → render → grade.
+      if (!input.videoNodeId && !input.videoAssetId) {
+        return { error: `${input.tool} needs videoNodeId or videoAssetId.` };
+      }
+      for (const assetId of [input.videoAssetId, input.referenceAssetId, input.sceneAssetId]) {
+        if (assetId && !g.assets.some((asset) => asset.id === assetId)) {
+          return { error: `Unknown asset "${assetId}".` };
+        }
+      }
+      const mode = input.mode ?? "character";
+      if (input.tool === "swap" && mode === "character" && !input.characterId && !input.referenceAssetId) {
+        return { error: "swap in character mode needs characterId or referenceAssetId." };
+      }
+      if (input.tool === "swap" && mode === "object" && !text) {
+        return { error: 'swap in object mode needs what to change into in "prompt".' };
+      }
+      if (input.tool === "teleport" && !input.sceneNodeId && !input.sceneAssetId && !input.sceneText?.trim()) {
+        return { error: "teleport needs sceneNodeId, sceneAssetId, or sceneText." };
+      }
+      if (input.characterId && !g.characters.some((c) => c.id === input.characterId)) {
+        return { error: `Unknown characterId "${input.characterId}". Call list_assets() and use an exact id.` };
+      }
+      const created = addNode(g, "model", {
+        modelId: input.tool === "swap" ? "scro:swap" : "scro:teleport",
+        aspectRatio: aspect,
+        prompt: text,
+        status: "idle",
+        toolParams: {
+          directorMode: true,
+          sectionStart: input.sectionStart ?? 0,
+          sectionLength: input.sectionLength ?? 6,
+          ...(input.tool === "swap"
+            ? {
+                swapMode: mode,
+                ...(input.characterId ? { characterId: input.characterId } : {}),
+                ...(input.objectTarget ? { objectTarget: input.objectTarget } : {}),
+                ...(input.objectEditMode ? { objectEditMode: input.objectEditMode } : {}),
+                ...(input.lightLookId ? { lightLookId: input.lightLookId } : {}),
+              }
+            : { sceneText: input.sceneText?.trim() ?? "" }),
+        },
+      });
+      if (created.error || typeof created.nodeId !== "string") return created;
+      const targetId = created.nodeId;
+      const wireErrors: string[] = [];
+      const connectTo = (sourceId: string, targetPort: string) => {
+        const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, { sourceId, targetId, targetPort });
+        if (linked.error) wireErrors.push(String(linked.error));
+      };
+      const connectAsset = (assetId: string, targetPort: string) => {
+        const existing = g.nodes.find((n) => n.type === "character" && n.data.characterId === assetId);
+        if (existing) {
+          connectTo(existing.id, targetPort);
+          return;
+        }
+        const media = CANVAS_AGENT_TOOL_HANDLERS.add_media_node(g, { assetId });
+        if (media.error || typeof media.nodeId !== "string") {
+          wireErrors.push(String(media.error ?? `Could not add asset "${assetId}"`));
+          return;
+        }
+        connectTo(media.nodeId, targetPort);
+      };
+      if (input.videoNodeId) connectTo(input.videoNodeId, "video");
+      else if (input.videoAssetId) connectAsset(input.videoAssetId, "video");
+      if (input.tool === "swap") {
+        if (input.referenceAssetId) connectAsset(input.referenceAssetId, "refImages");
+        else if (input.characterId) connectAsset(input.characterId, "refImages");
+      } else if (input.sceneNodeId) connectTo(input.sceneNodeId, "image");
+      else if (input.sceneAssetId) connectAsset(input.sceneAssetId, "image");
+      if (wireErrors.length > 0) {
+        return { ...created, error: `Node ${targetId} exists. Wires failed: ${wireErrors.join(" | ")}` };
+      }
+      return created;
     }
 
     const built = buildAgentScroGroup(g, input, aspect, text);
@@ -634,13 +724,19 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     }
     const targetNode = g.nodes.find((n) => n.id === input.targetId);
     const directorTarget = targetNode && isExplainerDirectorNode(targetNode);
+    const talkingTarget =
+      targetNode?.type === "model" &&
+      targetNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID &&
+      targetNode.data.toolParams?.plannerMode === true;
     if (
       targetNode &&
       isExplainerPlannerNode(targetNode) &&
       input.targetPort !== "settings" &&
-      !(directorTarget && input.targetPort === DIRECTOR_CHARACTER_HANDLE)
+      !((directorTarget || talkingTarget) && input.targetPort === DIRECTOR_CHARACTER_HANDLE)
     ) {
-      return { error: "An Explainer planning card takes no wires except an optional character; put the topic in its \"prompt\"." };
+      return {
+        error: "A planning card takes no wires except an optional character; put the topic or script in its \"prompt\".",
+      };
     }
     const candidate = {
       source: input.sourceId,
@@ -890,7 +986,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     add_scro_group: tool({
       description:
-        "Build a Scro tool (life, poster, swap, teleport, talking-head) as visible, wired nodes in one call. Talking-head lands as a free planning card that expands into voice → HeyGen → grade rows.",
+        "Build a Scro tool (life, poster, swap, teleport, talking-head). Life and Poster land as wired groups. Swap, Teleport, and Talking Head land as director cards; tell the user to press Build or Plan, then Run.",
       inputSchema: z.object({
         tool: z.enum(SCRO_GROUP_TOOLS),
         characterId: z.string().optional().describe("From list_assets().characters."),

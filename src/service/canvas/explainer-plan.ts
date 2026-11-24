@@ -78,14 +78,16 @@ export async function startCanvasExplainerPlan(params: {
   if (!loaded) return { ok: false, error: "找不到分鏡規劃節點" };
   const catalog = await getCanvasModelCatalog();
   const director = isExplainerDirectorNode(loaded.node);
-  const wired = director
-    ? wiredDirectorCharacter(loaded.node.id, loaded.canvas.nodes, loaded.canvas.edges)
-    : undefined;
+  const talkingHead = loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
+  const wired =
+    director || talkingHead
+      ? wiredDirectorCharacter(loaded.node.id, loaded.canvas.nodes, loaded.canvas.edges)
+      : undefined;
   if (wired && !wired.characterId) {
     return { ok: false, error: "連接的角色卡沒有可用的角色" };
   }
   // A wired character wins over the dropdown for this plan.
-  const plannerNode = director
+  const plannerNode = wired
     ? directorNodeWithWiredCharacter(loaded.node, loaded.canvas.nodes, loaded.canvas.edges)
     : loaded.node;
   const resolved = resolveNodeInputs(
@@ -116,6 +118,9 @@ export async function startCanvasExplainerPlan(params: {
           "nodes.$[n].data.toolParams.planStatus": "planning",
           // The plan records the parameters it started with, even if the card is edited meanwhile.
           ...(director ? { "nodes.$[n].data.toolParams.planningWith": directorParams(plannerNode) } : {}),
+          ...(wired?.characterId
+            ? { "nodes.$[n].data.toolParams.characterId": wired.characterId }
+            : {}),
           updatedAt: new Date(),
         },
         $unset: { "nodes.$[n].data.toolParams.planError": "" },

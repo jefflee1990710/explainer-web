@@ -14,6 +14,7 @@ import {
 } from "@/service/canvas/model-catalog";
 import { characterOutfitPort } from "@/service/canvas/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { isScroDirectorNode } from "@/service/canvas/scro-director";
 import {
   directorBaseVars,
   directorHandles,
@@ -642,7 +643,7 @@ export function computeExecutionWaves(
   const allModelIds: string[] = [];
   for (const node of nodes) {
     // Planner nodes only plan; their expanded nodes do the work.
-    if (node.type === "model" && !isExplainerPlannerNode(node)) {
+    if (node.type === "model" && !isExplainerPlannerNode(node) && !isScroDirectorNode(node)) {
       modelOrder.set(node.id, allModelIds.length);
       allModelIds.push(node.id);
     }

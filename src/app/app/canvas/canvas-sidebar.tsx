@@ -3,7 +3,7 @@
 // Left drawer for /app/canvas. Tabs run down the left edge; the list fills the right.
 // Collapsed, it becomes an icon column:
 // 1) Models (generators, edit, cutout, upscale)
-// 2) Director (Talking Head, Explainer, Scro Swap, Teleport)
+// 2) Director (Talking Head Director, Explainer, Scro Swap, Teleport)
 // 3) Tools (Prompt, Setting, Life Photo, Poster, and FFmpeg)
 // 4) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 

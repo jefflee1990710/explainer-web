@@ -55,12 +55,6 @@ function node(g: CanvasAgentWorkingGraph, id: string): CanvasNode {
   return found;
 }
 
-function bySuffix(g: CanvasAgentWorkingGraph, groupId: string, suffix: string): CanvasNode {
-  const found = g.nodes.find((n) => n.id === `${groupId}-${suffix}`);
-  assert.ok(found, `${groupId}-${suffix}`);
-  return found;
-}
-
 // The expanded explainer from a previous plan: Jim's photo, two stills, two clips.
 function explainer(): CanvasAgentWorkingGraph {
   const nodes: CanvasNode[] = [
@@ -208,7 +202,7 @@ describe("user changes frame image models", () => {
 });
 
 describe("user updates Swap and Teleport from the agent", () => {
-  it("edits the swap instruction and length, then rebuilds it with another character", () => {
+  it("edits the swap director, and replace_group leaves it alone", () => {
     const g = studio();
     const created = must(
       T.add_scro_group(g, {
@@ -219,41 +213,27 @@ describe("user updates Swap and Teleport from the agent", () => {
         sectionLength: 6,
         aspectRatio: "9:16",
       }),
-    ) as { groupId: string };
-    must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "instruction").id, text: "wear a red jacket" }));
+    ) as { nodeId: string };
     must(
-      T.update_group_nodes(g, {
-        groupId: created.groupId,
-        role: "trim",
-        toolParams: { ffmpegStartSec: 0, ffmpegEndSec: 10 },
+      T.update_node(g, {
+        nodeId: created.nodeId,
+        prompt: "wear a red jacket",
+        toolParams: { sectionLength: 10 },
       }),
     );
+    const card = node(g, created.nodeId);
+    assert.equal(card.data.modelId, "scro:swap");
+    assert.equal(card.data.prompt, "wear a red jacket");
+    assert.equal(card.data.toolParams?.sectionLength, 10);
+    assert.equal(card.data.toolParams?.characterId, JIM);
+    assert.ok(g.edges.some((e) => e.source === "clip" && e.target === created.nodeId && e.targetHandle === "video"));
+    assert.equal(g.nodes.some((n) => n.data.modelId === "scro:swap-render"), false);
 
-    assert.equal(bySuffix(g, created.groupId, "instruction").data.text, "wear a red jacket");
-    assert.equal(bySuffix(g, created.groupId, "render").data.durationSeconds, 10);
-    assert.ok(!g.nodes.some((n) => n.type === "settings"));
-
-    const refused = T.replace_group(g, { prompt: "new", groupId: created.groupId }) as { error?: string };
-    assert.match(refused.error ?? "", /only re-plans/);
-
-    must(T.delete_group(g, { groupId: created.groupId }));
-    assert.ok(g.nodes.some((n) => n.id === "clip"));
-    const rebuilt = must(
-      T.add_scro_group(g, {
-        tool: "swap",
-        videoNodeId: "clip",
-        characterId: CATHY,
-        prompt: "wear a red jacket",
-        sectionLength: 10,
-      }),
-    ) as { groupId: string };
-    const reference = g.nodes.find((n) => n.id.startsWith(`${rebuilt.groupId}-`) && n.type === "media");
-    assert.equal(reference?.data.mediaUrl, `${BLOB}/${CATHY}/photo.png`);
-    assert.equal(g.groups.find((gr) => gr.id === rebuilt.groupId)?.kind, "swap");
-    assert.equal(g.groups.some((gr) => gr.id === created.groupId), false);
+    const refused = T.replace_group(g, { prompt: "new", nodeId: created.nodeId }) as { error?: string };
+    assert.match(refused.error ?? "", /Explainer or Talking Head/);
   });
 
-  it("edits the teleport scene, mood, and length, then uses a lighter scene plate", () => {
+  it("keeps a teleport scene and mood on the director card", () => {
     const g = studio();
     const created = must(
       T.add_scro_group(g, {
@@ -263,29 +243,18 @@ describe("user updates Swap and Teleport from the agent", () => {
         prompt: "colder light",
         sectionLength: 6,
       }),
-    ) as { groupId: string };
-    assert.equal(bySuffix(g, created.groupId, "scene").data.modelId, SEEDREAM_MODEL_ID);
+    ) as { nodeId: string };
+    const card = node(g, created.nodeId);
+    assert.equal(card.data.modelId, "scro:teleport");
+    assert.equal(card.data.toolParams?.directorMode, true);
+    assert.equal(card.data.toolParams?.sceneText, "a rainy neon alley");
+    assert.equal(card.data.prompt, "colder light");
+    assert.equal(g.nodes.some((n) => n.data.modelId === SEEDREAM_MODEL_ID), false);
 
-    must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "scene-prompt").id, text: "a night market, no rain" }));
-    must(
-      T.update_group_nodes(g, {
-        groupId: created.groupId,
-        role: "trim",
-        toolParams: { ffmpegStartSec: 0, ffmpegEndSec: 12 },
-      }),
-    );
-    must(T.update_group_nodes(g, { groupId: created.groupId, role: "render", prompt: "warm lantern light" }));
-
-    assert.equal(bySuffix(g, created.groupId, "scene-prompt").data.text, "a night market, no rain");
-    assert.equal(bySuffix(g, created.groupId, "render").data.prompt, "warm lantern light");
-    assert.equal(bySuffix(g, created.groupId, "render").data.durationSeconds, 12);
-
-    const plate = replaceMemberModel(g, `${created.groupId}-scene`, LITE);
-    assert.equal(node(g, plate).data.modelId, LITE);
-    const group = g.groups.find((gr) => gr.id === created.groupId)!;
-    assert.equal(group.kind, "teleport");
-    assert.ok(group.memberIds.includes(plate));
-    assert.ok(g.edges.some((e) => e.source === plate && e.target === `${created.groupId}-render` && e.targetHandle === "image"));
+    must(T.update_node(g, { nodeId: created.nodeId, prompt: "warm lantern light", toolParams: { sceneText: "a night market, no rain", sectionLength: 12 } }));
+    assert.equal(node(g, created.nodeId).data.prompt, "warm lantern light");
+    assert.equal(node(g, created.nodeId).data.toolParams?.sceneText, "a night market, no rain");
+    assert.equal(node(g, created.nodeId).data.toolParams?.sectionLength, 12);
     assert.ok(g.nodes.some((n) => n.id === "clip"));
   });
 

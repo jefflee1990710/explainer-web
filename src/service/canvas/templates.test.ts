@@ -59,10 +59,12 @@ describe("canvas starter templates", () => {
       }
 
       const waves = computeExecutionWaves(nodes, edges);
-      if (template.id === "explainer") {
-        // Only a free planner: nothing runs until it expands.
+      if (template.id === "explainer" || template.id === "scro-swap" || template.id === "teleport") {
+        // Director cards plan or build first. Nothing runs until the rows exist.
         assert.deepEqual(waves, []);
-        assert.ok(nodes.some((n) => n.data.toolParams?.plannerMode === true));
+        assert.ok(
+          nodes.some((n) => n.data.toolParams?.plannerMode === true || n.data.toolParams?.directorMode === true),
+        );
         continue;
       }
       assert.ok(waves.length >= 1, `template ${template.id} should resolve to >= 1 wave`);

@@ -13,6 +13,7 @@ export type CanvasGroupActionsContextValue = {
   onToggleCollapse: (groupId: string) => void;
   onRun: (groupId: string) => void;
   onUngroup: (groupId: string) => void;
+  onDelete: (groupId: string) => void;
 };
 
 export const CanvasGroupActionsContext = createContext<CanvasGroupActionsContextValue | null>(null);

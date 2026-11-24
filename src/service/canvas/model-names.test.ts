@@ -18,10 +18,10 @@ describe("canvasModelDisplayName", () => {
 
   it("uses the locale name and falls back to the English catalog name", () => {
     const spec = findCanvasModel("scro:talking-head", STATIC_CANVAS_MODELS)!;
-    assert.equal(canvasModelDisplayName(spec, "en"), "Talking Head");
-    assert.equal(canvasModelDisplayName(spec, "zh-Hant"), "Talking Head 口播");
-    assert.equal(canvasModelDisplayName(spec, "ja"), "Talking Head トーク動画");
-    assert.equal(canvasModelDisplayName(spec, "es"), "Talking Head");
+    assert.equal(canvasModelDisplayName(spec, "en"), "Talking Head Director");
+    assert.equal(canvasModelDisplayName(spec, "zh-Hant"), "口播導演");
+    assert.equal(canvasModelDisplayName(spec, "ja"), "Talking Head Director");
+    assert.equal(canvasModelDisplayName(spec, "es"), "Talking Head Director");
     const seedream = findCanvasModel("openrouter:bytedance-seed/seedream-5-0-pro", STATIC_CANVAS_MODELS)!;
     assert.equal(canvasModelDisplayName(seedream, "zh-Hant"), seedream.name);
   });

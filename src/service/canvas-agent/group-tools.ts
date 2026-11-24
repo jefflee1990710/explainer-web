@@ -250,7 +250,7 @@ export function replaceGroup(
     nodeId: card.id,
     removedCount: target.nodes.length,
     ...(characterId ? { characterId, characterName } : {}),
-    note: `The old ${isTalking ? "Talking Head" : "Explainer"} is gone and a new planning card plans the new script for free; it becomes a new framed group when the rows appear. Tell the user to press Run group or Run Flow then. Do not add image or video nodes for it yourself.`,
+    note: `The old ${isTalking ? "Talking Head Director" : "Explainer"} is gone and a new planning card plans the new script for free; it becomes a new framed group when the rows appear. Tell the user to press Run group or Run Flow then. Do not add image or video nodes for it yourself.`,
   };
 }
 

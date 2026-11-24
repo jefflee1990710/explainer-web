@@ -14,15 +14,25 @@ export const TALKING_HEAD_FRAMINGS = [
   { id: "full-body", zh: "全身", en: "Full body" },
 ] as const;
 
+type WiredCharacter = { characterId?: string; label?: string };
+
 type Props = {
   data: CanvasNodeData;
   isZh: boolean;
   disabled: boolean;
   characterOptions: readonly CanvasLibraryCharacterOption[];
+  wiredCharacter?: WiredCharacter;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
 };
 
-export function TalkingHeadDirectorFields({ data, isZh, disabled, characterOptions, onUpdate }: Props) {
+export function TalkingHeadDirectorFields({
+  data,
+  isZh,
+  disabled,
+  characterOptions,
+  wiredCharacter,
+  onUpdate,
+}: Props) {
   const tp = data.toolParams ?? {};
   const setParams = (patch: Record<string, unknown>) => onUpdate({ toolParams: { ...tp, ...patch } });
   const ratio = (data.aspectRatio ?? "9:16") as CanvasAspectRatio;
@@ -42,11 +52,15 @@ export function TalkingHeadDirectorFields({ data, isZh, disabled, characterOptio
       <label className={DIALOG_LABEL}>
         {isZh ? "角色" : "Character"}
         <select
-          value={String(tp.characterId ?? "")}
+          value={wiredCharacter ? (wiredCharacter.characterId ?? "") : String(tp.characterId ?? "")}
+          disabled={Boolean(wiredCharacter)}
           onChange={(e) => setParams({ characterId: e.target.value || undefined })}
           className={DIALOG_FIELD}
         >
           <option value="">{isZh ? "請選擇角色" : "Choose a character"}</option>
+          {wiredCharacter?.characterId && !characterOptions.some((c) => c.id === wiredCharacter.characterId) ? (
+            <option value={wiredCharacter.characterId}>{wiredCharacter.label ?? wiredCharacter.characterId}</option>
+          ) : null}
           {characterOptions.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}

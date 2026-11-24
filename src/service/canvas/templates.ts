@@ -235,9 +235,10 @@ export function instantiateCanvasTemplate(
           data: {
             modelId: "scro:swap",
             presetId: "9:16",
+            aspectRatio: "9:16",
             durationSeconds: 6,
             prompt: "",
-            toolParams: { swapMode: "character" },
+            toolParams: { directorMode: true, swapMode: "character", sectionStart: 0, sectionLength: 6 },
             status: "idle",
           },
         },
@@ -256,7 +257,6 @@ export function instantiateCanvasTemplate(
 
   if (templateId === "teleport") {
     const vidId = id("source-video");
-    const scenePromptId = id("scene-prompt");
     const teleportId = id("teleport");
     return {
       nodes: [
@@ -271,15 +271,6 @@ export function instantiateCanvasTemplate(
           },
         },
         {
-          id: scenePromptId,
-          type: "prompt",
-          position: { x: 60, y: 280 },
-          data: {
-            label: "Scene Prompt",
-            text: "Modern minimalist Tokyo coffee bar with warm morning window light",
-          },
-        },
-        {
           id: teleportId,
           type: "model",
           position: { x: 400, y: 120 },
@@ -290,6 +281,12 @@ export function instantiateCanvasTemplate(
             durationSeconds: 6,
             prompt: "",
             status: "idle",
+            toolParams: {
+              directorMode: true,
+              sectionStart: 0,
+              sectionLength: 6,
+              sceneText: "Modern minimalist Tokyo coffee bar with warm morning window light",
+            },
           },
         },
       ],
@@ -300,13 +297,6 @@ export function instantiateCanvasTemplate(
           sourceHandle: "output",
           target: teleportId,
           targetHandle: "video",
-        },
-        {
-          id: id("e-scene-tp"),
-          source: scenePromptId,
-          sourceHandle: "output",
-          target: teleportId,
-          targetHandle: "prompt",
         },
       ],
     };

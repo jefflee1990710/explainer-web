@@ -9,10 +9,10 @@ type LocalizedName = Partial<Record<LocaleId, string>>;
 
 export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
   "scro:talking-head": {
-    "zh-Hant": "Talking Head 口播",
-    "zh-Hans": "Talking Head 口播",
-    ja: "Talking Head トーク動画",
-    ko: "Talking Head 토킹 영상",
+    "zh-Hant": "口播導演",
+    "zh-Hans": "口播导演",
+    ja: "Talking Head Director",
+    ko: "Talking Head Director",
   },
   "scro:explainer": {
     "zh-Hant": "Explainer 解說短片",
@@ -33,16 +33,16 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ko: "스토리보드 스틸",
   },
   "scro:swap": {
-    "zh-Hant": "Scro Swap 換角",
-    "zh-Hans": "Scro Swap 换角",
-    ja: "Scro Swap キャラ差し替え",
-    ko: "Scro Swap 캐릭터 교체",
+    "zh-Hant": "換角導演",
+    "zh-Hans": "换角导演",
+    ja: "Scro Swap Director",
+    ko: "Scro Swap Director",
   },
   "scro:teleport": {
-    "zh-Hant": "Teleport 實景換場",
-    "zh-Hans": "Teleport 实景换场",
-    ja: "Teleport 背景チェンジ",
-    ko: "Teleport 배경 전환",
+    "zh-Hant": "換場導演",
+    "zh-Hans": "换场导演",
+    ja: "Teleport Director",
+    ko: "Teleport Director",
   },
   "scro:swap-render": {
     "zh-Hant": "Scro Swap 換角渲染",

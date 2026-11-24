@@ -64,6 +64,8 @@ export type CanvasNodeActionsContextValue = {
   onOpenLightbox: (item: CanvasLightboxItem) => void;
   // Starts or retries free Explainer planning on a planning card.
   onPlanExplainer: (nodeId: string) => void;
+  // Expands a Swap or Teleport director into trim → render → grade.
+  onBuildScroDirector: (nodeId: string) => void;
   // Nodes whose preview is an old version and why.
   outdatedNodes: ReadonlyMap<string, OutdatedReason>;
 };

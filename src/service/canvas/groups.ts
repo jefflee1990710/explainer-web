@@ -31,7 +31,7 @@ const KIND_COLOR: Record<CanvasGroupKind, CanvasGroupColor> = {
 
 const KIND_TITLE: Record<CanvasGroupKind, string> = {
   explainer: "Explainer",
-  "talking-head": "Talking Head",
+  "talking-head": "Talking Head Director",
   life: "Life Photo",
   poster: "Poster",
   swap: "Scro Swap",

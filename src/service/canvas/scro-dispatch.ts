@@ -511,7 +511,7 @@ export async function createCanvasDirectorVideo(params: {
     skillId: skill._id,
     skillSlug: ruleSlug,
     styleId,
-    source: inputs.prompt?.trim() || (isTalking ? "Canvas Talking Head" : "Canvas Explainer"),
+    source: inputs.prompt?.trim() || (isTalking ? "Canvas Talking Head Director" : "Canvas Explainer"),
     ...(isTalking && inputs.prompt?.trim() ? { spokenScript: inputs.prompt.trim() } : {}),
     ...(isTalking ? { talkingHeadPoseId: readToolParamStr(node, "framing") ?? "collarbone-close" } : {}),
     aspectRatio,

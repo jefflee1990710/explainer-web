@@ -33,8 +33,11 @@ import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
+import { SwapDirectorCard } from "@/app/app/canvas/nodes/swap-director-card";
+import { TeleportDirectorCard } from "@/app/app/canvas/nodes/teleport-director-card";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { isExplainerDirectorNode, wiredDirectorCharacter } from "@/service/canvas/explainer-director";
+import { isSwapDirectorNode, isTeleportDirectorNode } from "@/service/canvas/scro-director";
 import {
   OUTDATED_BADGE_CLASS,
   OutdatedBanner,
@@ -71,6 +74,7 @@ export function ModelNodeCard({
     onSwapModel,
     onOpenLightbox,
     onPlanExplainer,
+    onBuildScroDirector,
     outdatedNodes,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -120,8 +124,39 @@ export function ModelNodeCard({
         selected={Boolean(selected)}
         disabled={isFlowRunning}
         characterOptions={characterOptions}
+        wiredCharacter={wiredDirectorCharacter(id, nodes, edges)}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
+        onRemove={() => onDeleteNode(id)}
+      />
+    );
+  }
+
+  if (isSwapDirectorNode({ type: "model", data }) || isTeleportDirectorNode({ type: "model", data })) {
+    const videoWired = incomingByHandle.has("video");
+    const swap = isSwapDirectorNode({ type: "model", data });
+    return swap ? (
+      <SwapDirectorCard
+        data={data}
+        isZh={isZh}
+        selected={Boolean(selected)}
+        disabled={isFlowRunning}
+        videoWired={videoWired}
+        referenceWired={incomingByHandle.has("refImages")}
+        onUpdate={(patch) => onUpdateNodeData(id, patch)}
+        onBuild={() => onBuildScroDirector(id)}
+        onRemove={() => onDeleteNode(id)}
+      />
+    ) : (
+      <TeleportDirectorCard
+        data={data}
+        isZh={isZh}
+        selected={Boolean(selected)}
+        disabled={isFlowRunning}
+        videoWired={videoWired}
+        sceneWired={incomingByHandle.has("image")}
+        onUpdate={(patch) => onUpdateNodeData(id, patch)}
+        onBuild={() => onBuildScroDirector(id)}
         onRemove={() => onDeleteNode(id)}
       />
     );

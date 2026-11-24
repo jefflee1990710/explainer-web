@@ -26,6 +26,7 @@ import {
   resolveNodeInputs,
 } from "@/service/canvas/graph";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { isScroDirectorNode } from "@/service/canvas/scro-director";
 import {
   type CanvasModelSpec,
   findCanvasModel,
@@ -639,11 +640,13 @@ export async function submitCanvasNodeJob(
     };
   }
 
-  if (isExplainerPlannerNode(node)) {
+  if (isExplainerPlannerNode(node) || isScroDirectorNode(node)) {
     return {
       ok: false,
       code: "INVALID_INPUTS",
-      error: "解說分鏡規劃完成後會展開成節點，請執行展開後的節點",
+      error: isScroDirectorNode(node)
+        ? "先按建立展開換角或換場，再執行展開後的節點"
+        : "解說分鏡規劃完成後會展開成節點，請執行展開後的節點",
     };
   }
 

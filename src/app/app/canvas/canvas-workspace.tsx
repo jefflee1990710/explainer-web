@@ -101,9 +101,15 @@ import {
 } from "@/service/canvas/explainer-layout";
 import { layoutGroupByDepth } from "@/service/canvas/group-layout";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
-import { buildBlankSwapGroup } from "@/service/canvas/scro-groups/swap";
-import { buildBlankTeleportGroup } from "@/service/canvas/scro-groups/teleport";
-import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/groups";
+import { defaultGroupColor, defaultGroupTitle, withGroup } from "@/service/canvas/groups";
+import {
+  buildSwapDirectorGroup,
+  buildTeleportDirectorGroup,
+  isScroDirectorNode,
+  isSwapDirectorNode,
+  readExpandedNodeIds,
+  scroDirectorBuildMessage,
+} from "@/service/canvas/scro-director";
 import {
   SCRO_DIALOG_TOOL_BY_MODEL,
   ScroGroupDialogs,
@@ -221,6 +227,37 @@ function talkingHeadDirectorNode(position: { x: number; y: number }, prompt = ""
         language: "yue",
         framing: "collarbone-close",
       },
+    },
+  };
+}
+
+// A dropped Swap or Teleport is the director card. Build expands the rows; the card stays.
+function swapDirectorNode(position: { x: number; y: number }, prompt = ""): FlowNode {
+  return {
+    id: `model-${crypto.randomUUID().slice(0, 8)}`,
+    type: "model",
+    position,
+    data: {
+      modelId: "scro:swap",
+      aspectRatio: "9:16",
+      prompt,
+      status: "idle",
+      toolParams: { directorMode: true, swapMode: "character", sectionStart: 0, sectionLength: 6 },
+    },
+  };
+}
+
+function teleportDirectorNode(position: { x: number; y: number }, prompt = "", sceneText = ""): FlowNode {
+  return {
+    id: `model-${crypto.randomUUID().slice(0, 8)}`,
+    type: "model",
+    position,
+    data: {
+      modelId: "scro:teleport",
+      aspectRatio: "9:16",
+      prompt,
+      status: "idle",
+      toolParams: { directorMode: true, sectionStart: 0, sectionLength: 6, sceneText },
     },
   };
 }
@@ -877,10 +914,9 @@ function CanvasWorkspaceInner({
         return;
       }
       if (spec.id === "scro:swap" || spec.id === "scro:teleport") {
-        const tool = spec.id === "scro:swap" ? "swap" : "teleport";
-        const ctx = { idPrefix: `${tool}-${crypto.randomUUID().slice(0, 6)}`, origin: pos };
-        const group = tool === "swap" ? buildBlankSwapGroup(ctx) : buildBlankTeleportGroup(ctx);
-        placeScroGroup(group, tool, pos);
+        const card = spec.id === "scro:swap" ? swapDirectorNode(pos) : teleportDirectorNode(pos);
+        setNodes((prev) => [...prev, card]);
+        scheduleAutosave();
         return;
       }
       const dialogTool = SCRO_DIALOG_TOOL_BY_MODEL[spec.id];
@@ -905,7 +941,7 @@ function CanvasWorkspaceInner({
       setNodes((prev) => [...prev, newNode]);
       scheduleAutosave();
     },
-    [models, getCenterPosition, setNodes, scheduleAutosave, placeScroGroup],
+    [models, getCenterPosition, setNodes, scheduleAutosave],
   );
 
   const addAssetNodeAt = useCallback(
@@ -1624,12 +1660,120 @@ function CanvasWorkspaceInner({
       if (!group) return;
       const members = new Set(group.memberIds);
       const runnable = nodesRef.current
-        .filter((n) => members.has(n.id) && n.type === "model")
+        .filter((n) => members.has(n.id) && n.type === "model" && !isScroDirectorNode(n))
         .map((n) => n.id);
       if (runnable.length === 0) return;
       void startFlowRun(runnable);
     },
     [groupsApi.groups, startFlowRun],
+  );
+
+  // Build replaces the previous trim → render → grade rows and keeps the director card.
+  const handleBuildScroDirector = useCallback(
+    (nodeId: string) => {
+      const node = nodesRef.current.find((n) => n.id === nodeId);
+      if (!node || !isScroDirectorNode(node)) return;
+      const swap = isSwapDirectorNode(node);
+      const videoNodeId = edgesRef.current.find((e) => e.target === nodeId && e.targetHandle === "video")?.source;
+      const referenceNodeId = edgesRef.current.find(
+        (e) => e.target === nodeId && e.targetHandle === (swap ? "refImages" : "image"),
+      )?.source;
+      const builtGroupId =
+        typeof node.data.toolParams?.builtGroupId === "string" && node.data.toolParams.builtGroupId
+          ? node.data.toolParams.builtGroupId
+          : `${swap ? "swap" : "teleport"}-${crypto.randomUUID().slice(0, 6)}`;
+      const input = {
+        directorId: nodeId,
+        videoNodeId,
+        referenceNodeId,
+        idPrefix: builtGroupId,
+        origin: { x: node.position.x + 380, y: node.position.y },
+      };
+      const built = swap ? buildSwapDirectorGroup(node, input) : buildTeleportDirectorGroup(node, input);
+      if ("error" in built) {
+        toast.error(scroDirectorBuildMessage(built.error, isZh));
+        return;
+      }
+      const previous = new Set(readExpandedNodeIds(node.data));
+      if (previous.size > 0) {
+        markStale(
+          edgesRef.current
+            .filter((e) => previous.has(e.source) && !previous.has(e.target))
+            .map((e) => e.target),
+        );
+      }
+      const kind = swap ? "swap" : "teleport";
+      setNodes((prev) => [
+        ...prev
+          .filter((n) => !previous.has(n.id))
+          .map((n) =>
+            n.id === nodeId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    toolParams: {
+                      ...(n.data.toolParams ?? {}),
+                      directorMode: true,
+                      builtGroupId,
+                      expandedNodeIds: built.expandedNodeIds,
+                    },
+                  },
+                }
+              : n,
+          ),
+        ...toFlowNodes(built.group.nodes),
+      ]);
+      setEdges((prev) => [
+        ...prev.filter((e) => !previous.has(e.source) && !previous.has(e.target)),
+        ...toFlowEdges(
+          built.group.edges,
+          [...toDomainNodes(nodesRef.current).filter((n) => !previous.has(n.id)), ...built.group.nodes],
+          models,
+        ),
+      ]);
+      const frame = {
+        id: builtGroupId,
+        title: defaultGroupTitle(kind),
+        color: defaultGroupColor(kind),
+        kind,
+        memberIds: built.memberIds,
+      };
+      updateGroups((prev) =>
+        prev.some((g) => g.id === builtGroupId)
+          ? prev.map((g) => (g.id === builtGroupId ? { ...g, memberIds: built.memberIds } : g))
+          : withGroup(prev, frame),
+      );
+      pendingGroupLayoutRef.current = {
+        ids: new Set(built.expandedNodeIds),
+        edges: built.group.edges,
+        origin: input.origin,
+        layout: "depth",
+      };
+      scheduleAutosave();
+      window.setTimeout(applyPendingGroupLayout, 600);
+    },
+    [isZh, models, markStale, setNodes, setEdges, updateGroups, scheduleAutosave, applyPendingGroupLayout],
+  );
+
+  // Deletes the frame and every member node, plus wires that touch them.
+  const canvasGroups = groupsApi.groups;
+  const ungroupById = groupsApi.ungroup;
+  const handleDeleteGroup = useCallback(
+    (groupId: string) => {
+      const group = canvasGroups.find((g) => g.id === groupId);
+      if (!group) return;
+      const members = new Set(group.memberIds);
+      markStale(
+        edgesRef.current
+          .filter((e) => members.has(e.source) && !members.has(e.target))
+          .map((e) => e.target),
+      );
+      setNodes((prev) => prev.filter((n) => !members.has(n.id)));
+      setEdges((prev) => prev.filter((e) => !members.has(e.source) && !members.has(e.target)));
+      ungroupById(groupId);
+    },
+    [canvasGroups, ungroupById, markStale, setNodes, setEdges],
   );
 
   const groupContextValue = useMemo(
@@ -1641,6 +1785,7 @@ function CanvasWorkspaceInner({
       onToggleCollapse: groupsApi.toggleCollapse,
       onRun: handleRunGroup,
       onUngroup: groupsApi.ungroup,
+      onDelete: handleDeleteGroup,
     }),
     [
       isZh,
@@ -1650,6 +1795,7 @@ function CanvasWorkspaceInner({
       groupsApi.toggleCollapse,
       groupsApi.ungroup,
       handleRunGroup,
+      handleDeleteGroup,
     ],
   );
 
@@ -1827,11 +1973,13 @@ function CanvasWorkspaceInner({
         return;
       }
       if (templateId === "scro-swap" || templateId === "teleport") {
-        const tool = templateId === "scro-swap" ? "swap" : "teleport";
         const pos = getCenterPosition();
-        const ctx = { idPrefix: `${tool}-${crypto.randomUUID().slice(0, 6)}`, origin: pos };
-        const group = tool === "swap" ? buildBlankSwapGroup(ctx) : buildBlankTeleportGroup(ctx);
-        placeScroGroup(group, tool, pos);
+        const card =
+          templateId === "scro-swap"
+            ? swapDirectorNode(pos)
+            : teleportDirectorNode(pos, "", "Modern minimalist Tokyo coffee bar with warm morning window light");
+        setNodes((prev) => [...prev, card]);
+        scheduleAutosave();
         return;
       }
       setNodes((prev) => [...prev, ...toFlowNodes(tplNodes)]);
@@ -1844,7 +1992,7 @@ function CanvasWorkspaceInner({
         void reactFlow.fitView({ padding: 0.2, duration: 300 });
       }, 60);
     },
-    [models, setNodes, setEdges, scheduleAutosave, reactFlow, getCenterPosition, placeScroGroup],
+    [models, setNodes, setEdges, scheduleAutosave, reactFlow, getCenterPosition],
   );
 
   // Canvas agent: the graph sent with each chat message, per-turn undo snapshots, and op replay.
@@ -1991,12 +2139,13 @@ function CanvasWorkspaceInner({
     }
   }, [isZh]);
 
-  // Runnable model nodes. Planners are free and never run in a flow.
+  // Runnable model nodes. Planner and Swap / Teleport director cards never run in a flow.
   const flowModelCount = useMemo(() => {
     let count = 0;
     for (const node of nodes) {
       if (node.type !== "model" || !node.data.modelId) continue;
-      if (isExplainerPlannerNode({ type: "model", data: node.data })) continue;
+      const domain = { type: "model" as const, data: node.data };
+      if (isExplainerPlannerNode(domain) || isScroDirectorNode(domain)) continue;
       if (!findCanvasModel(node.data.modelId, models)) continue;
       count += 1;
     }
@@ -2226,6 +2375,7 @@ function CanvasWorkspaceInner({
       onGenerateOutfit,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
+      onBuildScroDirector: handleBuildScroDirector,
       outdatedNodes,
     }),
     [
@@ -2243,6 +2393,7 @@ function CanvasWorkspaceInner({
       onReorderTargetEdges,
       onGenerateOutfit,
       onPlanExplainer,
+      handleBuildScroDirector,
       outdatedNodes,
     ],
   );
@@ -2402,7 +2553,7 @@ function CanvasWorkspaceInner({
                       onClick={() => handleApplyTemplate("talking-head")}
                       className="cursor-pointer rounded-[10px] bg-[#c6f24b] px-3.5 py-2 text-xs font-bold text-[#11141b] transition hover:brightness-105"
                     >
-                      {isZh ? "套用：Talking Head 口播" : "Try: Talking Head"}
+                      {isZh ? "套用：口播導演" : "Try: Talking Head Director"}
                     </button>
                     <button
                       type="button"

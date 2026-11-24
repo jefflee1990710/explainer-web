@@ -1,11 +1,11 @@
 "use client";
 
 // Titled frame drawn behind a canvas group. Only the title bar is interactive:
-// drag it to move every member, rename, recolor, collapse, run the group, or ungroup.
+// drag it to move every member, rename, recolor, collapse, run the group, ungroup, or delete it.
 
 import { memo, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
-import { ChevronsDownUp, ChevronsUpDown, Play, Ungroup } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Play, Trash2, Ungroup } from "lucide-react";
 import type { CanvasGroupKind } from "@/model/canvas";
 import { CANVAS_GROUP_COLORS } from "@/service/canvas/groups";
 import { useCanvasGroupActions } from "./group-actions-context";
@@ -13,7 +13,7 @@ import { GROUP_COLOR_HEX, type GroupFrameNode } from "./group-frames";
 
 const KIND_LABEL: Record<CanvasGroupKind, { zh: string; en: string }> = {
   explainer: { zh: "解說片", en: "Explainer" },
-  "talking-head": { zh: "口播", en: "Talking Head" },
+  "talking-head": { zh: "口播導演", en: "Talking Head Director" },
   life: { zh: "生活照", en: "Life Photo" },
   poster: { zh: "海報", en: "Poster" },
   swap: { zh: "換角", en: "Scro Swap" },
@@ -149,6 +149,16 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
           className={iconButton}
         >
           <Ungroup className="h-4 w-4" />
+        </button>
+        {/* Removes the frame and every node inside it, including their wires. */}
+        <button
+          type="button"
+          onClick={() => actions.onDelete(group.id)}
+          title={isZh ? "刪除群組同所有節點" : "Delete group and its nodes"}
+          aria-label={isZh ? "刪除群組" : "Delete group"}
+          className="nodrag grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-white/55 transition hover:bg-rose-500/15 hover:text-rose-300"
+        >
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
 

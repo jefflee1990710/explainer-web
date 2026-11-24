@@ -394,6 +394,30 @@ describe("canvas graph — resolveNodeInputs", () => {
       }).valid,
       false,
     );
+    const talkingHead: CanvasNode = {
+      id: "th",
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: { modelId: "scro:talking-head", prompt: "Hello", status: "idle", toolParams: { plannerMode: true } },
+    };
+    assert.equal(
+      validateEdgeConnection([character, talkingHead], [], {
+        source: "jim",
+        sourceHandle: "output",
+        target: "th",
+        targetHandle: "character",
+      }).valid,
+      true,
+    );
+    assert.equal(
+      validateEdgeConnection([mediaNode("photo", "image", "https://blob.example/p.png"), talkingHead], [], {
+        source: "photo",
+        sourceHandle: "output",
+        target: "th",
+        targetHandle: "character",
+      }).valid,
+      false,
+    );
     const resolved = resolveNodeInputs("img", nodes, edges);
     assert.equal(resolved.inputs.prompt, `busy board ${explainerTextStyleLine("neon")}`);
   });

@@ -164,7 +164,7 @@ describe("canvas agent tools", () => {
     assert.equal(g.addedNodes, 3);
   });
 
-  it("add_scro_group wires Swap from an existing canvas video without a new video node", () => {
+  it("add_scro_group wires a Swap director card from an existing canvas video", () => {
     const g = fresh([
       {
         id: "clip",
@@ -178,12 +178,15 @@ describe("canvas agent tools", () => {
       videoNodeId: "clip",
       characterId: "char-1",
       sectionLength: 9,
-    }) as { ok: boolean; nodeIds: string[] };
+    }) as { ok: boolean; nodeId: string };
     assert.equal(res.ok, true);
-    assert.ok(!res.nodeIds.includes("clip"));
-    assert.ok(g.edges.some((e) => e.source === "clip" && e.targetHandle === "video"));
-    const render = g.nodes.find((n) => n.data.modelId === "scro:swap-render");
-    assert.equal(render?.data.durationSeconds, 9);
+    const card = g.nodes.find((n) => n.id === res.nodeId);
+    assert.equal(card?.data.modelId, "scro:swap");
+    assert.equal(card?.data.toolParams?.directorMode, true);
+    assert.equal(card?.data.toolParams?.sectionLength, 9);
+    assert.ok(g.edges.some((e) => e.source === "clip" && e.target === res.nodeId && e.targetHandle === "video"));
+    assert.ok(g.edges.some((e) => e.target === res.nodeId && e.targetHandle === "refImages"));
+    assert.equal(g.nodes.some((n) => n.data.modelId === "scro:swap-render"), false);
   });
 
   it("add_scro_group names the missing field", () => {
@@ -212,6 +215,31 @@ describe("canvas agent tools", () => {
       framing: "waist-up",
     });
     assert.equal(g.edges.length, 0);
+  });
+
+  it("wires a Talking Head character input when that character node is on the canvas", () => {
+    const g = fresh();
+    const person = T.add_media_node(g, { assetId: "char-1" }) as { nodeId: string };
+    const res = T.add_scro_group(g, {
+      tool: "talking-head",
+      characterId: "char-1",
+      prompt: "Hi everyone",
+    }) as { nodeId: string };
+    assert.ok(
+      g.edges.some(
+        (edge) => edge.source === person.nodeId && edge.target === res.nodeId && edge.targetHandle === "character",
+      ),
+    );
+    g.nodes.push({
+      id: "photo",
+      type: "media",
+      position: { x: 0, y: 0 },
+      data: { mediaKind: "image", mediaUrl: "https://blob.example/p.png" },
+    });
+    assert.match(
+      String(T.connect(g, { sourceId: "photo", targetId: res.nodeId, targetPort: "character" }).error),
+      /character node/i,
+    );
   });
 
   it("add_scro_group never adds part of a group past the node limit", () => {
