@@ -25,8 +25,8 @@ import {
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/stale-outputs";
+import { settingsVars } from "@/service/canvas/settings/registry";
 import {
-  settingsControlledFields,
   updateSettings,
   updateSettingsSchema,
   type UpdateSettingsInput,
@@ -49,9 +49,17 @@ import {
 import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
 import {
   type UpdateExplainerSettingsInput,
-  updateExplainerSettings,
+  updateExplainerDirector,
   updateExplainerSettingsSchema,
-} from "@/service/canvas-agent/explainer-settings-tool";
+} from "@/service/canvas-agent/explainer-director-tool";
+import {
+  directorNeedsReplan,
+  directorParams,
+  directorTextStyle,
+  isExplainerDirectorNode,
+  parseDirectorHandle,
+  readDirectorPlan,
+} from "@/service/canvas/explainer-director";
 import {
   deleteGroup,
   describeGroups,
@@ -302,17 +310,21 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           ...(isOutputStale(node.data) ? { outdated: true } : {}),
         }
       : {}),
-    // Explainer Settings: change these only through update_explainer_settings.
-    ...(node.data.settings?.kind === "explainer"
+    // Explainer Director: change these only through update_explainer_settings.
+    ...(isExplainerDirectorNode(node)
       ? {
-          explainerSettings: node.data.settings.applied,
-          ...(node.data.settings.pending ? { pendingSettings: node.data.settings.pending } : {}),
+          director: {
+            params: directorParams(node),
+            textStyle: directorTextStyle(node),
+            planStatus: node.data.toolParams?.planStatus ?? "idle",
+            clips: readDirectorPlan(node)?.clips.length ?? 0,
+            outputs: "clip-<n>-frame | clip-<n>-motion | clip-<n>-voice (text)",
+            needsReplan: directorNeedsReplan(node),
+          },
         }
       : {}),
-    // Swap / Teleport settings: change these only through update_settings.
-    ...(node.data.settings && node.data.settings.kind !== "explainer"
-      ? { settingsKind: node.data.settings.kind, settings: node.data.settings.values }
-      : {}),
+    // A Setting's `{{key}}` vars: change these only through update_settings.
+    ...(node.type === "settings" ? { vars: settingsVars(node.data.settings) } : {}),
     ...(node.type === "model"
       ? {
           modelId: node.data.modelId,
@@ -560,16 +572,6 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       input.toolParams !== undefined
     ) {
       if (node.type !== "model") return { error: "prompt, aspectRatio, durationSeconds and toolParams only apply to model nodes." };
-      const controlled = settingsControlledFields(g, node.id);
-      const blocked = [
-        ...(["prompt", "aspectRatio", "durationSeconds"] as const).filter((k) => input[k] !== undefined && controlled.has(k)),
-        ...Object.keys(input.toolParams ?? {}).filter((k) => controlled.has(`toolParams.${k}`)),
-      ];
-      if (blocked.length > 0) {
-        return {
-          error: `${blocked.join(", ")} on "${node.id}" come from its wired settings node; change them with update_settings.`,
-        };
-      }
       const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
       if (input.prompt !== undefined) patch.prompt = input.prompt;
       if (input.aspectRatio !== undefined) {
@@ -601,21 +603,27 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
 
   connect(
     g: CanvasAgentWorkingGraph,
-    input: { sourceId: string; targetId: string; targetPort: string },
+    input: { sourceId: string; sourcePort?: string; targetId: string; targetPort: string },
   ): CanvasAgentToolResult {
     const sourceNode = g.nodes.find((n) => n.id === input.sourceId);
-    if (sourceNode && isExplainerPlannerNode(sourceNode)) {
+    const directorSource = sourceNode && isExplainerDirectorNode(sourceNode);
+    if (directorSource && !parseDirectorHandle(input.sourcePort)) {
+      return {
+        error: 'An Explainer Director only outputs clip text: pass sourcePort "clip-<n>-frame", "clip-<n>-motion", or "clip-<n>-voice" after it is planned.',
+      };
+    }
+    if (sourceNode && !directorSource && isExplainerPlannerNode(sourceNode)) {
       return {
         error: "An Explainer planning card has no output. Its expanded FFmpeg Concat node carries the final video.",
       };
     }
     const targetNode = g.nodes.find((n) => n.id === input.targetId);
-    if (targetNode && isExplainerPlannerNode(targetNode)) {
+    if (targetNode && isExplainerPlannerNode(targetNode) && input.targetPort !== "settings") {
       return { error: "An Explainer planning card takes no wires; put the topic in its \"prompt\"." };
     }
     const candidate = {
       source: input.sourceId,
-      sourceHandle: "output",
+      sourceHandle: directorSource && input.sourcePort ? input.sourcePort : "output",
       target: input.targetId,
       targetHandle: input.targetPort,
     };
@@ -726,7 +734,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
   },
 
   update_explainer_settings(g: CanvasAgentWorkingGraph, input: UpdateExplainerSettingsInput): CanvasAgentToolResult {
-    return updateExplainerSettings(g, input);
+    return updateExplainerDirector(g, input);
   },
 
   update_settings(g: CanvasAgentWorkingGraph, input: UpdateSettingsInput): CanvasAgentToolResult {
@@ -909,8 +917,13 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     connect: tool({
       description:
-        "Connect a node's output to an input port. Types must match (text→prompt, image→startImage/endImage/refImages/image, audio→refAudio, video→video/videos). Multi-input ports (refImages, videos) append edges in order.",
-      inputSchema: z.object({ sourceId: z.string(), targetId: z.string(), targetPort: z.string() }),
+        "Connect a node's output to an input port. Types must match (text→prompt, image→startImage/endImage/refImages/image, audio→refAudio, video→video/videos). Multi-input ports (refImages, videos) append edges in order. A planned Explainer Director needs sourcePort clip-<n>-frame / clip-<n>-motion / clip-<n>-voice (text).",
+      inputSchema: z.object({
+        sourceId: z.string(),
+        sourcePort: z.string().optional().describe("Only for an Explainer Director's clip outputs."),
+        targetId: z.string(),
+        targetPort: z.string(),
+      }),
       execute: async (input) => H.connect(g, input),
     }),
     disconnect: tool({
@@ -931,13 +944,13 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     update_explainer_settings: tool({
       description:
-        "Change an expanded Explainer's background, on-screen text style, on-screen text language, presenter position, or art style. Text style alone rebuilds the start stills in place; anything else re-plans the Explainer for free with the same voiceover. Never edit frame prompts for these.",
+        "Change an Explainer Director's topic, art style, background, on-screen text language, presenter position, or on-screen text style. Text style alone applies without a replan; anything else replans for free after your reply, keeping the voiceover word for word unless the topic changes. Never edit frame prompts for these.",
       inputSchema: updateExplainerSettingsSchema,
       execute: async (input) => H.update_explainer_settings(g, input),
     }),
     update_settings: tool({
       description:
-        "Change a Swap or Teleport group's settings node: section start / length, ratio, swap mode, object, light look, mood, or final grade. The values apply when those nodes run. Never patch the trim, render, or grade nodes for these.",
+        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in wired Director, model, or Prompt node prompts. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
       inputSchema: updateSettingsSchema,
       execute: async (input) => H.update_settings(g, input),
     }),

@@ -1,6 +1,6 @@
 "use client";
 
-// All-in-one Model node card: typed input handles, inline prompt/params, live USD cost,
+// All-in-one Model node card: typed input handles, inline prompt/params,
 // single-node Run button, inline output preview, and downstream output handle.
 
 import { useMemo, useState } from "react";
@@ -18,19 +18,22 @@ import {
   Trash2,
 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { formatUsd } from "@/service/billing/usd";
 import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import { canSwapModel } from "@/service/canvas/model-swap";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { mergeSettingsPatch } from "@/service/canvas/settings/apply";
-import { acceptsAnySettings, settingsKindDef } from "@/service/canvas/settings/registry";
+import { canWireSettings } from "@/service/canvas/settings/registry";
+import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
+import { wiredSettingsVars } from "@/service/canvas/graph";
+import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
+import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
+import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
+import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
 import {
   OUTDATED_BADGE_CLASS,
   OutdatedBanner,
@@ -68,7 +71,6 @@ export function ModelNodeCard({
     onOpenLightbox,
     onPlanExplainer,
     outdatedNodes,
-    settingsOverrides,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
@@ -89,6 +91,23 @@ export function ModelNodeCard({
     }
     return map;
   }, [edges, id]);
+
+  if (isExplainerDirectorNode({ type: "model", data })) {
+    return (
+      <ExplainerDirectorCard
+        data={data}
+        isZh={isZh}
+        selected={Boolean(selected)}
+        disabled={isFlowRunning}
+        characterOptions={characterOptions}
+        incomingHandles={[...incomingByHandle.keys()]}
+        hasSetting={incomingByHandle.has(SETTINGS_HANDLE)}
+        onUpdate={(patch) => onUpdateNodeData(id, patch)}
+        onPlan={() => onPlanExplainer(id)}
+        onRemove={() => onDeleteNode(id)}
+      />
+    );
+  }
 
   if (isExplainerPlannerNode({ type: "model", data })) {
     return (
@@ -124,27 +143,19 @@ export function ModelNodeCard({
     );
   }
 
-  // What the node will actually run with: its own values with the wired settings on top.
-  const override = settingsOverrides.get(id);
-  const effective = override ? mergeSettingsPatch(data, override) : data;
-  const controlled = (field: string) =>
-    Boolean(
-      override &&
-        (field.startsWith("toolParams.")
-          ? override.toolParams && field.slice("toolParams.".length) in override.toolParams
-          : override[field as "aspectRatio" | "durationSeconds" | "prompt"] !== undefined),
-    );
+  // `{{key}}` text and the vars that fill it: a wired Prompt node's Setting, then this node's own.
+  const promptWire = edges.find((e) => e.target === id && e.targetHandle === "prompt");
+  const promptNode = promptWire ? nodes.find((n) => n.id === promptWire.source && n.type === "prompt") : undefined;
+  const templateText = promptNode ? (promptNode.data.text ?? "") : (data.prompt ?? "");
+  const templateVars = {
+    ...(promptNode ? wiredSettingsVars(promptNode.id, nodes, edges) : {}),
+    ...wiredSettingsVars(id, nodes, edges),
+  };
   const settingsEdge = edges.find((e) => e.target === id && e.targetHandle === SETTINGS_HANDLE);
-  const wiredSettings = settingsEdge ? nodes.find((n) => n.id === settingsEdge.source)?.data.settings : undefined;
-  const wiredSettingsDef = wiredSettings ? settingsKindDef(wiredSettings.kind) : undefined;
-  const wiredSettingsLabel = wiredSettingsDef ? (isZh ? wiredSettingsDef.label.zh : wiredSettingsDef.label.en) : undefined;
-  const controlledTitle = wiredSettingsLabel
-    ? isZh
-      ? `由「${wiredSettingsLabel}」節點控制`
-      : `Controlled by ${wiredSettingsLabel}`
-    : undefined;
+  const settingsWired = Boolean(settingsEdge && nodes.some((n) => n.id === settingsEdge.source));
+  const settingsColor = settingsWired ? SETTING_COLOR : undefined;
 
-  const toolParams = effective.toolParams ?? {};
+  const toolParams = data.toolParams ?? {};
   const updateToolParam = (key: string, value: unknown) => {
     onUpdateNodeData(id, {
       toolParams: { ...(data.toolParams ?? {}), [key]: value },
@@ -170,22 +181,10 @@ export function ModelNodeCard({
             ? 30
             : undefined;
   const durationSeconds =
-    effective.durationSeconds ?? durationPresetSec ?? spec.defaultDurationSeconds ?? 5;
-  const pricedSeconds =
-    spec.provider === "google" &&
-    spec.category === "video" &&
-    isStartImageWired &&
-    (incomingByHandle.get("endImage") ?? 0) > 0
-      ? Math.min(durationSeconds, 10)
-      : durationSeconds;
-  const estimatedUsd = estimateCanvasModelCostUsd(spec, {
-    durationSeconds: pricedSeconds,
-    resolution: data.resolution,
-    referenceImages: incomingByHandle.get("refImages") ?? 0,
-  });
+    data.durationSeconds ?? durationPresetSec ?? spec.defaultDurationSeconds ?? 5;
   const activePreset =
-    effective.presetId && spec.presets.includes(effective.presetId)
-      ? effective.presetId
+    data.presetId && spec.presets.includes(data.presetId)
+      ? data.presetId
       : spec.defaultPresetId;
 
   // Check if all required non-prompt ports are wired (prompt can come inline or wired).
@@ -389,8 +388,8 @@ export function ModelNodeCard({
             </div>
           );
         })}
-        {/* Settings wire: which settings node controls this node. */}
-        {acceptsAnySettings({ id, type: "model", data }) ? (
+        {/* Setting wire: fills `{{key}}` in this node's prompt. */}
+        {canWireSettings({ id, type: "model", data }) ? (
           <div className="relative flex items-center justify-between px-3.5 py-0.5 text-[11px]">
             <Handle
               type="target"
@@ -399,20 +398,20 @@ export function ModelNodeCard({
               style={{
                 width: 11,
                 height: 11,
-                backgroundColor: wiredSettingsDef?.color ?? "#0b0e13",
-                border: `2px solid ${wiredSettingsDef?.color ?? "#64748b"}`,
+                backgroundColor: settingsColor ?? "#0b0e13",
+                border: `2px solid ${settingsColor ?? "#64748b"}`,
                 left: -6,
               }}
             />
             <span className="flex items-center gap-1.5 text-white/80">
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: wiredSettingsDef?.color ?? "#64748b" }}
+                style={{ backgroundColor: settingsColor ?? "#64748b" }}
               />
-              <span>{wiredSettingsLabel ?? (isZh ? "設定" : "Settings")}</span>
+              <span>{isZh ? "設定" : "Setting"}</span>
             </span>
             <span className="text-[10px] text-white/45">
-              {wiredSettingsLabel ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
+              {settingsWired ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
             </span>
           </div>
         ) : null}
@@ -429,10 +428,8 @@ export function ModelNodeCard({
             </div>
           ) : (
             <textarea
-              value={effective.prompt ?? ""}
+              value={data.prompt ?? ""}
               onChange={(e) => onUpdateNodeData(id, { prompt: e.target.value })}
-              disabled={controlled("prompt")}
-              title={controlled("prompt") ? controlledTitle : undefined}
               rows={3}
               placeholder={
                 isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
@@ -440,6 +437,9 @@ export function ModelNodeCard({
               className="nodrag disabled:cursor-not-allowed disabled:opacity-50 nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
             />
           )
+        ) : null}
+        {promptPort ? (
+          <PromptVarsHint isZh={isZh} text={templateText} vars={templateVars} missingBlocksRun />
         ) : null}
 
         {/* Provider-specific compact controls */}
@@ -468,9 +468,7 @@ export function ModelNodeCard({
                   {isZh ? "比例" : "Ratio"}
                 </label>
                 <select
-                  value={effective.aspectRatio ?? "16:9"}
-                  disabled={controlled("aspectRatio")}
-                  title={controlled("aspectRatio") ? controlledTitle : undefined}
+                  value={data.aspectRatio ?? "16:9"}
                   onChange={(e) =>
                     onUpdateNodeData(id, {
                       aspectRatio: e.target.value as CanvasNodeData["aspectRatio"],
@@ -528,8 +526,6 @@ export function ModelNodeCard({
                   min={spec.minDurationSeconds ?? 5}
                   max={spec.maxDurationSeconds ?? 15}
                   value={durationSeconds}
-                  disabled={controlled("durationSeconds")}
-                  title={controlled("durationSeconds") ? controlledTitle : undefined}
                   onChange={(e) => {
                     const parsed = Number(e.target.value);
                     if (Number.isFinite(parsed)) {
@@ -697,8 +693,6 @@ export function ModelNodeCard({
                   </label>
                   <select
                     value={String(toolParams.swapMode ?? "character")}
-                    disabled={controlled("toolParams.swapMode")}
-                    title={controlled("toolParams.swapMode") ? controlledTitle : undefined}
                     onChange={(e) => updateToolParam("swapMode", e.target.value)}
                     className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                   >
@@ -715,16 +709,12 @@ export function ModelNodeCard({
                     <input
                       type="text"
                       value={String(toolParams.objectTarget ?? "")}
-                      disabled={controlled("toolParams.objectTarget")}
-                      title={controlled("toolParams.objectTarget") ? controlledTitle : undefined}
                       onChange={(e) => updateToolParam("objectTarget", e.target.value)}
                       placeholder={isZh ? "目標物 (e.g. jacket)" : "Target (e.g. jacket)"}
                       className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     />
                     <select
                       value={String(toolParams.objectEditMode ?? "change")}
-                      disabled={controlled("toolParams.objectEditMode")}
-                      title={controlled("toolParams.objectEditMode") ? controlledTitle : undefined}
                       onChange={(e) => updateToolParam("objectEditMode", e.target.value)}
                       className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     >
@@ -733,6 +723,13 @@ export function ModelNodeCard({
                       <option value="remove">Remove</option>
                     </select>
                   </div>
+                ) : null}
+                {toolParams.swapMode === "relight" ? (
+                  <SwapLightLookField
+                    isZh={isZh}
+                    value={typeof toolParams.lightLookId === "string" ? toolParams.lightLookId : undefined}
+                    onChange={(lightLookId) => updateToolParam("lightLookId", lightLookId)}
+                  />
                 ) : null}
               </div>
             ) : null}
@@ -800,8 +797,6 @@ export function ModelNodeCard({
                     min={0}
                     step={0.1}
                     value={Number(toolParams.ffmpegStartSec ?? 0)}
-                    disabled={controlled("toolParams.ffmpegStartSec")}
-                    title={controlled("toolParams.ffmpegStartSec") ? controlledTitle : undefined}
                     onChange={(e) => updateToolParam("ffmpegStartSec", Number(e.target.value))}
                     placeholder="Start s"
                     className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
@@ -811,8 +806,6 @@ export function ModelNodeCard({
                     min={0}
                     step={0.1}
                     value={toolParams.ffmpegEndSec !== undefined ? Number(toolParams.ffmpegEndSec) : ""}
-                    disabled={controlled("toolParams.ffmpegEndSec")}
-                    title={controlled("toolParams.ffmpegEndSec") ? controlledTitle : undefined}
                     onChange={(e) =>
                       updateToolParam(
                         "ffmpegEndSec",
@@ -869,8 +862,6 @@ export function ModelNodeCard({
             {spec.id === "ffmpeg:color-grade" ? (
               <select
                 value={String(toolParams.gradeLook ?? "jutsu")}
-                disabled={controlled("toolParams.gradeLook")}
-                title={controlled("toolParams.gradeLook") ? controlledTitle : undefined}
                 onChange={(e) => updateToolParam("gradeLook", e.target.value)}
                 className="nodrag disabled:cursor-not-allowed disabled:opacity-50 w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
               >
@@ -963,16 +954,12 @@ export function ModelNodeCard({
             ) : isRerun ? (
               <>
                 <RotateCcw className="h-3.5 w-3.5" />
-                <span>
-                  Re-run · {formatUsd(estimatedUsd)}
-                </span>
+                <span>Re-run</span>
               </>
             ) : (
               <>
                 <Play className="h-3.5 w-3.5 fill-current" />
-                <span>
-                  Run · {formatUsd(estimatedUsd)}
-                </span>
+                <span>Run</span>
               </>
             )}
           </button>

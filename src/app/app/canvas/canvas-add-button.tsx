@@ -1,6 +1,9 @@
 "use client";
 
-// Shown over a selected sidebar tile. The first click only selects; this button adds it.
+// Shown over a selected sidebar tile. The first click only selects; this plus adds it.
+
+import { Plus } from "lucide-react";
+
 export function CanvasAddButton({
   label,
   dense = false,
@@ -14,6 +17,8 @@ export function CanvasAddButton({
     <div
       role="button"
       tabIndex={0}
+      aria-label={label}
+      title={label}
       onClick={(event) => {
         event.stopPropagation();
         onAdd();
@@ -24,15 +29,13 @@ export function CanvasAddButton({
         event.stopPropagation();
         onAdd();
       }}
-      className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/50"
+      className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/40"
     >
-      <span
-        className={`max-w-[92%] rounded-full bg-[#c6f24b] text-center font-bold text-[#11141b] shadow-[0_8px_24px_rgba(0,0,0,0.45)] ${
-          dense ? "px-1.5 py-1 text-[9px] leading-tight" : "px-2.5 py-1.5 text-[11px] leading-tight"
-        }`}
-      >
-        {label}
-      </span>
+      <Plus
+        aria-hidden
+        strokeWidth={1.75}
+        className={`text-white/75 ${dense ? "h-5 w-5" : "h-7 w-7"}`}
+      />
     </div>
   );
 }

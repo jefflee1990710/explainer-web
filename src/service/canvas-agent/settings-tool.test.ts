@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
 import { updateSettings } from "@/service/canvas-agent/settings-tool";
-import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/tools";
 
 function canvas() {
   const nodes: CanvasNode[] = [
@@ -12,10 +12,7 @@ function canvas() {
       type: "settings",
       position: { x: 0, y: 0 },
       data: {
-        settings: {
-          kind: "swap",
-          values: { swapMode: "character", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
-        },
+        settings: { vars: {} },
       },
     },
     {
@@ -53,30 +50,24 @@ function canvas() {
 }
 
 describe("update_settings", () => {
-  it("changes Swap values and marks only the affected previews old", () => {
+  it("sets and removes {{key}} vars, marking only nodes whose prompt uses the key old", () => {
     const g = canvas();
-    const res = updateSettings(g, { groupId: "swap-abc123", values: { gradeLook: "talking-head" } }) as {
-      ok: boolean;
-      changed: string[];
-    };
+    g.nodes = g.nodes.map((x) =>
+      x.id === "swap-abc123-render" ? { ...x, data: { ...x.data, prompt: "Wear {{outfit}}" } } : x,
+    );
+    const res = updateSettings(g, { groupId: "swap-abc123", vars: { outfit: "red coat" } }) as { ok: boolean; changed: string[] };
     assert.equal(res.ok, true);
-    assert.deepEqual(res.changed, ["gradeLook"]);
-    const settings = g.nodes.find((x) => x.id === "swap-abc123-settings")!.data.settings!;
-    assert.equal(settings.kind === "swap" && settings.values.gradeLook, "talking-head");
+    assert.deepEqual(res.changed, ["vars.outfit"]);
     const stale = g.ops.find((op) => op.kind === "mark_stale");
-    assert.deepEqual(stale && stale.kind === "mark_stale" ? stale.nodeIds : [], ["swap-abc123-grade"]);
+    assert.deepEqual(stale && stale.kind === "mark_stale" ? stale.nodeIds : [], ["swap-abc123-render", "swap-abc123-grade"]);
+    updateSettings(g, { groupId: "swap-abc123", vars: { outfit: null } });
+    assert.deepEqual(g.nodes.find((x) => x.id === "swap-abc123-settings")!.data.settings!.vars, {});
+    assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", vars: { "bad key": "x" } }));
   });
 
-  it("rejects bad values and unknown groups", () => {
+  it("rejects unknown groups and no-op edits", () => {
     const g = canvas();
-    assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", values: { sectionLength: 40 } }));
-    assert.ok("error" in updateSettings(g, { groupId: "missing", values: {} }));
-    assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", values: { swapMode: "colorfix" } }));
-  });
-
-  it("refuses direct edits to fields the settings node controls", () => {
-    const g = canvas();
-    const res = T.update_node(g, { nodeId: "swap-abc123-render", durationSeconds: 10 }) as { error?: string };
-    assert.match(res.error ?? "", /update_settings/);
+    assert.ok("error" in updateSettings(g, { groupId: "missing", vars: { a: "b" } }));
+    assert.ok("error" in updateSettings(g, { groupId: "swap-abc123", vars: {} }));
   });
 });

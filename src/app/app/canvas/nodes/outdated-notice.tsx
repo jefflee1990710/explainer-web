@@ -16,8 +16,8 @@ export function OutdatedBanner({ reason, isZh }: { reason: OutdatedReason; isZh:
   const text =
     reason === "settings"
       ? isZh
-        ? "解說設定已更改但未套用，預覽仍是舊版本。請在「解說設定」按套用或重新規劃。"
-        : "Explainer Settings changed but are not applied; this preview is an old version. Apply or Replan in Explainer Settings."
+        ? "解說導演設定已更改，預覽仍是舊版本。請在導演節點按「重新規劃」。"
+        : "Explainer Director settings changed; this preview is an old version. Press Replan on the Director."
       : isZh
         ? "上游設定或提示詞已更改，預覽是舊版本，需要重新生成。"
         : "An upstream setting or prompt changed; this preview is an old version and needs regenerating.";

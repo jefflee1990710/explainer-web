@@ -41,8 +41,12 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /elevenlabs|^tts$/, asset: { src: "/canvas/model-logos/tts.png", alt: "Text to speech" } },
   { match: /^talking-head$/, asset: { src: "/canvas/model-logos/talking-head.png", alt: "Talking head" } },
   { match: /^explainer$/, asset: { src: "/canvas/model-logos/explainer.png", alt: "Explainer" } },
+  { match: /^explainer-frame$/, asset: { src: "/canvas/model-logos/explainer.png", alt: "Explainer" } },
+  { match: /^director-frame$/, asset: { src: "/canvas/model-logos/talking-head.png", alt: "Talking head" } },
   { match: /^swap$/, asset: { src: "/canvas/model-logos/swap.png", alt: "Character swap" } },
+  { match: /^swap-render$/, asset: { src: "/canvas/model-logos/swap.png", alt: "Character swap" } },
   { match: /^teleport$/, asset: { src: "/canvas/model-logos/teleport.png", alt: "Scene teleport" } },
+  { match: /^teleport-render$/, asset: { src: "/canvas/model-logos/teleport.png", alt: "Scene teleport" } },
   { match: /^life$/, asset: { src: "/canvas/model-logos/life.png", alt: "Life photos" } },
   { match: /^poster$/, asset: { src: "/canvas/model-logos/poster.png", alt: "Poster" } },
   { match: /^concat$/, asset: { src: "/canvas/model-logos/concat.png", alt: "Merge clips" } },
@@ -50,6 +54,8 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^trim-speed$/, asset: { src: "/canvas/model-logos/trim.png", alt: "Trim and speed" } },
   { match: /^transform$/, asset: { src: "/canvas/model-logos/transform.png", alt: "Color and ratio" } },
   { match: /^extract-audio$/, asset: { src: "/canvas/model-logos/extract-audio.png", alt: "Extract audio" } },
+  { match: /^color-grade$/, asset: { src: "/canvas/model-logos/color-grade.png", alt: "Color grade" } },
+  { match: /^smooth-silence$/, asset: { src: "/canvas/model-logos/smooth-silence.png", alt: "Smooth silence" } },
 ];
 
 // Resolves the downloaded brand mark for a canvas model, or null when none exists.

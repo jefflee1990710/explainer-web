@@ -28,6 +28,27 @@ const base = {
 };
 
 describe("buildExplainerExpansion", () => {
+  it("wires each clip's prompts from the Director when directorId is set", () => {
+    const out = buildExplainerExpansion({ ...base, directorId: "dir", clips: clips(2) });
+    assert.equal(out.nodes.find((n) => n.id === "x-frame-1")?.data.prompt, "");
+    assert.equal(out.nodes.find((n) => n.id === "x-voice-2")?.data.prompt, "");
+    assert.deepEqual(
+      out.edges
+        .filter((e) => e.source === "dir")
+        .map((e) => `${e.sourceHandle}->${e.target}`)
+        .sort(),
+      [
+        "clip-1-frame->x-frame-1",
+        "clip-1-motion->x-video-1",
+        "clip-1-voice->x-voice-1",
+        "clip-2-frame->x-frame-2",
+        "clip-2-motion->x-video-2",
+        "clip-2-voice->x-voice-2",
+      ],
+    );
+    assert.ok(!out.nodes.some((n) => n.type === "settings" || n.id === "dir"));
+  });
+
   it("builds frame, voice, video, mux per clip and one concat for 3 clips", () => {
     const out = buildExplainerExpansion({ ...base, clips: clips(3) });
     const byModel = (id: string) => out.nodes.filter((n) => n.data.modelId === id);

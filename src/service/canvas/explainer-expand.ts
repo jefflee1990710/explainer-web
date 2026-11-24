@@ -1,8 +1,7 @@
 // Pure: turns a finished Explainer plan into per-clip canvas nodes and edges.
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
-import type { ExplainerSettingsNodeData } from "@/model/explainer-settings";
-import { buildExplainerSettingsNode, explainerSettingsEdges } from "@/service/canvas/explainer-settings";
+import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/explainer-director";
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
 import { layoutExplainerGroup } from "@/service/canvas/explainer-layout";
 import { NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/model-catalog";
@@ -32,8 +31,8 @@ export type ExplainerExpansionInput = {
   language: "yue" | "zh" | "en";
   voicePreset: string;
   characterId?: string;
-  // Explainer Settings node data; the node is wired into every frame.
-  settings?: ExplainerSettingsNodeData;
+  // Director node whose clip outputs feed each frame / video / voice prompt.
+  directorId?: string;
   clips: ExplainerExpansionClip[];
 };
 
@@ -52,8 +51,22 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
   const nodes: CanvasNode[] = [];
   const edges: CanvasEdge[] = [];
   const id = (suffix: string) => `${input.idPrefix}-${suffix}`;
-  const edge = (source: string, target: string, targetHandle: string) =>
-    edges.push({ id: `${source}->${target}:${targetHandle}`, source, sourceHandle: "output", target, targetHandle });
+  const edge = (source: string, target: string, targetHandle: string, sourceHandle = "output") =>
+    edges.push({
+      id:
+        sourceHandle === "output"
+          ? `${source}->${target}:${targetHandle}`
+          : `${source}:${sourceHandle}->${target}:${targetHandle}`,
+      source,
+      sourceHandle,
+      target,
+      targetHandle,
+    });
+  // With a Director, each clip's prompts come from its outputs instead of inline text.
+  const directorId = input.directorId;
+  const fromDirector = (clipNumber: number, kind: DirectorOutputKind, target: string) => {
+    if (directorId) edge(directorId, target, "prompt", directorHandleId(clipNumber, kind));
+  };
 
   // Final output per clip (mux, or the video for silent clips), in clip order.
   const clipOutputs: string[] = [];
@@ -75,10 +88,6 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     return refId;
   };
 
-  if (input.settings) {
-    nodes.push(buildExplainerSettingsNode({ groupId: input.idPrefix, position: { ...unplaced }, data: input.settings }));
-  }
-
   input.clips.forEach((clip) => {
     const n = clip.clipNumber;
     const frameId = id(`frame-${n}`);
@@ -92,14 +101,14 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
         presetId: input.aspectRatio,
         aspectRatio: input.aspectRatio,
         ...(input.frameResolution ? { resolution: input.frameResolution } : {}),
-        prompt: clip.framePrompt,
+        prompt: directorId ? "" : clip.framePrompt,
         status: "idle",
       },
     });
+    fromDirector(n, "frame", frameId);
     for (const url of [...new Set(clip.refUrls ?? [])].slice(0, 14)) {
       edge(refNode(url), frameId, "refImages");
     }
-    if (input.settings) edges.push(...explainerSettingsEdges(input.idPrefix, [frameId]));
     nodes.push({
       id: videoId,
       type: "model",
@@ -109,10 +118,11 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
         presetId: input.aspectRatio,
         aspectRatio: input.aspectRatio,
         durationSeconds: Math.min(15, Math.max(5, Math.round(clip.durationSeconds))),
-        prompt: clip.videoPrompt,
+        prompt: directorId ? "" : clip.videoPrompt,
         status: "idle",
       },
     });
+    fromDirector(n, "motion", videoId);
     edge(frameId, videoId, "startImage");
 
     const line = clip.spokenLine.trim();
@@ -129,7 +139,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
       data: {
         modelId: "scro:tts",
         presetId: "natural",
-        prompt: line,
+        prompt: directorId ? "" : line,
         toolParams: {
           language: input.language,
           voicePreset: input.voicePreset,
@@ -150,6 +160,7 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
         status: "idle",
       },
     });
+    fromDirector(n, "voice", voiceId);
     edge(videoId, muxId, "video");
     edge(voiceId, muxId, "refAudio");
     clipOutputs.push(muxId);
@@ -172,7 +183,8 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
 
   const positions = layoutExplainerGroup({
     nodeIds: nodes.map((n) => n.id),
-    edges,
+    // The Director sits outside the laid-out rows.
+    edges: edges.filter((e) => e.source !== directorId),
     origin: input.origin,
   });
   for (const node of nodes) node.position = positions.get(node.id) ?? node.position;

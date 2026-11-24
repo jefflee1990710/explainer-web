@@ -1,42 +1,33 @@
 "use client";
 
-// Swap / Teleport Settings tiles in the canvas Tools tab. Click or drag one onto the canvas to add a settings node.
+// Setting tile in the canvas Tools tab. Click or drag it onto the canvas to add a Setting node.
 
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { SlidersHorizontal } from "lucide-react";
-import { settingsKindDef } from "@/service/canvas/settings/registry";
+import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 
 export const CANVAS_DRAG_SETTINGS_MIME = "application/x-scro-canvas-settings";
-export const HAND_ADDED_SETTINGS_KINDS = ["swap", "teleport"] as const;
-export type HandAddedSettingsKind = (typeof HAND_ADDED_SETTINGS_KINDS)[number];
-
-export function isHandAddedSettingsKind(value: string): value is HandAddedSettingsKind {
-  return (HAND_ADDED_SETTINGS_KINDS as readonly string[]).includes(value);
-}
 
 export function CanvasSettingsTool({
   isZh,
-  kind,
   selected = false,
   addLabel,
   onSelect,
   onAdd,
 }: {
   isZh: boolean;
-  kind: HandAddedSettingsKind;
   selected?: boolean;
   addLabel: string;
   onSelect: () => void;
-  onAdd: (kind: HandAddedSettingsKind) => void;
+  onAdd: () => void;
 }) {
-  const def = settingsKindDef(kind);
-  const label = isZh ? def.label.zh : def.label.en;
+  const label = isZh ? "設定" : "Setting";
   return (
     <div
       draggable
       title={label}
       onDragStart={(event) => {
-        event.dataTransfer.setData(CANVAS_DRAG_SETTINGS_MIME, kind);
+        event.dataTransfer.setData(CANVAS_DRAG_SETTINGS_MIME, "setting");
         event.dataTransfer.effectAllowed = "copy";
       }}
       data-canvas-pick=""
@@ -45,10 +36,10 @@ export function CanvasSettingsTool({
         selected ? "border-[#c6f24b]" : "border-white/8"
       }`}
     >
-      {selected ? <CanvasAddButton label={addLabel} onAdd={() => onAdd(kind)} /> : null}
+      {selected ? <CanvasAddButton label={addLabel} onAdd={onAdd} /> : null}
       <span
         className="grid h-8 w-8 place-items-center rounded-lg"
-        style={{ backgroundColor: `${def.color}1f`, color: def.color }}
+        style={{ backgroundColor: `${SETTING_COLOR}1f`, color: SETTING_COLOR }}
       >
         <SlidersHorizontal className="h-4 w-4" />
       </span>
@@ -57,11 +48,10 @@ export function CanvasSettingsTool({
   );
 }
 
-// Settings tiles follow the Prompt tile: hidden by a category chip, filtered by the search text.
-export function canvasSettingsToolVisible(kind: HandAddedSettingsKind, query: string, categoryFiltered: boolean): boolean {
+// The Setting tile follows the Prompt tile: hidden by a category chip, filtered by the search text.
+export function canvasSettingsToolVisible(query: string, categoryFiltered: boolean): boolean {
   if (categoryFiltered) return false;
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const def = settingsKindDef(kind);
-  return [def.label.zh, def.label.en, "settings", "設定"].some((label) => label.toLowerCase().includes(q));
+  return ["setting", "settings", "設定", "variable", "變數"].some((label) => label.includes(q) || q.includes(label));
 }

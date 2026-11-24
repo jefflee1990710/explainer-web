@@ -1,10 +1,9 @@
-import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
 import type { CanvasNode } from "@/model/canvas";
 import type { Project } from "@/model/project";
-import { planStateFromVideo } from "@/service/canvas/explainer-plan";
+import { explainerPlanSource, planStateFromVideo } from "@/service/canvas/explainer-plan";
 
 const planner: CanvasNode = {
   id: "exp",
@@ -75,42 +74,64 @@ describe("planStateFromVideo", () => {
     const tts = ready.nodes.filter((n) => n.data.modelId === "scro:tts");
     assert.deepEqual(tts.map((n) => n.data.toolParams?.voicePreset), ["alan", "alan"]);
     assert.equal(tts[0]!.data.toolParams?.characterId, "c1");
-    const frames = ready.nodes.filter((n) => n.data.modelId === "google:gemini-nano-banana-2.1");
     // Stored worker prompt wins; missing ones fall back to the local builder.
-    assert.deepEqual(frames.map((n) => n.data.prompt), ["stored 1", "built 2"]);
+    assert.deepEqual(ready.plan?.clips.map((c) => c.framePrompt), ["stored 1", "built 2"]);
+    assert.deepEqual(ready.plan?.clips.map((c) => c.videoPrompt), ["v1", "v2"]);
+    assert.deepEqual(ready.plan?.clips.map((c) => c.spokenLine), ["第一句", "第二句"]);
+    assert.equal(ready.plan?.plannerVideoId, videoId.toHexString());
     assert.match(ready.summary, /復利/);
   });
 
-  it("adds an Explainer Settings node that the group frame includes", () => {
-    const ready = planStateFromVideo(
-      args(
-        video({
-          canvasPlan: { prompts },
-          source: "Compound interest",
-          skillSlug: "paper-cutout-explainer-video-director",
-          directorBackgroundId: "sky",
-          subtitleLook: "neon",
-          sceneTextEnabled: true,
-          sceneTextLanguage: "zh-Hant",
-        }),
-      ),
-    );
+  it("wires the rows from the Director, adds no settings node, and frames the Director in the group", () => {
+    const ready = planStateFromVideo(args(video({ canvasPlan: { prompts } })));
     assert.equal(ready.status, "ready");
     if (ready.status !== "ready") return;
-    const settings = ready.nodes.find((n) => n.type === "settings");
-    assert.equal(settings?.id, "p-settings");
-    assert.deepEqual(settings ? explainerSettingsOf(settings.data) : undefined, {
-      plannerVideoId: videoId.toHexString(),
-      topic: "Compound interest",
-      applied: {
-        skillSlug: "paper-cutout-explainer-video-director",
-        backgroundId: "sky",
-        textStyleId: "neon",
-        sceneTextLanguage: "zh-Hant",
-        presenterPosition: "auto",
-      },
+    const frames = ready.nodes.filter((n) => n.data.modelId === "google:gemini-nano-banana-2.1");
+    assert.ok(frames.every((n) => n.data.prompt === ""));
+    assert.ok(ready.edges.some((e) => e.source === "exp" && e.sourceHandle === "clip-1-frame" && e.target === "p-frame-1"));
+    assert.ok(!ready.nodes.some((n) => n.type === "settings" || n.id === "exp"));
+    assert.equal(ready.group.memberIds[0], "exp");
+  });
+
+  it("records the parameters the plan started with", () => {
+    const planningWith = {
+      topic: "Old topic",
+      aspectRatio: "9:16",
+      skillSlug: "cartoon-explainer-video-director",
+      language: "yue",
+      presenterPosition: "auto",
+    };
+    const ready = planStateFromVideo({
+      ...args(video({ canvasPlan: { prompts } })),
+      plannerNode: { ...planner, data: { ...planner.data, prompt: "Edited meanwhile", toolParams: { ...planner.data.toolParams, planningWith } } },
     });
-    assert.ok(ready.group.memberIds.includes("p-settings"));
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    assert.equal(ready.plan?.plannedWith.topic, "Old topic");
+  });
+
+  it("keeps the voiceover in the plan source only when the topic is unchanged", () => {
+    const planned: CanvasNode = {
+      id: "dir",
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: {
+        modelId: "scro:explainer",
+        prompt: "Topic",
+        toolParams: {
+          plannerMode: true,
+          presenterPosition: "lower-left",
+          plan: {
+            plannerVideoId: "v",
+            plannedWith: { topic: "Topic", aspectRatio: "9:16", skillSlug: "s", language: "yue", presenterPosition: "auto" },
+            clips: [{ clipNumber: 1, framePrompt: "f", videoPrompt: "m", spokenLine: "第一句", durationSeconds: 6, refUrls: [] }],
+          },
+        },
+      },
+    };
+    assert.match(explainerPlanSource(planned), /第一句/);
+    assert.notEqual(explainerPlanSource(planned), "Topic");
+    assert.doesNotMatch(explainerPlanSource({ ...planned, data: { ...planned.data, prompt: "Other" } }), /第一句/);
   });
 
   it("passes each clip's reference images and resolution to the frame nodes", () => {

@@ -1,19 +1,10 @@
 "use client";
 
-// Shared frame for Swap / Teleport Settings cards: header, body, note, and the output handle.
+// Frame for the Setting card: header, body, note, and the output handle.
 
 import type { ReactNode } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { SlidersHorizontal } from "lucide-react";
-import type { CanvasGradeLook } from "@/model/canvas-settings";
-import { CANVAS_GRADE_LOOKS } from "@/model/canvas-settings";
-import { DIALOG_FIELD, DIALOG_LABEL } from "@/app/app/canvas/scro-dialog-shell";
-
-export const GRADE_LABELS: Record<CanvasGradeLook, { zh: string; en: string }> = {
-  jutsu: { zh: "H3 Soft（換角／換場）", en: "H3 Soft (Swap / Teleport)" },
-  "talking-head": { zh: "口播膠片質感", en: "Talking head sensor texture" },
-  "talking-head-selfie": { zh: "口播自拍手機質感", en: "Talking head selfie texture" },
-};
 
 export function ToolSettingsShell({
   isZh,
@@ -58,32 +49,5 @@ export function ToolSettingsShell({
         style={{ width: 12, height: 12, backgroundColor: color, border: "2px solid #0b0e13" }}
       />
     </div>
-  );
-}
-
-export function GradeLookField({
-  isZh,
-  value,
-  onChange,
-}: {
-  isZh: boolean;
-  value: CanvasGradeLook;
-  onChange: (value: CanvasGradeLook) => void;
-}) {
-  return (
-    <label className={DIALOG_LABEL}>
-      {isZh ? "最後調色" : "Final grade"}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as CanvasGradeLook)}
-        className={DIALOG_FIELD}
-      >
-        {CANVAS_GRADE_LOOKS.map((look) => (
-          <option key={look} value={look}>
-            {isZh ? GRADE_LABELS[look].zh : GRADE_LABELS[look].en}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

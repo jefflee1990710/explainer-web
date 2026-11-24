@@ -1,7 +1,6 @@
 // Canvas agent tools that act on whole groups: replace a director group with a new
 // planning card, edit many members at once, and create, rename, ungroup, or delete groups.
 
-import { explainerSettingsOf } from "@/service/canvas/settings/registry";
 import { z } from "zod";
 import {
   type CanvasAspectRatio,
@@ -16,10 +15,10 @@ import {
   isDirectorPlannerNode,
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
-import {
-  explainerSettingsToolParams,
-  normalizeExplainerSettings,
-} from "@/service/canvas/explainer-settings";
+import { EXPLAINER_SKILL_SLUGS, type ExplainerSkillSlug } from "@/model/explainer-settings";
+import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
+import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
+import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import {
   defaultGroupColor,
   defaultGroupTitle,
@@ -40,6 +39,10 @@ type Result = Record<string, unknown>;
 type Handlers = Pick<BatchSingleNodeHandlers<CanvasAgentWorkingGraph>, "delete_node" | "update_node">;
 
 const MAX_GROUP_MEMBERS = 120;
+
+function isExplainerSkillSlug(value: string): value is ExplainerSkillSlug {
+  return (EXPLAINER_SKILL_SLUGS as readonly string[]).includes(value);
+}
 
 export type ReplaceGroupInput = {
   prompt: string;
@@ -182,17 +185,25 @@ export function replaceGroup(
   const language = input.language ?? str(old.language) ?? (isTalking ? "yue" : undefined);
   const skillSlug = str(input.skillSlug) ?? str(old.skillSlug);
   const durationPreset = str(input.durationPreset) ?? str(old.durationPreset);
-  // The old Explainer Settings (background, text style and language, presenter) carry over.
-  const priorSettings = (() => {
-    const node = target.nodes.find((n) => n.type === "settings");
-    return node ? explainerSettingsOf(node.data)?.applied : undefined;
-  })();
-  const look =
-    priorSettings && !isTalking
-      ? explainerSettingsToolParams(
-          normalizeExplainerSettings({ ...priorSettings, ...(skillSlug ? { skillSlug } : {}) }),
-        )
-      : {};
+
+  // An Explainer with a Director keeps its nodes: the Director takes the new topic and replans.
+  const director = isTalking ? undefined : target.nodes.find(isExplainerDirectorNode);
+  if (director) {
+    const res = updateExplainerDirector(
+      g,
+      { topic: prompt, ...(input.skillSlug && isExplainerSkillSlug(input.skillSlug) ? { artStyle: input.skillSlug } : {}) },
+      {
+        directorId: director.id,
+        characterId,
+        language: input.language,
+        durationPreset: str(input.durationPreset),
+        aspectRatio: input.aspectRatio,
+        forceReplan: true,
+      },
+    );
+    return "error" in res ? res : { ...res, nodeId: director.id, removedCount: 0 };
+  }
+
   const toolParams: Record<string, unknown> = isTalking
     ? {
         plannerMode: true,
@@ -205,7 +216,6 @@ export function replaceGroup(
         ...(language ? { language } : {}),
         ...(skillSlug ? { skillSlug } : {}),
         ...(durationPreset ? { durationPreset } : {}),
-        ...look,
         plannerMode: true,
       };
 
@@ -282,6 +292,16 @@ export function updateGroupNodes(
     ...(input.toolParams !== undefined ? { toolParams: input.toolParams } : {}),
   }));
   if (Object.keys(updates[0]!).length === 1) return { error: "Nothing to update." };
+  // A Swap / Teleport trim edit also sets the render length to the trimmed section.
+  const trim = input.toolParams ? members.find((n) => n.data.modelId === "ffmpeg:trim-speed") : undefined;
+  const sync = trim
+    ? renderDurationForTrim(g.nodes, group, { ...trim.data.toolParams, ...input.toolParams })
+    : undefined;
+  if (sync && input.durationSeconds === undefined) {
+    const existing = updates.find((u) => u.nodeId === sync.renderId);
+    if (existing) existing.durationSeconds = sync.durationSeconds;
+    else updates.push({ nodeId: sync.renderId, durationSeconds: sync.durationSeconds });
+  }
   return runBatchUpdateNodes(g, handlers, { updates });
 }
 

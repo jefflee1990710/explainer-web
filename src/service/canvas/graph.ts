@@ -14,8 +14,18 @@ import {
 } from "@/service/canvas/model-catalog";
 import { characterOutfitPort } from "@/service/canvas/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { settingsAccepts } from "@/service/canvas/settings/registry";
+import {
+  directorBaseVars,
+  directorHandles,
+  directorRawOutput,
+  isExplainerDirectorNode,
+  parseDirectorHandle,
+  readDirectorPlan,
+} from "@/service/canvas/explainer-director";
+import { canWireSettings, settingsVars } from "@/service/canvas/settings/registry";
+import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/settings/template";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
+import type { SettingsVars } from "@/model/canvas-settings";
 
 export type CanvasEdgeCandidate = {
   source: string;
@@ -65,7 +75,10 @@ export type ResolveNodeInputsResult =
 export function getNodeOutputPortType(
   node: CanvasNode,
   catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
+  sourceHandle?: string | null,
 ): CanvasPortType | null {
+  // Director outputs are text; the Director has no plain output.
+  if (isExplainerDirectorNode(node)) return parseDirectorHandle(sourceHandle) ? "text" : null;
   if (node.type === "media") {
     return node.data.mediaKind ?? null;
   }
@@ -140,17 +153,21 @@ export function validateEdgeConnection(
 
   const sourceHandle = candidate.sourceHandle || "output";
   if (sourceHandle !== "output") {
-    return {
-      valid: false,
-      reason: `Unsupported source handle "${sourceHandle}"`,
-    };
+    // Only a planned Director has named outputs, one per clip text.
+    const plan = isExplainerDirectorNode(sourceNode) ? readDirectorPlan(sourceNode) : undefined;
+    if (!plan || !directorHandles(plan).includes(sourceHandle)) {
+      return {
+        valid: false,
+        reason: `Unsupported source handle "${sourceHandle}"`,
+      };
+    }
   }
 
-  // Settings edges carry no port value; the kind decides which targets may take them.
+  // Settings edges carry no image. Any settings kind can land on a model's Setting input.
   const settingsHandle = candidate.targetHandle ?? "";
   if (sourceNode.type === "settings" || settingsHandle === SETTINGS_HANDLE) {
     const settings = sourceNode.type === "settings" ? sourceNode.data.settings : undefined;
-    if (!settings || settingsHandle !== SETTINGS_HANDLE || !settingsAccepts(settings, targetNode)) {
+    if (!settings || settingsHandle !== SETTINGS_HANDLE || !canWireSettings(targetNode)) {
       return { valid: false, reason: "This settings node cannot connect to that input" };
     }
     const existing = edges.filter((e) => e.target === targetNode.id && e.targetHandle === SETTINGS_HANDLE);
@@ -163,7 +180,7 @@ export function validateEdgeConnection(
     return { valid: true };
   }
 
-  const sourcePortType = getNodeOutputPortType(sourceNode, catalog);
+  const sourcePortType = getNodeOutputPortType(sourceNode, catalog, sourceHandle);
   if (!sourcePortType) {
     return {
       valid: false,
@@ -324,6 +341,17 @@ export function reorderTargetHandleEdges<
   return next;
 }
 
+// Vars of the Setting node wired into `nodeId`, or none.
+export function wiredSettingsVars(
+  nodeId: string,
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+): SettingsVars {
+  const wire = edges.find((e) => e.target === nodeId && e.targetHandle === SETTINGS_HANDLE);
+  const source = wire ? nodes.find((n) => n.id === wire.source) : undefined;
+  return source?.type === "settings" && source.data.settings ? settingsVars(source.data.settings) : {};
+}
+
 // Collects and validates all inputs for a target model node from incoming edges
 // (preferring connected Prompt nodes over inline prompt text) and upstream outputs.
 export function resolveNodeInputs(
@@ -380,11 +408,21 @@ export function resolveNodeInputs(
   const missingRequiredFields: string[] = [];
   let promptFromNode = false;
 
-  // Resolve prompt: connected Prompt node overrides inline node.data.prompt.
+  // Resolve prompt: a connected Prompt node or Director output overrides inline node.data.prompt.
   const promptEdges = edgesByHandle.get("prompt") ?? [];
-  const promptSource = promptEdges
-    .map((edge) => nodeById.get(edge.source))
-    .find((node): node is CanvasNode => node?.type === "prompt");
+  let promptSource: CanvasNode | undefined;
+  let director: { node: CanvasNode; handle: string } | undefined;
+  for (const edge of promptEdges) {
+    const source = nodeById.get(edge.source);
+    if (source?.type === "prompt") {
+      promptSource = source;
+      break;
+    }
+    if (source && edge.sourceHandle && isExplainerDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
+      director = { node: source, handle: edge.sourceHandle };
+      break;
+    }
+  }
 
   if (promptSource) {
     promptFromNode = true;
@@ -392,11 +430,30 @@ export function resolveNodeInputs(
     if (connectedText) {
       inputs.prompt = connectedText;
     }
+  } else if (director) {
+    promptFromNode = true;
+    const text = directorRawOutput(director.node, director.handle)?.trim();
+    if (text) inputs.prompt = text;
+    else addUnique(missingUpstreamNodeIds, director.node.id);
   } else {
     const inlinePrompt = targetNode.data.prompt?.trim();
     if (inlinePrompt) {
       inputs.prompt = inlinePrompt;
     }
+  }
+
+  // `{{key}}`: Director text style, then the Director's Setting, the Prompt node's, and this node's (last wins).
+  if (inputs.prompt) {
+    const vars = {
+      ...(director
+        ? { ...directorBaseVars(director.node), ...wiredSettingsVars(director.node.id, nodes, edges) }
+        : {}),
+      ...(promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {}),
+      ...wiredSettingsVars(nodeId, nodes, edges),
+    };
+    const rendered = renderPromptTemplate(inputs.prompt, vars);
+    inputs.prompt = rendered.text.trim() || undefined;
+    for (const key of rendered.missing) addUnique(missingRequiredFields, promptPlaceholder(key));
   }
 
   // Helper to resolve a single-value media input handle.

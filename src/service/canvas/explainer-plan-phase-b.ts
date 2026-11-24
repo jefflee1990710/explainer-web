@@ -7,7 +7,15 @@ import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
-import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
+import { frameSubmitPlan, IMAGE_PROMPT_MAX_CHARS } from "@/service/higgsfield/frame-prompts";
+import {
+  ensureTextStylePlaceholder,
+  MAX_TEXT_STYLE_LINE_CHARS,
+  templateTextStyleLine,
+  TEXT_STYLE_VAR,
+} from "@/service/canvas/settings/explainer-text-style";
+import { promptPlaceholder } from "@/service/canvas/settings/template";
+import { isDiagramExplainerSkill } from "@/service/director/explainer-family";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { heyGenAvatarIvMotionPrompt } from "@/service/openrouter/generate";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
@@ -48,11 +56,22 @@ export async function buildCanvasPlanFramePrompts(project: Project) {
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
+  const look = project.onScreenTextStyleId || project.subtitleLook;
   return Promise.all(
     (written.phaseA?.clips ?? []).map(async (clip) => {
       const built = frameSubmitPlan(written, clip.clipNumber, "start", undefined, style).prompt;
-      // The image node sends this text as-is, so shorten it here like sendFrame does.
-      const prompt = await ensureFramePromptFits(built).catch(() => built);
+      // Explainer lettering becomes `{{text_style}}`, filled by the wired Setting at run time.
+      const templated =
+        look && isDiagramExplainerSkill(project.skillSlug)
+          ? templateTextStyleLine(built, look)
+          : { prompt: built, templated: false };
+      // The image node sends this text as-is, so shorten it here like sendFrame does,
+      // leaving room for the longest text style line.
+      const budget = templated.templated
+        ? IMAGE_PROMPT_MAX_CHARS - MAX_TEXT_STYLE_LINE_CHARS + promptPlaceholder(TEXT_STYLE_VAR).length
+        : IMAGE_PROMPT_MAX_CHARS;
+      const fitted = await ensureFramePromptFits(templated.prompt, undefined, budget).catch(() => templated.prompt);
+      const prompt = templated.templated ? ensureTextStylePlaceholder(fitted) : fitted;
       return { clipNumber: clip.clipNumber, prompt };
     }),
   );

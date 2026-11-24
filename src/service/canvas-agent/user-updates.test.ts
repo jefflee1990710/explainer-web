@@ -221,15 +221,17 @@ describe("user updates Swap and Teleport from the agent", () => {
       }),
     ) as { groupId: string };
     must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "instruction").id, text: "wear a red jacket" }));
-    must(T.update_settings(g, { groupId: created.groupId, values: { sectionLength: 10 } }));
-    const blocked = T.update_group_nodes(g, { groupId: created.groupId, role: "render", durationSeconds: 12 }) as {
-      error?: string;
-    };
-    assert.match(blocked.error ?? "", /update_settings/);
+    must(
+      T.update_group_nodes(g, {
+        groupId: created.groupId,
+        role: "trim",
+        toolParams: { ffmpegStartSec: 0, ffmpegEndSec: 10 },
+      }),
+    );
 
     assert.equal(bySuffix(g, created.groupId, "instruction").data.text, "wear a red jacket");
-    const swapSettings = bySuffix(g, created.groupId, "settings").data.settings;
-    assert.equal(swapSettings?.kind === "swap" ? swapSettings.values.sectionLength : undefined, 10);
+    assert.equal(bySuffix(g, created.groupId, "render").data.durationSeconds, 10);
+    assert.ok(!g.nodes.some((n) => n.type === "settings"));
 
     const refused = T.replace_group(g, { prompt: "new", groupId: created.groupId }) as { error?: string };
     assert.match(refused.error ?? "", /only re-plans/);
@@ -265,12 +267,18 @@ describe("user updates Swap and Teleport from the agent", () => {
     assert.equal(bySuffix(g, created.groupId, "scene").data.modelId, SEEDREAM_MODEL_ID);
 
     must(T.update_node(g, { nodeId: bySuffix(g, created.groupId, "scene-prompt").id, text: "a night market, no rain" }));
-    must(T.update_settings(g, { groupId: created.groupId, values: { sectionLength: 12, mood: "warm lantern light" } }));
+    must(
+      T.update_group_nodes(g, {
+        groupId: created.groupId,
+        role: "trim",
+        toolParams: { ffmpegStartSec: 0, ffmpegEndSec: 12 },
+      }),
+    );
+    must(T.update_group_nodes(g, { groupId: created.groupId, role: "render", prompt: "warm lantern light" }));
 
     assert.equal(bySuffix(g, created.groupId, "scene-prompt").data.text, "a night market, no rain");
-    const settings = bySuffix(g, created.groupId, "settings").data.settings;
-    assert.equal(settings?.kind === "teleport" ? settings.values.mood : undefined, "warm lantern light");
-    assert.equal(settings?.kind === "teleport" ? settings.values.sectionLength : undefined, 12);
+    assert.equal(bySuffix(g, created.groupId, "render").data.prompt, "warm lantern light");
+    assert.equal(bySuffix(g, created.groupId, "render").data.durationSeconds, 12);
 
     const plate = replaceMemberModel(g, `${created.groupId}-scene`, LITE);
     assert.equal(node(g, plate).data.modelId, LITE);

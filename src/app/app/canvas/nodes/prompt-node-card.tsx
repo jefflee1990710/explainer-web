@@ -1,10 +1,15 @@
 "use client";
 
 // Prompt node card: reusable text prompt that can fan out to multiple model nodes for A/B comparison.
+// `{{key}}` placeholders are filled from the Setting wired here, or from each model's own Setting.
 
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Trash2, Type } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
+import { wiredSettingsVars } from "@/service/canvas/graph";
+import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
+import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
+import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -15,10 +20,12 @@ export function PromptNodeCard({
   data,
   selected,
 }: NodeProps & { data: CanvasNodeData }) {
-  const { locale, onUpdateNodeData, onDeleteNode } = useCanvasNodeActions();
+  const { locale, nodes, edges, onUpdateNodeData, onDeleteNode } = useCanvasNodeActions();
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const color = PORT_COLOR_MAP.text;
   const text = data.text ?? "";
+  const settingsEdge = edges.find((e) => e.target === id && e.targetHandle === SETTINGS_HANDLE);
+  const settingsColor = settingsEdge && nodes.some((n) => n.id === settingsEdge.source) ? SETTING_COLOR : undefined;
 
   return (
     <div
@@ -51,20 +58,44 @@ export function PromptNodeCard({
         </button>
       </div>
 
+      {/* Setting input: fills `{{key}}` placeholders in this text */}
+      <div className="relative flex items-center justify-between px-3 pt-2 text-[11px]">
+        <Handle
+          type="target"
+          id={SETTINGS_HANDLE}
+          position={Position.Left}
+          style={{
+            width: 11,
+            height: 11,
+            backgroundColor: settingsColor ?? "#0b0e13",
+            border: `2px solid ${settingsColor ?? "#64748b"}`,
+            left: -6,
+          }}
+        />
+        <span className="flex items-center gap-1.5 text-white/80">
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: settingsColor ?? "#64748b" }} />
+          {isZh ? "設定" : "Setting"}
+        </span>
+        <span className="text-[10px] text-white/45">
+          {settingsColor ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
+        </span>
+      </div>
+
       {/* Editable prompt body */}
-      <div className="p-2.5">
+      <div className="space-y-1.5 p-2.5">
         <textarea
           value={text}
           onChange={(e) => onUpdateNodeData(id, { text: e.target.value })}
           rows={4}
           placeholder={
             isZh
-              ? "輸入提示詞，連線至一或多個模型卡片做效果對比…"
-              : "Write a prompt and wire it to one or more models…"
+              ? "輸入提示詞，可用 {{key}} 留位，由設定填入…"
+              : "Write a prompt; use {{key}} for values a Setting fills in…"
           }
           className="nodrag nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 text-[12px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
         />
-        <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-white/45">
+        <PromptVarsHint isZh={isZh} text={text} vars={wiredSettingsVars(id, nodes, edges)} missingBlocksRun={false} />
+        <div className="flex items-center justify-between text-[10.5px] text-white/45">
           <span>{text.length} chars</span>
           <span className="flex items-center gap-1 font-medium" style={{ color }}>
             Text

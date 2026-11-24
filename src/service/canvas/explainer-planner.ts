@@ -4,9 +4,10 @@ import type { CanvasNode } from "@/model/canvas";
 
 export const EXPLAINER_PLANNER_MODEL_ID = "scro:explainer";
 
-export type ExplainerPlanStatus = "planning" | "expanded" | "failed";
+// "planned": an Explainer Director holding its plan; "expanded": an old card already replaced by its rows.
+export type ExplainerPlanStatus = "planning" | "planned" | "expanded" | "failed";
 
-const PLAN_STATUSES: readonly ExplainerPlanStatus[] = ["planning", "expanded", "failed"];
+const PLAN_STATUSES: readonly ExplainerPlanStatus[] = ["planning", "planned", "expanded", "failed"];
 
 export const TALKING_HEAD_PLANNER_MODEL_ID = "scro:talking-head";
 

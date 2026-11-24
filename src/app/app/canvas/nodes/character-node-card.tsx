@@ -5,8 +5,6 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Maximize2, Shirt, Trash2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { BLUEPRINT_COST_USD } from "@/service/credit-costs";
-import { formatUsd } from "@/service/billing/usd";
 import { CHARACTER_OUTFIT_PORTS } from "@/service/canvas/character-node";
 import { OutdatedBanner, OutdatedPreviewTag } from "@/app/app/canvas/nodes/outdated-notice";
 import {
@@ -145,8 +143,8 @@ export function CharacterNodeCard({
               ? "正在生成新造型…"
               : "Generating outfit…"
             : isZh
-              ? `生成新造型 · ${formatUsd(BLUEPRINT_COST_USD)}`
-              : `New outfit · ${formatUsd(BLUEPRINT_COST_USD)}`}
+              ? "生成新造型"
+              : "New outfit"}
         </button>
         <div className="flex items-center justify-between text-[10.5px] text-white/50">
           <span className="uppercase tracking-wider">{isZh ? "角色" : "Character"}</span>

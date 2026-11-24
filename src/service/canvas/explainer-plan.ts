@@ -10,7 +10,15 @@ import {
   readPlannerParams,
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
-import { explainerSettingsFromVideo, topicFromPlanSource } from "@/service/canvas/explainer-settings";
+import { composeExplainerPlanSource } from "@/service/canvas/explainer-settings";
+import type { ExplainerPresenterPosition } from "@/model/explainer-settings";
+import {
+  directorParams,
+  isExplainerDirectorNode,
+  readDirectorPlan,
+  type ExplainerDirectorParams,
+  type ExplainerDirectorPlan,
+} from "@/service/canvas/explainer-director";
 import { resolveNodeInputs } from "@/service/canvas/graph";
 import { defaultGroupColor, defaultGroupTitle, readGroupParams } from "@/service/canvas/groups";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
@@ -32,7 +40,21 @@ export type CanvasExplainerPlanState =
       summary: string;
       // Frame around the expanded nodes; its id is the node id prefix.
       group: CanvasGroup;
+      // Explainer Director: the plan to store on the node.
+      plan?: ExplainerDirectorPlan;
     };
+
+// Plan source for a Director: topic, presenter line, and the old voiceover when the topic is unchanged.
+export function explainerPlanSource(node: CanvasNode): string {
+  const params = directorParams(node);
+  const plan = readDirectorPlan(node);
+  const keepNarration = plan !== undefined && plan.plannedWith.topic === params.topic;
+  return composeExplainerPlanSource({
+    topic: params.topic,
+    presenterPosition: params.presenterPosition as ExplainerPresenterPosition,
+    narration: keepNarration ? plan.clips.map((c) => c.spokenLine) : [],
+  });
+}
 
 async function loadPlanner(clerkUserId: string, canvasId: string, nodeId: string) {
   if (!ObjectId.isValid(canvasId)) return null;
@@ -63,12 +85,14 @@ export async function startCanvasExplainerPlan(params: {
   if (!resolved.inputs.prompt?.trim()) {
     return { ok: false, error: isTalking ? "請先輸入講稿" : "請先輸入或連接解說主題" };
   }
+  const director = isExplainerDirectorNode(loaded.node);
+  const inputs = director ? { ...resolved.inputs, prompt: explainerPlanSource(loaded.node) } : resolved.inputs;
   try {
     const videoId = await createCanvasDirectorVideo({
       clerkUserId: params.clerkUserId,
       modelId: isTalking ? "scro:talking-head" : "scro:explainer",
       node: loaded.node,
-      inputs: resolved.inputs,
+      inputs,
       planOnly: true,
     });
     const plannerVideoId = videoId.toHexString();
@@ -78,6 +102,8 @@ export async function startCanvasExplainerPlan(params: {
         $set: {
           "nodes.$[n].data.toolParams.plannerVideoId": plannerVideoId,
           "nodes.$[n].data.toolParams.planStatus": "planning",
+          // The plan records the parameters it started with, even if the card is edited meanwhile.
+          ...(director ? { "nodes.$[n].data.toolParams.planningWith": directorParams(loaded.node) } : {}),
           updatedAt: new Date(),
         },
         $unset: { "nodes.$[n].data.toolParams.planError": "" },
@@ -90,6 +116,9 @@ export async function startCanvasExplainerPlan(params: {
     return { ok: false, error: error instanceof Error ? error.message : "分鏡規劃失敗" };
   }
 }
+
+// Director card width plus a gap; its rows start to the right of it.
+const DIRECTOR_ROW_OFFSET_X = 360;
 
 function plannerLanguage(raw: unknown): "yue" | "zh" | "en" {
   return raw === "zh" || raw === "en" ? raw : "yue";
@@ -187,39 +216,41 @@ export function planStateFromVideo(params: {
     return { status: "ready", ...expansion, summary, group };
   }
 
+  // Every Explainer planner is a Director; its outputs feed the rows.
+  const directorId = plannerNode.id;
+  const clips = phaseA.clips.map((clip) => ({
+    clipNumber: clip.clipNumber,
+    framePrompt: frameByClip.get(clip.clipNumber) || params.buildFramePrompt(video, clip.clipNumber),
+    videoPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
+    durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
+    spokenLine: clip.englishVo ?? "",
+    refUrls: params.frameInputs?.refsByClip.get(clip.clipNumber) ?? [],
+  }));
   const expansion = buildExplainerExpansion({
     idPrefix: params.idPrefix,
-    origin: plannerNode.position,
+    // Rows sit to the right of the Director, which stays where it is.
+    origin: { x: plannerNode.position.x + DIRECTOR_ROW_OFFSET_X, y: plannerNode.position.y },
     aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
     frameResolution: params.frameInputs?.resolution,
     language,
     voicePreset,
     characterId,
-    settings: {
-      plannerVideoId: video._id.toHexString(),
-      topic: topicFromPlanSource(video.source ?? ""),
-      applied: explainerSettingsFromVideo(video),
-    },
-    clips: phaseA.clips.map((clip) => ({
-      clipNumber: clip.clipNumber,
-      framePrompt:
-        frameByClip.get(clip.clipNumber) || params.buildFramePrompt(video, clip.clipNumber),
-      videoPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
-      durationSeconds:
-        promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
-      spokenLine: clip.englishVo ?? "",
-      refUrls: params.frameInputs?.refsByClip.get(clip.clipNumber),
-    })),
+    directorId,
+    clips,
   });
+  const plannedWith =
+    (plannerNode.data.toolParams?.planningWith as ExplainerDirectorParams | undefined) ??
+    directorParams(plannerNode);
+  const plan: ExplainerDirectorPlan = { plannerVideoId: video._id.toHexString(), plannedWith, clips };
   const group = planGroup({
     id: params.idPrefix,
     kind: "explainer",
     title: phaseA.localizedTitle || phaseA.englishTitle,
     plannerNode,
-    memberIds: expansion.nodes.map((n) => n.id),
+    memberIds: [directorId, ...expansion.nodes.map((n) => n.id)],
     language,
   });
-  return { status: "ready", ...expansion, summary, group };
+  return { status: "ready", ...expansion, summary, group, plan };
 }
 
 export async function readCanvasExplainerPlan(params: {

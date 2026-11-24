@@ -808,30 +808,19 @@ describe("canvas executor", () => {
     );
   });
 
-  it("prices and submits a swap render with the wired settings length", async () => {
+  it("prices and submits a swap render with its own length", async () => {
     const harness = createHarness({
       initialCreditUsd: 100,
       overrides: { enqueueCanvasNodeWorkerTask: async () => {} },
       nodes: [
         { id: "src", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "video", mediaUrl: "https://x/v.mp4" } },
         {
-          id: "s",
-          type: "settings",
-          position: { x: 0, y: 0 },
-          data: {
-            settings: {
-              kind: "swap",
-              values: { swapMode: "character", sectionStart: 0, sectionLength: 10, aspectRatio: "9:16", gradeLook: "jutsu" },
-            },
-          },
-        },
-        {
           id: "r",
           type: "model",
           position: { x: 0, y: 0 },
           data: {
             modelId: "scro:swap-render",
-            durationSeconds: 4,
+            durationSeconds: 10,
             aspectRatio: "9:16",
             prompt: "",
             toolParams: { swapMode: "character" },
@@ -840,7 +829,6 @@ describe("canvas executor", () => {
       ],
       edges: [
         { id: "e1", source: "src", sourceHandle: "output", target: "r", targetHandle: "video" },
-        { id: "e2", source: "s", sourceHandle: "output", target: "r", targetHandle: "settings" },
       ],
     });
     const result = await submitCanvasNodeJob(

@@ -1,7 +1,6 @@
 // Execution engine, async polling, permanent Vercel Blob persistence, and
 // idempotent USD credit refunds for the Interactive Node Canvas Editor (/app/canvas).
 
-import { withWiredSettings } from "@/service/canvas/settings/apply";
 import { ObjectId } from "mongodb";
 import {
   canvasJobsCollection,
@@ -617,8 +616,7 @@ export async function submitCanvasNodeJob(
   if (!loadedProject) {
     return { ok: false, code: "NOT_FOUND", error: "找不到畫布專案" };
   }
-  // Wired settings nodes write their values over their targets before validation, pricing, and submit.
-  const project = { ...loadedProject, nodes: withWiredSettings(loadedProject.nodes, loadedProject.edges) };
+  const project = loadedProject;
 
   const node = project.nodes.find((item) => item.id === input.nodeId);
   if (!node || node.type !== "model") {
@@ -924,9 +922,7 @@ export async function dispatchQueuedCanvasJobById(
   if (!job || job.status !== "queued") return job;
 
   const project = await resolved.findCanvasProject(job.canvasId, job.clerkUserId);
-  const node = project
-    ? withWiredSettings(project.nodes, project.edges).find((n) => n.id === job.nodeId)
-    : undefined;
+  const node = project?.nodes.find((n) => n.id === job.nodeId);
   const catalog = await resolved.getCatalog();
   const spec = findCanvasModel(job.modelId, catalog);
   if (!project || !node || !spec) {

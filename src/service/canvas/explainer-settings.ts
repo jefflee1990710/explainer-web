@@ -1,7 +1,5 @@
-// Pure, client-safe helpers for the canvas Explainer Settings node.
+// Pure, client-safe helpers for the canvas Explainer Director look (art style, background, text, presenter).
 
-import { explainerSettingsPatch } from "@/service/canvas/settings/explainer-data";
-import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import type { DirectorPresetBackground } from "@/model/director";
 import {
   EXPLAINER_PRESENTER_POSITIONS,
@@ -9,7 +7,6 @@ import {
   EXPLAINER_SKILL_SLUGS,
   type ExplainerPresenterPosition,
   type ExplainerSettings,
-  type ExplainerSettingsNodeData,
   type ExplainerSkillSlug,
 } from "@/model/explainer-settings";
 import {
@@ -22,11 +19,6 @@ import {
 } from "@/model/papercraft-backgrounds";
 import type { SceneTextChoice } from "@/model/project";
 import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
-import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
-
-// Frame target handle the settings edges land on. It is not a model input.
-export const EXPLAINER_SETTINGS_HANDLE = SETTINGS_HANDLE;
 
 // Marker lines the plan source uses; everything from the first marker on is not the topic.
 const PRESENTER_MARKER = "【版面】";
@@ -79,19 +71,6 @@ export function normalizeExplainerSettings(raw: Partial<Record<keyof ExplainerSe
     presenterPosition:
       oneOf(EXPLAINER_PRESENTER_POSITIONS, raw.presenterPosition) ?? DEFAULT_SETTINGS.presenterPosition,
   };
-}
-
-// Only the text style is applied at frame time; every other field is written into Phase A scenes.
-export function explainerSettingsChanges(a: ExplainerSettings, b: ExplainerSettings) {
-  const keys: (keyof ExplainerSettings)[] = [
-    "skillSlug",
-    "backgroundId",
-    "textStyleId",
-    "sceneTextLanguage",
-    "presenterPosition",
-  ];
-  const changed = keys.filter((key) => a[key] !== b[key]);
-  return { changed, restyleOnly: changed.length > 0 && changed.every((key) => key === "textStyleId") };
 }
 
 export function composeExplainerPlanSource(input: {
@@ -194,81 +173,4 @@ export function explainerSettingsFromVideo(video: ExplainerSettingsVideoFields):
     sceneTextLanguage: video.sceneTextEnabled === false ? "none" : video.sceneTextLanguage,
     presenterPosition: presenterFromPlanSource(video.source),
   });
-}
-
-export function explainerSettingsNodeId(groupId: string): string {
-  return `${groupId}-settings`;
-}
-
-export function buildExplainerSettingsNode(input: {
-  groupId: string;
-  position: { x: number; y: number };
-  data: ExplainerSettingsNodeData;
-}): CanvasNode {
-  return {
-    id: explainerSettingsNodeId(input.groupId),
-    type: "settings",
-    position: input.position,
-    data: { label: "解說設定", ...explainerSettingsPatch(input.data) },
-  };
-}
-
-export function explainerSettingsEdges(groupId: string, frameIds: readonly string[]): CanvasEdge[] {
-  const source = explainerSettingsNodeId(groupId);
-  return frameIds.map((target) => ({
-    id: `${source}->${target}:${EXPLAINER_SETTINGS_HANDLE}`,
-    source,
-    sourceHandle: "output",
-    target,
-    targetHandle: EXPLAINER_SETTINGS_HANDLE,
-  }));
-}
-
-// Voice lines of the group's clips, in clip order.
-function groupNarration(nodes: readonly CanvasNode[], groupId: string): string[] {
-  const pattern = new RegExp(`^${groupId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-voice-(\\d+)$`);
-  return nodes
-    .map((n) => ({ n, match: pattern.exec(n.id) }))
-    .filter((x): x is { n: CanvasNode; match: RegExpExecArray } => Boolean(x.match))
-    .sort((a, b) => Number(a.match[1]) - Number(b.match[1]))
-    .map((x) => x.n.data.prompt?.trim() ?? "")
-    .filter(Boolean);
-}
-
-// Planning card that re-plans the group with new settings, keeping topic, narration, and character.
-export function buildExplainerReplanCard(input: {
-  nodes: readonly CanvasNode[];
-  group: CanvasGroup;
-  settings: ExplainerSettingsNodeData;
-  next: ExplainerSettings;
-  cardId: string;
-  position: { x: number; y: number };
-}): CanvasNode {
-  const params = input.group.params ?? {};
-  const aspectRatio =
-    params.aspectRatio ??
-    input.nodes.find((n) => input.group.memberIds.includes(n.id) && n.data.aspectRatio)?.data.aspectRatio ??
-    "9:16";
-  return {
-    id: input.cardId,
-    type: "model",
-    position: input.position,
-    data: {
-      modelId: EXPLAINER_PLANNER_MODEL_ID,
-      aspectRatio,
-      prompt: composeExplainerPlanSource({
-        topic: input.settings.topic,
-        presenterPosition: input.next.presenterPosition,
-        narration: groupNarration(input.nodes, input.group.id),
-      }),
-      toolParams: {
-        plannerMode: true,
-        ...(params.characterId ? { characterId: params.characterId } : {}),
-        ...(params.language ? { language: params.language } : {}),
-        ...(params.durationPreset ? { durationPreset: params.durationPreset } : {}),
-        ...explainerSettingsToolParams(input.next),
-      },
-      status: "idle",
-    },
-  };
 }

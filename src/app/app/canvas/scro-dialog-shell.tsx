@@ -20,10 +20,12 @@ type Props = {
   title: string;
   description: string;
   submitLabel: string;
+  // Defaults to "取消" / "Cancel".
+  cancelLabel?: string;
   canSubmit: boolean;
   onCancel: () => void;
   onSubmit: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 export function ScroDialogShell({
@@ -32,6 +34,7 @@ export function ScroDialogShell({
   title,
   description,
   submitLabel,
+  cancelLabel,
   canSubmit,
   onCancel,
   onSubmit,
@@ -62,7 +65,7 @@ export function ScroDialogShell({
         <div className="text-sm font-semibold">{title}</div>
         <p className="mt-1 text-xs leading-relaxed text-white/60">{description}</p>
 
-        <div className="mt-4 space-y-3">{children}</div>
+        {children ? <div className="mt-4 space-y-3">{children}</div> : null}
 
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -70,7 +73,7 @@ export function ScroDialogShell({
             onClick={onCancel}
             className="cursor-pointer rounded-lg border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
           >
-            {isZh ? "取消" : "Cancel"}
+            {cancelLabel ?? (isZh ? "取消" : "Cancel")}
           </button>
           <button
             type="button"

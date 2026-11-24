@@ -10,6 +10,7 @@ import {
   resolveNodeInputs,
   validateEdgeConnection,
 } from "@/service/canvas/graph";
+import { explainerTextStyleLine } from "@/service/canvas/settings/explainer-text-style";
 
 function mediaNode(
   id: string,
@@ -304,6 +305,94 @@ describe("canvas graph — validateEdgeConnection", () => {
 });
 
 describe("canvas graph — resolveNodeInputs", () => {
+  const plannedDirector: CanvasNode = {
+    id: "dir",
+    type: "model",
+    position: { x: 0, y: 0 },
+    data: {
+      modelId: "scro:explainer",
+      prompt: "t",
+      aspectRatio: "9:16",
+      toolParams: {
+        plannerMode: true,
+        textStyleId: "neon",
+        plan: {
+          plannerVideoId: "v",
+          plannedWith: {
+            topic: "t",
+            aspectRatio: "9:16",
+            skillSlug: "cartoon-explainer-video-director",
+            language: "yue",
+            presenterPosition: "auto",
+          },
+          clips: [
+            {
+              clipNumber: 1,
+              framePrompt: "{{mood}} board {{text_style}}",
+              videoPrompt: "pan",
+              spokenLine: "hi",
+              durationSeconds: 6,
+              refUrls: [],
+            },
+          ],
+        },
+      },
+    },
+  };
+  const settingNode = (id: string, vars: Record<string, string>): CanvasNode => ({
+    id,
+    type: "settings",
+    position: { x: 0, y: 0 },
+    data: { settings: { vars } },
+  });
+
+  it("reads a Director clip output as the prompt and merges vars with the receiver winning", () => {
+    const nodes: CanvasNode[] = [
+      plannedDirector,
+      settingNode("s-dir", { mood: "calm" }),
+      settingNode("s-img", { mood: "busy" }),
+      modelNode("img", "mentalok:flux-schnell"),
+    ];
+    const edges: CanvasEdge[] = [
+      edge("e1", "dir", "img", "prompt", "clip-1-frame"),
+      edge("e2", "s-dir", "dir", "settings"),
+      edge("e3", "s-img", "img", "settings"),
+    ];
+    assert.equal(
+      validateEdgeConnection(nodes, [], { source: "dir", sourceHandle: "clip-1-frame", target: "img", targetHandle: "prompt" }).valid,
+      true,
+    );
+    assert.equal(
+      validateEdgeConnection(nodes, [], { source: "dir", sourceHandle: "clip-2-frame", target: "img", targetHandle: "prompt" }).valid,
+      false,
+    );
+    assert.equal(
+      validateEdgeConnection(nodes, [], { source: "dir", target: "img", targetHandle: "prompt" }).valid,
+      false,
+    );
+    const resolved = resolveNodeInputs("img", nodes, edges);
+    assert.equal(resolved.inputs.prompt, `busy board ${explainerTextStyleLine("neon")}`);
+  });
+
+  it("uses the Director's Setting when the receiver has none", () => {
+    const nodes: CanvasNode[] = [plannedDirector, settingNode("s-dir", { mood: "calm" }), modelNode("img", "mentalok:flux-schnell")];
+    const edges: CanvasEdge[] = [edge("e1", "dir", "img", "prompt", "clip-1-frame"), edge("e2", "s-dir", "dir", "settings")];
+    assert.ok(resolveNodeInputs("img", nodes, edges).inputs.prompt?.startsWith("calm board"));
+  });
+
+  it("reports an unplanned Director as a missing upstream", () => {
+    const dir: CanvasNode = {
+      id: "dir",
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: { modelId: "scro:explainer", toolParams: { plannerMode: true } },
+    };
+    const nodes: CanvasNode[] = [dir, modelNode("img", "mentalok:flux-schnell")];
+    const resolved = resolveNodeInputs("img", nodes, [edge("e1", "dir", "img", "prompt", "clip-1-frame")]);
+    assert.equal(resolved.ok, false);
+    if (!resolved.ok) assert.deepEqual(resolved.missingUpstreamNodeIds, ["dir"]);
+  });
+
   it("prefers connected Prompt node text over inline node.data.prompt", () => {
     const nodes: CanvasNode[] = [
       promptNode("p1", "Cinematic cyberpunk Tokyo at dusk"),
@@ -408,6 +497,36 @@ describe("canvas graph — resolveNodeInputs", () => {
       assert.deepEqual(resolved.missingUpstreamNodeIds, ["gen-img"]);
       assert.deepEqual(resolved.missingRequiredFields, ["image"]);
     }
+  });
+
+  it("fills {{key}} from the wired Setting; the model's Setting wins over the Prompt node's", () => {
+    const setting = (id: string, vars: Record<string, string>): CanvasNode => ({
+      id,
+      type: "settings",
+      position: { x: 0, y: 0 },
+      data: { settings: { vars } },
+    });
+    const nodes: CanvasNode[] = [
+      setting("s-prompt", { mood: "rainy", style: "ink" }),
+      setting("s-model", { style: "neon" }),
+      promptNode("p", "A {{mood}} street, {{style}} look"),
+      modelNode("img", "mentalok:flux-schnell"),
+    ];
+    const edges: CanvasEdge[] = [
+      edge("e1", "p", "img", "prompt"),
+      edge("e2", "s-prompt", "p", "settings"),
+      edge("e3", "s-model", "img", "settings"),
+    ];
+    assert.equal(validateEdgeConnection(nodes, [], { source: "s-prompt", target: "p", targetHandle: "settings" }).valid, true);
+    const resolved = resolveNodeInputs("img", nodes, edges);
+    assert.equal(resolved.inputs.prompt, "A rainy street, neon look");
+  });
+
+  it("blocks a run while a {{key}} has no value", () => {
+    const nodes: CanvasNode[] = [modelNode("img", "mentalok:flux-schnell", { prompt: "A {{mood}} street" })];
+    const resolved = resolveNodeInputs("img", nodes, []);
+    assert.equal(resolved.ok, false);
+    if (!resolved.ok) assert.deepEqual(resolved.missingRequiredFields, ["{{mood}}"]);
   });
 
   it("reports missingRequiredFields when required inputs are absent", () => {
@@ -741,12 +860,7 @@ describe("canvas graph — settings edges", () => {
     id: "s",
     type: "settings",
     position: { x: 0, y: 0 },
-    data: {
-      settings: {
-        kind: "swap",
-        values: { swapMode: "character", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
-      },
-    },
+    data: { settings: { vars: {} } },
   };
   const grade: CanvasNode = { id: "g", type: "model", position: { x: 0, y: 0 }, data: { modelId: "ffmpeg:color-grade" } };
   const tts: CanvasNode = { id: "t", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts" } };
@@ -761,8 +875,8 @@ describe("canvas graph — settings edges", () => {
     assert.deepEqual(validateEdgeConnection([settingsNode, grade], [], candidate("g")), { valid: true });
   });
 
-  it("rejects targets the kind does not accept and non-settings handles", () => {
-    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, false);
+  it("lets any model use the Setting input, and still rejects other handles", () => {
+    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, true);
     assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g", "video")).valid, false);
   });
 

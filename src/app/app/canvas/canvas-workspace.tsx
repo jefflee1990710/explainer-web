@@ -4,7 +4,6 @@
 // Handles local/library drag-and-drop, typed connection guardrails, 800ms debounced
 // MongoDB auto-save, 3s active-job polling, live USD balance updates, and multi-wave Run Flow.
 
-import { explainerSettingsOf, explainerSettingsPatch } from "@/service/canvas/settings/registry";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -84,6 +83,18 @@ import {
 } from "@/service/canvas/explainer-planner";
 import { replacePlannerWithExpansion } from "@/service/canvas/explainer-expand";
 import {
+  directorChangedTargets,
+  isExplainerDirectorNode,
+  readDirectorPlan,
+} from "@/service/canvas/explainer-director";
+import { applyDirectorBuild, dropCutDirectorEdges } from "@/service/canvas/explainer-director-apply";
+import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
+import type { CanvasExplainerPlanState } from "@/service/canvas/explainer-plan";
+import {
+  DirectorPlanDecisionDialog,
+  type DirectorDecision,
+} from "@/app/app/canvas/director-plan-decision-dialog";
+import {
   layoutExplainerGroup,
   shiftGroupClearOf,
   type LayoutSize,
@@ -119,7 +130,6 @@ import {
 } from "@/app/app/canvas/talking-head-dialog";
 import {
   getCanvasExplainerPlanAction,
-  restyleCanvasExplainerAction,
   startCanvasExplainerPlanAction,
 } from "@/presentation/actions/canvas-explainer";
 import type {
@@ -152,20 +162,10 @@ import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
 import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
-import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
-import {
-  CANVAS_DRAG_SETTINGS_MIME,
-  isHandAddedSettingsKind,
-  type HandAddedSettingsKind,
-} from "@/app/app/canvas/canvas-settings-tool";
-import { settingsOverridesById, settingsStaleTargets } from "@/service/canvas/settings/apply";
-import { defaultSettings, settingsKindDef } from "@/service/canvas/settings/registry";
+import { SETTING_COLOR, SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
+import { CANVAS_DRAG_SETTINGS_MIME } from "@/app/app/canvas/canvas-settings-tool";
+import { settingsStaleTargets } from "@/service/canvas/settings/apply";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
-import type { ExplainerSettings } from "@/model/explainer-settings";
-import {
-  buildExplainerReplanCard,
-  explainerSettingsChanges,
-} from "@/service/canvas/explainer-settings";
 import {
   isGenerationInputPatch,
   markStaleOutputs,
@@ -191,7 +191,7 @@ import {
 
 // Settings wires take the settings kind's color instead of a port color.
 function settingsStroke(node: CanvasNode | undefined): string | undefined {
-  return node?.type === "settings" && node.data.settings ? settingsKindDef(node.data.settings.kind).color : undefined;
+  return node?.type === "settings" ? SETTING_COLOR : undefined;
 }
 
 const NODE_TYPES = {
@@ -271,7 +271,7 @@ function toFlowEdges(
   return edges.map((e) => {
     const src = nodeMap.get(e.source);
     const tgt = nodeMap.get(e.target);
-    const portType = src ? getNodeOutputPortType(src, catalog) : null;
+    const portType = src ? getNodeOutputPortType(src, catalog, e.sourceHandle) : null;
     const stroke = settingsStroke(src) ?? (portType ? PORT_COLOR_MAP[portType] : "#c6f24b");
     const isTargetRunning =
       tgt?.type === "model" &&
@@ -421,7 +421,6 @@ function CanvasWorkspaceInner({
   }, [nodes, edges]);
   // Nodes whose preview is an old version, shown with a "needs regenerating" badge.
   const outdatedNodes = useMemo(() => outdatedNodeReasons(domainNodes, domainEdges), [domainNodes, domainEdges]);
-  const settingsOverrides = useMemo(() => settingsOverridesById(domainNodes, domainEdges), [domainNodes, domainEdges]);
 
   const syncWallet = useCallback(
     (nextCreditUsd?: number) => {
@@ -614,22 +613,45 @@ function CanvasWorkspaceInner({
   const onUpdateNodeData = useCallback(
     (nodeId: string, patch: Partial<CanvasNodeData>) => {
       const current = nodesRef.current.find((n) => n.id === nodeId);
+      // A Director edit only makes rows whose wired output text changed old (a text style change).
+      if (current && isExplainerDirectorNode({ type: "model", data: current.data })) {
+        const before = toDomainNodes([current])[0]!;
+        const after = { ...before, data: { ...before.data, ...patch } };
+        setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n)));
+        markStale(directorChangedTargets(before, after, toDomainEdges(edgesRef.current)));
+        scheduleAutosave();
+        return;
+      }
       const stale = current ? isGenerationInputPatch(current.data, patch) : false;
-      // A Swap / Teleport settings edit only makes the targets whose run values change old.
+      // A settings edit only makes the targets whose run values or used `{{key}}` values change old.
       const settingsTargets =
-        current?.type === "settings" && patch.settings && patch.settings.kind !== "explainer"
+        current?.type === "settings" && patch.settings
           ? settingsStaleTargets(toDomainNodes(nodesRef.current), toDomainEdges(edgesRef.current), nodeId, patch.settings)
           : [];
+      // A Swap / Teleport trim edit also sets the render length to the trimmed section.
+      const domain = patch.toolParams && current?.data.modelId === "ffmpeg:trim-speed" ? toDomainNodes(nodesRef.current) : [];
+      const sync = domain.length
+        ? renderDurationForTrim(
+            domain,
+            snapshotGroups(domain).find((g) => g.memberIds.includes(nodeId)),
+            { ...current?.data.toolParams, ...patch.toolParams },
+          )
+        : undefined;
+      const syncRender =
+        sync && domain.find((n) => n.id === sync.renderId)?.data.durationSeconds !== sync.durationSeconds ? sync : undefined;
       setNodes((prev) =>
-        prev.map((n) =>
-          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n,
-        ),
+        prev.map((n) => {
+          if (n.id === nodeId) return { ...n, data: { ...n.data, ...patch } };
+          if (n.id === syncRender?.renderId) return { ...n, data: { ...n.data, durationSeconds: syncRender.durationSeconds } };
+          return n;
+        }),
       );
       if (stale) markStale([nodeId]);
+      if (syncRender) markStale([syncRender.renderId]);
       if (settingsTargets.length > 0) markStale(settingsTargets);
       scheduleAutosave();
     },
-    [setNodes, scheduleAutosave, markStale],
+    [setNodes, scheduleAutosave, markStale, snapshotGroups],
   );
 
   const onDeleteNode = useCallback(
@@ -870,14 +892,14 @@ function CanvasWorkspaceInner({
     [getCenterPosition, setNodes, setEdges, scheduleAutosave],
   );
 
-  // Hand-added Swap / Teleport Settings node with default values; wire it onto trim / render / grade nodes.
+  // Hand-added empty Setting node; wire it into a Director, model, or Prompt node.
   const addSettingsNode = useCallback(
-    (kind: HandAddedSettingsKind, position?: { x: number; y: number }) => {
+    (position?: { x: number; y: number }) => {
       const newNode: FlowNode = {
         id: `settings-${crypto.randomUUID().slice(0, 8)}`,
         type: "settings",
         position: position ?? getCenterPosition(),
-        data: { label: settingsKindDef(kind).label.zh, settings: defaultSettings(kind) },
+        data: { label: "Setting", settings: { vars: {} } },
       };
       setNodes((prev) => [...prev, newNode]);
       scheduleAutosave();
@@ -1118,6 +1140,7 @@ function CanvasWorkspaceInner({
                   planStatus: "planning",
                   planError: undefined,
                   plannerVideoId: undefined,
+                  replanRequested: undefined,
                 },
               },
             }
@@ -1175,91 +1198,6 @@ function CanvasWorkspaceInner({
   const onPlanExplainer = useCallback(
     (nodeId: string) => void startDirectorPlan(nodeId),
     [startDirectorPlan],
-  );
-
-  // Explainer Settings: a text style change rewrites the frame prompts in place; anything
-  // else, or an explicit Replan, swaps the group for a free planning card that keeps the
-  // voiceover word for word.
-  const onApplyExplainerSettings = useCallback(
-    async (nodeId: string, next: ExplainerSettings, options?: { replan?: boolean }) => {
-      const settingsNode = nodesRef.current.find((n) => n.id === nodeId);
-      const data = settingsNode ? explainerSettingsOf(settingsNode.data) : undefined;
-      if (!settingsNode || !data) return;
-      const writeSettings = (applied: ExplainerSettings) =>
-        setNodes((prev) =>
-          prev.map((n) =>
-            n.id === nodeId
-              ? {
-                  ...n,
-                  data: { ...n.data, ...explainerSettingsPatch({ ...data, applied, pending: undefined, draft: undefined }) },
-                }
-              : n,
-          ),
-        );
-      const { changed, restyleOnly: restyleOnlyChange } = explainerSettingsChanges(data.applied, next);
-      const restyleOnly = restyleOnlyChange && !options?.replan;
-      if (changed.length === 0 && !options?.replan) {
-        writeSettings(data.applied);
-        scheduleAutosave();
-        return;
-      }
-
-      const domain = toDomainNodes(nodesRef.current);
-      const group = snapshotGroups(domain).find((g) => g.memberIds.includes(nodeId));
-      if (!group) {
-        toast.error(isZh ? "找不到這組解說" : "This Explainer group is missing");
-        return;
-      }
-      const members = new Set(group.memberIds);
-      if (domain.some((n) => members.has(n.id) && (n.data.status === "queued" || n.data.status === "running"))) {
-        toast.error(isZh ? "這組解說還在生成中，完成後再改設定" : "This Explainer is still generating; try again when it finishes");
-        return;
-      }
-
-      if (restyleOnly) {
-        const res = await restyleCanvasExplainerAction({
-          plannerVideoId: data.plannerVideoId,
-          textStyleId: next.textStyleId,
-        });
-        if (!res.ok) {
-          toast.error(res.error);
-          return;
-        }
-        const prompts = new Map(res.framePrompts.map((f) => [`${group.id}-frame-${f.clipNumber}`, f.prompt]));
-        setNodes((prev) =>
-          prev.map((n) => {
-            const prompt = prompts.get(n.id);
-            return prompt ? { ...n, data: { ...n.data, prompt } } : n;
-          }),
-        );
-        writeSettings(next);
-        markStale([...prompts.keys()]);
-        scheduleAutosave();
-        toast.success(isZh ? "已更新文字樣式，按 Run group 重新生成" : "Text style updated; press Run group to regenerate");
-        return;
-      }
-
-      const card = buildExplainerReplanCard({
-        nodes: domain,
-        group,
-        settings: data,
-        next,
-        cardId: `model-${crypto.randomUUID().slice(0, 8)}`,
-        position: settingsNode.position,
-      });
-      const outsideTargets = edgesRef.current
-        .filter((e) => members.has(e.source) && !members.has(e.target))
-        .map((e) => e.target);
-      const nextNodes = [...nodesRef.current.filter((n) => !members.has(n.id)), ...toFlowNodes([card])];
-      const nextEdges = edgesRef.current.filter((e) => !members.has(e.source) && !members.has(e.target));
-      setNodes(nextNodes);
-      setEdges(nextEdges);
-      // Nodes outside the group that used its output lose that input.
-      markStale(outsideTargets);
-      updateGroups((prev) => prev.filter((g) => g.id !== group.id));
-      await startDirectorPlan(card.id, { nodes: nextNodes, edges: nextEdges });
-    },
-    [setNodes, setEdges, scheduleAutosave, snapshotGroups, isZh, markStale, updateGroups, startDirectorPlan],
   );
 
   const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
@@ -1348,6 +1286,8 @@ function CanvasWorkspaceInner({
             skillSlug: values.skillSlug,
             language: values.language,
             durationPreset: values.durationPreset,
+            textStyleId: "handwritten",
+            presenterPosition: "auto",
             ...(values.characterId ? { characterId: values.characterId } : {}),
           },
         },
@@ -1391,6 +1331,108 @@ function CanvasWorkspaceInner({
       });
     },
     [talkingHeadDialog, startDirectorPlan],
+  );
+
+  // Director plan results waiting for the build / rebuild / keep answer, with the rows whose text changed.
+  const [directorDecision, setDirectorDecision] = useState<DirectorDecision | null>(null);
+  const pendingDirectorPlanRef = useRef<
+    Map<string, { state: Extract<CanvasExplainerPlanState, { status: "ready" }>; changed: string[] }>
+  >(new Map());
+
+  // Stores a finished plan on its Director, then updates rows in place or asks what to build.
+  const onDirectorPlanReady = useCallback(
+    (nodeId: string, state: Extract<CanvasExplainerPlanState, { status: "ready" }>) => {
+      const director = nodesRef.current.find((n) => n.id === nodeId);
+      if (!director || !state.plan) return;
+      const before = toDomainNodes([director])[0]!;
+      const oldPlan = readDirectorPlan(before);
+      const toolParams = { ...director.data.toolParams, plan: state.plan, planStatus: "planned", planningWith: undefined };
+      const after = { ...before, data: { ...before.data, toolParams } };
+      const changed = directorChangedTargets(before, after, toDomainEdges(edgesRef.current));
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, toolParams } } : n)));
+      if (!oldPlan) {
+        pendingDirectorPlanRef.current.set(nodeId, { state, changed });
+        setDirectorDecision({ kind: "build", nodeId, clipCount: state.plan.clips.length });
+      } else if (oldPlan.clips.length === state.plan.clips.length) {
+        markStale(changed);
+        toast.success(isZh ? "已更新規劃，按 Run group 重新生成" : "Plan updated; press Run group to regenerate");
+      } else {
+        pendingDirectorPlanRef.current.set(nodeId, { state, changed });
+        setDirectorDecision({
+          kind: "count",
+          nodeId,
+          oldCount: oldPlan.clips.length,
+          newCount: state.plan.clips.length,
+        });
+      }
+      scheduleAutosave();
+    },
+    [setNodes, markStale, scheduleAutosave, isZh],
+  );
+
+  const resolveDirectorDecision = useCallback(
+    (build: boolean) => {
+      const decision = directorDecision;
+      setDirectorDecision(null);
+      if (!decision) return;
+      const pending = pendingDirectorPlanRef.current.get(decision.nodeId);
+      pendingDirectorPlanRef.current.delete(decision.nodeId);
+      const state = pending?.state;
+      if (!pending || !state?.plan) return;
+      const domain = toDomainNodes(nodesRef.current);
+      const oldGroup = snapshotGroups(domain).find((g) => g.memberIds.includes(decision.nodeId));
+
+      if (build) {
+        const allNodes = [...domain, ...state.nodes];
+        const next = applyDirectorBuild(
+          { nodes: nodesRef.current, edges: edgesRef.current },
+          {
+            directorId: decision.nodeId,
+            expansion: { nodes: toFlowNodes(state.nodes), edges: toFlowEdges(state.edges, allNodes, models) },
+            ...(decision.kind === "count" && oldGroup ? { replaceGroup: oldGroup } : {}),
+          },
+        );
+        setNodes(next.nodes);
+        setEdges(next.edges);
+        updateGroups((prev) => prev.filter((g) => g.id !== oldGroup?.id));
+        addGroup(state.group);
+        // Measured re-layout of the new rows once their cards render.
+        const first = state.nodes[0];
+        pendingGroupLayoutRef.current = {
+          ids: new Set(state.nodes.map((n) => n.id)),
+          edges: state.edges.filter((e) => e.source !== decision.nodeId),
+          origin: first ? first.position : { x: 0, y: 0 },
+          layout: "explainer",
+        };
+        window.setTimeout(applyPendingGroupLayout, 600);
+      } else if (decision.kind === "count") {
+        const cut = dropCutDirectorEdges(edgesRef.current, decision.nodeId, state.plan);
+        setEdges(cut.edges);
+        // Kept rows whose text changed become old versions; cut rows lose their prompt.
+        markStale(pending.changed.filter((id) => !cut.cutTargets.includes(id)));
+        if (cut.cutTargets.length > 0) {
+          toast.warning(
+            isZh
+              ? `這些節點失去了 prompt：${cut.cutTargets.join("、")}`
+              : `These nodes lost their prompt: ${cut.cutTargets.join(", ")}`,
+          );
+        }
+      }
+      scheduleAutosave();
+    },
+    [
+      directorDecision,
+      models,
+      setNodes,
+      setEdges,
+      snapshotGroups,
+      updateGroups,
+      addGroup,
+      markStale,
+      scheduleAutosave,
+      applyPendingGroupLayout,
+      isZh,
+    ],
   );
 
   // Planning cards waiting on the worker (polled like canvas jobs).
@@ -1442,6 +1484,11 @@ function CanvasWorkspaceInner({
             scheduleAutosave();
             continue;
           }
+          // A Director keeps its card and stores the plan; it never swaps itself for the rows.
+          if (state.plan && isExplainerDirectorNode({ type: "model", data: planner.data })) {
+            onDirectorPlanReady(nodeId, state);
+            continue;
+          }
           // The planning card disappears; only the expanded per-clip nodes remain.
           const allNodes = [...toDomainNodes(nodesRef.current), ...state.nodes];
           const next = replacePlannerWithExpansion(
@@ -1474,7 +1521,16 @@ function CanvasWorkspaceInner({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [planningNodeIdsKey, models, setNodes, setEdges, addGroup, scheduleAutosave, applyPendingGroupLayout]);
+  }, [
+    planningNodeIdsKey,
+    models,
+    setNodes,
+    setEdges,
+    addGroup,
+    scheduleAutosave,
+    applyPendingGroupLayout,
+    onDirectorPlanReady,
+  ]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
   useEffect(() => {
@@ -1899,11 +1955,13 @@ function CanvasWorkspaceInner({
       }, 80);
 
       // Explainer cards the assistant added start planning right away (free).
+      // Directors the assistant edited with a replan request replan the same way.
       const agentPlanners = graph.nodes.filter(
         (n) =>
-          isExplainerPlannerNode(n) &&
-          !readPlannerParams(n).plannerVideoId &&
-          ops.some((op) => op.kind === "add_node" && op.node.id === n.id),
+          (isExplainerPlannerNode(n) &&
+            !readPlannerParams(n).plannerVideoId &&
+            ops.some((op) => op.kind === "add_node" && op.node.id === n.id)) ||
+          (isExplainerDirectorNode(n) && n.data.toolParams?.replanRequested === true),
       );
       if (agentPlanners.length > 0) {
         const flowGraph = {
@@ -1912,16 +1970,6 @@ function CanvasWorkspaceInner({
         };
         for (const planner of agentPlanners) {
           await startDirectorPlan(planner.id, flowGraph);
-        }
-      }
-
-      // Settings the assistant changed apply through the same path as the node's Apply button.
-      const pendingSettings = graph.nodes.filter((n) => n.type === "settings" && explainerSettingsOf(n.data)?.pending);
-      if (pendingSettings.length > 0) {
-        // Let React commit the replayed ops so the refs hold this turn's graph.
-        await new Promise((resolve) => window.setTimeout(resolve, AGENT_OP_STEP_MS));
-        for (const node of pendingSettings) {
-          await onApplyExplainerSettings(node.id, explainerSettingsOf(node.data)!.pending!);
         }
       }
       return { skipped };
@@ -1935,7 +1983,6 @@ function CanvasWorkspaceInner({
       setNodes,
       startDirectorPlan,
       updateGroups,
-      onApplyExplainerSettings,
     ],
   );
 
@@ -2011,9 +2058,8 @@ function CanvasWorkspaceInner({
         return;
       }
 
-      const settingsKind = event.dataTransfer.getData(CANVAS_DRAG_SETTINGS_MIME);
-      if (isHandAddedSettingsKind(settingsKind)) {
-        addSettingsNode(settingsKind, position);
+      if (event.dataTransfer.getData(CANVAS_DRAG_SETTINGS_MIME)) {
+        addSettingsNode(position);
         return;
       }
 
@@ -2201,9 +2247,7 @@ function CanvasWorkspaceInner({
       onGenerateOutfit,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
-      onApplyExplainerSettings,
       outdatedNodes,
-      settingsOverrides,
     }),
     [
       models,
@@ -2220,9 +2264,7 @@ function CanvasWorkspaceInner({
       onReorderTargetEdges,
       onGenerateOutfit,
       onPlanExplainer,
-      onApplyExplainerSettings,
       outdatedNodes,
-      settingsOverrides,
     ],
   );
 
@@ -2262,7 +2304,7 @@ function CanvasWorkspaceInner({
           onAddModel={(id) => addModelNodeAt(id)}
           onAddAsset={(asset) => addAssetNodeAt(asset)}
           onAddPromptNode={() => addPromptNode()}
-          onAddSettingsNode={(kind) => addSettingsNode(kind)}
+          onAddSettingsNode={() => addSettingsNode()}
           onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
           onRefreshModels={() => void handleRefreshModels()}
         />
@@ -2402,6 +2444,12 @@ function CanvasWorkspaceInner({
               </div>
             ) : null}
 
+            <DirectorPlanDecisionDialog
+              decision={directorDecision}
+              isZh={isZh}
+              onConfirm={() => resolveDirectorDecision(true)}
+              onDecline={() => resolveDirectorDecision(false)}
+            />
             <ExplainerPlanDialog
               open={explainerDialog !== null}
               isZh={isZh}

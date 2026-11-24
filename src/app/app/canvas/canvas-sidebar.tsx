@@ -1,26 +1,19 @@
 "use client";
 
-// Left drawer for /app/canvas. It stays on screen as a full-width panel or an icon column:
+// Left drawer for /app/canvas. Tabs run down the left edge; the list fills the right.
+// Collapsed, it becomes an icon column:
 // 1) Models (generators, edit, cutout, upscale)
-// 2) Tools (Scro pipelines and FFmpeg)
-// 3) Assets (library upload, or the Outfit tab: saved looks + system defaults)
+// 2) Director (Talking Head and Explainer)
+// 3) Tools (Prompt, Setting, the other Scro pipelines, and FFmpeg)
+// 4) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronLeft,
-  Film,
-  FolderHeart,
-  Loader2,
-  Music,
-  RefreshCw,
-  Search,
-  Sparkles,
-  Upload,
-} from "lucide-react";
+import { Film, Loader2, Music, RefreshCw, Search, Upload } from "lucide-react";
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
-import { CanvasSidebarIcons } from "@/app/app/canvas/canvas-sidebar-icons";
+import { CanvasSidebarIcons, type CanvasSidebarTab } from "@/app/app/canvas/canvas-sidebar-icons";
+import { CanvasSidebarNav, type AssetNavSection } from "@/app/app/canvas/canvas-sidebar-nav";
 import {
   CanvasPromptTool,
   canvasPromptToolVisible,
@@ -28,8 +21,6 @@ import {
 import {
   CanvasSettingsTool,
   canvasSettingsToolVisible,
-  HAND_ADDED_SETTINGS_KINDS,
-  type HandAddedSettingsKind,
 } from "@/app/app/canvas/canvas-settings-tool";
 import type {
   CanvasModelCategory,
@@ -47,12 +38,15 @@ export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
-// Wide enough for "Models (999)" on one line, beside Tools, Assets, and the collapse button.
-const SIDEBAR_MIN_WIDTH = 280;
+// The left rail holds the four tabs. The rest of the width is the list.
+const SIDEBAR_MIN_WIDTH = 340;
 const SIDEBAR_MAX_WIDTH = 520;
-const SIDEBAR_DEFAULT_WIDTH = 276;
+const SIDEBAR_DEFAULT_WIDTH = 340;
 
-// Models hold generators plus edit, cutout, and upscale. Tools are Scro pipelines and FFmpeg.
+// These two plan a directed video. The other Scro pipelines stay on the Tools tab.
+const DIRECTOR_MODEL_IDS = new Set(["scro:talking-head", "scro:explainer"]);
+
+// Models hold generators plus edit, cutout, and upscale. Tools are the remaining Scro pipelines and FFmpeg.
 const MODEL_CATEGORIES: CanvasModelCategory[] = [
   "image",
   "video",
@@ -88,13 +82,14 @@ export function CanvasSidebar({
   onAddModel: (modelId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
   onAddPromptNode: () => void;
-  onAddSettingsNode: (kind: HandAddedSettingsKind) => void;
+  onAddSettingsNode: () => void;
   onUploadFiles: (files: FileList | File[]) => void;
   onRefreshModels: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const [tab, setTab] = useState<"models" | "tools" | "assets">("models");
-  const [assetPane, setAssetPane] = useState<"library" | "outfit">("library");
+  const [tab, setTab] = useState<CanvasSidebarTab>("models");
+  // null shows every Assets section. A value shows only that smaller category.
+  const [assetSection, setAssetSection] = useState<AssetNavSection | null>(null);
   const [query, setQuery] = useState("");
   // null shows every group of the current tab. There is no "All" chip.
   const [category, setCategory] = useState<CanvasModelCategory | null>(null);
@@ -168,11 +163,17 @@ export function CanvasSidebar({
       .filter((spec) => spec.provider !== "mentalok" || !openRouterCategories.has(spec.category))
       .sort((a, b) => (providerRank[a.provider] ?? 9) - (providerRank[b.provider] ?? 9));
   }, [models]);
-  const tabCategories = tab === "tools" ? TOOL_CATEGORIES : MODEL_CATEGORIES;
-  const listedModels = useMemo(
-    () => availableModels.filter((spec) => tabCategories.includes(spec.category)),
-    [availableModels, tabCategories],
-  );
+  const tabCategories = tab === "models" ? MODEL_CATEGORIES : TOOL_CATEGORIES;
+  const listedModels = useMemo(() => {
+    if (tab === "directors") {
+      return availableModels.filter((spec) => DIRECTOR_MODEL_IDS.has(spec.id));
+    }
+    return availableModels.filter(
+      (spec) =>
+        tabCategories.includes(spec.category) &&
+        (tab !== "tools" || !DIRECTOR_MODEL_IDS.has(spec.id)),
+    );
+  }, [availableModels, tab, tabCategories]);
   const modelCount = useMemo(
     () => availableModels.filter((spec) => MODEL_CATEGORIES.includes(spec.category)).length,
     [availableModels],
@@ -185,9 +186,7 @@ export function CanvasSidebar({
   // A chip from the other tab does not apply here, so the groups show instead.
   const activeCategory = category && visibleCategories.includes(category) ? category : null;
   const promptToolVisible = canvasPromptToolVisible(query, activeCategory !== null);
-  const settingsTools = HAND_ADDED_SETTINGS_KINDS.filter((kind) =>
-    canvasSettingsToolVisible(kind, query, activeCategory !== null),
-  );
+  const settingsToolVisible = canvasSettingsToolVisible(query, activeCategory !== null);
 
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -222,7 +221,7 @@ export function CanvasSidebar({
 
   return (
     <aside
-      className="relative flex h-full shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95"
+      className="relative flex h-full shrink-0 flex-row border-r border-white/8 bg-[#0e121a]/95"
       style={{ width }}
     >
       <div
@@ -232,66 +231,40 @@ export function CanvasSidebar({
         onPointerDown={startResize}
         className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
       />
-      {/* Models include image, video, audio, edit, cutout, and upscale. Tools are Scro and FFmpeg. */}
-      <div className="flex items-center gap-1 border-b border-white/8 p-2">
-        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
-        <button
-          type="button"
-          onClick={() => {
-            setTab("models");
-            setCategory(null);
-          }}
-          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
-            tab === "models"
-              ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
-              : "text-white/60 hover:bg-white/6 hover:text-white"
-          }`}
-        >
-          <Sparkles className="h-3 w-3 shrink-0" />
-          <span className="whitespace-nowrap">{isZh ? `模型 (${modelCount})` : `Models (${modelCount})`}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setTab("tools");
-            setCategory(null);
-          }}
-          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
-            tab === "tools"
-              ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
-              : "text-white/60 hover:bg-white/6 hover:text-white"
-          }`}
-        >
-          <Film className="h-3 w-3 shrink-0" />
-          <span className="whitespace-nowrap">{isZh ? "工具" : "Tools"}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("assets")}
-          className={`flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-1 py-1.5 text-[11px] font-semibold transition ${
-            tab === "assets"
-              ? "bg-[#c6f24b]/15 text-[#c6f24b] ring-1 ring-[#c6f24b]/35"
-              : "text-white/60 hover:bg-white/6 hover:text-white"
-          }`}
-        >
-          <FolderHeart className="h-3 w-3 shrink-0" />
-          <span className="whitespace-nowrap">{isZh ? "素材庫" : "Assets"}</span>
-        </button>
-        </div>
-        {onToggleCollapsed ? (
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label={collapseLabel}
-            aria-expanded
-            title={collapseLabel}
-            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/8 hover:text-white"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        ) : null}
-      </div>
-
+      {/* Kinds run down the left. Models, Tools, and Assets list their categories under the open kind. */}
+      <CanvasSidebarNav
+        isZh={isZh}
+        tab={tab}
+        modelCount={modelCount}
+        modelCategories={MODEL_CATEGORIES.filter((cat) =>
+          availableModels.some((spec) => spec.category === cat),
+        )}
+        toolCategories={TOOL_CATEGORIES.filter((cat) =>
+          availableModels.some(
+            (spec) => spec.category === cat && !DIRECTOR_MODEL_IDS.has(spec.id),
+          ),
+        )}
+        activeCategory={tab === "models" || tab === "tools" ? activeCategory : null}
+        assetSection={tab === "assets" ? assetSection : null}
+        onSelectTab={(next) => {
+          setTab(next);
+          setCategory(null);
+          setAssetSection(null);
+        }}
+        onSelectCategory={(next, cat) => {
+          setTab(next);
+          setCategory(cat);
+          setAssetSection(null);
+        }}
+        onSelectAsset={(section) => {
+          setTab("assets");
+          setCategory(null);
+          setAssetSection(section);
+        }}
+        onToggleCollapsed={onToggleCollapsed}
+        collapseLabel={collapseLabel}
+      />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {tab !== "assets" ? (
         <div className="flex min-h-0 flex-1 flex-col">
           {/* Search & Refresh */}
@@ -303,7 +276,15 @@ export function CanvasSidebar({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={isZh ? "搜尋模型或供應商…" : "Search models…"}
+                  placeholder={
+                    tab === "directors"
+                      ? isZh
+                        ? "搜尋導演…"
+                        : "Search directors…"
+                      : isZh
+                        ? "搜尋模型或供應商…"
+                        : "Search models…"
+                  }
                   className="h-8 w-full rounded-[9px] border border-white/10 bg-[#090c12] pr-2.5 pl-8 text-xs text-white placeholder:text-white/35 focus:border-[#c6f24b]/50 focus:outline-none"
                 />
               </div>
@@ -319,33 +300,11 @@ export function CanvasSidebar({
                 />
               </button>
             </div>
-
-            {/* Category filter pills */}
-            <div className="flex flex-wrap gap-1">
-              {visibleCategories.map((cat) => {
-                const active = activeCategory === cat;
-                const label = isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategory(active ? null : cat)}
-                    className={`cursor-pointer rounded-full px-2 py-0.5 text-[10.5px] font-semibold transition ${
-                      active
-                        ? "bg-[#c6f24b] text-[#11141b]"
-                        : "bg-white/6 text-white/60 hover:bg-white/12 hover:text-white"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Model list, grouped by kind when showing everything */}
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
-            {tab === "tools" && (promptToolVisible || settingsTools.length > 0) ? (
+            {tab === "tools" && (promptToolVisible || settingsToolVisible) ? (
               <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
                 {promptToolVisible ? (
                   <CanvasPromptTool
@@ -359,23 +318,21 @@ export function CanvasSidebar({
                     }}
                   />
                 ) : null}
-                {settingsTools.map((kind) => (
+                {settingsToolVisible ? (
                   <CanvasSettingsTool
-                    key={kind}
                     isZh={isZh}
-                    kind={kind}
-                    selected={pickedKey === `settings:${kind}`}
+                    selected={pickedKey === "setting"}
                     addLabel={addLabel}
-                    onSelect={() => setPickedKey(`settings:${kind}`)}
-                    onAdd={(next) => {
-                      onAddSettingsNode(next);
+                    onSelect={() => setPickedKey("setting")}
+                    onAdd={() => {
+                      onAddSettingsNode();
                       setPickedKey(null);
                     }}
                   />
-                ))}
+                ) : null}
               </div>
             ) : null}
-            {(activeCategory
+            {(tab === "directors" || activeCategory
               ? [{ label: "", models: filteredModels }]
               : visibleCategories.map((cat) => ({
                   label: isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en,
@@ -428,40 +385,22 @@ export function CanvasSidebar({
               </div>
             ))}
             {filteredModels.length === 0 &&
-            !(tab === "tools" && (promptToolVisible || settingsTools.length > 0)) ? (
+            !(tab === "tools" && (promptToolVisible || settingsToolVisible)) ? (
               <p className="py-6 text-center text-xs text-white/40">
-                {isZh ? "找不到符合的模型" : "No matching models"}
+                {tab === "directors"
+                  ? isZh
+                    ? "找不到符合的導演"
+                    : "No matching directors"
+                  : isZh
+                    ? "找不到符合的模型"
+                    : "No matching models"}
               </p>
             ) : null}
           </div>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex gap-1 border-b border-white/6 px-2.5 py-2">
-            {(
-              [
-                { id: "library" as const, zh: "素材", en: "Library" },
-                { id: "outfit" as const, zh: "穿搭", en: "Outfit" },
-              ]
-            ).map((pane) => {
-              const active = assetPane === pane.id;
-              return (
-                <button
-                  key={pane.id}
-                  type="button"
-                  onClick={() => setAssetPane(pane.id)}
-                  className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-                    active
-                      ? "bg-[#c6f24b] text-[#11141b]"
-                      : "bg-white/6 text-white/60 hover:bg-white/12 hover:text-white"
-                  }`}
-                >
-                  {isZh ? pane.zh : pane.en}
-                </button>
-              );
-            })}
-          </div>
-          {assetPane === "outfit" ? (
+          {assetSection === "outfit" ? (
             <CanvasOutfitTab
               isZh={isZh}
               userOutfits={assets.outfits ?? []}
@@ -518,7 +457,8 @@ export function CanvasSidebar({
             </span>
           </button>
 
-          {/* Scro Library sections */}
+          {/* Scro Library sections. A left-rail category shows only that section. */}
+          {assetSection === null || assetSection === "characters" ? (
           <AssetSection
             title={isZh ? "我的角色 Characters" : "Characters"}
             items={assets.characters}
@@ -531,6 +471,8 @@ export function CanvasSidebar({
             }}
             emptyText={isZh ? "尚無角色圖片" : "No character assets yet"}
           />
+          ) : null}
+          {assetSection === null || assetSection === "products" ? (
           <AssetSection
             title={isZh ? "我的產品 Products" : "Products"}
             items={assets.products}
@@ -543,6 +485,8 @@ export function CanvasSidebar({
             }}
             emptyText={isZh ? "尚無產品圖片" : "No product assets yet"}
           />
+          ) : null}
+          {assetSection === null || assetSection === "recent" ? (
           <AssetSection
             title={isZh ? "最近畫布產出 Recent" : "Recent Outputs"}
             items={assets.recentOutputs}
@@ -555,10 +499,12 @@ export function CanvasSidebar({
             }}
             emptyText={isZh ? "尚無生成紀錄" : "No recent canvas outputs"}
           />
+          ) : null}
         </div>
           )}
         </div>
       )}
+      </div>
     </aside>
   );
 }

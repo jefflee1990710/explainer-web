@@ -1,7 +1,6 @@
-// Pure: Teleport as visible nodes — settings + source → trim → teleport render ← scene → H3 Soft grade.
+// Pure: Teleport as visible nodes — source → trim → teleport render ← scene → H3 Soft grade.
 
 import type { CanvasAspectRatio } from "@/model/canvas";
-import type { TeleportSettings } from "@/model/canvas-settings";
 import type { AspectRatio } from "@/model/project";
 import {
   createGroupBuilder,
@@ -11,7 +10,6 @@ import {
   type ScroGroup,
 } from "@/service/canvas/scro-groups/builder";
 import { buildTrimNode, clampSectionLength } from "@/service/canvas/scro-groups/swap";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { buildTeleportScenePlatePrompt } from "@/service/teleport/prompts";
 
 export type TeleportGroupInput = {
@@ -23,29 +21,18 @@ export type TeleportGroupInput = {
   aspectRatio: CanvasAspectRatio;
 };
 
-export function teleportSettingsValues(input: TeleportGroupInput): TeleportSettings {
-  const mood = input.mood?.trim();
-  return {
-    sectionStart: Math.max(0, input.sectionStart),
-    sectionLength: clampSectionLength(input.sectionLength),
-    aspectRatio: input.aspectRatio,
-    ...(mood ? { mood } : {}),
-    gradeLook: "jutsu",
-  };
-}
-
 export function buildTeleportGroup(ctx: GroupContext, input: TeleportGroupInput): ScroGroup {
   const b = createGroupBuilder(ctx);
   const length = clampSectionLength(input.sectionLength);
   const video = b.media("video", input.video);
-  const settings = b.settings("settings", { kind: "teleport", values: teleportSettingsValues(input) });
   const trim = b.model("trim", buildTrimNode(input.sectionStart, length));
+  // The render prompt is the optional mood; the scene image sets the place.
   const render = b.model("render", {
     modelId: "scro:teleport-render",
     presetId: input.aspectRatio,
     aspectRatio: input.aspectRatio,
     durationSeconds: length,
-    prompt: "",
+    prompt: input.mood?.trim() ?? "",
   });
   const grade = b.model("grade", {
     modelId: "ffmpeg:color-grade",
@@ -77,6 +64,5 @@ export function buildTeleportGroup(ctx: GroupContext, input: TeleportGroupInput)
   b.wire(trim, render, "video");
   b.wire(scene, render, "image");
   b.wire(render, grade, "video");
-  for (const target of [trim, render, grade]) b.wire(settings, target, SETTINGS_HANDLE);
   return b.finish(grade);
 }

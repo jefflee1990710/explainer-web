@@ -1,8 +1,7 @@
 // Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
-import { explainerSettingsOf } from "@/service/canvas/settings/explainer-data";
-import type { CanvasNodeData } from "@/model/canvas";
-import { explainerSettingsChanges } from "@/service/canvas/explainer-settings";
+import type { CanvasNodeData, CanvasNodeType } from "@/model/canvas";
+import { directorNeedsReplan, isExplainerDirectorNode } from "@/service/canvas/explainer-director";
 
 type GraphNode = { id: string; type: string; data: CanvasNodeData };
 type GraphEdge = { source: string; target: string };
@@ -96,8 +95,8 @@ export function markStaleOutputs<N extends GraphNode>(
   };
 }
 
-// Why a node's preview is an old version: its inputs changed, or an unapplied Explainer Settings draft.
-// Swap / Teleport settings edits are stored as staleOutputUrl, so they report "inputs".
+// Why a node's preview is an old version: its inputs changed, or ("settings") an upstream
+// Explainer Director's settings changed but it was not replanned yet.
 export type OutdatedReason = "inputs" | "settings";
 
 export function outdatedNodeReasons(
@@ -107,9 +106,8 @@ export function outdatedNodeReasons(
   const reasons = new Map<string, OutdatedReason>();
   const byId = new Map(nodes.map((n) => [n.id, n]));
   for (const node of nodes) {
-    const settings = explainerSettingsOf(node.data);
-    if (node.type !== "settings" || !settings?.draft) continue;
-    if (explainerSettingsChanges(settings.applied, settings.draft).changed.length === 0) continue;
+    const director = { type: node.type as CanvasNodeType, data: node.data };
+    if (!isExplainerDirectorNode(director) || !directorNeedsReplan(director)) continue;
     for (const id of downstreamNodeIds(edges, [node.id])) {
       if (id !== node.id && byId.get(id)?.data.outputUrl) reasons.set(id, "settings");
     }

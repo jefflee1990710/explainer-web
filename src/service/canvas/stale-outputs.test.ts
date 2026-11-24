@@ -1,4 +1,4 @@
-import { explainerSettingsOf } from "@/service/canvas/settings/registry";
+import { directorParams } from "@/service/canvas/explainer-director";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
@@ -113,38 +113,25 @@ describe("stale outputs", () => {
     assert.equal(isOutputStale({ ...stale, outputUrl: "https://blob/f-v2" }), false);
   });
 
-  it("reports unapplied Explainer Settings edits on downstream nodes with output", () => {
-    const applied = {
-      skillSlug: "paper-cutout-explainer-video-director" as const,
-      backgroundId: "wood-cardboard",
-      textStyleId: "handwritten" as const,
-      sceneTextLanguage: "zh-Hant" as const,
-      presenterPosition: "auto" as const,
-    };
-    const settings: CanvasNode = {
-      id: "s",
-      type: "settings",
+  it("reports nodes downstream of a Director that needs a replan", () => {
+    const planned: CanvasNode = {
+      id: "dir",
+      type: "model",
       position: { x: 0, y: 0 },
-      data: { settings: { kind: "explainer", plannerVideoId: "v", topic: "t", applied, draft: { ...applied, backgroundId: "sky" } } },
+      data: { modelId: "scro:explainer", prompt: "Old", aspectRatio: "9:16", toolParams: { plannerMode: true } },
     };
-    const nodes = [settings, model("f"), model("v", { outputUrl: undefined }), model("x", { staleOutputUrl: "https://blob/x" })];
-    const reasons = outdatedNodeReasons(nodes, [edge("s", "f"), edge("f", "v")]);
+    const plan = {
+      plannerVideoId: "v",
+      plannedWith: directorParams(planned),
+      clips: [{ clipNumber: 1, framePrompt: "f", videoPrompt: "m", spokenLine: "s", durationSeconds: 6, refUrls: [] }],
+    };
+    const withPlan = (prompt: string): CanvasNode => ({
+      ...planned,
+      data: { ...planned.data, prompt, toolParams: { ...planned.data.toolParams, plan } },
+    });
+    const nodes = [withPlan("New"), model("f"), model("v", { outputUrl: undefined }), model("x", { staleOutputUrl: "https://blob/x" })];
+    const reasons = outdatedNodeReasons(nodes, [edge("dir", "f"), edge("f", "v")]);
     assert.deepEqual([...reasons], [["f", "settings"], ["x", "inputs"]]);
-    const clean = { ...settings, data: { settings: { kind: "explainer" as const, ...explainerSettingsOf(settings.data)!, draft: applied } } };
-    assert.equal(outdatedNodeReasons([clean, model("f")], [edge("s", "f")]).size, 0);
-  });
-  it("does not derive old versions from Swap settings, which mark stale on edit", () => {
-    const swapSettings: CanvasNode = {
-      id: "s",
-      type: "settings",
-      position: { x: 0, y: 0 },
-      data: {
-        settings: {
-          kind: "swap",
-          values: { swapMode: "character", sectionStart: 0, sectionLength: 6, aspectRatio: "9:16", gradeLook: "jutsu" },
-        },
-      },
-    };
-    assert.equal(outdatedNodeReasons([swapSettings, model("g")], [edge("s", "g")]).size, 0);
+    assert.equal(outdatedNodeReasons([withPlan("Old"), model("f")], [edge("dir", "f")]).size, 0);
   });
 });

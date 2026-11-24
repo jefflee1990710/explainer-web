@@ -78,40 +78,6 @@ describe("layoutExplainerGroup", () => {
     assert.ok(at("ref-3").y >= at("frame-3").y);
   });
 
-  it("puts the Explainer Settings card in the leftmost column at the top", () => {
-    const out = buildExplainerExpansion({
-      idPrefix: "exp-abc123",
-      origin: { x: 100, y: 50 },
-      aspectRatio: "9:16",
-      language: "en",
-      voicePreset: "bella",
-      settings: {
-        plannerVideoId: "v1",
-        topic: "T",
-        applied: {
-          skillSlug: "cartoon-explainer-video-director",
-          textStyleId: "handwritten",
-          sceneTextLanguage: "en",
-          presenterPosition: "auto",
-        },
-      },
-      clips: clips(2).map((clip) => ({ ...clip, refUrls: ["https://a.png"] })),
-    });
-    const positions = new Map(out.nodes.map((n) => [n.id, n.position]));
-    assertNoOverlap(boxes(positions, estimated));
-    const at = (id: string) => positions.get(`exp-abc123-${id}`)!;
-    assert.deepEqual(at("settings"), { x: 100, y: 50 });
-    assert.ok(at("ref-1").x >= 100 + EXPLAINER_ESTIMATED_SIZE.settings.width);
-    const settingsEdges = out.edges.filter((e) => e.source === "exp-abc123-settings");
-    assert.deepEqual(
-      settingsEdges.map((e) => [e.target, e.targetHandle]),
-      [
-        ["exp-abc123-frame-1", "settings"],
-        ["exp-abc123-frame-2", "settings"],
-      ],
-    );
-  });
-
   it("keeps the voice card below the video card so its wire never crosses it", () => {
     const out = expansion(2);
     const at = (id: string) => out.nodes.find((n) => n.id === `exp-abc123-${id}`)!.position;

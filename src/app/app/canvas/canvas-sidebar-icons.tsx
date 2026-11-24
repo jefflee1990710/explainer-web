@@ -1,9 +1,11 @@
 "use client";
 
-// Icon-only left drawer. Models, Tools, and Assets stay visible; the name shows on hover.
+// Icon-only left drawer. Models, Director, Tools, and Assets stay visible; the name shows on hover.
 
-import { ChevronRight, Film, FolderHeart, Sparkles } from "lucide-react";
+import { ChevronRight, Clapperboard, Film, FolderHeart, Sparkles } from "lucide-react";
 import { CanvasHoverHint } from "@/app/app/canvas/canvas-hover-hint";
+
+export type CanvasSidebarTab = "models" | "directors" | "tools" | "assets";
 
 const TILE =
   "grid h-10 w-10 cursor-pointer place-items-center rounded-[10px] border border-white/8 bg-[#131823] text-white/70 transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] hover:text-white";
@@ -16,9 +18,9 @@ export function CanvasSidebarIcons({
   onExpand,
 }: {
   locale: string;
-  tab: "models" | "tools" | "assets";
+  tab: CanvasSidebarTab;
   modelCount: number;
-  onTab: (tab: "models" | "tools" | "assets") => void;
+  onTab: (tab: CanvasSidebarTab) => void;
   onExpand: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
@@ -28,6 +30,11 @@ export function CanvasSidebarIcons({
       id: "models" as const,
       label: isZh ? `模型 (${modelCount})` : `Models (${modelCount})`,
       icon: <Sparkles className="h-4 w-4" />,
+    },
+    {
+      id: "directors" as const,
+      label: isZh ? "導演" : "Director",
+      icon: <Clapperboard className="h-4 w-4" />,
     },
     {
       id: "tools" as const,
