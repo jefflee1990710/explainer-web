@@ -27,6 +27,7 @@ import type { Character } from "@/model/character";
 import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
 import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
+import { failOrphanBusyNodes } from "@/service/canvas/orphan-busy";
 import { upgradeLegacySettingsNodes } from "@/service/canvas/settings/migrate";
 import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 
@@ -147,7 +148,7 @@ export function serializeCanvasProject(project: CanvasProject): CanvasProjectDto
     title: project.title,
     ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
     viewport: project.viewport,
-    nodes: project.nodes,
+    nodes: failOrphanBusyNodes(project.nodes, project.activeFlowRun?.status === "running"),
     edges: project.edges,
     groups: canvasGroupsForProject(project.nodes, project.groups),
     ...(project.activeFlowRun

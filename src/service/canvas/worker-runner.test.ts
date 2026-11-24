@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
 import type { CanvasFlowRunState, CanvasJob, CanvasNode, CanvasProject } from "@/model/canvas";
 import type { WorkerTask } from "@/model/worker-task";
+import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/orphan-busy";
 import {
   executeCanvasFlowTask,
   executeCanvasNodeTask,
@@ -403,6 +404,58 @@ describe("canvas worker runner — multi-wave flow", () => {
     assert.equal(res.outcome, "completed");
     assert.equal(project.activeFlowRun?.status, "failed");
     assert.deepEqual(markedFailed, [{ nodeId: "img", error: "USD Credit 餘額不足" }]);
+  });
+
+  it("marks a node failed when an upstream node failed, so it does not stay queued", async () => {
+    const project = makeProject(
+      [
+        { id: "vid", type: "model", position: { x: 0, y: 0 }, data: { modelId: "openrouter:minimax/hailuo-3" } },
+        { id: "concat", type: "model", position: { x: 300, y: 0 }, data: { modelId: "ffmpeg:concat", status: "queued" } },
+      ],
+      [{ id: "e1", source: "vid", sourceHandle: "output", target: "concat", targetHandle: "videos" }],
+    );
+    project.activeFlowRun = {
+      flowRunId: "flow-up",
+      status: "running",
+      currentWave: 2,
+      totalWaves: 2,
+      waveIndex: 1,
+      waves: [["vid"], ["concat"]],
+      activeWaveJobIds: [],
+      failedNodeIds: ["vid"],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const markedFailed: Array<{ nodeId: string; error: string }> = [];
+    const res = await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: "flow-up", clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        findCanvasProject: async () => ({ ...project }),
+        setActiveFlowRun: async (_id, _uid, run) => {
+          project.activeFlowRun = run;
+        },
+        markNodeFailed: async (_cid, _uid, nodeId, error) => {
+          markedFailed.push({ nodeId, error });
+        },
+        claimFlowStep: async () => true,
+      },
+    );
+    assert.equal(res.outcome, "completed");
+    assert.equal(project.activeFlowRun?.status, "failed");
+    assert.deepEqual(markedFailed, [{ nodeId: "concat", error: UPSTREAM_FAILED_ERROR }]);
   });
 
   it("does not submit a wave while another step holds the flow lock", async () => {

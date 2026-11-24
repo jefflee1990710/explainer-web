@@ -34,9 +34,11 @@ export function CharacterNodeCard({
   return (
     <div
       className={`group relative w-[280px] rounded-[16px] border bg-[#12161f]/95 shadow-[0_14px_34px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all ${
-        selected
-          ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/25"
-          : "border-[#252c3b] hover:border-[#374157]"
+        data.status === "failed"
+          ? `border-2 border-rose-500/80 ${selected ? "ring-2 ring-rose-500/30" : ""}`
+          : selected
+            ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/25"
+            : "border-[#252c3b] hover:border-[#374157]"
       }`}
     >
       <div className="flex items-center justify-between gap-2 border-b border-white/6 px-3 py-2">

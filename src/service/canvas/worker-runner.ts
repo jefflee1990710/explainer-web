@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/executor";
 import { executeCanvasFfmpegJob } from "@/service/canvas/ffmpeg-ops";
 import { computeExecutionWaves } from "@/service/canvas/graph";
+import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/orphan-busy";
 import { isOutputStale } from "@/service/canvas/stale-outputs";
 import { scheduleCanvasFlowWorkerTask } from "@/service/worker/schedule";
 import type { WorkerTaskExecutionResult } from "@/service/worker/task-executor";
@@ -386,6 +387,7 @@ export async function executeCanvasFlowTask(
       );
       if (upstreamFailed) {
         failedSet.add(nodeId);
+        await resolved.markNodeFailed(canvasObjectId, clerkUserId, nodeId, UPSTREAM_FAILED_ERROR);
         continue;
       }
       const node = fresh.nodes.find((n) => n.id === nodeId);

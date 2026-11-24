@@ -13,6 +13,7 @@ import {
   Loader2,
   Maximize2,
   Play,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
@@ -215,6 +216,8 @@ export function ModelNodeCard({
 
   // Old preview after an upstream change; hidden while a new run is in progress.
   const outdated = isBusy ? undefined : outdatedNodes.get(id);
+  // Finished and current: running again is optional, so the button reads Re-run.
+  const isRerun = status === "completed" && Boolean(data.outputUrl?.trim()) && !outdated;
 
   const statusBadge = outdated
     ? { text: outdatedBadgeText(isZh), cls: OUTDATED_BADGE_CLASS }
@@ -246,9 +249,11 @@ export function ModelNodeCard({
       className={`relative w-[312px] rounded-[16px] border bg-[#12161f]/95 shadow-[0_18px_42px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all ${
         isBusy
           ? "canvas-model-running border-2"
-          : selected
-            ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/20"
-            : "border-[#252c3b] hover:border-[#3a455c]"
+          : status === "failed"
+            ? `border-2 border-rose-500/80 ${selected ? "ring-2 ring-rose-500/30" : ""}`
+            : selected
+              ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/20"
+              : "border-[#252c3b] hover:border-[#3a455c]"
       }`}
     >
       {/* Header */}
@@ -912,15 +917,24 @@ export function ModelNodeCard({
                 : undefined
             }
             className={`nodrag flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12px] font-bold transition ${
-              canRun
-                ? "bg-[#c6f24b] text-[#11141b] shadow-[0_6px_18px_rgba(198,242,75,0.2)] hover:brightness-105"
-                : "cursor-not-allowed bg-white/8 text-white/40"
+              !canRun
+                ? "cursor-not-allowed bg-white/8 text-white/40"
+                : isRerun
+                  ? "border border-sky-400/40 bg-sky-500/12 text-sky-200 hover:bg-sky-500/20"
+                  : "bg-[#c6f24b] text-[#11141b] shadow-[0_6px_18px_rgba(198,242,75,0.2)] hover:brightness-105"
             }`}
           >
             {isBusy ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>{isZh ? "執行中…" : "Running…"}</span>
+              </>
+            ) : isRerun ? (
+              <>
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>
+                  Re-run · {formatUsd(estimatedUsd)}
+                </span>
               </>
             ) : (
               <>

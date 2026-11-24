@@ -195,6 +195,7 @@ const NODE_TYPES = {
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const JOB_POLL_INTERVAL_MS = 3_000;
+const FAILED_EDGE_STROKE = "#f43f5e";
 // Pause between agent ops so the user can watch the graph being built.
 const AGENT_OP_STEP_MS = 90;
 
@@ -394,6 +395,16 @@ function CanvasWorkspaceInner({
 
   const domainNodes = useMemo(() => toDomainNodes(nodes), [nodes]);
   const domainEdges = useMemo(() => toDomainEdges(edges), [edges]);
+  // Wires touching a failed node render red; the saved edge style is left untouched.
+  const displayEdges = useMemo(() => {
+    const failed = new Set(nodes.filter((n) => n.data.status === "failed").map((n) => n.id));
+    if (failed.size === 0) return edges;
+    return edges.map((e) =>
+      failed.has(e.source) || failed.has(e.target)
+        ? { ...e, style: { ...e.style, stroke: FAILED_EDGE_STROKE } }
+        : e,
+    );
+  }, [nodes, edges]);
   // Nodes whose preview is an old version, shown with a "needs regenerating" badge.
   const outdatedNodes = useMemo(() => outdatedNodeReasons(domainNodes, domainEdges), [domainNodes, domainEdges]);
   const settingsOverrides = useMemo(() => settingsOverridesById(domainNodes, domainEdges), [domainNodes, domainEdges]);
@@ -1002,6 +1013,7 @@ function CanvasWorkspaceInner({
                 : n,
             ),
           );
+          scheduleAutosave();
           if (res.code === "INSUFFICIENT_CREDIT") {
             toast.error(
               isZh
@@ -1031,10 +1043,11 @@ function CanvasWorkspaceInner({
               : n,
           ),
         );
+        scheduleAutosave();
         toast.error(msg);
       }
     },
-    [setNodes, syncWallet, applyJobUpdates, isZh],
+    [setNodes, syncWallet, applyJobUpdates, isZh, scheduleAutosave],
   );
 
   // Free Explainer planning: mark the card as planning, save the graph, then queue Phase A.
@@ -2135,7 +2148,7 @@ function CanvasWorkspaceInner({
               <CanvasGroupActionsContext.Provider value={groupContextValue}>
                 <ReactFlow
                   nodes={groupsApi.displayNodes}
-                  edges={edges}
+                  edges={displayEdges}
                   nodeTypes={NODE_TYPES}
                   onNodesChange={handleNodesChange}
                   onEdgesChange={handleEdgesChange}
