@@ -126,12 +126,23 @@ export type CanvasGroup = {
   params?: CanvasGroupParams;
 };
 
+// One library folder that holds canvases. Canvases without folderId stay unfiled.
+export type CanvasFolder = {
+  _id: ObjectId;
+  clerkUserId: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 // Persisted multi-project canvas document in the `canvas_projects` collection.
 export type CanvasProject = {
   _id: ObjectId;
   clerkUserId: string;
   title: string;
   thumbnailUrl?: string;
+  // Missing on canvases that have not been filed into a folder.
+  folderId?: ObjectId;
   viewport: CanvasViewport;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
@@ -325,6 +336,7 @@ export const canvasProjectSchema: z.ZodType<CanvasProject> = z.object({
   clerkUserId: z.string().min(1),
   title: z.string().min(1),
   thumbnailUrl: z.string().optional(),
+  folderId: objectIdSchema.optional(),
   viewport: canvasViewportSchema,
   nodes: z.array(canvasNodeSchema),
   edges: z.array(canvasEdgeSchema),

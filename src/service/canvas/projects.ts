@@ -4,6 +4,7 @@
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import {
+  canvasFoldersCollection,
   canvasJobsCollection,
   canvasProjectsCollection,
   charactersCollection,
@@ -40,6 +41,7 @@ export type CanvasProjectSummaryDto = {
   title: string;
   thumbnailUrl?: string;
   nodeCount: number;
+  folderId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -120,6 +122,7 @@ export type CreateCanvasProjectInput = {
   edges?: CanvasEdge[];
   viewport?: CanvasViewport;
   thumbnailUrl?: string;
+  folderId?: string;
 };
 
 export type SaveCanvasProjectPatch = {
@@ -177,6 +180,7 @@ export function serializeCanvasProjectSummary(
     title: project.title,
     ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
     nodeCount: project.nodes.length,
+    ...(project.folderId ? { folderId: project.folderId.toHexString() } : {}),
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
   };
@@ -226,6 +230,15 @@ export async function createCanvasProject(
     ? canvasViewportSchema.parse(input.viewport)
     : { ...DEFAULT_CANVAS_VIEWPORT };
 
+  let folderId: ObjectId | undefined;
+  if (input?.folderId && ObjectId.isValid(input.folderId)) {
+    const owned = await (await canvasFoldersCollection()).findOne({
+      _id: new ObjectId(input.folderId),
+      clerkUserId,
+    });
+    if (owned) folderId = owned._id;
+  }
+
   const doc: CanvasProject = {
     _id: new ObjectId(),
     clerkUserId,
@@ -233,6 +246,7 @@ export async function createCanvasProject(
     ...(input?.thumbnailUrl?.trim()
       ? { thumbnailUrl: input.thumbnailUrl.trim() }
       : {}),
+    ...(folderId ? { folderId } : {}),
     viewport,
     nodes,
     edges,

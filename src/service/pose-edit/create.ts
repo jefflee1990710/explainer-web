@@ -29,7 +29,7 @@ import { failPoseEdit } from "@/service/pose-edit/sync";
 const BLOB_NOT_CONFIGURED = "尚未設定 Vercel Blob";
 
 // Free welcome-credit accounts may generate up to 3 pose edits ($0.45 USD max)
-// so a single $6.00 welcome grant cannot be drained into 40 free photos.
+// so a single welcome grant cannot be drained into pose photos alone.
 export const FREE_TRIAL_POSE_EDIT_LIMIT = 3;
 
 // Upload refused before any bytes are stored. Other upload failures still throw.

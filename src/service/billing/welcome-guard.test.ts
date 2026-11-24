@@ -85,7 +85,7 @@ describe("evaluateWelcomeGrant", () => {
     assert.equal(res.reason, "disposable_email");
   });
 
-  it("grants $6.00 once per normalized email and blocks Gmail alias farming", async () => {
+  it("grants $1.50 once per normalized email and blocks Gmail alias farming", async () => {
     const store = createFakeGrantStore();
     const first = await evaluateWelcomeGrant(
       {

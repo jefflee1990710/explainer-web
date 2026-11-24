@@ -188,8 +188,8 @@ export const zhHans: Partial<Messages> = {
     },
     freeCredit: {
       eyebrow: "免费体验 USD Credit",
-      title: "带着 $6.00 免费 USD Credit，直接在 Canvas 开始。",
-      body: "创建账号即领 $6.00 免费 USD Credit，打开 Scro Canvas，几分钟就能做出第一条 AI 视频。",
+      title: "带着 $1.50 免费 USD Credit，直接在 Canvas 开始。",
+      body: "创建账号即领 $1.50 免费 USD Credit，打开 Scro Canvas，几分钟就能做出第一条 AI 视频。",
       cta: "立即领取免费 USD Credit",
       ctaPricing: "查看价格方案",
     },
@@ -696,11 +696,11 @@ export const zhHans: Partial<Messages> = {
     ctaTitleSidebar: "把你的专业变成日更 AI 短片",
     ctaTitleInline: "不用亲自上镜，用你的知识打造专属 AI 网红与高留存 Explainer 短片",
     ctaBodySidebar:
-      "立即免费注册领取 $6.00 体验 USD Credit。支持麦克风录音复制声线、21 国语言配音、白板解说与一键字幕剪辑。",
+      "立即免费注册领取 $1.50 体验 USD Credit。支持麦克风录音复制声线、21 国语言配音、白板解说与一键字幕剪辑。",
     ctaBodyInline:
-      "注册即送 $6.00 免费体验 USD Credit。内置麦克风即时录音复制声线（支持广东话、国语、英文等 21 种语言）、手绘分镜草稿与 AI 导演，几分钟产出 Reels、Shorts 与 TikTok 成片。",
+      "注册即送 $1.50 免费体验 USD Credit。内置麦克风即时录音复制声线（支持广东话、国语、英文等 21 种语言）、手绘分镜草稿与 AI 导演，几分钟产出 Reels、Shorts 与 TikTok 成片。",
     ctaPrimarySignedIn: "进入创作工作区 →",
-    ctaPrimarySignedOut: "免费注册 Scro 领取 $6.00 USD Credit →",
+    ctaPrimarySignedOut: "免费注册 Scro 领取 $1.50 USD Credit →",
     ctaSecondary: "查看范例成果",
     ctaBullet1: "免信用卡立即试用",
     ctaBullet2: "21 种语言声线复制",

@@ -35,6 +35,15 @@ import {
   serializeCanvasProject,
 } from "@/service/canvas/projects";
 import {
+  createCanvasFolder,
+  deleteCanvasFolder,
+  listCanvasFolders,
+  moveCanvasToFolder,
+  renameCanvasFolder,
+  serializeCanvasFolder,
+  type CanvasFolderDto,
+} from "@/service/canvas/folders";
+import {
   executeCanvasFlowTask,
   startCanvasFlowRun,
   stopCanvasFlowRun,
@@ -138,6 +147,46 @@ export async function deleteCanvasProjectAction(
 ): Promise<{ deleted: boolean }> {
   const user = await requireAppUser();
   return deleteCanvasProject(user.clerkUserId, canvasId);
+}
+
+export async function listCanvasFoldersAction(): Promise<CanvasFolderDto[]> {
+  const user = await requireAppUser();
+  const folders = await listCanvasFolders(user.clerkUserId);
+  return folders.map(serializeCanvasFolder);
+}
+
+export async function createCanvasFolderAction(
+  name: string,
+): Promise<{ ok: true; folder: CanvasFolderDto } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  const created = await createCanvasFolder(user.clerkUserId, name);
+  if (!created) return { ok: false, error: "資料夾名稱不能是空白" };
+  return { ok: true, folder: serializeCanvasFolder(created) };
+}
+
+export async function renameCanvasFolderAction(
+  folderId: string,
+  name: string,
+): Promise<{ ok: true; folder: CanvasFolderDto } | { ok: false; error: string }> {
+  const user = await requireAppUser();
+  const updated = await renameCanvasFolder(user.clerkUserId, folderId, name);
+  if (!updated) return { ok: false, error: "找不到資料夾" };
+  return { ok: true, folder: serializeCanvasFolder(updated) };
+}
+
+export async function deleteCanvasFolderAction(
+  folderId: string,
+): Promise<{ ok: boolean }> {
+  const user = await requireAppUser();
+  return { ok: await deleteCanvasFolder(user.clerkUserId, folderId) };
+}
+
+export async function moveCanvasToFolderAction(
+  canvasId: string,
+  folderId: string | null,
+): Promise<{ ok: boolean }> {
+  const user = await requireAppUser();
+  return { ok: await moveCanvasToFolder(user.clerkUserId, canvasId, folderId) };
 }
 
 // Saves graph nodes, edges, viewport, title, or thumbnail for an owned Canvas project.

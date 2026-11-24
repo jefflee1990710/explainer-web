@@ -35,8 +35,13 @@ import type {
   CanvasViewport,
 } from "@/model/canvas";
 import {
+  createCanvasFolderAction,
   createCanvasProjectAction,
+  deleteCanvasFolderAction,
   deleteCanvasProjectAction,
+  listCanvasFoldersAction,
+  moveCanvasToFolderAction,
+  renameCanvasFolderAction,
   pollCanvasFlowAction,
   pollCanvasJobsAction,
   refreshCanvasModelsAction,
@@ -123,6 +128,7 @@ import type {
   CanvasProjectDto,
   CanvasProjectSummaryDto,
 } from "@/service/canvas/projects";
+import type { CanvasFolderDto } from "@/service/canvas/folder-library";
 import {
   type CanvasStarterTemplateId,
   instantiateCanvasTemplate,
@@ -162,6 +168,7 @@ import {
   markStaleOutputs,
   outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
+import { swapNodeModel } from "@/service/canvas/model-swap";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import {
@@ -328,6 +335,7 @@ function CanvasWorkspaceInner({
   const reactFlow = useReactFlow<DisplayNode, Edge>();
 
   const [projects, setProjects] = useState<CanvasProjectSummaryDto[]>(initialProjects);
+  const [folders, setFolders] = useState<CanvasFolderDto[]>([]);
   const activeProjectId = initialProject.id;
   const [activeTitle, setActiveTitle] = useState(initialProject.title);
   const [models, setModels] = useState<CanvasModelSpec[]>(initialModels);
@@ -395,12 +403,12 @@ function CanvasWorkspaceInner({
 
   const domainNodes = useMemo(() => toDomainNodes(nodes), [nodes]);
   const domainEdges = useMemo(() => toDomainEdges(edges), [edges]);
-  // Wires touching a failed node render red; the saved edge style is left untouched.
+  // Wires leaving a failed node render red; the saved edge style is left untouched.
   const displayEdges = useMemo(() => {
     const failed = new Set(nodes.filter((n) => n.data.status === "failed").map((n) => n.id));
     if (failed.size === 0) return edges;
     return edges.map((e) =>
-      failed.has(e.source) || failed.has(e.target)
+      failed.has(e.source)
         ? { ...e, style: { ...e.style, stroke: FAILED_EDGE_STROKE } }
         : e,
     );
@@ -628,6 +636,35 @@ function CanvasWorkspaceInner({
       scheduleAutosave();
     },
     [setNodes, setEdges, scheduleAutosave, markStale],
+  );
+
+  // Swaps the node's model; its preview becomes an old version and wires the new model cannot take are removed.
+  const onSwapModel = useCallback(
+    (nodeId: string, modelId: string) => {
+      const next = models.find((spec) => spec.id === modelId);
+      if (!next) return;
+      const res = swapNodeModel({
+        nodes: toDomainNodes(nodesRef.current),
+        edges: toDomainEdges(edgesRef.current),
+        nodeId,
+        next,
+        catalog: models,
+      });
+      if (!res) return;
+      markStale([nodeId]);
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...res.data } } : n)));
+      if (res.droppedEdgeIds.length > 0) {
+        const dropped = new Set(res.droppedEdgeIds);
+        setEdges((prev) => prev.filter((e) => !dropped.has(e.id)));
+        toast.info(
+          isZh
+            ? `已更換模型，移除了 ${res.droppedEdgeIds.length} 條新模型不支援的連線`
+            : `Model changed; removed ${res.droppedEdgeIds.length} wire(s) the new model does not accept`,
+        );
+      }
+      scheduleAutosave();
+    },
+    [models, markStale, setNodes, setEdges, scheduleAutosave, isZh],
   );
 
   // Concat (and any multi-video handle) renders in edge order, so moving a row rewrites that order.
@@ -1616,16 +1653,17 @@ function CanvasWorkspaceInner({
     [router],
   );
 
-  const handleCreateProject = useCallback(async () => {
+  const handleCreateProject = useCallback(async (folderId?: string) => {
     const { project } = await createCanvasProjectAction({
       title: isZh ? "未命名畫布" : "Untitled Canvas",
+      ...(folderId ? { folderId } : {}),
     });
     router.push(`/app/canvas?id=${encodeURIComponent(project.id)}`);
   }, [isZh, router]);
 
-  const handleRenameProject = useCallback(async (nextTitle: string) => {
-    setActiveTitle(nextTitle);
-    const res = await renameCanvasProjectAction(activeProjectIdRef.current, nextTitle);
+  const handleRenameProject = useCallback(async (projectId: string, nextTitle: string) => {
+    if (projectId === activeProjectIdRef.current) setActiveTitle(nextTitle);
+    const res = await renameCanvasProjectAction(projectId, nextTitle);
     if (!res.ok) {
       toast.error(res.error);
       return;
@@ -1634,6 +1672,69 @@ function CanvasWorkspaceInner({
       prev.map((p) => (p.id === res.project.id ? { ...p, title: res.project.title } : p)),
     );
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    listCanvasFoldersAction()
+      .then((next) => {
+        if (alive) setFolders(next);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleCreateFolder = useCallback(async (name: string) => {
+    const res = await createCanvasFolderAction(name);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setFolders((prev) => [res.folder, ...prev]);
+  }, []);
+
+  const handleRenameFolder = useCallback(async (folderId: string, name: string) => {
+    const res = await renameCanvasFolderAction(folderId, name);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setFolders((prev) => prev.map((folder) => (folder.id === res.folder.id ? res.folder : folder)));
+  }, []);
+
+  const handleDeleteFolder = useCallback(async (folderId: string) => {
+    const res = await deleteCanvasFolderAction(folderId);
+    if (!res.ok) return;
+    setFolders((prev) => prev.filter((folder) => folder.id !== folderId));
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.folderId !== folderId) return project;
+        const next = { ...project };
+        delete next.folderId;
+        return next;
+      }),
+    );
+  }, []);
+
+  const handleMoveProject = useCallback(async (projectId: string, folderId: string | null) => {
+    const res = await moveCanvasToFolderAction(projectId, folderId);
+    if (!res.ok) {
+      toast.error(isZh ? "無法移動畫布" : "Could not move the canvas");
+      return;
+    }
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== projectId) return project;
+        if (!folderId) {
+          const next = { ...project };
+          delete next.folderId;
+          return next;
+        }
+        return { ...project, folderId };
+      }),
+    );
+  }, [isZh]);
 
   const handleDeleteProject = useCallback(
     async (projectId: string) => {
@@ -2073,6 +2174,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
       onOpenLightbox: setLightbox,
@@ -2092,6 +2194,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode,
+      onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
       onPlanExplainer,
@@ -2106,6 +2209,7 @@ function CanvasWorkspaceInner({
       <CanvasTopbar
         locale={locale}
         projects={projects}
+        folders={folders}
         activeProjectId={activeProjectId}
         activeTitle={activeTitle}
         saveStatus={saveStatus}
@@ -2117,6 +2221,10 @@ function CanvasWorkspaceInner({
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
         onDeleteProject={handleDeleteProject}
+        onMoveProject={handleMoveProject}
+        onCreateFolder={handleCreateFolder}
+        onRenameFolder={handleRenameFolder}
+        onDeleteFolder={handleDeleteFolder}
         onFitView={() => void reactFlow.fitView({ padding: 0.2, duration: 250 })}
         onRunFlow={handleRunFlow}
         onStopFlow={handleStopFlow}

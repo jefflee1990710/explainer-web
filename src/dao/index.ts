@@ -42,6 +42,7 @@ export { workerTasksCollection } from "@/dao/worker-tasks";
 export { blockedUsersCollection } from "@/dao/blocked-users";
 export {
   canvasProjectsCollection,
+  canvasFoldersCollection,
   canvasJobsCollection,
   canvasAgentMessagesCollection,
 } from "@/dao/canvas";

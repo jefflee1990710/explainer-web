@@ -7,16 +7,16 @@ import Link from "next/link";
 import {
   Check,
   ChevronDown,
-  FolderPlus,
   Loader2,
   Maximize,
   Pencil,
   Play,
   Square,
-  Trash2,
   Wallet,
 } from "lucide-react";
+import { CanvasLibraryDialog } from "@/app/app/canvas/canvas-library-dialog";
 import { formatUsd } from "@/service/billing/usd";
+import type { CanvasFolderDto } from "@/service/canvas/folder-library";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
@@ -24,6 +24,7 @@ export type SaveStatus = "saved" | "saving" | "dirty" | "error";
 export function CanvasTopbar({
   locale,
   projects,
+  folders,
   activeProjectId,
   activeTitle,
   saveStatus,
@@ -35,12 +36,17 @@ export function CanvasTopbar({
   onCreateProject,
   onRenameProject,
   onDeleteProject,
+  onMoveProject,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
   onFitView,
   onRunFlow,
   onStopFlow,
 }: {
   locale: string;
   projects: readonly CanvasProjectSummaryDto[];
+  folders: readonly CanvasFolderDto[];
   activeProjectId: string;
   activeTitle: string;
   saveStatus: SaveStatus;
@@ -49,29 +55,32 @@ export function CanvasTopbar({
   isFlowRunning: boolean;
   flowWaveProgress: { current: number; total: number } | null;
   onSelectProject: (projectId: string) => void;
-  onCreateProject: () => void;
-  onRenameProject: (nextTitle: string) => void;
+  onCreateProject: (folderId?: string) => void;
+  onRenameProject: (projectId: string, nextTitle: string) => void;
   onDeleteProject: (projectId: string) => void;
+  onMoveProject: (projectId: string, folderId: string | null) => void;
+  onCreateFolder: (name: string) => void;
+  onRenameFolder: (folderId: string, name: string) => void;
+  onDeleteFolder: (folderId: string) => void;
   onFitView: () => void;
   onRunFlow: () => void;
   onStopFlow: () => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
-  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(activeTitle);
 
   function startRename() {
     setDraftTitle(activeTitle);
     setEditingTitle(true);
-    setProjectsOpen(false);
   }
 
   function commitRename() {
     const trimmed = draftTitle.trim();
     setEditingTitle(false);
     if (trimmed && trimmed !== activeTitle) {
-      onRenameProject(trimmed);
+      onRenameProject(activeProjectId, trimmed);
     }
   }
 
@@ -93,6 +102,7 @@ export function CanvasTopbar({
             : "Saved";
 
   return (
+    <>
     <header className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 border-b border-white/8 bg-[#0e121a]/95 px-3 backdrop-blur-md">
       {/* Left: project switcher, inline rename, save pill */}
       <div className="flex min-w-0 items-center gap-2">
@@ -123,7 +133,8 @@ export function CanvasTopbar({
           <div className="relative flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setProjectsOpen((v) => !v)}
+              onClick={() => setLibraryOpen(true)}
+              title={isZh ? "開啟或管理畫布" : "Open or manage canvases"}
               className="flex h-8 max-w-[220px] cursor-pointer items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/5 px-2.5 text-xs font-semibold text-white transition hover:border-white/20 hover:bg-white/8"
             >
               <span className="truncate">{activeTitle}</span>
@@ -138,77 +149,6 @@ export function CanvasTopbar({
               <Pencil className="h-3.5 w-3.5" />
             </button>
 
-            {projectsOpen ? (
-              <div className="absolute top-10 left-0 z-40 w-72 overflow-hidden rounded-[14px] border border-white/12 bg-[#12161f] p-1.5 shadow-2xl">
-                <div className="flex items-center justify-between px-2 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-white/45">
-                  <span>{isZh ? "我的畫布專案" : "My Canvases"}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProjectsOpen(false);
-                      onCreateProject();
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-[#c6f24b]/15 px-2 py-0.5 text-[10.5px] font-bold text-[#c6f24b] transition hover:bg-[#c6f24b]/25"
-                  >
-                    <FolderPlus className="h-3 w-3" />
-                    {isZh ? "新建" : "New"}
-                  </button>
-                </div>
-                <div className="max-h-64 space-y-0.5 overflow-y-auto">
-                  {projects.map((proj) => {
-                    const isActive = proj.id === activeProjectId;
-                    return (
-                      <div
-                        key={proj.id}
-                        className={`group flex items-center justify-between gap-2 rounded-[10px] px-2 py-1.5 text-xs transition ${
-                          isActive
-                            ? "bg-[#c6f24b]/12 text-[#c6f24b]"
-                            : "text-white/80 hover:bg-white/6"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProjectsOpen(false);
-                            if (!isActive) onSelectProject(proj.id);
-                          }}
-                          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
-                        >
-                          {proj.thumbnailUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={proj.thumbnailUrl}
-                              alt=""
-                              className="h-7 w-7 shrink-0 rounded-md object-cover ring-1 ring-white/10"
-                            />
-                          ) : (
-                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/6 text-[10px] font-bold text-white/45">
-                              {proj.nodeCount}
-                            </span>
-                          )}
-                          <span className="min-w-0 flex-1 truncate font-medium">
-                            {proj.title}
-                          </span>
-                        </button>
-                        {projects.length > 1 ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProjectsOpen(false);
-                              onDeleteProject(proj.id);
-                            }}
-                            title={isZh ? "刪除畫布" : "Delete canvas"}
-                            className="cursor-pointer rounded-md p-1 text-white/35 opacity-0 transition group-hover:opacity-100 hover:bg-white/10 hover:text-rose-400"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
           </div>
         )}
 
@@ -282,5 +222,26 @@ export function CanvasTopbar({
         )}
       </div>
     </header>
+    {libraryOpen ? (
+      <CanvasLibraryDialog
+        locale={locale}
+        projects={projects}
+        folders={folders}
+        activeProjectId={activeProjectId}
+        onClose={() => setLibraryOpen(false)}
+        onOpen={onSelectProject}
+        onCreate={(folderId) => {
+          setLibraryOpen(false);
+          onCreateProject(folderId);
+        }}
+        onRename={onRenameProject}
+        onDelete={onDeleteProject}
+        onMove={onMoveProject}
+        onCreateFolder={onCreateFolder}
+        onRenameFolder={onRenameFolder}
+        onDeleteFolder={onDeleteFolder}
+      />
+    ) : null}
+    </>
   );
 }

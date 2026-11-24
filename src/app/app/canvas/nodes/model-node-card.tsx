@@ -12,6 +12,7 @@ import {
   Download,
   Loader2,
   Maximize2,
+  Pencil,
   Play,
   RotateCcw,
   Trash2,
@@ -21,12 +22,14 @@ import { formatUsd } from "@/service/billing/usd";
 import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+import { canSwapModel } from "@/service/canvas/model-swap";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import { mergeSettingsPatch } from "@/service/canvas/settings/apply";
 import { acceptsAnySettings, settingsKindDef } from "@/service/canvas/settings/registry";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
+import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import {
   OUTDATED_BADGE_CLASS,
@@ -61,12 +64,14 @@ export function ModelNodeCard({
     onUpdateNodeData,
     onDeleteNode,
     onRunNode,
+    onSwapModel,
     onOpenLightbox,
     onPlanExplainer,
     outdatedNodes,
     settingsOverrides,
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
 
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const spec = useMemo(
@@ -295,15 +300,41 @@ export function ModelNodeCard({
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onDeleteNode(id)}
-          title="Delete node"
-          className="nodrag cursor-pointer rounded-md p-1 text-white/40 transition hover:bg-white/8 hover:text-rose-400"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {canSwapModel(spec) ? (
+            <button
+              type="button"
+              disabled={isBusy || isFlowRunning}
+              onClick={() => setSwapOpen(true)}
+              title={isZh ? "更換模型" : "Change model"}
+              className="nodrag cursor-pointer rounded-md p-1 text-white/40 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onDeleteNode(id)}
+            title="Delete node"
+            className="nodrag cursor-pointer rounded-md p-1 text-white/40 transition hover:bg-white/8 hover:text-rose-400"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
+      {swapOpen ? (
+        <ModelSwapDialog
+          current={spec}
+          catalog={catalog}
+          wiredHandles={[...incomingByHandle.keys()]}
+          locale={locale}
+          onCancel={() => setSwapOpen(false)}
+          onSelect={(modelId) => {
+            setSwapOpen(false);
+            onSwapModel(id, modelId);
+          }}
+        />
+      ) : null}
 
       {/* Typed input handle rows */}
       <div className="space-y-1 border-b border-white/6 py-2">

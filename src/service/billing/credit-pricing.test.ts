@@ -116,10 +116,11 @@ test("chargedClipUsd reads chargedUsd first, falls back to legacy creditsCharged
   assert.equal(chargedClipUsd(undefined), 0.975);
 });
 
-test("a new account receives $6.00 welcome USD credit covering a 10-clip board and preview clips", () => {
-  assert.equal(WELCOME_CREDIT_USD, 6);
-  assert.equal(WELCOME_CREDIT_USD >= 10 * FRAME_COST_USD + videoCostUsd(7, "realistic"), true);
+test("a new account receives $1.50 welcome USD credit: one still plus a 6s preview, not a full video", () => {
+  assert.equal(WELCOME_CREDIT_USD, 1.5);
+  assert.equal(WELCOME_CREDIT_USD >= FRAME_COST_USD + videoCostUsd(6, "realistic"), true);
   assert.equal(WELCOME_CREDIT_USD >= FRAMES_COST_USD + MIN_VIDEO_COST_USD, true);
+  assert.equal(WELCOME_CREDIT_USD < videoCostUsd(15, "realistic"), true);
 });
 
 test("upgrade is offered only when remaining USD credit cannot pay for the video", () => {

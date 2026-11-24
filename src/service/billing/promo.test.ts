@@ -91,10 +91,9 @@ test("a 5 percent pack bonus lowers margin slightly and stays highly profitable"
   }
 });
 
-test("welcome USD credit covers a 10-clip board and preview clips with bounded COGS", () => {
-  assert.equal(WELCOME_CREDIT_USD, 6);
-  assert.equal(10 * IMAGE_COGS_USD <= 1, true);
-  // $6 buys about 44 Seedream 2K stills. Provider cost is $0.09 each, about $4.
-  assert.equal((WELCOME_CREDIT_USD / IMAGE_COST_USD) * IMAGE_COGS_USD < 4.1, true);
-  assert.equal(typicalCogsUsd(WELCOME_CREDIT_USD) < 4.1, true);
+test("welcome USD credit keeps COGS per signup near $1", () => {
+  assert.equal(WELCOME_CREDIT_USD, 1.5);
+  // $1.50 buys about 11 Seedream 2K stills. Provider cost is $0.09 each, about $1.
+  assert.equal((WELCOME_CREDIT_USD / IMAGE_COST_USD) * IMAGE_COGS_USD < 1.1, true);
+  assert.equal(typicalCogsUsd(WELCOME_CREDIT_USD) < 1.1, true);
 });

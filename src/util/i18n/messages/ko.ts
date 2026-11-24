@@ -618,13 +618,13 @@ export const ko: Partial<Messages> = {
     ctaTitleSidebar: "당신의 전문 지식을 매일 올라가는 AI 릴스로",
     ctaTitleInline: "직접 출연하지 않고도 지식으로 나만의 AI 인플루언서 & Explainer 영상 제작",
     ctaBodySidebar:
-      "무료 계정을 만들고 $6.00 체험 USD Credit을 받으세요. 21개 언어 음성 복제, AI 스토리보드, 자막 편집을 지원합니다.",
+      "무료 계정을 만들고 $1.50 체험 USD Credit을 받으세요. 21개 언어 음성 복제, AI 스토리보드, 자막 편집을 지원합니다.",
     ctaBodyInline:
-      "지금 무료 가입하고 $6.00 체험 USD Credit을 받으세요. 내장 마이크로 21개 언어 음성을 복제하고 AI 인플루언서의 얼굴과 옷장을 고정해 몇 분 만에 Reels, Shorts, TikTok 영상을 완성하세요.",
+      "지금 무료 가입하고 $1.50 체험 USD Credit을 받으세요. 내장 마이크로 21개 언어 음성을 복제하고 AI 인플루언서의 얼굴과 옷장을 고정해 몇 분 만에 Reels, Shorts, TikTok 영상을 완성하세요.",
     ctaPrimarySignedIn: "스튜디오 작업 공간 열기 →",
-    ctaPrimarySignedOut: "무료 가입하고 $6.00 USD Credit 받기 →",
+    ctaPrimarySignedOut: "무료 가입하고 $1.50 USD Credit 받기 →",
     ctaSecondary: "활용 사례 보기",
-    ctaBullet1: "$6.00 무료 스타터 USD Credit",
+    ctaBullet1: "$1.50 무료 스타터 USD Credit",
     ctaBullet2: "21개 언어 음성 복제",
     ctaBullet3: "내장 AI 디렉터 & 편집기",
     productLink: "이 제품 보기",

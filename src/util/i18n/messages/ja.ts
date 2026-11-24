@@ -144,8 +144,8 @@ export const ja: Partial<Messages> = {
     freeCredit: {
       eyebrow: "無料スターター USD Credit",
       title: "Explainer か AI Influencer から始める。",
-      body: "アカウントを作り、$6.00 の無料 USD Credit を受け取り、キャラクターを固定して、最初の Explainer を出す。",
-      cta: "$6.00 無料 USD Credit を受け取る",
+      body: "アカウントを作り、$1.50 の無料 USD Credit を受け取り、キャラクターを固定して、最初の Explainer を出す。",
+      cta: "$1.50 無料 USD Credit を受け取る",
       ctaPricing: "料金を見る",
     },
   },
@@ -618,13 +618,13 @@ export const ja: Partial<Messages> = {
     ctaTitleSidebar: "あなたの専門知識を毎日の AI ショート動画に",
     ctaTitleInline: "顔出し不要。あなたの知識で AI Influencer と高維持率 Explainer 動画を作成",
     ctaBodySidebar:
-      "無料アカウント作成で $6.00 の体験 USD Credit を進呈。ブラウザ録音による 21 言語の音声クローン、AI 絵コンテ、字幕編集に対応。",
+      "無料アカウント作成で $1.50 の体験 USD Credit を進呈。ブラウザ録音による 21 言語の音声クローン、AI 絵コンテ、字幕編集に対応。",
     ctaBodyInline:
-      "無料登録で $6.00 の体験 USD Credit を獲得。内蔵マイクで 21 言語の音声クローン、AI Influencer の顔・衣装固定、Reels・Shorts・TikTok 動画を数分で制作できます。",
+      "無料登録で $1.50 の体験 USD Credit を獲得。内蔵マイクで 21 言語の音声クローン、AI Influencer の顔・衣装固定、Reels・Shorts・TikTok 動画を数分で制作できます。",
     ctaPrimarySignedIn: "ワークスペースを開く →",
-    ctaPrimarySignedOut: "無料登録して $6.00 USD Credit を受け取る →",
+    ctaPrimarySignedOut: "無料登録して $1.50 USD Credit を受け取る →",
     ctaSecondary: "活用例を見る",
-    ctaBullet1: "$6.00 無料スターター USD Credit",
+    ctaBullet1: "$1.50 無料スターター USD Credit",
     ctaBullet2: "21 言語の音声クローン",
     ctaBullet3: "AI ディレクター＆字幕エディター内蔵",
     productLink: "この製品を見る",
