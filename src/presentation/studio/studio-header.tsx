@@ -6,6 +6,7 @@ import { BrandMark } from "@/presentation/components/brand-mark";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useRouteTransition } from "@/presentation/studio/route-transition";
 import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
+import { TasksHoverMenu } from "@/presentation/studio/tasks-hover-menu";
 
 // Top bar that replaced the left drawer: brand on the left, Output, Tasks, and account on the right.
 export function StudioHeader({
@@ -26,8 +27,7 @@ export function StudioHeader({
       />
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
         <HeaderLink href="/app/output" label="Output" active={isStudioNavActive(activePathname, "/app/output")} />
-        <HeaderLink
-          href="/app/tasks"
+        <TasksHoverMenu
           label={t("nav.tasks")}
           active={isStudioNavActive(activePathname, "/app/tasks")}
           badge={taskBadge}

@@ -2,15 +2,22 @@
 
 // Prompt tile in the canvas Tools tab. Click or drag it onto the canvas to add a shared prompt node.
 
+import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { Type } from "lucide-react";
 
 export const CANVAS_DRAG_PROMPT_MIME = "application/x-scro-canvas-prompt";
 
 export function CanvasPromptTool({
   isZh,
+  selected = false,
+  addLabel,
+  onSelect,
   onAdd,
 }: {
   isZh: boolean;
+  selected?: boolean;
+  addLabel: string;
+  onSelect: () => void;
   onAdd: () => void;
 }) {
   const label = isZh ? "提示詞" : "Prompt";
@@ -22,9 +29,13 @@ export function CanvasPromptTool({
         event.dataTransfer.setData(CANVAS_DRAG_PROMPT_MIME, "prompt");
         event.dataTransfer.effectAllowed = "copy";
       }}
-      onClick={onAdd}
-      className="group flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border border-white/8 bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
+      data-canvas-pick=""
+      onClick={onSelect}
+      className={`group relative flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing ${
+        selected ? "border-[#c6f24b]" : "border-white/8"
+      }`}
     >
+      {selected ? <CanvasAddButton label={addLabel} onAdd={onAdd} /> : null}
       <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#c6f24b]/12 text-[#c6f24b]">
         <Type className="h-4 w-4" />
       </span>

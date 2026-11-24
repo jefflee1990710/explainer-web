@@ -17,6 +17,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
+import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
 import { CanvasSidebarIcons } from "@/app/app/canvas/canvas-sidebar-icons";
@@ -99,6 +100,9 @@ export function CanvasSidebar({
   const [category, setCategory] = useState<CanvasModelCategory | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  // First click selects a tile. Add to Canvas is the second click.
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
+  const addLabel = isZh ? "加入畫布" : "Add to Canvas";
 
   // Saved width is read after mount so server and client HTML match.
   useEffect(() => {
@@ -107,6 +111,17 @@ export function CanvasSidebar({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
       setWidth(Math.min(SIDEBAR_MAX_WIDTH, saved));
     }
+  }, []);
+
+  // A click outside a tile clears the selection so the overlay does not stay up.
+  useEffect(() => {
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-canvas-pick]")) return;
+      setPickedKey(null);
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
   // Drag the right edge to resize the panel, same idea as the chat dock's top edge.
@@ -332,9 +347,31 @@ export function CanvasSidebar({
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
             {tab === "tools" && (promptToolVisible || settingsTools.length > 0) ? (
               <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
-                {promptToolVisible ? <CanvasPromptTool isZh={isZh} onAdd={onAddPromptNode} /> : null}
+                {promptToolVisible ? (
+                  <CanvasPromptTool
+                    isZh={isZh}
+                    selected={pickedKey === "prompt"}
+                    addLabel={addLabel}
+                    onSelect={() => setPickedKey("prompt")}
+                    onAdd={() => {
+                      onAddPromptNode();
+                      setPickedKey(null);
+                    }}
+                  />
+                ) : null}
                 {settingsTools.map((kind) => (
-                  <CanvasSettingsTool key={kind} isZh={isZh} kind={kind} onAdd={onAddSettingsNode} />
+                  <CanvasSettingsTool
+                    key={kind}
+                    isZh={isZh}
+                    kind={kind}
+                    selected={pickedKey === `settings:${kind}`}
+                    addLabel={addLabel}
+                    onSelect={() => setPickedKey(`settings:${kind}`)}
+                    onAdd={(next) => {
+                      onAddSettingsNode(next);
+                      setPickedKey(null);
+                    }}
+                  />
                 ))}
               </div>
             ) : null}
@@ -361,9 +398,21 @@ export function CanvasSidebar({
                         e.dataTransfer.setData(CANVAS_DRAG_MODEL_MIME, spec.id);
                         e.dataTransfer.effectAllowed = "copy";
                       }}
-                      onClick={() => onAddModel(spec.id)}
-                      className="group flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border border-white/8 bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
+                      data-canvas-pick=""
+                      onClick={() => setPickedKey(`model:${spec.id}`)}
+                      className={`group relative flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing ${
+                        pickedKey === `model:${spec.id}` ? "border-[#c6f24b]" : "border-white/8"
+                      }`}
                     >
+                      {pickedKey === `model:${spec.id}` ? (
+                        <CanvasAddButton
+                          label={addLabel}
+                          onAdd={() => {
+                            onAddModel(spec.id);
+                            setPickedKey(null);
+                          }}
+                        />
+                      ) : null}
                       <span className="grid h-8 w-8 place-items-center">
                         <CanvasModelLogo
                           providerModelId={spec.providerModelId}
@@ -416,7 +465,14 @@ export function CanvasSidebar({
             <CanvasOutfitTab
               isZh={isZh}
               userOutfits={assets.outfits ?? []}
-              onAddAsset={onAddAsset}
+              dense={width >= 400}
+              pickedKey={pickedKey}
+              addLabel={addLabel}
+              onSelect={(assetId) => setPickedKey(`outfit:${assetId}`)}
+              onAddAsset={(asset) => {
+                onAddAsset(asset);
+                setPickedKey(null);
+              }}
             />
           ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2.5">
@@ -466,19 +522,37 @@ export function CanvasSidebar({
           <AssetSection
             title={isZh ? "我的角色 Characters" : "Characters"}
             items={assets.characters}
-            onAddAsset={onAddAsset}
+            pickedKey={pickedKey}
+            addLabel={addLabel}
+            onSelect={(assetId) => setPickedKey(`asset:${assetId}`)}
+            onAddAsset={(asset) => {
+              onAddAsset(asset);
+              setPickedKey(null);
+            }}
             emptyText={isZh ? "尚無角色圖片" : "No character assets yet"}
           />
           <AssetSection
             title={isZh ? "我的產品 Products" : "Products"}
             items={assets.products}
-            onAddAsset={onAddAsset}
+            pickedKey={pickedKey}
+            addLabel={addLabel}
+            onSelect={(assetId) => setPickedKey(`asset:${assetId}`)}
+            onAddAsset={(asset) => {
+              onAddAsset(asset);
+              setPickedKey(null);
+            }}
             emptyText={isZh ? "尚無產品圖片" : "No product assets yet"}
           />
           <AssetSection
             title={isZh ? "最近畫布產出 Recent" : "Recent Outputs"}
             items={assets.recentOutputs}
-            onAddAsset={onAddAsset}
+            pickedKey={pickedKey}
+            addLabel={addLabel}
+            onSelect={(assetId) => setPickedKey(`asset:${assetId}`)}
+            onAddAsset={(asset) => {
+              onAddAsset(asset);
+              setPickedKey(null);
+            }}
             emptyText={isZh ? "尚無生成紀錄" : "No recent canvas outputs"}
           />
         </div>
@@ -493,11 +567,17 @@ function AssetSection({
   title,
   items,
   emptyText,
+  pickedKey,
+  addLabel,
+  onSelect,
   onAddAsset,
 }: {
   title: string;
   items: readonly CanvasLibraryAsset[];
   emptyText: string;
+  pickedKey: string | null;
+  addLabel: string;
+  onSelect: (assetId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
 }) {
   return (
@@ -522,9 +602,15 @@ function AssetSection({
                 );
                 e.dataTransfer.effectAllowed = "copy";
               }}
-              onClick={() => onAddAsset(asset)}
-              className="group relative cursor-grab overflow-hidden rounded-[10px] border border-white/8 bg-[#131823] transition hover:border-[#c6f24b]/60 active:cursor-grabbing"
+              data-canvas-pick=""
+              onClick={() => onSelect(asset.id)}
+              className={`group relative cursor-grab overflow-hidden rounded-[10px] border bg-[#131823] transition hover:border-[#c6f24b]/60 active:cursor-grabbing ${
+                pickedKey === `asset:${asset.id}` ? "border-[#c6f24b]" : "border-white/8"
+              }`}
             >
+              {pickedKey === `asset:${asset.id}` ? (
+                <CanvasAddButton label={addLabel} onAdd={() => onAddAsset(asset)} />
+              ) : null}
               {asset.mediaKind === "video" ? (
                 <div className="relative grid aspect-[4/5] w-full place-items-center bg-black/50 text-violet-300">
                   <Film className="h-5 w-5" />

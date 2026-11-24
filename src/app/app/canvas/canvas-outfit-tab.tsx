@@ -44,10 +44,19 @@ function userOutfitMatches(asset: CanvasLibraryAsset, query: string, part: Outfi
 export function CanvasOutfitTab({
   isZh,
   userOutfits,
+  dense = false,
+  pickedKey,
+  addLabel,
+  onSelect,
   onAddAsset,
 }: {
   isZh: boolean;
   userOutfits: readonly CanvasLibraryAsset[];
+  // Wide sidebar: four columns, each card about half the two-column size.
+  dense?: boolean;
+  pickedKey: string | null;
+  addLabel: string;
+  onSelect: (assetId: string) => void;
   onAddAsset: (asset: CanvasLibraryAsset) => void;
 }) {
   const { t } = useI18n();
@@ -119,9 +128,18 @@ export function CanvasOutfitTab({
             <h3 className="mb-2 text-[10.5px] font-bold uppercase tracking-wider text-white/50">
               {isZh ? "我的穿搭" : "My outfits"}
             </h3>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className={dense ? "grid grid-cols-4 gap-1" : "grid grid-cols-2 gap-1.5"}>
               {mine.map((asset) => (
-                <CanvasOutfitTile key={asset.id} isZh={isZh} asset={asset} onAddAsset={onAddAsset} />
+                <CanvasOutfitTile
+                  key={asset.id}
+                  isZh={isZh}
+                  asset={asset}
+                  dense={dense}
+                  selected={pickedKey === `outfit:${asset.id}`}
+                  addLabel={addLabel}
+                  onSelect={() => onSelect(asset.id)}
+                  onAddAsset={onAddAsset}
+                />
               ))}
             </div>
           </section>
@@ -135,6 +153,10 @@ export function CanvasOutfitTab({
             <SystemOutfitGrid
               key={filterKey}
               isZh={isZh}
+              dense={dense}
+              pickedKey={pickedKey}
+              addLabel={addLabel}
+              onSelect={onSelect}
               items={system}
               onAddAsset={onAddAsset}
             />
@@ -147,10 +169,18 @@ export function CanvasOutfitTab({
 
 function SystemOutfitGrid({
   isZh,
+  dense,
+  pickedKey,
+  addLabel,
+  onSelect,
   items,
   onAddAsset,
 }: {
   isZh: boolean;
+  dense: boolean;
+  pickedKey: string | null;
+  addLabel: string;
+  onSelect: (assetId: string) => void;
   items: readonly { asset: CanvasLibraryAsset }[];
   onAddAsset: (asset: CanvasLibraryAsset) => void;
 }) {
@@ -158,12 +188,16 @@ function SystemOutfitGrid({
   const visible = items.slice(0, count);
   return (
     <>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className={dense ? "grid grid-cols-4 gap-1" : "grid grid-cols-2 gap-1.5"}>
         {visible.map((item) => (
           <CanvasOutfitTile
             key={item.asset.id}
             isZh={isZh}
             asset={item.asset}
+            dense={dense}
+            selected={pickedKey === `outfit:${item.asset.id}`}
+            addLabel={addLabel}
+            onSelect={() => onSelect(item.asset.id)}
             onAddAsset={onAddAsset}
           />
         ))}

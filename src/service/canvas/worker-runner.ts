@@ -3,7 +3,7 @@
 
 import { ObjectId } from "mongodb";
 import { canvasJobsCollection, canvasProjectsCollection } from "@/dao";
-import type { CanvasFlowRunState, CanvasJob, CanvasProject } from "@/model/canvas";
+import type { CanvasEdge, CanvasFlowRunState, CanvasJob, CanvasNode, CanvasProject } from "@/model/canvas";
 import type { WorkerTask } from "@/model/worker-task";
 import {
   dispatchQueuedCanvasJobById,
@@ -113,6 +113,7 @@ export type CanvasFlowWorkerDeps = {
     nodeId: string,
     error: string,
   ) => Promise<void>;
+  markNodeQueued: (canvasId: ObjectId, clerkUserId: string, nodeId: string) => Promise<void>;
   submitNodeQueued: (input: {
     clerkUserId: string;
     canvasId: string;
@@ -182,6 +183,13 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
         },
       );
     },
+    markNodeQueued: async (canvasId, clerkUserId, nodeId) => {
+      const col = await canvasProjectsCollection();
+      await col.updateOne(
+        { _id: canvasId, clerkUserId, "nodes.id": nodeId },
+        { $set: { "nodes.$.data.status": "queued", updatedAt: new Date() }, $unset: { "nodes.$.data.lastError": "" } },
+      );
+    },
     submitNodeQueued: (input) =>
       submitCanvasNodeJob({
         ...input,
@@ -213,6 +221,76 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
     },
     now: () => new Date(),
   };
+}
+
+function isBusyStatus(status: string | undefined): boolean {
+  return status === "queued" || status === "running";
+}
+
+// Model nodes wired straight into nodeId that are still queued or running.
+export function busyUpstreamModelIds(
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+  nodeId: string,
+): string[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const out: string[] = [];
+  for (const edge of edges) {
+    if (edge.target !== nodeId || out.includes(edge.source)) continue;
+    const source = byId.get(edge.source);
+    if (source?.type === "model" && isBusyStatus(source.data.status)) out.push(source.id);
+  }
+  return out;
+}
+
+// nodeId -> job id for wave nodes whose last job is still queued or running.
+async function activeNodeJobIds(
+  project: CanvasProject,
+  nodeIds: readonly string[],
+  deps: CanvasFlowWorkerDeps,
+  canvasId: ObjectId,
+  clerkUserId: string,
+): Promise<Map<string, string>> {
+  const byJobId = new Map<string, string>();
+  for (const nodeId of nodeIds) {
+    const node = project.nodes.find((n) => n.id === nodeId);
+    const jobId = node?.data.lastJobId;
+    if (node && isBusyStatus(node.data.status) && jobId && ObjectId.isValid(jobId)) byJobId.set(jobId, nodeId);
+  }
+  const out = new Map<string, string>();
+  if (byJobId.size === 0) return out;
+  const jobs = await deps.findCanvasJobsByIds(canvasId, clerkUserId, [...byJobId.keys()].map((id) => new ObjectId(id)));
+  for (const job of jobs) {
+    const nodeId = byJobId.get(job._id.toHexString());
+    if (nodeId && isBusyStatus(job.status)) out.set(nodeId, job._id.toHexString());
+  }
+  return out;
+}
+
+// Single-node Run while a wired upstream node is still running: wait for it, then run this node.
+// Returns null when nothing upstream is running, so the caller submits right away.
+export async function startCanvasNodeAfterUpstream(
+  params: { clerkUserId: string; canvasId: string; nodeId: string },
+  deps?: Partial<CanvasFlowWorkerDeps>,
+): Promise<
+  | { ok: true; activeFlowRun: CanvasFlowRunState; waitingOn: string[] }
+  | { ok: false; error: string }
+  | null
+> {
+  if (!ObjectId.isValid(params.canvasId)) return null;
+  const resolved = { ...defaultFlowDeps(), ...deps };
+  const canvasObjectId = new ObjectId(params.canvasId);
+  const project = await resolved.findCanvasProject(canvasObjectId, params.clerkUserId);
+  if (!project) return null;
+  const waitingOn = busyUpstreamModelIds(project.nodes, project.edges, params.nodeId);
+  if (waitingOn.length === 0) return null;
+  const started = await startCanvasFlowRun(
+    { clerkUserId: params.clerkUserId, canvasId: params.canvasId, nodeIds: [...waitingOn, params.nodeId] },
+    resolved,
+  );
+  if (!started.ok) return started;
+  await resolved.markNodeQueued(canvasObjectId, params.clerkUserId, params.nodeId);
+  return { ...started, waitingOn };
 }
 
 // Keeps only the listed nodes in each wave and drops waves left empty.
@@ -398,13 +476,17 @@ export async function executeCanvasFlowTask(
       runnableIds.push(nodeId);
     }
 
-    if (runnableIds.length === 0) {
+    // A node already running from its own Run is watched, not submitted (and charged) again.
+    const adoptedJobIds = await activeNodeJobIds(fresh, runnableIds, resolved, canvasObjectId, clerkUserId);
+    const toSubmit = runnableIds.filter((nodeId) => !adoptedJobIds.has(nodeId));
+
+    if (toSubmit.length === 0 && adoptedJobIds.size === 0) {
       waveIndex += 1;
       continue;
     }
 
     const submitted = await Promise.all(
-      runnableIds.map((nodeId) =>
+      toSubmit.map((nodeId) =>
         resolved.submitNodeQueued({
           clerkUserId,
           canvasId: task.targetId,
@@ -414,9 +496,9 @@ export async function executeCanvasFlowTask(
       ),
     );
 
-    const newJobIds: string[] = [];
-    for (let i = 0; i < runnableIds.length; i += 1) {
-      const nodeId = runnableIds[i]!;
+    const newJobIds: string[] = [...adoptedJobIds.values()];
+    for (let i = 0; i < toSubmit.length; i += 1) {
+      const nodeId = toSubmit[i]!;
       const res = submitted[i]!;
       if (!res.ok) {
         failedSet.add(nodeId);

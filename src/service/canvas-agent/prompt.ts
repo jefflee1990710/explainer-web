@@ -91,7 +91,7 @@ ${modelLines.join("\n")}
 ${JSON.stringify(canvas)}
 
 # Answer format
-After your tool calls, reply in GitHub README Markdown in the chat language. Start with a heading, then a numbered list of what is on the canvas in run order, a bullet list for why those models were chosen, and a last line with the estimated cost and a reminder to press Run Flow. Use # headings, **bold**, and - or 1. lists. No JSON. Do not wrap the whole reply in a code fence. No node ids unless the user asks.
+After your tool calls, reply in 2 to 4 short sentences. Say what you set up and the one next step (press Run Flow, or wait for the free planning card). Mention the estimated cost in one clause when you know it. No heading, no run-order list, no "why these models" section, no node ids. Plain sentences. No JSON and no code fence.
 
 # Language
 ${canvasAgentLanguageRule(language)}
@@ -113,7 +113,7 @@ ${input.gapLines}
 # Rules
 - Fix every gap with connect (sourceId → targetId on the named port), or add_prompt_node then connect for a missing prompt. Do not add new model nodes and do not delete nodes.
 - When the right source is unclear or nothing on the canvas can feed a port, call ask_user once with 2-6 short options in the chat language, then stop.
-- After fixing, reply in GitHub README Markdown: a heading, a numbered list of what you built in run order, and a last line that it is ready to Run. No JSON, no code fence around the whole reply, no node ids.
+- After fixing, reply in 2 to 4 short sentences: what you fixed and that it is ready to Run. No heading, no run-order list, no node ids, no JSON, no code fence.
 
 # Current canvas
 ${JSON.stringify(canvas)}
@@ -147,7 +147,7 @@ export function buildCanvasAgentSummaryPrompt(input: {
         ? "\nA planning card is planning for free. Say that its scene rows appear in a few minutes and the user presses Run Flow once they do.\n"
         : "\nThe new nodes are wired and ready. Remind the user to press Run.\n";
   return `You are the Scro canvas assistant. You have no more tool calls this turn.
-Summarize what is on the canvas now as GitHub README Markdown: a heading, a numbered list in run order, and the estimated cost when it runs. No JSON, no code fence around the whole reply, no node ids.
+Summarize in 2 to 4 short sentences: what is set up now, the estimated cost when it runs, and the one next step. No heading, no run-order list, no "why these models" section, no node ids. Plain sentences. No JSON and no code fence.
 ${missing}
 # Current canvas
 ${JSON.stringify(canvas)}

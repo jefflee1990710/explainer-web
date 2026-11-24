@@ -2,6 +2,7 @@
 
 // Swap / Teleport Settings tiles in the canvas Tools tab. Click or drag one onto the canvas to add a settings node.
 
+import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { SlidersHorizontal } from "lucide-react";
 import { settingsKindDef } from "@/service/canvas/settings/registry";
 
@@ -16,10 +17,16 @@ export function isHandAddedSettingsKind(value: string): value is HandAddedSettin
 export function CanvasSettingsTool({
   isZh,
   kind,
+  selected = false,
+  addLabel,
+  onSelect,
   onAdd,
 }: {
   isZh: boolean;
   kind: HandAddedSettingsKind;
+  selected?: boolean;
+  addLabel: string;
+  onSelect: () => void;
   onAdd: (kind: HandAddedSettingsKind) => void;
 }) {
   const def = settingsKindDef(kind);
@@ -32,9 +39,13 @@ export function CanvasSettingsTool({
         event.dataTransfer.setData(CANVAS_DRAG_SETTINGS_MIME, kind);
         event.dataTransfer.effectAllowed = "copy";
       }}
-      onClick={() => onAdd(kind)}
-      className="group flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border border-white/8 bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing"
+      data-canvas-pick=""
+      onClick={onSelect}
+      className={`group relative flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing ${
+        selected ? "border-[#c6f24b]" : "border-white/8"
+      }`}
     >
+      {selected ? <CanvasAddButton label={addLabel} onAdd={() => onAdd(kind)} /> : null}
       <span
         className="grid h-8 w-8 place-items-center rounded-lg"
         style={{ backgroundColor: `${def.color}1f`, color: def.color }}

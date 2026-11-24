@@ -5,13 +5,14 @@
 // MongoDB auto-save, 3s active-job polling, live USD balance updates, and multi-wave Run Flow.
 
 import { explainerSettingsOf, explainerSettingsPatch } from "@/service/canvas/settings/registry";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Background,
   BackgroundVariant,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
@@ -147,7 +148,9 @@ import {
   CanvasSidebar,
 } from "@/app/app/canvas/canvas-sidebar";
 import { CANVAS_DRAG_PROMPT_MIME } from "@/app/app/canvas/canvas-prompt-tool";
+import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
+import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
 import {
@@ -347,6 +350,9 @@ function CanvasWorkspaceInner({
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  // True while the library dialog is opening or creating another canvas.
+  const [isSwitchingProject, startSwitchTransition] = useTransition();
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [lightbox, setLightbox] = useState<CanvasLightboxItem | null>(null);
   const [isFlowRunning, setIsFlowRunning] = useState(
     initialProject.activeFlowRun?.status === "running",
@@ -1062,6 +1068,13 @@ function CanvasWorkspaceInner({
           }
           return;
         }
+        if ("waitingForUpstream" in res) {
+          setIsFlowRunning(true);
+          setFlowWaveProgress({ current: res.activeFlowRun.currentWave, total: res.activeFlowRun.totalWaves });
+          setSaveStatus("saved");
+          toast.info(isZh ? "上游還在執行，完成後會自動執行這個節點" : "Waiting for the upstream node; this node runs when it finishes");
+          return;
+        }
         applyJobUpdates([res.job]);
         setSaveStatus("saved");
         if (res.job.status === "completed") {
@@ -1645,20 +1658,29 @@ function CanvasWorkspaceInner({
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");
   }, [isZh]);
 
-  // Project switcher / CRUD handlers.
+  // Project switcher / CRUD handlers. The transition stays pending until the next canvas renders.
   const handleSelectProject = useCallback(
     (projectId: string) => {
-      router.push(`/app/canvas?id=${encodeURIComponent(projectId)}`);
+      startSwitchTransition(() => {
+        router.push(`/app/canvas?id=${encodeURIComponent(projectId)}`);
+      });
     },
     [router],
   );
 
   const handleCreateProject = useCallback(async (folderId?: string) => {
-    const { project } = await createCanvasProjectAction({
-      title: isZh ? "未命名畫布" : "Untitled Canvas",
-      ...(folderId ? { folderId } : {}),
-    });
-    router.push(`/app/canvas?id=${encodeURIComponent(project.id)}`);
+    setIsCreatingProject(true);
+    try {
+      const { project } = await createCanvasProjectAction({
+        title: isZh ? "未命名畫布" : "Untitled Canvas",
+        ...(folderId ? { folderId } : {}),
+      });
+      startSwitchTransition(() => {
+        router.push(`/app/canvas?id=${encodeURIComponent(project.id)}`);
+      });
+    } finally {
+      setIsCreatingProject(false);
+    }
   }, [isZh, router]);
 
   const handleRenameProject = useCallback(async (projectId: string, nextTitle: string) => {
@@ -2205,7 +2227,8 @@ function CanvasWorkspaceInner({
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#0b0e13] text-white">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#0b0e13] text-white">
+      {isSwitchingProject || isCreatingProject ? <CanvasSwitchOverlay isZh={isZh} /> : null}
       <CanvasTopbar
         locale={locale}
         projects={projects}
@@ -2225,7 +2248,6 @@ function CanvasWorkspaceInner({
         onCreateFolder={handleCreateFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
-        onFitView={() => void reactFlow.fitView({ padding: 0.2, duration: 250 })}
         onRunFlow={handleRunFlow}
         onStopFlow={handleStopFlow}
       />
@@ -2288,6 +2310,9 @@ function CanvasWorkspaceInner({
                     color="#262e3e"
                   />
                   <Controls className="!border-white/10 !bg-[#12161f]/90" />
+                  <Panel position="bottom-right" className="!m-3">
+                    <CanvasFitViewButton isZh={isZh} />
+                  </Panel>
                   <MiniMap
                     nodeColor={(n) =>
                       n.type === GROUP_FRAME_TYPE
@@ -2299,7 +2324,7 @@ function CanvasWorkspaceInner({
                             : "#a78bfa"
                     }
                     maskColor="rgba(11, 14, 19, 0.72)"
-                    className="!rounded-xl !border !border-white/10 !bg-[#12161f]/90"
+                    className="!bottom-16 !right-3 !rounded-xl !border !border-white/10 !bg-[#12161f]/90"
                   />
                 </ReactFlow>
               </CanvasGroupActionsContext.Provider>

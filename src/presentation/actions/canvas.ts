@@ -46,6 +46,7 @@ import {
 import {
   executeCanvasFlowTask,
   startCanvasFlowRun,
+  startCanvasNodeAfterUpstream,
   stopCanvasFlowRun,
 } from "@/service/canvas/worker-runner";
 import { persistBuffer } from "@/service/higgsfield/persist";
@@ -100,6 +101,13 @@ export type RunCanvasNodeActionResult =
   | {
       ok: true;
       job: CanvasJobDto;
+      creditUsd: number;
+    }
+  | {
+      // A wired upstream node is still running; a flow run waits for it, then runs this node.
+      ok: true;
+      waitingForUpstream: true;
+      activeFlowRun: CanvasFlowRunDto;
       creditUsd: number;
     }
   | {
@@ -265,6 +273,33 @@ export async function runCanvasNodeAction(
     });
     if (!saved) {
       return { ok: false, code: "NOT_FOUND", error: "找不到畫布專案" };
+    }
+  }
+
+  if (!input.flowRunId) {
+    const waiting = await startCanvasNodeAfterUpstream({
+      clerkUserId: user.clerkUserId,
+      canvasId: input.canvasId,
+      nodeId: input.nodeId,
+    });
+    if (waiting && !waiting.ok) {
+      return { ok: false, code: "INVALID_INPUTS", error: waiting.error };
+    }
+    if (waiting) {
+      const users = await usersCollection();
+      const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
+      return {
+        ok: true,
+        waitingForUpstream: true,
+        activeFlowRun: {
+          flowRunId: waiting.activeFlowRun.flowRunId,
+          status: waiting.activeFlowRun.status,
+          currentWave: waiting.activeFlowRun.currentWave,
+          totalWaves: waiting.activeFlowRun.totalWaves,
+          failedNodeIds: waiting.activeFlowRun.failedNodeIds,
+        },
+        creditUsd: freshUser ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd : 0,
+      };
     }
   }
 

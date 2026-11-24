@@ -1,6 +1,6 @@
 "use client";
 
-// Top bar for /app/canvas: project switcher, Fit View, USD credit badge, and Run Flow.
+// Top bar for /app/canvas: project switcher, USD credit badge, and Run Flow.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   Loader2,
-  Maximize,
   Pencil,
   Play,
   Square,
@@ -40,7 +39,6 @@ export function CanvasTopbar({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
-  onFitView,
   onRunFlow,
   onStopFlow,
 }: {
@@ -62,7 +60,6 @@ export function CanvasTopbar({
   onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, name: string) => void;
   onDeleteFolder: (folderId: string) => void;
-  onFitView: () => void;
   onRunFlow: () => void;
   onStopFlow: () => void;
 }) {
@@ -166,17 +163,6 @@ export function CanvasTopbar({
           ) : null}
           {saveLabel}
         </span>
-      </div>
-
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onFitView}
-          title={isZh ? "縮放至全部節點" : "Fit view"}
-          className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] border border-white/10 bg-white/5 text-white/75 transition hover:border-white/20 hover:text-white"
-        >
-          <Maximize className="h-3.5 w-3.5" />
-        </button>
       </div>
 
       {/* Right: USD balance + primary Run Flow button */}

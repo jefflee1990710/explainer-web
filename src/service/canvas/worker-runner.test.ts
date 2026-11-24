@@ -5,9 +5,11 @@ import type { CanvasFlowRunState, CanvasJob, CanvasNode, CanvasProject } from "@
 import type { WorkerTask } from "@/model/worker-task";
 import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/orphan-busy";
 import {
+  busyUpstreamModelIds,
   executeCanvasFlowTask,
   executeCanvasNodeTask,
   filterFlowWaves,
+  startCanvasNodeAfterUpstream,
   startCanvasFlowRun,
   stopCanvasFlowRun,
 } from "@/service/canvas/worker-runner";
@@ -508,6 +510,113 @@ describe("canvas worker runner — multi-wave flow", () => {
     if (res.outcome === "requeue") assert.equal(res.stage, "flow_locked");
     assert.equal(submitted, 0);
     assert.equal(project.activeFlowRun?.status, "running");
+  });
+});
+
+describe("waiting for a running upstream node", () => {
+  const nodes: CanvasNode[] = [
+    { id: "img", type: "model", position: { x: 0, y: 0 }, data: { modelId: "openrouter:img", status: "running", lastJobId: "" } },
+    { id: "done", type: "model", position: { x: 0, y: 0 }, data: { modelId: "openrouter:img", status: "completed" } },
+    { id: "vid", type: "model", position: { x: 0, y: 0 }, data: { modelId: "openrouter:minimax/hailuo-3" } },
+  ];
+  const edges = [
+    { id: "e1", source: "img", sourceHandle: "output", target: "vid", targetHandle: "startImage" },
+    { id: "e2", source: "done", sourceHandle: "output", target: "vid", targetHandle: "endImage" },
+  ];
+
+  it("lists only wired upstream model nodes that are still busy", () => {
+    assert.deepEqual(busyUpstreamModelIds(nodes, edges, "vid"), ["img"]);
+    assert.deepEqual(busyUpstreamModelIds(nodes, edges, "img"), []);
+  });
+
+  it("watches the upstream job already running instead of submitting it again, then runs the target", async () => {
+    const upstreamJobId = new ObjectId();
+    const project = makeProject(
+      [
+        { ...nodes[0]!, data: { ...nodes[0]!.data, lastJobId: upstreamJobId.toHexString() } },
+        nodes[1]!,
+        nodes[2]!,
+      ],
+      edges,
+    );
+    const jobs = new Map<string, CanvasJob>();
+    jobs.set(upstreamJobId.toHexString(), {
+      _id: upstreamJobId,
+      clerkUserId: "user-1",
+      canvasId: project._id,
+      nodeId: "img",
+      provider: "openrouter",
+      modelId: "openrouter:img",
+      providerModelId: "img",
+      status: "running",
+      inputSnapshot: {},
+      chargedUsd: 0.1,
+      outputKind: "image",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const submitted: string[] = [];
+    const queued: string[] = [];
+    const deps = {
+      findCanvasProject: async () => ({ ...project }),
+      setActiveFlowRun: async (_id: ObjectId, _uid: string, run: CanvasFlowRunState) => {
+        project.activeFlowRun = run;
+      },
+      scheduleFlowTask: () => {},
+      markNodeQueued: async (_cid: ObjectId, _uid: string, nodeId: string) => {
+        queued.push(nodeId);
+      },
+      submitNodeQueued: async ({ nodeId }: { nodeId: string }) => {
+        submitted.push(nodeId);
+        const job = { ...jobs.get(upstreamJobId.toHexString())!, _id: new ObjectId(), nodeId, status: "queued" as const };
+        jobs.set(job._id.toHexString(), job);
+        return { ok: true as const, job, creditUsd: 9 };
+      },
+      findCanvasJobsByIds: async (_cid: ObjectId, _uid: string, ids: ObjectId[]) =>
+        ids.map((id) => jobs.get(id.toHexString())!).filter(Boolean),
+      claimFlowStep: async () => true,
+    };
+
+    const started = await startCanvasNodeAfterUpstream(
+      { clerkUserId: "user-1", canvasId: project._id.toHexString(), nodeId: "vid" },
+      deps,
+    );
+    assert.ok(started && started.ok);
+    assert.deepEqual(started.waitingOn, ["img"]);
+    assert.deepEqual(queued, ["vid"]);
+    assert.deepEqual(project.activeFlowRun?.waves, [["img"], ["vid"]]);
+
+    const task: WorkerTask = {
+      _id: new ObjectId(),
+      kind: "canvas_flow",
+      lane: "cpu",
+      status: "in_progress",
+      targetId: project._id.toHexString(),
+      payload: { flowRunId: project.activeFlowRun!.flowRunId, clerkUserId: "user-1" },
+      attempts: 1,
+      maxAttempts: 5,
+      nextAttemptAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await executeCanvasFlowTask(task, deps);
+    assert.deepEqual(submitted, []);
+    assert.deepEqual(project.activeFlowRun?.activeWaveJobIds, [upstreamJobId.toHexString()]);
+
+    jobs.get(upstreamJobId.toHexString())!.status = "completed";
+    project.nodes[0]!.data.status = "completed";
+    project.nodes[0]!.data.outputUrl = "https://blob.example/img.png";
+    await executeCanvasFlowTask(task, deps);
+    assert.deepEqual(submitted, ["vid"]);
+  });
+
+  it("returns null when nothing upstream is running", async () => {
+    const project = makeProject([nodes[1]!, nodes[2]!], [edges[1]!]);
+    const res = await startCanvasNodeAfterUpstream(
+      { clerkUserId: "user-1", canvasId: project._id.toHexString(), nodeId: "vid" },
+      { findCanvasProject: async () => ({ ...project }) },
+    );
+    assert.equal(res, null);
   });
 });
 
