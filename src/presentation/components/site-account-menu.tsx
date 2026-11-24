@@ -115,7 +115,7 @@ export function SiteAccountMenu({ account }: { account: SiteAccount }) {
             </div>
             <Link
               role="menuitem"
-              href="/app"
+              href="/app/canvas"
               onClick={() => setOpen(false)}
               className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#12141c] hover:bg-[#f4fcd4]"
             >

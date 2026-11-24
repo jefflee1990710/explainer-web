@@ -36,7 +36,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await getAuthSession();
-  if (!session) redirect("/sign-in?next=/app");
+  if (!session) redirect("/sign-in?next=/app/canvas");
   const user = await requireAppUser();
   const balance = resolveUserUsdBalance(user);
   const activeTasks = await safeCountActiveTasks(user.clerkUserId);

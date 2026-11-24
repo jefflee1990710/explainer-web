@@ -106,7 +106,7 @@ export async function establishSessionAction(
         params: {
           method: telemetry.method ?? (record.providerData[0]?.providerId === "google.com" ? "google" : "email"),
           mode: telemetry.mode ?? (telemetry.event === "sign_up" ? "sign-up" : "sign-in"),
-          nextPath: telemetry.nextPath ?? "/app",
+          nextPath: telemetry.nextPath ?? "/app/canvas",
           accountKind: kind,
         },
       });

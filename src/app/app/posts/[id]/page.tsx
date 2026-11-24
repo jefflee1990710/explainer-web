@@ -6,7 +6,7 @@ export default async function PostEditorRedirectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  if (!POSTS_FEATURE_ENABLED) redirect("/app");
+  if (!POSTS_FEATURE_ENABLED) redirect("/app/canvas");
   const { id } = await params;
   redirect(`/app/posts?id=${encodeURIComponent(id)}`);
 }

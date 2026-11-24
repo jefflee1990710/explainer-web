@@ -21,7 +21,7 @@ export function StudioHeader({
   return (
     <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4">
       <BrandMark
-        href="/app"
+        href="/app/canvas"
         wordClassName="inline text-xl font-bold tracking-tight text-[var(--studio-ink)]"
       />
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">

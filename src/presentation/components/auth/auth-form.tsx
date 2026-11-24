@@ -20,17 +20,25 @@ import {
   trackAsync,
 } from "@/presentation/components/analytics/track";
 
+// Studio home is the canvas, not the old /app landing page.
+const STUDIO_HOME = "/app/canvas";
+
+function isStudioHome(path: string) {
+  return path === "/app" || path === "/app/" || path === "/app/canvas" || path === "/app/canvas/";
+}
+
 // Only same-site paths. A full URL in ?next= must not leave the app.
 function safeNext(value: string | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/app";
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return STUDIO_HOME;
+  if (isStudioHome(value)) return STUDIO_HOME;
   return value;
 }
 
 function classifyAuthEntryReason(nextPath: string | undefined): string {
-  if (!nextPath) return "direct_or_cta";
+  if (!nextPath || isStudioHome(nextPath)) return "direct_or_cta";
   if (nextPath.startsWith("/academy")) return "academy_lock";
   if (nextPath.startsWith("/scroadmin")) return "admin_redirect";
-  if (nextPath !== "/app" && nextPath.startsWith("/app/")) return "protected_deep_link";
+  if (nextPath.startsWith("/app/")) return "protected_deep_link";
   return "direct_or_cta";
 }
 

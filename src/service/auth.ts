@@ -146,7 +146,7 @@ export async function upsertAppUserFromIdentity(
 const requireAppUserImpl = cache(async (): Promise<AppUser> => {
   const session = await getAuthSession();
   // Missing or expired session. redirect() is control flow, so build prerender does not 500.
-  if (!session) redirect("/sign-in?next=/app");
+  if (!session) redirect("/sign-in?next=/app/canvas");
   return upsertAppUserFromIdentity({
     uid: session.uid,
     email: session.email,
@@ -167,6 +167,6 @@ export async function requireClerkUserId(): Promise<string> {
   const mcpUser = mcpUserStore.getStore();
   if (mcpUser) return mcpUser.clerkUserId;
   const session = await getAuthSession();
-  if (!session) redirect("/sign-in?next=/app");
+  if (!session) redirect("/sign-in?next=/app/canvas");
   return session.uid;
 }

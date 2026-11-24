@@ -2437,7 +2437,7 @@ export function NewProjectForm({
           externalError={error}
           onSkip={() => {
             setFirstVideoModalOpen(false);
-            router.push("/app");
+            router.push("/app/canvas");
           }}
           onStayInForm={() => setFirstVideoModalOpen(false)}
           onSubmitFirstVideo={submitFromFirstVideoModal}

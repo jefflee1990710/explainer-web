@@ -42,7 +42,7 @@ export function AcceptPoliciesDialog({
     }
     await trackAsync("legal_dialog_accepted", { firstTime, marketingOptIn });
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full navigation re-runs AppLayout server check to unmount the policy dialog
-    window.location.assign("/app");
+    window.location.assign("/app/canvas");
   }
 
   return (

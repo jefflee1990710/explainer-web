@@ -18,7 +18,7 @@ export function ProjectWorkspace({ folder }: { folder: PublicFolder }) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link
-            href="/app"
+            href="/app/canvas"
             className="text-sm font-semibold text-muted transition hover:text-foreground"
           >
             {t("video.workspace.backToProjects")}

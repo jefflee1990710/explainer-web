@@ -23,7 +23,7 @@ function resolveUxStageFromPath(pathname: string): string {
   if (pathname.startsWith("/sign-in")) return "auth_sign_in";
   if (pathname.startsWith("/sign-up")) return "auth_sign_up";
   if (pathname.startsWith("/legal/accept")) return "onboarding_legal";
-  if (pathname === "/app") return "studio_home";
+  if (pathname === "/app" || pathname === "/app/canvas") return "studio_home";
   if (pathname === "/app/characters/generate") return "character_wizard";
   if (pathname.startsWith("/app/characters/")) return "character_detail";
   if (pathname === "/app/characters") return "character_list";

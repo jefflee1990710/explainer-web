@@ -46,7 +46,7 @@ export function LandingDirector() {
           </ol>
           <SectionCtaRow
             tone="dark"
-            primary={{ href: "/app", label: t("landing.director.cta") }}
+            primary={{ href: "/app/canvas", label: t("landing.director.cta") }}
             secondary={{ href: "/right-tool", label: t("rightTool.hero.ctaStart") }}
           />
         </div>

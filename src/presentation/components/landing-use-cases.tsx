@@ -8,7 +8,7 @@ const ART = "/landing/use-cases";
 
 // Two jobs on the homepage: whiteboard explainer videos, then the AI Influencer who hosts them.
 const USE_CASES = [
-  { id: "explain", key: "explain", appHref: "/app" },
+  { id: "explain", key: "explain", appHref: "/app/canvas" },
   { id: "virtual-you", key: "virtualYou", appHref: "/app/characters" },
 ] as const;
 

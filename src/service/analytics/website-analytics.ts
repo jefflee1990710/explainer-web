@@ -683,7 +683,9 @@ export function buildWebsiteAnalyticsFromEvents(
     }
     if (
       v.authNextTargets.some(
-        (t) => t.startsWith("/scroadmin") || (t.startsWith("/app/") && t !== "/app"),
+        (t) =>
+          t.startsWith("/scroadmin") ||
+          (t.startsWith("/app/") && t !== "/app/canvas" && !t.startsWith("/app/canvas?")),
       )
     ) {
       return {

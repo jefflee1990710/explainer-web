@@ -29,7 +29,7 @@ export function ExplainerStyle() {
           </h2>
           <p className="mt-4 text-base leading-7 text-[#5c6170]">{t("explainerPage.style.body")}</p>
           <SectionCtaRow
-            primary={{ href: "/app", label: t("explainerPage.hero.ctaStart") }}
+            primary={{ href: "/app/canvas", label: t("explainerPage.hero.ctaStart") }}
             secondary={{ href: "#uses", label: t("explainerPage.hero.ctaSecondary") }}
           />
         </div>

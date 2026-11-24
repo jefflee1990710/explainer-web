@@ -6,7 +6,7 @@ import { requireAppUser } from "@/service/auth";
 
 export default async function AffiliatePage() {
   const user = await requireAppUser();
-  if (!isAffiliateAccount(user)) redirect("/app");
+  if (!isAffiliateAccount(user)) redirect("/app/canvas");
   const data = await getAffiliateDashboardData();
   return <AffiliateView {...data} />;
 }
