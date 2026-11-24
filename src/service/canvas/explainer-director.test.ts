@@ -5,11 +5,13 @@ import {
   directorChangedTargets,
   directorHandles,
   directorNeedsReplan,
+  directorNodeWithWiredCharacter,
   directorParams,
   directorRawOutput,
   isExplainerDirectorNode,
   parseDirectorHandle,
   readDirectorPlan,
+  wiredDirectorCharacter,
   type ExplainerDirectorPlan,
 } from "@/service/canvas/explainer-director";
 
@@ -97,5 +99,28 @@ describe("explainer director", () => {
       { id: "b", source: "dir", sourceHandle: "clip-1-motion", target: "video", targetHandle: "prompt" },
     ];
     assert.deepEqual(directorChangedTargets(before, after, edges), ["frame"]);
+  });
+
+  it("reads an optional wired character and lets it replace the dropdown", () => {
+    const nodes: CanvasNode[] = [
+      {
+        id: "jim",
+        type: "character",
+        position: { x: 0, y: 0 },
+        data: { characterId: "jim-id", label: "Jim" },
+      },
+      { id: "photo", type: "media", position: { x: 0, y: 0 }, data: { mediaKind: "image", mediaUrl: "https://x/p.png" } },
+    ];
+    const wired = [{ id: "e", source: "jim", target: "dir", targetHandle: "character" }];
+    assert.deepEqual(wiredDirectorCharacter("dir", nodes, wired), {
+      nodeId: "jim",
+      characterId: "jim-id",
+      label: "Jim",
+    });
+    assert.equal(wiredDirectorCharacter("dir", nodes, [{ id: "e", source: "photo", target: "dir", targetHandle: "character" }]), undefined);
+    const node = director({ characterId: "dropdown" });
+    const next = directorNodeWithWiredCharacter(node, nodes, wired);
+    assert.equal(next.data.toolParams?.characterId, "jim-id");
+    assert.equal(directorNodeWithWiredCharacter(node, nodes, []).data.toolParams?.characterId, "dropdown");
   });
 });

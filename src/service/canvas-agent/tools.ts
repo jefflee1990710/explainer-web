@@ -53,6 +53,7 @@ import {
   updateExplainerSettingsSchema,
 } from "@/service/canvas-agent/explainer-director-tool";
 import {
+  DIRECTOR_CHARACTER_HANDLE,
   directorNeedsReplan,
   directorParams,
   directorTextStyle,
@@ -411,22 +412,36 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     if (spec.id === "scro:explainer") {
       const topic = (input.prompt ?? input.promptText ?? "").trim();
       if (!topic) return { error: "scro:explainer needs the topic or script in \"prompt\"." };
+      const named =
+        typeof input.toolParams?.characterId === "string" ? input.toolParams.characterId.trim() : "";
       // With no character named, reuse the one character already on the canvas.
-      const characterId =
-        typeof input.toolParams?.characterId === "string" && input.toolParams.characterId.trim()
-          ? undefined
-          : soleCanvasCharacterId(g, g.nodes);
-      return addNode(g, "model", {
+      const reused = named ? undefined : soleCanvasCharacterId(g, g.nodes);
+      const created = addNode(g, "model", {
         modelId: spec.id,
         aspectRatio: input.aspectRatio ?? "9:16",
         prompt: topic,
         toolParams: {
-          ...(characterId ? { characterId } : {}),
+          ...(reused ? { characterId: reused } : {}),
           ...(input.toolParams ?? {}),
           plannerMode: true,
         },
         status: "idle",
       });
+      if (created.error || typeof created.nodeId !== "string") return created;
+      const characterId = named || reused;
+      const source = characterId
+        ? g.nodes.find((n) => n.type === "character" && n.data.characterId === characterId)
+        : undefined;
+      if (!source) return created;
+      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
+        sourceId: source.id,
+        targetId: created.nodeId,
+        targetPort: DIRECTOR_CHARACTER_HANDLE,
+      });
+      if (linked.error) {
+        return { ...created, error: `Node ${created.nodeId} exists. Character wire failed: ${linked.error}` };
+      }
+      return created;
     }
     const created = addNode(g, "model", {
       modelId: spec.id,
@@ -618,8 +633,14 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       };
     }
     const targetNode = g.nodes.find((n) => n.id === input.targetId);
-    if (targetNode && isExplainerPlannerNode(targetNode) && input.targetPort !== "settings") {
-      return { error: "An Explainer planning card takes no wires; put the topic in its \"prompt\"." };
+    const directorTarget = targetNode && isExplainerDirectorNode(targetNode);
+    if (
+      targetNode &&
+      isExplainerPlannerNode(targetNode) &&
+      input.targetPort !== "settings" &&
+      !(directorTarget && input.targetPort === DIRECTOR_CHARACTER_HANDLE)
+    ) {
+      return { error: "An Explainer planning card takes no wires except an optional character; put the topic in its \"prompt\"." };
     }
     const candidate = {
       source: input.sourceId,

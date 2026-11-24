@@ -72,3 +72,27 @@ export function buildSwapGroup(ctx: GroupContext, input: SwapGroupInput): ScroGr
   b.wire(render, grade, "video");
   return b.finish(grade);
 }
+
+// Dropped onto the canvas with nothing picked yet. The user wires the source and reference,
+// and edits the mode, section, and ratio on these nodes.
+export function buildBlankSwapGroup(ctx: GroupContext): ScroGroup {
+  const b = createGroupBuilder(ctx);
+  const length = 6;
+  const trim = b.model("trim", buildTrimNode(0, length));
+  const render = b.model("render", {
+    modelId: "scro:swap-render",
+    presetId: "9:16",
+    aspectRatio: "9:16",
+    durationSeconds: length,
+    prompt: "",
+    toolParams: { swapMode: "character" },
+  });
+  const grade = b.model("grade", {
+    modelId: "ffmpeg:color-grade",
+    presetId: "jutsu",
+    toolParams: { gradeLook: "jutsu" },
+  });
+  b.wire(trim, render, "video");
+  b.wire(render, grade, "video");
+  return b.finish(grade);
+}

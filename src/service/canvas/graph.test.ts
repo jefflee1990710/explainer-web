@@ -370,6 +370,30 @@ describe("canvas graph — resolveNodeInputs", () => {
       validateEdgeConnection(nodes, [], { source: "dir", target: "img", targetHandle: "prompt" }).valid,
       false,
     );
+    const character: CanvasNode = {
+      id: "jim",
+      type: "character",
+      position: { x: 0, y: 0 },
+      data: { characterId: "jim-id", label: "Jim" },
+    };
+    assert.equal(
+      validateEdgeConnection([character, plannedDirector], [], {
+        source: "jim",
+        sourceHandle: "output",
+        target: "dir",
+        targetHandle: "character",
+      }).valid,
+      true,
+    );
+    assert.equal(
+      validateEdgeConnection([mediaNode("photo", "image", "https://blob.example/p.png"), plannedDirector], [], {
+        source: "photo",
+        sourceHandle: "output",
+        target: "dir",
+        targetHandle: "character",
+      }).valid,
+      false,
+    );
     const resolved = resolveNodeInputs("img", nodes, edges);
     assert.equal(resolved.inputs.prompt, `busy board ${explainerTextStyleLine("neon")}`);
   });

@@ -66,3 +66,26 @@ export function buildTeleportGroup(ctx: GroupContext, input: TeleportGroupInput)
   b.wire(render, grade, "video");
   return b.finish(grade);
 }
+
+// Dropped onto the canvas with nothing picked yet. The user wires the source and scene,
+// and edits the section, ratio, and mood on these nodes.
+export function buildBlankTeleportGroup(ctx: GroupContext): ScroGroup {
+  const b = createGroupBuilder(ctx);
+  const length = 6;
+  const trim = b.model("trim", buildTrimNode(0, length));
+  const render = b.model("render", {
+    modelId: "scro:teleport-render",
+    presetId: "9:16",
+    aspectRatio: "9:16",
+    durationSeconds: length,
+    prompt: "",
+  });
+  const grade = b.model("grade", {
+    modelId: "ffmpeg:color-grade",
+    presetId: "jutsu",
+    toolParams: { gradeLook: "jutsu" },
+  });
+  b.wire(trim, render, "video");
+  b.wire(render, grade, "video");
+  return b.finish(grade);
+}

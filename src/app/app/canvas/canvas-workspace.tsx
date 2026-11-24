@@ -101,6 +101,8 @@ import {
 } from "@/service/canvas/explainer-layout";
 import { layoutGroupByDepth } from "@/service/canvas/group-layout";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
+import { buildBlankSwapGroup } from "@/service/canvas/scro-groups/swap";
+import { buildBlankTeleportGroup } from "@/service/canvas/scro-groups/teleport";
 import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/groups";
 import {
   SCRO_DIALOG_TOOL_BY_MODEL,
@@ -120,14 +122,6 @@ import { GroupSelectionBar } from "@/app/app/canvas/groups/group-selection-bar";
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
 import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
-import {
-  ExplainerPlanDialog,
-  type ExplainerPlanDialogValues,
-} from "@/app/app/canvas/explainer-plan-dialog";
-import {
-  TalkingHeadDialog,
-  type TalkingHeadDialogValues,
-} from "@/app/app/canvas/talking-head-dialog";
 import {
   getCanvasExplainerPlanAction,
   startCanvasExplainerPlanAction,
@@ -210,6 +204,49 @@ const FAILED_EDGE_STROKE = "#f43f5e";
 const AGENT_OP_STEP_MS = 90;
 
 type FlowNode = CanvasFlowNode;
+
+// A dropped Talking Head is the planning card itself. Script and framing stay on the node.
+function talkingHeadDirectorNode(position: { x: number; y: number }, prompt = ""): FlowNode {
+  return {
+    id: `model-${crypto.randomUUID().slice(0, 8)}`,
+    type: "model",
+    position,
+    data: {
+      modelId: "scro:talking-head",
+      aspectRatio: "9:16",
+      prompt,
+      status: "idle",
+      toolParams: {
+        plannerMode: true,
+        language: "yue",
+        framing: "collarbone-close",
+      },
+    },
+  };
+}
+
+// A dropped Explainer is the Director card itself. Settings stay on the node; Plan is pressed there.
+function explainerDirectorNode(position: { x: number; y: number }, prompt = ""): FlowNode {
+  return {
+    id: `model-${crypto.randomUUID().slice(0, 8)}`,
+    type: "model",
+    position,
+    data: {
+      modelId: "scro:explainer",
+      aspectRatio: "9:16",
+      prompt,
+      status: "idle",
+      toolParams: {
+        plannerMode: true,
+        skillSlug: "cartoon-explainer-video-director",
+        language: "yue",
+        durationPreset: "30s",
+        textStyleId: "handwritten",
+        presenterPosition: "auto",
+      },
+    },
+  };
+}
 
 // Job results remembered before React paints, so the next flow wave can save them.
 type RememberedJobOutput = {
@@ -795,31 +832,55 @@ function CanvasWorkspaceInner({
     }
   }, [reactFlow]);
 
-  // Explainer setup dialog opened by a sidebar drop or the Explainer template.
-  const [explainerDialog, setExplainerDialog] = useState<{
-    position: { x: number; y: number };
-    defaultTopic?: string;
-  } | null>(null);
-  // Life / Poster / Swap / Teleport setup dialog; submit lands a visible node group.
+  // Life / Poster setup dialog; submit lands a visible node group.
   const [scroDialog, setScroDialog] = useState<ScroDialogState>(null);
-  // Talking Head setup dialog; submit lands a planning card like Explainer.
-  const [talkingHeadDialog, setTalkingHeadDialog] = useState<{
-    position: { x: number; y: number };
-    defaultScript?: string;
-  } | null>(null);
+
+  // Lands a Swap or Teleport group (or a dialog-built Life / Poster group) and re-lays it out.
+  const placeScroGroup = useCallback(
+    (group: ScroGroup, tool: ScroDialogTool, origin: { x: number; y: number }) => {
+      const allNodes = [...toDomainNodes(nodesRef.current), ...group.nodes];
+      setNodes((prev) => [...prev, ...toFlowNodes(group.nodes)]);
+      setEdges((prev) => [...prev, ...toFlowEdges(group.edges, allNodes, models)]);
+      addGroup({
+        id: group.groupId,
+        title: defaultGroupTitle(tool),
+        color: defaultGroupColor(tool),
+        kind: tool,
+        memberIds: group.nodes.map((n) => n.id),
+      });
+      pendingGroupLayoutRef.current = {
+        ids: new Set(group.nodes.map((n) => n.id)),
+        edges: group.edges,
+        origin,
+        layout: "depth",
+      };
+      scheduleAutosave();
+      window.setTimeout(applyPendingGroupLayout, 600);
+    },
+    [models, setNodes, setEdges, addGroup, scheduleAutosave, applyPendingGroupLayout],
+  );
 
   const addModelNodeAt = useCallback(
     (modelId: string, position?: { x: number; y: number }) => {
       const spec = findCanvasModel(modelId, models);
       if (!spec) return;
       const pos = position ?? getCenterPosition();
-      // Explainer never lands as an editable node: ask for the topic first, then plan.
+      // Directors land ready to edit. The user sets them on the node; nothing asks first.
       if (spec.id === "scro:explainer") {
-        setExplainerDialog({ position: pos });
+        setNodes((prev) => [...prev, explainerDirectorNode(pos)]);
+        scheduleAutosave();
         return;
       }
       if (spec.id === "scro:talking-head") {
-        setTalkingHeadDialog({ position: pos });
+        setNodes((prev) => [...prev, talkingHeadDirectorNode(pos)]);
+        scheduleAutosave();
+        return;
+      }
+      if (spec.id === "scro:swap" || spec.id === "scro:teleport") {
+        const tool = spec.id === "scro:swap" ? "swap" : "teleport";
+        const ctx = { idPrefix: `${tool}-${crypto.randomUUID().slice(0, 6)}`, origin: pos };
+        const group = tool === "swap" ? buildBlankSwapGroup(ctx) : buildBlankTeleportGroup(ctx);
+        placeScroGroup(group, tool, pos);
         return;
       }
       const dialogTool = SCRO_DIALOG_TOOL_BY_MODEL[spec.id];
@@ -844,7 +905,7 @@ function CanvasWorkspaceInner({
       setNodes((prev) => [...prev, newNode]);
       scheduleAutosave();
     },
-    [models, getCenterPosition, setNodes, scheduleAutosave],
+    [models, getCenterPosition, setNodes, scheduleAutosave, placeScroGroup],
   );
 
   const addAssetNodeAt = useCallback(
@@ -1200,34 +1261,16 @@ function CanvasWorkspaceInner({
     [startDirectorPlan],
   );
 
-  const closeExplainerDialog = useCallback(() => setExplainerDialog(null), []);
   const closeScroDialog = useCallback(() => setScroDialog(null), []);
 
-  // Adds a dialog-built group, then re-lays it out with measured card sizes.
+  // Adds a dialog-built Life or Poster group at the spot the dialog was opened from.
   const insertScroGroup = useCallback(
     (group: ScroGroup, tool: ScroDialogTool) => {
       const origin = scroDialog?.position ?? group.nodes[0]?.position ?? { x: 0, y: 0 };
       setScroDialog(null);
-      const allNodes = [...toDomainNodes(nodesRef.current), ...group.nodes];
-      setNodes((prev) => [...prev, ...toFlowNodes(group.nodes)]);
-      setEdges((prev) => [...prev, ...toFlowEdges(group.edges, allNodes, models)]);
-      addGroup({
-        id: group.groupId,
-        title: defaultGroupTitle(tool),
-        color: defaultGroupColor(tool),
-        kind: tool,
-        memberIds: group.nodes.map((n) => n.id),
-      });
-      pendingGroupLayoutRef.current = {
-        ids: new Set(group.nodes.map((n) => n.id)),
-        edges: group.edges,
-        origin,
-        layout: "depth",
-      };
-      scheduleAutosave();
-      window.setTimeout(applyPendingGroupLayout, 600);
+      placeScroGroup(group, tool, origin);
     },
-    [scroDialog, models, setNodes, setEdges, addGroup, scheduleAutosave, applyPendingGroupLayout],
+    [scroDialog, placeScroGroup],
   );
 
   // Images and videos already on the canvas, offered first in the setup dialogs.
@@ -1264,73 +1307,6 @@ function CanvasWorkspaceInner({
         return [];
       }),
     [nodes, models],
-  );
-
-  // Dialog submit: place the planning card at the drop spot and start the free plan.
-  const submitExplainerDialog = useCallback(
-    (values: ExplainerPlanDialogValues) => {
-      const dialog = explainerDialog;
-      setExplainerDialog(null);
-      if (!dialog) return;
-      const card: FlowNode = {
-        id: `model-${crypto.randomUUID().slice(0, 8)}`,
-        type: "model",
-        position: dialog.position,
-        data: {
-          modelId: "scro:explainer",
-          aspectRatio: values.aspectRatio,
-          prompt: values.topic,
-          status: "idle",
-          toolParams: {
-            plannerMode: true,
-            skillSlug: values.skillSlug,
-            language: values.language,
-            durationPreset: values.durationPreset,
-            textStyleId: "handwritten",
-            presenterPosition: "auto",
-            ...(values.characterId ? { characterId: values.characterId } : {}),
-          },
-        },
-      };
-      void startDirectorPlan(card.id, {
-        nodes: [...nodesRef.current, card],
-        edges: edgesRef.current,
-      });
-    },
-    [explainerDialog, startDirectorPlan],
-  );
-
-  const closeTalkingHeadDialog = useCallback(() => setTalkingHeadDialog(null), []);
-
-  // Talking Head submit: same free planning card, expanded into voice → HeyGen → grade rows.
-  const submitTalkingHeadDialog = useCallback(
-    (values: TalkingHeadDialogValues) => {
-      const dialog = talkingHeadDialog;
-      setTalkingHeadDialog(null);
-      if (!dialog) return;
-      const card: FlowNode = {
-        id: `model-${crypto.randomUUID().slice(0, 8)}`,
-        type: "model",
-        position: dialog.position,
-        data: {
-          modelId: "scro:talking-head",
-          aspectRatio: values.aspectRatio,
-          prompt: values.script,
-          status: "idle",
-          toolParams: {
-            plannerMode: true,
-            characterId: values.characterId,
-            language: values.language,
-            framing: values.framing,
-          },
-        },
-      };
-      void startDirectorPlan(card.id, {
-        nodes: [...nodesRef.current, card],
-        edges: edgesRef.current,
-      });
-    },
-    [talkingHeadDialog, startDirectorPlan],
   );
 
   // Director plan results waiting for the build / rebuild / keep answer, with the rows whose text changed.
@@ -1837,22 +1813,25 @@ function CanvasWorkspaceInner({
   const handleApplyTemplate = useCallback(
     (templateId: CanvasStarterTemplateId) => {
       const { nodes: tplNodes, edges: tplEdges } = instantiateCanvasTemplate(templateId);
-      // The Explainer template opens the setup dialog with its sample topic instead of a node.
+      // The Explainer template drops a Director with the sample topic already filled in.
       if (templateId === "explainer") {
-        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text;
-        setExplainerDialog({ position: getCenterPosition(), defaultTopic: sample });
+        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text ?? "";
+        setNodes((prev) => [...prev, explainerDirectorNode(getCenterPosition(), sample)]);
+        scheduleAutosave();
         return;
       }
       if (templateId === "talking-head") {
-        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text;
-        setTalkingHeadDialog({ position: getCenterPosition(), defaultScript: sample });
+        const sample = tplNodes.find((n) => n.type === "prompt")?.data.text ?? "";
+        setNodes((prev) => [...prev, talkingHeadDirectorNode(getCenterPosition(), sample)]);
+        scheduleAutosave();
         return;
       }
       if (templateId === "scro-swap" || templateId === "teleport") {
-        setScroDialog({
-          tool: templateId === "scro-swap" ? "swap" : "teleport",
-          position: getCenterPosition(),
-        });
+        const tool = templateId === "scro-swap" ? "swap" : "teleport";
+        const pos = getCenterPosition();
+        const ctx = { idPrefix: `${tool}-${crypto.randomUUID().slice(0, 6)}`, origin: pos };
+        const group = tool === "swap" ? buildBlankSwapGroup(ctx) : buildBlankTeleportGroup(ctx);
+        placeScroGroup(group, tool, pos);
         return;
       }
       setNodes((prev) => [...prev, ...toFlowNodes(tplNodes)]);
@@ -1865,7 +1844,7 @@ function CanvasWorkspaceInner({
         void reactFlow.fitView({ padding: 0.2, duration: 300 });
       }, 60);
     },
-    [models, setNodes, setEdges, scheduleAutosave, reactFlow, getCenterPosition],
+    [models, setNodes, setEdges, scheduleAutosave, reactFlow, getCenterPosition, placeScroGroup],
   );
 
   // Canvas agent: the graph sent with each chat message, per-turn undo snapshots, and op replay.
@@ -2449,22 +2428,6 @@ function CanvasWorkspaceInner({
               isZh={isZh}
               onConfirm={() => resolveDirectorDecision(true)}
               onDecline={() => resolveDirectorDecision(false)}
-            />
-            <ExplainerPlanDialog
-              open={explainerDialog !== null}
-              isZh={isZh}
-              defaultTopic={explainerDialog?.defaultTopic}
-              characterOptions={assets.characterOptions ?? []}
-              onCancel={closeExplainerDialog}
-              onSubmit={submitExplainerDialog}
-            />
-            <TalkingHeadDialog
-              open={talkingHeadDialog !== null}
-              isZh={isZh}
-              defaultScript={talkingHeadDialog?.defaultScript}
-              characterOptions={assets.characterOptions ?? []}
-              onCancel={closeTalkingHeadDialog}
-              onSubmit={submitTalkingHeadDialog}
             />
             <ScroGroupDialogs
               state={scroDialog}

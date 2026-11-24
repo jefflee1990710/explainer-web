@@ -17,6 +17,7 @@ import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import {
   directorBaseVars,
   directorHandles,
+  DIRECTOR_CHARACTER_HANDLE,
   directorRawOutput,
   isExplainerDirectorNode,
   parseDirectorHandle,
@@ -224,6 +225,13 @@ export function validateEdgeConnection(
     return {
       valid: false,
       reason: `Target ${targetLabel} has no input port "${targetHandle}"`,
+    };
+  }
+
+  if (targetPort.id === DIRECTOR_CHARACTER_HANDLE && sourceNode.type !== "character") {
+    return {
+      valid: false,
+      reason: "Character input only accepts a character node",
     };
   }
 

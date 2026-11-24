@@ -13,9 +13,11 @@ import {
 import { composeExplainerPlanSource } from "@/service/canvas/explainer-settings";
 import type { ExplainerPresenterPosition } from "@/model/explainer-settings";
 import {
+  directorNodeWithWiredCharacter,
   directorParams,
   isExplainerDirectorNode,
   readDirectorPlan,
+  wiredDirectorCharacter,
   type ExplainerDirectorParams,
   type ExplainerDirectorPlan,
 } from "@/service/canvas/explainer-director";
@@ -75,23 +77,33 @@ export async function startCanvasExplainerPlan(params: {
   const loaded = await loadPlanner(params.clerkUserId, params.canvasId, params.nodeId);
   if (!loaded) return { ok: false, error: "找不到分鏡規劃節點" };
   const catalog = await getCanvasModelCatalog();
+  const director = isExplainerDirectorNode(loaded.node);
+  const wired = director
+    ? wiredDirectorCharacter(loaded.node.id, loaded.canvas.nodes, loaded.canvas.edges)
+    : undefined;
+  if (wired && !wired.characterId) {
+    return { ok: false, error: "連接的角色卡沒有可用的角色" };
+  }
+  // A wired character wins over the dropdown for this plan.
+  const plannerNode = director
+    ? directorNodeWithWiredCharacter(loaded.node, loaded.canvas.nodes, loaded.canvas.edges)
+    : loaded.node;
   const resolved = resolveNodeInputs(
     params.nodeId,
     loaded.canvas.nodes,
     loaded.canvas.edges,
     catalog,
   );
-  const isTalking = loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
+  const isTalking = plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
   if (!resolved.inputs.prompt?.trim()) {
     return { ok: false, error: isTalking ? "請先輸入講稿" : "請先輸入或連接解說主題" };
   }
-  const director = isExplainerDirectorNode(loaded.node);
-  const inputs = director ? { ...resolved.inputs, prompt: explainerPlanSource(loaded.node) } : resolved.inputs;
+  const inputs = director ? { ...resolved.inputs, prompt: explainerPlanSource(plannerNode) } : resolved.inputs;
   try {
     const videoId = await createCanvasDirectorVideo({
       clerkUserId: params.clerkUserId,
       modelId: isTalking ? "scro:talking-head" : "scro:explainer",
-      node: loaded.node,
+      node: plannerNode,
       inputs,
       planOnly: true,
     });
@@ -103,7 +115,7 @@ export async function startCanvasExplainerPlan(params: {
           "nodes.$[n].data.toolParams.plannerVideoId": plannerVideoId,
           "nodes.$[n].data.toolParams.planStatus": "planning",
           // The plan records the parameters it started with, even if the card is edited meanwhile.
-          ...(director ? { "nodes.$[n].data.toolParams.planningWith": directorParams(loaded.node) } : {}),
+          ...(director ? { "nodes.$[n].data.toolParams.planningWith": directorParams(plannerNode) } : {}),
           updatedAt: new Date(),
         },
         $unset: { "nodes.$[n].data.toolParams.planError": "" },
@@ -168,10 +180,15 @@ export function planStateFromVideo(params: {
   }
   const toolParams = plannerNode.data.toolParams ?? {};
   const language = plannerLanguage(video.language ?? toolParams.language);
-  const characterId =
-    typeof toolParams.characterId === "string" && toolParams.characterId
-      ? toolParams.characterId
+  const planningSnapshot = toolParams.planningWith;
+  const planningWith =
+    planningSnapshot && typeof planningSnapshot === "object"
+      ? (planningSnapshot as ExplainerDirectorParams)
       : undefined;
+  const dropdownCharacterId =
+    typeof toolParams.characterId === "string" && toolParams.characterId ? toolParams.characterId : undefined;
+  // A plan already underway keeps the character it started with, including a wired one.
+  const characterId = planningWith ? planningWith.characterId : dropdownCharacterId;
   const promptByClip = new Map(prompts.map((p) => [p.clipNumber, p]));
   const frameByClip = new Map(
     (video.canvasPlan?.framePrompts ?? []).map((f) => [f.clipNumber, f.prompt]),

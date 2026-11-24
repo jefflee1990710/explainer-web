@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { SEEDREAM_MODEL_ID } from "@/service/canvas/scro-groups/builder";
-import { buildSwapGroup } from "@/service/canvas/scro-groups/swap";
-import { buildTeleportGroup } from "@/service/canvas/scro-groups/teleport";
+import { buildBlankSwapGroup, buildSwapGroup } from "@/service/canvas/scro-groups/swap";
+import { buildBlankTeleportGroup, buildTeleportGroup } from "@/service/canvas/scro-groups/teleport";
 import { buildTeleportScenePlatePrompt } from "@/service/teleport/prompts";
 
 const ctx = { idPrefix: "g", origin: { x: 0, y: 0 } };
@@ -26,6 +26,15 @@ describe("buildSwapGroup", () => {
     assert.deepEqual(wires(g), ["g-video>g-grade:video"]);
     assert.ok(!g.nodes.some((n) => n.type === "settings"));
     assert.equal(node(g, "g-grade").data.toolParams?.gradeLook, "jutsu");
+  });
+
+  it("a blank drop is trim, character render, and grade, with the video port open", () => {
+    const g = buildBlankSwapGroup(ctx);
+    assert.deepEqual(wires(g), ["g-render>g-grade:video", "g-trim>g-render:video"]);
+    assert.equal(node(g, "g-render").data.modelId, "scro:swap-render");
+    assert.equal(node(g, "g-render").data.toolParams?.swapMode, "character");
+    assert.equal(node(g, "g-trim").data.toolParams?.ffmpegEndSec, 6);
+    assert.ok(!g.nodes.some((n) => n.type === "media"));
   });
 
   it("character swap trims, renders with the reference, then grades", () => {
@@ -106,5 +115,13 @@ describe("buildTeleportGroup", () => {
     assert.ok(!g.nodes.some((n) => n.id === "g-mood"));
     assert.ok(!g.nodes.some((n) => n.type === "settings"));
     assert.equal(node(g, "g-render").data.prompt, "neon rain");
+  });
+
+  it("a blank drop leaves the scene port open", () => {
+    const g = buildBlankTeleportGroup(ctx);
+    assert.deepEqual(wires(g), ["g-render>g-grade:video", "g-trim>g-render:video"]);
+    assert.equal(node(g, "g-render").data.modelId, "scro:teleport-render");
+    assert.equal(node(g, "g-render").data.prompt, "");
+    assert.ok(!g.nodes.some((n) => n.type === "media"));
   });
 });

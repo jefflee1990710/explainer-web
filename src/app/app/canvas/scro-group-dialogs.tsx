@@ -22,12 +22,10 @@ export type ScroDialogState = {
   position: { x: number; y: number };
 } | null;
 
-// Sidebar / template model ids that open a dialog instead of landing as one node.
+// Life and Poster still ask before they land. Swap and Teleport drop their group directly.
 export const SCRO_DIALOG_TOOL_BY_MODEL: Record<string, ScroDialogTool> = {
   "scro:life": "life",
   "scro:poster": "poster",
-  "scro:swap": "swap",
-  "scro:teleport": "teleport",
 };
 
 type Props = {

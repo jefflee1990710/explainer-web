@@ -32,8 +32,9 @@ import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
+import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
-import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
+import { isExplainerDirectorNode, wiredDirectorCharacter } from "@/service/canvas/explainer-director";
 import {
   OUTDATED_BADGE_CLASS,
   OutdatedBanner,
@@ -102,6 +103,23 @@ export function ModelNodeCard({
         characterOptions={characterOptions}
         incomingHandles={[...incomingByHandle.keys()]}
         hasSetting={incomingByHandle.has(SETTINGS_HANDLE)}
+        wiredCharacter={wiredDirectorCharacter(id, nodes, edges)}
+        onUpdate={(patch) => onUpdateNodeData(id, patch)}
+        onPlan={() => onPlanExplainer(id)}
+        onRemove={() => onDeleteNode(id)}
+      />
+    );
+  }
+
+  // Talking Head settings stay on the card. Plan is pressed there; nothing pops up on drop.
+  if (data.modelId === "scro:talking-head" && data.toolParams?.plannerMode === true) {
+    return (
+      <TalkingHeadDirectorCard
+        data={data}
+        isZh={isZh}
+        selected={Boolean(selected)}
+        disabled={isFlowRunning}
+        characterOptions={characterOptions}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}

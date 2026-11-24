@@ -5,6 +5,9 @@ import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
 import { explainerTextStyleLine, TEXT_STYLE_VAR } from "@/service/canvas/settings/explainer-text-style";
 import { renderPromptTemplate } from "@/service/canvas/settings/template";
 
+// Optional input: a character node. Empty is allowed; a photo or model image is not.
+export const DIRECTOR_CHARACTER_HANDLE = "character";
+
 export type DirectorOutputKind = "frame" | "motion" | "voice";
 const OUTPUT_KINDS: readonly DirectorOutputKind[] = ["frame", "motion", "voice"];
 const HANDLE = /^clip-(\d+)-(frame|motion|voice)$/;
@@ -40,6 +43,49 @@ export type ExplainerDirectorPlan = {
 type NodeLike = Pick<CanvasNode, "type" | "data">;
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+
+type CharacterWireNode = {
+  id: string;
+  type?: string | null;
+  data: { characterId?: string; label?: string; fileName?: string };
+};
+type CharacterWireEdge = { source: string; target: string; targetHandle?: string | null };
+
+// The character node wired into this Director, if any. Its id wins over the dropdown.
+export function wiredDirectorCharacter(
+  directorId: string,
+  nodes: readonly CharacterWireNode[],
+  edges: readonly CharacterWireEdge[],
+): { nodeId: string; characterId?: string; label?: string } | undefined {
+  const edge = edges.find((e) => e.target === directorId && e.targetHandle === DIRECTOR_CHARACTER_HANDLE);
+  if (!edge) return undefined;
+  const source = nodes.find((n) => n.id === edge.source);
+  if (!source || source.type !== "character") return undefined;
+  const characterId = str(source.data.characterId);
+  const label = str(source.data.label) ?? str(source.data.fileName);
+  return {
+    nodeId: source.id,
+    ...(characterId ? { characterId } : {}),
+    ...(label ? { label } : {}),
+  };
+}
+
+// Copies the wired character onto the node so planning and the dropdown agree.
+export function directorNodeWithWiredCharacter<T extends NodeLike & { id: string }>(
+  node: T,
+  nodes: readonly CharacterWireNode[],
+  edges: readonly CharacterWireEdge[],
+): T {
+  const wired = wiredDirectorCharacter(node.id, nodes, edges);
+  if (!wired) return node;
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      toolParams: { ...node.data.toolParams, characterId: wired.characterId },
+    },
+  };
+}
 
 export function isExplainerDirectorNode(node: NodeLike): boolean {
   return (

@@ -65,6 +65,31 @@ describe("canvas agent tools", () => {
     assert.ok("error" in T.connect(g, { sourceId: topic.nodeId, targetId: exp.nodeId, targetPort: "prompt" }));
   });
 
+  it("wires an optional character node into an Explainer and rejects a plain image", () => {
+    const g = fresh();
+    const person = T.add_media_node(g, { assetId: "char-1" }) as { nodeId: string };
+    const exp = T.add_model_node(g, {
+      modelId: "scro:explainer",
+      prompt: "Explain inflation",
+      toolParams: { characterId: "char-1" },
+    }) as { nodeId: string };
+    assert.ok(
+      g.edges.some(
+        (edge) => edge.source === person.nodeId && edge.target === exp.nodeId && edge.targetHandle === "character",
+      ),
+    );
+    g.nodes.push({
+      id: "photo",
+      type: "media",
+      position: { x: 0, y: 0 },
+      data: { mediaKind: "image", mediaUrl: "https://blob.example/p.png" },
+    });
+    assert.match(
+      String(T.connect(g, { sourceId: "photo", targetId: exp.nodeId, targetPort: "character" }).error),
+      /character node/i,
+    );
+  });
+
   it("supports toolParams on Scro tools, audio -> refAudio wiring, and multi-video ffmpeg:concat", () => {
     const g = fresh();
     const tts = T.add_model_node(g, {

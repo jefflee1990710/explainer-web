@@ -3,8 +3,8 @@
 // Left drawer for /app/canvas. Tabs run down the left edge; the list fills the right.
 // Collapsed, it becomes an icon column:
 // 1) Models (generators, edit, cutout, upscale)
-// 2) Director (Talking Head and Explainer)
-// 3) Tools (Prompt, Setting, the other Scro pipelines, and FFmpeg)
+// 2) Director (Talking Head, Explainer, Scro Swap, Teleport)
+// 3) Tools (Prompt, Setting, Life Photo, Poster, and FFmpeg)
 // 4) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -43,8 +43,13 @@ const SIDEBAR_MIN_WIDTH = 340;
 const SIDEBAR_MAX_WIDTH = 520;
 const SIDEBAR_DEFAULT_WIDTH = 340;
 
-// These two plan a directed video. The other Scro pipelines stay on the Tools tab.
-const DIRECTOR_MODEL_IDS = new Set(["scro:talking-head", "scro:explainer"]);
+// Directed video tools. Life Photo and Poster stay on the Tools tab.
+const DIRECTOR_MODEL_IDS = new Set([
+  "scro:talking-head",
+  "scro:explainer",
+  "scro:swap",
+  "scro:teleport",
+]);
 
 // Models hold generators plus edit, cutout, and upscale. Tools are the remaining Scro pipelines and FFmpeg.
 const MODEL_CATEGORIES: CanvasModelCategory[] = [
@@ -231,7 +236,7 @@ export function CanvasSidebar({
         onPointerDown={startResize}
         className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
       />
-      {/* Kinds run down the left. Models, Tools, and Assets list their categories under the open kind. */}
+      {/* Kinds run down the left, with every category open. */}
       <CanvasSidebarNav
         isZh={isZh}
         tab={tab}

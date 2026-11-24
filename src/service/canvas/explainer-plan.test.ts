@@ -110,6 +110,34 @@ describe("planStateFromVideo", () => {
     assert.equal(ready.plan?.plannedWith.topic, "Old topic");
   });
 
+  it("keeps the character the plan started with when a wire replaced the dropdown", () => {
+    const ready = planStateFromVideo({
+      ...args(video({ canvasPlan: { prompts } })),
+      plannerNode: {
+        ...planner,
+        data: {
+          ...planner.data,
+          toolParams: {
+            ...planner.data.toolParams,
+            characterId: "dropdown",
+            planningWith: {
+              topic: "t",
+              characterId: "wired",
+              aspectRatio: "9:16" as const,
+              skillSlug: "cartoon-explainer-video-director",
+              language: "yue",
+              presenterPosition: "auto",
+            },
+          },
+        },
+      },
+    });
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    const tts = ready.nodes.filter((n) => n.data.modelId === "scro:tts");
+    assert.equal(tts[0]!.data.toolParams?.characterId, "wired");
+  });
+
   it("keeps the voiceover in the plan source only when the topic is unchanged", () => {
     const planned: CanvasNode = {
       id: "dir",

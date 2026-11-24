@@ -1,7 +1,7 @@
 "use client";
 
-// Left rail of the canvas sidebar. Each top item is a kind; Models, Tools, and Assets
-// open their smaller categories underneath.
+// Left rail of the canvas sidebar. Models, Tools, and Assets keep their categories
+// open; picking one filters the list on the right.
 
 import type { ReactNode } from "react";
 import { ChevronLeft, Clapperboard, Film, FolderHeart, Sparkles } from "lucide-react";
@@ -97,37 +97,37 @@ export function CanvasSidebarNav({
               {item.icon}
               <span className="truncate">{item.label}</span>
             </button>
-            {open && item.id === "models" ? (
+            {item.id === "models" ? (
               <ChildGroup>
                 {modelCategories.map((cat) => (
                   <ChildButton
                     key={cat}
                     label={isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en}
-                    active={activeCategory === cat}
+                    active={open && activeCategory === cat}
                     onClick={() => onSelectCategory("models", cat)}
                   />
                 ))}
               </ChildGroup>
             ) : null}
-            {open && item.id === "tools" ? (
+            {item.id === "tools" ? (
               <ChildGroup>
                 {toolCategories.map((cat) => (
                   <ChildButton
                     key={cat}
                     label={isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en}
-                    active={activeCategory === cat}
+                    active={open && activeCategory === cat}
                     onClick={() => onSelectCategory("tools", cat)}
                   />
                 ))}
               </ChildGroup>
             ) : null}
-            {open && item.id === "assets" ? (
+            {item.id === "assets" ? (
               <ChildGroup>
                 {ASSET_SECTIONS.map((section) => (
                   <ChildButton
                     key={section.id}
                     label={isZh ? section.zh : section.en}
-                    active={assetSection === section.id}
+                    active={open && assetSection === section.id}
                     onClick={() => onSelectAsset(section.id)}
                   />
                 ))}
