@@ -42,7 +42,7 @@ export function settingsStaleTargets(
   return edges
     .filter((e) => e.source === settingsNodeId && e.targetHandle === SETTINGS_HANDLE)
     .map((e) => nodes.find((n) => n.id === e.target))
-    .filter((n): n is CanvasNode => Boolean(n))
+    .filter((n): n is CanvasNode => n?.type === "prompt")
     .filter((t) => promptPlaceholders(templateText(nodes, edges, t)).some((k) => before[k] !== after[k]))
     .map((n) => n.id);
 }

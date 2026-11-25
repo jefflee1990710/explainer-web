@@ -165,7 +165,7 @@ export function validateEdgeConnection(
     }
   }
 
-  // Settings edges carry no image. Any settings kind can land on a model's Setting input.
+  // A Setting fills `{{key}}` on a Prompt node. Model nodes do not take one.
   const settingsHandle = candidate.targetHandle ?? "";
   if (sourceNode.type === "settings" || settingsHandle === SETTINGS_HANDLE) {
     const settings = sourceNode.type === "settings" ? sourceNode.data.settings : undefined;
@@ -451,14 +451,11 @@ export function resolveNodeInputs(
     }
   }
 
-  // `{{key}}`: Director text style, then the Director's Setting, the Prompt node's, and this node's (last wins).
+  // `{{key}}`: the Director card's text style, then the Setting wired to the Prompt node.
   if (inputs.prompt) {
     const vars = {
-      ...(director
-        ? { ...directorBaseVars(director.node), ...wiredSettingsVars(director.node.id, nodes, edges) }
-        : {}),
+      ...(director ? directorBaseVars(director.node) : {}),
       ...(promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {}),
-      ...wiredSettingsVars(nodeId, nodes, edges),
     };
     const rendered = renderPromptTemplate(inputs.prompt, vars);
     inputs.prompt = rendered.text.trim() || undefined;

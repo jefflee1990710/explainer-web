@@ -16,6 +16,12 @@ function canvas() {
       },
     },
     {
+      id: "swap-abc123-prompt",
+      type: "prompt",
+      position: { x: 0, y: 80 },
+      data: { text: "Wear {{outfit}}" },
+    },
+    {
       id: "swap-abc123-render",
       type: "model",
       position: { x: 300, y: 0 },
@@ -28,14 +34,23 @@ function canvas() {
       data: { modelId: "ffmpeg:color-grade", outputUrl: "https://x/g.mp4", status: "completed", toolParams: { gradeLook: "jutsu" } },
     },
   ];
-  const edges: CanvasEdge[] = ["swap-abc123-render", "swap-abc123-grade"].map((target) => ({
-    id: `s->${target}`,
-    source: "swap-abc123-settings",
-    sourceHandle: "output",
-    target,
-    targetHandle: "settings",
-  }));
-  edges.push({ id: "rg", source: "swap-abc123-render", sourceHandle: "output", target: "swap-abc123-grade", targetHandle: "video" });
+  const edges: CanvasEdge[] = [
+    {
+      id: "s->prompt",
+      source: "swap-abc123-settings",
+      sourceHandle: "output",
+      target: "swap-abc123-prompt",
+      targetHandle: "settings",
+    },
+    {
+      id: "p->render",
+      source: "swap-abc123-prompt",
+      sourceHandle: "output",
+      target: "swap-abc123-render",
+      targetHandle: "prompt",
+    },
+    { id: "rg", source: "swap-abc123-render", sourceHandle: "output", target: "swap-abc123-grade", targetHandle: "video" },
+  ];
   const group: CanvasGroup = { id: "swap-abc123", title: "Swap", color: "violet", kind: "swap", memberIds: nodes.map((n) => n.id) };
   let n = 0;
   return createWorkingGraph({
@@ -52,9 +67,6 @@ function canvas() {
 describe("update_settings", () => {
   it("sets and removes {{key}} vars, marking only nodes whose prompt uses the key old", () => {
     const g = canvas();
-    g.nodes = g.nodes.map((x) =>
-      x.id === "swap-abc123-render" ? { ...x, data: { ...x.data, prompt: "Wear {{outfit}}" } } : x,
-    );
     const res = updateSettings(g, { groupId: "swap-abc123", vars: { outfit: "red coat" } }) as { ok: boolean; changed: string[] };
     assert.equal(res.ok, true);
     assert.deepEqual(res.changed, ["vars.outfit"]);

@@ -22,8 +22,6 @@ import { findCanvasModel } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { canSwapModel } from "@/service/canvas/model-swap";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { canWireSettings } from "@/service/canvas/settings/registry";
-import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { wiredSettingsVars } from "@/service/canvas/graph";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
@@ -198,17 +196,11 @@ export function ModelNodeCard({
     );
   }
 
-  // `{{key}}` text and the vars that fill it: a wired Prompt node's Setting, then this node's own.
+  // `{{key}}` on a wired Prompt is filled by that Prompt's Setting.
   const promptWire = edges.find((e) => e.target === id && e.targetHandle === "prompt");
   const promptNode = promptWire ? nodes.find((n) => n.id === promptWire.source && n.type === "prompt") : undefined;
   const templateText = promptNode ? (promptNode.data.text ?? "") : (data.prompt ?? "");
-  const templateVars = {
-    ...(promptNode ? wiredSettingsVars(promptNode.id, nodes, edges) : {}),
-    ...wiredSettingsVars(id, nodes, edges),
-  };
-  const settingsEdge = edges.find((e) => e.target === id && e.targetHandle === SETTINGS_HANDLE);
-  const settingsWired = Boolean(settingsEdge && nodes.some((n) => n.id === settingsEdge.source));
-  const settingsColor = settingsWired ? SETTING_COLOR : undefined;
+  const templateVars = promptNode ? wiredSettingsVars(promptNode.id, nodes, edges) : {};
 
   const toolParams = data.toolParams ?? {};
   const updateToolParam = (key: string, value: unknown) => {
@@ -443,33 +435,6 @@ export function ModelNodeCard({
             </div>
           );
         })}
-        {/* Setting wire: fills `{{key}}` in this node's prompt. */}
-        {canWireSettings({ id, type: "model", data }) ? (
-          <div className="relative flex items-center justify-between px-3.5 py-0.5 text-[11px]">
-            <Handle
-              type="target"
-              id={SETTINGS_HANDLE}
-              position={Position.Left}
-              style={{
-                width: 11,
-                height: 11,
-                backgroundColor: settingsColor ?? "#0b0e13",
-                border: `2px solid ${settingsColor ?? "#64748b"}`,
-                left: -6,
-              }}
-            />
-            <span className="flex items-center gap-1.5 text-white/80">
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: settingsColor ?? "#64748b" }}
-              />
-              <span>{isZh ? "設定" : "Setting"}</span>
-            </span>
-            <span className="text-[10px] text-white/45">
-              {settingsWired ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
-            </span>
-          </div>
-        ) : null}
       </div>
 
       {/* Inline prompt & compact model parameters */}

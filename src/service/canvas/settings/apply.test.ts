@@ -11,15 +11,21 @@ const settings: CanvasNode = {
 };
 const moody: CanvasNode = {
   id: "a",
-  type: "model",
+  type: "prompt",
   position: { x: 0, y: 0 },
-  data: { modelId: "x", prompt: "A {{mood}} shot" },
+  data: { text: "A {{mood}} shot" },
 };
 const placed: CanvasNode = {
   id: "b",
+  type: "prompt",
+  position: { x: 0, y: 0 },
+  data: { text: "At the {{place}}" },
+};
+const model: CanvasNode = {
+  id: "m",
   type: "model",
   position: { x: 0, y: 0 },
-  data: { modelId: "x", prompt: "At the {{place}}" },
+  data: { modelId: "x", prompt: "inline" },
 };
 const prompt: CanvasNode = { id: "p", type: "prompt", position: { x: 0, y: 0 }, data: { text: "Wired {{mood}}" } };
 const edge = (source: string, target: string, targetHandle = "settings"): CanvasEdge => ({
@@ -38,8 +44,8 @@ describe("settingsStaleTargets", () => {
   });
 
   it("reads a model's wired Prompt text", () => {
-    const edges = [edge("p", "b", "prompt")];
-    assert.equal(templateText([prompt, placed], edges, placed), "Wired {{mood}}");
-    assert.equal(templateText([prompt, placed], edges, prompt), "Wired {{mood}}");
+    const edges = [edge("p", "m", "prompt")];
+    assert.equal(templateText([prompt, model], edges, model), "Wired {{mood}}");
+    assert.equal(templateText([prompt, model], edges, prompt), "Wired {{mood}}");
   });
 });

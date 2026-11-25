@@ -3,6 +3,7 @@
 
 import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import { explainerSettingsToolParams, normalizeExplainerSettings } from "@/service/canvas/explainer-settings";
+import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
 import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
 import { clampSectionLength, trimToolParams } from "@/service/canvas/settings/section";
 
@@ -175,6 +176,11 @@ export function migrateLegacySettings(graph: Graph): {
       edges = edges.filter((e) => e.source !== node.id && e.target !== node.id);
       replaceMember(node.id, undefined);
     }
+  }
+  const stripped = withoutModelSettingsEdges(nodes, edges);
+  if (stripped.dropped) {
+    edges = stripped.edges;
+    changed = true;
   }
   return { nodes, edges, groups, changed };
 }

@@ -128,6 +128,20 @@ describe("migrateLegacySettings", () => {
     assert.equal(out.nodes[0]!.data.prompt, "Rates");
   });
 
+  it("drops a Setting wire that lands on a model and keeps one on a Prompt", () => {
+    const prompt: CanvasNode = { id: "p", type: "prompt", position: { x: 0, y: 0 }, data: { text: "{{mood}}" } };
+    const out = migrateLegacySettings({
+      nodes: [settingsNode("s", { vars: { mood: "calm" } }), model("mux", "ffmpeg:audio-mux"), prompt],
+      edges: [wire("s", "mux"), wire("s", "p")],
+      groups: [],
+    });
+    assert.equal(out.changed, true);
+    assert.deepEqual(
+      out.edges.map((e) => e.target),
+      ["p"],
+    );
+  });
+
   it("leaves a migrated canvas unchanged", () => {
     const out = migrateLegacySettings({ nodes: [settingsNode("s", { vars: {} })], edges: [], groups: [] });
     assert.equal(out.changed, false);

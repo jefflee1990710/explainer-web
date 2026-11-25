@@ -419,13 +419,20 @@ describe("canvas graph — resolveNodeInputs", () => {
       false,
     );
     const resolved = resolveNodeInputs("img", nodes, edges);
-    assert.equal(resolved.inputs.prompt, `busy board ${explainerTextStyleLine("neon")}`);
+    assert.equal(resolved.inputs.prompt, `{{mood}} board ${explainerTextStyleLine("neon")}`);
+    assert.equal(
+      validateEdgeConnection(nodes, [], { source: "s-img", target: "img", targetHandle: "settings" }).valid,
+      false,
+    );
   });
 
-  it("uses the Director's Setting when the receiver has none", () => {
+  it("fills {{text_style}} from the Director card, ignoring a Setting wired to the Director", () => {
     const nodes: CanvasNode[] = [plannedDirector, settingNode("s-dir", { mood: "calm" }), modelNode("img", "mentalok:flux-schnell")];
     const edges: CanvasEdge[] = [edge("e1", "dir", "img", "prompt", "clip-1-frame"), edge("e2", "s-dir", "dir", "settings")];
-    assert.ok(resolveNodeInputs("img", nodes, edges).inputs.prompt?.startsWith("calm board"));
+    const prompt = resolveNodeInputs("img", nodes, edges).inputs.prompt ?? "";
+    assert.equal(prompt.includes("{{mood}}"), true);
+    assert.equal(prompt.includes(explainerTextStyleLine("neon")), true);
+    assert.equal(prompt.includes("calm"), false);
   });
 
   it("reports an unplanned Director as a missing upstream", () => {
@@ -547,7 +554,7 @@ describe("canvas graph — resolveNodeInputs", () => {
     }
   });
 
-  it("fills {{key}} from the wired Setting; the model's Setting wins over the Prompt node's", () => {
+  it("fills {{key}} from the Setting wired to the Prompt node", () => {
     const setting = (id: string, vars: Record<string, string>): CanvasNode => ({
       id,
       type: "settings",
@@ -566,8 +573,9 @@ describe("canvas graph — resolveNodeInputs", () => {
       edge("e3", "s-model", "img", "settings"),
     ];
     assert.equal(validateEdgeConnection(nodes, [], { source: "s-prompt", target: "p", targetHandle: "settings" }).valid, true);
+    assert.equal(validateEdgeConnection(nodes, [], { source: "s-model", target: "img", targetHandle: "settings" }).valid, false);
     const resolved = resolveNodeInputs("img", nodes, edges);
-    assert.equal(resolved.inputs.prompt, "A rainy street, neon look");
+    assert.equal(resolved.inputs.prompt, "A rainy street, ink look");
   });
 
   it("blocks a run while a {{key}} has no value", () => {
@@ -911,6 +919,7 @@ describe("canvas graph — settings edges", () => {
     data: { settings: { vars: {} } },
   };
   const grade: CanvasNode = { id: "g", type: "model", position: { x: 0, y: 0 }, data: { modelId: "ffmpeg:color-grade" } };
+  const prompt: CanvasNode = { id: "p", type: "prompt", position: { x: 0, y: 0 }, data: { text: "A {{mood}} scene" } };
   const tts: CanvasNode = { id: "t", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts" } };
   const candidate = (target: string, targetHandle = "settings") => ({
     source: "s",
@@ -919,27 +928,27 @@ describe("canvas graph — settings edges", () => {
     targetHandle,
   });
 
-  it("allows a settings node onto an accepted target's settings handle", () => {
-    assert.deepEqual(validateEdgeConnection([settingsNode, grade], [], candidate("g")), { valid: true });
+  it("allows a settings node onto a Prompt node's settings handle", () => {
+    assert.deepEqual(validateEdgeConnection([settingsNode, prompt], [], candidate("p")), { valid: true });
   });
 
-  it("lets any model use the Setting input, and still rejects other handles", () => {
-    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, true);
+  it("rejects a Setting wire onto a model, including other handles", () => {
+    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, false);
+    assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g")).valid, false);
     assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g", "video")).valid, false);
   });
 
   it("rejects a second settings wire unless replacing", () => {
-    const existing: CanvasEdge[] = [{ id: "e", source: "s2", sourceHandle: "output", target: "g", targetHandle: "settings" }];
+    const existing: CanvasEdge[] = [{ id: "e", source: "s2", sourceHandle: "output", target: "p", targetHandle: "settings" }];
     const other = { ...settingsNode, id: "s2" };
-    assert.equal(validateEdgeConnection([settingsNode, other, grade], existing, candidate("g")).valid, false);
+    assert.equal(validateEdgeConnection([settingsNode, other, prompt], existing, candidate("p")).valid, false);
     assert.deepEqual(
-      validateEdgeConnection([settingsNode, other, grade], existing, candidate("g"), undefined, { allowReplaceSingle: true }),
+      validateEdgeConnection([settingsNode, other, prompt], existing, candidate("p"), undefined, { allowReplaceSingle: true }),
       { valid: true },
     );
   });
 
   it("rejects a normal output onto a settings handle", () => {
-    const prompt: CanvasNode = { id: "p", type: "prompt", position: { x: 0, y: 0 }, data: { text: "x" } };
     assert.equal(
       validateEdgeConnection([prompt, grade], [], { source: "p", sourceHandle: "output", target: "g", targetHandle: "settings" }).valid,
       false,

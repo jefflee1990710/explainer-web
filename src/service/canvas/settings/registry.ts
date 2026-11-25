@@ -1,19 +1,23 @@
-// Setting nodes: a plain key-value map that fills `{{key}}` in wired prompts.
+// Setting nodes: a plain key-value map that fills `{{key}}` in a Prompt node's text.
 
 import type { CanvasSettingsData, SettingsVars } from "@/model/canvas-settings";
-import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
-import type { SettingsTarget } from "@/service/canvas/settings/types";
+import { SETTINGS_HANDLE, type SettingsTarget } from "@/service/canvas/settings/types";
 
 export function settingsVars(settings: CanvasSettingsData | undefined): SettingsVars {
   return settings?.vars ?? {};
 }
 
-// Model and Prompt nodes take one Setting on their `settings` handle.
-// The Explainer Director does not: its text style is chosen on the card.
+// Only a Prompt node takes a Setting. Model prompts get those values through the Prompt wire.
 export function canWireSettings(target: SettingsTarget): boolean {
-  if (target.type === "prompt") return true;
-  if (target.type !== "model") return false;
-  return !(
-    target.data.modelId === EXPLAINER_PLANNER_MODEL_ID && target.data.toolParams?.plannerMode === true
-  );
+  return target.type === "prompt";
+}
+
+// Older canvases wired a Setting straight onto a model. Those wires no longer fill anything.
+export function withoutModelSettingsEdges<E extends { target: string; targetHandle?: string | null }>(
+  nodes: readonly { id: string; type?: string | null }[],
+  edges: readonly E[],
+): { edges: E[]; dropped: boolean } {
+  const models = new Set(nodes.filter((node) => node.type === "model").map((node) => node.id));
+  const next = edges.filter((edge) => edge.targetHandle !== SETTINGS_HANDLE || !models.has(edge.target));
+  return { edges: next, dropped: next.length !== edges.length };
 }

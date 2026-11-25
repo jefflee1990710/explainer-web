@@ -14,7 +14,7 @@ export function PromptVarsHint({
   isZh: boolean;
   text: string;
   vars: SettingsVars;
-  // Model nodes cannot run with an empty key; a Prompt node may still get it from the model's Setting.
+  // A model run stops while a key is empty. A Prompt node can still be saved that way.
   missingBlocksRun: boolean;
 }) {
   const keys = promptPlaceholders(text);
@@ -47,8 +47,8 @@ export function PromptVarsHint({
               ? "接上含此 key 的設定才能執行"
               : "Wire a Setting with this key to run"
             : isZh
-              ? "未填，可由模型的設定填入"
-              : "Empty; the model's Setting can fill it"}
+              ? "未填，把 Setting 接到這個 Prompt"
+              : "Empty; wire a Setting to this Prompt"}
         </span>
       ) : null}
     </div>

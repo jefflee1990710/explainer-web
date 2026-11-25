@@ -717,13 +717,9 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         error: "A Director has no character input. Set the character on the card with toolParams.characterId.",
       };
     }
-    if (
-      targetNode &&
-      isExplainerPlannerNode(targetNode) &&
-      input.targetPort !== "settings"
-    ) {
+    if (targetNode && isExplainerPlannerNode(targetNode)) {
       return {
-        error: "A planning card takes no wires except an optional settings input; put the topic or script in its \"prompt\".",
+        error: "An Explainer planning card takes no wires. Put the topic in its prompt; {{key}} values belong on a Prompt node.",
       };
     }
     const candidate = {
@@ -1055,7 +1051,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     update_settings: tool({
       description:
-        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in wired model or Prompt node prompts. The Explainer Director has no Setting input. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
+        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in the Prompt node it is wired to. Model nodes have no Setting input. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
       inputSchema: updateSettingsSchema,
       execute: async (input) => H.update_settings(g, input),
     }),

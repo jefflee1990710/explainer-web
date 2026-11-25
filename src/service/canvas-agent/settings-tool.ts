@@ -15,7 +15,7 @@ export const updateSettingsSchema = z.object({
   vars: z
     .record(z.string(), z.string().nullable())
     .describe(
-      "Key-value pairs that fill {{key}} in the prompts of wired Director, model, or Prompt nodes. Keys: letters, digits, _. A null value removes that key.",
+      "Key-value pairs that fill {{key}} in the Prompt node this Setting is wired to. Keys: letters, digits, _. A null value removes that key.",
     ),
 });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;

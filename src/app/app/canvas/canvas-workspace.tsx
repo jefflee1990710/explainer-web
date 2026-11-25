@@ -169,6 +169,7 @@ import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SETTING_COLOR, SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
 import { CANVAS_DRAG_SETTINGS_MIME } from "@/app/app/canvas/canvas-settings-tool";
 import { settingsStaleTargets } from "@/service/canvas/settings/apply";
+import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import {
   isGenerationInputPatch,
@@ -457,7 +458,11 @@ function CanvasWorkspaceInner({
 
   const [initialGraph] = useState(() => {
     const dropped = dropExpandedPlanners(initialProject);
-    return { ...dropped, edges: withoutDirectorCharacterEdges(dropped.nodes, dropped.edges) };
+    const edges = withoutModelSettingsEdges(
+      dropped.nodes,
+      withoutDirectorCharacterEdges(dropped.nodes, dropped.edges),
+    ).edges;
+    return { ...dropped, edges };
   });
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(
     toFlowNodes(initialGraph.nodes),
@@ -602,6 +607,16 @@ function CanvasWorkspaceInner({
   useEffect(() => {
     autosaveRef.current = scheduleAutosave;
   }, [scheduleAutosave]);
+
+  // A Setting used to land on model nodes. Drop those wires once the canvas is open.
+  useEffect(() => {
+    setEdges((prev) => {
+      const stripped = withoutModelSettingsEdges(nodesRef.current, prev);
+      if (!stripped.dropped) return prev;
+      queueMicrotask(() => autosaveRef.current());
+      return stripped.edges;
+    });
+  }, [setEdges]);
 
   useEffect(() => {
     return () => {

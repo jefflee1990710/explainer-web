@@ -1,7 +1,7 @@
 "use client";
 
 // Prompt node card: reusable text prompt that can fan out to multiple model nodes for A/B comparison.
-// `{{key}}` placeholders are filled from the Setting wired here, or from each model's own Setting.
+// `{{key}}` placeholders are filled from the Setting wired here.
 
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Trash2, Type } from "lucide-react";
