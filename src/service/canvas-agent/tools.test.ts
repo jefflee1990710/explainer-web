@@ -65,28 +65,20 @@ describe("canvas agent tools", () => {
     assert.ok("error" in T.connect(g, { sourceId: topic.nodeId, targetId: exp.nodeId, targetPort: "prompt" }));
   });
 
-  it("wires an optional character node into an Explainer and rejects a plain image", () => {
+  it("keeps an Explainer character on the dropdown and rejects a character wire", () => {
     const g = fresh();
-    const person = T.add_media_node(g, { assetId: "char-1" }) as { nodeId: string };
+    T.add_media_node(g, { assetId: "char-1" });
     const exp = T.add_model_node(g, {
       modelId: "scro:explainer",
       prompt: "Explain inflation",
       toolParams: { characterId: "char-1" },
     }) as { nodeId: string };
-    assert.ok(
-      g.edges.some(
-        (edge) => edge.source === person.nodeId && edge.target === exp.nodeId && edge.targetHandle === "character",
-      ),
-    );
-    g.nodes.push({
-      id: "photo",
-      type: "media",
-      position: { x: 0, y: 0 },
-      data: { mediaKind: "image", mediaUrl: "https://blob.example/p.png" },
-    });
+    const card = g.nodes.find((n) => n.id === exp.nodeId)!;
+    assert.equal(card.data.toolParams?.characterId, "char-1");
+    assert.equal(g.edges.some((edge) => edge.target === exp.nodeId), false);
     assert.match(
-      String(T.connect(g, { sourceId: "photo", targetId: exp.nodeId, targetPort: "character" }).error),
-      /character node/i,
+      String(T.connect(g, { sourceId: g.nodes.find((n) => n.type === "character")!.id, targetId: exp.nodeId, targetPort: "character" }).error),
+      /no character input/i,
     );
   });
 
@@ -217,28 +209,23 @@ describe("canvas agent tools", () => {
     assert.equal(g.edges.length, 0);
   });
 
-  it("wires a Talking Head character input when that character node is on the canvas", () => {
+  it("keeps a Talking Head character on the dropdown and rejects a character wire", () => {
     const g = fresh();
-    const person = T.add_media_node(g, { assetId: "char-1" }) as { nodeId: string };
+    T.add_media_node(g, { assetId: "char-1" });
     const res = T.add_scro_group(g, {
       tool: "talking-head",
       characterId: "char-1",
       prompt: "Hi everyone",
     }) as { nodeId: string };
-    assert.ok(
-      g.edges.some(
-        (edge) => edge.source === person.nodeId && edge.target === res.nodeId && edge.targetHandle === "character",
-      ),
+    const card = g.nodes.find((n) => n.id === res.nodeId)!;
+    assert.equal(card.data.toolParams?.characterId, "char-1");
+    assert.equal(
+      g.edges.some((edge) => edge.target === res.nodeId && edge.targetHandle === "character"),
+      false,
     );
-    g.nodes.push({
-      id: "photo",
-      type: "media",
-      position: { x: 0, y: 0 },
-      data: { mediaKind: "image", mediaUrl: "https://blob.example/p.png" },
-    });
     assert.match(
       String(T.connect(g, { sourceId: "photo", targetId: res.nodeId, targetPort: "character" }).error),
-      /character node/i,
+      /no character input/i,
     );
   });
 

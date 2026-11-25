@@ -30,13 +30,14 @@ import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
+import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
 import { SwapDirectorCard } from "@/app/app/canvas/nodes/swap-director-card";
 import { TeleportDirectorCard } from "@/app/app/canvas/nodes/teleport-director-card";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
-import { isExplainerDirectorNode, wiredDirectorCharacter } from "@/service/canvas/explainer-director";
+import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
 import { isSwapDirectorNode, isTeleportDirectorNode } from "@/service/canvas/scro-director";
 import {
   OUTDATED_BADGE_CLASS,
@@ -79,6 +80,7 @@ export function ModelNodeCard({
   } = useCanvasNodeActions();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [promptEditorOpen, setPromptEditorOpen] = useState(false);
 
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const spec = useMemo(
@@ -107,7 +109,6 @@ export function ModelNodeCard({
         characterOptions={characterOptions}
         incomingHandles={[...incomingByHandle.keys()]}
         hasSetting={incomingByHandle.has(SETTINGS_HANDLE)}
-        wiredCharacter={wiredDirectorCharacter(id, nodes, edges)}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
@@ -124,7 +125,6 @@ export function ModelNodeCard({
         selected={Boolean(selected)}
         disabled={isFlowRunning}
         characterOptions={characterOptions}
-        wiredCharacter={wiredDirectorCharacter(id, nodes, edges)}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
@@ -480,16 +480,39 @@ export function ModelNodeCard({
                 : "Prompt supplied by connected Prompt node"}
             </div>
           ) : (
-            <textarea
-              value={data.prompt ?? ""}
-              onChange={(e) => onUpdateNodeData(id, { prompt: e.target.value })}
-              rows={3}
-              placeholder={
-                isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
-              }
-              className="nodrag disabled:cursor-not-allowed disabled:opacity-50 nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
-            />
+            <div className="relative">
+              <textarea
+                value={data.prompt ?? ""}
+                onChange={(e) => onUpdateNodeData(id, { prompt: e.target.value })}
+                rows={3}
+                placeholder={
+                  isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
+                }
+                className="nodrag disabled:cursor-not-allowed disabled:opacity-50 nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 pr-8 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
+              />
+              {/* Icon-only: opens the larger prompt dialog. */}
+              <button
+                type="button"
+                title={isZh ? "放大編輯" : "Edit prompt"}
+                aria-label={isZh ? "放大編輯提示詞" : "Edit prompt"}
+                onClick={() => setPromptEditorOpen(true)}
+                className="nodrag absolute top-1.5 right-1.5 cursor-pointer rounded-md p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )
+        ) : null}
+        {promptEditorOpen && promptPort && !isPromptWired ? (
+          <PromptEditorDialog
+            initial={data.prompt ?? ""}
+            isZh={isZh}
+            onCancel={() => setPromptEditorOpen(false)}
+            onSave={(prompt) => {
+              onUpdateNodeData(id, { prompt });
+              setPromptEditorOpen(false);
+            }}
+          />
         ) : null}
         {promptPort ? (
           <PromptVarsHint isZh={isZh} text={templateText} vars={templateVars} missingBlocksRun />

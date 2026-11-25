@@ -153,18 +153,6 @@ function endImagePort(required = false): CanvasPortSpec {
   };
 }
 
-function characterPort(): CanvasPortSpec {
-  return {
-    id: "character",
-    label: "角色 Character",
-    labels: { "zh-Hant": "角色", en: "Character" },
-    type: "image",
-    required: false,
-    multiple: false,
-    maxConnections: 1,
-  };
-}
-
 function refImagesPort(maxConnections: number, required = false): CanvasPortSpec {
   return {
     id: "refImages",
@@ -650,7 +638,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     providerModelId: "talking-head",
     name: "Talking Head Director",
     category: "scro-tool",
-    inputs: [promptPort(false), characterPort(), startImagePort(false), refAudioPort(false)],
+    inputs: [promptPort(false), startImagePort(false), refAudioPort(false)],
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",
@@ -667,7 +655,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     providerModelId: "explainer",
     name: "Explainer",
     category: "scro-tool",
-    inputs: [promptPort(true), characterPort(), refImagesPort(4)],
+    inputs: [promptPort(true), refImagesPort(4)],
     output: videoOutput(),
     presets: ["9:16", "16:9", "1:1"],
     defaultPresetId: "9:16",

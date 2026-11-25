@@ -107,7 +107,7 @@ describe("planStateFromVideo", () => {
     });
     assert.equal(ready.status, "ready");
     if (ready.status !== "ready") return;
-    assert.equal(ready.plan?.plannedWith.topic, "Old topic");
+    assert.equal((ready.plan?.plannedWith as { topic?: string } | undefined)?.topic, "Old topic");
   });
 
   it("keeps the character the plan started with when a wire replaced the dropdown", () => {
@@ -182,11 +182,11 @@ describe("planStateFromVideo", () => {
     assert.match(ready.summary, /1\. 第一句/);
   });
 
-  it("expands a Talking Head planner into one frame and per-clip HeyGen rows", () => {
+  it("keeps a Talking Head Director and wires its frame, motion, and voice outputs into the rows", () => {
     const thPlanner: CanvasNode = {
       ...planner,
       id: "th",
-      data: { ...planner.data, modelId: "scro:talking-head" },
+      data: { ...planner.data, modelId: "scro:talking-head", prompt: "Script" },
     };
     const ready = planStateFromVideo({
       ...args(
@@ -196,14 +196,41 @@ describe("planStateFromVideo", () => {
         }),
       ),
       plannerNode: thPlanner,
+      frameInputs: { refsByClip: new Map([[1, ["https://lock.png"]]]), resolution: "2k" },
     });
     assert.equal(ready.status, "ready");
     if (ready.status !== "ready") return;
+    // Prompts live on the Director; the rows only carry wires.
     const frames = ready.nodes.filter((n) => n.data.modelId === "openrouter:bytedance-seed/seedream-5-0-pro");
-    assert.deepEqual(frames.map((n) => n.data.prompt), ["open"]);
+    assert.deepEqual(frames.map((n) => n.data.prompt), [""]);
     const heygen = ready.nodes.filter((n) => n.data.modelId === "openrouter:heygen/avatar-iv");
-    assert.deepEqual(heygen.map((n) => n.data.prompt), ["v1", "v2"]);
+    assert.deepEqual(heygen.map((n) => n.data.prompt), ["", ""]);
+    const tts = ready.nodes.filter((n) => n.data.modelId === "scro:tts");
+    assert.deepEqual(tts.map((n) => n.data.prompt), ["", ""]);
     const grade = ready.nodes.find((n) => n.data.modelId === "ffmpeg:color-grade");
     assert.equal(grade?.data.toolParams?.gradeLook, "talking-head-selfie");
+
+    const wired = (handle: string, target: string) =>
+      ready.edges.some(
+        (e) => e.source === "th" && e.sourceHandle === handle && e.target === target && e.targetHandle === "prompt",
+      );
+    assert.ok(wired("clip-1-frame", "p-frame-1"));
+    assert.ok(wired("clip-2-motion", "p-video-2"));
+    assert.ok(wired("clip-2-voice", "p-voice-2"));
+    assert.ok(!ready.nodes.some((n) => n.id === "th"));
+    assert.equal(ready.group.memberIds[0], "th");
+    // Rows sit to the right of the Director.
+    assert.ok(ready.nodes.every((n) => n.position.x >= thPlanner.position.x + 360));
+
+    assert.deepEqual(ready.plan?.clips.map((c) => c.framePrompt), ["open", ""]);
+    assert.deepEqual(ready.plan?.clips.map((c) => c.videoPrompt), ["v1", "v2"]);
+    assert.deepEqual(ready.plan?.clips.map((c) => c.spokenLine), ["第一句", "第二句"]);
+    assert.deepEqual(ready.plan?.plannedWith, {
+      script: "Script",
+      characterId: "c1",
+      language: "yue",
+      framing: "collarbone-close",
+      aspectRatio: "9:16",
+    });
   });
 });

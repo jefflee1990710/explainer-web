@@ -4,6 +4,7 @@
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { SEEDREAM_MODEL_ID, createGroupBuilder } from "@/service/canvas/scro-groups/builder";
 import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
+import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/explainer-director";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export const TALKING_HEAD_VIDEO_MODEL_ID = `openrouter:${OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL}`;
@@ -22,6 +23,8 @@ export type TalkingHeadExpansionInput = {
   // Character locks for the opening still, in the order the prompt expects.
   frameRefUrls?: string[];
   clips: { clipNumber: number; spokenLine: string; heygenPrompt: string; durationSeconds?: number }[];
+  // Talking Head Director whose outputs feed the still, voice, and HeyGen prompts.
+  directorId?: string;
 };
 
 export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
@@ -31,14 +34,29 @@ export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
 } {
   const b = createGroupBuilder({ idPrefix: input.idPrefix, origin: input.origin });
   const gradeLook = input.framing === "handheld-selfie" ? "talking-head-selfie" : "talking-head";
+  const directorId = input.directorId;
+  // Director wires carry the prompt text; laid out after b.finish so the Director stays put.
+  const directorEdges: CanvasEdge[] = [];
+  const fromDirector = (clipNumber: number, kind: DirectorOutputKind, target: string) => {
+    if (!directorId) return;
+    const sourceHandle = directorHandleId(clipNumber, kind);
+    directorEdges.push({
+      id: `${directorId}:${sourceHandle}->${target}:prompt`,
+      source: directorId,
+      sourceHandle,
+      target,
+      targetHandle: "prompt",
+    });
+  };
 
   const frame = b.model("frame-1", {
     modelId: SEEDREAM_MODEL_ID,
     presetId: input.aspectRatio,
     aspectRatio: input.aspectRatio,
     ...(input.frameResolution ? { resolution: input.frameResolution } : {}),
-    prompt: input.framePrompt,
+    prompt: directorId ? "" : input.framePrompt,
   });
+  fromDirector(1, "frame", frame);
   [...new Set(input.frameRefUrls ?? [])].slice(0, 14).forEach((url, i) => {
     const name = `參考圖 ${i + 1}`;
     b.wire(b.media(`ref-${i + 1}`, { url, name, mediaKind: "image" }), frame, "refImages");
@@ -49,7 +67,7 @@ export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
     const voice = b.model(`voice-${n}`, {
       modelId: "scro:tts",
       presetId: "natural",
-      prompt: clip.spokenLine,
+      prompt: directorId ? "" : clip.spokenLine,
       toolParams: {
         language: input.language,
         voicePreset: input.voicePreset,
@@ -61,10 +79,12 @@ export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
       modelId: TALKING_HEAD_VIDEO_MODEL_ID,
       presetId: input.aspectRatio,
       aspectRatio: input.aspectRatio,
-      prompt: clip.heygenPrompt,
+      prompt: directorId ? "" : clip.heygenPrompt,
       // Estimate only; the run follows the wired voice length.
       ...(clip.durationSeconds ? { durationSeconds: Math.round(clip.durationSeconds) } : {}),
     });
+    fromDirector(n, "voice", voice);
+    fromDirector(n, "motion", video);
     const silence = b.model(`silence-${n}`, {
       modelId: "ffmpeg:smooth-silence",
       presetId: "smooth",
@@ -86,5 +106,9 @@ export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
       ? chainConcats(clipOutputs, (step) => b.model(`concat-${step}`, CONCAT_NODE_DATA), b.wire)
       : clipOutputs[0] ?? frame;
   const group = b.finish(output);
-  return { nodes: group.nodes, edges: group.edges, expandedNodeIds: group.nodes.map((n) => n.id) };
+  return {
+    nodes: group.nodes,
+    edges: [...group.edges, ...directorEdges],
+    expandedNodeIds: group.nodes.map((n) => n.id),
+  };
 }

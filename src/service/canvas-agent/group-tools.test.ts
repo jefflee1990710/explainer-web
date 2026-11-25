@@ -125,6 +125,37 @@ describe("replace_group", () => {
     });
   });
 
+  it("gives a Talking Head Director the new script and replans it in place", () => {
+    const g = canvas();
+    const director = model("th-dir", "scro:talking-head", {
+      prompt: "Old script",
+      aspectRatio: "9:16",
+      toolParams: { plannerMode: true, characterId: JIM, language: "yue", framing: "waist-up", planStatus: "planned" },
+    });
+    g.nodes.push(director, model("th-abc123-video-1", "openrouter:heygen/avatar-iv"));
+    g.groups.push({
+      id: "th-abc123",
+      title: "Talking Head",
+      color: "sky",
+      kind: "talking-head",
+      memberIds: ["th-dir", "th-abc123-video-1"],
+    });
+    const before = g.nodes.length;
+    const res = T.replace_group(g, { prompt: "New script", groupId: "th-abc123", language: "en" }) as {
+      nodeId: string;
+      removedCount: number;
+    };
+    assert.equal(res.nodeId, "th-dir");
+    assert.equal(res.removedCount, 0);
+    assert.equal(g.nodes.length, before);
+    const updated = g.nodes.find((n) => n.id === "th-dir")!;
+    assert.equal(updated.data.prompt, "New script");
+    assert.equal(updated.data.toolParams?.language, "en");
+    assert.equal(updated.data.toolParams?.framing, "waist-up");
+    assert.equal(updated.data.toolParams?.replanRequested, true);
+    assert.deepEqual(g.ops.map((o) => o.kind), ["update_node"]);
+  });
+
   it("refuses non-director groups", () => {
     const g = canvas();
     T.group_nodes(g, { nodeIds: ["media-5c839307"] });

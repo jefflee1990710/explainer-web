@@ -72,6 +72,24 @@ describe("buildTalkingHeadExpansion", () => {
     assert.deepEqual(out.expandedNodeIds, out.nodes.map((n) => n.id));
   });
 
+  it("wires prompts from a Director and leaves the rows' inline prompts empty", () => {
+    const out = buildTalkingHeadExpansion({ ...input(2), directorId: "dir" });
+    assert.ok(!out.nodes.some((n) => n.id === "dir"));
+    for (const n of out.nodes.filter((n) => n.type === "model" && "prompt" in n.data)) {
+      assert.equal(n.data.prompt, "", n.id);
+    }
+    const fromDirector = out.edges
+      .filter((e) => e.source === "dir")
+      .map((e) => `${e.sourceHandle}->${e.target}:${e.targetHandle}`);
+    assert.deepEqual(fromDirector.sort(), [
+      "clip-1-frame->th-frame-1:prompt",
+      "clip-1-motion->th-video-1:prompt",
+      "clip-1-voice->th-voice-1:prompt",
+      "clip-2-motion->th-video-2:prompt",
+      "clip-2-voice->th-voice-2:prompt",
+    ]);
+  });
+
   it("uses the selfie grade for handheld-selfie framing", () => {
     const out = buildTalkingHeadExpansion(input(1, "handheld-selfie"));
     assert.equal(byModel(out.nodes, "ffmpeg:color-grade")[0]!.data.toolParams?.gradeLook, "talking-head-selfie");

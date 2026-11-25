@@ -13,11 +13,14 @@ import {
 import { composeExplainerPlanSource } from "@/service/canvas/explainer-settings";
 import type { ExplainerPresenterPosition } from "@/model/explainer-settings";
 import {
-  directorNodeWithWiredCharacter,
   directorParams,
   isExplainerDirectorNode,
+  isPlanDirectorNode,
+  isTalkingHeadDirectorNode,
+  planDirectorParams,
   readDirectorPlan,
-  wiredDirectorCharacter,
+  talkingHeadDirectorParams,
+  type DirectorPlanParams,
   type ExplainerDirectorParams,
   type ExplainerDirectorPlan,
 } from "@/service/canvas/explainer-director";
@@ -50,7 +53,8 @@ export type CanvasExplainerPlanState =
 export function explainerPlanSource(node: CanvasNode): string {
   const params = directorParams(node);
   const plan = readDirectorPlan(node);
-  const keepNarration = plan !== undefined && plan.plannedWith.topic === params.topic;
+  const keepNarration =
+    plan !== undefined && (plan.plannedWith as ExplainerDirectorParams).topic === params.topic;
   return composeExplainerPlanSource({
     topic: params.topic,
     presenterPosition: params.presenterPosition as ExplainerPresenterPosition,
@@ -78,18 +82,8 @@ export async function startCanvasExplainerPlan(params: {
   if (!loaded) return { ok: false, error: "找不到分鏡規劃節點" };
   const catalog = await getCanvasModelCatalog();
   const director = isExplainerDirectorNode(loaded.node);
-  const talkingHead = loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
-  const wired =
-    director || talkingHead
-      ? wiredDirectorCharacter(loaded.node.id, loaded.canvas.nodes, loaded.canvas.edges)
-      : undefined;
-  if (wired && !wired.characterId) {
-    return { ok: false, error: "連接的角色卡沒有可用的角色" };
-  }
-  // A wired character wins over the dropdown for this plan.
-  const plannerNode = wired
-    ? directorNodeWithWiredCharacter(loaded.node, loaded.canvas.nodes, loaded.canvas.edges)
-    : loaded.node;
+  const planDirector = isPlanDirectorNode(loaded.node);
+  const plannerNode = loaded.node;
   const resolved = resolveNodeInputs(
     params.nodeId,
     loaded.canvas.nodes,
@@ -117,7 +111,9 @@ export async function startCanvasExplainerPlan(params: {
           "nodes.$[n].data.toolParams.plannerVideoId": plannerVideoId,
           "nodes.$[n].data.toolParams.planStatus": "planning",
           // The plan records the parameters it started with, even if the card is edited meanwhile.
-          ...(director ? { "nodes.$[n].data.toolParams.planningWith": directorParams(plannerNode) } : {}),
+          ...(planDirector
+            ? { "nodes.$[n].data.toolParams.planningWith": planDirectorParams(plannerNode) }
+            : {}),
           ...(wired?.characterId
             ? { "nodes.$[n].data.toolParams.characterId": wired.characterId }
             : {}),
@@ -188,7 +184,7 @@ export function planStateFromVideo(params: {
   const planningSnapshot = toolParams.planningWith;
   const planningWith =
     planningSnapshot && typeof planningSnapshot === "object"
-      ? (planningSnapshot as ExplainerDirectorParams)
+      ? (planningSnapshot as DirectorPlanParams)
       : undefined;
   const dropdownCharacterId =
     typeof toolParams.characterId === "string" && toolParams.characterId ? toolParams.characterId : undefined;
@@ -208,34 +204,55 @@ export function planStateFromVideo(params: {
     .join("\n");
 
   if (plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID) {
+    // A Talking Head Director keeps its card; its outputs feed the rows on its right.
+    const directorId = isTalkingHeadDirectorNode(plannerNode) ? plannerNode.id : undefined;
+    const framePrompt = frameByClip.get(1) || params.buildFramePrompt(video, 1);
+    const thClips = phaseA.clips.map((clip) => ({
+      clipNumber: clip.clipNumber,
+      spokenLine: clip.englishVo ?? "",
+      heygenPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
+      durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
+    }));
     const expansion = buildTalkingHeadExpansion({
       idPrefix: params.idPrefix,
-      origin: plannerNode.position,
+      origin: directorId
+        ? { x: plannerNode.position.x + DIRECTOR_ROW_OFFSET_X, y: plannerNode.position.y }
+        : plannerNode.position,
       aspectRatio: plannerNode.data.aspectRatio ?? "9:16",
       frameResolution: params.frameInputs?.resolution,
       language,
       characterId,
       voicePreset,
       framing: video.talkingHeadPoseId ?? "collarbone-close",
-      framePrompt: frameByClip.get(1) || params.buildFramePrompt(video, 1),
+      framePrompt,
       frameRefUrls: params.frameInputs?.refsByClip.get(1),
-      clips: phaseA.clips.map((clip) => ({
-        clipNumber: clip.clipNumber,
-        spokenLine: clip.englishVo ?? "",
-        heygenPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
-        durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
-      })),
+      clips: thClips,
+      ...(directorId ? { directorId } : {}),
     });
     const group = planGroup({
       id: params.idPrefix,
       kind: "talking-head",
       title: phaseA.localizedTitle || phaseA.englishTitle,
       plannerNode,
-      memberIds: expansion.nodes.map((n) => n.id),
+      memberIds: [...(directorId ? [directorId] : []), ...expansion.nodes.map((n) => n.id)],
       language,
       framing: video.talkingHeadPoseId ?? "collarbone-close",
     });
-    return { status: "ready", ...expansion, summary, group };
+    if (!directorId) return { status: "ready", ...expansion, summary, group };
+    // Only Clip 1 carries the shared opening still prompt.
+    const plan: ExplainerDirectorPlan = {
+      plannerVideoId: video._id.toHexString(),
+      plannedWith: planningWith ?? talkingHeadDirectorParams(plannerNode),
+      clips: thClips.map((clip) => ({
+        clipNumber: clip.clipNumber,
+        framePrompt: clip.clipNumber === 1 ? framePrompt : "",
+        videoPrompt: clip.heygenPrompt,
+        spokenLine: clip.spokenLine,
+        durationSeconds: clip.durationSeconds ?? 6,
+        refUrls: clip.clipNumber === 1 ? (params.frameInputs?.refsByClip.get(1) ?? []) : [],
+      })),
+    };
+    return { status: "ready", ...expansion, summary, group, plan };
   }
 
   // Every Explainer planner is a Director; its outputs feed the rows.
@@ -260,9 +277,7 @@ export function planStateFromVideo(params: {
     directorId,
     clips,
   });
-  const plannedWith =
-    (plannerNode.data.toolParams?.planningWith as ExplainerDirectorParams | undefined) ??
-    directorParams(plannerNode);
+  const plannedWith = planningWith ?? directorParams(plannerNode);
   const plan: ExplainerDirectorPlan = { plannerVideoId: video._id.toHexString(), plannedWith, clips };
   const group = planGroup({
     id: params.idPrefix,

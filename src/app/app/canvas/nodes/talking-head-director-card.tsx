@@ -1,19 +1,29 @@
 "use client";
 
 // Talking Head director: script, character, language, framing, and ratio live on the card.
-// Plan is pressed here; the card is replaced by the expanded clip rows when planning finishes.
+// Plan / Replan is pressed here; the card stays and exposes the opening still, per-clip motion,
+// and per-clip script as text outputs.
 
 import { Handle, Position } from "@xyflow/react";
-import { useEffect } from "react";
-import { AlertCircle, Loader2, Sparkles, Trash2, UserRound } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
-import { DIRECTOR_CHARACTER_HANDLE } from "@/service/canvas/explainer-director";
+import {
+  directorHandles,
+  directorNeedsReplan,
+  parseDirectorHandle,
+  readDirectorPlan,
+  type DirectorOutputKind,
+} from "@/service/canvas/explainer-director";
 import { readPlannerParams } from "@/service/canvas/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { TalkingHeadDirectorFields } from "@/app/app/canvas/nodes/talking-head-director-fields";
 
-type WiredCharacter = { nodeId: string; characterId?: string; label?: string };
+const OUTPUT_LABELS: Record<DirectorOutputKind, { zh: string; en: string }> = {
+  frame: { zh: "開場靜幀", en: "Opening still" },
+  motion: { zh: "動作", en: "Motion" },
+  voice: { zh: "講稿", en: "Script" },
+};
 
 type Props = {
   data: CanvasNodeData;
@@ -21,7 +31,6 @@ type Props = {
   selected: boolean;
   disabled: boolean;
   characterOptions: readonly CanvasLibraryCharacterOption[];
-  wiredCharacter?: WiredCharacter;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -33,28 +42,19 @@ export function TalkingHeadDirectorCard({
   selected,
   disabled,
   characterOptions,
-  wiredCharacter,
   onUpdate,
   onPlan,
   onRemove,
 }: Props) {
+  const node = { type: "model" as const, data };
+  const plan = readDirectorPlan(node);
+  const dirty = directorNeedsReplan(node);
   const { planStatus, planError } = readPlannerParams({ data });
   const planning = planStatus === "planning";
   const failed = planStatus === "failed";
   const hasScript = Boolean((data.prompt ?? "").trim());
-  const characterMissing = Boolean(wiredCharacter && !wiredCharacter.characterId);
-  const hasCharacter = Boolean(wiredCharacter ? wiredCharacter.characterId : data.toolParams?.characterId);
-  const canPlan = !disabled && !planning && hasScript && hasCharacter && !characterMissing;
-
-  // The wired character is the one this plan uses. Keep the dropdown in step with it.
-  useEffect(() => {
-    if (!wiredCharacter) return;
-    const current = typeof data.toolParams?.characterId === "string" ? data.toolParams.characterId : undefined;
-    if (current === wiredCharacter.characterId) return;
-    onUpdate({
-      toolParams: { ...(data.toolParams ?? {}), characterId: wiredCharacter.characterId },
-    });
-  }, [wiredCharacter, data.toolParams, onUpdate]);
+  const hasCharacter = Boolean(data.toolParams?.characterId);
+  const canPlan = !disabled && !planning && hasScript && hasCharacter;
 
   return (
     <div
@@ -79,48 +79,28 @@ export function TalkingHeadDirectorCard({
         </button>
       </div>
 
-      <div className="relative flex items-center justify-between border-b border-white/6 px-3 py-1.5 text-[11px]">
-        <Handle
-          type="target"
-          id={DIRECTOR_CHARACTER_HANDLE}
-          position={Position.Left}
-          title={isZh ? "角色（可選）" : "Character (optional)"}
-          style={{
-            width: 11,
-            height: 11,
-            backgroundColor: wiredCharacter ? PORT_COLOR_MAP.image : "#12161f",
-            border: `2px solid ${PORT_COLOR_MAP.image}`,
-            left: -6,
-          }}
-        />
-        <span className="flex items-center gap-1.5 text-white/80">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PORT_COLOR_MAP.image }} />
-          {isZh ? "角色" : "Character"}
-        </span>
-        <span className="max-w-[140px] truncate text-[10px] text-white/45">
-          {wiredCharacter ? (wiredCharacter.label ?? (isZh ? "已連" : "Wired")) : isZh ? "可選" : "Optional"}
-        </span>
-      </div>
-
       <div className="flex flex-col gap-2.5 p-3">
         <TalkingHeadDirectorFields
           data={data}
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          wiredCharacter={wiredCharacter}
           onUpdate={onUpdate}
         />
-        {characterMissing ? (
-          <p className="rounded-[8px] bg-rose-500/10 px-2 py-1.5 text-[10.5px] text-rose-200">
-            {isZh ? "連接的角色卡沒有可用的角色。" : "The connected character card has no character."}
+        {dirty && !planning ? (
+          <p className="rounded-[8px] border border-amber-400/30 bg-amber-500/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-amber-100">
+            {isZh ? "設定已改，請按 Replan。輸出暫時維持上次的規劃。" : "Settings changed. Press Replan; outputs keep the last plan until then."}
           </p>
         ) : null}
         {planning ? (
           <p className="text-[10.5px] text-white/45">
-            {isZh
-              ? "規劃中，約需 1–3 分鐘。完成後會換成開場靜幀同每段配音、對嘴、調色節點。"
-              : "Planning, about 1–3 minutes. This card then becomes the opening still and the per-clip voice, lip-sync, and grade nodes."}
+            {plan
+              ? isZh
+                ? "規劃中，約需 1–3 分鐘。輸出暫時維持上次的規劃。"
+                : "Planning, about 1–3 minutes. Outputs keep the last plan meanwhile."
+              : isZh
+                ? "規劃中，約需 1–3 分鐘。完成後會出現開場靜幀、每段動作同講稿輸出口。"
+                : "Planning, about 1–3 minutes. Opening still, per-clip motion, and script outputs appear when done."}
           </p>
         ) : null}
         {failed && planError ? (
@@ -133,11 +113,46 @@ export function TalkingHeadDirectorCard({
           type="button"
           disabled={!canPlan}
           onClick={onPlan}
-          className="nodrag inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#c6f24b] px-3 py-1.5 text-[11.5px] font-bold text-[#11141b] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+          className={`nodrag inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11.5px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+            !plan || dirty || failed
+              ? "bg-[#c6f24b] text-[#11141b] hover:brightness-105"
+              : "border border-white/12 text-white/80 hover:bg-white/8"
+          }`}
         >
-          {planning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          {planning ? (isZh ? "規劃中…" : "Planning…") : failed ? (isZh ? "重試" : "Retry") : "Plan"}
+          {planning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : plan ? (
+            <RefreshCw className="h-3.5 w-3.5" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {planning ? (isZh ? "規劃中…" : "Planning…") : plan ? "Replan" : failed ? (isZh ? "重試" : "Retry") : "Plan"}
         </button>
+      </div>
+
+      {/* Text outputs: Clip 1 opening still, then each clip's motion and script */}
+      <div className="border-t border-white/6 py-1.5">
+        {plan ? (
+          directorHandles(plan).map((handle) => {
+            const parsed = parseDirectorHandle(handle)!;
+            const label = OUTPUT_LABELS[parsed.kind];
+            return (
+              <div key={handle} className="relative flex justify-end px-3 py-[3px] text-[10.5px] text-white/70">
+                Clip {parsed.clipNumber} · {isZh ? label.zh : label.en}
+                <Handle
+                  type="source"
+                  id={handle}
+                  position={Position.Right}
+                  style={{ width: 10, height: 10, background: PORT_COLOR_MAP.text, border: "2px solid #0b0e13" }}
+                />
+              </div>
+            );
+          })
+        ) : (
+          <p className="px-3 py-1 text-right text-[10.5px] text-white/30">
+            {isZh ? "規劃後出現輸出" : "Outputs appear after planning"}
+          </p>
+        )}
       </div>
     </div>
   );

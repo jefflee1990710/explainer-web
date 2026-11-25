@@ -106,6 +106,9 @@ export type CanvasLibraryCharacterOption = {
   id: string;
   name: string;
   previewUrl?: string;
+  // Identity close-up and standing figure, shown together in the character menu.
+  portraitUrl?: string;
+  fullBodyUrl?: string;
 };
 
 export type CanvasLibraryAssetsResult = {
@@ -356,30 +359,51 @@ export async function deleteCanvasProject(
   return { deleted: result.deletedCount === 1 };
 }
 
-function resolveCharacterPreviewUrl(character: Character): string | undefined {
+export type CharacterLibraryImages = {
+  previewUrl?: string;
+  portraitUrl?: string;
+  fullBodyUrl?: string;
+};
+
+function versionLibraryImages(version?: {
+  portraitUrl?: string;
+  profileUrl?: string;
+  blueprintUrl?: string;
+}): CharacterLibraryImages | undefined {
+  const portraitUrl = version?.portraitUrl?.trim() || undefined;
+  const fullBodyUrl = version?.profileUrl?.trim() || undefined;
+  const blueprintUrl = version?.blueprintUrl?.trim() || undefined;
+  const previewUrl = fullBodyUrl || blueprintUrl || portraitUrl;
+  if (!previewUrl) return undefined;
+  return {
+    previewUrl,
+    ...(portraitUrl ? { portraitUrl } : {}),
+    ...(fullBodyUrl ? { fullBodyUrl } : {}),
+  };
+}
+
+// Face and full-body stills from the same version. Prefer a version that has both.
+export function characterLibraryImages(character: Pick<Character, "versions" | "defaultVersionId">): CharacterLibraryImages | undefined {
   const versions = character.versions ?? [];
-  const defaultVersion = character.defaultVersionId
-    ? versions.find((v) => v.id.equals(character.defaultVersionId!))
-    : undefined;
-
-  const pickUrl = (v?: Character["versions"][number]) =>
-    v?.profileUrl?.trim() || v?.blueprintUrl?.trim() || v?.portraitUrl?.trim();
-
-  const defaultUrl = pickUrl(defaultVersion);
-  if (defaultUrl) return defaultUrl;
-
-  for (let i = versions.length - 1; i >= 0; i -= 1) {
-    const version = versions[i];
-    if (version?.status === "completed") {
-      const url = pickUrl(version);
-      if (url) return url;
-    }
+  const ordered: Character["versions"] = [];
+  const seen = new Set<string>();
+  const push = (version?: Character["versions"][number]) => {
+    if (!version) return;
+    const key = version.id.toHexString();
+    if (seen.has(key)) return;
+    seen.add(key);
+    ordered.push(version);
+  };
+  if (character.defaultVersionId) {
+    push(versions.find((version) => version.id.equals(character.defaultVersionId!)));
   }
   for (let i = versions.length - 1; i >= 0; i -= 1) {
-    const url = pickUrl(versions[i]);
-    if (url) return url;
+    if (versions[i]?.status === "completed") push(versions[i]);
   }
-  return undefined;
+  for (let i = versions.length - 1; i >= 0; i -= 1) push(versions[i]);
+
+  const images = ordered.map(versionLibraryImages);
+  return images.find((item) => item?.portraitUrl && item.fullBodyUrl) ?? images.find(Boolean);
 }
 
 // Aggregates the user's Scro Characters, Products, and recent completed Canvas outputs
@@ -414,10 +438,17 @@ export async function listCanvasLibraryAssets(
   for (const doc of characterDocs) {
     const character = doc as Character;
     if (!character._id) continue;
-    const url = resolveCharacterPreviewUrl(character);
+    const images = characterLibraryImages(character);
     const id = character._id.toHexString();
     const name = character.name || "Character";
-    characterOptions.push({ id, name, ...(url ? { previewUrl: url } : {}) });
+    characterOptions.push({
+      id,
+      name,
+      ...(images?.previewUrl ? { previewUrl: images.previewUrl } : {}),
+      ...(images?.portraitUrl ? { portraitUrl: images.portraitUrl } : {}),
+      ...(images?.fullBodyUrl ? { fullBodyUrl: images.fullBodyUrl } : {}),
+    });
+    const url = images?.previewUrl;
     if (url) {
       characters.push({
         id,

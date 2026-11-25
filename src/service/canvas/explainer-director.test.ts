@@ -9,9 +9,14 @@ import {
   directorParams,
   directorRawOutput,
   isExplainerDirectorNode,
+  isPlanDirectorNode,
+  isTalkingHeadDirectorNode,
   parseDirectorHandle,
+  planDirectorParams,
   readDirectorPlan,
+  talkingHeadDirectorParams,
   wiredDirectorCharacter,
+  withoutDirectorCharacterEdges,
   type ExplainerDirectorPlan,
 } from "@/service/canvas/explainer-director";
 
@@ -125,5 +130,82 @@ describe("explainer director", () => {
     const next = directorNodeWithWiredCharacter(node, nodes, wired);
     assert.equal(next.data.toolParams?.characterId, "jim-id");
     assert.equal(directorNodeWithWiredCharacter(node, nodes, []).data.toolParams?.characterId, "dropdown");
+  });
+
+  it("drops a character wire into an Explainer or Talking Head Director", () => {
+    const nodes = [director(), { ...director(), id: "th", data: { ...director().data, modelId: "scro:talking-head" } }];
+    const edges = [
+      { target: "dir", targetHandle: "character" },
+      { target: "th", targetHandle: "character" },
+      { target: "dir", targetHandle: "settings" },
+    ];
+    assert.deepEqual(
+      withoutDirectorCharacterEdges(nodes, edges).map((e) => `${e.target}:${e.targetHandle}`),
+      ["dir:settings"],
+    );
+  });
+});
+
+describe("talking head director", () => {
+  const thDirector = (toolParams: Record<string, unknown> = {}, prompt = "Hello camera"): CanvasNode => ({
+    id: "th",
+    type: "model",
+    position: { x: 0, y: 0 },
+    data: {
+      modelId: "scro:talking-head",
+      prompt,
+      aspectRatio: "9:16",
+      toolParams: { plannerMode: true, characterId: "c1", language: "yue", framing: "collarbone-close", ...toolParams },
+    },
+  });
+  const thPlan = (base: CanvasNode): ExplainerDirectorPlan => ({
+    plannerVideoId: "v1",
+    plannedWith: planDirectorParams(base),
+    clips: [1, 2].map((n) => ({
+      clipNumber: n,
+      framePrompt: n === 1 ? "opening still" : "",
+      videoPrompt: `motion ${n}`,
+      spokenLine: `line ${n}`,
+      durationSeconds: 8,
+      refUrls: [],
+    })),
+  });
+
+  it("is a plan Director but not an Explainer Director", () => {
+    assert.equal(isTalkingHeadDirectorNode(thDirector()), true);
+    assert.equal(isPlanDirectorNode(thDirector()), true);
+    assert.equal(isExplainerDirectorNode(thDirector()), false);
+    assert.equal(isPlanDirectorNode(director()), true);
+    assert.equal(isTalkingHeadDirectorNode(thDirector({ plannerMode: false })), false);
+  });
+
+  it("outputs one shared opening still plus motion and script per clip", () => {
+    const node = thDirector({ plan: thPlan(thDirector()) });
+    assert.deepEqual(directorHandles(readDirectorPlan(node)!), [
+      "clip-1-frame",
+      "clip-1-motion",
+      "clip-1-voice",
+      "clip-2-motion",
+      "clip-2-voice",
+    ]);
+    assert.equal(directorRawOutput(node, "clip-1-frame"), "opening still");
+    assert.equal(directorRawOutput(node, "clip-2-voice"), "line 2");
+  });
+
+  it("needs a replan when the script, character, language, framing, or ratio changed", () => {
+    const base = thDirector();
+    const planned = thDirector({ plan: thPlan(base) });
+    assert.deepEqual(talkingHeadDirectorParams(base), {
+      script: "Hello camera",
+      characterId: "c1",
+      language: "yue",
+      framing: "collarbone-close",
+      aspectRatio: "9:16",
+    });
+    assert.equal(directorNeedsReplan(planned), false);
+    assert.equal(directorNeedsReplan(thDirector({ plan: thPlan(base) }, "New script")), true);
+    assert.equal(directorNeedsReplan(thDirector({ plan: thPlan(base), framing: "handheld-selfie" })), true);
+    assert.equal(directorNeedsReplan(thDirector({ plan: thPlan(base), characterId: "c2" })), true);
+    assert.equal(directorNeedsReplan({ ...planned, data: { ...planned.data, aspectRatio: "16:9" } }), true);
   });
 });

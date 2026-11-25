@@ -43,7 +43,7 @@ describe("director graph apply", () => {
     const plan = {
       plannerVideoId: "v",
       plannedWith: {},
-      clips: [{ clipNumber: 1, framePrompt: "", videoPrompt: "", spokenLine: "", durationSeconds: 6, refUrls: [] }],
+      clips: [{ clipNumber: 1, framePrompt: "f", videoPrompt: "", spokenLine: "", durationSeconds: 6, refUrls: [] }],
     } as unknown as ExplainerDirectorPlan;
     const edges = [wire("dir", "f1", "clip-1-frame"), wire("dir", "f2", "clip-2-frame"), wire("x", "y")];
     const out = dropCutDirectorEdges(edges, "dir", plan);

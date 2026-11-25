@@ -1,11 +1,11 @@
 // Pure helpers for the persistent Explainer Director node (scro:explainer in planner mode).
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
-import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
+import { EXPLAINER_PLANNER_MODEL_ID, TALKING_HEAD_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
 import { explainerTextStyleLine, TEXT_STYLE_VAR } from "@/service/canvas/settings/explainer-text-style";
 import { renderPromptTemplate } from "@/service/canvas/settings/template";
 
-// Optional input: a character node. Empty is allowed; a photo or model image is not.
+// Older canvases wired a character node here. Both Directors now take the character from the card dropdown.
 export const DIRECTOR_CHARACTER_HANDLE = "character";
 
 export type DirectorOutputKind = "frame" | "motion" | "voice";
@@ -25,6 +25,17 @@ export type ExplainerDirectorParams = {
   styleId?: string;
 };
 
+// Talking Head Director: every card field that changes the plan.
+export type TalkingHeadDirectorParams = {
+  script: string;
+  characterId?: string;
+  language: string;
+  framing: string;
+  aspectRatio: CanvasAspectRatio;
+};
+
+export type DirectorPlanParams = ExplainerDirectorParams | TalkingHeadDirectorParams;
+
 export type ExplainerDirectorClip = {
   clipNumber: number;
   framePrompt: string;
@@ -36,7 +47,7 @@ export type ExplainerDirectorClip = {
 
 export type ExplainerDirectorPlan = {
   plannerVideoId: string;
-  plannedWith: ExplainerDirectorParams;
+  plannedWith: DirectorPlanParams;
   clips: ExplainerDirectorClip[];
 };
 
@@ -95,6 +106,46 @@ export function isExplainerDirectorNode(node: NodeLike): boolean {
   );
 }
 
+// Older canvases wired a character node into a Director. That input is gone on both cards.
+export function withoutDirectorCharacterEdges<
+  N extends NodeLike & { id: string },
+  E extends { target: string; targetHandle?: string | null },
+>(nodes: readonly N[], edges: readonly E[]): E[] {
+  const directors = new Set(nodes.filter(isPlanDirectorNode).map((n) => n.id));
+  if (directors.size === 0) return [...edges];
+  return edges.filter((e) => !(directors.has(e.target) && e.targetHandle === DIRECTOR_CHARACTER_HANDLE));
+}
+
+export function isTalkingHeadDirectorNode(node: NodeLike): boolean {
+  return (
+    node.type === "model" &&
+    node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID &&
+    node.data.toolParams?.plannerMode === true
+  );
+}
+
+// Either Director: keeps its card after planning and feeds its rows through text outputs.
+export function isPlanDirectorNode(node: NodeLike): boolean {
+  return isExplainerDirectorNode(node) || isTalkingHeadDirectorNode(node);
+}
+
+export function talkingHeadDirectorParams(node: NodeLike): TalkingHeadDirectorParams {
+  const tp = node.data.toolParams ?? {};
+  const characterId = str(tp.characterId);
+  return {
+    script: (node.data.prompt ?? "").trim(),
+    ...(characterId ? { characterId } : {}),
+    language: str(tp.language) ?? "yue",
+    framing: str(tp.framing) ?? "collarbone-close",
+    aspectRatio: node.data.aspectRatio ?? "9:16",
+  };
+}
+
+// The plan-changing parameters of either Director.
+export function planDirectorParams(node: NodeLike): DirectorPlanParams {
+  return isTalkingHeadDirectorNode(node) ? talkingHeadDirectorParams(node) : directorParams(node);
+}
+
 // Every parameter that changes the plan. The text style is not one: it fills {{text_style}}.
 export function directorParams(node: NodeLike): ExplainerDirectorParams {
   const tp = node.data.toolParams ?? {};
@@ -147,7 +198,7 @@ export function readDirectorPlan(node: NodeLike): ExplainerDirectorPlan | undefi
   if (clips.length === 0 || clips.some((c) => !c)) return undefined;
   return {
     plannerVideoId: p.plannerVideoId,
-    plannedWith: p.plannedWith as ExplainerDirectorParams,
+    plannedWith: p.plannedWith as DirectorPlanParams,
     clips: (clips as ExplainerDirectorClip[]).sort((a, b) => a.clipNumber - b.clipNumber),
   };
 }
@@ -163,14 +214,17 @@ export function parseDirectorHandle(
   return m ? { clipNumber: Number(m[1]), kind: m[2] as DirectorOutputKind } : undefined;
 }
 
+// A clip with no still prompt (Talking Head clips after the shared opening still) has no frame output.
 export function directorHandles(plan: ExplainerDirectorPlan): string[] {
-  return plan.clips.flatMap((c) => OUTPUT_KINDS.map((k) => directorHandleId(c.clipNumber, k)));
+  return plan.clips.flatMap((c) =>
+    OUTPUT_KINDS.filter((k) => k !== "frame" || c.framePrompt.trim()).map((k) => directorHandleId(c.clipNumber, k)),
+  );
 }
 
 export function directorNeedsReplan(node: NodeLike): boolean {
   const plan = readDirectorPlan(node);
   if (!plan) return false;
-  const now = directorParams(node) as Record<string, unknown>;
+  const now = planDirectorParams(node) as Record<string, unknown>;
   const then = plan.plannedWith as Record<string, unknown>;
   const keys = new Set([...Object.keys(now), ...Object.keys(then)]);
   return [...keys].some((key) => (now[key] ?? null) !== (then[key] ?? null));

@@ -20,7 +20,7 @@ import {
   directorHandles,
   DIRECTOR_CHARACTER_HANDLE,
   directorRawOutput,
-  isExplainerDirectorNode,
+  isPlanDirectorNode,
   parseDirectorHandle,
   readDirectorPlan,
 } from "@/service/canvas/explainer-director";
@@ -80,7 +80,7 @@ export function getNodeOutputPortType(
   sourceHandle?: string | null,
 ): CanvasPortType | null {
   // Director outputs are text; the Director has no plain output.
-  if (isExplainerDirectorNode(node)) return parseDirectorHandle(sourceHandle) ? "text" : null;
+  if (isPlanDirectorNode(node)) return parseDirectorHandle(sourceHandle) ? "text" : null;
   if (node.type === "media") {
     return node.data.mediaKind ?? null;
   }
@@ -156,7 +156,7 @@ export function validateEdgeConnection(
   const sourceHandle = candidate.sourceHandle || "output";
   if (sourceHandle !== "output") {
     // Only a planned Director has named outputs, one per clip text.
-    const plan = isExplainerDirectorNode(sourceNode) ? readDirectorPlan(sourceNode) : undefined;
+    const plan = isPlanDirectorNode(sourceNode) ? readDirectorPlan(sourceNode) : undefined;
     if (!plan || !directorHandles(plan).includes(sourceHandle)) {
       return {
         valid: false,
@@ -427,7 +427,7 @@ export function resolveNodeInputs(
       promptSource = source;
       break;
     }
-    if (source && edge.sourceHandle && isExplainerDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
+    if (source && edge.sourceHandle && isPlanDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
       director = { node: source, handle: edge.sourceHandle };
       break;
     }

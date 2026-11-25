@@ -23,11 +23,10 @@ type Props = {
   isZh: boolean;
   disabled: boolean;
   characterOptions: readonly CanvasLibraryCharacterOption[];
-  wiredCharacter?: { characterId?: string; label?: string };
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
 };
 
-export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions, wiredCharacter, onUpdate }: Props) {
+export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions, onUpdate }: Props) {
   const { t } = useI18n();
   const tp = data.toolParams ?? {};
   const pick = (label: { zh: string; en: string }) => (isZh ? label.zh : label.en);
@@ -103,15 +102,11 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
         <label className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "角色" : "Character"}
           <select
-            value={wiredCharacter ? (wiredCharacter.characterId ?? "") : String(tp.characterId ?? "")}
-            disabled={Boolean(wiredCharacter)}
+            value={String(tp.characterId ?? "")}
             onChange={(e) => setParams({ characterId: e.target.value || undefined })}
             className={DIALOG_FIELD}
           >
             <option value="">{isZh ? "不指定" : "None"}</option>
-            {wiredCharacter?.characterId && !characterOptions.some((c) => c.id === wiredCharacter.characterId) ? (
-              <option value={wiredCharacter.characterId}>{wiredCharacter.label ?? wiredCharacter.characterId}</option>
-            ) : null}
             {characterOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

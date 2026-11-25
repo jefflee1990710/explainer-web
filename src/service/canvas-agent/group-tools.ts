@@ -16,7 +16,7 @@ import {
   TALKING_HEAD_PLANNER_MODEL_ID,
 } from "@/service/canvas/explainer-planner";
 import { EXPLAINER_SKILL_SLUGS, type ExplainerSkillSlug } from "@/model/explainer-settings";
-import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
+import { isExplainerDirectorNode, isTalkingHeadDirectorNode } from "@/service/canvas/explainer-director";
 import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import {
@@ -202,6 +202,30 @@ export function replaceGroup(
       },
     );
     return "error" in res ? res : { ...res, nodeId: director.id, removedCount: 0 };
+  }
+
+  // A Talking Head Director keeps its rows too: it takes the new script and replans (free).
+  const talkingDirector = isTalking ? target.nodes.find(isTalkingHeadDirectorNode) : undefined;
+  if (talkingDirector) {
+    const patch = {
+      prompt,
+      ...(input.aspectRatio ? { aspectRatio: input.aspectRatio } : {}),
+      toolParams: {
+        ...talkingDirector.data.toolParams,
+        characterId,
+        language,
+        framing: input.framing ?? str(talkingDirector.data.toolParams?.framing) ?? str(old.framing) ?? "collarbone-close",
+        replanRequested: true,
+      },
+    };
+    talkingDirector.data = { ...talkingDirector.data, ...patch };
+    g.ops.push({ kind: "update_node", nodeId: talkingDirector.id, patch });
+    return {
+      ok: true,
+      nodeId: talkingDirector.id,
+      removedCount: 0,
+      note: "The Talking Head Director took the new script and replans for free. Its wired rows keep their place; rows whose text changed become old versions. Tell the user to press Run group afterwards. Do not add image or video nodes for it yourself.",
+    };
   }
 
   const toolParams: Record<string, unknown> = isTalking

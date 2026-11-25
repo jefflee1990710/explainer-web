@@ -17,22 +17,97 @@ export type CanvasPreviewOption = {
   swatch?: string;
   // "contain" keeps the whole preview visible (text style samples).
   previewFit?: "cover" | "contain";
+  // Square is a face. Portrait is a 3:4 framing still. Body is a 9:16 standing figure.
+  previewShape?: "wide" | "square" | "portrait" | "body";
+  // Portraits keep the face in frame when the source is a full-body still.
+  previewAnchor?: "center" | "top";
+  // Zoom a full-body still so the menu shows the face, not the whole figure.
+  previewCrop?: "face";
+  // Second still beside the first. Character rows use this for the standing figure.
+  secondaryPreviewUrl?: string;
+  secondaryShape?: "wide" | "square" | "portrait" | "body";
+  secondaryFit?: "cover" | "contain";
 };
 
 const MENU_MIN_WIDTH = 300;
 
-function Preview({ option, large }: { option: CanvasPreviewOption | undefined; large?: boolean }) {
-  const size = large ? "h-12 w-[72px]" : "h-7 w-11";
-  const frame = `${size} shrink-0 overflow-hidden rounded-md border border-white/10 bg-black`;
-  if (option?.swatch) return <DirectorBackgroundSwatch color={option.swatch} className={`block ${frame}`} />;
-  if (!option?.previewUrl) return <span className={frame} />;
+function hasPreview(option: CanvasPreviewOption | undefined): boolean {
+  return Boolean(option?.previewUrl || option?.secondaryPreviewUrl || option?.swatch);
+}
+
+function frameSize(shape: CanvasPreviewOption["previewShape"], large?: boolean) {
+  if (shape === "body") return large ? "h-28 w-16" : "h-10 w-6";
+  if (shape === "portrait") return large ? "h-24 w-[72px]" : "h-10 w-8";
+  if (shape === "square") return large ? "h-16 w-16" : "h-8 w-8";
+  return large ? "h-12 w-[72px]" : "h-7 w-11";
+}
+
+function PreviewImage({
+  src,
+  shape,
+  fit,
+  anchor,
+  crop,
+  large,
+}: {
+  src: string;
+  shape: CanvasPreviewOption["previewShape"];
+  fit?: CanvasPreviewOption["previewFit"];
+  anchor?: CanvasPreviewOption["previewAnchor"];
+  crop?: CanvasPreviewOption["previewCrop"];
+  large?: boolean;
+}) {
+  const frame = `${frameSize(shape, large)} shrink-0 overflow-hidden rounded-md border border-white/10 bg-black`;
+  if (crop === "face") {
+    return (
+      <span className={`${frame} relative`}>
+        {/* Standing library stills are full-body. Zoom toward the upper centre so the face fills the tile. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" loading="lazy" className="absolute left-1/2 top-0 w-[240%] max-w-none -translate-x-1/2" />
+      </span>
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={option.previewUrl}
+      src={src}
       alt=""
       loading="lazy"
-      className={`${frame} ${option.previewFit === "contain" ? "object-contain" : "object-cover"}`}
+      className={`${frame} ${fit === "contain" ? "object-contain" : "object-cover"} ${
+        anchor === "top" ? "object-top" : "object-center"
+      }`}
+    />
+  );
+}
+
+function Preview({ option, large }: { option: CanvasPreviewOption | undefined; large?: boolean }) {
+  if (option?.swatch) {
+    const frame = `${frameSize(option.previewShape, large)} shrink-0 overflow-hidden rounded-md border border-white/10 bg-black`;
+    return <DirectorBackgroundSwatch color={option.swatch} className={`block ${frame}`} />;
+  }
+  if (!option?.previewUrl && !option?.secondaryPreviewUrl) return null;
+  // Face and standing figure share one frame so the row reads as a single still.
+  if (option.previewUrl && option.secondaryPreviewUrl) {
+    const height = large ? "h-28" : "h-10";
+    const face = large ? "w-28" : "w-10";
+    const body = large ? "w-16" : "w-[22px]";
+    return (
+      <span className={`flex ${height} shrink-0 overflow-hidden rounded-md border border-white/10 bg-[#e7e7e7]`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={option.previewUrl} alt="" loading="lazy" className={`${height} ${face} object-cover`} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={option.secondaryPreviewUrl} alt="" loading="lazy" className={`${height} ${body} object-contain`} />
+      </span>
+    );
+  }
+  return (
+    <PreviewImage
+      src={option.previewUrl ?? option.secondaryPreviewUrl ?? ""}
+      shape={option.previewUrl ? option.previewShape : (option.secondaryShape ?? "portrait")}
+      fit={option.previewUrl ? option.previewFit : (option.secondaryFit ?? "contain")}
+      anchor={option.previewAnchor}
+      crop={option.previewCrop}
+      large={large}
     />
   );
 }
@@ -59,17 +134,27 @@ export function CanvasPreviewSelect({
 
   useEffect(() => {
     if (!open) return;
-    // Opens below the trigger, or above it when there is more room there.
+    // React Flow pans by transforming the viewport, so scroll events never fire.
+    // Keep the menu on the trigger while the canvas moves.
+    let frame = 0;
+    let last = "";
     function place() {
       const rect = rootRef.current?.getBoundingClientRect();
       if (!rect) return;
       const width = Math.max(rect.width, MENU_MIN_WIDTH);
-      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      const left = Math.round(Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)));
       const below = window.innerHeight - rect.bottom - 16;
       const above = rect.top - 16;
-      const maxHeight = Math.min(420, Math.max(below, above));
-      const top = below >= Math.min(420, above) ? rect.bottom + 6 : rect.top - 6 - maxHeight;
-      setBox({ top: Math.max(8, top), left, width, maxHeight });
+      const maxHeight = Math.round(Math.min(420, Math.max(below, above)));
+      const top = Math.round(Math.max(8, below >= Math.min(420, above) ? rect.bottom + 6 : rect.top - 6 - maxHeight));
+      const key = `${top}|${left}|${Math.round(width)}|${maxHeight}`;
+      if (key === last) return;
+      last = key;
+      setBox({ top, left, width, maxHeight });
+    }
+    function tick() {
+      place();
+      frame = window.requestAnimationFrame(tick);
     }
     function onPointerDown(event: MouseEvent) {
       const target = event.target as Node;
@@ -80,15 +165,13 @@ export function CanvasPreviewSelect({
       if (event.key === "Escape") setOpen(false);
     }
     place();
+    frame = window.requestAnimationFrame(tick);
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
     return () => {
+      window.cancelAnimationFrame(frame);
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
     };
   }, [open]);
 
@@ -105,7 +188,7 @@ export function CanvasPreviewSelect({
         onClick={() => setOpen((current) => !current)}
         className="nodrag flex w-full cursor-pointer items-center gap-2 rounded-[8px] border border-white/10 bg-[#0b0e14] px-1.5 py-1.5 text-left text-[12px] text-white/90 hover:border-white/20 focus:border-[#c6f24b]/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Preview option={selected} />
+        {hasPreview(selected) ? <Preview option={selected} /> : null}
         <span className="min-w-0 flex-1 truncate">{selected?.label ?? value}</span>
         <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/45 transition ${open ? "rotate-180" : ""}`} />
       </button>
@@ -136,7 +219,7 @@ export function CanvasPreviewSelect({
                         active ? "bg-[#c6f24b]/15" : "hover:bg-white/6"
                       }`}
                     >
-                      <Preview option={option} large />
+                      {hasPreview(option) ? <Preview option={option} large /> : null}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[12.5px] font-semibold">{option.label}</span>
                         {option.sublabel ? (

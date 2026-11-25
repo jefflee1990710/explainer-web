@@ -25,7 +25,7 @@ export function DirectorPlanDecisionDialog({ decision, isZh, onConfirm, onDeclin
         title={isZh ? `已規劃 ${decision.clipCount} 段` : `Planned ${decision.clipCount} clips`}
         description={
           isZh
-            ? "要不要自動建立每段的靜幀、影片、配音和拼接節點？它們的 prompt 會由解說導演的輸出口接過去。不建立的話，只會亮起輸出口，你可以自己接線。"
+            ? "要不要自動建立每段的靜幀、影片、配音和拼接節點？它們的 prompt 會由導演的輸出口接過去。不建立的話，只會亮起輸出口，你可以自己接線。"
             : "Build each clip's still, video, voice, and concat nodes, with prompts wired from the Director's outputs? Otherwise only the outputs appear and you wire them yourself."
         }
         submitLabel={isZh ? "自動建立" : "Build nodes"}

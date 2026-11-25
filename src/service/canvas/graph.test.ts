@@ -383,7 +383,7 @@ describe("canvas graph — resolveNodeInputs", () => {
         target: "dir",
         targetHandle: "character",
       }).valid,
-      true,
+      false,
     );
     assert.equal(
       validateEdgeConnection([mediaNode("photo", "image", "https://blob.example/p.png"), plannedDirector], [], {
@@ -407,7 +407,7 @@ describe("canvas graph — resolveNodeInputs", () => {
         target: "th",
         targetHandle: "character",
       }).valid,
-      true,
+      false,
     );
     assert.equal(
       validateEdgeConnection([mediaNode("photo", "image", "https://blob.example/p.png"), talkingHead], [], {

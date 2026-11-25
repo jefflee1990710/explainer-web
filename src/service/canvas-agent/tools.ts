@@ -15,7 +15,7 @@ import type {
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
 import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/character-node";
-import { isExplainerPlannerNode, TALKING_HEAD_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import {
   canvasGroupsForProject,
   defaultGroupColor,
@@ -58,8 +58,11 @@ import {
   directorParams,
   directorTextStyle,
   isExplainerDirectorNode,
+  isPlanDirectorNode,
+  isTalkingHeadDirectorNode,
   parseDirectorHandle,
   readDirectorPlan,
+  talkingHeadDirectorParams,
 } from "@/service/canvas/explainer-director";
 import {
   deleteGroup,
@@ -324,6 +327,18 @@ function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           },
         }
       : {}),
+    // Talking Head Director: change its script or settings only through replace_group.
+    ...(isTalkingHeadDirectorNode(node)
+      ? {
+          director: {
+            params: talkingHeadDirectorParams(node),
+            planStatus: node.data.toolParams?.planStatus ?? "idle",
+            clips: readDirectorPlan(node)?.clips.length ?? 0,
+            outputs: "clip-1-frame (shared opening still) | clip-<n>-motion | clip-<n>-voice (text)",
+            needsReplan: directorNeedsReplan(node),
+          },
+        }
+      : {}),
     // A Setting's `{{key}}` vars: change these only through update_settings.
     ...(node.type === "settings" ? { vars: settingsVars(node.data.settings) } : {}),
     ...(node.type === "model"
@@ -428,19 +443,6 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         status: "idle",
       });
       if (created.error || typeof created.nodeId !== "string") return created;
-      const characterId = named || reused;
-      const source = characterId
-        ? g.nodes.find((n) => n.type === "character" && n.data.characterId === characterId)
-        : undefined;
-      if (!source) return created;
-      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
-        sourceId: source.id,
-        targetId: created.nodeId,
-        targetPort: DIRECTOR_CHARACTER_HANDLE,
-      });
-      if (linked.error) {
-        return { ...created, error: `Node ${created.nodeId} exists. Character wire failed: ${linked.error}` };
-      }
       return created;
     }
     const created = addNode(g, "model", {
@@ -524,19 +526,6 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
         },
         status: "idle",
       });
-      if (created.error || typeof created.nodeId !== "string") return created;
-      const source = g.nodes.find(
-        (n) => n.type === "character" && n.data.characterId === input.characterId,
-      );
-      if (!source) return created;
-      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
-        sourceId: source.id,
-        targetId: created.nodeId,
-        targetPort: DIRECTOR_CHARACTER_HANDLE,
-      });
-      if (linked.error) {
-        return { ...created, error: `Node ${created.nodeId} exists. Character wire failed: ${linked.error}` };
-      }
       return created;
     }
 
@@ -711,10 +700,10 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     input: { sourceId: string; sourcePort?: string; targetId: string; targetPort: string },
   ): CanvasAgentToolResult {
     const sourceNode = g.nodes.find((n) => n.id === input.sourceId);
-    const directorSource = sourceNode && isExplainerDirectorNode(sourceNode);
+    const directorSource = sourceNode && isPlanDirectorNode(sourceNode);
     if (directorSource && !parseDirectorHandle(input.sourcePort)) {
       return {
-        error: 'An Explainer Director only outputs clip text: pass sourcePort "clip-<n>-frame", "clip-<n>-motion", or "clip-<n>-voice" after it is planned.',
+        error: 'A Director only outputs clip text: pass sourcePort "clip-<n>-frame", "clip-<n>-motion", or "clip-<n>-voice" after it is planned (a Talking Head has only "clip-1-frame").',
       };
     }
     if (sourceNode && !directorSource && isExplainerPlannerNode(sourceNode)) {
@@ -723,19 +712,18 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       };
     }
     const targetNode = g.nodes.find((n) => n.id === input.targetId);
-    const directorTarget = targetNode && isExplainerDirectorNode(targetNode);
-    const talkingTarget =
-      targetNode?.type === "model" &&
-      targetNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID &&
-      targetNode.data.toolParams?.plannerMode === true;
+    if (targetNode && isPlanDirectorNode(targetNode) && input.targetPort === DIRECTOR_CHARACTER_HANDLE) {
+      return {
+        error: "A Director has no character input. Set the character on the card with toolParams.characterId.",
+      };
+    }
     if (
       targetNode &&
       isExplainerPlannerNode(targetNode) &&
-      input.targetPort !== "settings" &&
-      !((directorTarget || talkingTarget) && input.targetPort === DIRECTOR_CHARACTER_HANDLE)
+      input.targetPort !== "settings"
     ) {
       return {
-        error: "A planning card takes no wires except an optional character; put the topic or script in its \"prompt\".",
+        error: "A planning card takes no wires except an optional settings input; put the topic or script in its \"prompt\".",
       };
     }
     const candidate = {
@@ -1055,7 +1043,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     replace_group: tool({
       description:
-        "Replace an Explainer or Talking Head group (or a lone planning card) with a new topic or full script in ONE step. Removes the whole old group and adds a new free planning card in the same place, keeping the character (e.g. Jim), language, director style, framing, and frame shape unless you override them.",
+        "Replace an Explainer or Talking Head group (or a lone planning card) with a new topic or full script in ONE step. An Explainer Director or Talking Head Director takes the new content and replans in place, keeping its rows; an older group without a Director is removed and a new free planning card takes its place. Character (e.g. Jim), language, director style, framing, and frame shape are kept unless you override them.",
       inputSchema: replaceGroupSchema,
       execute: async (input) => H.replace_group(g, input),
     }),

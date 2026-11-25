@@ -84,8 +84,9 @@ import {
 import { replacePlannerWithExpansion } from "@/service/canvas/explainer-expand";
 import {
   directorChangedTargets,
-  isExplainerDirectorNode,
+  isPlanDirectorNode,
   readDirectorPlan,
+  withoutDirectorCharacterEdges,
 } from "@/service/canvas/explainer-director";
 import { applyDirectorBuild, dropCutDirectorEdges } from "@/service/canvas/explainer-director-apply";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
@@ -443,7 +444,10 @@ function CanvasWorkspaceInner({
       : null,
   );
 
-  const [initialGraph] = useState(() => dropExpandedPlanners(initialProject));
+  const [initialGraph] = useState(() => {
+    const dropped = dropExpandedPlanners(initialProject);
+    return { ...dropped, edges: withoutDirectorCharacterEdges(dropped.nodes, dropped.edges) };
+  });
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(
     toFlowNodes(initialGraph.nodes),
   );
@@ -688,7 +692,7 @@ function CanvasWorkspaceInner({
     (nodeId: string, patch: Partial<CanvasNodeData>) => {
       const current = nodesRef.current.find((n) => n.id === nodeId);
       // A Director edit only makes rows whose wired output text changed old (a text style change).
-      if (current && isExplainerDirectorNode({ type: "model", data: current.data })) {
+      if (current && isPlanDirectorNode({ type: "model", data: current.data })) {
         const before = toDomainNodes([current])[0]!;
         const after = { ...before, data: { ...before.data, ...patch } };
         setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n)));
@@ -1410,11 +1414,12 @@ function CanvasWorkspaceInner({
         addGroup(state.group);
         // Measured re-layout of the new rows once their cards render.
         const first = state.nodes[0];
+        const talkingHead = domain.find((n) => n.id === decision.nodeId)?.data.modelId === "scro:talking-head";
         pendingGroupLayoutRef.current = {
           ids: new Set(state.nodes.map((n) => n.id)),
           edges: state.edges.filter((e) => e.source !== decision.nodeId),
           origin: first ? first.position : { x: 0, y: 0 },
-          layout: "explainer",
+          layout: talkingHead ? "depth" : "explainer",
         };
         window.setTimeout(applyPendingGroupLayout, 600);
       } else if (decision.kind === "count") {
@@ -1497,7 +1502,7 @@ function CanvasWorkspaceInner({
             continue;
           }
           // A Director keeps its card and stores the plan; it never swaps itself for the rows.
-          if (state.plan && isExplainerDirectorNode({ type: "model", data: planner.data })) {
+          if (state.plan && isPlanDirectorNode({ type: "model", data: planner.data })) {
             onDirectorPlanReady(nodeId, state);
             continue;
           }
@@ -2088,7 +2093,7 @@ function CanvasWorkspaceInner({
           (isExplainerPlannerNode(n) &&
             !readPlannerParams(n).plannerVideoId &&
             ops.some((op) => op.kind === "add_node" && op.node.id === n.id)) ||
-          (isExplainerDirectorNode(n) && n.data.toolParams?.replanRequested === true),
+          (isPlanDirectorNode(n) && n.data.toolParams?.replanRequested === true),
       );
       if (agentPlanners.length > 0) {
         const flowGraph = {

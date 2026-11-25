@@ -1,7 +1,7 @@
 // Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
 import type { CanvasNodeData, CanvasNodeType } from "@/model/canvas";
-import { directorNeedsReplan, isExplainerDirectorNode } from "@/service/canvas/explainer-director";
+import { directorNeedsReplan, isPlanDirectorNode } from "@/service/canvas/explainer-director";
 
 type GraphNode = { id: string; type: string; data: CanvasNodeData };
 type GraphEdge = { source: string; target: string };
@@ -107,7 +107,7 @@ export function outdatedNodeReasons(
   const byId = new Map(nodes.map((n) => [n.id, n]));
   for (const node of nodes) {
     const director = { type: node.type as CanvasNodeType, data: node.data };
-    if (!isExplainerDirectorNode(director) || !directorNeedsReplan(director)) continue;
+    if (!isPlanDirectorNode(director) || !directorNeedsReplan(director)) continue;
     for (const id of downstreamNodeIds(edges, [node.id])) {
       if (id !== node.id && byId.get(id)?.data.outputUrl) reasons.set(id, "settings");
     }

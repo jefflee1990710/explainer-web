@@ -6,7 +6,7 @@ import type { CanvasSettingsData } from "@/model/canvas-settings";
 import {
   directorHandles,
   directorRawOutput,
-  isExplainerDirectorNode,
+  isPlanDirectorNode,
   readDirectorPlan,
 } from "@/service/canvas/explainer-director";
 import { settingsVars } from "@/service/canvas/settings/registry";
@@ -17,14 +17,14 @@ import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 // Director output, or a model's wired Prompt / Director text, else its inline prompt.
 export function templateText(nodes: readonly CanvasNode[], edges: readonly CanvasEdge[], target: CanvasNode): string {
   if (target.type === "prompt") return target.data.text ?? "";
-  if (isExplainerDirectorNode(target)) {
+  if (isPlanDirectorNode(target)) {
     const plan = readDirectorPlan(target);
     return plan ? directorHandles(plan).map((h) => directorRawOutput(target, h) ?? "").join("\n") : "";
   }
   const promptWire = edges.find((e) => e.target === target.id && e.targetHandle === "prompt");
   const source = promptWire ? nodes.find((n) => n.id === promptWire.source) : undefined;
   if (source?.type === "prompt") return source.data.text ?? "";
-  if (source && promptWire?.sourceHandle && isExplainerDirectorNode(source)) {
+  if (source && promptWire?.sourceHandle && isPlanDirectorNode(source)) {
     return directorRawOutput(source, promptWire.sourceHandle) ?? "";
   }
   return target.data.prompt ?? "";

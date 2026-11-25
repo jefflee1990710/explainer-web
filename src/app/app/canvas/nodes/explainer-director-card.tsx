@@ -4,12 +4,10 @@
 // three text outputs per clip (still prompt, motion prompt, voiceover).
 
 import { Handle, Position } from "@xyflow/react";
-import { useEffect } from "react";
 import { AlertCircle, Clapperboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
 import {
-  DIRECTOR_CHARACTER_HANDLE,
   directorHandleId,
   directorNeedsReplan,
   readDirectorPlan,
@@ -27,8 +25,6 @@ const OUTPUT_LABELS: { kind: DirectorOutputKind; zh: string; en: string }[] = [
 ];
 const DIRECTOR_COLOR = "#c6f24b";
 
-type WiredCharacter = { nodeId: string; characterId?: string; label?: string };
-
 type Props = {
   data: CanvasNodeData;
   isZh: boolean;
@@ -38,7 +34,6 @@ type Props = {
   // Input handles that already have wires (older planner cards), kept so those wires render.
   incomingHandles: readonly string[];
   hasSetting: boolean;
-  wiredCharacter?: WiredCharacter;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -52,7 +47,6 @@ export function ExplainerDirectorCard({
   characterOptions,
   incomingHandles,
   hasSetting,
-  wiredCharacter,
   onUpdate,
   onPlan,
   onRemove,
@@ -62,18 +56,7 @@ export function ExplainerDirectorCard({
   const { planStatus, planError } = readPlannerParams({ data });
   const planning = planStatus === "planning";
   const dirty = directorNeedsReplan(node);
-  const characterMissing = Boolean(wiredCharacter && !wiredCharacter.characterId);
-  const canPlan = !disabled && !planning && Boolean((data.prompt ?? "").trim()) && !characterMissing;
-
-  // The wired character is the one this plan uses. Keep the dropdown in step with it.
-  useEffect(() => {
-    if (!wiredCharacter) return;
-    const current = typeof data.toolParams?.characterId === "string" ? data.toolParams.characterId : undefined;
-    if (current === wiredCharacter.characterId) return;
-    onUpdate({
-      toolParams: { ...(data.toolParams ?? {}), characterId: wiredCharacter.characterId },
-    });
-  }, [wiredCharacter, data.toolParams, onUpdate]);
+  const canPlan = !disabled && !planning && Boolean((data.prompt ?? "").trim());
 
   return (
     <div
@@ -82,7 +65,7 @@ export function ExplainerDirectorCard({
       }`}
     >
       {incomingHandles
-        .filter((handle) => handle !== SETTINGS_HANDLE && handle !== DIRECTOR_CHARACTER_HANDLE)
+        .filter((handle) => handle !== SETTINGS_HANDLE)
         .map((handle) => (
           <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
         ))}
@@ -120,48 +103,15 @@ export function ExplainerDirectorCard({
         </button>
       </div>
 
-      <div className="relative flex items-center justify-between border-b border-white/6 px-3 py-1.5 text-[11px]">
-        <Handle
-          type="target"
-          id={DIRECTOR_CHARACTER_HANDLE}
-          position={Position.Left}
-          title={isZh ? "角色（可選）" : "Character (optional)"}
-          style={{
-            width: 11,
-            height: 11,
-            backgroundColor: wiredCharacter ? PORT_COLOR_MAP.image : "#12161f",
-            border: `2px solid ${PORT_COLOR_MAP.image}`,
-            left: -6,
-          }}
-        />
-        <span className="flex items-center gap-1.5 text-white/80">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PORT_COLOR_MAP.image }} />
-          {isZh ? "角色" : "Character"}
-        </span>
-        <span className="max-w-[140px] truncate text-[10px] text-white/45">
-          {wiredCharacter
-            ? (wiredCharacter.label ?? (isZh ? "已連" : "Wired"))
-            : isZh
-              ? "可選"
-              : "Optional"}
-        </span>
-      </div>
-
       <div className="flex flex-col gap-2.5 p-3">
         <ExplainerDirectorFields
           data={data}
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          wiredCharacter={wiredCharacter}
           onUpdate={onUpdate}
         />
 
-        {characterMissing ? (
-          <p className="rounded-[8px] bg-rose-500/10 px-2 py-1.5 text-[10.5px] text-rose-200">
-            {isZh ? "連接的角色卡沒有可用的角色。" : "The connected character card has no character."}
-          </p>
-        ) : null}
         {dirty && !planning ? (
           <p className="rounded-[8px] border border-amber-400/30 bg-amber-500/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-amber-100">
             {isZh ? "設定已改，請按 Replan。輸出暫時維持上次的規劃。" : "Settings changed. Press Replan; outputs keep the last plan until then."}
