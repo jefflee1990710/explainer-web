@@ -25,6 +25,8 @@ export type GroupFrameData = {
   group: CanvasGroup;
   // Members that are model nodes (what Run group would run).
   runnableCount: number;
+  // Set while the group's Director is still planning. Display only; frames are not saved.
+  planLocked?: boolean;
 };
 
 export type GroupFrameNode = Node<GroupFrameData, typeof GROUP_FRAME_TYPE>;

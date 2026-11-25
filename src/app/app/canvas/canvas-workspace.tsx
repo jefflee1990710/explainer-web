@@ -18,9 +18,10 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  EdgeChangeset,
+  NodeChangeset,
   type Connection,
   type Edge,
-  type NodeChangeset,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
@@ -126,6 +127,8 @@ import {
   groupIdFromFrameId,
 } from "@/app/app/canvas/groups/group-frames";
 import { GroupSelectionBar } from "@/app/app/canvas/groups/group-selection-bar";
+import { PlanLockProvider, withPlanLock } from "@/app/app/canvas/nodes/director-plan-lock";
+import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
 import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
@@ -196,11 +199,11 @@ function settingsStroke(node: CanvasNode | undefined): string | undefined {
 }
 
 const NODE_TYPES = {
-  media: MediaNodeCard,
-  prompt: PromptNodeCard,
-  model: ModelNodeCard,
-  character: CharacterNodeCard,
-  settings: SettingsNodeCard,
+  media: withPlanLock(MediaNodeCard),
+  prompt: withPlanLock(PromptNodeCard),
+  model: withPlanLock(ModelNodeCard),
+  character: withPlanLock(CharacterNodeCard),
+  settings: withPlanLock(SettingsNodeCard),
   [GROUP_FRAME_TYPE]: GroupFrameNodeCard,
 } as const;
 
@@ -507,6 +510,34 @@ function CanvasWorkspaceInner({
   }, [nodes, edges]);
   // Nodes whose preview is an old version, shown with a "needs regenerating" badge.
   const outdatedNodes = useMemo(() => outdatedNodeReasons(domainNodes, domainEdges), [domainNodes, domainEdges]);
+  // Rows a Director is still building cannot be edited, moved, run, or rewired.
+  const planLocks = useMemo(
+    () => directorPlanningLocks(nodes, groupsApi.groups),
+    [nodes, groupsApi.groups],
+  );
+  const planLockRef = useRef(planLocks);
+  useEffect(() => {
+    planLockRef.current = planLocks;
+  }, [planLocks]);
+  const flowNodes = useMemo(() => {
+    if (planLocks.nodeIds.size === 0 && planLocks.groupIds.size === 0) return groupsApi.displayNodes;
+    return groupsApi.displayNodes.map((node) => {
+      if (node.type === GROUP_FRAME_TYPE) {
+        if (!planLocks.groupIds.has(node.data.group.id)) return node;
+        return { ...node, draggable: false, data: { ...node.data, planLocked: true } };
+      }
+      if (!planLocks.nodeIds.has(node.id)) return node;
+      return { ...node, draggable: false, connectable: false, deletable: false };
+    });
+  }, [groupsApi.displayNodes, planLocks]);
+  const flowEdges = useMemo(() => {
+    if (planLocks.nodeIds.size === 0) return displayEdges;
+    return displayEdges.map((edge) =>
+      planLocks.nodeIds.has(edge.source) || planLocks.nodeIds.has(edge.target)
+        ? { ...edge, deletable: false, reconnectable: false }
+        : edge,
+    );
+  }, [displayEdges, planLocks]);
 
   const syncWallet = useCallback(
     (nextCreditUsd?: number) => {
@@ -642,8 +673,20 @@ function CanvasWorkspaceInner({
 
   const handleNodesChange = useCallback(
     (allChanges: NodeChangeset<DisplayNode>) => {
+      const lock = planLockRef.current;
+      const allowed =
+        lock.nodeIds.size === 0 && lock.groupIds.size === 0
+          ? allChanges
+          : new NodeChangeset(
+              allChanges.toArray().filter((change) => {
+                const frameGroup = groupIdFromFrameId(change.id);
+                if (frameGroup && lock.groupIds.has(frameGroup) && change.type === "position") return false;
+                if (lock.nodeIds.has(change.id) && (change.type === "position" || change.type === "remove")) return false;
+                return true;
+              }),
+            );
       // Frame drags move the group's members; the rest are ordinary node changes.
-      const { nodeChanges: changes, frameDragEnded } = splitNodeChanges(allChanges);
+      const { nodeChanges: changes, frameDragEnded } = splitNodeChanges(allowed);
       if (frameDragEnded) scheduleAutosave();
       if (changes.isEmpty()) return;
       onNodesChange(changes);
@@ -682,15 +725,26 @@ function CanvasWorkspaceInner({
 
   const handleEdgesChange: typeof onEdgesChange = useCallback(
     (changes) => {
+      const lock = planLockRef.current.nodeIds;
+      const kept =
+        lock.size === 0
+          ? changes
+          : new EdgeChangeset(
+              changes.toArray().filter((change) => {
+                if (change.type !== "remove") return true;
+                const edge = edgesRef.current.find((item) => item.id === change.id);
+                return !edge || (!lock.has(edge.source) && !lock.has(edge.target));
+              }),
+            );
       // Targets that lose an input wire get their previews cleared.
-      const removedIds = new Set(changes.getByType("remove").map((c) => c.id));
+      const removedIds = new Set(kept.getByType("remove").map((c) => c.id));
       const staleTargets = edgesRef.current.filter((e) => removedIds.has(e.id)).map((e) => e.target);
       markStale(staleTargets);
-      onEdgesChange(changes);
+      onEdgesChange(kept);
       const meaningful =
-        changes.getByType("remove").length > 0 ||
-        changes.getByType("add").length > 0 ||
-        changes.getByType("replace").length > 0;
+        kept.getByType("remove").length > 0 ||
+        kept.getByType("add").length > 0 ||
+        kept.getByType("replace").length > 0;
       if (meaningful) scheduleAutosave();
     },
     [onEdgesChange, scheduleAutosave, markStale],
@@ -698,6 +752,7 @@ function CanvasWorkspaceInner({
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, patch: Partial<CanvasNodeData>) => {
+      if (planLockRef.current.nodeIds.has(nodeId)) return;
       const current = nodesRef.current.find((n) => n.id === nodeId);
       // A Director edit only makes rows whose wired output text changed old (a text style change).
       if (current && isPlanDirectorNode({ type: "model", data: current.data })) {
@@ -742,6 +797,7 @@ function CanvasWorkspaceInner({
 
   const onDeleteNode = useCallback(
     (nodeId: string) => {
+      if (planLockRef.current.nodeIds.has(nodeId)) return;
       markStale(edgesRef.current.filter((e) => e.source === nodeId).map((e) => e.target));
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
       setEdges((prev) =>
@@ -755,6 +811,7 @@ function CanvasWorkspaceInner({
   // Swaps the node's model; its preview becomes an old version and wires the new model cannot take are removed.
   const onSwapModel = useCallback(
     (nodeId: string, modelId: string) => {
+      if (planLockRef.current.nodeIds.has(nodeId)) return;
       const next = models.find((spec) => spec.id === modelId);
       if (!next) return;
       const res = swapNodeModel({
@@ -793,6 +850,8 @@ function CanvasWorkspaceInner({
   // Guardrail connection check (prevents incompatible port types, self-loops, cycles, over-capacity).
   const isValidConnection = useCallback(
     (edgeOrConnection: Edge | Connection) => {
+      const locked = planLockRef.current.nodeIds;
+      if (locked.has(edgeOrConnection.source) || locked.has(edgeOrConnection.target)) return false;
       const verdict = validateEdgeConnection(
         toDomainNodes(nodesRef.current),
         toDomainEdges(edgesRef.current),
@@ -812,6 +871,8 @@ function CanvasWorkspaceInner({
 
   const handleConnect = useCallback(
     (connection: Connection) => {
+      const locked = planLockRef.current.nodeIds;
+      if (locked.has(connection.source) || locked.has(connection.target)) return;
       const currentNodes = toDomainNodes(nodesRef.current);
       const currentEdges = toDomainEdges(edgesRef.current);
       const verdict = validateEdgeConnection(
@@ -1154,6 +1215,7 @@ function CanvasWorkspaceInner({
 
   const onRunNode = useCallback(
     async (nodeId: string) => {
+      if (planLockRef.current.nodeIds.has(nodeId)) return;
       setNodes((prev) =>
         prev.map((n) =>
           n.id === nodeId
@@ -1685,15 +1747,18 @@ function CanvasWorkspaceInner({
       toast.error(err instanceof Error ? err.message : "Invalid graph");
       return;
     }
+    const locked = planLockRef.current.nodeIds;
     if (nodeIds) waves = waves.map((w) => w.filter((id) => nodeIds.includes(id))).filter((w) => w.length);
+    if (locked.size > 0) waves = waves.map((w) => w.filter((id) => !locked.has(id))).filter((w) => w.length);
     if (waves.length === 0) return;
+    const limitTo = nodeIds || locked.size > 0 ? waves.flat() : undefined;
 
     const res = await runCanvasFlowAction({
       canvasId: activeProjectIdRef.current,
       nodes: currentNodes,
       edges: currentEdges,
       viewport: viewportRef.current,
-      ...(nodeIds ? { nodeIds } : {}),
+      ...(limitTo ? { nodeIds: limitTo } : {}),
     });
     if (!res.ok) {
       toast.error(res.error);
@@ -1712,6 +1777,7 @@ function CanvasWorkspaceInner({
   // Run group: only the group's model nodes run, in dependency order.
   const handleRunGroup = useCallback(
     (groupId: string) => {
+      if (planLockRef.current.groupIds.has(groupId)) return;
       const group = groupsApi.groups.find((g) => g.id === groupId);
       if (!group) return;
       const members = new Set(group.memberIds);
@@ -1817,6 +1883,7 @@ function CanvasWorkspaceInner({
   const ungroupById = groupsApi.ungroup;
   const handleDeleteGroup = useCallback(
     (groupId: string) => {
+      if (planLockRef.current.groupIds.has(groupId)) return;
       const group = canvasGroups.find((g) => g.id === groupId);
       if (!group) return;
       const members = new Set(group.memberIds);
@@ -1840,7 +1907,10 @@ function CanvasWorkspaceInner({
       onColor: groupsApi.recolorGroup,
       onToggleCollapse: groupsApi.toggleCollapse,
       onRun: handleRunGroup,
-      onUngroup: groupsApi.ungroup,
+      onUngroup: (groupId: string) => {
+        if (planLockRef.current.groupIds.has(groupId)) return;
+        ungroupById(groupId);
+      },
       onDelete: handleDeleteGroup,
     }),
     [
@@ -1849,17 +1919,29 @@ function CanvasWorkspaceInner({
       groupsApi.renameGroup,
       groupsApi.recolorGroup,
       groupsApi.toggleCollapse,
-      groupsApi.ungroup,
+      ungroupById,
       handleRunGroup,
       handleDeleteGroup,
     ],
   );
 
   const { groupSelection, ungroupSelection } = groupsApi;
-  const groupSelectedNodes = useCallback(
-    () => groupSelection(isZh ? "群組" : "Group"),
-    [groupSelection, isZh],
-  );
+  // A Director that is still planning keeps its frame and rows together.
+  const selectionHitsPlanning = useMemo(() => {
+    if (planLocks.groupIds.size === 0) return false;
+    const selected = new Set(groupsApi.selectedIds);
+    return groupsApi.groups.some(
+      (group) => planLocks.groupIds.has(group.id) && group.memberIds.some((id) => selected.has(id)),
+    );
+  }, [planLocks.groupIds, groupsApi.groups, groupsApi.selectedIds]);
+  const groupSelectedNodes = useCallback(() => {
+    if (selectionHitsPlanning) return false;
+    return groupSelection(isZh ? "群組" : "Group");
+  }, [groupSelection, isZh, selectionHitsPlanning]);
+  const ungroupSelectedNodes = useCallback(() => {
+    if (selectionHitsPlanning) return false;
+    return ungroupSelection();
+  }, [selectionHitsPlanning, ungroupSelection]);
   const { selectionInGroup, selectionIsOneGroup } = useMemo(() => {
     const selected = new Set(groupsApi.selectedIds);
     return {
@@ -1877,12 +1959,12 @@ function CanvasWorkspaceInner({
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "g") return;
       const target = event.target;
       if (target instanceof Element && target.closest("input, textarea, [contenteditable='true']")) return;
-      const handled = event.shiftKey ? ungroupSelection() : groupSelectedNodes();
+      const handled = event.shiftKey ? ungroupSelectedNodes() : groupSelectedNodes();
       if (handled) event.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [groupSelectedNodes, ungroupSelection]);
+  }, [groupSelectedNodes, ungroupSelectedNodes]);
 
   const handleStopFlow = useCallback(async () => {
     flowAbortRef.current = true;
@@ -2503,10 +2585,11 @@ function CanvasWorkspaceInner({
             onDrop={handlePaneDrop}
           >
             <CanvasNodeActionsContext.Provider value={nodeContextValue}>
+              <PlanLockProvider ids={planLocks.nodeIds}>
               <CanvasGroupActionsContext.Provider value={groupContextValue}>
                 <ReactFlow
-                  nodes={groupsApi.displayNodes}
-                  edges={displayEdges}
+                  nodes={flowNodes}
+                  edges={flowEdges}
                   nodeTypes={NODE_TYPES}
                   onNodesChange={handleNodesChange}
                   onEdgesChange={handleEdgesChange}
@@ -2556,6 +2639,7 @@ function CanvasWorkspaceInner({
                   />
                 </ReactFlow>
               </CanvasGroupActionsContext.Provider>
+              </PlanLockProvider>
             </CanvasNodeActionsContext.Provider>
 
             {nodeMenu ? (
@@ -2585,10 +2669,10 @@ function CanvasWorkspaceInner({
             <GroupSelectionBar
               isZh={isZh}
               selectedCount={groupsApi.selectedIds.length}
-              canGroup={groupsApi.selectedIds.length >= 2 && !selectionIsOneGroup}
-              canUngroup={selectionInGroup}
+              canGroup={groupsApi.selectedIds.length >= 2 && !selectionIsOneGroup && !selectionHitsPlanning}
+              canUngroup={selectionInGroup && !selectionHitsPlanning}
               onGroup={groupSelectedNodes}
-              onUngroup={ungroupSelection}
+              onUngroup={ungroupSelectedNodes}
             />
 
             {/* Empty canvas onboarding overlay */}

@@ -24,7 +24,7 @@ const KIND_LABEL: Record<CanvasGroupKind, { zh: string; en: string }> = {
 
 function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
   const actions = useCanvasGroupActions();
-  const { group, runnableCount } = data;
+  const { group, runnableCount, planLocked } = data;
   const { isZh } = actions;
   const color = GROUP_COLOR_HEX[group.color];
   const [editing, setEditing] = useState(false);
@@ -54,7 +54,7 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
     >
       {/* Title bar: the drag handle for the whole group */}
       <div
-        className="scro-group-drag pointer-events-auto absolute inset-x-0 top-0 flex h-11 cursor-grab items-center gap-2 rounded-t-2xl px-3 active:cursor-grabbing"
+        className={`scro-group-drag pointer-events-auto absolute inset-x-0 top-0 flex h-11 items-center gap-2 rounded-t-2xl px-3 ${planLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         style={{ backgroundColor: `${color}1f` }}
       >
         <div className="relative">
@@ -140,8 +140,16 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
         <button
           type="button"
           onClick={() => actions.onRun(group.id)}
-          disabled={actions.isFlowRunning || runnableCount === 0}
-          title={isZh ? "只執行這個群組" : "Run only this group"}
+          disabled={planLocked || actions.isFlowRunning || runnableCount === 0}
+          title={
+            planLocked
+              ? isZh
+                ? "規劃完成前不能執行"
+                : "Unavailable until planning finishes"
+              : isZh
+                ? "只執行這個群組"
+                : "Run only this group"
+          }
           className="nodrag flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-[#c6f24b] px-2.5 text-[11.5px] font-bold text-[#11141b] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Play className="h-3 w-3 fill-current" />
@@ -158,7 +166,16 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
         <button
           type="button"
           onClick={() => actions.onUngroup(group.id)}
-          title={isZh ? "解散群組（保留節點）" : "Ungroup (keep nodes)"}
+          disabled={planLocked}
+          title={
+            planLocked
+              ? isZh
+                ? "規劃完成前不能解散"
+                : "Unavailable until planning finishes"
+              : isZh
+                ? "解散群組（保留節點）"
+                : "Ungroup (keep nodes)"
+          }
           className={iconButton}
         >
           <Ungroup className="h-4 w-4" />
@@ -167,9 +184,18 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
         <button
           type="button"
           onClick={() => actions.onDelete(group.id)}
-          title={isZh ? "刪除群組同所有節點" : "Delete group and its nodes"}
+          disabled={planLocked}
+          title={
+            planLocked
+              ? isZh
+                ? "規劃完成前不能刪除"
+                : "Unavailable until planning finishes"
+              : isZh
+                ? "刪除群組同所有節點"
+                : "Delete group and its nodes"
+          }
           aria-label={isZh ? "刪除群組" : "Delete group"}
-          className="nodrag grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-white/55 transition hover:bg-rose-500/15 hover:text-rose-300"
+          className="nodrag grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-white/55 transition hover:bg-rose-500/15 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-35"
         >
           <Trash2 className="h-4 w-4" />
         </button>
