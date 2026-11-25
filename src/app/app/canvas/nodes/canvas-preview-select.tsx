@@ -117,7 +117,7 @@ export function CanvasPreviewSelect({
   options: readonly CanvasPreviewOption[];
   ariaLabel: string;
   disabled?: boolean;
-  // "banner" shows the selected preview across the full width of the control.
+  // "banner" shows a wide preview on the left of the closed control and of each option.
   layout?: "inline" | "banner";
   onChange: (value: string) => void;
 }) {
@@ -182,19 +182,21 @@ export function CanvasPreviewSelect({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
-        className={`nodrag flex w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] text-left text-[12px] text-white/90 hover:border-white/20 focus:border-[#c6f24b]/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
-          layout === "banner" ? "flex-col gap-1.5 p-1.5" : "items-center gap-2 px-1.5 py-1.5"
-        }`}
+        className="nodrag flex w-full cursor-pointer items-center gap-2 rounded-[8px] border border-white/10 bg-[#0b0e14] px-1.5 py-1.5 text-left text-[12px] text-white/90 hover:border-white/20 focus:border-[#c6f24b]/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {layout === "banner" && selected?.previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={selected.previewUrl} alt="" className="aspect-video w-full rounded-[6px] object-cover" />
+          <img src={selected.previewUrl} alt="" className="h-14 w-24 shrink-0 rounded-[6px] object-cover" />
+        ) : hasPreview(selected) ? (
+          <Preview option={selected} />
         ) : null}
-        <span className={`flex min-w-0 items-center gap-2 ${layout === "banner" ? "px-0.5" : "w-full"}`}>
-          {layout === "inline" && hasPreview(selected) ? <Preview option={selected} /> : null}
-          <span className="min-w-0 flex-1 truncate">{selected?.label ?? value}</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/45 transition ${open ? "rotate-180" : ""}`} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate">{selected?.label ?? value}</span>
+          {layout === "banner" && selected?.sublabel ? (
+            <span className="mt-0.5 block line-clamp-2 text-[11px] leading-snug text-white/50">{selected.sublabel}</span>
+          ) : null}
         </span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/45 transition ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && box
