@@ -17,7 +17,12 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
-import { ART_STYLE_LABELS, PRESENTER_LABELS, SCENE_TEXT_LABELS } from "@/app/app/canvas/nodes/explainer-settings-options";
+import {
+  ART_STYLE_LABELS,
+  ART_STYLE_PREVIEWS,
+  PRESENTER_LABELS,
+  SCENE_TEXT_LABELS,
+} from "@/app/app/canvas/nodes/explainer-settings-options";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
 type Props = {
@@ -49,22 +54,24 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
         />
       </label>
 
+      <div className={DIALOG_LABEL}>
+        {isZh ? "畫風" : "Art style"}
+        <CanvasPreviewSelect
+          layout="banner"
+          value={skillSlug}
+          ariaLabel={isZh ? "畫風" : "Art style"}
+          options={EXPLAINER_SKILL_SLUGS.map((slug) => ({
+            value: slug,
+            label: pick(ART_STYLE_LABELS[slug]),
+            sublabel: pick(ART_STYLE_PREVIEWS[slug].blurb),
+            previewUrl: ART_STYLE_PREVIEWS[slug].previewUrl,
+          }))}
+          // A new art style falls back to that style's default background.
+          onChange={(next) => setParams({ skillSlug: next, directorBackgroundId: undefined })}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
-        <label className={DIALOG_LABEL}>
-          {isZh ? "畫風" : "Art style"}
-          <select
-            value={skillSlug}
-            // A new art style falls back to that style's default background.
-            onChange={(e) => setParams({ skillSlug: e.target.value, directorBackgroundId: undefined })}
-            className={DIALOG_FIELD}
-          >
-            {EXPLAINER_SKILL_SLUGS.map((slug) => (
-              <option key={slug} value={slug}>
-                {pick(ART_STYLE_LABELS[slug])}
-              </option>
-            ))}
-          </select>
-        </label>
         <label className={DIALOG_LABEL}>
           {isZh ? "旁白語言" : "Voice language"}
           <select value={String(tp.language ?? "yue")} onChange={(e) => setParams({ language: e.target.value })} className={DIALOG_FIELD}>
@@ -87,7 +94,7 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             ))}
           </select>
         </label>
-        <label className={DIALOG_LABEL}>
+        <label className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "比例" : "Ratio"}
           <select
             value={data.aspectRatio ?? "9:16"}
@@ -101,16 +108,7 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             ))}
           </select>
         </label>
-        <div className={`col-span-2 ${DIALOG_LABEL}`}>
-          {isZh ? "角色" : "Character"}
-          <CanvasPreviewSelect
-            value={String(tp.characterId ?? "")}
-            ariaLabel={isZh ? "角色" : "Character"}
-            options={libraryCharacterChoices(characterOptions, isZh ? "不指定" : "None")}
-            onChange={(characterId) => setParams({ characterId: characterId || undefined })}
-          />
-        </div>
-        <label className={DIALOG_LABEL}>
+        <label className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "畫面文字語言" : "On-screen text"}
           <select
             value={String(tp.sceneTextLanguage ?? (tp.language === "en" ? "en" : "zh-Hant"))}
@@ -124,7 +122,7 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             ))}
           </select>
         </label>
-        <label className={DIALOG_LABEL}>
+        <label className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "主持人位置" : "Presenter"}
           <select
             value={String(tp.presenterPosition ?? "auto")}
@@ -138,6 +136,15 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             ))}
           </select>
         </label>
+        <div className={`col-span-2 ${DIALOG_LABEL}`}>
+          {isZh ? "角色" : "Character"}
+          <CanvasPreviewSelect
+            value={String(tp.characterId ?? "")}
+            ariaLabel={isZh ? "角色" : "Character"}
+            options={libraryCharacterChoices(characterOptions, isZh ? "不指定" : "None")}
+            onChange={(characterId) => setParams({ characterId: characterId || undefined })}
+          />
+        </div>
       </div>
 
       <div className={DIALOG_LABEL}>

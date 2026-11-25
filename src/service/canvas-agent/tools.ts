@@ -1055,7 +1055,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     update_settings: tool({
       description:
-        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in wired Director, model, or Prompt node prompts. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
+        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in wired model or Prompt node prompts. The Explainer Director has no Setting input. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
       inputSchema: updateSettingsSchema,
       execute: async (input) => H.update_settings(g, input),
     }),

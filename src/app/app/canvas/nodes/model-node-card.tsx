@@ -110,8 +110,7 @@ export function ModelNodeCard({
         selected={Boolean(selected)}
         disabled={isFlowRunning}
         characterOptions={characterOptions}
-        incomingHandles={[...incomingByHandle.keys()]}
-        hasSetting={incomingByHandle.has(SETTINGS_HANDLE)}
+        incomingHandles={[...incomingByHandle.keys()].filter((handle) => handle !== SETTINGS_HANDLE)}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}

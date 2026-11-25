@@ -110,12 +110,15 @@ export function CanvasPreviewSelect({
   options,
   ariaLabel,
   disabled,
+  layout = "inline",
   onChange,
 }: {
   value: string;
   options: readonly CanvasPreviewOption[];
   ariaLabel: string;
   disabled?: boolean;
+  // "banner" shows the selected preview across the full width of the control.
+  layout?: "inline" | "banner";
   onChange: (value: string) => void;
 }) {
   const listboxId = useId();
@@ -179,11 +182,19 @@ export function CanvasPreviewSelect({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
-        className="nodrag flex w-full cursor-pointer items-center gap-2 rounded-[8px] border border-white/10 bg-[#0b0e14] px-1.5 py-1.5 text-left text-[12px] text-white/90 hover:border-white/20 focus:border-[#c6f24b]/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className={`nodrag flex w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] text-left text-[12px] text-white/90 hover:border-white/20 focus:border-[#c6f24b]/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+          layout === "banner" ? "flex-col gap-1.5 p-1.5" : "items-center gap-2 px-1.5 py-1.5"
+        }`}
       >
-        {hasPreview(selected) ? <Preview option={selected} /> : null}
-        <span className="min-w-0 flex-1 truncate">{selected?.label ?? value}</span>
-        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/45 transition ${open ? "rotate-180" : ""}`} />
+        {layout === "banner" && selected?.previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={selected.previewUrl} alt="" className="aspect-video w-full rounded-[6px] object-cover" />
+        ) : null}
+        <span className={`flex min-w-0 items-center gap-2 ${layout === "banner" ? "px-0.5" : "w-full"}`}>
+          {layout === "inline" && hasPreview(selected) ? <Preview option={selected} /> : null}
+          <span className="min-w-0 flex-1 truncate">{selected?.label ?? value}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/45 transition ${open ? "rotate-180" : ""}`} />
+        </span>
       </button>
 
       {open && box
@@ -212,7 +223,17 @@ export function CanvasPreviewSelect({
                         active ? "bg-[#c6f24b]/15" : "hover:bg-white/6"
                       }`}
                     >
-                      {hasPreview(option) ? <Preview option={option} large /> : null}
+                      {layout === "banner" && option.previewUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={option.previewUrl}
+                          alt=""
+                          className="h-14 w-24 shrink-0 rounded-[6px] object-cover"
+                        />
+                      ) : hasPreview(option) ? (
+                        <Preview option={option} large />
+                      ) : null}
+                      <span className="flex min-w-0 w-full items-center gap-2">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[12.5px] font-semibold">{option.label}</span>
                         {option.sublabel ? (
@@ -222,6 +243,7 @@ export function CanvasPreviewSelect({
                         ) : null}
                       </span>
                       {active ? <Check className="h-4 w-4 shrink-0 text-[#c6f24b]" /> : null}
+                      </span>
                     </button>
                   </li>
                 );

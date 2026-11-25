@@ -13,5 +13,13 @@ describe("Setting registry", () => {
     assert.equal(canWireSettings({ id: "m", type: "model", data: {} }), true);
     assert.equal(canWireSettings({ id: "p", type: "prompt", data: {} }), true);
     assert.equal(canWireSettings({ id: "x", type: "media", data: {} }), false);
+    assert.equal(
+      canWireSettings({
+        id: "exp",
+        type: "model",
+        data: { modelId: "scro:explainer", toolParams: { plannerMode: true } },
+      }),
+      false,
+    );
   });
 });

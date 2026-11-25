@@ -14,7 +14,6 @@ import {
   type DirectorOutputKind,
 } from "@/service/canvas/explainer-director";
 import { readPlannerParams } from "@/service/canvas/explainer-planner";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
@@ -34,7 +33,6 @@ type Props = {
   characterOptions: readonly CanvasLibraryCharacterOption[];
   // Input handles that already have wires (older planner cards), kept so those wires render.
   incomingHandles: readonly string[];
-  hasSetting: boolean;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -47,7 +45,6 @@ export function ExplainerDirectorCard({
   disabled,
   characterOptions,
   incomingHandles,
-  hasSetting,
   onUpdate,
   onPlan,
   onRemove,
@@ -65,24 +62,9 @@ export function ExplainerDirectorCard({
         selected ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/25" : "border-[#252c3b] hover:border-[#374157]"
       }`}
     >
-      {incomingHandles
-        .filter((handle) => handle !== SETTINGS_HANDLE)
-        .map((handle) => (
-          <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
-        ))}
-      <Handle
-        type="target"
-        id={SETTINGS_HANDLE}
-        position={Position.Left}
-        title={isZh ? "Setting：填入 {{key}}" : "Setting: fills {{key}}"}
-        style={{
-          top: 20,
-          width: 11,
-          height: 11,
-          background: hasSetting ? DIRECTOR_COLOR : "#0b0e13",
-          border: `2px solid ${hasSetting ? "#0b0e13" : "#64748b"}`,
-        }}
-      />
+      {incomingHandles.map((handle) => (
+        <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
+      ))}
 
       <div className="flex items-center justify-between border-b border-white/6 px-3 py-2">
         <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-white/90">
