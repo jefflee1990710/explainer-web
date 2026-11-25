@@ -2,7 +2,7 @@
 
 // Teleport setup: source video, scene photo or scene text, optional mood, and the section.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CanvasAspectRatio } from "@/model/canvas";
 import type { TeleportGroupInput } from "@/service/canvas/scro-groups/teleport";
 import { AspectRatioField } from "./aspect-ratio-field";
@@ -10,6 +10,7 @@ import { MediaPickField } from "./media-pick-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA, ScroDialogShell } from "./scro-dialog-shell";
 import type { MediaPickOption } from "./scro-group-options";
 import { SectionFields } from "./section-fields";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Props = {
   open: boolean;
@@ -24,8 +25,18 @@ export function TeleportDialog({ open, isZh, videoOptions, imageOptions, onCance
   const [video, setVideo] = useState<MediaPickOption | null>(null);
   const [sceneKind, setSceneKind] = useState<"image" | "text">("image");
   const [scenePhoto, setScenePhoto] = useState<MediaPickOption | null>(null);
-  const [sceneText, setSceneText] = useState("");
-  const [mood, setMood] = useState("");
+  const sceneTextRef = useRef("");
+  const [sceneText, setSceneTextState] = useState("");
+  const setSceneText = (next: string) => {
+    sceneTextRef.current = next;
+    setSceneTextState(next);
+  };
+  const moodRef = useRef("");
+  const [mood, setMoodState] = useState("");
+  const setMood = (next: string) => {
+    moodRef.current = next;
+    setMoodState(next);
+  };
   const [section, setSection] = useState({ start: 0, length: 6 });
   const [aspectRatio, setAspectRatio] = useState<CanvasAspectRatio>("9:16");
 
@@ -52,8 +63,8 @@ export function TeleportDialog({ open, isZh, videoOptions, imageOptions, onCance
           scene:
             sceneKind === "image" && scenePhoto
               ? { kind: "image", ref: scenePhoto.ref }
-              : { kind: "text", text: sceneText.trim() },
-          ...(mood.trim() ? { mood } : {}),
+              : { kind: "text", text: sceneTextRef.current.trim() },
+          ...(moodRef.current.trim() ? { mood: moodRef.current } : {}),
           sectionStart: section.start,
           sectionLength: section.length,
           aspectRatio,
@@ -91,9 +102,9 @@ export function TeleportDialog({ open, isZh, videoOptions, imageOptions, onCance
       ) : (
         <label className="block text-[11px] text-white/55">
           {isZh ? "場景描述" : "Scene description"}
-          <textarea
+          <ComposedTextarea
             value={sceneText}
-            onChange={(e) => setSceneText(e.target.value)}
+            onValue={setSceneText}
             rows={2}
             placeholder={isZh ? "例如：夜晚下雨的東京街頭" : "e.g. A Tokyo street at night in the rain"}
             className={DIALOG_TEXTAREA}
@@ -102,7 +113,7 @@ export function TeleportDialog({ open, isZh, videoOptions, imageOptions, onCance
       )}
       <label className="block text-[11px] text-white/55">
         {isZh ? "氣氛（選填）" : "Mood (optional)"}
-        <textarea value={mood} onChange={(e) => setMood(e.target.value)} rows={2} className={DIALOG_TEXTAREA} />
+        <ComposedTextarea value={mood} onValue={setMood} rows={2} className={DIALOG_TEXTAREA} />
       </label>
       <SectionFields isZh={isZh} start={section.start} length={section.length} onChange={setSection} />
       <AspectRatioField isZh={isZh} value={aspectRatio} onChange={setAspectRatio} />

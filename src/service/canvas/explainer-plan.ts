@@ -13,6 +13,7 @@ import {
 import { composeExplainerPlanSource } from "@/service/canvas/explainer-settings";
 import type { ExplainerPresenterPosition } from "@/model/explainer-settings";
 import {
+  directorHandles,
   directorParams,
   isExplainerDirectorNode,
   isPlanDirectorNode,
@@ -34,20 +35,26 @@ import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
 import { stillBlocker } from "@/service/higgsfield/pipeline";
 import { schedulePhaseAWorkerTask } from "@/service/worker/schedule";
 
+type ExpandedPlan = {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  expandedNodeIds: string[];
+  summary: string;
+  // Frame around the expanded nodes; its id is the node id prefix.
+  group: CanvasGroup;
+  // Director: the plan to store on the node.
+  plan?: ExplainerDirectorPlan;
+};
+
+// What a Director is still waiting for while its rows are already on the canvas.
+export type DirectorBuildStage = "locks" | "prompts";
+
 export type CanvasExplainerPlanState =
   | { status: "planning" }
   | { status: "failed"; error: string }
-  | {
-      status: "ready";
-      nodes: CanvasNode[];
-      edges: CanvasEdge[];
-      expandedNodeIds: string[];
-      summary: string;
-      // Frame around the expanded nodes; its id is the node id prefix.
-      group: CanvasGroup;
-      // Explainer Director: the plan to store on the node.
-      plan?: ExplainerDirectorPlan;
-    };
+  // Phase A is written: a Director can place its rows now; prompts and reference stills follow.
+  | (ExpandedPlan & { status: "building"; stage: DirectorBuildStage })
+  | (ExpandedPlan & { status: "ready" });
 
 // Plan source for a Director: topic, presenter line, and the old voiceover when the topic is unchanged.
 export function explainerPlanSource(node: CanvasNode): string {
@@ -114,9 +121,6 @@ export async function startCanvasExplainerPlan(params: {
           ...(planDirector
             ? { "nodes.$[n].data.toolParams.planningWith": planDirectorParams(plannerNode) }
             : {}),
-          ...(wired?.characterId
-            ? { "nodes.$[n].data.toolParams.characterId": wired.characterId }
-            : {}),
           updatedAt: new Date(),
         },
         $unset: { "nodes.$[n].data.toolParams.planError": "" },
@@ -177,8 +181,24 @@ export function planStateFromVideo(params: {
   if (video.canvasPlan?.error) return { status: "failed", error: video.canvasPlan.error };
   const prompts = video.canvasPlan?.prompts ?? [];
   if (video.status !== "production" || !video.phaseA || prompts.length === 0 || params.blocker) {
-    return { status: "planning" };
+    if (!video.phaseA || !isPlanDirectorNode(plannerNode)) return { status: "planning" };
+    const stage: DirectorBuildStage =
+      video.status !== "production" || params.blocker ? "locks" : "prompts";
+    return { status: "building", stage, ...expandPlan(params, video.phaseA, true) };
   }
+  return { status: "ready", ...expandPlan(params, video.phaseA, false) };
+}
+
+// Builds the rows and plan. `partial`: only Phase A is known, so prompts not yet written stay
+// empty and Director wires from outputs that do not exist yet are left out.
+function expandPlan(
+  params: Parameters<typeof planStateFromVideo>[0],
+  phaseA: NonNullable<Project["phaseA"]>,
+  partial: boolean,
+): ExpandedPlan {
+  const video = params.video!;
+  const { plannerNode } = params;
+  const prompts = video.canvasPlan?.prompts ?? [];
   const toolParams = plannerNode.data.toolParams ?? {};
   const language = plannerLanguage(video.language ?? toolParams.language);
   const planningSnapshot = toolParams.planningWith;
@@ -194,7 +214,9 @@ export function planStateFromVideo(params: {
   const frameByClip = new Map(
     (video.canvasPlan?.framePrompts ?? []).map((f) => [f.clipNumber, f.prompt]),
   );
-  const phaseA = video.phaseA;
+  // A still prompt the worker has not written yet stays empty until the plan is ready.
+  const framePromptFor = (clipNumber: number) =>
+    frameByClip.get(clipNumber) || (partial ? "" : params.buildFramePrompt(video, clipNumber));
   const voicePreset = explainerVoicePreset(language, video.voiceGender === "male" ? "male" : "female");
   const summary = [
     phaseA.localizedTitle || phaseA.englishTitle,
@@ -206,7 +228,7 @@ export function planStateFromVideo(params: {
   if (plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID) {
     // A Talking Head Director keeps its card; its outputs feed the rows on its right.
     const directorId = isTalkingHeadDirectorNode(plannerNode) ? plannerNode.id : undefined;
-    const framePrompt = frameByClip.get(1) || params.buildFramePrompt(video, 1);
+    const framePrompt = framePromptFor(1);
     const thClips = phaseA.clips.map((clip) => ({
       clipNumber: clip.clipNumber,
       spokenLine: clip.englishVo ?? "",
@@ -238,7 +260,7 @@ export function planStateFromVideo(params: {
       language,
       framing: video.talkingHeadPoseId ?? "collarbone-close",
     });
-    if (!directorId) return { status: "ready", ...expansion, summary, group };
+    if (!directorId) return { ...expansion, summary, group };
     // Only Clip 1 carries the shared opening still prompt.
     const plan: ExplainerDirectorPlan = {
       plannerVideoId: video._id.toHexString(),
@@ -252,14 +274,14 @@ export function planStateFromVideo(params: {
         refUrls: clip.clipNumber === 1 ? (params.frameInputs?.refsByClip.get(1) ?? []) : [],
       })),
     };
-    return { status: "ready", ...expansion, summary, group, plan };
+    return withLiveDirectorEdges({ ...expansion, summary, group, plan }, directorId, partial);
   }
 
   // Every Explainer planner is a Director; its outputs feed the rows.
   const directorId = plannerNode.id;
   const clips = phaseA.clips.map((clip) => ({
     clipNumber: clip.clipNumber,
-    framePrompt: frameByClip.get(clip.clipNumber) || params.buildFramePrompt(video, clip.clipNumber),
+    framePrompt: framePromptFor(clip.clipNumber),
     videoPrompt: promptByClip.get(clip.clipNumber)?.prompt ?? "",
     durationSeconds: promptByClip.get(clip.clipNumber)?.durationSeconds ?? clip.durationSeconds,
     spokenLine: clip.englishVo ?? "",
@@ -287,7 +309,17 @@ export function planStateFromVideo(params: {
     memberIds: [directorId, ...expansion.nodes.map((n) => n.id)],
     language,
   });
-  return { status: "ready", ...expansion, summary, group, plan };
+  return withLiveDirectorEdges({ ...expansion, summary, group, plan }, directorId, partial);
+}
+
+// A partial plan has no still output yet, so its wire waits until the plan is ready.
+function withLiveDirectorEdges(expanded: ExpandedPlan, directorId: string, partial: boolean): ExpandedPlan {
+  if (!partial || !expanded.plan) return expanded;
+  const live = new Set(directorHandles(expanded.plan));
+  return {
+    ...expanded,
+    edges: expanded.edges.filter((e) => e.source !== directorId || !e.sourceHandle || live.has(e.sourceHandle)),
+  };
 }
 
 export async function readCanvasExplainerPlan(params: {

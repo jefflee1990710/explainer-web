@@ -1,7 +1,6 @@
-// Pure graph edits after a Director plan: build or rebuild its rows, or keep them and cut lost outputs.
+// Pure graph edits for a Director plan: place its rows step by step, merge the finished plan, or rebuild.
 
 import type { CanvasGroup } from "@/model/canvas";
-import { directorHandles, parseDirectorHandle, type ExplainerDirectorPlan } from "@/service/canvas/explainer-director";
 
 type GraphNode = { id: string };
 type GraphEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
@@ -27,19 +26,38 @@ export function applyDirectorBuild<N extends GraphNode, E extends GraphEdge>(
   };
 }
 
-// Removes wires from Director outputs the new plan no longer has, and names their targets.
-export function dropCutDirectorEdges<E extends Pick<GraphEdge, "source" | "target" | "sourceHandle">>(
-  edges: readonly E[],
-  directorId: string,
-  plan: ExplainerDirectorPlan,
-): { edges: E[]; cutTargets: string[] } {
-  const live = new Set(directorHandles(plan));
-  const cutTargets: string[] = [];
-  const kept = edges.filter((e) => {
-    const handle = e.sourceHandle;
-    const cut = e.source === directorId && Boolean(handle && parseDirectorHandle(handle)) && !live.has(handle!);
-    if (cut && !cutTargets.includes(e.target)) cutTargets.push(e.target);
-    return !cut;
+// Finished plan onto rows built while planning: same-id nodes take the final data but keep
+// where they sit and any output already made; reference stills and wires that only exist now are added.
+export function mergeDirectorRows<N extends GraphNode & { data: object }, E extends GraphEdge>(
+  graph: { nodes: readonly N[]; edges: readonly E[] },
+  expansion: { nodes: readonly N[]; edges: readonly E[] },
+): { nodes: N[]; edges: E[]; addedIds: string[] } {
+  const finalById = new Map(expansion.nodes.map((n) => [n.id, n]));
+  const present = new Set(graph.nodes.map((n) => n.id));
+  const nodes = graph.nodes.map((n) => {
+    const next = finalById.get(n.id);
+    return next ? { ...n, data: { ...n.data, ...next.data } } : n;
   });
-  return { edges: kept, cutTargets };
+  const added = expansion.nodes.filter((n) => !present.has(n.id));
+  const edgeIds = new Set(graph.edges.map((e) => e.id));
+  return {
+    nodes: [...nodes, ...added],
+    edges: [...graph.edges, ...expansion.edges.filter((e) => !edgeIds.has(e.id))],
+    addedIds: added.map((n) => n.id),
+  };
+}
+
+// One node per step, in build order; each step also carries the wires whose two ends are now placed.
+export function directorRevealSteps<N extends GraphNode, E extends GraphEdge>(
+  expansion: { nodes: readonly N[]; edges: readonly E[] },
+  existingIds: Iterable<string>,
+): { node: N; edges: E[] }[] {
+  const placed = new Set(existingIds);
+  const waiting = [...expansion.edges];
+  return expansion.nodes.map((node) => {
+    placed.add(node.id);
+    const ready = waiting.filter((e) => placed.has(e.source) && placed.has(e.target));
+    for (const e of ready) waiting.splice(waiting.indexOf(e), 1);
+    return { node, edges: ready };
+  });
 }

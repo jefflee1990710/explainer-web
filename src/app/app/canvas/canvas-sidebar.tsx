@@ -12,6 +12,7 @@ import { Film, Loader2, Music, RefreshCw, Search, Upload } from "lucide-react";
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { CanvasSidebarIcons, type CanvasSidebarTab } from "@/app/app/canvas/canvas-sidebar-icons";
 import { CanvasSidebarNav, type AssetNavSection } from "@/app/app/canvas/canvas-sidebar-nav";
 import {
@@ -277,10 +278,10 @@ export function CanvasSidebar({
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
-                <input
+                <ComposedInput
                   type="text"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onValue={setQuery}
                   placeholder={
                     tab === "directors"
                       ? isZh

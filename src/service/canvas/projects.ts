@@ -95,6 +95,9 @@ export type CanvasLibraryAsset = {
   mediaKind: "image" | "video" | "audio";
   url: string;
   thumbnailUrl?: string;
+  // Face and standing figure, shown together when this asset is a character choice.
+  portraitUrl?: string;
+  fullBodyUrl?: string;
   createdAt: string;
   // Set on outfit tiles so a drop lands on the matching character input.
   outfitPart?: "hair" | "top" | "pants" | "shoes" | "accessory" | "look";
@@ -457,6 +460,8 @@ export async function listCanvasLibraryAssets(
         mediaKind: "image",
         url,
         thumbnailUrl: url,
+        ...(images?.portraitUrl ? { portraitUrl: images.portraitUrl } : {}),
+        ...(images?.fullBodyUrl ? { fullBodyUrl: images.fullBodyUrl } : {}),
         createdAt: (character.updatedAt ?? character.createdAt ?? new Date()).toISOString(),
       });
     }

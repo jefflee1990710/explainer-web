@@ -17,6 +17,7 @@ import { readPlannerParams } from "@/service/canvas/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
+import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
 
 const OUTPUT_LABELS: { kind: DirectorOutputKind; zh: string; en: string }[] = [
   { kind: "frame", zh: "靜幀", en: "Still" },
@@ -118,9 +119,12 @@ export function ExplainerDirectorCard({
           </p>
         ) : null}
         {planning ? (
-          <p className="text-[10.5px] text-white/45">
-            {isZh ? "規劃中，約需 1–3 分鐘。輸出暫時維持上次的規劃。" : "Planning, about 1–3 minutes. Outputs keep the last plan meanwhile."}
-          </p>
+          <DirectorPlanProgress
+            isZh={isZh}
+            stage={typeof data.toolParams?.planStage === "string" ? data.toolParams.planStage : undefined}
+            draft={data.toolParams?.planDraft === true}
+            replanning={Boolean(plan)}
+          />
         ) : null}
         {planStatus === "failed" && planError ? (
           <p className="flex items-start gap-1 rounded-[8px] bg-rose-500/10 px-2 py-1.5 text-[10.5px] text-rose-200">

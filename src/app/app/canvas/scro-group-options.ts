@@ -10,6 +10,8 @@ export type MediaPickOption = {
   source: "canvas" | "character" | "product" | "library" | "upload";
   mediaKind: CanvasMediaKind;
   url: string;
+  portraitUrl?: string;
+  fullBodyUrl?: string;
   ref: GroupMediaRef;
 };
 
@@ -46,6 +48,8 @@ export function assetOptions(
       source,
       mediaKind: asset.mediaKind,
       url: asset.url,
+      ...(asset.portraitUrl ? { portraitUrl: asset.portraitUrl } : {}),
+      ...(asset.fullBodyUrl ? { fullBodyUrl: asset.fullBodyUrl } : {}),
       ref: { url: asset.url, name: asset.name, mediaKind: asset.mediaKind },
     }));
 }

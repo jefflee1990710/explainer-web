@@ -2,12 +2,13 @@
 
 // Life Photo setup: character still + scene → Seedream node group.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CanvasAspectRatio } from "@/model/canvas";
 import type { LifeGroupInput } from "@/service/canvas/scro-groups/life";
 import { AspectRatioField } from "./aspect-ratio-field";
 import { MediaPickField } from "./media-pick-field";
 import { DIALOG_TEXTAREA, ScroDialogShell } from "./scro-dialog-shell";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import type { MediaPickOption } from "./scro-group-options";
 
 type Props = {
@@ -20,7 +21,12 @@ type Props = {
 
 export function LifeDialog({ open, isZh, characterOptions, onCancel, onSubmit }: Props) {
   const [character, setCharacter] = useState<MediaPickOption | null>(null);
-  const [scene, setScene] = useState("");
+  const sceneRef = useRef("");
+  const [scene, setSceneState] = useState("");
+  const setScene = (next: string) => {
+    sceneRef.current = next;
+    setSceneState(next);
+  };
   const [aspectRatio, setAspectRatio] = useState<CanvasAspectRatio>("9:16");
 
   return (
@@ -36,7 +42,7 @@ export function LifeDialog({ open, isZh, characterOptions, onCancel, onSubmit }:
       submitLabel={isZh ? "建立節點" : "Add nodes"}
       canSubmit={Boolean(character)}
       onCancel={onCancel}
-      onSubmit={() => character && onSubmit({ character: character.ref, scene, aspectRatio })}
+      onSubmit={() => character && onSubmit({ character: character.ref, scene: sceneRef.current, aspectRatio })}
     >
       <MediaPickField
         label={isZh ? "角色" : "Character"}
@@ -48,9 +54,9 @@ export function LifeDialog({ open, isZh, characterOptions, onCancel, onSubmit }:
       />
       <label className="block text-[11px] text-white/55">
         {isZh ? "場景和氣氛" : "Scene and mood"}
-        <textarea
+        <ComposedTextarea
           value={scene}
-          onChange={(e) => setScene(e.target.value)}
+          onValue={setScene}
           rows={3}
           placeholder={isZh ? "例如：週末早上喺咖啡店窗邊看書" : "e.g. Reading by a cafe window on a Sunday morning"}
           className={DIALOG_TEXTAREA}

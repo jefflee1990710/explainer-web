@@ -5,6 +5,7 @@
 import type { CanvasAspectRatio, CanvasNodeData } from "@/model/canvas";
 import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Props = {
   data: CanvasNodeData;
@@ -22,20 +23,20 @@ export function TeleportDirectorFields({ data, isZh, disabled, onUpdate }: Props
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
       <label className={DIALOG_LABEL}>
         {isZh ? "場景" : "Scene"}
-        <textarea
+        <ComposedTextarea
           rows={3}
           value={String(tp.sceneText ?? "")}
-          onChange={(e) => setParams({ sceneText: e.target.value })}
+          onValue={(sceneText) => setParams({ sceneText })}
           placeholder={isZh ? "沒有場景圖時，用文字畫一張空場景…" : "With no scene photo, these words draw an empty plate…"}
           className={DIALOG_TEXTAREA}
         />
       </label>
       <label className={DIALOG_LABEL}>
         {isZh ? "氣氛" : "Mood"}
-        <textarea
+        <ComposedTextarea
           rows={2}
           value={data.prompt ?? ""}
-          onChange={(e) => onUpdate({ prompt: e.target.value })}
+          onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "可選，例如更冷的光" : "Optional, e.g. colder light"}
           className={DIALOG_TEXTAREA}
         />

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { SETTINGS_VAR_KEY, type SettingsVars } from "@/model/canvas-settings";
 import { DIALOG_FIELD } from "@/app/app/canvas/scro-dialog-shell";
+import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Row = { key: string; value: string };
 
@@ -65,18 +66,18 @@ export function SettingsVarsEditor({
         const setRow = (patch: Partial<Row>) => commit(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
         return (
           <div key={index} className="flex items-start gap-1">
-            <input
+            <ComposedInput
               value={row.key}
-              onChange={(e) => setRow({ key: e.target.value.trim() })}
+              onValue={(key) => setRow({ key: key.trim() })}
               placeholder="key"
               aria-invalid={invalid}
               title={invalid ? (isZh ? "只可用英文字母、數字同底線，且不可重複" : "Letters, digits, and _ only; no duplicates") : undefined}
               className={`${DIALOG_FIELD} w-[38%] shrink-0 font-mono ${invalid ? "!border-rose-400/70" : ""}`}
             />
-            <textarea
+            <ComposedTextarea
               value={row.value}
               rows={1}
-              onChange={(e) => setRow({ value: e.target.value })}
+              onValue={(value) => setRow({ value })}
               placeholder={isZh ? "值" : "value"}
               className={`${DIALOG_FIELD} nowheel min-w-0 flex-1 resize-y`}
             />

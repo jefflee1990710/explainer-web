@@ -8,6 +8,11 @@ import {
 } from "@/model/jutsu-job";
 import { prepareBrandUploadAction } from "@/presentation/actions/brand-upload";
 import { applyClipScroSwapAction } from "@/presentation/actions/opencut-clip-jutsu";
+import {
+  CharacterMenu,
+  CharacterMenuRow,
+  characterPairFromPublic,
+} from "@/presentation/components/app/characters/character-pair-menu";
 import { writeLastCharacterIds } from "@/presentation/components/app/projects/new/brief-defaults";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
@@ -381,34 +386,22 @@ export function OpenCutClipScroSwapDialog({
               </div>
 
               {characters.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <CharacterMenu>
                   {characters.map((char) => {
-                    const thumb = defaultCharacterLookUrl(char);
+                    const pair = characterPairFromPublic(char);
                     const active = uploadedPhotoUrls.length === 0 && char.id === characterId;
                     return (
-                      <button
+                      <CharacterMenuRow
                         key={char.id}
-                        type="button"
+                        label={char.name}
+                        portraitUrl={pair.portraitUrl}
+                        fullBodyUrl={pair.fullBodyUrl}
+                        selected={active}
                         onClick={() => selectCharacter(char)}
-                        className={`flex flex-col overflow-hidden rounded-xl border text-left transition ${
-                          active
-                            ? "border-2 border-accent-ink bg-lime/20"
-                            : "border-accent-ink/15 hover:border-accent-ink/50"
-                        }`}
-                      >
-                        <div className="aspect-square w-full bg-accent-ink/5">
-                          {thumb ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={thumb} alt={char.name} className="size-full object-cover" />
-                          ) : null}
-                        </div>
-                        <span className="truncate px-2 py-1 text-xs font-semibold">
-                          {char.name}
-                        </span>
-                      </button>
+                      />
                     );
                   })}
-                </div>
+                </CharacterMenu>
               ) : null}
 
               {activeCharacter && uploadedPhotoUrls.length === 0 && savedPresets.length > 0 ? (

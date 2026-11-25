@@ -6,7 +6,9 @@ import type { CanvasAspectRatio, CanvasNodeData } from "@/model/canvas";
 import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
 import { getTalkingHeadPose } from "@/model/talking-head-options";
 import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
+import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
 export const TALKING_HEAD_FRAMINGS = [
@@ -36,27 +38,10 @@ export function TalkingHeadDirectorFields({
   const ratio = (data.aspectRatio ?? "9:16") as CanvasAspectRatio;
   const selectedCharacterId = String(tp.characterId ?? "");
   const characterLabel = isZh ? "角色" : "Character";
-  const characterChoices = [
-    { value: "", label: isZh ? "請選擇角色" : "Choose a character" },
-    ...characterOptions.map((c) => {
-      const face = c.portraitUrl;
-      const body = c.fullBodyUrl;
-      return {
-        value: c.id,
-        label: c.name,
-        previewUrl: face || body || c.previewUrl,
-        previewShape: face ? ("square" as const) : ("body" as const),
-        previewFit: face ? ("cover" as const) : ("contain" as const),
-        ...(face && body
-          ? {
-              secondaryPreviewUrl: body,
-              secondaryShape: "body" as const,
-              secondaryFit: "contain" as const,
-            }
-          : {}),
-      };
-    }),
-  ];
+  const characterChoices = libraryCharacterChoices(
+    characterOptions,
+    isZh ? "請選擇角色" : "Choose a character",
+  );
   const framingLabel = isZh ? "鏡頭" : "Framing";
   const framingChoices = TALKING_HEAD_FRAMINGS.map((framing) => ({
     value: framing.id,
@@ -69,10 +54,10 @@ export function TalkingHeadDirectorFields({
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
       <label className={DIALOG_LABEL}>
         {isZh ? "講稿" : "Script"}
-        <textarea
+        <ComposedTextarea
           rows={4}
           value={data.prompt ?? ""}
-          onChange={(e) => onUpdate({ prompt: e.target.value })}
+          onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "角色對住鏡頭要講嘅說話…" : "What the character says to camera…"}
           className={DIALOG_TEXTAREA}
         />

@@ -2,7 +2,7 @@
 
 // Top bar for /app/canvas: project switcher, USD credit badge, and Run Flow.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { CanvasLibraryDialog } from "@/app/app/canvas/canvas-library-dialog";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { formatUsd } from "@/service/billing/usd";
 import type { CanvasFolderDto } from "@/service/canvas/folder-library";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
@@ -65,16 +66,22 @@ export function CanvasTopbar({
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const titleRef = useRef(activeTitle);
+  const skipTitleCommit = useRef(false);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [draftTitle, setDraftTitle] = useState(activeTitle);
+  const [draftTitle, setDraftTitleState] = useState(activeTitle);
+  const setDraftTitle = (next: string) => {
+    titleRef.current = next;
+    setDraftTitleState(next);
+  };
 
   function startRename() {
     setDraftTitle(activeTitle);
     setEditingTitle(true);
   }
 
-  function commitRename() {
-    const trimmed = draftTitle.trim();
+  function commitRename(raw = titleRef.current) {
+    const trimmed = raw.trim();
     setEditingTitle(false);
     if (trimmed && trimmed !== activeTitle) {
       onRenameProject(activeProjectId, trimmed);
@@ -105,14 +112,27 @@ export function CanvasTopbar({
       <div className="flex min-w-0 items-center gap-2">
         {editingTitle ? (
           <div className="flex items-center gap-1">
-            <input
+            <ComposedInput
               type="text"
               value={draftTitle}
-              onChange={(e) => setDraftTitle(e.target.value)}
-              onBlur={commitRename}
+              onValue={setDraftTitle}
+              onBlur={(e) => {
+                if (skipTitleCommit.current) {
+                  skipTitleCommit.current = false;
+                  return;
+                }
+                commitRename(e.currentTarget.value);
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") commitRename();
-                if (e.key === "Escape") setEditingTitle(false);
+                if (e.nativeEvent.isComposing) return;
+                if (e.key === "Enter") {
+                  skipTitleCommit.current = true;
+                  commitRename(e.currentTarget.value);
+                }
+                if (e.key === "Escape") {
+                  skipTitleCommit.current = true;
+                  setEditingTitle(false);
+                }
               }}
               autoFocus
               className="h-8 w-48 rounded-[9px] border border-[#c6f24b]/60 bg-[#0a0d13] px-2.5 text-xs font-semibold text-white focus:outline-none"
@@ -120,7 +140,7 @@ export function CanvasTopbar({
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={commitRename}
+              onClick={() => commitRename()}
               className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-[#c6f24b] text-[#11141b]"
             >
               <Check className="h-3.5 w-3.5" />

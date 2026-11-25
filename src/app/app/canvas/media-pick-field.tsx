@@ -7,6 +7,7 @@ import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { CanvasMediaKind } from "@/model/canvas";
 import { uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { DIALOG_FIELD, DIALOG_LABEL } from "./scro-dialog-shell";
 import type { MediaPickOption } from "./scro-group-options";
 
@@ -64,29 +65,53 @@ export function MediaPickField({ label, isZh, kind, options, value, onChange, al
   };
 
   const sources = [...new Set(all.map((o) => o.source))];
+  const characterMenu = all.some((option) => option.source === "character");
 
   return (
     <div className={DIALOG_LABEL}>
       {label}
       <div className="flex items-center gap-2">
-        <select
-          value={value?.key ?? ""}
-          onChange={(e) => onChange(all.find((o) => o.key === e.target.value) ?? null)}
-          className={DIALOG_FIELD}
-        >
-          <option value="">{isZh ? "請選擇…" : "Choose…"}</option>
-          {sources.map((source) => (
-            <optgroup key={source} label={isZh ? GROUP_LABELS[source].zh : GROUP_LABELS[source].en}>
-              {all
-                .filter((o) => o.source === source)
-                .map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.label}
-                  </option>
-                ))}
-            </optgroup>
-          ))}
-        </select>
+        {characterMenu ? (
+          <div className="min-w-0 flex-1">
+          <CanvasPreviewSelect
+            value={value?.key ?? ""}
+            ariaLabel={label}
+            options={[
+              { value: "", label: isZh ? "請選擇角色" : "Choose a character" },
+              ...all.map((option) => ({
+                value: option.key,
+                label: option.label,
+                previewUrl: option.portraitUrl || option.url,
+                ...(option.portraitUrl && option.fullBodyUrl
+                  ? { secondaryPreviewUrl: option.fullBodyUrl, secondaryShape: "body" as const, secondaryFit: "contain" as const }
+                  : {}),
+                previewShape: option.portraitUrl ? ("square" as const) : ("portrait" as const),
+                previewFit: option.portraitUrl ? ("cover" as const) : ("contain" as const),
+              })),
+            ]}
+            onChange={(key) => onChange(all.find((option) => option.key === key) ?? null)}
+          />
+          </div>
+        ) : (
+          <select
+            value={value?.key ?? ""}
+            onChange={(e) => onChange(all.find((o) => o.key === e.target.value) ?? null)}
+            className={DIALOG_FIELD}
+          >
+            <option value="">{isZh ? "請選擇…" : "Choose…"}</option>
+            {sources.map((source) => (
+              <optgroup key={source} label={isZh ? GROUP_LABELS[source].zh : GROUP_LABELS[source].en}>
+                {all
+                  .filter((o) => o.source === source)
+                  .map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+        )}
         {allowUpload ? (
           <>
             <button

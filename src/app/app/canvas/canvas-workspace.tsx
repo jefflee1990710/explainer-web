@@ -88,13 +88,13 @@ import {
   readDirectorPlan,
   withoutDirectorCharacterEdges,
 } from "@/service/canvas/explainer-director";
-import { applyDirectorBuild, dropCutDirectorEdges } from "@/service/canvas/explainer-director-apply";
+import {
+  applyDirectorBuild,
+  directorRevealSteps,
+  mergeDirectorRows,
+} from "@/service/canvas/explainer-director-apply";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import type { CanvasExplainerPlanState } from "@/service/canvas/explainer-plan";
-import {
-  DirectorPlanDecisionDialog,
-  type DirectorDecision,
-} from "@/app/app/canvas/director-plan-decision-dialog";
 import {
   layoutExplainerGroup,
   shiftGroupClearOf,
@@ -206,6 +206,14 @@ const NODE_TYPES = {
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const JOB_POLL_INTERVAL_MS = 3_000;
+// Gap between Director rows appearing while a plan builds them.
+const DIRECTOR_REVEAL_STEP_MS = 120;
+
+// The rows, wires, and frame a Director plan places on the canvas.
+type ExpandedDirectorRows = Pick<
+  Extract<CanvasExplainerPlanState, { status: "ready" }>,
+  "nodes" | "edges" | "group"
+>;
 const FAILED_EDGE_STROKE = "#f43f5e";
 // Pause between agent ops so the user can watch the graph being built.
 const AGENT_OP_STEP_MS = 90;
@@ -1240,6 +1248,7 @@ function CanvasWorkspaceInner({
                   ...n.data.toolParams,
                   planStatus: "planning",
                   planError: undefined,
+                  planStage: undefined,
                   plannerVideoId: undefined,
                   replanRequested: undefined,
                 },
@@ -1349,107 +1358,144 @@ function CanvasWorkspaceInner({
     [nodes, models],
   );
 
-  // Director plan results waiting for the build / rebuild / keep answer, with the rows whose text changed.
-  const [directorDecision, setDirectorDecision] = useState<DirectorDecision | null>(null);
-  const pendingDirectorPlanRef = useRef<
-    Map<string, { state: Extract<CanvasExplainerPlanState, { status: "ready" }>; changed: string[] }>
-  >(new Map());
+  // Directors whose rows are still being placed one node at a time.
+  const revealTimersRef = useRef<Map<string, number>>(new Map());
+  const stopReveal = useCallback((directorId: string) => {
+    const timer = revealTimersRef.current.get(directorId);
+    if (timer !== undefined) window.clearInterval(timer);
+    revealTimersRef.current.delete(directorId);
+  }, []);
+  useEffect(() => {
+    const timers = revealTimersRef.current;
+    return () => {
+      for (const timer of timers.values()) window.clearInterval(timer);
+      timers.clear();
+    };
+  }, []);
 
-  // Stores a finished plan on its Director, then updates rows in place or asks what to build.
+  // Measured re-layout of a Director's rows once their cards render.
+  const layoutDirectorRows = useCallback(
+    (directorId: string, expanded: ExpandedDirectorRows) => {
+      const first = expanded.nodes[0];
+      const talkingHead = nodesRef.current.find((n) => n.id === directorId)?.data.modelId === "scro:talking-head";
+      pendingGroupLayoutRef.current = {
+        ids: new Set(expanded.nodes.map((n) => n.id)),
+        edges: expanded.edges.filter((e) => e.source !== directorId),
+        origin: first ? first.position : { x: 0, y: 0 },
+        layout: talkingHead ? "depth" : "explainer",
+      };
+      window.setTimeout(applyPendingGroupLayout, 600);
+      scheduleAutosave();
+    },
+    [applyPendingGroupLayout, scheduleAutosave],
+  );
+
+  // Puts a Director's rows on the canvas. Rows this plan already placed take the final data;
+  // otherwise old rows go and the new ones appear one node at a time, wires following.
+  const placeDirectorRows = useCallback(
+    (directorId: string, expanded: ExpandedDirectorRows, replaceOld: boolean) => {
+      stopReveal(directorId);
+      const domain = toDomainNodes(nodesRef.current);
+      const oldGroup = snapshotGroups(domain).find((g) => g.memberIds.includes(directorId));
+      const allNodes = [...domain, ...expanded.nodes];
+      const flow = { nodes: toFlowNodes(expanded.nodes), edges: toFlowEdges(expanded.edges, allNodes, models) };
+
+      if (oldGroup?.id === expanded.group.id) {
+        const present = new Set(nodesRef.current.map((n) => n.id));
+        setNodes((prev) => mergeDirectorRows({ nodes: prev, edges: [] }, { nodes: flow.nodes, edges: [] }).nodes);
+        setEdges((prev) => mergeDirectorRows({ nodes: [], edges: prev }, { nodes: [], edges: flow.edges }).edges);
+        addGroup(expanded.group);
+        if (flow.nodes.some((n) => !present.has(n.id))) layoutDirectorRows(directorId, expanded);
+        else scheduleAutosave();
+        return;
+      }
+
+      const removed = new Set(
+        replaceOld && oldGroup ? oldGroup.memberIds.filter((id) => id !== directorId) : [],
+      );
+      if (oldGroup && removed.size > 0) {
+        const clear = { directorId, expansion: { nodes: [], edges: [] }, replaceGroup: oldGroup };
+        setNodes((prev) => applyDirectorBuild({ nodes: prev, edges: [] }, clear).nodes);
+        setEdges((prev) => applyDirectorBuild({ nodes: [], edges: prev }, clear).edges);
+        updateGroups((prev) => prev.filter((g) => g.id !== oldGroup.id));
+      }
+      addGroup(expanded.group);
+      const kept = nodesRef.current.map((n) => n.id).filter((id) => !removed.has(id));
+      const steps = directorRevealSteps(flow, [directorId, ...kept]);
+      let index = 0;
+      const timer = window.setInterval(() => {
+        const step = steps[index++];
+        if (!step) {
+          stopReveal(directorId);
+          layoutDirectorRows(directorId, expanded);
+          return;
+        }
+        setNodes((prev) => (prev.some((n) => n.id === step.node.id) ? prev : [...prev, step.node]));
+        if (step.edges.length > 0) {
+          setEdges((prev) => [...prev, ...step.edges.filter((e) => !prev.some((p) => p.id === e.id))]);
+        }
+      }, DIRECTOR_REVEAL_STEP_MS);
+      revealTimersRef.current.set(directorId, timer);
+    },
+    [models, setNodes, setEdges, snapshotGroups, updateGroups, addGroup, stopReveal, layoutDirectorRows, scheduleAutosave],
+  );
+
+  // Phase A is in: place the rows now while still prompts and reference stills are made.
+  const onDirectorPlanBuilding = useCallback(
+    (nodeId: string, state: Extract<CanvasExplainerPlanState, { status: "building" }>) => {
+      const director = nodesRef.current.find((n) => n.id === nodeId);
+      if (!director || !state.plan) return;
+      const toolParams = director.data.toolParams ?? {};
+      const drafting = toolParams.planDraft === true;
+      // A Replan keeps the rows it already has until the plan is finished.
+      const firstBuild = drafting || !readDirectorPlan(toDomainNodes([director])[0]!);
+      const placed = snapshotGroups(toDomainNodes(nodesRef.current)).some(
+        (g) => g.id === state.group.id && g.memberIds.includes(nodeId),
+      );
+      const setParams = (next: typeof toolParams) =>
+        setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, toolParams: next } } : n)));
+
+      if (firstBuild && !placed) {
+        setParams({ ...toolParams, plan: state.plan, planDraft: true, planStage: state.stage });
+        // A retried draft drops the rows the failed attempt placed.
+        placeDirectorRows(nodeId, state, drafting);
+      } else if (toolParams.planStage !== state.stage) {
+        setParams({ ...toolParams, planStage: state.stage });
+        scheduleAutosave();
+      }
+    },
+    [setNodes, snapshotGroups, placeDirectorRows, scheduleAutosave],
+  );
+
+  // Stores a finished plan on its Director and always builds its rows: first plan, rows placed
+  // while planning, or a Replan with a new clip count. Same-count Replans update in place.
   const onDirectorPlanReady = useCallback(
     (nodeId: string, state: Extract<CanvasExplainerPlanState, { status: "ready" }>) => {
       const director = nodesRef.current.find((n) => n.id === nodeId);
       if (!director || !state.plan) return;
       const before = toDomainNodes([director])[0]!;
-      const oldPlan = readDirectorPlan(before);
-      const toolParams = { ...director.data.toolParams, plan: state.plan, planStatus: "planned", planningWith: undefined };
+      const drafting = director.data.toolParams?.planDraft === true;
+      const oldPlan = drafting ? undefined : readDirectorPlan(before);
+      const toolParams = {
+        ...director.data.toolParams,
+        plan: state.plan,
+        planStatus: "planned",
+        planningWith: undefined,
+        planDraft: undefined,
+        planStage: undefined,
+      };
       const after = { ...before, data: { ...before.data, toolParams } };
       const changed = directorChangedTargets(before, after, toDomainEdges(edgesRef.current));
       setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, toolParams } } : n)));
-      if (!oldPlan) {
-        pendingDirectorPlanRef.current.set(nodeId, { state, changed });
-        setDirectorDecision({ kind: "build", nodeId, clipCount: state.plan.clips.length });
-      } else if (oldPlan.clips.length === state.plan.clips.length) {
+      if (oldPlan && oldPlan.clips.length === state.plan.clips.length) {
         markStale(changed);
         toast.success(isZh ? "已更新規劃，按 Run group 重新生成" : "Plan updated; press Run group to regenerate");
-      } else {
-        pendingDirectorPlanRef.current.set(nodeId, { state, changed });
-        setDirectorDecision({
-          kind: "count",
-          nodeId,
-          oldCount: oldPlan.clips.length,
-          newCount: state.plan.clips.length,
-        });
+        scheduleAutosave();
+        return;
       }
-      scheduleAutosave();
+      placeDirectorRows(nodeId, state, Boolean(oldPlan) || drafting);
     },
-    [setNodes, markStale, scheduleAutosave, isZh],
-  );
-
-  const resolveDirectorDecision = useCallback(
-    (build: boolean) => {
-      const decision = directorDecision;
-      setDirectorDecision(null);
-      if (!decision) return;
-      const pending = pendingDirectorPlanRef.current.get(decision.nodeId);
-      pendingDirectorPlanRef.current.delete(decision.nodeId);
-      const state = pending?.state;
-      if (!pending || !state?.plan) return;
-      const domain = toDomainNodes(nodesRef.current);
-      const oldGroup = snapshotGroups(domain).find((g) => g.memberIds.includes(decision.nodeId));
-
-      if (build) {
-        const allNodes = [...domain, ...state.nodes];
-        const next = applyDirectorBuild(
-          { nodes: nodesRef.current, edges: edgesRef.current },
-          {
-            directorId: decision.nodeId,
-            expansion: { nodes: toFlowNodes(state.nodes), edges: toFlowEdges(state.edges, allNodes, models) },
-            ...(decision.kind === "count" && oldGroup ? { replaceGroup: oldGroup } : {}),
-          },
-        );
-        setNodes(next.nodes);
-        setEdges(next.edges);
-        updateGroups((prev) => prev.filter((g) => g.id !== oldGroup?.id));
-        addGroup(state.group);
-        // Measured re-layout of the new rows once their cards render.
-        const first = state.nodes[0];
-        const talkingHead = domain.find((n) => n.id === decision.nodeId)?.data.modelId === "scro:talking-head";
-        pendingGroupLayoutRef.current = {
-          ids: new Set(state.nodes.map((n) => n.id)),
-          edges: state.edges.filter((e) => e.source !== decision.nodeId),
-          origin: first ? first.position : { x: 0, y: 0 },
-          layout: talkingHead ? "depth" : "explainer",
-        };
-        window.setTimeout(applyPendingGroupLayout, 600);
-      } else if (decision.kind === "count") {
-        const cut = dropCutDirectorEdges(edgesRef.current, decision.nodeId, state.plan);
-        setEdges(cut.edges);
-        // Kept rows whose text changed become old versions; cut rows lose their prompt.
-        markStale(pending.changed.filter((id) => !cut.cutTargets.includes(id)));
-        if (cut.cutTargets.length > 0) {
-          toast.warning(
-            isZh
-              ? `這些節點失去了 prompt：${cut.cutTargets.join("、")}`
-              : `These nodes lost their prompt: ${cut.cutTargets.join(", ")}`,
-          );
-        }
-      }
-      scheduleAutosave();
-    },
-    [
-      directorDecision,
-      models,
-      setNodes,
-      setEdges,
-      snapshotGroups,
-      updateGroups,
-      addGroup,
-      markStale,
-      scheduleAutosave,
-      applyPendingGroupLayout,
-      isZh,
-    ],
+    [setNodes, markStale, scheduleAutosave, placeDirectorRows, isZh],
   );
 
   // Planning cards waiting on the worker (polled like canvas jobs).
@@ -1497,8 +1543,12 @@ function CanvasWorkspaceInner({
           // Another tick already handled (or removed) this planning card.
           if (!planner || readPlannerParams(planner).planStatus !== "planning") continue;
           if (state.status === "failed") {
-            setPlannerParams(nodeId, { planStatus: "failed", planError: state.error });
+            setPlannerParams(nodeId, { planStatus: "failed", planError: state.error, planStage: undefined });
             scheduleAutosave();
+            continue;
+          }
+          if (state.status === "building") {
+            onDirectorPlanBuilding(nodeId, state);
             continue;
           }
           // A Director keeps its card and stores the plan; it never swaps itself for the rows.
@@ -1547,6 +1597,7 @@ function CanvasWorkspaceInner({
     scheduleAutosave,
     applyPendingGroupLayout,
     onDirectorPlanReady,
+    onDirectorPlanBuilding,
   ]);
 
   // Worker-driven multi-wave flow polling loop (survives page reloads & closed tabs).
@@ -2579,12 +2630,6 @@ function CanvasWorkspaceInner({
               </div>
             ) : null}
 
-            <DirectorPlanDecisionDialog
-              decision={directorDecision}
-              isZh={isZh}
-              onConfirm={() => resolveDirectorDecision(true)}
-              onDecline={() => resolveDirectorDecision(false)}
-            />
             <ScroGroupDialogs
               state={scroDialog}
               isZh={isZh}

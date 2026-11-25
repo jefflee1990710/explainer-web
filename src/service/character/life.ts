@@ -73,6 +73,8 @@ export type PublicLifeCharacter = {
   name: string;
   styleId: string;
   previewUrl: string | null;
+  portraitUrl?: string | null;
+  fullBodyUrl?: string | null;
   persona: CharacterPersona | null;
   ready: boolean;
   styles: PublicLifeStyleLook[];
@@ -218,6 +220,21 @@ async function settleStaleGeneratingShots(clerkUserId: string) {
   }
 }
 
+function lifeCharacterPair(character: Character): { portraitUrl?: string; fullBodyUrl?: string } {
+  const versions = character.versions ?? [];
+  const completed = versions.filter((version) => version.status === "completed");
+  const preferred = character.defaultVersionId
+    ? completed.find((version) => version.id.equals(character.defaultVersionId!))
+    : undefined;
+  const ordered = [preferred, ...[...completed].reverse()].filter((version) => Boolean(version));
+  const both = ordered.find((version) => version?.portraitUrl?.trim() && version.profileUrl?.trim());
+  const pick = both ?? ordered.find((version) => version?.portraitUrl?.trim() || version?.profileUrl?.trim());
+  return {
+    portraitUrl: pick?.portraitUrl?.trim() || undefined,
+    fullBodyUrl: pick?.profileUrl?.trim() || undefined,
+  };
+}
+
 export async function listLifePage(clerkUserId: string) {
   await settleStaleGeneratingShots(clerkUserId).catch(() => {});
   const characters = await charactersCollection();
@@ -228,11 +245,14 @@ export async function listLifePage(clerkUserId: string) {
   ]);
   const people: PublicLifeCharacter[] = docs.map((character) => {
     const identity = characterIdentityUrl(character);
+    const pair = lifeCharacterPair(character);
     return {
       id: character._id.toHexString(),
       name: character.name,
       styleId: character.styleId,
       previewUrl: identity,
+      portraitUrl: pair.portraitUrl ?? null,
+      fullBodyUrl: pair.fullBodyUrl ?? null,
       persona: parseCharacterPersona(character.persona),
       ready: Boolean(identity),
       styles: toPublicLifeStyles(character),

@@ -3,8 +3,9 @@
 // Multiple-choice question from the canvas agent. The user picks one or more options
 // and/or types extra details; the answer goes back as the next chat message.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check } from "lucide-react";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasAgentQuestion as CanvasAgentQuestionData } from "@/service/canvas-agent/types";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
 
@@ -25,7 +26,12 @@ export function CanvasAgentQuestion({
   onAnswer: (text: string) => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [extra, setExtra] = useState("");
+  const extraRef = useRef("");
+  const [extra, setExtraState] = useState("");
+  const setExtra = (next: string) => {
+    extraRef.current = next;
+    setExtraState(next);
+  };
   const locked = answered || disabled;
   const canSubmit = !locked && (selected.length > 0 || extra.trim().length > 0);
 
@@ -40,10 +46,11 @@ export function CanvasAgentQuestion({
   }
 
   function submit() {
-    if (!canSubmit) return;
+    const extraText = extraRef.current.trim();
+    if (locked || (selected.length === 0 && !extraText)) return;
     // Keep the option order the agent offered, not the click order.
     const labels = question.options.filter((o) => selected.includes(o.id)).map((o) => o.label);
-    onAnswer(copy.answerText(labels, extra.trim()));
+    onAnswer(copy.answerText(labels, extraText));
   }
 
   return (
@@ -90,14 +97,14 @@ export function CanvasAgentQuestion({
           className="mt-2 flex items-center gap-2"
         >
           {question.allowOther ? (
-            <input
+            <ComposedInput
               type="text"
               maxLength={EXTRA_MAX}
               value={extra}
               disabled={locked}
               aria-label={copy.otherPlaceholder}
               placeholder={copy.otherPlaceholder}
-              onChange={(event) => setExtra(event.target.value)}
+              onValue={setExtra}
               className="h-8 min-w-0 flex-1 rounded-[8px] border border-white/10 bg-[#0b0e14] px-2.5 text-[12px] text-white placeholder:text-white/35 focus:border-[#c6f24b]/60 focus:outline-none disabled:opacity-60"
             />
           ) : (

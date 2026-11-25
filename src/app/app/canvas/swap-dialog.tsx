@@ -2,7 +2,7 @@
 
 // Scro Swap setup: source video, mode, reference / light look, and the 2–15s section.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CanvasAspectRatio } from "@/model/canvas";
 import type { SwapGroupInput } from "@/service/canvas/scro-groups/swap";
 import { JUTSU_LIGHT_LOOKS } from "@/service/jutsu/light-looks";
@@ -11,6 +11,7 @@ import { MediaPickField } from "./media-pick-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA, ScroDialogShell } from "./scro-dialog-shell";
 import type { MediaPickOption } from "./scro-group-options";
 import { SectionFields } from "./section-fields";
+import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Props = {
   open: boolean;
@@ -25,8 +26,18 @@ export function SwapDialog({ open, isZh, videoOptions, referenceOptions, onCance
   const [video, setVideo] = useState<MediaPickOption | null>(null);
   const [mode, setMode] = useState<SwapGroupInput["mode"]>("character");
   const [reference, setReference] = useState<MediaPickOption | null>(null);
-  const [instruction, setInstruction] = useState("");
-  const [objectTarget, setObjectTarget] = useState("");
+  const instructionRef = useRef("");
+  const [instruction, setInstructionState] = useState("");
+  const setInstruction = (next: string) => {
+    instructionRef.current = next;
+    setInstructionState(next);
+  };
+  const objectTargetRef = useRef("");
+  const [objectTarget, setObjectTargetState] = useState("");
+  const setObjectTarget = (next: string) => {
+    objectTargetRef.current = next;
+    setObjectTargetState(next);
+  };
   const [objectEditMode, setObjectEditMode] = useState<"change" | "add" | "remove">("change");
   const [lightLookId, setLightLookId] = useState(JUTSU_LIGHT_LOOKS[0]?.id ?? "");
   const [section, setSection] = useState({ start: 0, length: 6 });
@@ -56,8 +67,8 @@ export function SwapDialog({ open, isZh, videoOptions, referenceOptions, onCance
           video: video.ref,
           mode,
           ...(reference && (mode === "character" || mode === "object") ? { reference: reference.ref } : {}),
-          ...(instruction.trim() ? { instruction } : {}),
-          ...(mode === "object" ? { objectTarget: objectTarget.trim(), objectEditMode } : {}),
+          ...(instructionRef.current.trim() ? { instruction: instructionRef.current } : {}),
+          ...(mode === "object" ? { objectTarget: objectTargetRef.current.trim(), objectEditMode } : {}),
           ...(mode === "relight" ? { lightLookId } : {}),
           sectionStart: section.start,
           sectionLength: section.length,
@@ -102,9 +113,9 @@ export function SwapDialog({ open, isZh, videoOptions, referenceOptions, onCance
         <div className="grid grid-cols-2 gap-2.5">
           <label className={DIALOG_LABEL}>
             {isZh ? "目標物" : "Target"}
-            <input
+            <ComposedInput
               value={objectTarget}
-              onChange={(e) => setObjectTarget(e.target.value)}
+              onValue={setObjectTarget}
               placeholder={isZh ? "例如：外套" : "e.g. jacket"}
               className={DIALOG_FIELD}
             />
@@ -143,9 +154,9 @@ export function SwapDialog({ open, isZh, videoOptions, referenceOptions, onCance
             {mode === "object"
               ? isZh ? "換成甚麼（選填）" : "Change to (optional)"
               : isZh ? "額外指示（選填）" : "Extra instruction (optional)"}
-            <textarea
+            <ComposedTextarea
               value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
+              onValue={setInstruction}
               rows={2}
               className={DIALOG_TEXTAREA}
             />

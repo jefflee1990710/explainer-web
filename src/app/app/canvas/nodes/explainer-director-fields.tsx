@@ -14,7 +14,9 @@ import { explainerBackgroundPresets } from "@/service/canvas/explainer-settings"
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import { ART_STYLE_LABELS, PRESENTER_LABELS, SCENE_TEXT_LABELS } from "@/app/app/canvas/nodes/explainer-settings-options";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
@@ -38,10 +40,10 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
       <label className={DIALOG_LABEL}>
         {isZh ? "主題 / 講稿" : "Topic / script"}
-        <textarea
+        <ComposedTextarea
           rows={3}
           value={data.prompt ?? ""}
-          onChange={(e) => onUpdate({ prompt: e.target.value })}
+          onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "例如：用煮食譜嘅比喻解釋乜嘢係源代碼…" : "e.g. Explain compound interest with three analogies…"}
           className={DIALOG_TEXTAREA}
         />
@@ -99,21 +101,15 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             ))}
           </select>
         </label>
-        <label className={`col-span-2 ${DIALOG_LABEL}`}>
+        <div className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "角色" : "Character"}
-          <select
+          <CanvasPreviewSelect
             value={String(tp.characterId ?? "")}
-            onChange={(e) => setParams({ characterId: e.target.value || undefined })}
-            className={DIALOG_FIELD}
-          >
-            <option value="">{isZh ? "不指定" : "None"}</option>
-            {characterOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            ariaLabel={isZh ? "角色" : "Character"}
+            options={libraryCharacterChoices(characterOptions, isZh ? "不指定" : "None")}
+            onChange={(characterId) => setParams({ characterId: characterId || undefined })}
+          />
+        </div>
         <label className={DIALOG_LABEL}>
           {isZh ? "畫面文字語言" : "On-screen text"}
           <select

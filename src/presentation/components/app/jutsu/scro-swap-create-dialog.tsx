@@ -19,6 +19,11 @@ import {
   type JutsuPersonSlotAssignment,
 } from "@/presentation/components/app/jutsu/jutsu-person-rle-mapper";
 import { JutsuRelightPicker } from "@/presentation/components/app/jutsu/jutsu-relight-picker";
+import {
+  CharacterMenu,
+  CharacterMenuRow,
+  characterPairFromPublic,
+} from "@/presentation/components/app/characters/character-pair-menu";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
@@ -76,25 +81,6 @@ function defaultCharacterLookUrl(char?: PublicCharacter | null): string {
     ? completed.find((v) => v.id === char.defaultVersionId)
     : undefined;
   return versionImageUrl(def ?? completed[0]) || char.previewUrl || "";
-}
-
-/** Single-portrait avatar URL (avoids the 2-column blueprint board image). */
-function characterAvatarUrl(char?: PublicCharacter | null): string {
-  if (!char) return "";
-  const completed = [...(char.versions || [])]
-    .reverse()
-    .filter((v) => v.status === "completed");
-  const def = char.defaultVersionId
-    ? completed.find((v) => v.id === char.defaultVersionId)
-    : undefined;
-  const pick = def ?? completed[0];
-  return (
-    pick?.portraitUrl ||
-    pick?.profileUrl ||
-    char.previewUrl ||
-    pick?.blueprintUrl ||
-    ""
-  );
 }
 
 /**
@@ -741,61 +727,34 @@ export function ScroSwapCreateDialog({
 
               {/* Layer 1: Character avatar strip (image-only tile buttons, not pills) */}
               {characters.length > 0 || detectedPeople.length > 0 ? (
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
+                <CharacterMenu>
                   {detectedPeople.length > 0 ? (
-                    <button
-                      type="button"
+                    <CharacterMenuRow
+                      label={isEn ? "Keep Original" : "保留原人物"}
+                      selected={activePersonKeepOriginal}
                       disabled={submitting}
                       onClick={selectKeepOriginalForActivePerson}
-                      className={`group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
-                        activePersonKeepOriginal
-                          ? "border-2 border-accent-ink bg-accent-ink text-lime ring-2 ring-lime"
-                          : "border-accent-ink/15 bg-paper/70 text-muted hover:border-accent-ink/45 hover:text-foreground"
-                      }`}
-                    >
-                      <span className="text-base font-bold">⊘</span>
-                      <span className="mt-1 text-[10px] font-bold leading-tight">
-                        {isEn ? "Keep Original" : "保留原人物"}
-                      </span>
-                    </button>
+                    />
                   ) : null}
                   {characters.map((char) => {
                     const active =
                       !activePersonKeepOriginal &&
                       characterId === char.id &&
                       !uploadedPhotoUrl;
-                    const avatar = characterAvatarUrl(char);
+                    const pair = characterPairFromPublic(char);
                     return (
-                      <button
+                      <CharacterMenuRow
                         key={char.id}
-                        type="button"
+                        label={char.name}
+                        portraitUrl={pair.portraitUrl}
+                        fullBodyUrl={pair.fullBodyUrl}
+                        selected={active}
                         disabled={submitting}
-                        title={char.name}
-                        aria-label={char.name}
-                        aria-pressed={active}
                         onClick={() => selectCharacter(char)}
-                        className={`style-option group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                          active
-                            ? "border-2 border-accent-ink ring-2 ring-lime"
-                            : "border-accent-ink/15 hover:border-accent-ink/45"
-                        }`}
-                      >
-                        {avatar ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={avatar}
-                            alt={char.name}
-                            className="h-full w-full object-cover object-top"
-                          />
-                        ) : (
-                          <div className="grid h-full w-full place-items-center bg-zinc-200 text-xs font-bold text-zinc-600">
-                            {char.name.slice(0, 2)}
-                          </div>
-                        )}
-                      </button>
+                      />
                     );
                   })}
-                </div>
+                </CharacterMenu>
               ) : null}
 
               {/* Layer 2: Selected Character's Presets / Historical / Customize Outfit */}

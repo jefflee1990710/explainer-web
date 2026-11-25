@@ -19,6 +19,11 @@ import {
   listLifeShotsAction,
   searchLifeScenesAction,
 } from "@/presentation/actions/life";
+import {
+  CharacterMenu,
+  CharacterMenuRow,
+  characterPairFromPublic,
+} from "@/presentation/components/app/characters/character-pair-menu";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import {
@@ -333,11 +338,14 @@ export function LifeDesk({
         const previewUrl = newest
           ? newest.portraitUrl || newest.profileUrl || newest.blueprintUrl || item.previewUrl
           : item.previewUrl;
+        const pair = characterPairFromPublic(next);
         return {
           ...item,
           name: next.name,
           styleId: next.styleId,
           previewUrl,
+          portraitUrl: pair.portraitUrl ?? item.portraitUrl,
+          fullBodyUrl: pair.fullBodyUrl ?? item.fullBodyUrl,
           ready: Boolean(previewUrl),
           styles,
           presets,
@@ -1319,40 +1327,18 @@ export function LifeDesk({
             </div>
 
             {/* Character Avatar Strip */}
-            <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-7">
-              {people.map((person) => {
-                const active = person.id === characterId;
-                return (
-                  <button
-                    key={person.id}
-                    type="button"
-                    onClick={() => selectCharacter(person.id)}
-                    className={`group relative flex aspect-square w-full cursor-pointer flex-col justify-end overflow-hidden rounded-2xl border text-left transition ${
-                      active
-                        ? "border-2 border-[#12141c] ring-2 ring-[#c6f24b]"
-                        : "border-zinc-200 hover:border-zinc-400"
-                    }`}
-                  >
-                    {person.previewUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={person.previewUrl}
-                        alt={person.name}
-                        className="absolute inset-0 h-full w-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 grid place-items-center bg-zinc-100 text-xs font-bold text-zinc-500">
-                        {person.name.slice(0, 2)}
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-                    <span className="relative z-10 truncate px-2 py-1 text-[11px] font-bold text-white">
-                      {person.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <CharacterMenu>
+              {people.map((person) => (
+                <CharacterMenuRow
+                  key={person.id}
+                  label={person.name}
+                  portraitUrl={person.portraitUrl || person.previewUrl || undefined}
+                  fullBodyUrl={person.fullBodyUrl || undefined}
+                  selected={person.id === characterId}
+                  onClick={() => selectCharacter(person.id)}
+                />
+              ))}
+            </CharacterMenu>
 
             <LifePresetTree
               character={character}
@@ -1395,11 +1381,14 @@ export function LifeDesk({
           defaultStyleId="realistic"
           subscribed={subscribed}
           onCreated={(created) => {
+            const createdPair = characterPairFromPublic(created);
             const newLifeChar: PublicLifeCharacter = {
               id: created.id,
               name: created.name,
               styleId: created.styleId,
               previewUrl: created.previewUrl,
+              portraitUrl: createdPair.portraitUrl ?? null,
+              fullBodyUrl: createdPair.fullBodyUrl ?? null,
               ready: Boolean(created.previewUrl),
               persona: created.persona,
               styles: lifeStylesFromPublic(created),

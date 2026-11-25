@@ -2,12 +2,13 @@
 
 // Poster setup: design prompt + optional character / product → Seedream node group.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CanvasAspectRatio } from "@/model/canvas";
 import type { PosterGroupInput } from "@/service/canvas/scro-groups/poster";
 import { AspectRatioField } from "./aspect-ratio-field";
 import { MediaPickField } from "./media-pick-field";
 import { DIALOG_TEXTAREA, ScroDialogShell } from "./scro-dialog-shell";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import type { MediaPickOption } from "./scro-group-options";
 
 type Props = {
@@ -20,7 +21,12 @@ type Props = {
 };
 
 export function PosterDialog({ open, isZh, characterOptions, productOptions, onCancel, onSubmit }: Props) {
-  const [prompt, setPrompt] = useState("");
+  const promptRef = useRef("");
+  const [prompt, setPromptState] = useState("");
+  const setPrompt = (next: string) => {
+    promptRef.current = next;
+    setPromptState(next);
+  };
   const [character, setCharacter] = useState<MediaPickOption | null>(null);
   const [product, setProduct] = useState<MediaPickOption | null>(null);
   const [aspectRatio, setAspectRatio] = useState<CanvasAspectRatio>("9:16");
@@ -40,7 +46,7 @@ export function PosterDialog({ open, isZh, characterOptions, productOptions, onC
       onCancel={onCancel}
       onSubmit={() =>
         onSubmit({
-          prompt,
+          prompt: promptRef.current,
           aspectRatio,
           ...(character ? { character: { ref: character.ref, name: character.label } } : {}),
           ...(product ? { product: { ref: product.ref, name: product.label } } : {}),
@@ -49,10 +55,10 @@ export function PosterDialog({ open, isZh, characterOptions, productOptions, onC
     >
       <label className="block text-[11px] text-white/55">
         {isZh ? "海報內容" : "Poster brief"}
-        <textarea
+        <ComposedTextarea
           autoFocus
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onValue={setPrompt}
           rows={3}
           placeholder={isZh ? "例如：夏日新品上市，清爽藍白配色" : "e.g. Summer launch, fresh blue and white"}
           className={DIALOG_TEXTAREA}

@@ -44,13 +44,34 @@ const args = (v: Project | null, blocker: string | null = null) => ({
 });
 
 describe("planStateFromVideo", () => {
-  it("is planning until Phase B prompts exist and locks are ready", () => {
-    assert.deepEqual(planStateFromVideo(args(video({ status: "phase_a" }))), { status: "planning" });
-    assert.deepEqual(planStateFromVideo(args(video({}))), { status: "planning" });
+  it("is planning until Phase A exists", () => {
     assert.deepEqual(
-      planStateFromVideo(args(video({ canvasPlan: { prompts } }), "角色定裝圖正在產生")),
+      planStateFromVideo(args(video({ status: "phase_a", phaseA: undefined }))),
       { status: "planning" },
     );
+  });
+
+  it("builds a Director's rows from Phase A while prompts and locks are pending", () => {
+    const locks = planStateFromVideo(args(video({ status: "phase_a" })));
+    assert.equal(locks.status, "building");
+    if (locks.status !== "building") return;
+    assert.equal(locks.stage, "locks");
+    assert.deepEqual(locks.plan?.clips.map((c) => c.spokenLine), ["第一句", "第二句"]);
+    assert.deepEqual(locks.plan?.clips.map((c) => c.videoPrompt), ["", ""]);
+    // No still prompt yet: its output and wire wait for the finished plan.
+    assert.deepEqual(locks.plan?.clips.map((c) => c.framePrompt), ["", ""]);
+    assert.ok(!locks.edges.some((e) => e.sourceHandle?.endsWith("-frame")));
+    assert.ok(locks.edges.some((e) => e.source === "exp" && e.sourceHandle === "clip-2-voice"));
+
+    const waiting = planStateFromVideo(args(video({ canvasPlan: { prompts } }), "角色定裝圖正在產生"));
+    assert.equal(waiting.status === "building" && waiting.stage, "locks");
+    const writing = planStateFromVideo(args(video({})));
+    assert.equal(writing.status === "building" && writing.stage, "prompts");
+  });
+
+  it("keeps a legacy planning card on planning until it is ready", () => {
+    const legacy = { ...planner, data: { ...planner.data, toolParams: { language: "yue" } } };
+    assert.deepEqual(planStateFromVideo({ ...args(video({})), plannerNode: legacy }), { status: "planning" });
   });
 
   it("reports failures", () => {

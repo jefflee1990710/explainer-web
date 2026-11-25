@@ -13,6 +13,8 @@ import {
   redetectPostElementsAction,
   selectPostRevisionAction,
 } from "@/presentation/actions/posts";
+import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
+import { characterPairFromPublic } from "@/presentation/components/app/characters/character-pair-menu";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import {
   PostElementRleOverlay,
@@ -431,22 +433,32 @@ export function PostHistoryDialog({
                           <label className="block text-xs font-bold text-zinc-700">
                             {isEn ? "Replacement Character" : "選擇替換角色"}
                           </label>
-                          <select
+                          <CanvasPreviewSelect
                             value={swapCharacterId}
-                            onChange={(e) => {
-                              const nextId = e.target.value;
+                            ariaLabel={isEn ? "Replacement Character" : "選擇替換角色"}
+                            options={characters.map((character) => {
+                              const pair = characterPairFromPublic(character);
+                              return {
+                                value: character.id,
+                                label: character.name,
+                                previewUrl: pair.portraitUrl || pair.fullBodyUrl,
+                                ...(pair.portraitUrl && pair.fullBodyUrl
+                                  ? {
+                                      secondaryPreviewUrl: pair.fullBodyUrl,
+                                      secondaryShape: "body" as const,
+                                      secondaryFit: "contain" as const,
+                                    }
+                                  : {}),
+                                previewShape: pair.portraitUrl ? ("square" as const) : ("body" as const),
+                                previewFit: pair.portraitUrl ? ("cover" as const) : ("contain" as const),
+                              };
+                            })}
+                            onChange={(nextId) => {
                               setSwapCharacterId(nextId);
                               const nextChar = characters.find((c) => c.id === nextId);
                               setSwapLookUrl(defaultCharacterLookUrl(nextChar));
                             }}
-                            className="h-9 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-xs font-bold text-[#12141c]"
-                          >
-                            {characters.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
+                          />
 
                           {selectedSwapChar && (selectedSwapChar.presets?.length ?? 0) > 0 ? (
                             <div className="flex items-center gap-1.5 overflow-x-auto pt-1">

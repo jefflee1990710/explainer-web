@@ -18,6 +18,7 @@ import {
 import { readPlannerParams } from "@/service/canvas/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { TalkingHeadDirectorFields } from "@/app/app/canvas/nodes/talking-head-director-fields";
+import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
 
 const OUTPUT_LABELS: Record<DirectorOutputKind, { zh: string; en: string }> = {
   frame: { zh: "開場靜幀", en: "Opening still" },
@@ -93,15 +94,12 @@ export function TalkingHeadDirectorCard({
           </p>
         ) : null}
         {planning ? (
-          <p className="text-[10.5px] text-white/45">
-            {plan
-              ? isZh
-                ? "規劃中，約需 1–3 分鐘。輸出暫時維持上次的規劃。"
-                : "Planning, about 1–3 minutes. Outputs keep the last plan meanwhile."
-              : isZh
-                ? "規劃中，約需 1–3 分鐘。完成後會出現開場靜幀、每段動作同講稿輸出口。"
-                : "Planning, about 1–3 minutes. Opening still, per-clip motion, and script outputs appear when done."}
-          </p>
+          <DirectorPlanProgress
+            isZh={isZh}
+            stage={typeof data.toolParams?.planStage === "string" ? data.toolParams.planStage : undefined}
+            draft={data.toolParams?.planDraft === true}
+            replanning={Boolean(plan)}
+          />
         ) : null}
         {failed && planError ? (
           <p className="flex items-start gap-1 rounded-[8px] bg-rose-500/10 px-2 py-1.5 text-[10.5px] text-rose-200">

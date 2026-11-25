@@ -9,6 +9,7 @@ import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { swapCandidates } from "@/service/canvas/model-swap";
 import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Props = {
   current: CanvasModelSpec;
@@ -63,10 +64,10 @@ export function ModelSwapDialog({ current, catalog, wiredHandles, locale, onCanc
 
         <label className="mt-3 flex items-center gap-2 rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1.5">
           <Search className="h-3.5 w-3.5 text-white/40" />
-          <input
+          <ComposedInput
             autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onValue={setQuery}
             placeholder={isZh ? "搜尋模型" : "Search models"}
             className="w-full bg-transparent text-[12px] text-white/90 placeholder:text-white/30 focus:outline-none"
           />

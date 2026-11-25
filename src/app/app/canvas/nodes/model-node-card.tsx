@@ -26,6 +26,9 @@ import { canWireSettings } from "@/service/canvas/settings/registry";
 import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { wiredSettingsVars } from "@/service/canvas/graph";
+import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
+import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
@@ -481,9 +484,9 @@ export function ModelNodeCard({
             </div>
           ) : (
             <div className="relative">
-              <textarea
+              <ComposedTextarea
                 value={data.prompt ?? ""}
-                onChange={(e) => onUpdateNodeData(id, { prompt: e.target.value })}
+                onValue={(prompt) => onUpdateNodeData(id, { prompt })}
                 rows={3}
                 placeholder={
                   isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
@@ -628,21 +631,18 @@ export function ModelNodeCard({
               spec.id === "scro:poster" ||
               spec.id === "scro:tts") && (
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-white/50">
+                <span className="text-[10px] text-white/50">
                   {isZh ? "角色 Character" : "Character"}
-                </label>
-                <select
+                </span>
+                <CanvasPreviewSelect
                   value={String(toolParams.characterId ?? "")}
-                  onChange={(e) => updateToolParam("characterId", e.target.value || undefined)}
-                  className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
-                >
-                  <option value="">{isZh ? "（不指定 / 使用連線圖片）" : "(None / Use wired image)"}</option>
-                  {characterOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  ariaLabel={isZh ? "角色" : "Character"}
+                  options={libraryCharacterChoices(
+                    characterOptions,
+                    isZh ? "（不指定 / 使用連線圖片）" : "(None / Use wired image)",
+                  )}
+                  onChange={(characterId) => updateToolParam("characterId", characterId || undefined)}
+                />
               </div>
             )}
 
@@ -782,10 +782,10 @@ export function ModelNodeCard({
                 </div>
                 {toolParams.swapMode === "object" ? (
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input
+                    <ComposedInput
                       type="text"
                       value={String(toolParams.objectTarget ?? "")}
-                      onChange={(e) => updateToolParam("objectTarget", e.target.value)}
+                      onValue={(objectTarget) => updateToolParam("objectTarget", objectTarget)}
                       placeholder={isZh ? "目標物 (e.g. jacket)" : "Target (e.g. jacket)"}
                       className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
                     />
@@ -968,12 +968,10 @@ export function ModelNodeCard({
             </button>
             {showAdvanced ? (
               <div className="mt-2 space-y-1.5 rounded-[10px] border border-white/6 bg-[#0b0e14]/70 p-2">
-                <input
+                <ComposedInput
                   type="text"
                   value={data.negativePrompt ?? ""}
-                  onChange={(e) =>
-                    onUpdateNodeData(id, { negativePrompt: e.target.value })
-                  }
+                  onValue={(negativePrompt) => onUpdateNodeData(id, { negativePrompt })}
                   placeholder="Negative prompt (optional)"
                   className="nodrag w-full rounded-[7px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/85 placeholder:text-white/30 focus:border-[#c6f24b]/50 focus:outline-none"
                 />

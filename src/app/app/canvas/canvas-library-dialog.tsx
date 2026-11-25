@@ -2,9 +2,10 @@
 
 // Canvas library: create, open, and file canvases into folders.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Folder, FolderPlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { canvasesInFolder, type CanvasFolderDto, type CanvasLibrarySelection } from "@/service/canvas/folder-library";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
 
@@ -49,6 +50,7 @@ export function CanvasLibraryDialog({
   const [renamingCanvas, setRenamingCanvas] = useState<string | null>(null);
   const [canvasDraft, setCanvasDraft] = useState("");
   const [movingId, setMovingId] = useState<string | null>(null);
+  const skipNameCommit = useRef(false);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -74,20 +76,20 @@ export function CanvasLibraryDialog({
           : "Unfiled"
         : (folders.find((folder) => folder.id === selection)?.name ?? (isZh ? "資料夾" : "Folder"));
 
-  function commitNewFolder() {
-    const name = (draftFolder ?? "").trim();
+  function commitNewFolder(raw: string) {
+    const name = raw.trim();
     setDraftFolder(null);
     if (name) onCreateFolder(name);
   }
 
-  function commitFolderRename(folderId: string) {
-    const name = folderDraft.trim();
+  function commitFolderRename(folderId: string, raw: string) {
+    const name = raw.trim();
     setRenamingFolder(null);
     if (name) onRenameFolder(folderId, name);
   }
 
-  function commitCanvasRename(projectId: string, current: string) {
-    const name = canvasDraft.trim();
+  function commitCanvasRename(projectId: string, current: string, raw: string) {
+    const name = raw.trim();
     setRenamingCanvas(null);
     if (name && name !== current) onRename(projectId, name);
   }
@@ -137,14 +139,27 @@ export function CanvasLibraryDialog({
           </div>
           <div className="mt-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
             {draftFolder !== null ? (
-              <input
+              <ComposedInput
                 autoFocus
                 value={draftFolder}
-                onChange={(event) => setDraftFolder(event.target.value)}
-                onBlur={commitNewFolder}
+                onValue={setDraftFolder}
+                onBlur={(event) => {
+                  if (skipNameCommit.current) {
+                    skipNameCommit.current = false;
+                    return;
+                  }
+                  commitNewFolder(event.currentTarget.value);
+                }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") commitNewFolder();
-                  if (event.key === "Escape") setDraftFolder(null);
+                  if (event.nativeEvent.isComposing) return;
+                  if (event.key === "Enter") {
+                    skipNameCommit.current = true;
+                    commitNewFolder(event.currentTarget.value);
+                  }
+                  if (event.key === "Escape") {
+                    skipNameCommit.current = true;
+                    setDraftFolder(null);
+                  }
                 }}
                 placeholder={isZh ? "資料夾名稱" : "Folder name"}
                 className="h-8 w-full rounded-[8px] border border-[#c6f24b]/50 bg-[#0b0e14] px-2 text-xs text-white focus:outline-none"
@@ -152,15 +167,28 @@ export function CanvasLibraryDialog({
             ) : null}
             {folders.map((folder) =>
               renamingFolder === folder.id ? (
-                <input
+                <ComposedInput
                   key={folder.id}
                   autoFocus
                   value={folderDraft}
-                  onChange={(event) => setFolderDraft(event.target.value)}
-                  onBlur={() => commitFolderRename(folder.id)}
+                  onValue={setFolderDraft}
+                  onBlur={(event) => {
+                    if (skipNameCommit.current) {
+                      skipNameCommit.current = false;
+                      return;
+                    }
+                    commitFolderRename(folder.id, event.currentTarget.value);
+                  }}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") commitFolderRename(folder.id);
-                    if (event.key === "Escape") setRenamingFolder(null);
+                    if (event.nativeEvent.isComposing) return;
+                    if (event.key === "Enter") {
+                      skipNameCommit.current = true;
+                      commitFolderRename(folder.id, event.currentTarget.value);
+                    }
+                    if (event.key === "Escape") {
+                      skipNameCommit.current = true;
+                      setRenamingFolder(null);
+                    }
                   }}
                   className="h-8 w-full rounded-[8px] border border-[#c6f24b]/50 bg-[#0b0e14] px-2 text-xs text-white focus:outline-none"
                 />
@@ -216,9 +244,9 @@ export function CanvasLibraryDialog({
             </div>
             <label className="flex h-8 w-48 items-center gap-1.5 rounded-[8px] border border-white/10 bg-[#0b0e14] px-2">
               <Search className="h-3.5 w-3.5 text-white/35" />
-              <input
+              <ComposedInput
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onValue={setQuery}
                 placeholder={isZh ? "搜尋" : "Search"}
                 className="w-full bg-transparent text-xs text-white placeholder:text-white/30 focus:outline-none"
               />
@@ -275,14 +303,27 @@ export function CanvasLibraryDialog({
                         </span>
                       </button>
                       {renamingCanvas === project.id ? (
-                        <input
+                        <ComposedInput
                           autoFocus
                           value={canvasDraft}
-                          onChange={(event) => setCanvasDraft(event.target.value)}
-                          onBlur={() => commitCanvasRename(project.id, project.title)}
+                          onValue={setCanvasDraft}
+                          onBlur={(event) => {
+                            if (skipNameCommit.current) {
+                              skipNameCommit.current = false;
+                              return;
+                            }
+                            commitCanvasRename(project.id, project.title, event.currentTarget.value);
+                          }}
                           onKeyDown={(event) => {
-                            if (event.key === "Enter") commitCanvasRename(project.id, project.title);
-                            if (event.key === "Escape") setRenamingCanvas(null);
+                            if (event.nativeEvent.isComposing) return;
+                            if (event.key === "Enter") {
+                              skipNameCommit.current = true;
+                              commitCanvasRename(project.id, project.title, event.currentTarget.value);
+                            }
+                            if (event.key === "Escape") {
+                              skipNameCommit.current = true;
+                              setRenamingCanvas(null);
+                            }
                           }}
                           className="mt-2 h-7 w-full rounded-[7px] border border-[#c6f24b]/50 bg-[#0b0e14] px-2 text-xs text-white focus:outline-none"
                         />

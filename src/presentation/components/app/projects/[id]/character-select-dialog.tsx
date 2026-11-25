@@ -5,6 +5,11 @@ import { refreshCharacterAction } from "@/presentation/actions/characters";
 import { LookCardImage } from "@/presentation/components/app/jutsu/look-card-image";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
 import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
+import {
+  CharacterMenu,
+  CharacterMenuRow,
+  characterPairFromPublic,
+} from "@/presentation/components/app/characters/character-pair-menu";
 import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -132,28 +137,6 @@ export function presetsForCharacterStyle(
   const targetStyle = foundationStyleForPublicCharacter(character);
   return (character.presets || []).filter(
     (preset) => preset.styleId === targetStyle,
-  );
-}
-
-function characterAvatarThumb(character: PublicCharacter, styleId?: string): string {
-  const styleSheet = defaultSheetForStyle(character, styleId);
-  if (styleSheet) {
-    return (
-      styleSheet.portraitUrl ||
-      styleSheet.profileUrl ||
-      styleSheet.blueprintUrl ||
-      character.previewUrl ||
-      ""
-    );
-  }
-  const anySheet = defaultSheetForStyle(character);
-  return (
-    anySheet?.portraitUrl ||
-    anySheet?.profileUrl ||
-    character.previewUrl ||
-    anySheet?.blueprintUrl ||
-    character.versions[0]?.referenceImageUrl ||
-    ""
   );
 }
 
@@ -523,36 +506,29 @@ export function CharacterSelectDialog({
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-7">
+            <CharacterMenu>
               {allowNone ? (
-                <button
-                  type="button"
+                <CharacterMenuRow
+                  label={isEn ? "None" : "不使用角色"}
+                  selected={value.length === 0}
                   onClick={() => {
                     onChange([]);
                     onSelectionsChange({});
                     if (!multiple) onClose();
                   }}
-                  className={`flex aspect-square w-full cursor-pointer flex-col items-center justify-center rounded-2xl border p-2 text-center transition ${
-                    value.length === 0
-                      ? "border-2 border-[#12141c] bg-[#12141c] text-[#c6f24b] ring-2 ring-[#c6f24b]"
-                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400"
-                  }`}
-                >
-                  <span className="text-base font-bold">∅</span>
-                  <span className="mt-1 text-[10px] font-bold leading-tight">
-                    {isEn ? "None" : "不使用角色"}
-                  </span>
-                </button>
+                />
               ) : null}
 
               {filteredCharacters.map((char) => {
                 const isSelected = value.includes(char.id);
-                const isFocused = activeCharacter?.id === char.id;
-                const avatar = characterAvatarThumb(char);
+                const pair = characterPairFromPublic(char);
                 return (
-                  <button
+                  <CharacterMenuRow
                     key={char.id}
-                    type="button"
+                    label={char.name}
+                    portraitUrl={pair.portraitUrl}
+                    fullBodyUrl={pair.fullBodyUrl}
+                    selected={isSelected}
                     onClick={() => {
                       setActiveCharId(char.id);
                       setLookMode("presets");
@@ -566,62 +542,15 @@ export function CharacterSelectDialog({
                         );
                       }
                     }}
-                    className={`style-option group relative flex aspect-square w-full cursor-pointer flex-col justify-end overflow-hidden rounded-2xl border text-left transition ${
-                      isSelected
-                        ? "border-2 border-[#12141c] ring-2 ring-[#c6f24b]"
-                        : isFocused
-                          ? "border-2 border-[#12141c]"
-                          : "border-zinc-200 hover:border-zinc-400"
-                    }`}
-                  >
-                    {avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatar}
-                        alt={char.name}
-                        className="absolute inset-0 h-full w-full object-cover object-top transition duration-200 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 grid place-items-center bg-zinc-100 text-xs font-bold text-zinc-500">
-                        {char.name.slice(0, 2)}
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-                    {isSelected ? (
-                      <span className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#c6f24b] text-[10px] font-extrabold text-[#12141c]">
-                        ✓
-                      </span>
-                    ) : null}
-                    <span className="relative z-10 truncate px-2 py-1.5 text-[11px] font-bold text-white">
-                      {char.name}
-                    </span>
-                  </button>
+                  />
                 );
               })}
 
-              {/* Quick + New Character Tile inside strip */}
-              <button
-                type="button"
+              <CharacterMenuRow
+                label={isEn ? "New Character" : "新增角色"}
                 onClick={handleOpenCreateCharacter}
-                className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-zinc-300 bg-[#f4f4f5] p-2 text-center text-zinc-600 transition hover:border-[#12141c] hover:text-[#12141c]"
-              >
-                <svg
-                  aria-hidden="true"
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                <span className="text-[10px] font-bold leading-tight">
-                  {isEn ? "New Character" : "新增角色"}
-                </span>
-              </button>
-            </div>
+              />
+            </CharacterMenu>
           </div>
 
           {/* Layer 2: Selected Character's Presets (First) & History (Second) + Add Style */}

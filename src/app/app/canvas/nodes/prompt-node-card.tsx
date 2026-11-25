@@ -10,6 +10,7 @@ import { wiredSettingsVars } from "@/service/canvas/graph";
 import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -83,9 +84,9 @@ export function PromptNodeCard({
 
       {/* Editable prompt body */}
       <div className="space-y-1.5 p-2.5">
-        <textarea
+        <ComposedTextarea
           value={text}
-          onChange={(e) => onUpdateNodeData(id, { text: e.target.value })}
+          onValue={(next) => onUpdateNodeData(id, { text: next })}
           rows={4}
           placeholder={
             isZh

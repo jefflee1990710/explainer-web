@@ -9,6 +9,11 @@ import {
   CharacterSelectDialog,
   defaultSheetForStyle,
 } from "@/presentation/components/app/projects/[id]/character-select-dialog";
+import {
+  CharacterPairFrame,
+  characterPairFromPublic,
+  characterPairFromVersion,
+} from "@/presentation/components/app/characters/character-pair-menu";
 import { InlineCreateCharacterDialog } from "@/presentation/components/app/projects/[id]/inline-create-character-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -237,14 +242,9 @@ export function CharacterPicker({
         (v) => v.status === "queued" || v.status === "in_progress",
       ) && !blueprintForStyle(firstSelected, styleId)
     : false;
-  const firstThumb = firstSelected
-    ? displayForSelection(
-        firstSelected,
-        styleId,
-        firstSelection?.versionId,
-        firstSelection?.presetId,
-      )
-    : "";
+  const firstPair = firstSelected
+    ? pairForSelection(firstSelected, firstSelection?.versionId, firstSelection?.presetId)
+    : {};
 
   return (
     <div>
@@ -258,8 +258,8 @@ export function CharacterPicker({
           onClick={() => setOpen(true)}
           className="character-split-trigger flex min-h-[4.5rem] min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-l-xl border border-r-0 border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {firstSelected && firstThumb ? (
-            <CharacterThumb src={firstThumb} />
+          {firstSelected && (firstPair.portraitUrl || firstPair.fullBodyUrl) ? (
+            <CharacterPairFrame portraitUrl={firstPair.portraitUrl} fullBodyUrl={firstPair.fullBodyUrl} />
           ) : firstIsGenerating ? (
             <span className="grid h-14 w-24 shrink-0 place-items-center rounded-md border border-accent-ink/15 bg-white">
               <Spinner className="h-4 w-4" />
@@ -420,61 +420,19 @@ function resolvePresetName(
   return fallbackName;
 }
 
-// Thumbnail for the selected preset or default blueprint in the given style (or reference image while generating).
-function displayForSelection(
-  character: PublicCharacter,
-  styleId?: string,
-  versionId?: string,
-  presetId?: string,
-) {
+function pairForSelection(character: PublicCharacter, versionId?: string, presetId?: string) {
   if (presetId) {
-    const preset = (character.presets || []).find((p) => p.id === presetId);
-    if (preset) {
-      return (
-        preset.portraitUrl ||
-        preset.profileUrl ||
-        preset.blueprintUrl ||
-        character.previewUrl ||
-        ""
-      );
+    const preset = (character.presets || []).find((item) => item.id === presetId);
+    if (preset && (preset.portraitUrl || preset.profileUrl)) {
+      return { portraitUrl: preset.portraitUrl, fullBodyUrl: preset.profileUrl };
     }
   }
   if (versionId) {
-    const version = character.versions.find((v) => v.id === versionId);
-    if (version) {
-      return (
-        version.portraitUrl ||
-        version.profileUrl ||
-        version.blueprintUrl ||
-        version.referenceImageUrl ||
-        character.previewUrl ||
-        ""
-      );
-    }
+    const version = character.versions.find((item) => item.id === versionId);
+    const pair = characterPairFromVersion(version);
+    if (pair.portraitUrl || pair.fullBodyUrl) return pair;
   }
-  const sheet = defaultSheetForStyle(character, styleId);
-  const fallbackRef = character.versions[0]?.referenceImageUrl || "";
-  return (
-    sheet?.portraitUrl ||
-    sheet?.profileUrl ||
-    sheet?.blueprintUrl ||
-    character.previewUrl ||
-    fallbackRef ||
-    ""
-  );
-}
-
-function CharacterThumb({ src }: { src: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      width={96}
-      height={64}
-      className="h-14 w-24 shrink-0 rounded-md border border-accent-ink/10 bg-white object-contain object-center"
-    />
-  );
+  return characterPairFromPublic(character);
 }
 
 function EmptyThumb() {

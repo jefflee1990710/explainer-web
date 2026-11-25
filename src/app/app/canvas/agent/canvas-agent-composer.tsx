@@ -2,9 +2,10 @@
 
 // Text box + send button for the canvas agent. Enter sends, Shift+Enter adds a line.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { Spinner } from "@/presentation/components/spinner";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
 
 const MESSAGE_MAX = 2000;
@@ -18,12 +19,18 @@ export function CanvasAgentComposer({
   busy: boolean;
   onSend: (text: string) => void;
 }) {
-  const [input, setInput] = useState("");
+  const textRef = useRef("");
+  const [input, setInputState] = useState("");
+  const setInput = (next: string) => {
+    textRef.current = next;
+    setInputState(next);
+  };
   const canSend = !busy && input.trim().length > 0;
 
   function submit() {
-    if (!canSend) return;
-    onSend(input.trim());
+    const text = textRef.current.trim();
+    if (busy || !text) return;
+    onSend(text);
     setInput("");
   }
 
@@ -35,14 +42,14 @@ export function CanvasAgentComposer({
       }}
       className="flex shrink-0 items-end gap-2 border-t border-white/8 p-2.5"
     >
-      <textarea
+      <ComposedTextarea
         rows={1}
         maxLength={MESSAGE_MAX}
         value={input}
         disabled={busy}
         aria-label={copy.placeholder}
         placeholder={copy.placeholder}
-        onChange={(event) => setInput(event.target.value)}
+        onValue={setInput}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
             event.preventDefault();

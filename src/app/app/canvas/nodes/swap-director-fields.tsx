@@ -5,6 +5,7 @@
 import type { CanvasAspectRatio, CanvasNodeData } from "@/model/canvas";
 import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
+import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 
 type Props = {
@@ -39,9 +40,9 @@ export function SwapDirectorFields({ data, isZh, disabled, onUpdate }: Props) {
         <div className="grid grid-cols-2 gap-2">
           <label className={DIALOG_LABEL}>
             {isZh ? "目標物" : "Target"}
-            <input
+            <ComposedInput
               value={String(tp.objectTarget ?? "")}
-              onChange={(e) => setParams({ objectTarget: e.target.value })}
+              onValue={(objectTarget) => setParams({ objectTarget })}
               placeholder={isZh ? "例如外套" : "e.g. jacket"}
               className={DIALOG_FIELD}
             />
@@ -70,10 +71,10 @@ export function SwapDirectorFields({ data, isZh, disabled, onUpdate }: Props) {
       ) : null}
       <label className={DIALOG_LABEL}>
         {mode === "object" ? (isZh ? "換成什麼" : "Change into") : isZh ? "指示" : "Instruction"}
-        <textarea
+        <ComposedTextarea
           rows={3}
           value={data.prompt ?? ""}
-          onChange={(e) => onUpdate({ prompt: e.target.value })}
+          onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "例如換成藍色外套…" : "e.g. change into a blue jacket…"}
           className={DIALOG_TEXTAREA}
         />

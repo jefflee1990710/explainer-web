@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
+import { characterPairFromPublic } from "@/presentation/components/app/characters/character-pair-menu";
 import type { PublicJutsuJob } from "@/model/jutsu-job";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -92,24 +94,36 @@ export function ScroSwapHistoryPanel({
           </span>
         </div>
 
-        <select
-          aria-label={isEn ? "Filter by character" : "按角色篩選"}
-          value={characterFilter}
-          onChange={(ev) => setCharacterFilter(ev.target.value)}
-          className="h-8 max-w-[11rem] cursor-pointer truncate rounded-full border border-accent-ink/15 bg-white px-3 text-xs font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <option value="all">{isEn ? "All characters" : "全部角色"}</option>
-          {filterCharacterOptions.map((opt) => (
-            <option key={opt.id} value={opt.id}>
-              {opt.name}
-            </option>
-          ))}
-          {jobs.some((j) => !j.characterId && !j.characterName) ? (
-            <option value="__custom__">
-              {isEn ? "Custom photo" : "自訂相片"}
-            </option>
-          ) : null}
-        </select>
+        <div className="w-44">
+          <CanvasPreviewSelect
+            ariaLabel={isEn ? "Filter by character" : "按角色篩選"}
+            value={characterFilter}
+            options={[
+              { value: "all", label: isEn ? "All characters" : "全部角色" },
+              ...filterCharacterOptions.map((opt) => {
+                const person = characters.find((character) => character.id === opt.id);
+                const pair = person ? characterPairFromPublic(person) : {};
+                return {
+                  value: opt.id,
+                  label: opt.name,
+                  previewUrl: pair.portraitUrl || pair.fullBodyUrl,
+                  ...(pair.portraitUrl && pair.fullBodyUrl
+                    ? {
+                        secondaryPreviewUrl: pair.fullBodyUrl,
+                        secondaryShape: "body" as const,
+                        secondaryFit: "contain" as const,
+                      }
+                    : {}),
+                  previewShape: pair.portraitUrl ? ("square" as const) : ("body" as const),
+                };
+              }),
+              ...(jobs.some((job) => !job.characterId && !job.characterName)
+                ? [{ value: "__custom__", label: isEn ? "Custom photo" : "自訂相片" }]
+                : []),
+            ]}
+            onChange={setCharacterFilter}
+          />
+        </div>
       </div>
 
       {/* Body */}

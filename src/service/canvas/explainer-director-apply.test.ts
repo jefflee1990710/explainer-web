@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
-import type { ExplainerDirectorPlan } from "@/service/canvas/explainer-director";
-import { applyDirectorBuild, dropCutDirectorEdges } from "@/service/canvas/explainer-director-apply";
+import {
+  applyDirectorBuild,
+  directorRevealSteps,
+  mergeDirectorRows,
+} from "@/service/canvas/explainer-director-apply";
 
 const node = (id: string): CanvasNode => ({ id, type: "model", position: { x: 0, y: 0 }, data: { modelId: "x" } });
 const wire = (source: string, target: string, sourceHandle = "output"): CanvasEdge => ({
@@ -39,15 +42,35 @@ describe("director graph apply", () => {
     assert.deepEqual(out.edges.map((e) => e.target), ["new-frame"]);
   });
 
-  it("keep drops wires from outputs the new plan no longer has", () => {
-    const plan = {
-      plannerVideoId: "v",
-      plannedWith: {},
-      clips: [{ clipNumber: 1, framePrompt: "f", videoPrompt: "", spokenLine: "", durationSeconds: 6, refUrls: [] }],
-    } as unknown as ExplainerDirectorPlan;
-    const edges = [wire("dir", "f1", "clip-1-frame"), wire("dir", "f2", "clip-2-frame"), wire("x", "y")];
-    const out = dropCutDirectorEdges(edges, "dir", plan);
-    assert.deepEqual(out.edges.map((e) => e.target), ["f1", "y"]);
-    assert.deepEqual(out.cutTargets, ["f2"]);
+  it("merges the finished plan onto rows built while planning", () => {
+    const placed = { ...node("frame"), position: { x: 500, y: 40 } };
+    const out = mergeDirectorRows(
+      { nodes: [node("dir"), placed], edges: [wire("dir", "video", "clip-1-motion")] },
+      {
+        nodes: [{ ...node("frame"), data: { modelId: "x", resolution: "2k" } }, node("ref")],
+        edges: [wire("dir", "video", "clip-1-motion"), wire("dir", "frame", "clip-1-frame"), wire("ref", "frame")],
+      },
+    );
+    const frame = out.nodes.find((n) => n.id === "frame")!;
+    assert.deepEqual(frame.position, { x: 500, y: 40 });
+    assert.equal(frame.data.resolution, "2k");
+    assert.deepEqual(out.addedIds, ["ref"]);
+    assert.equal(out.edges.length, 3);
+  });
+
+  it("reveals one node per step and each wire once both ends are placed", () => {
+    const steps = directorRevealSteps(
+      {
+        nodes: [node("a"), node("b"), node("c")],
+        edges: [wire("dir", "a", "clip-1-voice"), wire("a", "c"), wire("b", "c")],
+      },
+      ["dir"],
+    );
+    assert.deepEqual(steps.map((s) => s.node.id), ["a", "b", "c"]);
+    assert.deepEqual(steps.map((s) => s.edges.map((e) => e.id)), [
+      ["dir:clip-1-voice->a"],
+      [],
+      ["a:output->c", "b:output->c"],
+    ]);
   });
 });

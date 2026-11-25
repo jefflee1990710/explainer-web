@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { CanvasOutfitTile } from "@/app/app/canvas/canvas-outfit-list";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasLibraryAsset } from "@/service/canvas/projects";
 import {
   listSystemDefaultOutfits,
@@ -87,10 +88,10 @@ export function CanvasOutfitTab({
       <div className="space-y-2 border-b border-white/6 p-2.5">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
-          <input
+          <ComposedInput
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onValue={setQuery}
             placeholder={isZh ? "搜尋穿搭…" : "Search outfits…"}
             className="h-8 w-full rounded-[9px] border border-white/10 bg-[#090c12] pr-2.5 pl-8 text-xs text-white placeholder:text-white/35 focus:border-[#c6f24b]/50 focus:outline-none"
           />

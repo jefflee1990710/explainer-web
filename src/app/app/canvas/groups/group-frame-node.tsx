@@ -3,11 +3,12 @@
 // Titled frame drawn behind a canvas group. Only the title bar is interactive:
 // drag it to move every member, rename, recolor, collapse, run the group, ungroup, or delete it.
 
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { ChevronsDownUp, ChevronsUpDown, Play, Trash2, Ungroup } from "lucide-react";
 import type { CanvasGroupKind } from "@/model/canvas";
 import { CANVAS_GROUP_COLORS } from "@/service/canvas/groups";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { useCanvasGroupActions } from "./group-actions-context";
 import { GROUP_COLOR_HEX, type GroupFrameNode } from "./group-frames";
 
@@ -28,13 +29,14 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
   const color = GROUP_COLOR_HEX[group.color];
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(group.title);
+  const skipTitleCommit = useRef(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const kind = KIND_LABEL[group.kind];
   const count = group.memberIds.length;
 
-  const commitTitle = () => {
+  const commitTitle = (raw: string) => {
     setEditing(false);
-    const next = draft.trim();
+    const next = raw.trim();
     if (next && next !== group.title) actions.onRename(group.id, next);
     else setDraft(group.title);
   };
@@ -84,15 +86,26 @@ function GroupFrameNodeInner({ data }: NodeProps<GroupFrameNode>) {
         </div>
 
         {editing ? (
-          <input
+          <ComposedInput
             autoFocus
             value={draft}
             maxLength={120}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitTitle}
+            onValue={setDraft}
+            onBlur={(e) => {
+              if (skipTitleCommit.current) {
+                skipTitleCommit.current = false;
+                return;
+              }
+              commitTitle(e.currentTarget.value);
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") commitTitle();
+              if (e.nativeEvent.isComposing) return;
+              if (e.key === "Enter") {
+                skipTitleCommit.current = true;
+                commitTitle(e.currentTarget.value);
+              }
               if (e.key === "Escape") {
+                skipTitleCommit.current = true;
                 setDraft(group.title);
                 setEditing(false);
               }

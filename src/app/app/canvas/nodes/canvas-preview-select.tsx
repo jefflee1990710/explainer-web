@@ -6,6 +6,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
+import { CharacterPairFrame } from "@/presentation/components/app/characters/character-pair-menu";
 import { DirectorBackgroundSwatch } from "@/presentation/components/app/projects/new/director-background-swatch";
 
 export type CanvasPreviewOption = {
@@ -88,16 +89,8 @@ function Preview({ option, large }: { option: CanvasPreviewOption | undefined; l
   if (!option?.previewUrl && !option?.secondaryPreviewUrl) return null;
   // Face and standing figure share one frame so the row reads as a single still.
   if (option.previewUrl && option.secondaryPreviewUrl) {
-    const height = large ? "h-28" : "h-10";
-    const face = large ? "w-28" : "w-10";
-    const body = large ? "w-16" : "w-[22px]";
     return (
-      <span className={`flex ${height} shrink-0 overflow-hidden rounded-md border border-white/10 bg-[#e7e7e7]`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={option.previewUrl} alt="" loading="lazy" className={`${height} ${face} object-cover`} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={option.secondaryPreviewUrl} alt="" loading="lazy" className={`${height} ${body} object-contain`} />
-      </span>
+      <CharacterPairFrame portraitUrl={option.previewUrl} fullBodyUrl={option.secondaryPreviewUrl} large={large} />
     );
   }
   return (

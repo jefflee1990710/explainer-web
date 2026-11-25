@@ -2,8 +2,9 @@
 
 // Larger prompt box for a model node. The card stays compact; this dialog is for editing.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 
 type Props = {
   initial: string;
@@ -13,7 +14,12 @@ type Props = {
 };
 
 export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
-  const [draft, setDraft] = useState(initial);
+  const draftRef = useRef(initial);
+  const [draft, setDraftState] = useState(initial);
+  const setDraft = (next: string) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -39,10 +45,10 @@ export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
         <p className="mt-1 text-xs leading-relaxed text-white/60">
           {isZh ? "在較大的欄位修改這段提示詞。" : "Edit this prompt in a larger box."}
         </p>
-        <textarea
+        <ComposedTextarea
           autoFocus
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onValue={setDraft}
           placeholder={isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"}
           className="nodrag nowheel mt-4 min-h-[50vh] w-full flex-1 resize-y rounded-[10px] border border-white/10 bg-[#0b0e14] px-3 py-2.5 text-[13px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
         />
@@ -56,7 +62,7 @@ export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
           </button>
           <button
             type="button"
-            onClick={() => onSave(draft)}
+            onClick={() => onSave(draftRef.current)}
             className="cursor-pointer rounded-lg bg-[#c6f24b] px-3 py-1.5 text-xs font-bold text-[#11141b] transition hover:brightness-105"
           >
             {isZh ? "完成" : "Done"}
