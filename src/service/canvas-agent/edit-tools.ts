@@ -89,6 +89,19 @@ function placeRightOf(g: CanvasAgentWorkingGraph, nodeId: string, anchorId: stri
   const node = g.nodes.find((n) => n.id === nodeId);
   if (!anchor || !node) return;
   const position = { x: anchor.position.x + COLUMN_GAP, y: anchor.position.y + row * 260 };
+  // Model cards are tall; step down past any card already in that column so nothing stacks.
+  const height = (n: { type: string }) => (n.type === "model" ? 560 : 320);
+  for (let moved = true; moved; ) {
+    moved = false;
+    for (const other of g.nodes) {
+      if (other.id === nodeId || Math.abs(other.position.x - position.x) >= COLUMN_GAP - 40) continue;
+      const overlaps = position.y < other.position.y + height(other) && other.position.y < position.y + height(node);
+      if (overlaps) {
+        position.y = other.position.y + height(other) + 40;
+        moved = true;
+      }
+    }
+  }
   node.position = position;
   g.ops.push({ kind: "move_node", nodeId, position });
 }

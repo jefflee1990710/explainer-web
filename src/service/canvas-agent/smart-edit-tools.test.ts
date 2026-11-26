@@ -35,7 +35,7 @@ function graph() {
   return g;
 }
 
-const sound = (name: string) => ({ url: `https://x.public.blob.vercel-storage.com/${name}.mp3`, name, durationSec: 2 });
+const sound = (name: string) => ({ url: `https://x.public.blob.vercel-storage.com/${name}.mp3`, name, durationSec: 2, credit: "test" });
 
 function finder(calls: unknown[]): SmartAudioFinder {
   return {
@@ -67,6 +67,19 @@ describe("canvas agent smart edit tools", () => {
     assert.equal(reframeNode.data.modelId, "scro:smart-reframe");
     assert.equal(reframeNode.data.toolParams?.reframeAspect, "1:1");
     assert.ok(g.edges.some((e) => e.source === cleanNode.id && e.target === reframeNode.id));
+  });
+
+  it("places an inserted edit below cards already in that column", () => {
+    const g = graph();
+    g.nodes.find((n) => n.id === "c2")!.position = { x: 0, y: 200 };
+    const T = smartEditToolHandlers(finder([]));
+    const cleanId = T.clean_speech(g, H, { sourceId: "c1" }).nodeId;
+    const clean = g.nodes.find((n) => n.id === cleanId)!;
+    const res = T.smart_reframe(g, H, { sourceId: "c2" });
+    assert.equal(res.error, undefined);
+    const reframe = g.nodes.find((n) => n.id === res.nodeId)!;
+    assert.equal(reframe.position.x, clean.position.x);
+    assert.ok(reframe.position.y >= clean.position.y + 560);
   });
 
   it("auto_bgm adds library music and mixes it under a plain video", async () => {

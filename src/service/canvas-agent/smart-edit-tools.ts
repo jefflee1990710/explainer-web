@@ -147,7 +147,7 @@ async function autoSfx(
 
 export function smartEditToolHandlers(finder: SmartAudioFinder = defaultSmartAudioFinder) {
   return {
-    clean_speech: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"clean_speech">) => {
+    clean_speech: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"clean_speech">): CanvasAgentToolResult => {
       const res = insertEdit(g, h, {
         sourceId: input.sourceId,
         sourcePort: input.sourcePort,
@@ -161,7 +161,7 @@ export function smartEditToolHandlers(finder: SmartAudioFinder = defaultSmartAud
       });
       return { ...res, note: "Clean Speech costs $0.20 per hour of source when run (Scribe)." };
     },
-    smart_reframe: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"smart_reframe">) => {
+    smart_reframe: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"smart_reframe">): CanvasAgentToolResult => {
       const res = insertEdit(g, h, {
         sourceId: input.sourceId,
         sourcePort: input.sourcePort,
