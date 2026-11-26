@@ -39,6 +39,7 @@ export function clearNodeOutput(data: CanvasNodeData, clearedAt: string): Canvas
   delete rest.lastJobId;
   delete rest.lastError;
   delete rest.lastCostUsd;
+  delete rest.staleOutputUrl;
   return { ...rest, status: "idle", outputClearedAt: clearedAt };
 }
 
@@ -90,6 +91,14 @@ type RememberedJobOutput = {
 export function applyRememberedJobOutput(data: CanvasNodeData, job: RememberedJobOutput): CanvasNodeData {
   // An older poll must not put the previous file back on a node that already moved on.
   if (isNewerJob(data.lastJobId, job.lastJobId)) return data;
+  // A node explicitly reset (e.g. Director Replan) must not resurrect a job created before the reset.
+  if (data.status === "idle" && !data.lastJobId && data.outputClearedAt) {
+    const clearedMs = Date.parse(data.outputClearedAt);
+    const jobMs = /^[a-f0-9]{24}$/i.test(job.lastJobId)
+      ? Number.parseInt(job.lastJobId.slice(0, 8), 16) * 1000
+      : 0;
+    if (Number.isFinite(clearedMs) && jobMs > 0 && jobMs <= clearedMs) return data;
+  }
   const sameOldClip =
     isOutputStale(data) && job.status === "completed" && (!job.outputUrl || job.outputUrl === data.outputUrl);
   if (sameOldClip) {
@@ -111,6 +120,50 @@ export function applyRememberedJobOutput(data: CanvasNodeData, job: RememberedJo
   };
   if (job.status === "completed" && job.outputUrl && job.outputUrl !== data.outputUrl) {
     delete next.staleOutputUrl;
+  }
+  return next;
+}
+
+// Merges only server execution fields from a flow poll into local node data,
+// preserving any unsaved user edits (prompt, model params, toolParams, etc.).
+export function mergeFlowPollNodeData(
+  local: CanvasNodeData,
+  server: CanvasNodeData,
+): CanvasNodeData {
+  if (isNewerJob(local.lastJobId, server.lastJobId)) return local;
+  // Do not let an older flow poll overwrite a node explicitly cleared locally.
+  if (local.status === "idle" && !local.lastJobId && local.outputClearedAt && server.lastJobId) {
+    const clearedMs = Date.parse(local.outputClearedAt);
+    const jobMs = /^[a-f0-9]{24}$/i.test(server.lastJobId)
+      ? Number.parseInt(server.lastJobId.slice(0, 8), 16) * 1000
+      : 0;
+    if (Number.isFinite(clearedMs) && jobMs > 0 && jobMs <= clearedMs) return local;
+  }
+  const next: CanvasNodeData = {
+    ...local,
+    ...(server.status !== undefined ? { status: server.status } : {}),
+    ...(server.lastJobId !== undefined ? { lastJobId: server.lastJobId } : {}),
+    ...(server.lastCostUsd !== undefined ? { lastCostUsd: server.lastCostUsd } : {}),
+    ...(server.outputUrl !== undefined ? { outputUrl: server.outputUrl } : {}),
+    ...(server.outputKind !== undefined ? { outputKind: server.outputKind } : {}),
+    lastError: server.status === "failed" ? server.lastError : undefined,
+  };
+  // Auto-captions writes the transcribed SRT into `data.text` on completion.
+  if (
+    local.modelId === "scro:auto-captions" &&
+    server.status === "completed" &&
+    server.text !== undefined &&
+    server.lastJobId &&
+    server.lastJobId !== local.lastJobId
+  ) {
+    next.text = server.text;
+  }
+  // A freshly completed output URL clears an older stale mark, while preserving
+  // a newer local stale mark if the user edited inputs during the run.
+  if (server.status === "completed" && server.outputUrl && server.outputUrl !== local.outputUrl) {
+    delete next.staleOutputUrl;
+  } else if (server.staleOutputUrl && !local.staleOutputUrl) {
+    next.staleOutputUrl = server.staleOutputUrl;
   }
   return next;
 }

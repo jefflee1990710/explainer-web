@@ -400,6 +400,10 @@ export async function executeCanvasFfmpegJob(
         if (value === undefined) unsetFields[path] = "";
         else setFields[path] = value;
       }
+      // A finished rerun is the current preview, even if this node was marked old.
+      if (patch.status === "completed" && typeof patch.outputUrl === "string" && patch.outputUrl.trim()) {
+        unsetFields["nodes.$.data.staleOutputUrl"] = "";
+      }
       const updateDoc: Record<string, unknown> = { $set: setFields };
       if (Object.keys(unsetFields).length > 0) updateDoc.$unset = unsetFields;
       await projects.updateOne({ _id: canvasId, clerkUserId, "nodes.id": nodeId }, updateDoc);

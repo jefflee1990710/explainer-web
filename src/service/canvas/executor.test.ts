@@ -6,6 +6,9 @@ import { findCanvasModel, STATIC_CANVAS_MODELS } from "@/service/canvas/model-ca
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
 import {
   type CanvasExecutorDeps,
+  CANVAS_ASYNC_JOB_TIMEOUT_MS,
+  CANVAS_IMAGE_JOB_TIMEOUT_MS,
+  isCanvasJobTimedOut,
   pollCanvasJobs,
   refundCanvasJobOnce,
   submitCanvasNodeJob,
@@ -1186,5 +1189,44 @@ describe("canvas executor", () => {
     assert.equal(res.code, "INVALID_INPUTS");
     assert.equal(harness.wallet.creditUsd, 20);
     assert.equal(harness.jobs.size, 0);
+  });
+
+  it("times out stuck async jobs past their provider window and ignores completed ones", () => {
+    const start = new Date("2026-11-26T00:00:00.000Z");
+    assert.equal(
+      isCanvasJobTimedOut(
+        { status: "running", outputKind: "image", provider: "openrouter", createdAt: start },
+        start.getTime() + CANVAS_IMAGE_JOB_TIMEOUT_MS - 1,
+      ),
+      false,
+    );
+    assert.equal(
+      isCanvasJobTimedOut(
+        { status: "running", outputKind: "image", provider: "openrouter", createdAt: start },
+        start.getTime() + CANVAS_IMAGE_JOB_TIMEOUT_MS,
+      ),
+      true,
+    );
+    assert.equal(
+      isCanvasJobTimedOut(
+        { status: "running", outputKind: "video", provider: "openrouter", createdAt: start },
+        start.getTime() + CANVAS_ASYNC_JOB_TIMEOUT_MS - 1,
+      ),
+      false,
+    );
+    assert.equal(
+      isCanvasJobTimedOut(
+        { status: "running", outputKind: "video", provider: "openrouter", createdAt: start },
+        start.getTime() + CANVAS_ASYNC_JOB_TIMEOUT_MS,
+      ),
+      true,
+    );
+    assert.equal(
+      isCanvasJobTimedOut(
+        { status: "completed", outputKind: "video", provider: "openrouter", createdAt: start },
+        start.getTime() + CANVAS_ASYNC_JOB_TIMEOUT_MS * 2,
+      ),
+      false,
+    );
   });
 });

@@ -363,9 +363,10 @@ export function ModelNodeCard({
           ) : null}
           <button
             type="button"
+            disabled={isBusy}
             onClick={() => onDeleteNode(id)}
-            title="Delete node"
-            className="nodrag cursor-pointer rounded-md p-1 text-white/40 transition hover:bg-white/8 hover:text-rose-400"
+            title={isBusy ? (isZh ? "執行中無法刪除" : "Cannot delete while running") : "Delete node"}
+            className="nodrag cursor-pointer rounded-md p-1 text-white/40 transition hover:bg-white/8 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

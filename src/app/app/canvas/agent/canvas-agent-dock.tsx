@@ -66,7 +66,6 @@ export function CanvasAgentDock({
   hidden = false,
   expandToken = 0,
   lockSide = false,
-  sessionName = "",
   initialMessages,
   getGraph,
   contextRefs,
@@ -87,7 +86,6 @@ export function CanvasAgentDock({
   expandToken?: number;
   // Agent layout stays on the right edge.
   lockSide?: boolean;
-  sessionName?: string;
   initialMessages: CanvasAgentMessageDto[];
   getGraph: () => CanvasAgentGraphSnapshot;
   contextRefs: readonly CanvasAgentContextRef[];
@@ -307,7 +305,6 @@ export function CanvasAgentDock({
     hasMessages: messages.length > 0,
     onLanguageChange: changeLanguage,
     lockSide,
-    sessionName,
     onToggleSide: toggleSide,
     onClear: () => {
       setClearError("");

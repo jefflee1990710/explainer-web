@@ -11,6 +11,7 @@ import {
   isGenerationInputPatch,
   isOutputStale,
   markStaleOutputs,
+  mergeFlowPollNodeData,
   outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
 
@@ -33,14 +34,21 @@ const ref: CanvasNode = { id: "ref", type: "media", position: { x: 0, y: 0 }, da
 
 describe("stale outputs", () => {
   it("clears one node's output and stamps the clear time", () => {
-    const data = clearNodeOutput(model("f").data, CLEARED_AT);
+    const data = clearNodeOutput(
+      model("f", { staleOutputUrl: "https://blob/f", lastError: "err", lastCostUsd: 0.12 }).data,
+      CLEARED_AT,
+    );
     assert.equal(data.status, "idle");
     assert.equal(data.outputUrl, undefined);
     assert.equal(data.outputKind, undefined);
     assert.equal(data.lastJobId, undefined);
+    assert.equal(data.lastError, undefined);
+    assert.equal(data.lastCostUsd, undefined);
+    assert.equal(data.staleOutputUrl, undefined);
     assert.equal(data.outputClearedAt, CLEARED_AT);
     assert.equal(data.modelId, "x");
     assert.ok(!("outputUrl" in data));
+    assert.ok(!("staleOutputUrl" in data));
   });
 
   it("walks downstream from the changed nodes, including them", () => {
@@ -176,6 +184,23 @@ describe("stale outputs", () => {
     assert.equal(isOutputStale(next), true);
   });
 
+  it("does not resurrect a pre-reset job onto a cleared idle node", () => {
+    const data: CanvasNodeData = {
+      modelId: "ffmpeg:concat",
+      status: "idle",
+      outputClearedAt: CLEARED_AT,
+    };
+    const next = applyRememberedJobOutput(data, {
+      status: "completed",
+      lastJobId: "6740000000000000000000aa",
+      outputUrl: "https://blob/old.mp4",
+      outputKind: "video",
+    });
+    assert.equal(next.status, "idle");
+    assert.equal(next.outputUrl, undefined);
+    assert.equal(next.lastJobId, undefined);
+  });
+
   it("a regenerated output (new URL) is no longer stale", () => {
     const stale = { ...model("f").data, staleOutputUrl: "https://blob/f" };
     assert.equal(isOutputStale(stale), true);
@@ -202,5 +227,33 @@ describe("stale outputs", () => {
     const reasons = outdatedNodeReasons(nodes, [edge("dir", "f"), edge("f", "v")]);
     assert.deepEqual([...reasons], [["f", "settings"], ["x", "inputs"]]);
     assert.equal(outdatedNodeReasons([withPlan("Old"), model("f")], [edge("dir", "f")]).size, 0);
+  });
+
+  it("mergeFlowPollNodeData updates execution state without overwriting unsaved local edits", () => {
+    const local: CanvasNodeData = {
+      modelId: "openrouter:bytedance-seed/seedream-5-0-pro",
+      prompt: "Unsaved new prompt typed by user",
+      aspectRatio: "16:9",
+      status: "running",
+      lastJobId: "674000000000000000000001",
+      outputUrl: "https://blob/old.png",
+      staleOutputUrl: "https://blob/old.png",
+    };
+    const server: CanvasNodeData = {
+      modelId: "openrouter:bytedance-seed/seedream-5-0-pro",
+      prompt: "Stale prompt from DB",
+      aspectRatio: "9:16",
+      status: "completed",
+      lastJobId: "674000000000000000000002",
+      outputUrl: "https://blob/new.png",
+      outputKind: "image",
+      lastCostUsd: 0.135,
+    };
+    const merged = mergeFlowPollNodeData(local, server);
+    assert.equal(merged.prompt, "Unsaved new prompt typed by user");
+    assert.equal(merged.aspectRatio, "16:9");
+    assert.equal(merged.status, "completed");
+    assert.equal(merged.outputUrl, "https://blob/new.png");
+    assert.equal(merged.staleOutputUrl, undefined);
   });
 });

@@ -1,5 +1,7 @@
 import { ObjectId, type Filter } from "mongodb";
 import {
+  canvasJobsCollection,
+  canvasProjectsCollection,
   extendJobsCollection,
   generationJobsCollection,
   jutsuJobsCollection,
@@ -395,16 +397,25 @@ export async function syncPendingDomainJobsToWorkerQueue(limit = 50): Promise<{
   enqueued: number;
 }> {
   await ensureWorkerTaskIndexes();
-  const [genCol, jutsuCol, teleCol, extCol] = await Promise.all([
+  const [genCol, jutsuCol, teleCol, extCol, canvasJobsCol, canvasProjectsCol] = await Promise.all([
     generationJobsCollection(),
     jutsuJobsCollection(),
     teleportJobsCollection(),
     extendJobsCollection(),
+    canvasJobsCollection(),
+    canvasProjectsCollection(),
   ]);
 
   const now = new Date();
-  const [pendingGens, inflightGens, activeJutsus, activeTeleports, activeExtends] =
-    await Promise.all([
+  const [
+    pendingGens,
+    inflightGens,
+    activeJutsus,
+    activeTeleports,
+    activeExtends,
+    activeCanvasJobs,
+    activeCanvasFlows,
+  ] = await Promise.all([
       genCol
         .find({ status: "pending", nextAttemptAt: { $lte: now } })
         .sort({ createdAt: 1 })
@@ -418,6 +429,15 @@ export async function syncPendingDomainJobsToWorkerQueue(limit = 50): Promise<{
       jutsuCol.find({ status: "rendering" }).limit(limit).toArray(),
       teleCol.find({ status: "rendering" }).limit(limit).toArray(),
       extCol.find({ status: "rendering" }).limit(limit).toArray(),
+      canvasJobsCol
+        .find({ status: { $in: ["queued", "running"] } })
+        .sort({ updatedAt: 1 })
+        .limit(limit)
+        .toArray(),
+      canvasProjectsCol
+        .find({ "activeFlowRun.status": "running", "activeFlowRun.aborted": { $ne: true } })
+        .limit(limit)
+        .toArray(),
     ]);
 
   let enqueued = 0;
@@ -456,6 +476,23 @@ export async function syncPendingDomainJobsToWorkerQueue(limit = 50): Promise<{
   for (const job of activeExtends) {
     if (!job._id) continue;
     await enqueueWorkerTask({ kind: "extend", targetId: job._id, lane: "cpu" });
+    enqueued += 1;
+  }
+  for (const job of activeCanvasJobs) {
+    if (!job._id) continue;
+    await enqueueWorkerTask({ kind: "canvas_node", targetId: job._id, lane: "cpu" });
+    enqueued += 1;
+  }
+  for (const project of activeCanvasFlows) {
+    const run = project.activeFlowRun;
+    if (!project._id || !run?.flowRunId) continue;
+    await enqueueWorkerTask({
+      kind: "canvas_flow",
+      targetId: project._id,
+      lane: "cpu",
+      dedupeKey: `canvas_flow:${run.flowRunId}`,
+      payload: { flowRunId: run.flowRunId, clerkUserId: project.clerkUserId },
+    });
     enqueued += 1;
   }
   return { enqueued };

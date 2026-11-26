@@ -187,8 +187,11 @@ import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import {
   applyRememberedJobOutput,
+  clearNodeOutput,
+  downstreamNodeIds,
   isGenerationInputPatch,
   markStaleOutputs,
+  mergeFlowPollNodeData,
   outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
 import { swapNodeModel } from "@/service/canvas/model-swap";
@@ -543,7 +546,8 @@ function CanvasWorkspaceInner({
   const viewportRef = useRef<CanvasViewport>(initialProject.viewport);
   const activeProjectIdRef = useRef(activeProjectId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flowAbortRef = useRef(false);
+  // Prevents double-clicking Run Flow / Run group before the server responds.
+  const flowStartingRef = useRef(false);
   // Groups mark the canvas dirty before scheduleAutosave exists below, so they call it through a ref.
   const autosaveRef = useRef<() => void>(() => {});
   const requestAutosave = useCallback(() => autosaveRef.current(), []);
@@ -773,6 +777,16 @@ function CanvasWorkspaceInner({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, []);
+
+  // Warn before closing/reloading while local edits have not finished saving.
+  useEffect(() => {
+    if (saveStatus !== "dirty" && saveStatus !== "saving") return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [saveStatus]);
 
   // A freshly added node group waiting for React Flow to measure its cards.
   // Explainer keeps its row layout; every other group uses the depth columns.
@@ -1406,8 +1420,11 @@ function CanvasWorkspaceInner({
     if (!activeJobIdsKey || isFlowRunning) return;
     const jobIds = activeJobIdsKey.split(",");
     let alive = true;
+    let inFlight = false;
 
     const timer = window.setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await pollCanvasJobsAction({
           canvasId: activeProjectIdRef.current,
@@ -1418,6 +1435,8 @@ function CanvasWorkspaceInner({
         syncWallet(res.creditUsd);
       } catch {
         // Keep polling silently on transient network hiccups.
+      } finally {
+        inFlight = false;
       }
     }, JOB_POLL_INTERVAL_MS);
 
@@ -1430,6 +1449,11 @@ function CanvasWorkspaceInner({
   const onRunNode = useCallback(
     async (nodeId: string) => {
       if (planLockRef.current.nodeIds.has(nodeId)) return;
+      // Cancel pending autosave because runCanvasNodeAction saves the latest graph itself.
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
       setNodes((prev) =>
         prev.map((n) =>
           n.id === nodeId
@@ -1747,8 +1771,17 @@ function CanvasWorkspaceInner({
         replaceOld && oldGroup ? oldGroup.memberIds.filter((id) => id !== directorId) : [],
       );
       if (oldGroup && removed.size > 0) {
-        const clear = { directorId, expansion: { nodes: [], edges: [] }, replaceGroup: oldGroup };
-        setNodes((prev) => applyDirectorBuild({ nodes: prev, edges: [] }, clear).nodes);
+        const clearedAt = new Date().toISOString();
+        const currentEdges = toDomainEdges(edgesRef.current);
+        const clear = { directorId, expansion: { nodes: [], edges: [] }, replaceGroup: oldGroup, clearedAt };
+        const preview = applyDirectorBuild(
+          { nodes: toDomainNodes(nodesRef.current), edges: currentEdges },
+          clear,
+        );
+        for (const id of [...preview.removedIds, ...preview.resetIds]) {
+          jobOutputRef.current.delete(id);
+        }
+        setNodes((prev) => applyDirectorBuild({ nodes: prev, edges: currentEdges }, clear).nodes);
         setEdges((prev) => applyDirectorBuild({ nodes: [], edges: prev }, clear).edges);
         updateGroups((prev) => prev.filter((g) => g.id !== oldGroup.id));
       }
@@ -1817,14 +1850,14 @@ function CanvasWorkspaceInner({
         planDraft: undefined,
         planStage: undefined,
       };
-      const after = { ...before, data: { ...before.data, toolParams } };
-      const changed = directorChangedTargets(before, after, toDomainEdges(edgesRef.current));
       setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, toolParams } } : n)));
       // A Run that asked for this Replan goes ahead once the rows keep their ids.
       const waitingRun = runAfterReplanRef.current.get(nodeId);
       runAfterReplanRef.current.delete(nodeId);
       if (oldPlan && oldPlan.clips.length === state.plan.clips.length) {
-        // Rows keep their ids, so wires stay. Reference stills and voice settings still follow the new plan.
+        // Rows keep their ids, so wires stay. Reference stills and row inputs follow the new plan,
+        // and all child + downstream nodes have old media cleared and reset to idle.
+        const clearedAt = new Date().toISOString();
         const memberIds =
           snapshotGroups(toDomainNodes(nodesRef.current)).find((g) => g.memberIds.includes(nodeId))?.memberIds ??
           [];
@@ -1832,10 +1865,12 @@ function CanvasWorkspaceInner({
           { nodes: toDomainNodes(nodesRef.current), edges: toDomainEdges(edgesRef.current) },
           { nodes: state.nodes, edges: state.edges },
           memberIds,
+          clearedAt,
         );
-        // Same update as the new prompts, so the old previews are marked before the next save.
-        const marked = markStaleOutputs(synced.nodes, synced.edges, [...changed, ...synced.changedIds]);
-        const syncedById = new Map(marked.nodes.map((n) => [n.id, n]));
+        for (const id of [...synced.resetIds, ...synced.removedIds]) {
+          jobOutputRef.current.delete(id);
+        }
+        const syncedById = new Map(synced.nodes.map((n) => [n.id, n]));
         setNodes((prev) => {
           const kept = prev.flatMap((n) => {
             if (n.id === nodeId) return [{ ...n, data: { ...n.data, toolParams } }];
@@ -1843,7 +1878,7 @@ function CanvasWorkspaceInner({
             return row ? [{ ...n, data: row.data }] : [];
           });
           const have = new Set(kept.map((n) => n.id));
-          return [...kept, ...toFlowNodes(marked.nodes.filter((n) => !have.has(n.id)))];
+          return [...kept, ...toFlowNodes(synced.nodes.filter((n) => !have.has(n.id)))];
         });
         setEdges(toFlowEdges(synced.edges, synced.nodes, models));
         if (synced.addedIds.length > 0 || synced.removedIds.length > 0) {
@@ -1860,11 +1895,15 @@ function CanvasWorkspaceInner({
         if (waitingRun) {
           setReplannedRunId(waitingRun);
           toast.success(
-            isZh ? "已更新規劃，正在重新生成；其他舊版本節點要再 Run" : "Plan updated; regenerating now. Other old versions need another Run",
+            isZh
+              ? "已更新規劃並重置所有子節點，正在重新生成"
+              : "Plan updated and child nodes reset; regenerating now",
           );
         } else {
           toast.success(
-            isZh ? "已更新規劃，按右上角 Run Flow 重新生成舊版本" : "Plan updated. Run Flow regenerates the old versions",
+            isZh
+              ? "已更新規劃並重置所有子節點，按右上角 Run Flow 重新生成"
+              : "Plan updated and child nodes reset. Run Flow to regenerate",
           );
         }
         scheduleAutosave();
@@ -1987,8 +2026,11 @@ function CanvasWorkspaceInner({
   useEffect(() => {
     if (!isFlowRunning) return;
     let alive = true;
+    let inFlight = false;
 
     const timer = window.setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await pollCanvasFlowAction(activeProjectIdRef.current);
         if (!alive) return;
@@ -2013,7 +2055,7 @@ function CanvasWorkspaceInner({
             if (!serverNode) return flowNode;
             return {
               ...flowNode,
-              data: { ...flowNode.data, ...serverNode.data },
+              data: mergeFlowPollNodeData(flowNode.data, serverNode.data),
             };
           }),
         );
@@ -2059,6 +2101,8 @@ function CanvasWorkspaceInner({
         }
       } catch {
         // Keep polling silently on transient network hiccups.
+      } finally {
+        inFlight = false;
       }
     }, JOB_POLL_INTERVAL_MS);
 
@@ -2071,59 +2115,71 @@ function CanvasWorkspaceInner({
   // Worker-backed multi-wave Run Flow trigger; nodeIds limits it to one group.
   // rerunAll is the top Run Flow button: every model node generates again.
   const startFlowRun = useCallback(async (nodeIds?: string[], rerunAll = false) => {
-    const currentEdges = toDomainEdges(edgesRef.current);
-    const liveNodes = toDomainNodes(nodesRef.current);
-    // Old-version previews (after a replan or an input edit) must be generated again.
-    const rerunNodeIds = [...outdatedNodeReasons(liveNodes, currentEdges).entries()]
-      .filter(([, reason]) => reason === "inputs")
-      .map(([id]) => id);
-    const currentNodes = toDomainNodes(
-      withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
-    );
-
-    let waves: string[][];
+    if (flowStartingRef.current) return;
+    flowStartingRef.current = true;
     try {
-      waves = computeExecutionWaves(currentNodes, currentEdges);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Invalid graph");
-      return;
-    }
-    const locked = planLockRef.current.nodeIds;
-    if (nodeIds) waves = waves.map((w) => w.filter((id) => nodeIds.includes(id))).filter((w) => w.length);
-    if (locked.size > 0) waves = waves.map((w) => w.filter((id) => !locked.has(id))).filter((w) => w.length);
-    if (waves.length === 0) return;
-    const limitTo = nodeIds || locked.size > 0 ? waves.flat() : undefined;
+      // Cancel pending autosave because runCanvasFlowAction persists the latest graph itself.
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      const currentEdges = toDomainEdges(edgesRef.current);
+      const liveNodes = toDomainNodes(nodesRef.current);
+      // Old-version previews (after a replan or an input edit) must be generated again.
+      const rerunNodeIds = [...outdatedNodeReasons(liveNodes, currentEdges).entries()]
+        .filter(([, reason]) => reason === "inputs")
+        .map(([id]) => id);
+      const currentNodes = toDomainNodes(
+        withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
+      );
 
-    const res = await runCanvasFlowAction({
-      canvasId: activeProjectIdRef.current,
-      nodes: currentNodes,
-      edges: currentEdges,
-      viewport: viewportRef.current,
-      ...(limitTo ? { nodeIds: limitTo } : {}),
-      ...(rerunAll ? { rerunAll: true } : {}),
-      ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
-    });
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-    syncWallet(res.creditUsd);
-    setIsFlowRunning(true);
-    setFlowWaveProgress({
-      current: res.activeFlowRun.currentWave,
-      total: res.activeFlowRun.totalWaves,
-    });
-    setFlowStatus(
-      canvasFlowHeaderStatus(
-        res.activeFlowRun,
-        describeFlowFailures(
-          nodesRef.current,
-          res.activeFlowRun.failedNodeIds,
-          modelsRef.current,
-          locale,
+      let waves: string[][];
+      try {
+        waves = computeExecutionWaves(currentNodes, currentEdges);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Invalid graph");
+        return;
+      }
+      const locked = planLockRef.current.nodeIds;
+      if (nodeIds) waves = waves.map((w) => w.filter((id) => nodeIds.includes(id))).filter((w) => w.length);
+      if (locked.size > 0) waves = waves.map((w) => w.filter((id) => !locked.has(id))).filter((w) => w.length);
+      if (waves.length === 0) return;
+      const limitTo = nodeIds || locked.size > 0 ? waves.flat() : undefined;
+
+      const res = await runCanvasFlowAction({
+        canvasId: activeProjectIdRef.current,
+        nodes: currentNodes,
+        edges: currentEdges,
+        viewport: viewportRef.current,
+        ...(limitTo ? { nodeIds: limitTo } : {}),
+        ...(rerunAll ? { rerunAll: true } : {}),
+        ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setSaveStatus("saved");
+      syncWallet(res.creditUsd);
+      setIsFlowRunning(true);
+      setFlowWaveProgress({
+        current: res.activeFlowRun.currentWave,
+        total: res.activeFlowRun.totalWaves,
+      });
+      setFlowStatus(
+        canvasFlowHeaderStatus(
+          res.activeFlowRun,
+          describeFlowFailures(
+            nodesRef.current,
+            res.activeFlowRun.failedNodeIds,
+            modelsRef.current,
+            locale,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      flowStartingRef.current = false;
+    }
   }, [locale, syncWallet]);
 
   const handleRunFlow = useCallback(() => void startFlowRun(undefined, true), [startFlowRun]);
@@ -2171,34 +2227,51 @@ function CanvasWorkspaceInner({
         return;
       }
       const previous = new Set(readExpandedNodeIds(node.data));
-      if (previous.size > 0) {
-        markStale(
-          edgesRef.current
-            .filter((e) => previous.has(e.source) && !previous.has(e.target))
-            .map((e) => e.target),
-        );
+      const clearedAt = previous.size > 0 ? new Date().toISOString() : undefined;
+      const downstreamReset =
+        previous.size > 0
+          ? new Set(
+              downstreamNodeIds(toDomainEdges(edgesRef.current), [...previous]).filter(
+                (id) => id !== nodeId && !previous.has(id),
+              ),
+            )
+          : new Set<string>();
+      for (const id of [...previous, ...downstreamReset]) {
+        jobOutputRef.current.delete(id);
       }
+      // Stamp rebuilt nodes with outputClearedAt so snapshot merge does not resurrect old outputs for reused ids.
+      const nextGroupNodes = clearedAt
+        ? built.group.nodes.map((n) =>
+            n.type === "model" || n.type === "character"
+              ? { ...n, data: clearNodeOutput(n.data, clearedAt) }
+              : n,
+          )
+        : built.group.nodes;
       const kind = swap ? "swap" : "teleport";
       setNodes((prev) => [
         ...prev
           .filter((n) => !previous.has(n.id))
-          .map((n) =>
-            n.id === nodeId
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    toolParams: {
-                      ...(n.data.toolParams ?? {}),
-                      directorMode: true,
-                      builtGroupId,
-                      expandedNodeIds: built.expandedNodeIds,
-                    },
+          .map((n) => {
+            if (n.id === nodeId) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  toolParams: {
+                    ...(n.data.toolParams ?? {}),
+                    directorMode: true,
+                    builtGroupId,
+                    expandedNodeIds: built.expandedNodeIds,
                   },
-                }
-              : n,
-          ),
-        ...toFlowNodes(built.group.nodes),
+                },
+              };
+            }
+            if (clearedAt && downstreamReset.has(n.id) && (n.type === "model" || n.type === "character")) {
+              return { ...n, data: clearNodeOutput(n.data, clearedAt) };
+            }
+            return n;
+          }),
+        ...toFlowNodes(nextGroupNodes),
       ]);
       setEdges((prev) => [
         ...prev.filter((e) => !previous.has(e.source) && !previous.has(e.target)),
@@ -2230,7 +2303,7 @@ function CanvasWorkspaceInner({
       scheduleAutosave();
       window.setTimeout(applyPendingGroupLayout, 600);
     },
-    [isZh, models, markStale, setNodes, setEdges, updateGroups, scheduleAutosave, applyPendingGroupLayout],
+    [isZh, models, setNodes, setEdges, updateGroups, scheduleAutosave, applyPendingGroupLayout],
   );
 
   // Deletes the frame and every member node, plus wires that touch them.
@@ -2322,15 +2395,36 @@ function CanvasWorkspaceInner({
   }, [groupSelectedNodes, ungroupSelectedNodes]);
 
   const handleStopFlow = useCallback(async () => {
-    flowAbortRef.current = true;
     await stopCanvasFlowAction(activeProjectIdRef.current).catch(() => {});
     setIsFlowRunning(false);
     setFlowWaveProgress(null);
     setFlowStatus((prev) =>
       prev ? { ...prev, status: "stopped" } : { status: "stopped", current: 0, total: 0, failedCount: 0, failures: [] },
     );
+    // Clear waiting nodes that never received a job (e.g. startCanvasNodeAfterUpstream) so they don't stay queued.
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (n.type !== "model" || n.data.status !== "queued") return n;
+        const remembered = jobOutputRef.current.get(n.id);
+        const hasLiveJob = Boolean(
+          n.data.lastJobId &&
+            remembered &&
+            remembered.lastJobId === n.data.lastJobId &&
+            (remembered.status === "queued" || remembered.status === "running"),
+        );
+        if (hasLiveJob) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            status: n.data.outputUrl?.trim() ? "completed" : "idle",
+            lastError: undefined,
+          },
+        };
+      }),
+    );
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");
-  }, [isZh]);
+  }, [isZh, setNodes]);
 
   // Project switcher / CRUD handlers. The transition stays pending until the next canvas renders.
   const openCanvas = useCallback(
@@ -2793,8 +2887,12 @@ function CanvasWorkspaceInner({
   useEffect(() => {
     if (!outfitWatchKey) return;
     let alive = true;
+    let inFlight = false;
 
     const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
       const pending = nodesRef.current.filter(
         (node) =>
           node.type === "character" &&
@@ -2846,6 +2944,9 @@ function CanvasWorkspaceInner({
           }),
         );
         scheduleAutosave();
+      }
+      } finally {
+        inFlight = false;
       }
     };
 
@@ -2949,7 +3050,6 @@ function CanvasWorkspaceInner({
           creditUsd={creditUsd}
           subscribed={initialCreditLimitUsd > 0}
           onCharacterCreated={onCharacterCreated}
-          sessionName={activeTitle}
         />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-row">
@@ -3114,7 +3214,6 @@ function CanvasWorkspaceInner({
             locale={locale}
             canvasId={activeProjectId}
             lockSide
-            sessionName={activeTitle}
             side="right"
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}

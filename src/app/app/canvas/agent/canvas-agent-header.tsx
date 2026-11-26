@@ -33,7 +33,6 @@ export function CanvasAgentHeader({
   busy,
   hasMessages,
   lockSide,
-  sessionName,
   onLanguageChange,
   onToggleSide,
   onClear,
@@ -46,7 +45,6 @@ export function CanvasAgentHeader({
   busy: boolean;
   hasMessages: boolean;
   lockSide?: boolean;
-  sessionName?: string;
   onLanguageChange: (language: CanvasAgentLanguage) => void;
   onToggleSide: () => void;
   onClear: () => void;
@@ -70,7 +68,7 @@ export function CanvasAgentHeader({
         >
           <PanelRightOpen className="h-4 w-4" />
         </button>
-        {sessionName ? <CanvasSessionRailName name={sessionName} /> : null}
+        <CanvasSessionRailName name={copy.title} />
         {lockSide ? null : (
           <IconButton label={sideLabel} onClick={onToggleSide}>
             <SideIcon className="h-3.5 w-3.5" />

@@ -113,7 +113,6 @@ export function CanvasSidebar({
   creditUsd,
   subscribed,
   onCharacterCreated,
-  sessionName,
 }: {
   locale: string;
   collapsed?: boolean;
@@ -131,7 +130,6 @@ export function CanvasSidebar({
   creditUsd: number;
   subscribed: boolean;
   onCharacterCreated: (character: PublicCharacter) => void;
-  sessionName: string;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const [tab, setTab] = useState<CanvasSidebarTab>("models");
@@ -343,7 +341,7 @@ export function CanvasSidebar({
         >
           <PanelLeftOpen className="h-4 w-4" />
         </button>
-        <CanvasSessionRailName name={sessionName} />
+        <CanvasSessionRailName name={isZh ? "工具箱" : "Toolbox"} />
       </div>
       <div
         className={`flex h-full shrink-0 flex-col ${nodesHidden ? "pointer-events-none" : ""}`}

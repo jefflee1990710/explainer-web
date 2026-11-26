@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { WorkerTask, WorkerTaskLane } from "@/model/worker-task";
-import { processClaimedWorkerTask } from "@/service/worker/task-executor";
+import { executeWorkerTask, processClaimedWorkerTask } from "@/service/worker/task-executor";
 import {
   claimNextWorkerTask,
   syncPendingDomainJobsToWorkerQueue,
@@ -33,9 +33,11 @@ export async function claimAndExecuteTask(input: {
 
   // Prefer HTTP API claim when `apiClient` is provided, falling back to direct MongoDB claim.
   let task: WorkerTask | null = null;
+  let claimedViaApi = false;
   if (apiClient) {
     const pub = await apiClient.claimTask(lane).catch(() => null);
     if (pub) {
+      claimedViaApi = true;
       task = {
         _id: new ObjectId(pub.id),
         kind: pub.kind,
@@ -64,25 +66,36 @@ export async function claimAndExecuteTask(input: {
     `[worker:${workerId}] claimed ${lane.toUpperCase()} task ${task._id.toHexString()} (${task.kind} -> ${task.targetId})`,
   );
 
-  // Periodic lease heartbeat every 45 seconds while task is running
+  // Periodic lease heartbeat every 45 seconds using the same transport that claimed the task.
   const heartbeatTimer = setInterval(() => {
-    void updateWorkerTaskProgress({
-      taskId: task!._id,
-      workerId,
-    }).catch(() => {});
-    if (apiClient) {
-      void apiClient
-        .reportProgress(task!._id.toHexString())
-        .catch(() => {});
+    if (claimedViaApi && apiClient) {
+      void apiClient.reportProgress(task!._id.toHexString()).catch(() => {});
+    } else {
+      void updateWorkerTaskProgress({
+        taskId: task!._id,
+        workerId,
+      }).catch(() => {});
     }
   }, 45_000);
 
   try {
-    const outcome = await processClaimedWorkerTask(task, workerId);
-    if (apiClient) {
-      await apiClient
-        .completeTask(task._id.toHexString(), outcome)
-        .catch(() => {});
+    let outcome: Awaited<ReturnType<typeof executeWorkerTask>>;
+    if (claimedViaApi && apiClient) {
+      try {
+        outcome = await executeWorkerTask(task, {
+          onProgress: async (progress, stage) => {
+            await apiClient.reportProgress(task!._id.toHexString(), progress, stage);
+          },
+        });
+      } catch (error) {
+        outcome = {
+          outcome: "failed",
+          error: error instanceof Error ? error.message : "Worker 執行失敗",
+        };
+      }
+      await apiClient.completeTask(task._id.toHexString(), outcome).catch(() => {});
+    } else {
+      outcome = await processClaimedWorkerTask(task, workerId);
     }
     if (
       lane === "gpu" &&

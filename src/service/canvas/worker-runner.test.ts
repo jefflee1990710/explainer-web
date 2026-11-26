@@ -763,3 +763,159 @@ describe("filterFlowWaves", () => {
     );
   });
 });
+
+describe("flow concurrency, abort safety, and idempotency", () => {
+  it("rejects startCanvasFlowRun when another flow is already running", async () => {
+    const project = makeProject([
+      { id: "a", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts", prompt: "hi" } },
+    ]);
+    project.activeFlowRun = {
+      flowRunId: "flow-existing",
+      status: "running",
+      currentWave: 1,
+      totalWaves: 1,
+      waveIndex: 0,
+      waves: [["a"]],
+      activeWaveJobIds: [],
+      failedNodeIds: [],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const res = await startCanvasFlowRun(
+      { clerkUserId: "user-1", canvasId: project._id.toHexString() },
+      { findCanvasProject: async () => ({ ...project }) },
+    );
+    assert.equal(res.ok, false);
+  });
+
+  it("stops cleanly when setActiveFlowRun rejects because flow was stopped mid-step", async () => {
+    const project = makeProject([
+      { id: "a", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts", prompt: "hi" } },
+    ]);
+    project.activeFlowRun = {
+      flowRunId: "flow-race",
+      status: "running",
+      currentWave: 1,
+      totalWaves: 1,
+      waveIndex: 0,
+      waves: [["a"]],
+      activeWaveJobIds: [],
+      failedNodeIds: [],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const res = await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: "flow-race", clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        findCanvasProject: async () => ({ ...project }),
+        claimFlowStep: async () => true,
+        submitNodeQueued: async ({ nodeId }) => ({
+          ok: true,
+          job: {
+            _id: new ObjectId(),
+            clerkUserId: "user-1",
+            canvasId: project._id,
+            nodeId,
+            provider: "scro",
+            modelId: "scro:tts",
+            providerModelId: "tts",
+            status: "queued",
+            inputSnapshot: {},
+            chargedUsd: 0.02,
+            outputKind: "audio",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          creditUsd: 9,
+        }),
+        // Simulates user pressing Stop Flow while submitNodeQueued was in flight.
+        setActiveFlowRun: async () => false,
+      },
+    );
+    assert.equal(res.outcome, "completed");
+    if (res.outcome === "completed") assert.equal(res.stage, "flow_aborted");
+  });
+
+  it("adopts existing (flowRunId, nodeId) job instead of submitting twice on step retry", async () => {
+    const project = makeProject([
+      { id: "a", type: "model", position: { x: 0, y: 0 }, data: { modelId: "scro:tts", prompt: "hi" } },
+    ]);
+    const existingJobId = new ObjectId();
+    project.activeFlowRun = {
+      flowRunId: "flow-idem",
+      status: "running",
+      currentWave: 1,
+      totalWaves: 1,
+      waveIndex: 0,
+      waves: [["a"]],
+      activeWaveJobIds: [],
+      failedNodeIds: [],
+      aborted: false,
+      startedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    let submitCalls = 0;
+    const res = await executeCanvasFlowTask(
+      {
+        _id: new ObjectId(),
+        kind: "canvas_flow",
+        lane: "cpu",
+        status: "in_progress",
+        targetId: project._id.toHexString(),
+        payload: { flowRunId: "flow-idem", clerkUserId: "user-1" },
+        attempts: 1,
+        maxAttempts: 5,
+        nextAttemptAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        findCanvasProject: async () => ({ ...project }),
+        claimFlowStep: async () => true,
+        findFlowNodeJobs: async () => [
+          {
+            _id: existingJobId,
+            clerkUserId: "user-1",
+            canvasId: project._id,
+            nodeId: "a",
+            flowRunId: "flow-idem",
+            provider: "scro",
+            modelId: "scro:tts",
+            providerModelId: "tts",
+            status: "running",
+            inputSnapshot: {},
+            chargedUsd: 0.02,
+            outputKind: "audio",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        submitNodeQueued: async () => {
+          submitCalls += 1;
+          return { ok: false, error: "must not resubmit" };
+        },
+        setActiveFlowRun: async (_id, _uid, run) => {
+          project.activeFlowRun = run;
+          return true;
+        },
+      },
+    );
+    assert.equal(submitCalls, 0);
+    assert.equal(res.outcome, "requeue");
+    assert.deepEqual(project.activeFlowRun?.activeWaveJobIds, [existingJobId.toHexString()]);
+  });
+});

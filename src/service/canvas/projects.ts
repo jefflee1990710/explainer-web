@@ -385,19 +385,6 @@ export async function saveCanvasProject(
   if (patch.title !== undefined) {
     setFields.title = normalizeCanvasTitle(patch.title);
   }
-  if (patch.nodes !== undefined) {
-    // A tab opened before settings kinds still sends `explainerSettings`; convert it before the schema drops it.
-    const parsedNodes = nodesArraySchema.parse(liftLegacyExplainerSettings(patch.nodes as CanvasNode[]));
-    // A flow wave can save the graph before the completed output is painted.
-    // Keep the stored URL so the downstream node can still read it.
-    const existing = await projects.findOne(
-      { _id: canvasObjectId, clerkUserId },
-      { projection: { nodes: 1 } },
-    );
-    setFields.nodes = existing
-      ? mergeCanvasNodeSnapshots(existing.nodes, parsedNodes)
-      : parsedNodes;
-  }
   if (patch.edges !== undefined) {
     setFields.edges = edgesArraySchema.parse(patch.edges);
   }
@@ -411,11 +398,50 @@ export async function saveCanvasProject(
     setFields.thumbnailUrl = patch.thumbnailUrl.trim();
   }
 
-  const saved = await projects.findOneAndUpdate(
-    { _id: canvasObjectId, clerkUserId },
-    { $set: setFields },
-    { returnDocument: "after" },
-  );
+  if (patch.nodes === undefined) {
+    const saved = await projects.findOneAndUpdate(
+      { _id: canvasObjectId, clerkUserId },
+      { $set: setFields },
+      { returnDocument: "after" },
+    );
+    if (!saved) return null;
+    const nodes = await healFinishedCanvasRuns(clerkUserId, canvasObjectId, saved.nodes);
+    return nodes === saved.nodes ? saved : { ...saved, nodes };
+  }
+
+  // A tab opened before settings kinds still sends `explainerSettings`; convert it before the schema drops it.
+  const parsedNodes = nodesArraySchema.parse(liftLegacyExplainerSettings(patch.nodes as CanvasNode[]));
+
+  // Optimistic CAS on `updatedAt` so a concurrent worker write (new `lastJobId` / `status` / `outputUrl`)
+  // between `findOne` and `findOneAndUpdate` is re-merged instead of overwritten.
+  let saved: CanvasProject | null = null;
+  const maxAttempts = 3;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const existing = await projects.findOne(
+      { _id: canvasObjectId, clerkUserId },
+      { projection: { nodes: 1, updatedAt: 1 } },
+    );
+    if (!existing) return null;
+
+    const mergedNodes = mergeCanvasNodeSnapshots(existing.nodes, parsedNodes);
+    const attemptSet: Partial<CanvasProject> = {
+      ...setFields,
+      nodes: mergedNodes,
+      updatedAt: new Date(),
+    };
+    const isLastAttempt = attempt === maxAttempts - 1;
+    const filter = isLastAttempt
+      ? { _id: canvasObjectId, clerkUserId }
+      : { _id: canvasObjectId, clerkUserId, updatedAt: existing.updatedAt };
+
+    saved = await projects.findOneAndUpdate(
+      filter,
+      { $set: attemptSet },
+      { returnDocument: "after" },
+    );
+    if (saved) break;
+  }
+
   if (!saved) return null;
   const nodes = await healFinishedCanvasRuns(clerkUserId, canvasObjectId, saved.nodes);
   return nodes === saved.nodes ? saved : { ...saved, nodes };

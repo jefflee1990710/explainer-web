@@ -798,6 +798,29 @@ describe("canvas graph — completed output recovery", () => {
     assert.equal(merged[0]?.data.outputUrl, undefined);
   });
 
+  it("does not restore an output the user or assistant just cleared even when existing has a lastJobId", () => {
+    const existing = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "completed",
+        lastJobId: "6740000200000000000000bb",
+        outputUrl: "https://blob.example/old.png",
+        outputKind: "image",
+        lastCostUsd: 0.135,
+      }),
+    ];
+    const incoming = [
+      modelNode("img", "mentalok:flux-2-klein-4b", {
+        status: "idle",
+        outputClearedAt: "2026-11-26T14:00:00.000Z",
+      }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.status, "idle");
+    assert.equal(merged[0]?.data.outputUrl, undefined);
+    assert.equal(merged[0]?.data.lastJobId, undefined);
+    assert.equal(merged[0]?.data.outputClearedAt, "2026-11-26T14:00:00.000Z");
+  });
+
   it("still restores a new output when a stale snapshot carries the same clear stamp", () => {
     const stamp = "2026-11-23T08:00:00.000Z";
     const existing = [
@@ -980,6 +1003,41 @@ describe("canvas graph — completed output recovery", () => {
     const adopted = adoptServerPreview(local, server);
     assert.equal(adopted.data.outputUrl, "https://blob.example/older.mp4");
     assert.equal(adopted.data.status, "running");
+  });
+
+  it("does not adopt an older server preview after the local node was cleared", () => {
+    const local = modelNode("vid", "ffmpeg:concat", {
+      status: "idle",
+      outputClearedAt: "2026-11-26T14:00:00.000Z",
+    });
+    const server = modelNode("vid", "ffmpeg:concat", {
+      status: "completed",
+      lastJobId: "6740000200000000000000bb",
+      outputUrl: "https://blob.example/old.mp4",
+      outputKind: "video",
+    });
+    const adopted = adoptServerPreview(local, server);
+    assert.equal(adopted.data.status, "idle");
+    assert.equal(adopted.data.outputUrl, undefined);
+    assert.equal(adopted.data.lastJobId, undefined);
+  });
+
+  it("adopts a new server preview when local and server share the same clear stamp", () => {
+    const stamp = "2026-11-26T14:00:00.000Z";
+    const local = modelNode("vid", "ffmpeg:concat", {
+      status: "idle",
+      outputClearedAt: stamp,
+    });
+    const server = modelNode("vid", "ffmpeg:concat", {
+      status: "completed",
+      lastJobId: "6740000300000000000000cc",
+      outputUrl: "https://blob.example/new.mp4",
+      outputKind: "video",
+      outputClearedAt: stamp,
+    });
+    const adopted = adoptServerPreview(local, server);
+    assert.equal(adopted.data.status, "completed");
+    assert.equal(adopted.data.outputUrl, "https://blob.example/new.mp4");
   });
 
   it("leaves a finished node alone when it already shows that job's file", () => {

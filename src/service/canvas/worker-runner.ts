@@ -100,7 +100,8 @@ export type CanvasFlowWorkerDeps = {
     canvasId: ObjectId,
     clerkUserId: string,
     activeFlowRun: CanvasFlowRunState,
-  ) => Promise<void>;
+    options?: { onlyIfRunningFlowId?: string },
+  ) => Promise<boolean | void>;
   abortFlowRun: (canvasId: ObjectId, clerkUserId: string) => Promise<void>;
   scheduleFlowTask: (input: {
     canvasId: string;
@@ -128,10 +129,20 @@ export type CanvasFlowWorkerDeps = {
     clerkUserId: string,
     jobIds: ObjectId[],
   ) => Promise<CanvasJob[]>;
+  // Existing jobs already created for this flowRunId so a retried step never double-charges.
+  findFlowNodeJobs?: (
+    canvasId: ObjectId,
+    clerkUserId: string,
+    flowRunId: string,
+    nodeIds: string[],
+  ) => Promise<CanvasJob[]>;
   // True when this caller owns the flow step. False means another step is in progress.
   claimFlowStep: (canvasId: ObjectId, clerkUserId: string, flowRunId: string) => Promise<boolean>;
   now: () => Date;
 };
+
+// Lease long enough to cover audio/video duration probes (30s) and batch job inserts.
+const FLOW_STEP_LOCK_MS = 90_000;
 
 // Drop the step lease before saving, so the next poll can take the following wave.
 function flowRunWithoutLock(run: CanvasFlowRunState): CanvasFlowRunState {
@@ -146,12 +157,25 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
       const col = await canvasProjectsCollection();
       return col.findOne({ _id: canvasId, clerkUserId });
     },
-    setActiveFlowRun: async (canvasId, clerkUserId, activeFlowRun) => {
+    setActiveFlowRun: async (canvasId, clerkUserId, activeFlowRun, options) => {
       const col = await canvasProjectsCollection();
-      await col.updateOne(
-        { _id: canvasId, clerkUserId },
-        { $set: { activeFlowRun, updatedAt: activeFlowRun.updatedAt } },
-      );
+      const filter = options?.onlyIfRunningFlowId
+        ? {
+            _id: canvasId,
+            clerkUserId,
+            "activeFlowRun.flowRunId": options.onlyIfRunningFlowId,
+            "activeFlowRun.status": "running" as const,
+            "activeFlowRun.aborted": { $ne: true },
+          }
+        : {
+            _id: canvasId,
+            clerkUserId,
+            "activeFlowRun.status": { $ne: "running" as const },
+          };
+      const res = await col.updateOne(filter, {
+        $set: { activeFlowRun, updatedAt: activeFlowRun.updatedAt },
+      });
+      return res.modifiedCount === 1;
     },
     abortFlowRun: async (canvasId, clerkUserId) => {
       const col = await canvasProjectsCollection();
@@ -167,6 +191,41 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
           },
         },
       );
+      // Reset nodes that were pre-marked `queued` (e.g. waiting on upstream) without a live job.
+      const project = await col.findOne({ _id: canvasId, clerkUserId }, { projection: { nodes: 1 } });
+      if (!project) return;
+      const queuedNodes = project.nodes.filter(
+        (n) => n.type === "model" && n.data.status === "queued",
+      );
+      if (queuedNodes.length === 0) return;
+      const validJobIds = queuedNodes
+        .map((n) => n.data.lastJobId)
+        .filter((id): id is string => Boolean(id && ObjectId.isValid(id)))
+        .map((id) => new ObjectId(id));
+      const jobsCol = await canvasJobsCollection();
+      const liveJobs =
+        validJobIds.length > 0
+          ? await jobsCol
+              .find({
+                _id: { $in: validJobIds },
+                canvasId,
+                clerkUserId,
+                status: { $in: ["queued", "running"] },
+              })
+              .toArray()
+          : [];
+      const liveJobIdSet = new Set(liveJobs.map((j) => j._id.toHexString()));
+      for (const node of queuedNodes) {
+        if (node.data.lastJobId && liveJobIdSet.has(node.data.lastJobId)) continue;
+        const restoredStatus = node.data.outputUrl?.trim() ? "completed" : "idle";
+        await col.updateOne(
+          { _id: canvasId, clerkUserId, "nodes.id": node.id, "nodes.data.status": "queued" },
+          {
+            $set: { "nodes.$.data.status": restoredStatus, updatedAt: now },
+            $unset: { "nodes.$.data.lastError": "" },
+          },
+        );
+      }
     },
     scheduleFlowTask: (input) => scheduleCanvasFlowWorkerTask(input),
     markNodeFailed: async (canvasId, clerkUserId, nodeId, error) => {
@@ -200,6 +259,14 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
       const col = await canvasJobsCollection();
       return col.find({ _id: { $in: jobIds }, canvasId, clerkUserId }).toArray();
     },
+    findFlowNodeJobs: async (canvasId, clerkUserId, flowRunId, nodeIds) => {
+      if (nodeIds.length === 0) return [];
+      const col = await canvasJobsCollection();
+      return col
+        .find({ canvasId, clerkUserId, flowRunId, nodeId: { $in: nodeIds } })
+        .sort({ createdAt: -1 })
+        .toArray();
+    },
     claimFlowStep: async (canvasId, clerkUserId, flowRunId) => {
       const col = await canvasProjectsCollection();
       const now = new Date();
@@ -209,13 +276,14 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
           clerkUserId,
           "activeFlowRun.flowRunId": flowRunId,
           "activeFlowRun.status": "running",
+          "activeFlowRun.aborted": { $ne: true },
           $or: [
             { "activeFlowRun.stepLockUntil": { $exists: false } },
             { "activeFlowRun.stepLockUntil": null },
             { "activeFlowRun.stepLockUntil": { $lte: now } },
           ],
         },
-        { $set: { "activeFlowRun.stepLockUntil": new Date(now.getTime() + 20_000) } },
+        { $set: { "activeFlowRun.stepLockUntil": new Date(now.getTime() + FLOW_STEP_LOCK_MS) } },
       );
       return res.modifiedCount === 1;
     },
@@ -321,6 +389,9 @@ export async function startCanvasFlowRun(
   if (!project) {
     return { ok: false, error: "找不到畫布專案" };
   }
+  if (project.activeFlowRun?.status === "running") {
+    return { ok: false, error: "這張畫布已有工作流正在執行中，請先等待完成或停止後再試" };
+  }
 
   let waves: string[][];
   try {
@@ -356,7 +427,10 @@ export async function startCanvasFlowRun(
     updatedAt: now,
   };
 
-  await resolved.setActiveFlowRun(canvasObjectId, params.clerkUserId, activeFlowRun);
+  const started = await resolved.setActiveFlowRun(canvasObjectId, params.clerkUserId, activeFlowRun);
+  if (started === false) {
+    return { ok: false, error: "這張畫布已有工作流正在執行中，請先等待完成或停止後再試" };
+  }
   await resolved.scheduleFlowTask({
     canvasId: params.canvasId,
     flowRunId,
@@ -445,7 +519,12 @@ export async function executeCanvasFlowTask(
         failedNodeIds: [...failedSet],
         updatedAt: resolved.now(),
       };
-      await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, updatedRun);
+      const saved = await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, updatedRun, {
+        onlyIfRunningFlowId: flowRunId,
+      });
+      if (saved === false) {
+        return { outcome: "completed", stage: "flow_aborted" };
+      }
       return {
         outcome: "requeue",
         delayMs: 3_000,
@@ -462,7 +541,7 @@ export async function executeCanvasFlowTask(
   // 2. Start the next runnable wave.
   while (waveIndex < ownedRun.waves.length) {
     const fresh = await resolved.findCanvasProject(canvasObjectId, clerkUserId);
-    if (!fresh?.activeFlowRun || fresh.activeFlowRun.aborted) {
+    if (!fresh?.activeFlowRun || fresh.activeFlowRun.aborted || fresh.activeFlowRun.status !== "running") {
       return { outcome: "completed", stage: "flow_aborted" };
     }
 
@@ -490,7 +569,31 @@ export async function executeCanvasFlowTask(
 
     // A node already running from its own Run is watched, not submitted (and charged) again.
     const adoptedJobIds = await activeNodeJobIds(fresh, runnableIds, resolved, canvasObjectId, clerkUserId);
-    const toSubmit = runnableIds.filter((nodeId) => !adoptedJobIds.has(nodeId));
+    let toSubmit = runnableIds.filter((nodeId) => !adoptedJobIds.has(nodeId));
+
+    // Idempotency guard: if a prior step already created a job for (flowRunId, nodeId),
+    // adopt/settle it instead of submitting & charging a second time.
+    const findFlowNodeJobs = deps ? deps.findFlowNodeJobs : resolved.findFlowNodeJobs;
+    if (toSubmit.length > 0 && findFlowNodeJobs) {
+      const existingFlowJobs = await findFlowNodeJobs(canvasObjectId, clerkUserId, flowRunId, toSubmit);
+      const existingByNode = new Map<string, CanvasJob>();
+      for (const job of existingFlowJobs) {
+        if (!existingByNode.has(job.nodeId)) existingByNode.set(job.nodeId, job);
+      }
+      const remaining: string[] = [];
+      for (const nodeId of toSubmit) {
+        const existing = existingByNode.get(nodeId);
+        if (!existing) {
+          remaining.push(nodeId);
+        } else if (isBusyStatus(existing.status)) {
+          adoptedJobIds.set(nodeId, existing._id.toHexString());
+        } else if (existing.status === "failed") {
+          failedSet.add(nodeId);
+        }
+        // If `existing.status === "completed"`, skip re-submitting.
+      }
+      toSubmit = remaining;
+    }
 
     if (toSubmit.length === 0 && adoptedJobIds.size === 0) {
       waveIndex += 1;
@@ -533,7 +636,12 @@ export async function executeCanvasFlowTask(
         failedNodeIds: [...failedSet],
         updatedAt: resolved.now(),
       };
-      await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, nextRun);
+      const saved = await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, nextRun, {
+        onlyIfRunningFlowId: flowRunId,
+      });
+      if (saved === false) {
+        return { outcome: "completed", stage: "flow_aborted" };
+      }
       return {
         outcome: "requeue",
         delayMs: 3_000,
@@ -557,7 +665,12 @@ export async function executeCanvasFlowTask(
     ...(failedSet.size > 0 ? { error: `${failedSet.size} 個節點執行失敗` } : {}),
     updatedAt: resolved.now(),
   };
-  await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, finishedRun);
+  const saved = await resolved.setActiveFlowRun(canvasObjectId, clerkUserId, finishedRun, {
+    onlyIfRunningFlowId: flowRunId,
+  });
+  if (saved === false) {
+    return { outcome: "completed", stage: "flow_aborted" };
+  }
   return {
     outcome: "completed",
     stage: `flow_${finalStatus}`,

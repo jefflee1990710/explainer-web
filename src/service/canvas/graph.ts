@@ -587,6 +587,11 @@ export function mergeCanvasNodeSnapshots(
     }
     const previousUrl = previous.data.outputUrl?.trim();
     const incomingUrl = node.data.outputUrl?.trim();
+    // A newer clear stamp means the client intentionally reset this node (e.g. Director Replan).
+    // Do not let an older stored lastJobId or outputUrl resurrect the cleared preview.
+    if (!incomingUrl && isNewerClearStamp(node.data.outputClearedAt, previous.data.outputClearedAt)) {
+      return node;
+    }
     // A newer job id is the run that just started or just finished. An older
     // autosave must not put that node back to "running" or swap in the old preview.
     if (isNewerJob(previous.data.lastJobId, node.data.lastJobId)) {
@@ -721,8 +726,21 @@ export function isNewerJob(nextId: string | undefined, previousId: string | unde
   return next > 0 && next > previous;
 }
 
+// True when `nextClearedAt` is a newer explicit clear stamp than `previousClearedAt`.
+function isNewerClearStamp(
+  nextClearedAt: string | undefined,
+  previousClearedAt: string | undefined,
+): boolean {
+  if (!nextClearedAt || nextClearedAt === previousClearedAt) return false;
+  if (!previousClearedAt) return true;
+  const nextTime = Date.parse(nextClearedAt);
+  const prevTime = Date.parse(previousClearedAt);
+  if (Number.isFinite(nextTime) && Number.isFinite(prevTime)) return nextTime > prevTime;
+  return nextClearedAt > previousClearedAt;
+}
+
 // The save response is the file that survived the merge. Paint it when this tab still
-// has the previous clip, unless this tab has already started a newer job.
+// has the previous clip, unless this tab has already started a newer job or cleared the preview.
 export function adoptServerPreview<N extends { data: CanvasNodeData }>(
   local: N,
   server: { data: CanvasNodeData } | undefined,
@@ -730,6 +748,7 @@ export function adoptServerPreview<N extends { data: CanvasNodeData }>(
   if (!server) return local;
   const serverUrl = server.data.outputUrl?.trim();
   if (!serverUrl || serverUrl === local.data.outputUrl?.trim()) return local;
+  if (isNewerClearStamp(local.data.outputClearedAt, server.data.outputClearedAt)) return local;
   if (isNewerJob(local.data.lastJobId, server.data.lastJobId)) return local;
   const data: CanvasNodeData = {
     ...local.data,

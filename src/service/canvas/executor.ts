@@ -1749,6 +1749,21 @@ async function settleFailedJob(
   };
 }
 
+// Maximum wall-clock wait for an async Canvas job before failing & refunding.
+export const CANVAS_ASYNC_JOB_TIMEOUT_MS = 30 * 60 * 1000;
+export const CANVAS_IMAGE_JOB_TIMEOUT_MS = 15 * 60 * 1000;
+
+export function isCanvasJobTimedOut(job: Pick<CanvasJob, "status" | "outputKind" | "provider" | "createdAt">, nowMs: number): boolean {
+  if (job.status !== "queued" && job.status !== "running") return false;
+  const createdMs = job.createdAt instanceof Date ? job.createdAt.getTime() : Number.NaN;
+  if (!Number.isFinite(createdMs)) return false;
+  const limit =
+    job.outputKind === "video" || job.provider === "scro" || job.provider === "ffmpeg"
+      ? CANVAS_ASYNC_JOB_TIMEOUT_MS
+      : CANVAS_IMAGE_JOB_TIMEOUT_MS;
+  return nowMs - createdMs >= limit;
+}
+
 async function pollSingleCanvasJob(
   job: CanvasJob,
   resolved: CanvasExecutorDeps,
@@ -1762,6 +1777,10 @@ async function pollSingleCanvasJob(
       await refundCanvasJobOnce(job._id, job.clerkUserId, resolved);
     }
     return job;
+  }
+
+  if (isCanvasJobTimedOut(job, resolved.now().getTime())) {
+    return settleFailedJob(job, "模型執行逾時，USD Credit 已自動退還", resolved);
   }
 
   if (job.provider === "ffmpeg") {
