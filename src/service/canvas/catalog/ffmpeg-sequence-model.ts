@@ -23,6 +23,8 @@ export const FFMPEG_SEQUENCE_MODEL: CanvasModelSpec = {
   basePriceUsd: 0,
   supportsAspectRatio: false,
   available: true,
+  // The timeline is not a flat param list; only build_sequence / update_sequence edit it.
+  toolParams: [],
   agentHint:
     "A timeline over its wired clips (videos), music / voice (audios), overlay images (refImages), and optional SRT (prompt), rendered in one run. Edit it with build_sequence / update_sequence, never with toolParams.",
 };

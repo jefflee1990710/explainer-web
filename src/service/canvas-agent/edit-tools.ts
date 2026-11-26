@@ -23,6 +23,7 @@ export type EditToolHandlers = {
     g: CanvasAgentWorkingGraph,
     input: { sourceId: string; sourcePort?: string; targetId: string; targetPort: string },
   ) => CanvasAgentToolResult;
+  disconnect: (g: CanvasAgentWorkingGraph, input: { edgeId: string }) => CanvasAgentToolResult;
 };
 
 type Source = { sourceId: string; sourcePort?: string };

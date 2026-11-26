@@ -57,7 +57,7 @@ function addUnique(list: string[], value: string): void {
   }
 }
 
-function extractMediaUrl(sourceNode: CanvasNode, sourceHandle?: string | null): string | undefined {
+export function extractMediaUrl(sourceNode: CanvasNode, sourceHandle?: string | null): string | undefined {
   // A named extra output (FFmpeg Split part B) sits next to the main file.
   if (sourceNode.type === "model" && sourceHandle && sourceHandle !== "output") {
     const main = sourceNode.data.outputUrl?.trim();

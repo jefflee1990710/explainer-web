@@ -6,6 +6,9 @@ import { complementRanges, mergeRanges, parseKeepRanges, totalRangeSec } from "@
 import { SPLIT_SECOND_HANDLE } from "@/service/canvas/core/extra-outputs";
 import { currentMediaMeta } from "@/service/canvas/core/media-meta";
 import { isOutputStale } from "@/service/canvas/core/stale-outputs";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
+import { readSequence, syncSequenceWithEdges } from "@/service/canvas/core/sequence/document";
+import { sequenceFrameSize, sequenceLengthKnown, sequenceTotalSec } from "@/service/canvas/core/sequence/timeline";
 
 export type ExpectedMedia = {
   durationSec?: number;
@@ -66,6 +69,17 @@ function estimateEdit(g: Graph, node: CanvasNode, seen: Set<string>, handle?: st
     const edge = wiredEdges(g, node.id, port)[0];
     return edge ? expectedNodeMedia(g, edge.source, new Set(seen), edge.sourceHandle) : undefined;
   };
+
+  if (modelId === SEQUENCE_MODEL_ID) {
+    const seq = syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, g.edges);
+    const durations = sequenceSourceDurations(g, node.id, seen);
+    return {
+      ...(sequenceLengthKnown(seq, durations) ? { durationSec: sequenceTotalSec(seq, durations) } : {}),
+      hasAudio: true,
+      ...sequenceFrameSize(seq),
+      estimated: true,
+    };
+  }
 
   if (PASS_THROUGH.has(modelId)) {
     const src = source();
@@ -224,4 +238,18 @@ export function expectedNodeMedia(
 export function wiredSourceMedia(g: Graph, nodeId: string, port: string): { id?: string; media?: ExpectedMedia } {
   const edge = wiredEdges(g, nodeId, port)[0];
   return edge ? { id: edge.source, media: expectedNodeMedia(g, edge.source, new Set(), edge.sourceHandle) } : {};
+}
+
+// Known or estimated length of every source wired into a sequence, by edge id.
+export function sequenceSourceDurations(
+  g: Graph,
+  nodeId: string,
+  seen: Set<string> = new Set([nodeId]),
+): Record<string, number | undefined> {
+  const out: Record<string, number | undefined> = {};
+  for (const edge of g.edges) {
+    if (edge.target !== nodeId) continue;
+    out[edge.id] = expectedNodeMedia(g, edge.source, new Set(seen), edge.sourceHandle)?.durationSec;
+  }
+  return out;
 }

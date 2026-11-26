@@ -1,7 +1,7 @@
 // Field table for FFmpeg edit params without hand-built controls: the newer edit nodes and
 // the options added to older ones. Defaults match the worker's fallbacks in ffmpeg-edit*.ts.
 
-type Opt = readonly [value: string, zh: string, en: string];
+export type Opt = readonly [value: string, zh: string, en: string];
 
 export type FfmpegParamField = {
   key: string;
@@ -18,7 +18,7 @@ export type FfmpegParamField = {
   show?: (params: Record<string, unknown>) => boolean;
 };
 
-const SUBTITLE_LOOK_OPTIONS: readonly Opt[] = [
+export const SUBTITLE_LOOK_OPTIONS: readonly Opt[] = [
   ["clean", "簡潔", "Clean"],
   ["bold", "粗體", "Bold"],
   ["outline", "描邊", "Outline"],

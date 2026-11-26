@@ -28,6 +28,8 @@ import {
 } from "@/service/canvas/directors/explainer-director";
 import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
 import { SCRO_GROUP_MODEL_IDS } from "@/service/canvas-agent/scro-group-tool";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
+import { describeSequence } from "@/service/canvas-agent/sequence-describe";
 
 export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
 export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
@@ -328,7 +330,11 @@ export function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
           prompt: clip(node.data.prompt),
           aspectRatio: node.data.aspectRatio,
           durationSeconds: node.data.durationSeconds,
-          ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
+          ...(node.data.modelId === SEQUENCE_MODEL_ID
+            ? { timeline: describeSequence(g, node.id) }
+            : node.data.toolParams
+              ? { toolParams: node.data.toolParams }
+              : {}),
           status: node.data.status ?? "idle",
           hasOutput: Boolean(node.data.outputUrl),
           // The preview predates an input change; Run regenerates it.

@@ -74,6 +74,7 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^adjust$/, asset: { src: "/canvas/model-logos/adjust.png", alt: "Adjust" } },
   { match: /^freeze$/, asset: { src: "/canvas/model-logos/freeze.png", alt: "Freeze frame" } },
   { match: /^export$/, asset: { src: "/canvas/model-logos/export.png", alt: "Export" } },
+  { match: /^sequence$/, asset: { src: "/canvas/model-logos/sequence.png", alt: "Sequence timeline" } },
   { match: /^scribe/, asset: { src: "/canvas/model-logos/auto-captions.png", alt: "Auto captions" } },
 ];
 

@@ -68,6 +68,10 @@ export type CanvasNodeActionsContextValue = {
   onBuildScroDirector: (nodeId: string) => void;
   // Nodes whose preview is an old version and why.
   outdatedNodes: ReadonlyMap<string, OutdatedReason>;
+  // Opens the bottom timeline drawer for a Sequence node.
+  onOpenTimeline?: (nodeId: string) => void;
+  // Replaces a concat chain with one Sequence node.
+  onConvertConcat?: (nodeId: string) => void;
 };
 
 export const CanvasNodeActionsContext =

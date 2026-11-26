@@ -60,6 +60,7 @@ import {
 import { SCRO_GROUP_TOOLS, type ScroGroupToolInput } from "@/service/canvas-agent/scro-group-tool";
 import { addModelNode, type AddModelNodeInput } from "@/service/canvas-agent/model-node-tool";
 import { EDIT_TOOL_DESCRIPTIONS, EDIT_TOOL_HANDLERS, EDIT_TOOL_SCHEMAS } from "@/service/canvas-agent/edit-tools";
+import { SEQUENCE_TOOL_DESCRIPTIONS, SEQUENCE_TOOL_HANDLERS, SEQUENCE_TOOL_SCHEMAS } from "@/service/canvas-agent/sequence-tools";
 import { addScroGroup } from "@/service/canvas-agent/scro-group-handler";
 import {
   addNode,
@@ -413,13 +414,16 @@ const aspectRatio = canvasAspectRatioSchema.describe("Frame shape, e.g. 9:16 for
 
 // Edit tools (trim_clip, split_clip, add_bgm, ...) bound to one working graph.
 function buildEditTools(g: CanvasAgentWorkingGraph): ToolSet {
-  const entries = (Object.keys(EDIT_TOOL_SCHEMAS) as Array<keyof typeof EDIT_TOOL_SCHEMAS>).map((name) => [
+  const schemas: Record<string, z.ZodType> = { ...EDIT_TOOL_SCHEMAS, ...SEQUENCE_TOOL_SCHEMAS };
+  const descriptions: Record<string, string> = { ...EDIT_TOOL_DESCRIPTIONS, ...SEQUENCE_TOOL_DESCRIPTIONS };
+  const handlers: Record<string, unknown> = { ...EDIT_TOOL_HANDLERS, ...SEQUENCE_TOOL_HANDLERS };
+  const entries = Object.keys(schemas).map((name) => [
     name,
     tool({
-      description: EDIT_TOOL_DESCRIPTIONS[name],
-      inputSchema: EDIT_TOOL_SCHEMAS[name] as z.ZodType<Record<string, unknown>>,
+      description: descriptions[name],
+      inputSchema: schemas[name] as z.ZodType<Record<string, unknown>>,
       execute: async (input: Record<string, unknown>) =>
-        (EDIT_TOOL_HANDLERS[name] as (g: CanvasAgentWorkingGraph, h: typeof CANVAS_AGENT_TOOL_HANDLERS, i: unknown) => CanvasAgentToolResult)(
+        (handlers[name] as (g: CanvasAgentWorkingGraph, h: typeof CANVAS_AGENT_TOOL_HANDLERS, i: unknown) => CanvasAgentToolResult)(
           g,
           CANVAS_AGENT_TOOL_HANDLERS,
           input,
