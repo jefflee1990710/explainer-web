@@ -1,0 +1,55 @@
+// Values the generic model card already computed, shared by its presentational sections.
+
+import type { Dispatch, SetStateAction } from "react";
+import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
+import type { CanvasModelSpec, CanvasPortSpec } from "@/model/canvas-model";
+import type { SettingsVars } from "@/model/canvas-settings";
+import type { OutdatedReason } from "@/service/canvas/stale-outputs";
+import type { CanvasNodeActionsContextValue } from "@/app/app/canvas/nodes/port-colors";
+
+export type ModelNodeCardView = {
+  id: string;
+  data: CanvasNodeData;
+  selected: boolean;
+  catalog: readonly CanvasModelSpec[];
+  nodes: readonly CanvasNode[];
+  edges: readonly CanvasEdge[];
+  characterOptions: CanvasNodeActionsContextValue["characterOptions"];
+  locale: string;
+  projectTitle: string;
+  isFlowRunning: boolean;
+  onUpdateNodeData: CanvasNodeActionsContextValue["onUpdateNodeData"];
+  onDeleteNode: CanvasNodeActionsContextValue["onDeleteNode"];
+  onRunNode: CanvasNodeActionsContextValue["onRunNode"];
+  onSwapModel: CanvasNodeActionsContextValue["onSwapModel"];
+  onOpenLightbox: CanvasNodeActionsContextValue["onOpenLightbox"];
+  showAdvanced: boolean;
+  setShowAdvanced: Dispatch<SetStateAction<boolean>>;
+  swapOpen: boolean;
+  setSwapOpen: Dispatch<SetStateAction<boolean>>;
+  promptEditorOpen: boolean;
+  setPromptEditorOpen: Dispatch<SetStateAction<boolean>>;
+  isZh: boolean;
+  spec: CanvasModelSpec;
+  displayName: string;
+  incomingByHandle: ReadonlyMap<string, number>;
+  promptPort: CanvasPortSpec | undefined;
+  isPromptWired: boolean;
+  isStartImageWired: boolean;
+  isRefAudioWired: boolean;
+  outputColor: string;
+  status: NonNullable<CanvasNodeData["status"]> | "idle";
+  isBusy: boolean;
+  durationSeconds: number;
+  activePreset: string;
+  missingRequiredLabels: string[];
+  canRun: boolean;
+  categoryLabel: string;
+  outdated: OutdatedReason | undefined;
+  isRerun: boolean;
+  statusBadge: { text: string; cls: string } | null;
+  templateText: string;
+  templateVars: SettingsVars;
+  toolParams: Record<string, unknown>;
+  updateToolParam: (key: string, value: unknown) => void;
+};
