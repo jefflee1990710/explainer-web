@@ -16,7 +16,7 @@ import {
   probeHasAudio,
   type CaptionLanguage,
   type ScribeWord,
-} from "@/service/canvas/execution/captions";
+} from "@/service/canvas/core/captions";
 
 // Reads a remote or local media duration without downloading the whole file.
 export async function probeRemoteDurationSec(url: string): Promise<number | null> {

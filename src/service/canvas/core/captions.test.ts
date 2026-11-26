@@ -8,7 +8,7 @@ import {
   cuesFromSubtitleText,
   cuesToSrt,
   parseSrt,
-} from "@/service/canvas/execution/captions";
+} from "@/service/canvas/core/captions";
 import { resolveNodeInputs } from "@/service/canvas/core/graph";
 
 describe("auto captions", () => {

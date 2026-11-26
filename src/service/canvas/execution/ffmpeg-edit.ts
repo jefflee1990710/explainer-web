@@ -7,7 +7,7 @@ import {
   cuesFromSubtitleText,
   cuesToAss,
   escapeFfmpegFilterPath,
-} from "@/service/canvas/execution/captions";
+} from "@/service/canvas/core/captions";
 
 type SubtitleFont = { family: string; directory: string };
 

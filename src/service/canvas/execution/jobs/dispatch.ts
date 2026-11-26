@@ -10,7 +10,7 @@ import { markJobCompleted, markJobFailed, markJobRunning } from "@/service/canva
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
 import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
-import { normalizeCaptionLanguage } from "@/service/canvas/execution/captions";
+import { normalizeCaptionLanguage } from "@/service/canvas/core/captions";
 import { transcribeCaptionVideo } from "@/service/canvas/execution/caption-transcribe";
 import type { MentalokCreateJobPayload } from "@/service/mentalok/client";
 import {
