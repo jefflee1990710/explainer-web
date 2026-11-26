@@ -7,7 +7,7 @@ import { buildLifeGroup } from "@/service/canvas/scro-groups/life";
 import { buildPosterGroup } from "@/service/canvas/scro-groups/poster";
 import { buildSwapGroup } from "@/service/canvas/scro-groups/swap";
 import { buildTeleportGroup } from "@/service/canvas/scro-groups/teleport";
-import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 export const SCRO_GROUP_TOOLS = ["life", "poster", "swap", "teleport", "talking-head"] as const;
 

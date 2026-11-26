@@ -4,7 +4,8 @@ import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import { directorParams } from "@/service/canvas/directors/explainer-director";
 import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
-import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS as T } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 function canvas() {
   const base: CanvasNode = {

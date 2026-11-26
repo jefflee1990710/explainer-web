@@ -7,7 +7,7 @@ import { SETTINGS_VAR_KEY } from "@/model/canvas-settings";
 import { settingsStaleTargets } from "@/service/canvas/core/settings/apply";
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { markStaleOutputs } from "@/service/canvas/core/stale-outputs";
-import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 export const updateSettingsSchema = z.object({
   groupId: z.string().optional().describe("Group id from get_canvas whose Setting node to change."),

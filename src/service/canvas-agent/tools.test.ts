@@ -3,12 +3,8 @@ import assert from "node:assert/strict";
 import type { CanvasNode } from "@/model/canvas";
 import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
-import {
-  CANVAS_AGENT_MAX_ADDED_NODES,
-  CANVAS_AGENT_TOOL_HANDLERS as T,
-  buildCanvasAgentTools,
-  createWorkingGraph,
-} from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS as T, buildCanvasAgentTools } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_MAX_ADDED_NODES, createWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 const SEEDREAM = "openrouter:bytedance-seed/seedream-5-0-pro";
 const HAILUO = "minimax:MiniMax-H3";

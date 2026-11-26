@@ -7,7 +7,8 @@ import {
   describeCanvasAgentGaps,
   findCanvasAgentGaps,
 } from "@/service/canvas-agent/gaps";
-import { CANVAS_AGENT_TOOL_HANDLERS as H, createWorkingGraph } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS as H } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 const SEEDREAM = "openrouter:bytedance-seed/seedream-5-0-pro";
 const KREA_EDIT = "openrouter:krea/k3-edit";

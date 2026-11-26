@@ -5,7 +5,8 @@
 import type { CanvasNode } from "@/model/canvas";
 import { getNodeOutputPortType, validateEdgeConnection } from "@/service/canvas/core/graph";
 import { type CanvasPortType, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
-import { CANVAS_AGENT_TOOL_HANDLERS, type CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS } from "@/service/canvas-agent/tools";
+import { type CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 export type CanvasAgentGap = {
   nodeId: string;

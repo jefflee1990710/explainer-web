@@ -1,7 +1,7 @@
 // System prompt for the Scro canvas agent. Three parts, like Hermes:
 // identity + rules, canvas/model knowledge, then the live canvas state.
 
-import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 import { CANVAS_AGENT_TOOL_HANDLERS } from "@/service/canvas-agent/tools";
 import type { CanvasAgentLanguage } from "@/model/canvas-agent";
 

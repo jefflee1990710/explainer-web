@@ -34,7 +34,7 @@ import {
   runBatchUpdateNodes,
 } from "@/service/canvas-agent/batch-tools";
 import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
-import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 type Result = Record<string, unknown>;
 type Handlers = Pick<BatchSingleNodeHandlers<CanvasAgentWorkingGraph>, "delete_node" | "update_node">;

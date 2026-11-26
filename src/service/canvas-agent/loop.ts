@@ -27,7 +27,8 @@ import {
   chatImageAssets,
   type CanvasAgentModelMessage,
 } from "@/service/canvas-agent/chat-images";
-import { buildCanvasAgentTools, createWorkingGraph } from "@/service/canvas-agent/tools";
+import { buildCanvasAgentTools } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/working-graph";
 import type {
   CanvasAgentLanguage,
   CanvasAgentOp,

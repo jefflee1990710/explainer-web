@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import { canvasCharacterIds } from "@/service/canvas-agent/canvas-characters";
-import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS as T } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 const JIM = "6afaa18cbdd00015c634043e";
 const BLOB = "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters";

@@ -7,35 +7,20 @@ import { z } from "zod";
 import type {
   CanvasAspectRatio,
   CanvasEdge,
-  CanvasGroup,
   CanvasGroupColor,
-  CanvasNode,
   CanvasNodeData,
 } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
 import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/core/graph";
 import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/core/character-node";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
-import {
-  canvasGroupsForProject,
-  defaultGroupColor,
-  defaultGroupTitle,
-  withGroup,
-} from "@/service/canvas/core/groups";
-import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
-import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/core/stale-outputs";
-import { settingsVars } from "@/service/canvas/core/settings/registry";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { isGenerationInputPatch } from "@/service/canvas/core/stale-outputs";
 import {
   updateSettings,
   updateSettingsSchema,
   type UpdateSettingsInput,
 } from "@/service/canvas-agent/settings-tool";
-import type {
-  CanvasLibraryAsset,
-  CanvasLibraryCharacterOption,
-} from "@/model/canvas-dto";
-import type { CanvasAgentOp, CanvasAgentQuestion } from "@/model/canvas-agent";
 import {
   type BatchAddNodeItem,
   type BatchUpdateNodeItem,
@@ -46,7 +31,6 @@ import {
   runBatchDeleteNodes,
   runBatchUpdateNodes,
 } from "@/service/canvas-agent/batch-tools";
-import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
 import {
   type UpdateExplainerSettingsInput,
   updateExplainerDirector,
@@ -54,15 +38,9 @@ import {
 } from "@/service/canvas-agent/explainer-director-tool";
 import {
   DIRECTOR_CHARACTER_HANDLE,
-  directorNeedsReplan,
-  directorParams,
-  directorTextStyle,
-  isExplainerDirectorNode,
   isPlanDirectorNode,
   parseDirectorHandle,
-  readDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
-import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
 import {
   deleteGroup,
   describeGroups,
@@ -79,284 +57,27 @@ import {
   updateGroupNodesSchema,
   updateGroupSchema,
 } from "@/service/canvas-agent/group-tools";
+import { SCRO_GROUP_TOOLS, type ScroGroupToolInput } from "@/service/canvas-agent/scro-group-tool";
+import { addModelNode, type AddModelNodeInput } from "@/service/canvas-agent/model-node-tool";
+import { addScroGroup } from "@/service/canvas-agent/scro-group-handler";
 import {
-  buildAgentScroGroup,
-  SCRO_GROUP_MODEL_IDS,
-  SCRO_GROUP_TOOLS,
-  type ScroGroupToolInput,
-} from "@/service/canvas-agent/scro-group-tool";
-
-export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
-export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
-
-const COLUMN_GAP = 400;
-const ROW_GAP = 40;
-// Rough card heights so arranged columns do not overlap.
-const NODE_HEIGHT: Record<CanvasNode["type"], number> = {
-  prompt: 190,
-  media: 230,
-  model: 430,
-  character: 520,
-  settings: 460,
-};
-const TEXT_PREVIEW = 240;
-
-export type CanvasAgentWorkingGraph = {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  groups: CanvasGroup[];
-  catalog: readonly CanvasModelSpec[];
-  assets: readonly CanvasLibraryAsset[];
-  characters: readonly CanvasLibraryCharacterOption[];
-  userMessage: string;
-  ops: CanvasAgentOp[];
-  addedNodes: number;
-  // Set by ask_user; the turn stops and the dock shows it as clickable options.
-  question?: CanvasAgentQuestion;
-  nextId: () => string;
-};
-
-export type CanvasAgentToolResult = Record<string, unknown>;
-
-export function createWorkingGraph(input: {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  // Missing on older canvases; groups are then inferred from node id prefixes.
-  groups?: CanvasGroup[];
-  catalog: readonly CanvasModelSpec[];
-  assets: readonly CanvasLibraryAsset[];
-  characters?: readonly CanvasLibraryCharacterOption[];
-  // This turn's user message; ask_user uses it to block questions the request already answers.
-  message?: string;
-  nextId?: () => string;
-}): CanvasAgentWorkingGraph {
-  const characters =
-    input.characters ??
-    input.assets
-      .filter((a) => a.source === "character")
-      .map((a) => ({ id: a.id, name: a.name, previewUrl: a.url }));
-  return {
-    nodes: input.nodes.map((n) => ({ ...n, data: { ...n.data } })),
-    edges: [...input.edges],
-    groups: canvasGroupsForProject(input.nodes, input.groups),
-    catalog: input.catalog,
-    assets: input.assets,
-    characters,
-    userMessage: input.message ?? "",
-    ops: [],
-    addedNodes: 0,
-    nextId: input.nextId ?? (() => crypto.randomUUID().slice(0, 8)),
-  };
-}
-
-// Marks the changed nodes' previews and everything downstream as old versions, logged as one op.
-export function markStale(g: CanvasAgentWorkingGraph, changedIds: readonly string[]): void {
-  const res = markStaleOutputs(g.nodes, g.edges, changedIds);
-  if (res.staleIds.length === 0) return;
-  g.nodes = res.nodes;
-  g.ops.push({ kind: "mark_stale", nodeIds: res.staleIds });
-}
-
-const EXPLAINER_REQUEST = /explainer|解說|講解|解释|讲解/i;
-const TALKING_HEAD_WORDS = /talking[\s-]?head|口播|對鏡頭|对镜头|on[\s-]camera/i;
-
-const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
-  "scro:talking-head": ["characterId", "language", "framing", "styleId"],
-  "scro:explainer": ["characterId", "language", "skillSlug", "durationPreset", "styleId", "productId"],
-  "scro:swap": ["characterId", "swapMode", "lightLookId", "objectTarget", "objectEditMode", "sectionStart", "sectionLength"],
-  "scro:teleport": ["sectionStart", "sectionLength", "sceneText"],
-  "scro:life": ["characterId", "poseId"],
-  "scro:poster": ["characterId", "productId", "styleId"],
-  "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed", "ttsConversational"],
-  "ffmpeg:concat": ["ffmpegTransition"],
-  "ffmpeg:audio-mux": ["ffmpegMixMode", "ffmpegAudioGainDb"],
-  "ffmpeg:trim-speed": ["ffmpegStartSec", "ffmpegEndSec", "ffmpegSpeed", "ffmpegTrimSilence"],
-  "ffmpeg:transform": ["ffmpegCropMode", "ffmpegColorGrade"],
-  "ffmpeg:extract-audio": [],
-  "ffmpeg:color-grade": ["gradeLook"],
-  "ffmpeg:smooth-silence": [],
-};
-
-const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
-  language: ["yue", "zh", "en"],
-  framing: ["collarbone-close", "waist-up", "handheld-selfie", "full-body"],
-  skillSlug: [
-    "cartoon-explainer-video-director",
-    "paper-cutout-explainer-video-director",
-    "papercraft-diorama-director",
-  ],
-  durationPreset: ["15s", "30s", "45s", "60s"],
-  swapMode: ["character", "object", "relight", "colorfix"],
-  objectEditMode: ["change", "add", "remove"],
-  voicePreset: ["alan", "cathy", "yu", "una", "brian", "bella"],
-  ffmpegTransition: ["cut", "pad-200ms", "fade"],
-  ffmpegMixMode: ["replace", "mix-ducking"],
-  ffmpegCropMode: ["fit-pad", "center-crop"],
-  ffmpegColorGrade: ["none", "h3-soft"],
-  gradeLook: ["jutsu", "talking-head", "talking-head-selfie"],
-};
-
-function validateToolParamsForModel(
-  g: CanvasAgentWorkingGraph,
-  modelId: string,
-  toolParams?: Record<string, unknown>,
-): string | null {
-  if (!toolParams) return null;
-  const allowed = TOOL_PARAMS_ALLOWED_KEYS[modelId];
-  if (!allowed) {
-    return Object.keys(toolParams).length > 0
-      ? `Model "${modelId}" does not accept toolParams.`
-      : null;
-  }
-  for (const [key, val] of Object.entries(toolParams)) {
-    if (!allowed.includes(key)) {
-      return `Invalid toolParams key "${key}" for "${modelId}". Allowed: ${allowed.join(", ") || "(none)"}.`;
-    }
-    if (key === "characterId" && typeof val === "string" && val.trim()) {
-      if (!g.characters.some((c) => c.id === val.trim())) {
-        return `Unknown characterId "${val}". Call list_assets() and use an exact id from characters.`;
-      }
-    }
-    const enumValues = TOOL_PARAM_ENUMS[key];
-    if (enumValues && typeof val === "string" && !enumValues.includes(val)) {
-      return `Invalid value "${val}" for toolParams.${key}. Allowed: ${enumValues.join(", ")}.`;
-    }
-  }
-  return null;
-}
-
-function agentModels(g: CanvasAgentWorkingGraph): CanvasModelSpec[] {
-  return g.catalog.filter(
-    (spec) =>
-      spec.provider !== "mentalok" &&
-      spec.available !== false &&
-      !spec.hiddenInSidebar &&
-      !SCRO_GROUP_MODEL_IDS.includes(spec.id),
-  );
-}
-
-// One short line per model so the chat prompt stays small.
-export function canvasAgentModelLine(spec: CanvasModelSpec): string {
-  const ports = spec.inputs
-    .map((port) => {
-      const required = port.required ? "*" : "";
-      const many = port.multiple ? `x${port.maxConnections}` : "";
-      return `${port.id}${required}:${port.type}${many}`;
-    })
-    .join(",");
-  // Price of one run at the default length; video nodes are billed per run, not per second.
-  const cost = estimateCanvasModelCostUsd(spec);
-  const seconds = spec.output.type === "video" ? spec.defaultDurationSeconds : undefined;
-  const price = seconds ? `${cost}/${seconds}s` : String(cost);
-  return `${spec.id} | ${spec.name} | ${spec.output.type} | ${ports} | $${price}`;
-}
-
-function clip(text: string | undefined): string | undefined {
-  if (!text) return undefined;
-  return text.length > TEXT_PREVIEW ? `${text.slice(0, TEXT_PREVIEW)}…` : text;
-}
-
-function clampDuration(spec: CanvasModelSpec, seconds?: number): number | undefined {
-  if (spec.output.type !== "video") return undefined;
-  const fallback = spec.defaultDurationSeconds ?? spec.minDurationSeconds;
-  if (seconds === undefined || !Number.isFinite(seconds)) return fallback;
-  const min = spec.minDurationSeconds ?? 1;
-  const max = spec.maxDurationSeconds ?? min;
-  return Math.min(max, Math.max(min, Math.round(seconds)));
-}
-
-// New nodes go to the right of everything already on the canvas.
-function nextPosition(g: CanvasAgentWorkingGraph): { x: number; y: number } {
-  if (g.nodes.length === 0) return { x: 0, y: 0 };
-  const maxX = Math.max(...g.nodes.map((n) => n.position.x));
-  const minY = Math.min(...g.nodes.map((n) => n.position.y));
-  return { x: maxX + COLUMN_GAP, y: minY };
-}
-
-function addNode(
-  g: CanvasAgentWorkingGraph,
-  type: CanvasNode["type"],
-  data: CanvasNodeData,
-): CanvasAgentToolResult {
-  if (g.addedNodes >= CANVAS_AGENT_MAX_ADDED_NODES) {
-    return { error: `Node limit reached: at most ${CANVAS_AGENT_MAX_ADDED_NODES} new nodes per message.` };
-  }
-  const node: CanvasNode = {
-    id: `${type}-${g.nextId()}`,
-    type,
-    position: nextPosition(g),
-    data,
-  };
-  g.nodes.push(node);
-  g.addedNodes += 1;
-  g.ops.push({ kind: "add_node", node });
-  return { ok: true, nodeId: node.id };
-}
-
-function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
-  const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
-  const groupId = g.groups.find((gr) => gr.memberIds.includes(node.id))?.id;
-  return {
-    id: node.id,
-    type: node.type,
-    ...(groupId ? { groupId } : {}),
-    ...(node.type === "prompt" ? { text: clip(node.data.text) } : {}),
-    ...(node.type === "media"
-      ? { mediaKind: node.data.mediaKind, name: node.data.fileName ?? node.data.label }
-      : {}),
-    ...(node.type === "character"
-      ? {
-          name: node.data.label,
-          characterId: node.data.characterId,
-          status: node.data.status ?? "idle",
-          hasOutput: Boolean(node.data.outputUrl),
-          ...(isOutputStale(node.data) ? { outdated: true } : {}),
-        }
-      : {}),
-    // Explainer Director: change these only through update_explainer_settings.
-    ...(isExplainerDirectorNode(node)
-      ? {
-          director: {
-            params: directorParams(node),
-            textStyle: directorTextStyle(node),
-            planStatus: node.data.toolParams?.planStatus ?? "idle",
-            clips: readDirectorPlan(node)?.clips.length ?? 0,
-            outputs: "clip-<n>-frame | clip-<n>-motion | clip-<n>-voice (text)",
-            needsReplan: directorNeedsReplan(node),
-          },
-        }
-      : {}),
-    // Talking Head Director: change its script or settings only through replace_group.
-    ...(isTalkingHeadDirectorNode(node)
-      ? {
-          director: {
-            params: talkingHeadDirectorParams(node),
-            planStatus: node.data.toolParams?.planStatus ?? "idle",
-            clips: readDirectorPlan(node)?.clips.length ?? 0,
-            outputs: "clip-1-frame (shared opening still) | clip-<n>-motion | clip-<n>-voice (text)",
-            needsReplan: directorNeedsReplan(node),
-          },
-        }
-      : {}),
-    // A Setting's `{{key}}` vars: change these only through update_settings.
-    ...(node.type === "settings" ? { vars: settingsVars(node.data.settings) } : {}),
-    ...(node.type === "model"
-      ? {
-          modelId: node.data.modelId,
-          modelName: spec?.name,
-          output: spec?.output.type,
-          prompt: clip(node.data.prompt),
-          aspectRatio: node.data.aspectRatio,
-          durationSeconds: node.data.durationSeconds,
-          ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
-          status: node.data.status ?? "idle",
-          hasOutput: Boolean(node.data.outputUrl),
-          // The preview predates an input change; Run regenerates it.
-          ...(isOutputStale(node.data) ? { outdated: true } : {}),
-        }
-      : {}),
-  };
-}
+  addNode,
+  CANVAS_AGENT_MAX_ADDED_NODES,
+  CANVAS_AGENT_MAX_QUESTION_OPTIONS,
+  clampDuration,
+  COLUMN_GAP,
+  describeNode,
+  EXPLAINER_REQUEST,
+  agentModels,
+  canvasAgentModelLine,
+  markStale,
+  NODE_HEIGHT,
+  ROW_GAP,
+  TALKING_HEAD_WORDS,
+  validateToolParamsForModel,
+  type CanvasAgentToolResult,
+  type CanvasAgentWorkingGraph,
+} from "@/service/canvas-agent/working-graph";
 
 export const CANVAS_AGENT_TOOL_HANDLERS = {
   get_canvas(g: CanvasAgentWorkingGraph): CanvasAgentToolResult {
@@ -396,103 +117,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     return addNode(g, "prompt", { label: "Prompt", text: input.text });
   },
 
-  add_model_node(
-    g: CanvasAgentWorkingGraph,
-    input: {
-      modelId: string;
-      prompt?: string;
-      promptText?: string;
-      wires?: Array<{ sourceId: string; targetPort: string }>;
-      aspectRatio?: CanvasAspectRatio;
-      durationSeconds?: number;
-      toolParams?: Record<string, unknown>;
-    },
-  ): CanvasAgentToolResult {
-    if (findCanvasModel(input.modelId, g.catalog)?.hiddenInSidebar) {
-      return { error: `${input.modelId} is created by Explainer planning; add scro:explainer instead.` };
-    }
-    if (SCRO_GROUP_MODEL_IDS.includes(input.modelId)) {
-      return {
-        error: `${input.modelId} is built as a visible node group. Call add_scro_group with tool "${input.modelId.slice("scro:".length)}" instead.`,
-      };
-    }
-    const spec = agentModels(g).find((s) => s.id === input.modelId);
-    if (!spec) {
-      return { error: `Unknown model "${input.modelId}". Call list_models and use an exact id.` };
-    }
-    const paramError = validateToolParamsForModel(g, spec.id, input.toolParams);
-    if (paramError) return { error: paramError };
-    // Explainer lands as a self-contained planning card that the canvas plans right after the turn.
-    if (spec.id === "scro:explainer") {
-      const topic = (input.prompt ?? input.promptText ?? "").trim();
-      if (!topic) return { error: "scro:explainer needs the topic or script in \"prompt\"." };
-      const named =
-        typeof input.toolParams?.characterId === "string" ? input.toolParams.characterId.trim() : "";
-      // With no character named, reuse the one character already on the canvas.
-      const reused = named ? undefined : soleCanvasCharacterId(g, g.nodes);
-      const created = addNode(g, "model", {
-        modelId: spec.id,
-        aspectRatio: input.aspectRatio ?? "9:16",
-        prompt: topic,
-        toolParams: {
-          ...(reused ? { characterId: reused } : {}),
-          ...(input.toolParams ?? {}),
-          plannerMode: true,
-        },
-        status: "idle",
-      });
-      if (created.error || typeof created.nodeId !== "string") return created;
-      return created;
-    }
-    const created = addNode(g, "model", {
-      modelId: spec.id,
-      presetId: spec.defaultPresetId,
-      aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "9:16") : undefined,
-      resolution: spec.supportsResolution ? "2k" : undefined,
-      durationSeconds: clampDuration(spec, input.durationSeconds),
-      prompt: input.prompt ?? "",
-      ...(input.toolParams ? { toolParams: input.toolParams } : {}),
-      status: "idle",
-    });
-    if (created.error || typeof created.nodeId !== "string") return created;
-
-    const nodeId = created.nodeId;
-    const wireErrors: string[] = [];
-    let promptNodeId: string | undefined;
-    const promptText = input.promptText?.trim();
-    if (promptText) {
-      const promptNode = addNode(g, "prompt", { label: "Prompt", text: promptText });
-      if (promptNode.error || typeof promptNode.nodeId !== "string") {
-        wireErrors.push(String(promptNode.error ?? "Could not add the prompt node"));
-      } else {
-        promptNodeId = promptNode.nodeId;
-        const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
-          sourceId: promptNodeId,
-          targetId: nodeId,
-          targetPort: "prompt",
-        });
-        if (linked.error) wireErrors.push(String(linked.error));
-      }
-    }
-    for (const wire of input.wires ?? []) {
-      const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
-        sourceId: wire.sourceId,
-        targetId: nodeId,
-        targetPort: wire.targetPort,
-      });
-      if (linked.error) wireErrors.push(String(linked.error));
-    }
-
-    return {
-      ok: true,
-      nodeId,
-      ...(promptNodeId ? { promptNodeId } : {}),
-      ...(wireErrors.length > 0
-        ? {
-            error: `Node ${nodeId} exists. Wires failed: ${wireErrors.join(" | ")}. Use connect to fix those wires. Do not add this node again.`,
-          }
-        : {}),
-    };
+  add_model_node(g: CanvasAgentWorkingGraph, input: AddModelNodeInput): CanvasAgentToolResult {
+    return addModelNode(g, CANVAS_AGENT_TOOL_HANDLERS, input);
   },
 
   add_media_node(g: CanvasAgentWorkingGraph, input: { assetId: string }): CanvasAgentToolResult {
@@ -503,140 +129,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
   },
 
   add_scro_group(g: CanvasAgentWorkingGraph, input: ScroGroupToolInput): CanvasAgentToolResult {
-    const aspect = input.aspectRatio ?? "9:16";
-    const text = input.prompt?.trim() ?? "";
-
-    if (input.tool === "talking-head") {
-      if (!text) return { error: "talking-head needs the script in \"prompt\"." };
-      if (!input.characterId) return { error: "talking-head needs characterId from list_assets().characters." };
-      if (!g.characters.some((c) => c.id === input.characterId)) {
-        return { error: `Unknown characterId "${input.characterId}". Call list_assets() and use an exact id.` };
-      }
-      // Planning card: the canvas plans it for free right after this turn, then expands it.
-      const created = addNode(g, "model", {
-        modelId: "scro:talking-head",
-        aspectRatio: aspect,
-        prompt: text,
-        toolParams: {
-          plannerMode: true,
-          characterId: input.characterId,
-          language: input.language ?? "yue",
-          framing: input.framing ?? "collarbone-close",
-        },
-        status: "idle",
-      });
-      return created;
-    }
-
-    if (input.tool === "swap" || input.tool === "teleport") {
-      // Director card: the user presses Build on the canvas to expand trim → render → grade.
-      if (!input.videoNodeId && !input.videoAssetId) {
-        return { error: `${input.tool} needs videoNodeId or videoAssetId.` };
-      }
-      for (const assetId of [input.videoAssetId, input.referenceAssetId, input.sceneAssetId]) {
-        if (assetId && !g.assets.some((asset) => asset.id === assetId)) {
-          return { error: `Unknown asset "${assetId}".` };
-        }
-      }
-      const mode = input.mode ?? "character";
-      if (input.tool === "swap" && mode === "character" && !input.characterId && !input.referenceAssetId) {
-        return { error: "swap in character mode needs characterId or referenceAssetId." };
-      }
-      if (input.tool === "swap" && mode === "object" && !text) {
-        return { error: 'swap in object mode needs what to change into in "prompt".' };
-      }
-      if (input.tool === "teleport" && !input.sceneNodeId && !input.sceneAssetId && !input.sceneText?.trim()) {
-        return { error: "teleport needs sceneNodeId, sceneAssetId, or sceneText." };
-      }
-      if (input.characterId && !g.characters.some((c) => c.id === input.characterId)) {
-        return { error: `Unknown characterId "${input.characterId}". Call list_assets() and use an exact id.` };
-      }
-      const created = addNode(g, "model", {
-        modelId: input.tool === "swap" ? "scro:swap" : "scro:teleport",
-        aspectRatio: aspect,
-        prompt: text,
-        status: "idle",
-        toolParams: {
-          directorMode: true,
-          sectionStart: input.sectionStart ?? 0,
-          sectionLength: input.sectionLength ?? 6,
-          ...(input.tool === "swap"
-            ? {
-                swapMode: mode,
-                ...(input.characterId ? { characterId: input.characterId } : {}),
-                ...(input.objectTarget ? { objectTarget: input.objectTarget } : {}),
-                ...(input.objectEditMode ? { objectEditMode: input.objectEditMode } : {}),
-                ...(input.lightLookId ? { lightLookId: input.lightLookId } : {}),
-              }
-            : { sceneText: input.sceneText?.trim() ?? "" }),
-        },
-      });
-      if (created.error || typeof created.nodeId !== "string") return created;
-      const targetId = created.nodeId;
-      const wireErrors: string[] = [];
-      const connectTo = (sourceId: string, targetPort: string) => {
-        const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, { sourceId, targetId, targetPort });
-        if (linked.error) wireErrors.push(String(linked.error));
-      };
-      const connectAsset = (assetId: string, targetPort: string) => {
-        const existing = g.nodes.find((n) => n.type === "character" && n.data.characterId === assetId);
-        if (existing) {
-          connectTo(existing.id, targetPort);
-          return;
-        }
-        const media = CANVAS_AGENT_TOOL_HANDLERS.add_media_node(g, { assetId });
-        if (media.error || typeof media.nodeId !== "string") {
-          wireErrors.push(String(media.error ?? `Could not add asset "${assetId}"`));
-          return;
-        }
-        connectTo(media.nodeId, targetPort);
-      };
-      if (input.videoNodeId) connectTo(input.videoNodeId, "video");
-      else if (input.videoAssetId) connectAsset(input.videoAssetId, "video");
-      if (input.tool === "swap") {
-        if (input.referenceAssetId) connectAsset(input.referenceAssetId, "refImages");
-        else if (input.characterId) connectAsset(input.characterId, "refImages");
-      } else if (input.sceneNodeId) connectTo(input.sceneNodeId, "image");
-      else if (input.sceneAssetId) connectAsset(input.sceneAssetId, "image");
-      if (wireErrors.length > 0) {
-        return { ...created, error: `Node ${targetId} exists. Wires failed: ${wireErrors.join(" | ")}` };
-      }
-      return created;
-    }
-
-    const built = buildAgentScroGroup(g, input, aspect, text);
-    if ("error" in built) return { error: built.error };
-    const group = built.group;
-    if (g.addedNodes + group.nodes.length > CANVAS_AGENT_MAX_ADDED_NODES) {
-      return {
-        error: `This group adds ${group.nodes.length} nodes, over the limit of ${CANVAS_AGENT_MAX_ADDED_NODES} new nodes per message.`,
-      };
-    }
-    for (const node of group.nodes) {
-      g.nodes.push(node);
-      g.ops.push({ kind: "add_node", node });
-    }
-    g.addedNodes += group.nodes.length;
-    for (const edge of group.edges) {
-      g.edges.push(edge);
-      g.ops.push({ kind: "add_edge", edge });
-    }
-    const frame: CanvasGroup = {
-      id: group.groupId,
-      title: defaultGroupTitle(input.tool),
-      color: defaultGroupColor(input.tool),
-      kind: input.tool,
-      memberIds: group.nodes.map((n) => n.id),
-      params: { aspectRatio: aspect, ...(input.characterId ? { characterId: input.characterId } : {}) },
-    };
-    g.groups = withGroup(g.groups, frame);
-    g.ops.push({ kind: "add_group", group: frame });
-    return {
-      ok: true,
-      groupId: frame.id,
-      nodeIds: group.nodes.map((n) => n.id),
-      outputNodeId: group.outputNodeId,
-    };
+    return addScroGroup(g, CANVAS_AGENT_TOOL_HANDLERS, input);
   },
 
   update_node(

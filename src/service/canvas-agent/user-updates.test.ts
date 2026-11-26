@@ -13,8 +13,9 @@ import {
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import { SEEDREAM_MODEL_ID } from "@/service/canvas/scro-groups/builder";
-import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
-import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
+import { CANVAS_AGENT_TOOL_HANDLERS as T } from "@/service/canvas-agent/tools";
+import { createWorkingGraph } from "@/service/canvas-agent/working-graph";
+import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
 const JIM = "6afaa18cbdd00015c634043e";
 const CATHY = "6afaa18cbdd00015c6340000";
