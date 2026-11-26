@@ -14,6 +14,7 @@ export type CanvasAgentMessageDto = {
   language: string;
   ops?: CanvasAgentOp[];
   question?: CanvasAgentQuestion;
+  imageUrls?: string[];
   createdAt: string;
 };
 
@@ -25,6 +26,7 @@ export function serializeCanvasAgentMessage(message: CanvasAgentMessage): Canvas
     language: message.language,
     ...(message.ops && message.ops.length > 0 ? { ops: message.ops } : {}),
     ...(message.question ? { question: message.question } : {}),
+    ...(message.imageUrls && message.imageUrls.length > 0 ? { imageUrls: message.imageUrls } : {}),
     createdAt: message.createdAt.toISOString(),
   };
 }

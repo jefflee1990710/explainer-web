@@ -18,6 +18,7 @@ export function CanvasAgentMessage({
   isZh,
   role,
   text,
+  imageUrls,
   ops,
   variant = "normal",
   note,
@@ -34,6 +35,7 @@ export function CanvasAgentMessage({
   isZh: boolean;
   role: "user" | "assistant";
   text?: string;
+  imageUrls?: readonly string[];
   ops?: CanvasAgentOp[];
   question?: CanvasAgentQuestionData;
   questionAnswered?: boolean;
@@ -47,11 +49,28 @@ export function CanvasAgentMessage({
   onRetry?: () => void;
 }) {
   if (role === "user") {
+    const photos = imageUrls ?? [];
+    if (!text?.trim() && photos.length === 0) return null;
     return (
       <div className="flex justify-end">
-        <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-[#c6f24b] px-3 py-2 text-[13px] leading-5 text-[#11141b]">
-          {text}
-        </p>
+        <div className="flex max-w-[80%] flex-col gap-1.5 rounded-2xl rounded-br-md bg-[#c6f24b] px-3 py-2">
+          {photos.length > 0 ? (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {photos.map((url, index) => (
+                // eslint-disable-next-line @next/next/no-img-element -- user upload on our blob host
+                <img
+                  key={`${url}-${index}`}
+                  src={url}
+                  alt=""
+                  className="h-16 w-16 rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          ) : null}
+          {text?.trim() ? (
+            <p className="whitespace-pre-wrap text-[13px] leading-5 text-[#11141b]">{text}</p>
+          ) : null}
+        </div>
       </div>
     );
   }

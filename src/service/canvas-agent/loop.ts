@@ -3,7 +3,7 @@
 // cannot run yet get one repair pass plus deterministic wiring, and a no-tool summary
 // call makes sure the reply matches the final canvas.
 
-import { generateText, hasToolCall, stepCountIs, type ToolSet } from "ai";
+import { generateText, hasToolCall, stepCountIs, type ModelMessage, type ToolSet } from "ai";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import { directorModel, storyboardProviderOptions } from "@/service/director/model";
 import { normalizeCanvasGroups } from "@/service/canvas/groups";
@@ -22,6 +22,11 @@ import {
   buildCanvasAgentSummaryPrompt,
   buildCanvasAgentSystemPrompt,
 } from "@/service/canvas-agent/prompt";
+import {
+  buildCanvasAgentModelMessages,
+  chatImageAssets,
+  type CanvasAgentModelMessage,
+} from "@/service/canvas-agent/chat-images";
 import { buildCanvasAgentTools, createWorkingGraph } from "@/service/canvas-agent/tools";
 import type {
   CanvasAgentLanguage,
@@ -33,11 +38,15 @@ export const CANVAS_AGENT_MAX_STEPS = 12;
 export const CANVAS_AGENT_REPAIR_STEPS = 6;
 export const CANVAS_AGENT_HISTORY_LIMIT = 20;
 
-export type CanvasAgentHistoryMessage = { role: "user" | "assistant"; text: string };
+export type CanvasAgentHistoryMessage = {
+  role: "user" | "assistant";
+  text: string;
+  imageUrls?: readonly string[];
+};
 
 export type CanvasAgentGenerate = (input: {
   system: string;
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages: CanvasAgentModelMessage[];
   tools?: ToolSet;
   maxSteps: number;
 }) => Promise<{ text: string; endedOnToolCalls: boolean }>;
@@ -46,7 +55,7 @@ const defaultGenerate: CanvasAgentGenerate = async ({ system, messages, tools, m
   const result = await generateText({
     model: directorModel(),
     system,
-    messages,
+    messages: messages as ModelMessage[],
     // Same low-thinking setting as storyboard planning, so each tool step stays fast.
     providerOptions: storyboardProviderOptions(),
     // ask_user hands the turn back to the user, so the loop stops right after it.
@@ -65,6 +74,7 @@ export async function runCanvasAgentTurn(input: {
   catalog: readonly CanvasModelSpec[];
   assets: readonly CanvasLibraryAsset[];
   characters?: readonly CanvasLibraryCharacterOption[];
+  imageUrls?: readonly string[];
   generate?: CanvasAgentGenerate;
 }): Promise<{
   reply: string;
@@ -75,15 +85,18 @@ export async function runCanvasAgentTurn(input: {
   question?: CanvasAgentQuestion;
 }> {
   const generate = input.generate ?? defaultGenerate;
-  const graph = createWorkingGraph(input);
+  const built = buildCanvasAgentModelMessages({
+    history: input.history,
+    message: input.message,
+    imageUrls: input.imageUrls,
+    historyLimit: CANVAS_AGENT_HISTORY_LIMIT,
+  });
+  const graph = createWorkingGraph({
+    ...input,
+    assets: [...chatImageAssets(built.imageUrls), ...input.assets],
+  });
   const system = buildCanvasAgentSystemPrompt({ language: input.language, graph });
-  const recent = input.history.slice(-CANVAS_AGENT_HISTORY_LIMIT);
-  // Gemini expects the conversation to open with a user turn.
-  while (recent[0]?.role === "assistant") recent.shift();
-  const messages = [
-    ...recent.map((m) => ({ role: m.role, content: m.text })),
-    { role: "user" as const, content: input.message },
-  ];
+  const messages = built.messages;
 
   const first = await generate({
     system,

@@ -65,6 +65,40 @@ describe("runCanvasAgentTurn", () => {
     assert.equal(msgs[0]?.content, "m10");
   });
 
+  it("shows an attached image to the model and lists it as an asset", async () => {
+    const url = "https://abc.public.blob.vercel-storage.com/canvas/uploads/user_1/a.png";
+    const res = await runCanvasAgentTurn({
+      ...base,
+      message: "use this",
+      imageUrls: [url],
+      history: [],
+      assets: [
+        {
+          id: "old",
+          source: "product",
+          name: "Bottle",
+          mediaKind: "image",
+          url: "https://blob.vercel-storage.com/canvas/uploads/user_1/old.png",
+          createdAt: "2020-01-01T00:00:00.000Z",
+        },
+      ],
+      generate: async ({ messages, tools }) => {
+        const listed = (await call(tools, "list_assets", {})) as unknown as {
+          assets?: { id: string }[];
+        };
+        assert.equal(listed.assets?.[0]?.id, "chat-image-1");
+        assert.equal(listed.assets?.[1]?.id, "old");
+        const content = messages.at(-1)?.content;
+        assert.ok(Array.isArray(content));
+        assert.equal(content[1]?.type, "image");
+        await call(tools, "add_media_node", { assetId: "chat-image-1" });
+        return { text: "Placed the photo.", endedOnToolCalls: false };
+      },
+    });
+    assert.equal(res.reply, "Placed the photo.");
+    assert.equal(res.nodes.find((node) => node.type === "media")?.data.mediaUrl, url);
+  });
+
   it("makes one grace call without tools when the loop ends on tool calls", async () => {
     const calls: Call[] = [];
     const res = await runCanvasAgentTurn({

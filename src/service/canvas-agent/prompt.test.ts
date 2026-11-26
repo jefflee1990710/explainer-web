@@ -35,6 +35,7 @@ describe("canvas agent prompt", () => {
     assert.match(text, /ffmpeg:concat/);
     assert.match(text, /ffmpeg:smooth-silence/);
     assert.match(text, /prompt-abc/);
+    assert.match(text, /chat-image-1/);
     assert.doesNotMatch(text, /mentalok:/);
   });
 

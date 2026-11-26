@@ -15,6 +15,10 @@ import {
   listCanvasAgentMessages,
   serializeCanvasAgentMessage,
 } from "@/service/canvas-agent/history";
+import {
+  filterCanvasAgentImageUrls,
+  parseCanvasAgentImageUrls,
+} from "@/service/canvas-agent/chat-images";
 import { CANVAS_AGENT_HISTORY_LIMIT, runCanvasAgentTurn } from "@/service/canvas-agent/loop";
 import {
   type CanvasAgentLanguage,
@@ -27,6 +31,7 @@ const MAX_MESSAGE_CHARS = 2000;
 export type SendCanvasAgentMessageInput = {
   canvasId: string;
   text: string;
+  imageUrls?: string[];
   language: CanvasAgentLanguage;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
@@ -58,7 +63,9 @@ export async function sendCanvasAgentMessageAction(
 ): Promise<SendCanvasAgentMessageResult> {
   const user = await requireAppUser();
   const text = input.text.trim();
-  if (!text) return { ok: false, error: "Message is empty" };
+  const images = parseCanvasAgentImageUrls(input.imageUrls, user.clerkUserId);
+  if (!images.ok) return images;
+  if (!text && images.urls.length === 0) return { ok: false, error: "Message is empty" };
   if (text.length > MAX_MESSAGE_CHARS) {
     return { ok: false, error: `Message is longer than ${MAX_MESSAGE_CHARS} characters` };
   }
@@ -85,7 +92,15 @@ export async function sendCanvasAgentMessageAction(
     turn = await runCanvasAgentTurn({
       language: input.language,
       message: text,
-      history: history.map((m) => ({ role: m.role, text: canvasAgentHistoryText(m) })),
+      imageUrls: images.urls,
+      history: history.map((m) => {
+        const imageUrls = filterCanvasAgentImageUrls(m.imageUrls, user.clerkUserId);
+        return {
+          role: m.role,
+          text: canvasAgentHistoryText(m),
+          ...(imageUrls.length > 0 ? { imageUrls } : {}),
+        };
+      }),
       nodes: project.nodes,
       edges: project.edges,
       groups: project.groups,
@@ -107,6 +122,7 @@ export async function sendCanvasAgentMessageAction(
     role: "user",
     text,
     language: input.language,
+    ...(images.urls.length > 0 ? { imageUrls: images.urls } : {}),
     createdAt: new Date(now),
   };
   const replyDoc: CanvasAgentMessage = {

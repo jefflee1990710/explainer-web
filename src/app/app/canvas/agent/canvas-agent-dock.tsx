@@ -3,7 +3,7 @@
 // Chat dock for the Scro canvas agent. It sits under the canvas or along the right
 // edge. Graph edits come back as ops that the workspace replays onto the live canvas.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasViewport } from "@/model/canvas";
 import {
   clearCanvasAgentMessagesAction,
@@ -15,11 +15,7 @@ import {
   type CanvasAgentContextRef,
 } from "@/service/canvas-agent/context-block";
 import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
-import {
-  type CanvasAgentLanguage,
-  type CanvasAgentOp,
-  isCanvasAgentLanguage,
-} from "@/service/canvas-agent/types";
+import { type CanvasAgentLanguage, type CanvasAgentOp } from "@/service/canvas-agent/types";
 import type { LocaleId } from "@/util/i18n/locales";
 import {
   canvasAgentCopy,
@@ -34,8 +30,12 @@ import {
   type CanvasAgentDockSide,
 } from "@/app/app/canvas/agent/canvas-agent-header";
 import { CanvasAgentMessage } from "@/app/app/canvas/agent/canvas-agent-message";
+import {
+  readCanvasAgentLanguage,
+  subscribeCanvasAgentLanguage,
+  writeCanvasAgentLanguage,
+} from "@/app/app/canvas/agent/canvas-agent-prefs";
 
-const LANGUAGE_KEY = "scro.canvasAgent.language";
 const HEIGHT_KEY = "scro.canvasAgent.height";
 const WIDTH_KEY = "scro.canvasAgent.width";
 const COLLAPSED_KEY = "scro.canvasAgent.collapsed";
@@ -101,7 +101,13 @@ export function CanvasAgentDock({
   const copy = canvasAgentCopy(isZh);
 
   const [messages, setMessages] = useState<CanvasAgentMessageDto[]>(initialMessages);
-  const [language, setLanguage] = useState<CanvasAgentLanguage>(() => defaultCanvasAgentLanguage(locale));
+  const fallbackLanguage = defaultCanvasAgentLanguage(locale);
+  // localStorage is the source of truth, so a reload or another canvas keeps the choice.
+  const language = useSyncExternalStore(
+    subscribeCanvasAgentLanguage,
+    () => readCanvasAgentLanguage(fallbackLanguage),
+    () => fallbackLanguage,
+  );
   const [collapsed, setCollapsed] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -109,8 +115,8 @@ export function CanvasAgentDock({
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState("");
-  const [pendingText, setPendingText] = useState<string | null>(null);
-  const [failedText, setFailedText] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ text: string; imageUrls: string[] } | null>(null);
+  const [failed, setFailed] = useState<{ text: string; imageUrls: string[] } | null>(null);
   const [undoableId, setUndoableId] = useState<string | null>(null);
   const [undoneIds, setUndoneIds] = useState<ReadonlySet<string>>(new Set());
   const [notes, setNotes] = useState<ReadonlyMap<string, string>>(new Map());
@@ -129,12 +135,10 @@ export function CanvasAgentDock({
 
   // Saved dock preferences are read after mount so server and client HTML match.
   useEffect(() => {
-    const savedLanguage = window.localStorage.getItem(LANGUAGE_KEY);
     const savedHeight = Number(window.localStorage.getItem(HEIGHT_KEY));
     const savedWidth = Number(window.localStorage.getItem(WIDTH_KEY));
     const savedCollapsed = !lockSide && window.localStorage.getItem(COLLAPSED_KEY) === "1";
     /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
-    if (isCanvasAgentLanguage(savedLanguage)) setLanguage(savedLanguage);
     if (Number.isFinite(savedHeight) && savedHeight >= MIN_HEIGHT) {
       setHeight(Math.min(MAX_HEIGHT, savedHeight));
     }
@@ -154,11 +158,10 @@ export function CanvasAgentDock({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, pendingText, failedText, phase]);
+  }, [messages, pending, failed, phase]);
 
   const changeLanguage = useCallback((next: CanvasAgentLanguage) => {
-    setLanguage(next);
-    window.localStorage.setItem(LANGUAGE_KEY, next);
+    writeCanvasAgentLanguage(next);
   }, []);
 
   const toggleCollapsed = useCallback(() => {
@@ -200,25 +203,33 @@ export function CanvasAgentDock({
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, imageUrls: string[] = []) => {
       if (busy) return;
       const message = composeCanvasAgentMessage(
         text,
         formatCanvasAgentContext(contextRefs, contextNodes, contextGroups),
       );
+      if (!message.trim() && imageUrls.length === 0) return;
       onContextConsumed();
-      setFailedText(null);
-      setPendingText(message);
+      const draft = { text: message, imageUrls };
+      setFailed(null);
+      setPending(draft);
       setPhase("thinking");
       try {
         const graph = getGraph();
-        const res = await sendCanvasAgentMessageAction({ canvasId, text: message, language, ...graph });
+        const res = await sendCanvasAgentMessageAction({
+          canvasId,
+          text: message,
+          language,
+          ...graph,
+          ...(imageUrls.length > 0 ? { imageUrls } : {}),
+        });
         if (!res.ok) {
-          setFailedText(message);
+          setFailed(draft);
           return;
         }
         setMessages((prev) => [...prev, res.user, res.reply]);
-        setPendingText(null);
+        setPending(null);
         if (res.ops.length > 0) {
           setPhase("applying");
           const { skipped } = await onApplyOps(res.reply.id, res.ops);
@@ -228,7 +239,7 @@ export function CanvasAgentDock({
           }
         }
       } catch {
-        setFailedText(message);
+        setFailed(draft);
       } finally {
         setPhase(null);
       }
@@ -267,8 +278,8 @@ export function CanvasAgentDock({
       }
       setMessages([]);
       setUndoableId(null);
-      setFailedText(null);
-      setPendingText(null);
+      setFailed(null);
+      setPending(null);
       setNotes(new Map());
       setConfirmClear(false);
     } catch {
@@ -338,7 +349,7 @@ export function CanvasAgentDock({
       {!collapsed ? (
         <>
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-            {messages.length === 0 && !pendingText ? (
+            {messages.length === 0 && !pending ? (
               <CanvasAgentEmpty copy={copy} disabled={busy} onPick={(text) => void send(text)} />
             ) : null}
 
@@ -349,9 +360,10 @@ export function CanvasAgentDock({
                 isZh={isZh}
                 role={message.role}
                 text={message.text}
+                imageUrls={message.imageUrls}
                 ops={message.ops}
                 question={message.question}
-                questionAnswered={index < messages.length - 1 || pendingText !== null}
+                questionAnswered={index < messages.length - 1 || pending !== null}
                 questionDisabled={busy}
                 onAnswer={(answer) => void send(answer)}
                 note={notes.get(message.id)}
@@ -361,17 +373,23 @@ export function CanvasAgentDock({
               />
             ))}
 
-            {pendingText ? (
+            {pending ? (
               <>
-                <CanvasAgentMessage copy={copy} isZh={isZh} role="user" text={pendingText} />
-                {failedText ? (
+                <CanvasAgentMessage
+                  copy={copy}
+                  isZh={isZh}
+                  role="user"
+                  text={pending.text}
+                  imageUrls={pending.imageUrls}
+                />
+                {failed ? (
                   <CanvasAgentMessage
                     copy={copy}
                     isZh={isZh}
                     role="assistant"
                     variant="error"
                     text={copy.error}
-                    onRetry={() => void send(failedText)}
+                    onRetry={() => void send(failed.text, failed.imageUrls)}
                   />
                 ) : null}
               </>
@@ -395,7 +413,7 @@ export function CanvasAgentDock({
             isZh={isZh}
             onRemove={onRemoveContext}
           />
-          <CanvasAgentComposer copy={copy} busy={busy} onSend={(text) => void send(text)} />
+          <CanvasAgentComposer copy={copy} busy={busy} onSend={(text, imageUrls) => void send(text, imageUrls)} />
         </>
       ) : null}
     </div>

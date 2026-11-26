@@ -56,6 +56,17 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^extract-audio$/, asset: { src: "/canvas/model-logos/extract-audio.png", alt: "Extract audio" } },
   { match: /^color-grade$/, asset: { src: "/canvas/model-logos/color-grade.png", alt: "Color grade" } },
   { match: /^smooth-silence$/, asset: { src: "/canvas/model-logos/smooth-silence.png", alt: "Smooth silence" } },
+  { match: /^keep-ranges$/, asset: { src: "/canvas/model-logos/keep-ranges.png", alt: "Keep ranges" } },
+  { match: /^volume$/, asset: { src: "/canvas/model-logos/volume.png", alt: "Volume" } },
+  { match: /^audio-fade$/, asset: { src: "/canvas/model-logos/audio-fade.png", alt: "Audio fade" } },
+  { match: /^fade$/, asset: { src: "/canvas/model-logos/fade.png", alt: "Fade" } },
+  { match: /^crop$/, asset: { src: "/canvas/model-logos/crop.png", alt: "Crop" } },
+  { match: /^rotate$/, asset: { src: "/canvas/model-logos/rotate.png", alt: "Rotate" } },
+  { match: /^overlay$/, asset: { src: "/canvas/model-logos/overlay.png", alt: "Overlay" } },
+  { match: /^image-to-video$/, asset: { src: "/canvas/model-logos/image-to-video.png", alt: "Image to video" } },
+  { match: /^frame-grab$/, asset: { src: "/canvas/model-logos/frame-grab.png", alt: "Frame grab" } },
+  { match: /^burn-subtitles$/, asset: { src: "/canvas/model-logos/burn-subtitles.png", alt: "Burn subtitles" } },
+  { match: /^scribe/, asset: { src: "/canvas/model-logos/auto-captions.png", alt: "Auto captions" } },
 ];
 
 // Resolves the downloaded brand mark for a canvas model, or null when none exists.

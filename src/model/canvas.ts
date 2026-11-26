@@ -193,6 +193,8 @@ export type CanvasAgentMessage = {
   ops?: CanvasAgentOp[];
   // Multiple-choice question the assistant is waiting on (answered by the next user message).
   question?: CanvasAgentQuestion;
+  // Public image URLs the user attached on this turn.
+  imageUrls?: string[];
   createdAt: Date;
 };
 

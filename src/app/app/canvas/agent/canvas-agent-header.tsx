@@ -8,6 +8,7 @@ import { Bot, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, PanelBottom, Pa
 import {
   CANVAS_AGENT_LANGUAGES,
   CANVAS_AGENT_LANGUAGE_LABELS,
+  isCanvasAgentLanguage,
   type CanvasAgentLanguage,
 } from "@/service/canvas-agent/types";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
@@ -84,7 +85,9 @@ export function CanvasAgentHeader({
         <select
           value={language}
           disabled={busy}
-          onChange={(event) => onLanguageChange(event.target.value as CanvasAgentLanguage)}
+          onChange={(event) => {
+            if (isCanvasAgentLanguage(event.target.value)) onLanguageChange(event.target.value);
+          }}
           className="cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none disabled:opacity-50"
         >
           {CANVAS_AGENT_LANGUAGES.map((id) => (
