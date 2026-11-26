@@ -80,21 +80,21 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
         }
       : null,
   );
-  // finished = a Run Flow ended; stopped = the user stopped it. The pill itself is derived from cards.
+  // finished = a Run Flow ended; stopped = the user stopped it. The status bar is derived from cards.
   const [flowSettled, setFlowSettled] = useState<"finished" | "stopped" | null>(() => {
     const status = initialFlowRun?.status;
     if (status === "completed" || status === "failed") return "finished";
     if (status === "stopped") return "stopped";
     return null;
   });
-  // Failures belonging to the flow that is running now. Idle pills ignore this and read each card.
+  // Failures belonging to the flow that is running now. An idle status bar ignores this and reads each card.
   const [runFailureIds, setRunFailureIds] = useState<string[]>(
     initialFlowRun?.status === "running"
       ? [...(initialFlowRun.failedNodeIds ?? [])]
       : [],
   );
 
-  // Top-bar pill tracks the cards on screen, including retries after a flow has finished.
+  // Status bar tracks the cards on screen, including retries after a flow has finished.
   const flowStatus = useMemo(
     () =>
       deriveCanvasFlowHeaderStatus({
