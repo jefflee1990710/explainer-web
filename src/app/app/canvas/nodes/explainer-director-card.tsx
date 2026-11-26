@@ -12,8 +12,8 @@ import {
   directorNeedsReplan,
   readDirectorPlan,
   type DirectorOutputKind,
-} from "@/service/canvas/explainer-director";
-import { readPlannerParams } from "@/service/canvas/explainer-planner";
+} from "@/service/canvas/directors/explainer-director";
+import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";

@@ -28,12 +28,12 @@ import {
 import type {
   CanvasModelCategory,
   CanvasModelSpec,
-} from "@/service/canvas/model-catalog";
+} from "@/service/canvas/catalog/model-catalog";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryAssetsResult,
 } from "@/model/canvas-dto";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
 import { CanvasModelTile } from "@/app/app/canvas/canvas-model-tile";
 

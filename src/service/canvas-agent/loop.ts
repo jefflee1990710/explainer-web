@@ -6,8 +6,8 @@
 import { generateText, hasToolCall, stepCountIs, type ModelMessage, type ToolSet } from "ai";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
 import { directorModel, storyboardProviderOptions } from "@/service/director/model";
-import { normalizeCanvasGroups } from "@/service/canvas/groups";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
+import { normalizeCanvasGroups } from "@/service/canvas/core/groups";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,

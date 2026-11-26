@@ -1,7 +1,7 @@
 // Pure: a Swap / Teleport render runs as long as the trimmed section.
 
 import type { CanvasGroup, CanvasNode } from "@/model/canvas";
-import { clampSectionLength } from "@/service/canvas/settings/section";
+import { clampSectionLength } from "@/service/canvas/core/settings/section";
 
 const RENDER_MODEL_IDS = new Set(["scro:swap-render", "scro:teleport-render"]);
 

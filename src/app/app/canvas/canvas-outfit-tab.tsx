@@ -15,7 +15,7 @@ import {
   systemOutfitMatches,
   type OutfitPartFilter,
   type SystemOutfitRecord,
-} from "@/service/canvas/system-outfits";
+} from "@/service/canvas/core/system-outfits";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 const PAGE_SIZE = 48;

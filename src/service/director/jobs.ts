@@ -28,7 +28,7 @@ import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-imag
 import {
   planCanvasExplainer,
   planCanvasTalkingHead,
-} from "@/service/canvas/explainer-plan-phase-b";
+} from "@/service/canvas/directors/explainer-plan-phase-b";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import {

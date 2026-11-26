@@ -1,7 +1,7 @@
 // Resolves add_scro_group inputs (assets, canvas nodes) and builds the same groups the setup dialogs do.
 
 import type { CanvasAspectRatio, CanvasMediaKind } from "@/model/canvas";
-import { findCanvasModel } from "@/service/canvas/model-catalog";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import type { GroupMediaRef, ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { buildLifeGroup } from "@/service/canvas/scro-groups/life";
 import { buildPosterGroup } from "@/service/canvas/scro-groups/poster";

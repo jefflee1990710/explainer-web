@@ -8,9 +8,9 @@ import type {
   CanvasNodeType,
   CanvasOutputKind,
 } from "@/model/canvas";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
-import { getNodeOutputPortType } from "@/service/canvas/graph";
-import { applyRememberedJobOutput } from "@/service/canvas/stale-outputs";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
+import { getNodeOutputPortType } from "@/service/canvas/core/graph";
+import { applyRememberedJobOutput } from "@/service/canvas/core/stale-outputs";
 import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import type { CanvasFlowNode } from "@/app/app/canvas/groups/group-frames";

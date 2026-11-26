@@ -14,9 +14,10 @@ import {
   EXPLAINER_PLANNER_MODEL_ID,
   isDirectorPlannerNode,
   TALKING_HEAD_PLANNER_MODEL_ID,
-} from "@/service/canvas/explainer-planner";
+} from "@/service/canvas/directors/explainer-planner";
 import { EXPLAINER_SKILL_SLUGS, type ExplainerSkillSlug } from "@/model/explainer-settings";
-import { isExplainerDirectorNode, isTalkingHeadDirectorNode } from "@/service/canvas/explainer-director";
+import { isExplainerDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { isTalkingHeadDirectorNode } from "@/service/canvas/directors/talking-head-director";
 import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import {
@@ -25,7 +26,7 @@ import {
   isDirectorGroupKind,
   readGroupParams,
   withGroup,
-} from "@/service/canvas/groups";
+} from "@/service/canvas/core/groups";
 import {
   type BatchSingleNodeHandlers,
   type BatchUpdateNodeItem,

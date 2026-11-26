@@ -3,8 +3,8 @@
 // Ordered list of videos wired into an FFmpeg Concat node. Up/down changes edge order.
 
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { findCanvasModel } from "@/service/canvas/model-catalog";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { concatClipLabel } from "@/app/app/canvas/nodes/concat-clip-label";
 import { useCanvasNodeActions } from "@/app/app/canvas/nodes/port-colors";
 

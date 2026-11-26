@@ -6,8 +6,8 @@
 import { ObjectId } from "mongodb";
 import type { CanvasAgentMessage, CanvasEdge, CanvasGroup, CanvasNode, CanvasViewport } from "@/model/canvas";
 import { requireAppUser } from "@/service/auth";
-import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
-import { listCanvasLibraryAssets, saveCanvasProject } from "@/service/canvas/projects";
+import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
+import { listCanvasLibraryAssets, saveCanvasProject } from "@/service/canvas/use-cases/projects";
 import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import {
   appendCanvasAgentMessages,

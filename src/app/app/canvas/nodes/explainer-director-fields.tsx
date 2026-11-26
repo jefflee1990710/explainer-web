@@ -10,7 +10,7 @@ import {
   EXPLAINER_SKILL_SLUGS,
 } from "@/model/explainer-settings";
 import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
-import { effectiveDirectorBackgroundId, explainerBackgroundPresets } from "@/service/canvas/explainer-settings";
+import { effectiveDirectorBackgroundId, explainerBackgroundPresets } from "@/service/canvas/directors/explainer-settings";
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import { useI18n } from "@/presentation/components/i18n-provider";

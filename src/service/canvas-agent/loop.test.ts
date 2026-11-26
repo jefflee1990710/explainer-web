@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolSet } from "ai";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import {
   CANVAS_AGENT_HISTORY_LIMIT,
   type CanvasAgentGenerate,

@@ -22,8 +22,8 @@ import {
   serializeCanvasProject,
 } from "@/presentation/serialize/canvas";
 import { requireAppUser } from "@/service/auth";
-import { generateCanvasCharacterOutfit } from "@/service/canvas/character-outfit";
-import type { SubmitCanvasNodeJobErrorCode } from "@/service/canvas/executor";
+import { generateCanvasCharacterOutfit } from "@/service/canvas/use-cases/character-outfit";
+import type { SubmitCanvasNodeJobErrorCode } from "@/service/canvas/execution/executor";
 import {
   createCanvasFolder,
   deleteCanvasFolder,
@@ -31,27 +31,27 @@ import {
   moveCanvasToFolder,
   renameCanvasFolder,
   serializeCanvasFolder,
-} from "@/service/canvas/folders";
+} from "@/service/canvas/use-cases/folders";
 import {
   type UploadCanvasMediaResult,
   uploadCanvasMediaFromFormData,
-} from "@/service/canvas/media-upload";
+} from "@/service/canvas/use-cases/media-upload";
 import {
   type CanvasModelSpec,
   getCanvasModelCatalog,
-} from "@/service/canvas/model-catalog";
+} from "@/service/canvas/catalog/model-catalog";
 import {
   createCanvasProject,
   deleteCanvasProject,
   saveCanvasProject,
-} from "@/service/canvas/projects";
+} from "@/service/canvas/use-cases/projects";
 import {
   pollCanvasFlowForClient,
   pollCanvasJobsForClient,
   runCanvasFlowWithPreSave,
   runCanvasNodeWithPreSave,
-} from "@/service/canvas/runtime";
-import { stopCanvasFlowRun } from "@/service/canvas/worker-runner";
+} from "@/service/canvas/execution/runtime";
+import { stopCanvasFlowRun } from "@/service/canvas/execution/worker-runner";
 
 export type UploadCanvasMediaActionResult = UploadCanvasMediaResult;
 

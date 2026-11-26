@@ -7,7 +7,7 @@ import type { CanvasNodeData } from "@/model/canvas";
 import {
   readPlannerParams,
   TALKING_HEAD_PLANNER_MODEL_ID,
-} from "@/service/canvas/explainer-planner";
+} from "@/service/canvas/directors/explainer-planner";
 
 type Props = {
   data: CanvasNodeData;

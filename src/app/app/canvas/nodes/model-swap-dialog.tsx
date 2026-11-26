@@ -5,9 +5,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Search } from "lucide-react";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
-import { swapCandidates } from "@/service/canvas/model-swap";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
+import { swapCandidates } from "@/service/canvas/core/model-swap";
 import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 

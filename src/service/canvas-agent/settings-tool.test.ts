@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import { updateSettings } from "@/service/canvas-agent/settings-tool";
 import { createWorkingGraph } from "@/service/canvas-agent/tools";
 

@@ -3,7 +3,7 @@
 // Chips for the `{{key}}` placeholders in a prompt: filled by a wired Setting, or still empty.
 
 import type { SettingsVars } from "@/model/canvas-settings";
-import { promptPlaceholder, promptPlaceholders } from "@/service/canvas/settings/template";
+import { promptPlaceholder, promptPlaceholders } from "@/service/canvas/core/settings/template";
 
 export function PromptVarsHint({
   isZh,

@@ -3,8 +3,8 @@
 // other node in the same batch uses, and wires the cases that have only one answer.
 
 import type { CanvasNode } from "@/model/canvas";
-import { getNodeOutputPortType, validateEdgeConnection } from "@/service/canvas/graph";
-import { type CanvasPortType, findCanvasModel } from "@/service/canvas/model-catalog";
+import { getNodeOutputPortType, validateEdgeConnection } from "@/service/canvas/core/graph";
+import { type CanvasPortType, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { CANVAS_AGENT_TOOL_HANDLERS, type CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 
 export type CanvasAgentGap = {

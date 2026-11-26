@@ -8,7 +8,7 @@ import {
   canvasLaunchHref,
 } from "@/presentation/components/canvas-launch-href";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import type { CanvasStarterTemplateId } from "@/service/canvas/templates";
+import type { CanvasStarterTemplateId } from "@/service/canvas/core/templates";
 
 const SHOWCASE_IDS = [
   "talking-head",

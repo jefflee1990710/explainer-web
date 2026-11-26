@@ -14,8 +14,8 @@ import {
   parseDirectorHandle,
   readDirectorPlan,
   type DirectorOutputKind,
-} from "@/service/canvas/explainer-director";
-import { readPlannerParams } from "@/service/canvas/explainer-planner";
+} from "@/service/canvas/directors/explainer-director";
+import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { TalkingHeadDirectorFields } from "@/app/app/canvas/nodes/talking-head-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";

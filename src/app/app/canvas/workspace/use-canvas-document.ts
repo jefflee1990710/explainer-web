@@ -12,14 +12,14 @@ import {
   getNodeOutputPortType,
   reorderTargetHandleEdges,
   validateEdgeConnection,
-} from "@/service/canvas/graph";
-import { findCanvasModel } from "@/service/canvas/model-catalog";
-import { directorChangedTargets, isPlanDirectorNode } from "@/service/canvas/explainer-director";
+} from "@/service/canvas/core/graph";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { directorChangedTargets, isPlanDirectorNode } from "@/service/canvas/directors/explainer-director";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
-import { layoutExplainerGroup, shiftGroupClearOf, type LayoutSize } from "@/service/canvas/explainer-layout";
-import { layoutGroupByDepth } from "@/service/canvas/group-layout";
+import { layoutExplainerGroup, shiftGroupClearOf, type LayoutSize } from "@/service/canvas/directors/explainer-layout";
+import { layoutGroupByDepth } from "@/service/canvas/core/group-layout";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
-import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/groups";
+import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/core/groups";
 import { SCRO_DIALOG_TOOL_BY_MODEL, type ScroDialogState, type ScroDialogTool } from "@/app/app/canvas/scro-group-dialogs";
 import { type DisplayNode, GROUP_FRAME_TYPE, groupIdFromFrameId } from "@/app/app/canvas/groups/group-frames";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
@@ -40,27 +40,27 @@ import {
   talkingHeadDirectorNode,
   teleportDirectorNode,
 } from "@/app/app/canvas/workspace/canvas-director-nodes";
-import { settingsStaleTargets } from "@/service/canvas/settings/apply";
-import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
-import { isGenerationInputPatch, markStaleOutputs } from "@/service/canvas/stale-outputs";
-import { swapNodeModel } from "@/service/canvas/model-swap";
+import { settingsStaleTargets } from "@/service/canvas/core/settings/apply";
+import { withoutModelSettingsEdges } from "@/service/canvas/core/settings/registry";
+import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
+import { isGenerationInputPatch, markStaleOutputs } from "@/service/canvas/core/stale-outputs";
+import { swapNodeModel } from "@/service/canvas/core/model-swap";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import {
   characterOutfitPort,
   findCharacterNodeAt,
   libraryAssetNodeDraft,
   outfitHandleForPart,
-} from "@/service/canvas/character-node";
+} from "@/service/canvas/core/character-node";
 
 
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useReactFlow } from "@xyflow/react";
 import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import type { CanvasViewport } from "@/model/canvas";
 import type { SaveStatus } from "@/app/app/canvas/canvas-topbar";
-import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
+import { directorPlanningLocks } from "@/service/canvas/directors/director-plan-lock";
 
 export type CanvasDocumentHookDeps = {
   models: readonly CanvasModelSpec[];

@@ -3,7 +3,7 @@
 // "Old version" notice for canvas nodes whose preview was made before an upstream change.
 
 import { History } from "lucide-react";
-import type { OutdatedReason } from "@/service/canvas/stale-outputs";
+import type { OutdatedReason } from "@/service/canvas/core/stale-outputs";
 
 // Amber status pill text shown instead of "Done".
 export function outdatedBadgeText(isZh: boolean): string {

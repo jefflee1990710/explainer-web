@@ -8,9 +8,9 @@ import type {
   CanvasModelCategory,
   CanvasModelSpec,
   CanvasPortType,
-} from "@/service/canvas/model-catalog";
+} from "@/service/canvas/catalog/model-catalog";
 import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
-import type { OutdatedReason } from "@/service/canvas/stale-outputs";
+import type { OutdatedReason } from "@/service/canvas/core/stale-outputs";
 
 export const PORT_COLOR_MAP: Record<CanvasPortType, string> = {
   image: "#38bdf8",

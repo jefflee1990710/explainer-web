@@ -8,8 +8,8 @@ import {
   type CanvasExplainerPlanState,
   readCanvasExplainerPlan,
   startCanvasExplainerPlan,
-} from "@/service/canvas/explainer-plan";
-import { saveCanvasProject } from "@/service/canvas/projects";
+} from "@/service/canvas/directors/explainer-plan";
+import { saveCanvasProject } from "@/service/canvas/use-cases/projects";
 
 export async function startCanvasExplainerPlanAction(input: {
   canvasId: string;

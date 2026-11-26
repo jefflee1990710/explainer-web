@@ -12,8 +12,8 @@ async function main() {
 
   const { ObjectId } = await import("mongodb");
   const { canvasProjectsCollection } = await import("@/dao");
-  const { canvasGroupsForProject } = await import("@/service/canvas/groups");
-  const { clearStaleOutputs } = await import("@/service/canvas/stale-outputs");
+  const { canvasGroupsForProject } = await import("@/service/canvas/core/groups");
+  const { clearStaleOutputs } = await import("@/service/canvas/core/stale-outputs");
 
   const projects = await canvasProjectsCollection();
   const project = await projects.findOne({ _id: new ObjectId(canvasId) });

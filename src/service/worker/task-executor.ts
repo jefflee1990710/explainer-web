@@ -7,11 +7,11 @@ import {
 } from "@/dao";
 import type { WorkerTask, WorkerTaskLane } from "@/model/worker-task";
 import { runLifeShotJob } from "@/service/character/life";
-import { executeCanvasFfmpegJob } from "@/service/canvas/ffmpeg-ops";
+import { executeCanvasFfmpegJob } from "@/service/canvas/execution/ffmpeg-ops";
 import {
   executeCanvasFlowTask,
   executeCanvasNodeTask,
-} from "@/service/canvas/worker-runner";
+} from "@/service/canvas/execution/worker-runner";
 import { runClipAppendQueue } from "@/service/clip/clip-timeline-actions";
 import { isComfyPromptStatusUrl } from "@/service/comfy/openjutsu-client";
 import { runPhaseAJob, runReelJob, runStillJob } from "@/service/director/jobs";

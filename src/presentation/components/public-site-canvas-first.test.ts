@@ -99,7 +99,7 @@ describe("Canvas-First public website invariants", () => {
     const canvasPage = read("src/app/app/canvas/page.tsx");
     assert.match(canvasPage, /requestedLocale === "zh-Hant"/, "new Canvas titles must follow the visitor locale");
     assert.match(canvasPage, /tpl\.name\.en/);
-    const templates = read("src/service/canvas/templates.ts");
+    const templates = read("src/service/canvas/core/templates.ts");
     const ffmpegReelBlock = templates.slice(
       templates.indexOf('id: "merge-reel"'),
       templates.indexOf('id: "text-image-video"'),

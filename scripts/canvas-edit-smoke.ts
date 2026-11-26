@@ -5,9 +5,9 @@ import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadEnvConfig } from "@next/env";
-import { transcribeCaptionVideo } from "@/service/canvas/caption-transcribe";
-import { buildCanvasFfmpegArgs, parseMediaProbe } from "@/service/canvas/ffmpeg-ops";
-import type { CanvasFfmpegLocalInputs } from "@/service/canvas/ffmpeg-ops";
+import { transcribeCaptionVideo } from "@/service/canvas/execution/caption-transcribe";
+import { buildCanvasFfmpegArgs, parseMediaProbe } from "@/service/canvas/execution/ffmpeg-ops";
+import type { CanvasFfmpegLocalInputs } from "@/service/canvas/execution/ffmpeg-ops";
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 
 loadEnvConfig(process.cwd());
@@ -181,7 +181,7 @@ async function main() {
 
   const sampleSrt = "1\n00:00:00,200 --> 00:00:03,500\n你好，字幕測試\n";
   await writeFile(join(outDir, "subs.ass"), "");
-  const { burnSubtitleAss } = await import("@/service/canvas/ffmpeg-edit");
+  const { burnSubtitleAss } = await import("@/service/canvas/execution/ffmpeg-edit");
   await writeFile(
     join(outDir, "subs.ass"),
     burnSubtitleAss({ prompt: sampleSrt }, videoLocal),

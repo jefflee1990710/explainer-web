@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import {
   buildCanvasAgentSystemPrompt,
   canvasAgentLanguageRule,

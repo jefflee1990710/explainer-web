@@ -10,25 +10,25 @@ import type {
 } from "@/model/canvas";
 import {
   findCanvasModel,
-} from "@/service/canvas/model-catalog";
+} from "@/service/canvas/catalog/model-catalog";
 import {
   isExplainerPlannerNode,
   readPlannerParams,
-} from "@/service/canvas/explainer-planner";
-import { replacePlannerWithExpansion } from "@/service/canvas/explainer-expand";
+} from "@/service/canvas/directors/explainer-planner";
+import { replacePlannerWithExpansion } from "@/service/canvas/directors/explainer-expand";
 import {
   isPlanDirectorNode,
   readDirectorPlan,
-} from "@/service/canvas/explainer-director";
+} from "@/service/canvas/directors/explainer-director";
 import {
   applyDirectorBuild,
   directorRevealSteps,
   mergeDirectorRows,
   syncDirectorReplanRows,
-} from "@/service/canvas/explainer-director-apply";
-import type { CanvasExplainerPlanState } from "@/service/canvas/explainer-plan";
+} from "@/service/canvas/directors/explainer-director-apply";
+import type { CanvasExplainerPlanState } from "@/service/canvas/directors/explainer-plan";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
-import { defaultGroupColor, defaultGroupTitle, withGroup } from "@/service/canvas/groups";
+import { defaultGroupColor, defaultGroupTitle, withGroup } from "@/service/canvas/core/groups";
 import {
   buildSwapDirectorGroup,
   buildTeleportDirectorGroup,
@@ -36,11 +36,11 @@ import {
   isSwapDirectorNode,
   readExpandedNodeIds,
   scroDirectorBuildMessage,
-} from "@/service/canvas/scro-director";
+} from "@/service/canvas/directors/scro-director";
 import {
   type ScroDialogTool,
 } from "@/app/app/canvas/scro-group-dialogs";
-import { replanBeforeRun } from "@/service/canvas/director-replan-run";
+import { replanBeforeRun } from "@/service/canvas/directors/director-replan-run";
 import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
 import {
   getCanvasExplainerPlanAction,
@@ -62,11 +62,11 @@ import {
 import {
   clearNodeOutput,
   downstreamNodeIds,
-} from "@/service/canvas/stale-outputs";
+} from "@/service/canvas/core/stale-outputs";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { ReplanBeforeRunItem } from "@/app/app/canvas/replan-before-run-dialog";
 import type { ScroDialogState } from "@/app/app/canvas/scro-group-dialogs";
-import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
+import { directorPlanningLocks } from "@/service/canvas/directors/director-plan-lock";
 
 // The rows, wires, and frame a Director plan places on the canvas.
 type ExpandedDirectorRows = Pick<
@@ -83,7 +83,7 @@ type ReplanRun = {
 
 export type CanvasDirectorsHookDeps = {
   nodes: FlowNode[];
-  models: readonly import("@/service/canvas/model-catalog").CanvasModelSpec[];
+  models: readonly import("@/service/canvas/catalog/model-catalog").CanvasModelSpec[];
   isZh: boolean;
   setNodes: Dispatch<SetStateAction<FlowNode[]>>;
   setEdges: Dispatch<SetStateAction<import("@xyflow/react").Edge[]>>;

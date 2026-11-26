@@ -5,7 +5,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Maximize2, Shirt, Trash2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { CHARACTER_OUTFIT_PORTS } from "@/service/canvas/character-node";
+import { CHARACTER_OUTFIT_PORTS } from "@/service/canvas/core/character-node";
 import { OutdatedBanner, OutdatedPreviewTag } from "@/app/app/canvas/nodes/outdated-notice";
 import {
   PORT_COLOR_MAP,

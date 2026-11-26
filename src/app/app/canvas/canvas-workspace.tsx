@@ -28,7 +28,7 @@ import { notifyCreditsChanged } from "@/presentation/components/app/billing/cred
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import type { PublicCharacter } from "@/presentation/serialize";
-import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
+import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import {
   addContextRef,
   contextMenuChoices,
@@ -36,16 +36,16 @@ import {
   type CanvasAgentContextRef,
   type ContextMenuChoice,
 } from "@/service/canvas-agent/context-block";
-import { dropExpandedPlanners, isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { withoutDirectorCharacterEdges } from "@/service/canvas/explainer-director";
-import { isScroDirectorNode } from "@/service/canvas/scro-director";
+import { dropExpandedPlanners, isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
+import { withoutDirectorCharacterEdges } from "@/service/canvas/directors/explainer-director";
+import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
 import { ScroGroupDialogs } from "@/app/app/canvas/scro-group-dialogs";
 import { CanvasGroupActionsContext } from "@/app/app/canvas/groups/group-actions-context";
 import { GroupFrameNodeCard } from "@/app/app/canvas/groups/group-frame-node";
 import { type DisplayNode, GROUP_FRAME_TYPE, groupIdFromFrameId } from "@/app/app/canvas/groups/group-frames";
 import { GroupSelectionBar } from "@/app/app/canvas/groups/group-selection-bar";
 import { PlanLockProvider, withPlanLock } from "@/app/app/canvas/nodes/director-plan-lock";
-import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
+import { directorPlanningLocks } from "@/service/canvas/directors/director-plan-lock";
 import { ReplanBeforeRunDialog, type ReplanBeforeRunItem } from "@/app/app/canvas/replan-before-run-dialog";
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
@@ -82,13 +82,13 @@ import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
 import { CANVAS_DRAG_SETTINGS_MIME } from "@/app/app/canvas/canvas-settings-tool";
-import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
-import { outdatedNodeReasons } from "@/service/canvas/stale-outputs";
+import { withoutModelSettingsEdges } from "@/service/canvas/core/settings/registry";
+import { outdatedNodeReasons } from "@/service/canvas/core/stale-outputs";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import { type CanvasLightboxItem, CanvasNodeActionsContext } from "@/app/app/canvas/nodes/port-colors";
 import { PromptNodeCard } from "@/app/app/canvas/nodes/prompt-node-card";
-import { characterOutfitEditInstruction, outfitWiresFromGraph } from "@/service/canvas/character-node";
+import { characterOutfitEditInstruction, outfitWiresFromGraph } from "@/service/canvas/core/character-node";
 
 const NODE_TYPES = {
   media: withPlanLock(MediaNodeCard),

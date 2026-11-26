@@ -6,9 +6,9 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Trash2, Type } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { wiredSettingsVars } from "@/service/canvas/graph";
+import { wiredSettingsVars } from "@/service/canvas/core/graph";
 import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
+import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import {

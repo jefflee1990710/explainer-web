@@ -7,7 +7,7 @@ import {
   type GroupMediaRef,
   type ScroGroup,
 } from "@/service/canvas/scro-groups/builder";
-import { clampSectionLength, trimToolParams } from "@/service/canvas/settings/section";
+import { clampSectionLength, trimToolParams } from "@/service/canvas/core/settings/section";
 
 export type SwapGroupInput = {
   video: GroupMediaRef;

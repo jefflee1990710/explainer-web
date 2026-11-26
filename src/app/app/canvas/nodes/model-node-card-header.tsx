@@ -2,7 +2,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { canSwapModel } from "@/service/canvas/model-swap";
+import { canSwapModel } from "@/service/canvas/core/model-swap";
 import { ModelSwapDialog } from "@/app/app/canvas/nodes/model-swap-dialog";
 import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";

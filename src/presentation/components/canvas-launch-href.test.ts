@@ -4,7 +4,7 @@ import {
   CANVAS_PUBLIC_TEMPLATES,
   canvasLaunchHref,
 } from "@/presentation/components/canvas-launch-href";
-import { isCanvasStarterTemplateId } from "@/service/canvas/templates";
+import { isCanvasStarterTemplateId } from "@/service/canvas/core/templates";
 
 describe("canvasLaunchHref & public template metadata", () => {
   it("routes signed-in users directly to /app/canvas with optional template", () => {

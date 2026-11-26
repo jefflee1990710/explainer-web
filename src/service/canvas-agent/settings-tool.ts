@@ -4,9 +4,9 @@
 import { z } from "zod";
 import type { CanvasNode } from "@/model/canvas";
 import { SETTINGS_VAR_KEY } from "@/model/canvas-settings";
-import { settingsStaleTargets } from "@/service/canvas/settings/apply";
-import { settingsVars } from "@/service/canvas/settings/registry";
-import { markStaleOutputs } from "@/service/canvas/stale-outputs";
+import { settingsStaleTargets } from "@/service/canvas/core/settings/apply";
+import { settingsVars } from "@/service/canvas/core/settings/registry";
+import { markStaleOutputs } from "@/service/canvas/core/stale-outputs";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 
 export const updateSettingsSchema = z.object({

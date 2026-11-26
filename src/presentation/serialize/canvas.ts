@@ -11,8 +11,8 @@ import type {
   CanvasProjectDto,
   CanvasProjectSummaryDto,
 } from "@/model/canvas-dto";
-import { canvasGroupsForProject } from "@/service/canvas/groups";
-import { failOrphanBusyNodes } from "@/service/canvas/orphan-busy";
+import { canvasGroupsForProject } from "@/service/canvas/core/groups";
+import { failOrphanBusyNodes } from "@/service/canvas/core/orphan-busy";
 
 // Converts persisted flow run state into a compact client DTO.
 export function serializeCanvasFlowRun(

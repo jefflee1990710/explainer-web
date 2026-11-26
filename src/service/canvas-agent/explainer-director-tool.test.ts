@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasGroup, CanvasNode } from "@/model/canvas";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
-import { directorParams } from "@/service/canvas/explainer-director";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
+import { directorParams } from "@/service/canvas/directors/explainer-director";
 import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
 import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
 

@@ -123,7 +123,7 @@ export async function scheduleCanvasNodeWorkerTask(jobId: ObjectId) {
   });
 
   runInAfterIfLocal(async () => {
-    const { executeCanvasNodeTask } = await import("@/service/canvas/worker-runner");
+    const { executeCanvasNodeTask } = await import("@/service/canvas/execution/worker-runner");
     const res = await executeCanvasNodeTask(jobId);
     // In local dev without a worker, dispatchQueuedJob ran; pollCanvasJobs handles any async poll.
     void res;
@@ -153,7 +153,7 @@ export async function scheduleCanvasFlowWorkerTask(input: {
   });
 
   runInAfterIfLocal(async () => {
-    const { executeCanvasFlowTask } = await import("@/service/canvas/worker-runner");
+    const { executeCanvasFlowTask } = await import("@/service/canvas/execution/worker-runner");
     const fakeTask = {
       _id: new ObjectId(),
       kind: "canvas_flow" as const,

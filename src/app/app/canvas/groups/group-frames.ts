@@ -2,7 +2,7 @@
 
 import type { Node } from "@xyflow/react";
 import type { CanvasGroup, CanvasGroupColor, CanvasNodeData, CanvasNodeType } from "@/model/canvas";
-import { groupFrameBounds, type GroupRect } from "@/service/canvas/groups";
+import { groupFrameBounds, type GroupRect } from "@/service/canvas/core/groups";
 
 export const GROUP_FRAME_TYPE = "groupFrame";
 const FRAME_ID_PREFIX = "group-frame:";

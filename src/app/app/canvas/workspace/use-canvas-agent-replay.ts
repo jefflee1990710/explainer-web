@@ -5,9 +5,9 @@
 import { useCallback, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useReactFlow, type Edge } from "@xyflow/react";
 import type { CanvasGroup, CanvasNode, CanvasViewport } from "@/model/canvas";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
-import { isPlanDirectorNode } from "@/service/canvas/explainer-director";
-import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
+import { isPlanDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { applyCanvasAgentOp } from "@/service/canvas-agent/apply-ops";
 import type { CanvasAgentGraph, CanvasAgentOp } from "@/model/canvas-agent";
 import type { CanvasAgentGraphSnapshot } from "@/app/app/canvas/agent/canvas-agent-dock";

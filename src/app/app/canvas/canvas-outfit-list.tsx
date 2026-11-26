@@ -4,7 +4,7 @@
 
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
-import { outfitHandleForPart } from "@/service/canvas/character-node";
+import { outfitHandleForPart } from "@/service/canvas/core/character-node";
 
 const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 

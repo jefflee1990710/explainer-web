@@ -7,7 +7,7 @@ import { memo, useRef, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { ChevronsDownUp, ChevronsUpDown, Play, Trash2, Ungroup } from "lucide-react";
 import type { CanvasGroupKind } from "@/model/canvas";
-import { CANVAS_GROUP_COLORS } from "@/service/canvas/groups";
+import { CANVAS_GROUP_COLORS } from "@/service/canvas/core/groups";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { useCanvasGroupActions } from "./group-actions-context";
 import { GROUP_COLOR_HEX, type GroupFrameNode } from "./group-frames";

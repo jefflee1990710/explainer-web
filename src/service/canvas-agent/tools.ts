@@ -13,19 +13,19 @@ import type {
   CanvasNodeData,
 } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
-import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/graph";
-import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/character-node";
-import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { computeExecutionWaves, validateEdgeConnection } from "@/service/canvas/core/graph";
+import { characterOutfitPort, libraryAssetNodeDraft } from "@/service/canvas/core/character-node";
+import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import {
   canvasGroupsForProject,
   defaultGroupColor,
   defaultGroupTitle,
   withGroup,
-} from "@/service/canvas/groups";
-import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/model-catalog";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
-import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/stale-outputs";
-import { settingsVars } from "@/service/canvas/settings/registry";
+} from "@/service/canvas/core/groups";
+import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
+import { isGenerationInputPatch, isOutputStale, markStaleOutputs } from "@/service/canvas/core/stale-outputs";
+import { settingsVars } from "@/service/canvas/core/settings/registry";
 import {
   updateSettings,
   updateSettingsSchema,
@@ -59,11 +59,10 @@ import {
   directorTextStyle,
   isExplainerDirectorNode,
   isPlanDirectorNode,
-  isTalkingHeadDirectorNode,
   parseDirectorHandle,
   readDirectorPlan,
-  talkingHeadDirectorParams,
-} from "@/service/canvas/explainer-director";
+} from "@/service/canvas/directors/explainer-director";
+import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
 import {
   deleteGroup,
   describeGroups,

@@ -8,7 +8,7 @@ import { GOOGLE_STATIC_MODELS, NANO_BANANA_CANVAS_MODEL_ID } from "@/service/can
 import { MENTALOK_STATIC_MODELS } from "@/service/canvas/catalog/mentalok-models";
 import { MINIMAX_STATIC_MODELS, OPENROUTER_STATIC_MODELS } from "@/service/canvas/catalog/openrouter-minimax-models";
 import { SCRO_STATIC_MODELS } from "@/service/canvas/catalog/scro-models";
-import { STATIC_CANVAS_MODELS, findCanvasModel } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 
 describe("service/canvas/catalog modular split", () => {
   it("keeps src/model/canvas-model.ts and src/model/canvas.ts free of @/service/canvas/model-catalog imports", () => {

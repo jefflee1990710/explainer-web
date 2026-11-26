@@ -1,4 +1,4 @@
-import type { CanvasStarterTemplateId } from "@/service/canvas/templates";
+import type { CanvasStarterTemplateId } from "@/service/canvas/core/templates";
 
 export function canvasLaunchHref(
   signedIn: boolean,

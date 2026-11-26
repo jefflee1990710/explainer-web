@@ -9,9 +9,9 @@ import {
   EXPLAINER_SKILL_SLUGS,
 } from "@/model/explainer-settings";
 import { SUBTITLE_LOOK_IDS } from "@/model/subtitle-look-id";
-import { explainerBackgroundPresets } from "@/service/canvas/explainer-settings";
-import { directorChangedTargets, isExplainerDirectorNode } from "@/service/canvas/explainer-director";
-import { markStaleOutputs } from "@/service/canvas/stale-outputs";
+import { explainerBackgroundPresets } from "@/service/canvas/directors/explainer-settings";
+import { directorChangedTargets, isExplainerDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { markStaleOutputs } from "@/service/canvas/core/stale-outputs";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 
 type Result = Record<string, unknown>;

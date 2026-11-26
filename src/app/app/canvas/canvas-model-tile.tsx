@@ -4,8 +4,8 @@
 
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 
 export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
 

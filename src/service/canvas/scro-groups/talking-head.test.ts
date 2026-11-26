@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { GROUP_ESTIMATED_SIZE } from "@/service/canvas/group-layout";
+import { GROUP_ESTIMATED_SIZE } from "@/service/canvas/core/group-layout";
 import { concatBatches } from "@/service/canvas/scro-groups/concat-chain";
 import {
   buildTalkingHeadExpansion,

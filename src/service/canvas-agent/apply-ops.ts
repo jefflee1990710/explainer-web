@@ -1,7 +1,7 @@
 // Pure replay of agent ops onto a canvas graph. Used by the client to animate
 // the agent's edits onto the live graph, where the user may have changed things.
 
-import { withGroup } from "@/service/canvas/groups";
+import { withGroup } from "@/service/canvas/core/groups";
 import type { CanvasAgentGraph, CanvasAgentOp } from "@/model/canvas-agent";
 
 export function applyCanvasAgentOp(

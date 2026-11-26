@@ -11,7 +11,7 @@ import type {
   WorkerTaskKind,
   WorkerTaskLane,
 } from "@/model/worker-task";
-import { recoverCanvasWorkerTasks } from "@/service/canvas/worker-recovery";
+import { recoverCanvasWorkerTasks } from "@/service/canvas/execution/worker-recovery";
 
 export const WORKER_DEFAULT_LEASE_MS = 5 * 60 * 1000; // 5 minutes per heartbeat lease
 export const WORKER_GPU_LEASE_MS = 25 * 60 * 1000; // 25 minutes initial GPU lease (renewed by heartbeat)

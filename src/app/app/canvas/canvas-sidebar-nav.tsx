@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { ChevronLeft, Clapperboard, Film, FolderHeart, Sparkles } from "lucide-react";
 import type { CanvasSidebarTab } from "@/app/app/canvas/canvas-sidebar-icons";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
-import type { CanvasModelCategory } from "@/service/canvas/model-catalog";
+import type { CanvasModelCategory } from "@/service/canvas/catalog/model-catalog";
 
 export type AssetNavSection = "characters" | "products" | "recent" | "outfit";
 

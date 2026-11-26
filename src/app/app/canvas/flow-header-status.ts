@@ -1,8 +1,8 @@
 // Live top-bar flow status. Counts come from node cards on the canvas, so a retry
 // or a later failure changes the pill without waiting for another Run Flow.
 
-import { findCanvasModel, type CanvasModelSpec } from "@/service/canvas/model-catalog";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
+import { findCanvasModel, type CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 
 export type CanvasFlowFailure = {
   name: string;

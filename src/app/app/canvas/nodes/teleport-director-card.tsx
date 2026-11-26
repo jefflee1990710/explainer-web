@@ -8,7 +8,7 @@ import {
   readExpandedNodeIds,
   scroDirectorBuildMessage,
   type ScroDirectorBuildError,
-} from "@/service/canvas/scro-director";
+} from "@/service/canvas/directors/scro-director";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { TeleportDirectorFields } from "@/app/app/canvas/nodes/teleport-director-fields";

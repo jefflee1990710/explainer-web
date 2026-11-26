@@ -5,18 +5,18 @@
 import { useMemo, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeData } from "@/model/canvas";
-import { findCanvasModel } from "@/service/canvas/model-catalog";
-import { canvasModelDisplayName } from "@/service/canvas/model-names";
-import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
-import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
-import { wiredSettingsVars } from "@/service/canvas/graph";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
+import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
+import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
+import { wiredSettingsVars } from "@/service/canvas/core/graph";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
 import { SwapDirectorCard } from "@/app/app/canvas/nodes/swap-director-card";
 import { TeleportDirectorCard } from "@/app/app/canvas/nodes/teleport-director-card";
-import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
-import { isSwapDirectorNode, isTeleportDirectorNode } from "@/service/canvas/scro-director";
+import { isExplainerDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { isSwapDirectorNode, isTeleportDirectorNode } from "@/service/canvas/directors/scro-director";
 import {
   OUTDATED_BADGE_CLASS,
   outdatedBadgeText,

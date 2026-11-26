@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasNode } from "@/model/canvas";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import {
   autofixCanvasAgentGaps,
   describeCanvasAgentGaps,

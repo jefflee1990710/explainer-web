@@ -9,8 +9,8 @@ import {
   NANO_BANANA_CANVAS_MODEL_ID,
   STATIC_CANVAS_MODELS,
   findCanvasModel,
-} from "@/service/canvas/model-catalog";
-import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
+} from "@/service/canvas/catalog/model-catalog";
+import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import { SEEDREAM_MODEL_ID } from "@/service/canvas/scro-groups/builder";
 import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";

@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
-import { ensureSettingsNodes } from "@/service/canvas/explainer-settings-migrate";
-import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
+import { ensureSettingsNodes } from "@/service/canvas/legacy/explainer-settings-migrate";
+import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
 import {
   serializeCanvasProject,
   serializeCanvasProjectSummary,
@@ -14,12 +14,12 @@ import {
   getOrCreateDefaultCanvasProject,
   listCanvasLibraryAssets,
   listCanvasProjects,
-} from "@/service/canvas/projects";
+} from "@/service/canvas/use-cases/projects";
 import {
   CANVAS_STARTER_TEMPLATES,
   instantiateCanvasTemplate,
   isCanvasStarterTemplateId,
-} from "@/service/canvas/templates";
+} from "@/service/canvas/core/templates";
 import {
   listCanvasAgentMessages,
   serializeCanvasAgentMessage,

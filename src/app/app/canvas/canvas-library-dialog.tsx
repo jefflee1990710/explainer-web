@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { Check, Folder, FolderPlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasFolderDto, CanvasLibrarySelection } from "@/model/canvas-dto";
-import { canvasesInFolder } from "@/service/canvas/folder-library";
+import { canvasesInFolder } from "@/service/canvas/core/folder-library";
 import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
 
 type Props = {

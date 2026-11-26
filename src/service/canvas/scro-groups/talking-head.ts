@@ -4,7 +4,7 @@
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { SEEDREAM_MODEL_ID, createGroupBuilder } from "@/service/canvas/scro-groups/builder";
 import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
-import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/explainer-director";
+import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/directors/explainer-director";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
 export const TALKING_HEAD_VIDEO_MODEL_ID = `openrouter:${OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL}`;

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasNode } from "@/model/canvas";
-import { STATIC_CANVAS_MODELS } from "@/service/canvas/model-catalog";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
 import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import {
   CANVAS_AGENT_MAX_ADDED_NODES,

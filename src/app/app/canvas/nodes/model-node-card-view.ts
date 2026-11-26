@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import type { CanvasModelSpec, CanvasPortSpec } from "@/model/canvas-model";
 import type { SettingsVars } from "@/model/canvas-settings";
-import type { OutdatedReason } from "@/service/canvas/stale-outputs";
+import type { OutdatedReason } from "@/service/canvas/core/stale-outputs";
 import type { CanvasNodeActionsContextValue } from "@/app/app/canvas/nodes/port-colors";
 
 export type ModelNodeCardView = {

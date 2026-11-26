@@ -11,7 +11,7 @@ import {
   defaultGroupTitle,
   normalizeCanvasGroups,
   withGroup,
-} from "@/service/canvas/groups";
+} from "@/service/canvas/core/groups";
 import {
   buildGroupFrames,
   type CanvasFlowNode,

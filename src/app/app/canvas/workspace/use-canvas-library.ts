@@ -17,9 +17,9 @@ import {
   renameCanvasProjectAction,
 } from "@/presentation/actions/canvas";
 import type { CanvasFolderDto } from "@/model/canvas-dto";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
+import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
-import { type CanvasStarterTemplateId, instantiateCanvasTemplate } from "@/service/canvas/templates";
+import { type CanvasStarterTemplateId, instantiateCanvasTemplate } from "@/service/canvas/core/templates";
 import { canvasPageHref } from "@/app/app/canvas/canvas-href";
 import type { DisplayNode } from "@/app/app/canvas/groups/group-frames";
 import {
