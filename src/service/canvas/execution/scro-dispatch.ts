@@ -16,7 +16,10 @@ import type { CanvasNode } from "@/model/canvas";
 import type { Character } from "@/model/character";
 import type { JutsuMode, JutsuObjectEditMode } from "@/model/jutsu-job";
 import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/project";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
+import { VIDEO_STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/catalog/video-style-transfer";
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
+import { planVideoStyleTransfer } from "@/service/canvas/execution/video-style-transfer";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/directors/explainer-frame";
 import { explainerVideoLookFields } from "@/service/canvas/directors/explainer-settings";
 import { buildLifePhotoPrompt } from "@/service/canvas/scro-groups/life";
@@ -152,6 +155,22 @@ export function validateScroToolInputs(
         ok: false,
         missingRequiredFields: ["characterId"],
         reason: "Life 生活照需要選擇角色",
+      };
+    }
+    return { ok: true };
+  }
+
+  if (modelId === VIDEO_STYLE_TRANSFER_MODEL_ID) {
+    const planned = planVideoStyleTransfer({
+      node,
+      videoUrl: inputs.video,
+      catalog: STATIC_CANVAS_MODELS,
+    });
+    if (!planned.ok) {
+      return {
+        ok: false,
+        missingRequiredFields: planned.missing,
+        reason: planned.reason,
       };
     }
     return { ok: true };

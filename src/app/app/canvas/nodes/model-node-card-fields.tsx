@@ -14,6 +14,7 @@ import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog"
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
 import { FfmpegEditFields } from "@/app/app/canvas/nodes/ffmpeg-edit-fields";
+import { VideoStyleTransferFields } from "@/app/app/canvas/nodes/video-style-transfer-fields";
 import {
   OutdatedBanner,
 } from "@/app/app/canvas/nodes/outdated-notice";
@@ -24,7 +25,7 @@ const RESOLUTION_OPTIONS = ["1k", "2k", "4k"] as const;
 
 
 export function ModelNodeCardFields(view: ModelNodeCardView) {
-  const { id, data, characterOptions, onUpdateNodeData, showAdvanced, setShowAdvanced, promptEditorOpen, setPromptEditorOpen, isZh, spec, promptPort, isPromptWired, status, durationSeconds, activePreset, outdated, templateText, templateVars, toolParams, updateToolParam } = view;
+  const { id, data, catalog, locale, characterOptions, onUpdateNodeData, showAdvanced, setShowAdvanced, promptEditorOpen, setPromptEditorOpen, isZh, spec, isBusy, isFlowRunning, promptPort, isPromptWired, status, durationSeconds, activePreset, outdated, templateText, templateVars, toolParams, updateToolParam } = view;
   return (
     <>
 {/* Inline prompt & compact model parameters */}
@@ -171,11 +172,25 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
     </div>
   )}
 
+  {spec.id === "scro:video-style-transfer" ? (
+    <VideoStyleTransferFields
+      id={id}
+      data={data}
+      catalog={catalog}
+      locale={locale}
+      isZh={isZh}
+      disabled={isBusy || isFlowRunning}
+      toolParams={toolParams}
+      onUpdateNodeData={onUpdateNodeData}
+    />
+  ) : null}
+
   {/* Scro Tool & FFmpeg Node Controls */}
   {spec.provider === "scro" &&
   spec.id !== "scro:explainer-frame" &&
   spec.id !== "scro:director-frame" &&
-  spec.id !== "scro:teleport-render" ? (
+  spec.id !== "scro:teleport-render" &&
+  spec.id !== "scro:video-style-transfer" ? (
     <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
       <CaptionNodeFields
         modelId={spec.id}

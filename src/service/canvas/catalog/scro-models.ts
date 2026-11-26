@@ -221,4 +221,22 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     supportsAspectRatio: false,
     available: true,
   },
+  {
+    // Restyles a connected video. The run is billed and sent as the video model stored on the node.
+    id: "scro:video-style-transfer",
+    provider: "scro",
+    providerModelId: "video-style-transfer",
+    name: "Video Style Transfer",
+    category: "scro-tool",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["16:9", "9:16", "1:1"],
+    defaultPresetId: "16:9",
+    basePriceUsd: mulUsd(VIDEO_COST_PER_SECOND_USD, 5),
+    defaultDurationSeconds: 5,
+    minDurationSeconds: 5,
+    maxDurationSeconds: 15,
+    supportsAspectRatio: true,
+    available: true,
+  },
 ];

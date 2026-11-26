@@ -16,6 +16,7 @@ import {
   type SubmitCanvasNodeJobResult,
 } from "@/service/canvas/execution/jobs/deps";
 import { settleFailedJob } from "@/service/canvas/execution/jobs/settle";
+import { retargetVideoStyleTransferJob } from "@/service/canvas/execution/video-style-transfer";
 import { dispatchAdapterFor } from "@/service/canvas/execution/providers";
 
 function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasInputs {
@@ -84,12 +85,14 @@ export async function executeDispatchedCanvasJob(
   },
   resolved: CanvasExecutorDeps,
 ): Promise<SubmitCanvasNodeJobResult> {
-  const { initialJob, spec } = ctx;
+  const { initialJob } = ctx;
   const clerkUserId = initialJob.clerkUserId;
 
   try {
-    return await dispatchAdapterFor(spec.provider).dispatch({
-      ...ctx,
+    // A style-transfer node becomes the selected video model's existing job.
+    const prepared = await retargetVideoStyleTransferJob(ctx, resolved);
+    return await dispatchAdapterFor(prepared.spec.provider).dispatch({
+      ...prepared,
       clerkUserId,
       canvasIdHex: initialJob.canvasId.toHexString(),
       jobIdHex: initialJob._id.toHexString(),
