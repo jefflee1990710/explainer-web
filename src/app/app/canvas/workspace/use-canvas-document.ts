@@ -746,6 +746,7 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
               fileName: result.fileName,
               mediaKind: result.mediaKind,
               mediaUrl: result.url,
+              ...(result.meta ? { outputMeta: result.meta } : {}),
             },
           };
           offset += 44;

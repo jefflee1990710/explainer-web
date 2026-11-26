@@ -146,6 +146,7 @@ export function mergeFlowPollNodeData(
     ...(server.lastCostUsd !== undefined ? { lastCostUsd: server.lastCostUsd } : {}),
     ...(server.outputUrl !== undefined ? { outputUrl: server.outputUrl } : {}),
     ...(server.outputKind !== undefined ? { outputKind: server.outputKind } : {}),
+    ...(server.outputMeta !== undefined ? { outputMeta: server.outputMeta } : {}),
     lastError: server.status === "failed" ? server.lastError : undefined,
   };
   // Auto-captions writes the transcribed SRT into `data.text` on completion.

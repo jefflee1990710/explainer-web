@@ -9,6 +9,10 @@ import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { isElevenLabsConfigured } from "@/service/voice/elevenlabs";
 import { applyCaptionScript } from "@/service/canvas/execution/caption-traditional";
 import {
+  assertAllowedCanvasMediaUrl,
+  isAllowedCanvasMediaUrl,
+} from "@/service/canvas/execution/media-url-guard";
+import {
   SCRIBE_MODEL_ID,
   cuesFromScribeWords,
   cuesToSrt,
@@ -20,7 +24,8 @@ import {
 
 // Reads a remote or local media duration without downloading the whole file.
 export async function probeRemoteDurationSec(url: string): Promise<number | null> {
-  const stderr = await ffmpegStderr(process.cwd(), ["-i", url]).catch(() => "");
+  if (!isAllowedCanvasMediaUrl(url)) return null;
+  const stderr = await ffmpegStderr(process.cwd(), ["-i", url], 30_000).catch(() => "");
   return durationFromProbe(stderr);
 }
 
@@ -61,7 +66,8 @@ export async function transcribeCaptionVideo(
 ): Promise<{ srt: string; outputUrl: string; durationSec: number }> {
   const resolved: TranscribeCaptionDeps = {
     downloadToFile: async (url, dest) => {
-      const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+      assertAllowedCanvasMediaUrl(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(120_000), redirect: "error" });
       if (!response.ok) throw new Error(`無法下載影片（HTTP ${response.status}）`);
       await writeFile(dest, Buffer.from(await response.arrayBuffer()));
     },

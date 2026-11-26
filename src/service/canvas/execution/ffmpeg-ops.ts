@@ -11,7 +11,7 @@ import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { ObjectId } from "mongodb";
 import { canvasJobsCollection } from "@/dao";
-import type { CanvasJob, CanvasNodeData } from "@/model/canvas";
+import type { CanvasJob, CanvasMediaMeta, CanvasNodeData } from "@/model/canvas";
 import {
   createDefaultCanvasJobLedgerDeps,
   markJobCompleted,
@@ -24,6 +24,8 @@ import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { gradeTalkingHeadSensorTextureBuffer } from "@/service/style/realistic-grade";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 import { buildEditFfmpegArgs, burnSubtitleAss } from "@/service/canvas/execution/ffmpeg-edit";
+import { assertAllowedCanvasMediaUrl } from "@/service/canvas/execution/media-url-guard";
+import { isUsableProbe, mediaMetaFromProbe, parseMediaProbe } from "@/service/canvas/core/media-meta";
 
 export type CanvasFfmpegLocalInputs = {
   videoFiles: string[];
@@ -57,27 +59,20 @@ function boolParam(snapshot: Record<string, unknown>, key: string, fallback = fa
   return typeof raw === "boolean" ? raw : fallback;
 }
 
-export function parseMediaProbe(stderr: string): {
-  hasAudio: boolean;
-  durationSec: number;
-  width?: number;
-  height?: number;
-} {
-  const hasAudio = /Stream\s+#\d+:\d+.*Audio:/i.test(stderr);
-  const durMatch = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i);
-  let durationSec = 5;
-  if (durMatch) {
-    durationSec =
-      Number(durMatch[1]) * 3600 + Number(durMatch[2]) * 60 + Number(durMatch[3]);
-    if (!Number.isFinite(durationSec) || durationSec <= 0) durationSec = 5;
-  }
-  const dimMatch = stderr.match(/Stream\s+#\d+:\d+.*Video:.*?,\s*(\d{2,5})x(\d{2,5})\b/i);
-  return {
-    hasAudio,
-    durationSec,
-    ...(dimMatch ? { width: Number(dimMatch[1]), height: Number(dimMatch[2]) } : {}),
-  };
-}
+export { parseMediaProbe };
+
+// Nodes whose filters need each input's length; an unreadable length fails instead of guessing.
+const NEEDS_DURATION = new Set([
+  "ffmpeg:concat",
+  "ffmpeg:keep-ranges",
+  "ffmpeg:audio-fade",
+  "ffmpeg:fade",
+  "ffmpeg:burn-subtitles",
+]);
+
+// One FFmpeg run may not hold a worker slot forever.
+export const CANVAS_FFMPEG_TIMEOUT_MS = 15 * 60_000;
+const PROBE_TIMEOUT_MS = 60_000;
 
 function targetDimsForAspect(aspect: string): { width: number; height: number } {
   if (aspect === "16:9") return { width: 1920, height: 1080 };
@@ -330,7 +325,7 @@ export type ExecuteCanvasFfmpegDeps = {
   findCanvasJob: (jobId: ObjectId) => Promise<CanvasJob | null>;
   downloadToFile: (url: string, dest: string) => Promise<void>;
   probeStderr: (dir: string, fileName: string) => Promise<string>;
-  runFfmpeg: (dir: string, args: string[]) => Promise<void>;
+  runFfmpeg: (dir: string, args: string[], timeoutMs?: number) => Promise<void>;
   trimSilence: (buffer: Buffer) => Promise<Buffer>;
   applyColorGrade: (buffer: Buffer) => Promise<Buffer>;
   gradeTalkingHead: (buffer: Buffer, options?: { handheldSelfie?: boolean }) => Promise<Buffer>;
@@ -367,7 +362,9 @@ function ffmpegOutputFile(modelId: string): {
 }
 
 async function defaultDownloadToFile(url: string, dest: string): Promise<void> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+  assertAllowedCanvasMediaUrl(url);
+  // No redirects: a redirect could point outside the allowed hosts.
+  const response = await fetch(url, { signal: AbortSignal.timeout(120_000), redirect: "error" });
   if (!response.ok || !response.body) {
     throw new Error(`無法下載輸入媒體（HTTP ${response.status}）`);
   }
@@ -385,8 +382,8 @@ export async function executeCanvasFfmpegJob(
       return col.findOne({ _id: id });
     },
     downloadToFile: defaultDownloadToFile,
-    probeStderr: (dir, fileName) => ffmpegStderr(dir, ["-i", fileName]),
-    runFfmpeg: (dir, args) => runFfmpeg(dir, args),
+    probeStderr: (dir, fileName) => ffmpegStderr(dir, ["-i", fileName], PROBE_TIMEOUT_MS),
+    runFfmpeg: (dir, args, timeoutMs) => runFfmpeg(dir, args, timeoutMs),
     trimSilence: (buffer) => trimClipSmoothSilence(buffer),
     applyColorGrade: (buffer) =>
       applyJutsuColorGradeBuffer(buffer, DEFAULT_JUTSU_COLOR_SETTINGS),
@@ -427,9 +424,12 @@ export async function executeCanvasFfmpegJob(
       await resolved.downloadToFile(videoUrls[i]!, join(dir, name));
       const probeStr = await resolved.probeStderr(dir, name);
       const probed = parseMediaProbe(probeStr);
+      if (probed.durationSec === undefined && NEEDS_DURATION.has(job.modelId)) {
+        throw new Error(`無法讀取第 ${i + 1} 段影片的長度，請重新產生或重新上傳`);
+      }
       videoFiles.push(name);
       hasAudioByVideo.push(probed.hasAudio);
-      durationsSec.push(probed.durationSec);
+      durationsSec.push(probed.durationSec ?? 0);
       if (i === 0) {
         firstWidth = probed.width;
         firstHeight = probed.height;
@@ -471,7 +471,7 @@ export async function executeCanvasFfmpegJob(
         "-f",
         "null",
         "-",
-      ]);
+      ], PROBE_TIMEOUT_MS);
       const last = [...detect.matchAll(/crop=(\d+:\d+:\d+:\d+)/g)].at(-1)?.[1];
       const full = firstWidth && firstHeight ? `${firstWidth}:${firstHeight}:0:0` : "";
       if (last && last !== full) detectedCrop = last;
@@ -496,7 +496,7 @@ export async function executeCanvasFfmpegJob(
 
     const args = buildCanvasFfmpegArgs(job.modelId, snapshot, localInputs, produced.file);
 
-    await resolved.runFfmpeg(dir, args);
+    await resolved.runFfmpeg(dir, args, CANVAS_FFMPEG_TIMEOUT_MS);
     let outBuf: Buffer = await readFile(join(dir, produced.file));
 
     if (job.modelId === "ffmpeg:trim-speed" && boolParam(snapshot, "ffmpegTrimSilence", false)) {
@@ -527,6 +527,13 @@ export async function executeCanvasFfmpegJob(
       `canvas/${job.clerkUserId}/${jobIdHex}.${produced.ext}`,
       produced.contentType,
     );
+    // Length, sound, and size of the new file, so the assistant can reason about it.
+    let outputMeta: CanvasMediaMeta | undefined;
+    if (produced.kind !== "image") {
+      await writeFile(join(dir, `final.${produced.ext}`), outBuf);
+      const probed = parseMediaProbe(await resolved.probeStderr(dir, `final.${produced.ext}`).catch(() => ""));
+      if (isUsableProbe(probed)) outputMeta = mediaMetaFromProbe(outputUrl, probed);
+    }
 
     await markJobCompleted(
       job,
@@ -534,6 +541,7 @@ export async function executeCanvasFfmpegJob(
         outputUrl,
         outputKind: produced.kind,
         includeCostInPatch: false,
+        ...(outputMeta ? { extraNodePatch: { outputMeta } } : {}),
       },
       {
         updateCanvasJob: resolved.updateCanvasJob,

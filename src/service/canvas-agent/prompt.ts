@@ -3,6 +3,7 @@
 
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 import { CANVAS_AGENT_TOOL_HANDLERS } from "@/service/canvas-agent/tools";
+import { canvasAgentEditNodeLines } from "@/service/canvas-agent/edit-catalog";
 import type { CanvasAgentLanguage } from "@/model/canvas-agent";
 
 // UI locale does not change the model's language, so the reply language is spelled out here.
@@ -81,7 +82,9 @@ export function buildCanvasAgentSystemPrompt(input: {
   - Swap or Teleport already on the canvas: edit the director card (prompt for the swap instruction or teleport mood, toolParams for mode, sectionStart, sectionLength, and sceneText) and tell the user to press Build or Rebuild. Do not assemble trim, render, or grade nodes yourself. replace_group does not re-plan Swap or Teleport.
   - Remove a whole group with its nodes: delete_group. Keep the nodes but drop the frame: ungroup. Rename, recolor, collapse: update_group. Frame nodes the user lists: group_nodes.
   - Explainer and Talking Head planning cards and add_scro_group results get their frame automatically; do not call group_nodes for them.
-- FFmpeg Nodes ($0.00): "ffmpeg:concat", "ffmpeg:audio-mux", "ffmpeg:trim-speed", "ffmpeg:transform", "ffmpeg:extract-audio", "ffmpeg:color-grade" ("toolParams.gradeLook": "jutsu" | "talking-head" | "talking-head-selfie"), "ffmpeg:smooth-silence" (trims long pauses). Simple edits, also $0: "ffmpeg:keep-ranges" (toolParams.ffmpegRanges like "0-3, 8-12"), "ffmpeg:volume" (ffmpegVolumeMode "gain"|"mute"|"loudnorm", ffmpegAudioGainDb), "ffmpeg:audio-fade" and "ffmpeg:fade" (ffmpegFadeInSec, ffmpegFadeOutSec), "ffmpeg:crop" (ffmpegCropMode "custom"|"letterbox"; custom uses ffmpegCropX/Y/W/H), "ffmpeg:rotate" ("90"|"180"|"270"), "ffmpeg:overlay" (base video plus image and/or overlayVideo; ffmpegOverlayPosition, ffmpegOverlayOpacity), "ffmpeg:image-to-video" (image in, ffmpegDurationSec, ffmpegKenBurns), "ffmpeg:frame-grab" (ffmpegAtSec, image out).
+- FFmpeg edit nodes ($0.00). Set only the toolParams listed for each node:
+${canvasAgentEditNodeLines(graph.catalog).join("\n")}
+- Editing times are in seconds. Before trimming, cutting, fading, or grabbing a frame, read the source node's "media" (durationSec, hasAudio, width, height) in the current canvas, so "the last 2 seconds" or "the middle" becomes real numbers. Volume, audio-fade, and extract-audio need a source with hasAudio true.
 - Subtitles: "scro:auto-captions" takes a video with audio and writes editable SRT (toolParams.captionLanguage "yue"|"zh"|"en"|"auto"; ElevenLabs Scribe v3, $0.20 per hour). "yue" is stored as Hong Kong Traditional characters; "zh", "en", and "auto" keep Scribe's script. Wire its text output to "ffmpeg:burn-subtitles" prompt, and wire the same video into the burn node. Editing the SRT does not re-transcribe; burning is free.
 - A model with no connected prompt node uses its inline prompt field.
 - Prefer 9:16 for short-form video unless the user asks otherwise.
@@ -108,13 +111,14 @@ export function buildCanvasAgentRepairPrompt(input: {
   gapLines: string;
 }): string {
   const canvas = CANVAS_AGENT_TOOL_HANDLERS.get_canvas(input.graph);
-  return `You are the Scro canvas assistant. You already built the canvas below for the user's last message, but some new nodes cannot run yet.
+  return `You are the Scro canvas assistant. You already built the canvas below for the user's last message, but some nodes cannot run yet or have edit settings that do not fit their source.
 
 # Gaps to fix
 ${input.gapLines}
 
 # Rules
 - Fix every gap with connect (sourceId → targetId on the named port), or add_prompt_node then connect for a missing prompt. Do not add new model nodes and do not delete nodes.
+- Fix a gap on a toolParams field with update_node, using the source's "media" (durationSec, hasAudio) from the canvas. A sound edit on a source with no sound cannot be fixed by settings: remove that edit node's wire or ask_user.
 - When the right source is unclear or nothing on the canvas can feed a port, call ask_user once with 2-6 short options in the chat language, then stop.
 - After fixing, reply in 2 to 4 short sentences: what you fixed and that it is ready to Run. No heading, no run-order list, no node ids, no JSON, no code fence.
 
@@ -143,7 +147,7 @@ export function buildCanvasAgentSummaryPrompt(input: {
     (op) => op.kind === "add_node" && op.node.data.toolParams?.plannerMode === true,
   );
   const missing = input.gapLines
-    ? `\n# Still missing\n${input.gapLines}\nSay plainly which node still needs which input and what the user can add (for example upload a photo). Do not say it is ready.\n`
+    ? `\n# Still missing\n${input.gapLines}\nSay plainly which node still needs which input or which edit setting does not fit, and what the user can add or change (for example upload a photo or pick a shorter range). Do not say it is ready.\n`
     : removedOnly
       ? `\n# Step limit reached\nYou ran out of tool steps after removing old nodes and before adding the replacement nodes. State plainly what was removed and ask the user to reply "continue" to finish adding the new nodes. Do not say the canvas is ready to Run.\n`
       : addedPlanner

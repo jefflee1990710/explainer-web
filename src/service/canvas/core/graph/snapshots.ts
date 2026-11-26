@@ -2,6 +2,7 @@
 // Callers keep importing these from "@/service/canvas/core/graph".
 
 import type { CanvasNode, CanvasNodeData, CanvasOutputKind } from "@/model/canvas";
+import { carryMediaMeta } from "@/service/canvas/core/media-meta";
 
 export type CompletedCanvasOutput = {
   nodeId: string;
@@ -19,95 +20,102 @@ export function mergeCanvasNodeSnapshots(
   const previousById = new Map(existing.map((node) => [node.id, node]));
   return incoming.map((node) => {
     const previous = previousById.get(node.id);
-    if (!previous || previous.type !== node.type || (node.type !== "model" && node.type !== "character")) {
-      return node;
-    }
-    const previousUrl = previous.data.outputUrl?.trim();
-    const incomingUrl = node.data.outputUrl?.trim();
-    // A newer clear stamp means the client intentionally reset this node (e.g. Director Replan).
-    // Do not let an older stored lastJobId or outputUrl resurrect the cleared preview.
-    if (!incomingUrl && isNewerClearStamp(node.data.outputClearedAt, previous.data.outputClearedAt)) {
-      return node;
-    }
-    // A newer job id is the run that just started or just finished. An older
-    // autosave must not put that node back to "running" or swap in the old preview.
-    if (isNewerJob(previous.data.lastJobId, node.data.lastJobId)) {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          ...(previous.data.status ? { status: previous.data.status } : {}),
-          ...(previousUrl ? { outputUrl: previousUrl } : {}),
-          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
-          lastJobId: previous.data.lastJobId,
-          ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
-          ...(previous.data.lastError ? { lastError: previous.data.lastError } : {}),
-        },
-      };
-    }
-    if (isNewerJob(node.data.lastJobId, previous.data.lastJobId)) {
-      if (!incomingUrl && previousUrl) {
-        const clearedAt = node.data.outputClearedAt;
-        if (!(clearedAt && clearedAt !== previous.data.outputClearedAt)) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              outputUrl: previousUrl,
-              ...(previous.data.outputKind && !node.data.outputKind
-                ? { outputKind: previous.data.outputKind }
-                : {}),
-            },
-          };
-        }
-      }
-      return node;
-    }
-    const incomingBusy = node.data.status === "queued" || node.data.status === "running";
-    const previousDone = previous.data.status === "completed" && Boolean(previousUrl);
-    // Same job, but the canvas tab still has the previous file. Do not save that over the rerun.
-    if (previousDone && incomingUrl && incomingUrl !== previousUrl) {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          status: "completed",
-          outputUrl: previousUrl,
-          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
-          ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
-          lastError: undefined,
-        },
-      };
-    }
-    if (previousDone && incomingBusy) {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          status: "completed",
-          outputUrl: previousUrl,
-          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
-          ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
-          lastError: undefined,
-          ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
-        },
-      };
-    }
-    if (!previousUrl || incomingUrl) return node;
-    // A new clear stamp means the client cleared this preview on purpose.
-    const clearedAt = node.data.outputClearedAt;
-    if (clearedAt && clearedAt !== previous.data.outputClearedAt) return node;
+    const merged = mergeOneNode(previous, node);
+    if (!previous || previous.type !== merged.type) return merged;
+    const data = carryMediaMeta(previous.data, merged.data, merged.type);
+    return data === merged.data ? merged : { ...merged, data };
+  });
+}
+
+function mergeOneNode(previous: CanvasNode | undefined, node: CanvasNode): CanvasNode {
+  if (!previous || previous.type !== node.type || (node.type !== "model" && node.type !== "character")) {
+    return node;
+  }
+  const previousUrl = previous.data.outputUrl?.trim();
+  const incomingUrl = node.data.outputUrl?.trim();
+  // A newer clear stamp means the client intentionally reset this node (e.g. Director Replan).
+  // Do not let an older stored lastJobId or outputUrl resurrect the cleared preview.
+  if (!incomingUrl && isNewerClearStamp(node.data.outputClearedAt, previous.data.outputClearedAt)) {
+    return node;
+  }
+  // A newer job id is the run that just started or just finished. An older
+  // autosave must not put that node back to "running" or swap in the old preview.
+  if (isNewerJob(previous.data.lastJobId, node.data.lastJobId)) {
     return {
       ...node,
       data: {
         ...node.data,
-        outputUrl: previousUrl,
-        ...(previous.data.outputKind && !node.data.outputKind
-          ? { outputKind: previous.data.outputKind }
-          : {}),
+        ...(previous.data.status ? { status: previous.data.status } : {}),
+        ...(previousUrl ? { outputUrl: previousUrl } : {}),
+        ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+        lastJobId: previous.data.lastJobId,
+        ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
+        ...(previous.data.lastError ? { lastError: previous.data.lastError } : {}),
       },
     };
-  });
+  }
+  if (isNewerJob(node.data.lastJobId, previous.data.lastJobId)) {
+    if (!incomingUrl && previousUrl) {
+      const clearedAt = node.data.outputClearedAt;
+      if (!(clearedAt && clearedAt !== previous.data.outputClearedAt)) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            outputUrl: previousUrl,
+            ...(previous.data.outputKind && !node.data.outputKind
+              ? { outputKind: previous.data.outputKind }
+              : {}),
+          },
+        };
+      }
+    }
+    return node;
+  }
+  const incomingBusy = node.data.status === "queued" || node.data.status === "running";
+  const previousDone = previous.data.status === "completed" && Boolean(previousUrl);
+  // Same job, but the canvas tab still has the previous file. Do not save that over the rerun.
+  if (previousDone && incomingUrl && incomingUrl !== previousUrl) {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        status: "completed",
+        outputUrl: previousUrl,
+        ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+        ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
+        lastError: undefined,
+      },
+    };
+  }
+  if (previousDone && incomingBusy) {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        status: "completed",
+        outputUrl: previousUrl,
+        ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+        ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
+        lastError: undefined,
+        ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
+      },
+    };
+  }
+  if (!previousUrl || incomingUrl) return node;
+  // A new clear stamp means the client cleared this preview on purpose.
+  const clearedAt = node.data.outputClearedAt;
+  if (clearedAt && clearedAt !== previous.data.outputClearedAt) return node;
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      outputUrl: previousUrl,
+      ...(previous.data.outputKind && !node.data.outputKind
+        ? { outputKind: previous.data.outputKind }
+        : {}),
+    },
+  };
 }
 
 // Fills model nodes whose outputUrl was wiped, using the newest completed job.
@@ -193,6 +201,7 @@ export function adoptServerPreview<N extends { data: CanvasNodeData }>(
     ...(server.data.outputKind ? { outputKind: server.data.outputKind } : {}),
     ...(server.data.status ? { status: server.data.status } : {}),
     ...(server.data.lastJobId ? { lastJobId: server.data.lastJobId } : {}),
+    ...(server.data.outputMeta?.url === serverUrl ? { outputMeta: server.data.outputMeta } : {}),
     lastError: server.data.lastError,
   };
   if (server.data.staleOutputUrl) data.staleOutputUrl = server.data.staleOutputUrl;

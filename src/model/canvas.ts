@@ -20,6 +20,15 @@ export type CanvasOutputKind = "image" | "video" | "audio" | "text";
 export type CanvasJobStatus = "queued" | "running" | "completed" | "failed";
 export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg" | "explainer_frame";
 
+// Probe of one output or uploaded file. `url` says which file; a new file needs a new probe.
+export type CanvasMediaMeta = {
+  url: string;
+  durationSec?: number;
+  hasAudio?: boolean;
+  width?: number;
+  height?: number;
+};
+
 // Serializable payload stored on each node in the Interactive Node Canvas Editor.
 export type CanvasNodeData = {
   label?: string;
@@ -51,6 +60,8 @@ export type CanvasNodeData = {
   outputClearedAt?: string;
   // outputUrl that was made before an input changed; equal to outputUrl means "old version".
   staleOutputUrl?: string;
+  // Length, sound, and size of outputUrl (model) or mediaUrl (media node).
+  outputMeta?: CanvasMediaMeta;
   // Settings node fields (`type: "settings"`); `kind` says which tool the settings are for.
   settings?: CanvasSettingsData;
 };
@@ -240,6 +251,14 @@ export const canvasModelProviderSchema = z.enum([
   "ffmpeg",
 ]);
 
+export const canvasMediaMetaSchema: z.ZodType<CanvasMediaMeta> = z.object({
+  url: z.string().min(1),
+  durationSec: z.number().finite().nonnegative().optional(),
+  hasAudio: z.boolean().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+});
+
 export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   label: z.string().optional(),
   mediaKind: canvasMediaKindSchema.optional(),
@@ -264,6 +283,7 @@ export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   lastCostUsd: z.number().finite().nonnegative().optional(),
   outputClearedAt: z.string().optional(),
   staleOutputUrl: z.string().optional(),
+  outputMeta: canvasMediaMetaSchema.optional(),
   settings: canvasSettingsDataSchema.optional(),
 });
 

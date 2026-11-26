@@ -1,8 +1,10 @@
 // Domain media upload validation (<= 15 MB, strict MIME allowlist) and Vercel Blob
 // persistence for the Interactive Node Canvas Editor (/app/canvas).
 
-import type { CanvasMediaKind } from "@/model/canvas";
+import type { CanvasMediaKind, CanvasMediaMeta } from "@/model/canvas";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { isUsableProbe, mediaMetaFromProbe, parseMediaProbe } from "@/service/canvas/core/media-meta";
+import { probeMediaBuffer } from "@/service/canvas/use-cases/media-meta";
 
 export const CANVAS_MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
@@ -31,6 +33,8 @@ export type UploadCanvasMediaResult =
       fileName: string;
       contentType: string;
       sizeBytes: number;
+      // Video and audio only; the client stores it as the media node's outputMeta.
+      meta?: CanvasMediaMeta;
     }
   | {
       ok: false;
@@ -40,6 +44,7 @@ export type UploadCanvasMediaResult =
 export type CanvasMediaUploadDeps = {
   persistBuffer: (buffer: Buffer, pathname: string, contentType: string) => Promise<string>;
   randomId: () => string;
+  probeBuffer: (buffer: Buffer, ext: string) => Promise<string>;
 };
 
 // Validates a FormData `file` entry and uploads it to `canvas/uploads/<uid>/<uuid>.<ext>`.
@@ -80,6 +85,14 @@ export async function uploadCanvasMediaFromFormData(
   const pathname = `canvas/uploads/${clerkUserId}/${id}.${allowed.ext}`;
   const url = await persist(buffer, pathname, normalizedMime);
 
+  // A failed probe still uploads; the assistant probes again later.
+  let meta: CanvasMediaMeta | undefined;
+  if (allowed.mediaKind !== "image") {
+    const probe = deps?.probeBuffer ?? probeMediaBuffer;
+    const probed = parseMediaProbe(await probe(buffer, allowed.ext).catch(() => ""));
+    if (isUsableProbe(probed)) meta = mediaMetaFromProbe(url, probed);
+  }
+
   return {
     ok: true,
     url,
@@ -87,5 +100,6 @@ export async function uploadCanvasMediaFromFormData(
     fileName: file.name || `upload.${allowed.ext}`,
     contentType: normalizedMime,
     sizeBytes: buffer.byteLength,
+    ...(meta ? { meta } : {}),
   };
 }
