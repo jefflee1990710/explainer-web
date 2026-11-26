@@ -33,9 +33,9 @@ import type {
 } from "@/service/canvas/projects";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
-import { CanvasModelLogo } from "@/app/app/canvas/model-logo";
+import { CanvasModelTile } from "@/app/app/canvas/canvas-model-tile";
 
-export const CANVAS_DRAG_MODEL_MIME = "application/x-scro-canvas-model";
+export { CANVAS_DRAG_MODEL_MIME } from "@/app/app/canvas/canvas-model-tile";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
@@ -62,6 +62,36 @@ const MODEL_CATEGORIES: CanvasModelCategory[] = [
   "upscale",
 ];
 const TOOL_CATEGORIES: CanvasModelCategory[] = ["scro-tool", "ffmpeg"];
+const TILE_GRID = "grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]";
+
+type SidebarSection = {
+  key: string;
+  label: string;
+  models: readonly CanvasModelSpec[];
+  showPrompt: boolean;
+  showSetting: boolean;
+};
+
+// A typed query matches the display name, provider, model id, or category label.
+function nodeMatchesQuery(spec: CanvasModelSpec, query: string, locale: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const labels = CATEGORY_LABELS[spec.category];
+  if (
+    spec.name.toLowerCase().includes(q) ||
+    canvasModelDisplayName(spec, locale).toLowerCase().includes(q) ||
+    spec.provider.toLowerCase().includes(q) ||
+    spec.providerModelId.toLowerCase().includes(q) ||
+    spec.category.toLowerCase().includes(q) ||
+    labels["zh-Hant"].toLowerCase().includes(q) ||
+    labels.en.toLowerCase().includes(q)
+  ) {
+    return true;
+  }
+  if (!DIRECTOR_MODEL_IDS.has(spec.id)) return false;
+  if ("導演".includes(q)) return true;
+  return q.length >= 3 && "director".includes(q);
+}
 
 export function CanvasSidebar({
   locale,
@@ -191,8 +221,45 @@ export function CanvasSidebar({
 
   // A chip from the other tab does not apply here, so the groups show instead.
   const activeCategory = category && visibleCategories.includes(category) ? category : null;
+  const searching = query.trim().length > 0;
   const promptToolVisible = canvasPromptToolVisible(query, activeCategory !== null);
   const settingsToolVisible = canvasSettingsToolVisible(query, activeCategory !== null);
+  // A query ignores the open tab and groups every matching node under its category.
+  const searchSections = useMemo((): SidebarSection[] | null => {
+    if (!searching) return null;
+    const sections: SidebarSection[] = [];
+    const directors = availableModels.filter(
+      (spec) => DIRECTOR_MODEL_IDS.has(spec.id) && nodeMatchesQuery(spec, query, locale),
+    );
+    if (directors.length > 0) {
+      sections.push({
+        key: "directors",
+        label: isZh ? "導演" : "Director",
+        models: directors,
+        showPrompt: false,
+        showSetting: false,
+      });
+    }
+    for (const cat of [...MODEL_CATEGORIES, ...TOOL_CATEGORIES]) {
+      const models = availableModels.filter(
+        (spec) =>
+          spec.category === cat &&
+          !DIRECTOR_MODEL_IDS.has(spec.id) &&
+          nodeMatchesQuery(spec, query, locale),
+      );
+      const showPrompt = cat === "scro-tool" && canvasPromptToolVisible(query, false);
+      const showSetting = cat === "scro-tool" && canvasSettingsToolVisible(query, false);
+      if (models.length === 0 && !showPrompt && !showSetting) continue;
+      sections.push({
+        key: cat,
+        label: isZh ? CATEGORY_LABELS[cat]["zh-Hant"] : CATEGORY_LABELS[cat].en,
+        models,
+        showPrompt,
+        showSetting,
+      });
+    }
+    return sections;
+  }, [searching, availableModels, query, locale, isZh]);
 
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -227,7 +294,7 @@ export function CanvasSidebar({
 
   return (
     <aside
-      className="relative flex h-full shrink-0 flex-row border-r border-white/8 bg-[#0e121a]/95"
+      className="relative flex h-full shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95"
       style={{ width }}
     >
       <div
@@ -237,6 +304,31 @@ export function CanvasSidebar({
         onPointerDown={startResize}
         className="absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize hover:bg-[#c6f24b]/30"
       />
+      {/* Search sits above the nav column and the tile column, and matches every node. */}
+      <div className="border-b border-white/6 p-2.5">
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
+            <ComposedInput
+              type="text"
+              value={query}
+              onValue={setQuery}
+              placeholder={isZh ? "搜尋節點…" : "Search nodes…"}
+              className="h-8 w-full rounded-[9px] border border-white/10 bg-[#090c12] pr-2.5 pl-8 text-xs text-white placeholder:text-white/35 focus:border-[#c6f24b]/50 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onRefreshModels}
+            disabled={isRefreshingModels}
+            title={isZh ? "重新同步模型狀態與定價" : "Refresh live prices"}
+            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/65 transition hover:border-white/20 hover:text-white disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingModels ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-row">
       {/* Kinds run down the left, with every category open. */}
       <CanvasSidebarNav
         isZh={isZh}
@@ -271,47 +363,67 @@ export function CanvasSidebar({
         collapseLabel={collapseLabel}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {tab !== "assets" ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {/* Search & Refresh */}
-          <div className="space-y-2 border-b border-white/6 p-2.5">
-            <div className="flex items-center gap-1.5">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
-                <ComposedInput
-                  type="text"
-                  value={query}
-                  onValue={setQuery}
-                  placeholder={
-                    tab === "directors"
-                      ? isZh
-                        ? "搜尋導演…"
-                        : "Search directors…"
-                      : isZh
-                        ? "搜尋模型或供應商…"
-                        : "Search models…"
-                  }
-                  className="h-8 w-full rounded-[9px] border border-white/10 bg-[#090c12] pr-2.5 pl-8 text-xs text-white placeholder:text-white/35 focus:border-[#c6f24b]/50 focus:outline-none"
-                />
+      {searchSections ? (
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
+          {searchSections.map((section) => (
+            <div key={section.key} className="space-y-1.5">
+              <p className="px-1 pt-2 text-[10px] font-bold tracking-wide text-white/40 uppercase first:pt-0">
+                {section.label}
+              </p>
+              <div className={TILE_GRID}>
+                {section.showPrompt ? (
+                  <CanvasPromptTool
+                    isZh={isZh}
+                    selected={pickedKey === "prompt"}
+                    addLabel={addLabel}
+                    onSelect={() => setPickedKey("prompt")}
+                    onAdd={() => {
+                      onAddPromptNode();
+                      setPickedKey(null);
+                    }}
+                  />
+                ) : null}
+                {section.showSetting ? (
+                  <CanvasSettingsTool
+                    isZh={isZh}
+                    selected={pickedKey === "setting"}
+                    addLabel={addLabel}
+                    onSelect={() => setPickedKey("setting")}
+                    onAdd={() => {
+                      onAddSettingsNode();
+                      setPickedKey(null);
+                    }}
+                  />
+                ) : null}
+                {section.models.map((spec) => (
+                  <CanvasModelTile
+                    key={spec.id}
+                    spec={spec}
+                    locale={locale}
+                    selected={pickedKey === `model:${spec.id}`}
+                    addLabel={addLabel}
+                    onSelect={() => setPickedKey(`model:${spec.id}`)}
+                    onAdd={() => {
+                      onAddModel(spec.id);
+                      setPickedKey(null);
+                    }}
+                  />
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={onRefreshModels}
-                disabled={isRefreshingModels}
-                title={isZh ? "重新同步模型狀態與定價" : "Refresh live prices"}
-                className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/65 transition hover:border-white/20 hover:text-white disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`h-3.5 w-3.5 ${isRefreshingModels ? "animate-spin" : ""}`}
-                />
-              </button>
             </div>
-          </div>
-
+          ))}
+          {searchSections.length === 0 ? (
+            <p className="py-6 text-center text-xs text-white/40">
+              {isZh ? "找不到符合的節點" : "No matching nodes"}
+            </p>
+          ) : null}
+        </div>
+      ) : tab !== "assets" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* Model list, grouped by kind when showing everything */}
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
             {tab === "tools" && (promptToolVisible || settingsToolVisible) ? (
-              <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
+              <div className={TILE_GRID}>
                 {promptToolVisible ? (
                   <CanvasPromptTool
                     isZh={isZh}
@@ -351,41 +463,20 @@ export function CanvasSidebar({
                     {section.label}
                   </p>
                 ) : null}
-                <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(5.25rem,1fr))]">
+                <div className={TILE_GRID}>
                   {section.models.map((spec) => (
-                    <div
+                    <CanvasModelTile
                       key={spec.id}
-                      draggable
-                      title={canvasModelDisplayName(spec, locale)}
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData(CANVAS_DRAG_MODEL_MIME, spec.id);
-                        e.dataTransfer.effectAllowed = "copy";
+                      spec={spec}
+                      locale={locale}
+                      selected={pickedKey === `model:${spec.id}`}
+                      addLabel={addLabel}
+                      onSelect={() => setPickedKey(`model:${spec.id}`)}
+                      onAdd={() => {
+                        onAddModel(spec.id);
+                        setPickedKey(null);
                       }}
-                      data-canvas-pick=""
-                      onClick={() => setPickedKey(`model:${spec.id}`)}
-                      className={`group relative flex cursor-grab flex-col items-center gap-1.5 rounded-[10px] border bg-[#131823]/90 px-1 py-2 text-center transition hover:border-[#c6f24b]/50 hover:bg-[#171d2a] active:cursor-grabbing ${
-                        pickedKey === `model:${spec.id}` ? "border-[#c6f24b]" : "border-white/8"
-                      }`}
-                    >
-                      {pickedKey === `model:${spec.id}` ? (
-                        <CanvasAddButton
-                          label={addLabel}
-                          onAdd={() => {
-                            onAddModel(spec.id);
-                            setPickedKey(null);
-                          }}
-                        />
-                      ) : null}
-                      <span className="grid h-8 w-8 place-items-center">
-                        <CanvasModelLogo
-                          providerModelId={spec.providerModelId}
-                          className="h-7 w-7"
-                        />
-                      </span>
-                      <span className="line-clamp-2 w-full text-[10px] leading-3 font-semibold text-white/90">
-                        {canvasModelDisplayName(spec, locale)}
-                      </span>
-                    </div>
+                    />
                   ))}
                 </div>
               </div>
@@ -510,6 +601,7 @@ export function CanvasSidebar({
           )}
         </div>
       )}
+      </div>
       </div>
     </aside>
   );
