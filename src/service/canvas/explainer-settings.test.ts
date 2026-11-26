@@ -86,8 +86,13 @@ describe("explainer settings", () => {
         sceneTextLanguage: "zh-Hant",
       },
     );
-    // Old cards without settings plan exactly as before.
+    // A missing or foreign background plans with the style's default sheet.
+    assert.equal(
+      explainerVideoLookFields({}, "papercraft-diorama-director", "yue").directorBackgroundId,
+      "cobalt",
+    );
     assert.deepEqual(explainerVideoLookFields({ directorBackgroundId: "cobalt" }, "paper-cutout-explainer-video-director", "en"), {
+      directorBackgroundId: "wood-cardboard",
       subtitleLook: "handwritten",
       textStyleId: "handwritten",
       sceneTextEnabled: true,

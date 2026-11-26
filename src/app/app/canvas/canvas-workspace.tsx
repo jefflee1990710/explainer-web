@@ -129,6 +129,8 @@ import {
 import { GroupSelectionBar } from "@/app/app/canvas/groups/group-selection-bar";
 import { PlanLockProvider, withPlanLock } from "@/app/app/canvas/nodes/director-plan-lock";
 import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
+import { replanBeforeRun } from "@/service/canvas/director-replan-run";
+import { ReplanBeforeRunDialog, type ReplanBeforeRunItem } from "@/app/app/canvas/replan-before-run-dialog";
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
 import type { CanvasMediaItem } from "@/app/app/canvas/scro-group-options";
@@ -524,6 +526,15 @@ function CanvasWorkspaceInner({
   useEffect(() => {
     planLockRef.current = planLocks;
   }, [planLocks]);
+  // A Run whose Director changed waits on this confirm; confirmed runs wait for the Replan by Director id.
+  const [replanRun, setReplanRun] = useState<{
+    nodeId: string;
+    directorId: string;
+    nodeLabel: string;
+    affected: ReplanBeforeRunItem[];
+  } | null>(null);
+  const runAfterReplanRef = useRef(new Map<string, string>());
+  const [replannedRunId, setReplannedRunId] = useState<string | null>(null);
   const flowNodes = useMemo(() => {
     if (planLocks.nodeIds.size === 0 && planLocks.groupIds.size === 0) return groupsApi.displayNodes;
     return groupsApi.displayNodes.map((node) => {
@@ -1359,8 +1370,12 @@ function CanvasWorkspaceInner({
               : n,
           ),
         );
-        if (!res.ok) toast.error(res.error);
+        if (!res.ok) {
+          runAfterReplanRef.current.delete(nodeId);
+          toast.error(res.error);
+        }
       } catch (err) {
+        runAfterReplanRef.current.delete(nodeId);
         const msg = err instanceof Error ? err.message : "Planning failed";
         setNodes((prev) =>
           prev.map((n) =>
@@ -1386,6 +1401,43 @@ function CanvasWorkspaceInner({
     (nodeId: string) => void startDirectorPlan(nodeId),
     [startDirectorPlan],
   );
+
+  // Card label for the Replan confirm: model name, plus the clip number from a Director row id.
+  const runNodeLabel = useCallback(
+    (nodeId: string) => {
+      const node = nodesRef.current.find((n) => n.id === nodeId);
+      const spec = node?.data.modelId ? findCanvasModel(node.data.modelId, models) : undefined;
+      const name = spec?.name ?? node?.data.label ?? node?.data.modelId ?? nodeId;
+      const clip = /-(\d+)$/.exec(nodeId)?.[1];
+      return clip ? `${name} · Clip ${clip}` : name;
+    },
+    [models],
+  );
+
+  // Run / Re-run on a card: a Director changed since its last plan asks to Replan first.
+  const requestRunNode = useCallback(
+    async (nodeId: string) => {
+      if (planLockRef.current.nodeIds.has(nodeId)) return;
+      const need = replanBeforeRun(toDomainNodes(nodesRef.current), toDomainEdges(edgesRef.current), nodeId);
+      if (!need) return onRunNode(nodeId);
+      setReplanRun({
+        nodeId,
+        directorId: need.directorId,
+        nodeLabel: runNodeLabel(nodeId),
+        affected: need.affectedIds.map((id) => ({ id, label: runNodeLabel(id) })),
+      });
+    },
+    [onRunNode, runNodeLabel],
+  );
+
+  const cancelReplanRun = useCallback(() => setReplanRun(null), []);
+
+  const confirmReplanRun = useCallback(() => {
+    if (!replanRun) return;
+    setReplanRun(null);
+    runAfterReplanRef.current.set(replanRun.directorId, replanRun.nodeId);
+    void startDirectorPlan(replanRun.directorId);
+  }, [replanRun, startDirectorPlan]);
 
   const closeScroDialog = useCallback(() => setScroDialog(null), []);
 
@@ -1564,11 +1616,26 @@ function CanvasWorkspaceInner({
       const after = { ...before, data: { ...before.data, toolParams } };
       const changed = directorChangedTargets(before, after, toDomainEdges(edgesRef.current));
       setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, toolParams } } : n)));
+      // A Run that asked for this Replan goes ahead once the rows keep their ids.
+      const waitingRun = runAfterReplanRef.current.get(nodeId);
+      runAfterReplanRef.current.delete(nodeId);
       if (oldPlan && oldPlan.clips.length === state.plan.clips.length) {
         markStale(changed);
-        toast.success(isZh ? "已更新規劃，按 Run group 重新生成" : "Plan updated; press Run group to regenerate");
+        if (waitingRun) {
+          setReplannedRunId(waitingRun);
+          toast.success(
+            isZh ? "已更新規劃，正在重新生成；其他舊版本節點要再 Run" : "Plan updated; regenerating now. Other old versions need another Run",
+          );
+        } else {
+          toast.success(isZh ? "已更新規劃，按 Run group 重新生成" : "Plan updated; press Run group to regenerate");
+        }
         scheduleAutosave();
         return;
+      }
+      if (waitingRun) {
+        toast.info(
+          isZh ? "片段數量改變，已重建所有列，請在新的列再按 Run" : "Clip count changed and the rows were rebuilt; press Run on the new row",
+        );
       }
       placeDirectorRows(nodeId, state, Boolean(oldPlan) || drafting);
     },
@@ -1620,6 +1687,7 @@ function CanvasWorkspaceInner({
           // Another tick already handled (or removed) this planning card.
           if (!planner || readPlannerParams(planner).planStatus !== "planning") continue;
           if (state.status === "failed") {
+            runAfterReplanRef.current.delete(nodeId);
             setPlannerParams(nodeId, { planStatus: "failed", planError: state.error, planStage: undefined });
             scheduleAutosave();
             continue;
@@ -2511,6 +2579,13 @@ function CanvasWorkspaceInner({
     };
   }, [outfitWatchKey, isZh, scheduleAutosave, setNodes]);
 
+  // Runs the node a confirmed Replan was waiting for, after the new plan and unlocked rows render.
+  useEffect(() => {
+    if (!replannedRunId) return;
+    setReplannedRunId(null);
+    if (nodesRef.current.some((n) => n.id === replannedRunId)) void onRunNode(replannedRunId);
+  }, [replannedRunId, onRunNode]);
+
   const nodeContextValue = useMemo(
     () => ({
       catalog: models,
@@ -2522,7 +2597,7 @@ function CanvasWorkspaceInner({
       isFlowRunning,
       onUpdateNodeData,
       onDeleteNode,
-      onRunNode,
+      onRunNode: requestRunNode,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
@@ -2541,7 +2616,7 @@ function CanvasWorkspaceInner({
       isFlowRunning,
       onUpdateNodeData,
       onDeleteNode,
-      onRunNode,
+      requestRunNode,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
@@ -2774,6 +2849,15 @@ function CanvasWorkspaceInner({
         projectTitle={activeTitle}
         onClose={() => setLightbox(null)}
       />
+      {replanRun ? (
+        <ReplanBeforeRunDialog
+          isZh={isZh}
+          nodeLabel={replanRun.nodeLabel}
+          affected={replanRun.affected}
+          onCancel={cancelReplanRun}
+          onConfirm={confirmReplanRun}
+        />
+      ) : null}
     </div>
   );
 }

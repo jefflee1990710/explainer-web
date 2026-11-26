@@ -95,6 +95,23 @@ describe("explainer director", () => {
     assert.equal(directorNeedsReplan(director()), false);
   });
 
+  it("plans with the style's default background when none is saved", () => {
+    const papercraft = director({ skillSlug: "papercraft-diorama-director" });
+    assert.equal(directorParams(papercraft).directorBackgroundId, "cobalt");
+    assert.equal(directorParams(director({ skillSlug: "cartoon-explainer-video-director" })).directorBackgroundId, undefined);
+  });
+
+  it("needs a replan when an older papercraft plan had no colour lock", () => {
+    const papercraft = director({ skillSlug: "papercraft-diorama-director" });
+    const { directorBackgroundId: _bg, ...unlocked } = directorParams(papercraft);
+    const old = { ...plan(1, papercraft), plannedWith: unlocked };
+    assert.equal(directorNeedsReplan(director({ skillSlug: "papercraft-diorama-director", plan: old })), true);
+    // Paper-cutout stills already fell back to the default sheet, so an older plan stays current.
+    const cutout = director();
+    const { directorBackgroundId: _cut, ...cutoutOld } = directorParams(cutout);
+    assert.equal(directorNeedsReplan(director({ plan: { ...plan(1, cutout), plannedWith: cutoutOld } })), false);
+  });
+
   it("lists targets whose wired output text changed", () => {
     const base = director();
     const before = director({ plan: plan(1, base) });

@@ -10,7 +10,7 @@ import {
   EXPLAINER_SKILL_SLUGS,
 } from "@/model/explainer-settings";
 import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
-import { explainerBackgroundPresets } from "@/service/canvas/explainer-settings";
+import { effectiveDirectorBackgroundId, explainerBackgroundPresets } from "@/service/canvas/explainer-settings";
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -155,7 +155,7 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
           </select>
         ) : (
           <CanvasPreviewSelect
-            value={String(tp.directorBackgroundId ?? backgrounds[0]?.id ?? "")}
+            value={effectiveDirectorBackgroundId(skillSlug, tp.directorBackgroundId) ?? ""}
             ariaLabel={isZh ? "背景" : "Background"}
             options={backgrounds.map((bg) => ({
               value: bg.id,

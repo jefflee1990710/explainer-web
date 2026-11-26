@@ -48,10 +48,24 @@ export function explainerBackgroundPresets(skillSlug: string | undefined): reado
   return [];
 }
 
-function defaultBackgroundId(skillSlug: ExplainerSkillSlug): string | undefined {
+function defaultBackgroundId(skillSlug: string | undefined): string | undefined {
   if (skillSlug === "paper-cutout-explainer-video-director") return DEFAULT_PAPER_CUTOUT_BACKGROUND_ID;
   if (skillSlug === "papercraft-diorama-director") return DEFAULT_PAPERCRAFT_BACKGROUND_ID;
   return undefined;
+}
+
+// The background a Director card shows and plans with: its saved preset, else the style's default.
+export function effectiveDirectorBackgroundId(skillSlug: string | undefined, id: unknown): string | undefined {
+  return typeof id === "string" && explainerBackgroundPresets(skillSlug).some((bg) => bg.id === id)
+    ? id
+    : defaultBackgroundId(skillSlug);
+}
+
+// The background an older plan with no saved id was drawn with. Paper-cutout stills fell back to
+// its default sheet; papercraft stills had no colour lock at all.
+export function plannedDirectorBackgroundId(skillSlug: string | undefined, id: unknown): string | undefined {
+  if (typeof id === "string" && id) return id;
+  return skillSlug === "paper-cutout-explainer-video-director" ? DEFAULT_PAPER_CUTOUT_BACKGROUND_ID : undefined;
 }
 
 // Fills defaults and drops a background the chosen director does not offer.
@@ -129,18 +143,14 @@ export function explainerSettingsFromToolParams(tp: Record<string, unknown> | un
   });
 }
 
-// Backing-video fields for a planner card; cards without settings keep the old defaults.
+// Backing-video fields for a planner card; a card with no saved background plans with the style's default.
 export function explainerVideoLookFields(
   tp: Record<string, unknown> | undefined,
   skillSlug: string,
   language: string,
 ) {
   const params = tp ?? {};
-  const background =
-    typeof params.directorBackgroundId === "string" &&
-    explainerBackgroundPresets(skillSlug).some((bg) => bg.id === params.directorBackgroundId)
-      ? params.directorBackgroundId
-      : undefined;
+  const background = effectiveDirectorBackgroundId(skillSlug, params.directorBackgroundId);
   const look = oneOf<SubtitleLook>(SUBTITLE_LOOK_IDS, params.textStyleId);
   const sceneText = oneOf<SceneTextChoice>(EXPLAINER_SCENE_TEXT_CHOICES, params.sceneTextLanguage);
   const defaultScript = language === "en" ? "en" : "zh-Hant";

@@ -2,6 +2,7 @@
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { EXPLAINER_PLANNER_MODEL_ID, TALKING_HEAD_PLANNER_MODEL_ID } from "@/service/canvas/explainer-planner";
+import { effectiveDirectorBackgroundId, plannedDirectorBackgroundId } from "@/service/canvas/explainer-settings";
 import { explainerTextStyleLine, TEXT_STYLE_VAR } from "@/service/canvas/settings/explainer-text-style";
 import { renderPromptTemplate } from "@/service/canvas/settings/template";
 
@@ -152,14 +153,15 @@ export function directorParams(node: NodeLike): ExplainerDirectorParams {
   const characterId = str(tp.characterId);
   const durationPreset = str(tp.durationPreset);
   const sceneTextLanguage = str(tp.sceneTextLanguage);
-  const directorBackgroundId = str(tp.directorBackgroundId);
+  const skillSlug = str(tp.skillSlug) ?? "cartoon-explainer-video-director";
+  const directorBackgroundId = effectiveDirectorBackgroundId(skillSlug, tp.directorBackgroundId);
   const styleId = str(tp.styleId);
   return {
     topic: (node.data.prompt ?? "").trim(),
     ...(characterId ? { characterId } : {}),
     ...(durationPreset ? { durationPreset } : {}),
     aspectRatio: node.data.aspectRatio ?? "9:16",
-    skillSlug: str(tp.skillSlug) ?? "cartoon-explainer-video-director",
+    skillSlug,
     language: str(tp.language) ?? "yue",
     ...(sceneTextLanguage ? { sceneTextLanguage } : {}),
     ...(directorBackgroundId ? { directorBackgroundId } : {}),
@@ -225,7 +227,10 @@ export function directorNeedsReplan(node: NodeLike): boolean {
   const plan = readDirectorPlan(node);
   if (!plan) return false;
   const now = planDirectorParams(node) as Record<string, unknown>;
-  const then = plan.plannedWith as Record<string, unknown>;
+  const then = { ...(plan.plannedWith as Record<string, unknown>) };
+  if (!isTalkingHeadDirectorNode(node)) {
+    then.directorBackgroundId = plannedDirectorBackgroundId(str(then.skillSlug), then.directorBackgroundId);
+  }
   const keys = new Set([...Object.keys(now), ...Object.keys(then)]);
   return [...keys].some((key) => (now[key] ?? null) !== (then[key] ?? null));
 }
