@@ -1937,7 +1937,8 @@ function CanvasWorkspaceInner({
           models,
         ),
       ]);
-      const frame = {
+      // A plain object widens kind to string; the CanvasGroup type keeps "swap" | "teleport".
+      const frame: CanvasGroup = {
         id: builtGroupId,
         title: defaultGroupTitle(kind),
         color: defaultGroupColor(kind),

@@ -19,7 +19,6 @@ function director(modelId: string, data: CanvasNode["data"] = {}): CanvasNode {
       modelId,
       aspectRatio: "9:16",
       status: "idle",
-      toolParams: { directorMode: true, sectionStart: 1, sectionLength: 9 },
       ...data,
       toolParams: { directorMode: true, sectionStart: 1, sectionLength: 9, ...(data.toolParams ?? {}) },
     },
