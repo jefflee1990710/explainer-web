@@ -1,94 +1,59 @@
 "use server";
 
-// Authenticated Next.js Server Actions for the Interactive Node Canvas Editor (/app/canvas).
+// Thin authenticated Next.js Server Actions for the Interactive Node Canvas Editor (/app/canvas).
+// Delegates all domain rules, persistence, and worker polling to `src/service/canvas/*`.
 
 import type {
   CanvasEdge,
-  CanvasMediaKind,
   CanvasNode,
   CanvasViewport,
 } from "@/model/canvas";
-import { canvasProjectsCollection, usersCollection } from "@/dao";
-import { requireAppUser } from "@/service/auth";
-import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
-import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
-import { generateCanvasCharacterOutfit } from "@/service/canvas/character-outfit";
-import {
-  type SubmitCanvasNodeJobErrorCode,
-  pollCanvasJobs,
-  submitCanvasNodeJob,
-} from "@/service/canvas/executor";
-import {
-  type CanvasModelSpec,
-  getCanvasModelCatalog,
-} from "@/service/canvas/model-catalog";
+import type {
+  CanvasFlowRunDto,
+  CanvasJobDto,
+  CanvasProjectDto,
+  CreateCanvasProjectInput,
+  SaveCanvasProjectPatch,
+} from "@/model/canvas-dto";
 import {
   serializeCanvasFlowRun,
   serializeCanvasJob,
   serializeCanvasProject,
 } from "@/presentation/serialize/canvas";
+import { requireAppUser } from "@/service/auth";
+import { generateCanvasCharacterOutfit } from "@/service/canvas/character-outfit";
+import type { SubmitCanvasNodeJobErrorCode } from "@/service/canvas/executor";
 import {
-  type CanvasFlowRunDto,
-  type CanvasJobDto,
-  type CanvasProjectDto,
-  type CreateCanvasProjectInput,
-  type SaveCanvasProjectPatch,
-  createCanvasProject,
-  deleteCanvasProject,
-  healFinishedCanvasRuns,
-  saveCanvasProject,
-} from "@/service/canvas/projects";
-import {
+  type CanvasFolderDto,
   createCanvasFolder,
   deleteCanvasFolder,
   listCanvasFolders,
   moveCanvasToFolder,
   renameCanvasFolder,
   serializeCanvasFolder,
-  type CanvasFolderDto,
 } from "@/service/canvas/folders";
 import {
-  executeCanvasFlowTask,
-  startCanvasFlowRun,
-  startCanvasNodeAfterUpstream,
-  stopCanvasFlowRun,
-} from "@/service/canvas/worker-runner";
-import { persistBuffer } from "@/service/higgsfield/persist";
-import { shouldUseWorkerQueueOnly } from "@/service/worker/task-queue";
-import { ObjectId } from "mongodb";
+  type UploadCanvasMediaResult,
+  uploadCanvasMediaFromFormData,
+} from "@/service/canvas/media-upload";
+import {
+  type CanvasModelSpec,
+  getCanvasModelCatalog,
+} from "@/service/canvas/model-catalog";
+import {
+  createCanvasProject,
+  deleteCanvasProject,
+  saveCanvasProject,
+} from "@/service/canvas/projects";
+import {
+  pollCanvasFlowForClient,
+  pollCanvasJobsForClient,
+  runCanvasFlowWithPreSave,
+  runCanvasNodeWithPreSave,
+} from "@/service/canvas/runtime";
+import { stopCanvasFlowRun } from "@/service/canvas/worker-runner";
 
-const CANVAS_MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
-
-// Strict MIME allowlist (Spec Section 6.6) mapped to Canvas media kind and Blob extension.
-const ALLOWED_UPLOAD_MIME_MAP: Record<
-  string,
-  { mediaKind: CanvasMediaKind; ext: string }
-> = {
-  "image/png": { mediaKind: "image", ext: "png" },
-  "image/jpeg": { mediaKind: "image", ext: "jpg" },
-  "image/webp": { mediaKind: "image", ext: "webp" },
-  "video/mp4": { mediaKind: "video", ext: "mp4" },
-  "video/webm": { mediaKind: "video", ext: "webm" },
-  "video/quicktime": { mediaKind: "video", ext: "mov" },
-  "audio/mpeg": { mediaKind: "audio", ext: "mp3" },
-  "audio/wav": { mediaKind: "audio", ext: "wav" },
-  "audio/mp4": { mediaKind: "audio", ext: "m4a" },
-  "audio/ogg": { mediaKind: "audio", ext: "ogg" },
-};
-
-export type UploadCanvasMediaActionResult =
-  | {
-      ok: true;
-      url: string;
-      mediaKind: CanvasMediaKind;
-      fileName: string;
-      contentType: string;
-      sizeBytes: number;
-    }
-  | {
-      ok: false;
-      error: string;
-    };
+export type UploadCanvasMediaActionResult = UploadCanvasMediaResult;
 
 export type RunCanvasNodeActionInput = {
   canvasId: string;
@@ -219,44 +184,7 @@ export async function uploadCanvasMediaAction(
   formData: FormData,
 ): Promise<UploadCanvasMediaActionResult> {
   const user = await requireAppUser();
-  const entry = formData.get("file");
-  if (!entry || typeof entry === "string") {
-    return { ok: false, error: "請選擇要上傳的媒體檔案" };
-  }
-
-  const file = entry as File;
-  if (file.size <= 0) {
-    return { ok: false, error: "檔案內容不可為空" };
-  }
-  if (file.size > CANVAS_MAX_UPLOAD_BYTES) {
-    return { ok: false, error: "檔案大小超過 15 MB 上限" };
-  }
-
-  const normalizedMime = (file.type || "").split(";")[0]?.trim().toLowerCase() || "";
-  const allowed = ALLOWED_UPLOAD_MIME_MAP[normalizedMime];
-  if (!allowed) {
-    return {
-      ok: false,
-      error: `不支援的檔案格式（${normalizedMime || "unknown"}）。僅支援 PNG/JPEG/WebP、MP4/WebM/MOV、MP3/WAV/M4A/OGG。`,
-    };
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  if (buffer.byteLength <= 0 || buffer.byteLength > CANVAS_MAX_UPLOAD_BYTES) {
-    return { ok: false, error: "檔案大小無效或超過 15 MB 上限" };
-  }
-
-  const pathname = `canvas/uploads/${user.clerkUserId}/${crypto.randomUUID()}.${allowed.ext}`;
-  const url = await persistBuffer(buffer, pathname, normalizedMime);
-
-  return {
-    ok: true,
-    url,
-    mediaKind: allowed.mediaKind,
-    fileName: file.name || `upload.${allowed.ext}`,
-    contentType: normalizedMime,
-    sizeBytes: buffer.byteLength,
-  };
+  return uploadCanvasMediaFromFormData(user.clerkUserId, formData);
 }
 
 // Executes a single model node (deducting USD credit, persisting sync outputs, or queueing async jobs).
@@ -264,49 +192,14 @@ export async function runCanvasNodeAction(
   input: RunCanvasNodeActionInput,
 ): Promise<RunCanvasNodeActionResult> {
   const user = await requireAppUser();
-
-  if (
-    input.nodes !== undefined ||
-    input.edges !== undefined ||
-    input.viewport !== undefined
-  ) {
-    const saved = await saveCanvasProject(user.clerkUserId, input.canvasId, {
-      ...(input.nodes !== undefined ? { nodes: input.nodes } : {}),
-      ...(input.edges !== undefined ? { edges: input.edges } : {}),
-      ...(input.viewport !== undefined ? { viewport: input.viewport } : {}),
-    });
-    if (!saved) {
-      return { ok: false, code: "NOT_FOUND", error: "找不到畫布專案" };
-    }
-  }
-
-  if (!input.flowRunId) {
-    const waiting = await startCanvasNodeAfterUpstream({
-      clerkUserId: user.clerkUserId,
-      canvasId: input.canvasId,
-      nodeId: input.nodeId,
-    });
-    if (waiting && !waiting.ok) {
-      return { ok: false, code: "INVALID_INPUTS", error: waiting.error };
-    }
-    if (waiting) {
-      const users = await usersCollection();
-      const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
-      return {
-        ok: true,
-        waitingForUpstream: true,
-        activeFlowRun: serializeCanvasFlowRun(waiting.activeFlowRun),
-        creditUsd: freshUser ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd : 0,
-      };
-    }
-  }
-
-  const result = await submitCanvasNodeJob({
+  const result = await runCanvasNodeWithPreSave({
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
     nodeId: input.nodeId,
     flowRunId: input.flowRunId,
-    queueToWorker: true,
+    nodes: input.nodes,
+    edges: input.edges,
+    viewport: input.viewport,
   });
 
   if (!result.ok) {
@@ -315,12 +208,8 @@ export async function runCanvasNodeAction(
       code: result.code,
       error: result.error,
       ...(result.creditUsd !== undefined ? { creditUsd: result.creditUsd } : {}),
-      ...(result.requiredUsd !== undefined
-        ? { requiredUsd: result.requiredUsd }
-        : {}),
-      ...(result.availableUsd !== undefined
-        ? { availableUsd: result.availableUsd }
-        : {}),
+      ...(result.requiredUsd !== undefined ? { requiredUsd: result.requiredUsd } : {}),
+      ...(result.availableUsd !== undefined ? { availableUsd: result.availableUsd } : {}),
       ...(result.missingRequiredFields
         ? { missingRequiredFields: result.missingRequiredFields }
         : {}),
@@ -328,6 +217,15 @@ export async function runCanvasNodeAction(
         ? { missingUpstreamNodeIds: result.missingUpstreamNodeIds }
         : {}),
       ...(result.job ? { job: serializeCanvasJob(result.job) } : {}),
+    };
+  }
+
+  if ("waitingForUpstream" in result) {
+    return {
+      ok: true,
+      waitingForUpstream: true,
+      activeFlowRun: serializeCanvasFlowRun(result.activeFlowRun),
+      creditUsd: result.creditUsd,
     };
   }
 
@@ -344,34 +242,7 @@ export async function pollCanvasJobsAction(input: {
   jobIds: string[];
 }): Promise<PollCanvasJobsActionResult> {
   const user = await requireAppUser();
-  if (shouldUseWorkerQueueOnly() && ObjectId.isValid(input.canvasId)) {
-    const { canvasJobsCollection } = await import("@/dao");
-    const uniqueIds = input.jobIds
-      .map((id) => id.trim())
-      .filter((id) => ObjectId.isValid(id))
-      .map((id) => new ObjectId(id));
-    const [jobs, users] = await Promise.all([
-      uniqueIds.length > 0
-        ? (await canvasJobsCollection())
-            .find({
-              _id: { $in: uniqueIds },
-              canvasId: new ObjectId(input.canvasId),
-              clerkUserId: user.clerkUserId,
-            })
-            .toArray()
-        : Promise.resolve([]),
-      usersCollection(),
-    ]);
-    const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
-    const creditUsd = freshUser
-      ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
-      : 0;
-    return {
-      jobs: jobs.map(serializeCanvasJob),
-      creditUsd,
-    };
-  }
-  const result = await pollCanvasJobs({
+  const result = await pollCanvasJobsForClient({
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
     jobIds: input.jobIds,
@@ -396,53 +267,30 @@ export async function runCanvasFlowAction(input: {
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
   viewport?: CanvasViewport;
-  // Run group: only these nodes run, in dependency order.
   nodeIds?: string[];
-  // Old-version previews the canvas is showing. The run regenerates these even if a
-  // later save drops the mark, plus every finished node downstream of them.
   rerunNodeIds?: string[];
-  // The Run Flow button regenerates every node, not only the ones without a preview.
   rerunAll?: boolean;
 }): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunDto; creditUsd: number }
   | { ok: false; error: string }
 > {
   const user = await requireAppUser();
-  if (input.nodes !== undefined || input.edges !== undefined || input.viewport !== undefined) {
-    const saved = await saveCanvasProject(user.clerkUserId, input.canvasId, {
-      ...(input.nodes !== undefined ? { nodes: input.nodes } : {}),
-      ...(input.edges !== undefined ? { edges: input.edges } : {}),
-      ...(input.viewport !== undefined ? { viewport: input.viewport } : {}),
-    });
-    if (!saved) return { ok: false, error: "找不到畫布專案" };
-  }
-
-  const started = await startCanvasFlowRun({
+  const started = await runCanvasFlowWithPreSave({
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
-    ...(input.nodeIds ? { nodeIds: input.nodeIds } : {}),
-    ...(input.rerunNodeIds ? { rerunNodeIds: input.rerunNodeIds } : {}),
-    ...(input.rerunAll ? { rerunAll: true } : {}),
+    nodes: input.nodes,
+    edges: input.edges,
+    viewport: input.viewport,
+    nodeIds: input.nodeIds,
+    rerunNodeIds: input.rerunNodeIds,
+    rerunAll: input.rerunAll,
   });
   if (!started.ok) return started;
 
-  const users = await usersCollection();
-  const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
-  const creditUsd = freshUser
-    ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
-    : 0;
-
   return {
     ok: true,
-    activeFlowRun: {
-      flowRunId: started.activeFlowRun.flowRunId,
-      status: started.activeFlowRun.status,
-      currentWave: started.activeFlowRun.currentWave,
-      totalWaves: started.activeFlowRun.totalWaves,
-      failedNodeIds: started.activeFlowRun.failedNodeIds,
-      ...(started.activeFlowRun.error ? { error: started.activeFlowRun.error } : {}),
-    },
-    creditUsd,
+    activeFlowRun: serializeCanvasFlowRun(started.activeFlowRun),
+    creditUsd: started.creditUsd,
   };
 }
 
@@ -458,80 +306,16 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
   creditUsd: number;
 }> {
   const user = await requireAppUser();
-  if (!ObjectId.isValid(canvasId)) {
-    return { nodes: [], creditUsd: 0 };
-  }
-  const col = await canvasProjectsCollection();
-  let project = await col.findOne({
-    _id: new ObjectId(canvasId),
+  const polled = await pollCanvasFlowForClient({
     clerkUserId: user.clerkUserId,
+    canvasId,
   });
-  if (!project) {
-    return { nodes: [], creditUsd: 0 };
-  }
-
-  // Local dev has no Vast worker. Polling settles the current wave and, once its
-  // jobs are done, advances or finishes the flow. Otherwise a restarted dev server
-  // leaves activeFlowRun running and locks Replan.
-  if (!shouldUseWorkerQueueOnly() && project.activeFlowRun?.status === "running") {
-    if (project.activeFlowRun.activeWaveJobIds?.length) {
-      await pollCanvasJobs({
-        clerkUserId: user.clerkUserId,
-        canvasId,
-        jobIds: project.activeFlowRun.activeWaveJobIds,
-      }).catch(() => {});
-    }
-    const now = new Date();
-    await executeCanvasFlowTask({
-      _id: new ObjectId(),
-      kind: "canvas_flow",
-      lane: "cpu",
-      status: "in_progress",
-      targetId: canvasId,
-      payload: {
-        flowRunId: project.activeFlowRun.flowRunId,
-        clerkUserId: user.clerkUserId,
-      },
-      attempts: 1,
-      maxAttempts: 5,
-      nextAttemptAt: now,
-      createdAt: now,
-      updatedAt: now,
-    }).catch(() => {});
-    project =
-      (await col.findOne({
-        _id: new ObjectId(canvasId),
-        clerkUserId: user.clerkUserId,
-      })) ?? project;
-  }
-
-  const nodes = await healFinishedCanvasRuns(
-    user.clerkUserId,
-    project._id,
-    project.nodes,
-  );
-
-  const users = await usersCollection();
-  const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
-  const creditUsd = freshUser
-    ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd
-    : 0;
-
   return {
-    nodes,
-    ...(project.activeFlowRun
-      ? {
-          activeFlowRun: {
-            flowRunId: project.activeFlowRun.flowRunId,
-            status: project.activeFlowRun.status,
-            currentWave: project.activeFlowRun.currentWave,
-            totalWaves: project.activeFlowRun.totalWaves,
-            failedNodeIds: project.activeFlowRun.failedNodeIds ?? [],
-            ...(project.activeFlowRun.error ? { error: project.activeFlowRun.error } : {}),
-          },
-        }
+    nodes: polled.nodes,
+    ...(polled.activeFlowRun
+      ? { activeFlowRun: serializeCanvasFlowRun(polled.activeFlowRun) }
       : {}),
-    creditUsd,
+    creditUsd: polled.creditUsd,
   };
 }
 

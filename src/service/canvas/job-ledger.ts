@@ -2,14 +2,24 @@
 // USD credit refunds, and synchronized `canvas_projects.nodes.$.data` write-backs.
 
 import { ObjectId } from "mongodb";
-import { canvasJobsCollection, canvasProjectsCollection } from "@/dao";
+import { canvasJobsCollection, canvasProjectsCollection, usersCollection } from "@/dao";
 import type {
   CanvasJob,
   CanvasJobDomainKind,
   CanvasNodeData,
   CanvasOutputKind,
 } from "@/model/canvas";
+import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { refundCreditUsd } from "@/service/billing/credits";
+import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
+
+// Reads a user's authoritative USD credit balance (respecting unlimited accounts).
+export async function readUserCreditUsd(clerkUserId: string): Promise<number> {
+  const users = await usersCollection();
+  const user = await users.findOne({ clerkUserId });
+  if (!user) return 0;
+  return resolveUserUsdBalance(withUnlimitedCredits(user)).creditUsd;
+}
 
 export type RefundCanvasJobResult = {
   refunded: boolean;

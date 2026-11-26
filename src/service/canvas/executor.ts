@@ -5,7 +5,6 @@ import { ObjectId } from "mongodb";
 import {
   canvasJobsCollection,
   canvasProjectsCollection,
-  usersCollection,
   workerTasksCollection,
 } from "@/dao";
 import type {
@@ -17,9 +16,7 @@ import type {
 } from "@/model/canvas";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
-import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
-import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import {
   type RefundCanvasJobResult,
   createDefaultCanvasJobLedgerDeps,
@@ -27,6 +24,7 @@ import {
   markJobFailed,
   markJobQueued,
   markJobRunning,
+  readUserCreditUsd,
   refundCanvasJobOnce,
 } from "@/service/canvas/job-ledger";
 import {
@@ -238,13 +236,6 @@ export type PollCanvasJobsResult = {
 export { refundCanvasJobOnce };
 export type { RefundCanvasJobResult };
 
-async function defaultGetUserCreditUsd(clerkUserId: string): Promise<number> {
-  const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId });
-  if (!user) return 0;
-  return resolveUserUsdBalance(withUnlimitedCredits(user)).creditUsd;
-}
-
 function createDefaultDeps(): CanvasExecutorDeps {
   const defaultLedger = createDefaultCanvasJobLedgerDeps();
   return {
@@ -284,7 +275,7 @@ function createDefaultDeps(): CanvasExecutorDeps {
     hasGoogleStudioKey: () => hasGoogleStudioKey(),
     consumeCreditUsd,
     refundCreditUsd,
-    getUserCreditUsd: defaultGetUserCreditUsd,
+    getUserCreditUsd: readUserCreditUsd,
     submitOpenRouterImage: (input) => submitOpenRouterImage(input),
     submitGoogleStudioImage: (input) => submitGoogleStudioImage(input),
     submitGoogleStudioVideo: (input) => submitGoogleStudioVideo(input),
