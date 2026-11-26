@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { addEdge, EdgeChangeset, NodeChangeset, type Connection, type Edge } from "@xyflow/react";
 import type { CanvasEdge, CanvasNodeData } from "@/model/canvas";
 import { saveCanvasProjectAction, uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { placeDroppedCanvasFiles } from "@/app/app/canvas/workspace/canvas-media-drop";
 import {
   adoptServerPreview,
   getNodeOutputPortType,
@@ -727,31 +728,19 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
       if (list.length === 0) return;
       setIsUploading(true);
       try {
-        const basePos = dropPosition ?? getCenterPosition();
-        let offset = 0;
-        for (const file of list) {
-          const fd = new FormData();
-          fd.append("file", file);
-          const result = await uploadCanvasMediaAction(fd);
-          if (!result.ok) {
-            toast.error(result.error);
-            continue;
-          }
-          const node: FlowNode = {
-            id: `media-${crypto.randomUUID().slice(0, 8)}`,
-            type: "media",
-            position: { x: basePos.x + offset, y: basePos.y + offset },
-            data: {
-              label: result.fileName,
-              fileName: result.fileName,
-              mediaKind: result.mediaKind,
-              mediaUrl: result.url,
-            },
-          };
-          offset += 44;
-          setNodes((prev) => [...prev, node]);
-          scheduleAutosave();
-        }
+        await placeDroppedCanvasFiles({
+          files: list,
+          position: dropPosition ?? getCenterPosition(),
+          // The server action returns when the upload finishes. It does not emit a percentage.
+          upload: async (file) => {
+            const fd = new FormData();
+            fd.append("file", file);
+            return uploadCanvasMediaAction(fd);
+          },
+          onNodes: setNodes,
+          onError: (message) => toast.error(message),
+          onSettled: scheduleAutosave,
+        });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed");
       } finally {
