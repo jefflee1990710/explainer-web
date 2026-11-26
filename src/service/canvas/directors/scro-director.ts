@@ -107,7 +107,8 @@ export function buildSwapDirectorGroup(
     ? (params.swapMode as SwapDirectorMode)
     : "character";
   const instruction = node.data.prompt?.trim() ?? "";
-  if (mode === "character" && !input.referenceNodeId) return { error: "reference" };
+  const characterId = text(params.characterId);
+  if (mode === "character" && !input.referenceNodeId && !characterId) return { error: "reference" };
   if (mode === "object" && !instruction) return { error: "object" };
   const section = sectionOf(node.data);
   const edit = OBJECT_EDITS.includes(params.objectEditMode as (typeof OBJECT_EDITS)[number])
@@ -119,6 +120,7 @@ export function buildSwapDirectorGroup(
       video: { nodeId: input.videoNodeId },
       mode,
       ...(input.referenceNodeId ? { reference: { nodeId: input.referenceNodeId } } : {}),
+      ...(characterId ? { characterId } : {}),
       ...(instruction ? { instruction } : {}),
       ...(text(params.objectTarget) ? { objectTarget: text(params.objectTarget) } : {}),
       ...(edit ? { objectEditMode: edit } : {}),

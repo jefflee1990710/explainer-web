@@ -10,6 +10,7 @@ import {
   mergeCanvasNodeSnapshots,
   reorderTargetHandleEdges,
   resolveNodeInputs,
+  readConnectedPromptText,
   validateEdgeConnection,
 } from "@/service/canvas/core/graph";
 import { explainerTextStyleLine } from "@/service/canvas/core/settings/explainer-text-style";
@@ -473,6 +474,34 @@ describe("canvas graph — resolveNodeInputs", () => {
       assert.equal(inlineOnly.inputs.prompt, "Fallback inline prompt");
       assert.equal(inlineOnly.promptFromNode, false);
     }
+    assert.equal(readConnectedPromptText("flux", nodes, edges), "Cinematic cyberpunk Tokyo at dusk");
+    assert.equal(readConnectedPromptText("flux", nodes, []), undefined);
+  });
+
+  it("keeps an edited model prompt instead of the connected Prompt node", () => {
+    const nodes: CanvasNode[] = [
+      promptNode("p1", "Wired line"),
+      modelNode("flux", "mentalok:flux-schnell", {
+        prompt: "My line",
+        toolParams: { promptEdited: true },
+      }),
+    ];
+    const edges: CanvasEdge[] = [edge("e1", "p1", "flux", "prompt")];
+    const resolved = resolveNodeInputs("flux", nodes, edges);
+    assert.equal(resolved.ok, true);
+    if (resolved.ok) {
+      assert.equal(resolved.inputs.prompt, "My line");
+      assert.equal(resolved.promptFromNode, false);
+    }
+    const cleared = resolveNodeInputs("flux", [
+      promptNode("p1", "Wired line"),
+      modelNode("flux", "mentalok:flux-schnell", {
+        prompt: "   ",
+        toolParams: { promptEdited: true },
+      }),
+    ], edges);
+    assert.equal(cleared.ok, false);
+    if (!cleared.ok) assert.equal(cleared.inputs.prompt, undefined);
   });
 
   it("gathers startImage, endImage, refImages, image, video, and refAudio from media and completed model nodes", () => {

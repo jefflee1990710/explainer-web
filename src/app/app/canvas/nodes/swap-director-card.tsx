@@ -3,7 +3,8 @@
 // Scro Swap director. Build expands trim → render → grade and keeps this card.
 
 import { Repeat2, Trash2 } from "lucide-react";
-import type { CanvasNodeData } from "@/model/canvas";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
+import type { CanvasNode, CanvasNodeData } from "@/model/canvas";
 import {
   readExpandedNodeIds,
   scroDirectorBuildMessage,
@@ -20,6 +21,8 @@ type Props = {
   disabled: boolean;
   videoWired: boolean;
   referenceWired: boolean;
+  sourceNode: CanvasNode | undefined;
+  characterOptions: readonly CanvasLibraryCharacterOption[];
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onBuild: () => void;
   onRemove: () => void;
@@ -32,30 +35,31 @@ export function SwapDirectorCard({
   disabled,
   videoWired,
   referenceWired,
+  sourceNode,
+  characterOptions,
   onUpdate,
   onBuild,
   onRemove,
 }: Props) {
-  const mode = String(data.toolParams?.swapMode ?? "character");
+  const characterId = typeof data.toolParams?.characterId === "string" ? data.toolParams.characterId.trim() : "";
   const built = readExpandedNodeIds(data).length > 0;
   const block: ScroDirectorBuildError | undefined = !videoWired
     ? "video"
-    : mode === "character" && !referenceWired
+    : !referenceWired && !characterId
       ? "reference"
-      : mode === "object" && !(data.prompt ?? "").trim()
-        ? "object"
-        : undefined;
+      : undefined;
+  // Character mode always needs a reference image, unless a character is already chosen.
   const referenceDetail = referenceWired
     ? isZh
       ? "已連"
       : "Wired"
-    : mode === "character"
+    : characterId
       ? isZh
-        ? "需要"
-        : "Required"
-      : isZh
         ? "可選"
-        : "Optional";
+        : "Optional"
+      : isZh
+        ? "需要"
+        : "Required";
 
   return (
     <div
@@ -96,7 +100,14 @@ export function SwapDirectorCard({
         detail={referenceDetail}
       />
       <div className="flex flex-col gap-2.5 p-3">
-        <SwapDirectorFields data={data} isZh={isZh} disabled={disabled} onUpdate={onUpdate} />
+        <SwapDirectorFields
+          data={data}
+          isZh={isZh}
+          disabled={disabled}
+          sourceNode={sourceNode}
+          characterOptions={characterOptions}
+          onUpdate={onUpdate}
+        />
         {block ? (
           <p className="text-[10.5px] text-white/45">{scroDirectorBuildMessage(block, isZh)}</p>
         ) : (

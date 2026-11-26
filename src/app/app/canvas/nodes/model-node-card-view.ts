@@ -21,6 +21,7 @@ export type ModelNodeCardView = {
   onUpdateNodeData: CanvasNodeActionsContextValue["onUpdateNodeData"];
   onDeleteNode: CanvasNodeActionsContextValue["onDeleteNode"];
   onRunNode: CanvasNodeActionsContextValue["onRunNode"];
+  onRunNodeWithDependents: CanvasNodeActionsContextValue["onRunNodeWithDependents"];
   onSwapModel: CanvasNodeActionsContextValue["onSwapModel"];
   onOpenLightbox: CanvasNodeActionsContextValue["onOpenLightbox"];
   showAdvanced: boolean;
