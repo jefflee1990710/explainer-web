@@ -21,9 +21,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
-import type { CanvasNodeData, CanvasViewport } from "@/model/canvas";
-import { refreshCanvasModelsAction, generateCanvasCharacterOutfitAction } from "@/presentation/actions/canvas";
-import { refreshCharacterAction } from "@/presentation/actions/characters";
+import type { CanvasViewport } from "@/model/canvas";
+import { refreshCanvasModelsAction } from "@/presentation/actions/canvas";
 import { notifyCreditsChanged } from "@/presentation/components/app/billing/credits-changed";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BLUEPRINT_COST_USD } from "@/service/production-plan";
@@ -50,7 +49,6 @@ import { ReplanBeforeRunDialog, type ReplanBeforeRunItem } from "@/app/app/canva
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
 import type {
-  CanvasLibraryAsset,
   CanvasLibraryAssetsResult,
   CanvasProjectDto,
   CanvasProjectSummaryDto,
@@ -59,8 +57,7 @@ import type { CanvasFolderDto } from "@/model/canvas-dto";
 import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import { CanvasAgentDock } from "@/app/app/canvas/agent/canvas-agent-dock";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
-import { CANVAS_DRAG_ASSET_MIME, CANVAS_DRAG_MODEL_MIME, CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";
-import { CANVAS_DRAG_PROMPT_MIME } from "@/app/app/canvas/canvas-prompt-tool";
+import { CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";
 import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
 import { useCanvasFlow } from "@/app/app/canvas/workspace/use-canvas-flow";
@@ -69,7 +66,10 @@ import { useCanvasLibrary } from "@/app/app/canvas/workspace/use-canvas-library"
 import { useCanvasAgentReplay } from "@/app/app/canvas/workspace/use-canvas-agent-replay";
 import { useCanvasDirectors } from "@/app/app/canvas/workspace/use-canvas-directors";
 import { useCanvasDocument } from "@/app/app/canvas/workspace/use-canvas-document";
-import { FAILED_EDGE_STROKE, JOB_POLL_INTERVAL_MS } from "@/app/app/canvas/workspace/canvas-timing";
+import { useCanvasOutfits } from "@/app/app/canvas/workspace/use-canvas-outfits";
+import { useCanvasPaneDrop } from "@/app/app/canvas/workspace/use-canvas-pane-drop";
+import { useCanvasGroupActions } from "@/app/app/canvas/groups/use-canvas-group-actions";
+import { FAILED_EDGE_STROKE } from "@/app/app/canvas/workspace/canvas-timing";
 import {
   toDomainEdges,
   toDomainNodes,
@@ -81,14 +81,12 @@ import {
 import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
-import { CANVAS_DRAG_SETTINGS_MIME } from "@/app/app/canvas/canvas-settings-tool";
 import { withoutModelSettingsEdges } from "@/service/canvas/core/settings/registry";
 import { outdatedNodeReasons } from "@/service/canvas/core/stale-outputs";
 import { MediaNodeCard } from "@/app/app/canvas/nodes/media-node-card";
 import { ModelNodeCard } from "@/app/app/canvas/nodes/model-node-card";
 import { type CanvasLightboxItem, CanvasNodeActionsContext } from "@/app/app/canvas/nodes/port-colors";
 import { PromptNodeCard } from "@/app/app/canvas/nodes/prompt-node-card";
-import { characterOutfitEditInstruction, outfitWiresFromGraph } from "@/service/canvas/core/character-node";
 
 const NODE_TYPES = {
   media: withPlanLock(MediaNodeCard),
@@ -151,7 +149,6 @@ function CanvasWorkspaceInner({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
-  const [isDraggingFile, setIsDraggingFile] = useState(false);
   // True while another canvas is opening, until this workspace unmounts.
   const [isSwitchingProject, setIsSwitchingProject] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -460,93 +457,25 @@ function CanvasWorkspaceInner({
     pendingGroupLayoutRef,
   });
 
-  // Deletes the frame and every member node, plus wires that touch them.
-  const canvasGroups = groupsApi.groups;
-  const ungroupById = groupsApi.ungroup;
-  const handleDeleteGroup = useCallback(
-    (groupId: string) => {
-      if (planLockRef.current.groupIds.has(groupId)) return;
-      const group = canvasGroups.find((g) => g.id === groupId);
-      if (!group) return;
-      const members = new Set(group.memberIds);
-      markStale(
-        edgesRef.current
-          .filter((e) => members.has(e.source) && !members.has(e.target))
-          .map((e) => e.target),
-      );
-      setNodes((prev) => prev.filter((n) => !members.has(n.id)));
-      setEdges((prev) => prev.filter((e) => !members.has(e.source) && !members.has(e.target)));
-      ungroupById(groupId);
-    },
-    [canvasGroups, ungroupById, markStale, setNodes, setEdges],
-  );
-
-  const groupContextValue = useMemo(
-    () => ({
-      isZh,
-      isFlowRunning,
-      onRename: groupsApi.renameGroup,
-      onColor: groupsApi.recolorGroup,
-      onToggleCollapse: groupsApi.toggleCollapse,
-      onRun: handleRunGroup,
-      onUngroup: (groupId: string) => {
-        if (planLockRef.current.groupIds.has(groupId)) return;
-        ungroupById(groupId);
-      },
-      onDelete: handleDeleteGroup,
-    }),
-    [
-      isZh,
-      isFlowRunning,
-      groupsApi.renameGroup,
-      groupsApi.recolorGroup,
-      groupsApi.toggleCollapse,
-      ungroupById,
-      handleRunGroup,
-      handleDeleteGroup,
-    ],
-  );
-
-  const { groupSelection, ungroupSelection } = groupsApi;
-  // A Director that is still planning keeps its frame and rows together.
-  const selectionHitsPlanning = useMemo(() => {
-    if (planLocks.groupIds.size === 0) return false;
-    const selected = new Set(groupsApi.selectedIds);
-    return groupsApi.groups.some(
-      (group) => planLocks.groupIds.has(group.id) && group.memberIds.some((id) => selected.has(id)),
-    );
-  }, [planLocks.groupIds, groupsApi.groups, groupsApi.selectedIds]);
-  const groupSelectedNodes = useCallback(() => {
-    if (selectionHitsPlanning) return false;
-    return groupSelection(isZh ? "群組" : "Group");
-  }, [groupSelection, isZh, selectionHitsPlanning]);
-  const ungroupSelectedNodes = useCallback(() => {
-    if (selectionHitsPlanning) return false;
-    return ungroupSelection();
-  }, [selectionHitsPlanning, ungroupSelection]);
-  const { selectionInGroup, selectionIsOneGroup } = useMemo(() => {
-    const selected = new Set(groupsApi.selectedIds);
-    return {
-      selectionInGroup: groupsApi.groups.some((g) => g.memberIds.some((id) => selected.has(id))),
-      // Selection already matches one group exactly, so grouping again would do nothing.
-      selectionIsOneGroup: groupsApi.groups.some(
-        (g) => g.memberIds.length === selected.size && g.memberIds.every((id) => selected.has(id)),
-      ),
-    };
-  }, [groupsApi.groups, groupsApi.selectedIds]);
-
-  // Cmd/Ctrl+G groups the selection; Shift+Cmd/Ctrl+G ungroups it.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "g") return;
-      const target = event.target;
-      if (target instanceof Element && target.closest("input, textarea, [contenteditable='true']")) return;
-      const handled = event.shiftKey ? ungroupSelectedNodes() : groupSelectedNodes();
-      if (handled) event.preventDefault();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [groupSelectedNodes, ungroupSelectedNodes]);
+  const {
+    groupContextValue,
+    selectionHitsPlanning,
+    groupSelectedNodes,
+    ungroupSelectedNodes,
+    selectionInGroup,
+    selectionIsOneGroup,
+  } = useCanvasGroupActions({
+    groupsApi,
+    planLocks,
+    planLockRef,
+    isZh,
+    isFlowRunning,
+    handleRunGroup,
+    markStale,
+    setNodes,
+    setEdges,
+    edgesRef,
+  });
 
   const {
     handleSelectProject,
@@ -620,218 +549,16 @@ function CanvasWorkspaceInner({
     return count;
   }, [nodes, models]);
 
-  // Drag & drop onto canvas pane (supports local files, sidebar models, sidebar Scro assets).
-  const handlePaneDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-    if (event.dataTransfer.types.includes("Files")) {
-      setIsDraggingFile(true);
-    }
-  }, []);
+  const { isDraggingFile, handlePaneDragOver, handlePaneDragLeave, handlePaneDrop } = useCanvasPaneDrop({
+    reactFlow,
+    addModelNodeAt,
+    addPromptNode,
+    addSettingsNode,
+    addAssetNodeAt,
+    uploadAndPlaceFiles,
+  });
 
-  const handlePaneDragLeave = useCallback((event: React.DragEvent) => {
-    if (event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) return;
-    setIsDraggingFile(false);
-  }, []);
-
-  const handlePaneDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      setIsDraggingFile(false);
-      const position = reactFlow.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      const modelId = event.dataTransfer.getData(CANVAS_DRAG_MODEL_MIME);
-      if (modelId) {
-        addModelNodeAt(modelId, position);
-        return;
-      }
-
-      if (event.dataTransfer.getData(CANVAS_DRAG_PROMPT_MIME) === "prompt") {
-        addPromptNode(position);
-        return;
-      }
-
-      if (event.dataTransfer.getData(CANVAS_DRAG_SETTINGS_MIME)) {
-        addSettingsNode(position);
-        return;
-      }
-
-      const rawAsset = event.dataTransfer.getData(CANVAS_DRAG_ASSET_MIME);
-      if (rawAsset) {
-        try {
-          const parsed = JSON.parse(rawAsset) as CanvasLibraryAsset;
-          addAssetNodeAt(parsed, position);
-        } catch {
-          // ignore malformed drag payload
-        }
-        return;
-      }
-
-      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-        void uploadAndPlaceFiles(event.dataTransfer.files, position);
-      }
-    },
-    [reactFlow, addModelNodeAt, addPromptNode, addSettingsNode, addAssetNodeAt, uploadAndPlaceFiles],
-  );
-
-  const onGenerateOutfit = useCallback(
-    async (nodeId: string) => {
-      const node = nodesRef.current.find((item) => item.id === nodeId);
-      const characterId = node?.data.characterId;
-      if (!node || node.type !== "character" || !characterId) {
-        toast.error(isZh ? "這個角色節點缺少角色資料" : "This character node is missing its character");
-        return;
-      }
-      const wires = outfitWiresFromGraph(
-        nodeId,
-        toDomainNodes(nodesRef.current),
-        toDomainEdges(edgesRef.current),
-      );
-      const instruction = characterOutfitEditInstruction(wires);
-      if (!instruction) {
-        toast.error(isZh ? "先把穿搭接到角色節點" : "Connect an outfit to the character first");
-        return;
-      }
-      setNodes((prev) =>
-        prev.map((item) =>
-          item.id === nodeId
-            ? { ...item, data: { ...item.data, status: "queued", lastError: undefined } }
-            : item,
-        ),
-      );
-      const updateDefaultOutfit = node.data.toolParams?.updateDefaultOutfit === true;
-      const result = await generateCanvasCharacterOutfitAction({
-        characterId,
-        instruction,
-        updateDefaultOutfit,
-      });
-      if (!result.ok) {
-        setNodes((prev) =>
-          prev.map((item) =>
-            item.id === nodeId
-              ? { ...item, data: { ...item.data, status: "failed", lastError: result.error } }
-              : item,
-          ),
-        );
-        toast.error(result.error);
-        return;
-      }
-      setNodes((prev) =>
-        prev.map((item) =>
-          item.id === nodeId
-            ? {
-                ...item,
-                data: {
-                  ...item.data,
-                  status: "running",
-                  lastCostUsd: result.chargedUsd,
-                  toolParams: {
-                    ...(item.data.toolParams ?? {}),
-                    versionId: result.versionId,
-                  },
-                },
-              }
-            : item,
-        ),
-      );
-      scheduleAutosave();
-      toast.success(isZh ? "已開始生成新造型" : "Outfit generation started");
-    },
-    [isZh, scheduleAutosave, setNodes],
-  );
-
-  const outfitWatchKey = useMemo(
-    () =>
-      nodes
-        .filter(
-          (node) =>
-            node.type === "character" &&
-            (node.data.status === "queued" || node.data.status === "running"),
-        )
-        .map((node) => node.id)
-        .join(","),
-    [nodes],
-  );
-
-  // Follow the character blueprint job and paint the new outfit onto the node.
-  useEffect(() => {
-    if (!outfitWatchKey) return;
-    let alive = true;
-    let inFlight = false;
-
-    const tick = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-      const pending = nodesRef.current.filter(
-        (node) =>
-          node.type === "character" &&
-          (node.data.status === "queued" || node.data.status === "running") &&
-          node.data.characterId &&
-          typeof node.data.toolParams?.versionId === "string",
-      );
-      const byCharacter = new Map<string, FlowNode[]>();
-      for (const node of pending) {
-        const characterId = node.data.characterId ?? "";
-        const list = byCharacter.get(characterId) ?? [];
-        list.push(node);
-        byCharacter.set(characterId, list);
-      }
-
-      for (const [characterId, group] of byCharacter) {
-        const result = await refreshCharacterAction(characterId);
-        if (!alive || !result.ok) continue;
-        const updates = new Map<string, Partial<CanvasNodeData>>();
-        for (const node of group) {
-          const versionId = String(node.data.toolParams?.versionId ?? "");
-          const version = result.character.versions.find((item) => item.id === versionId);
-          if (!version) continue;
-          if (version.status === "failed") {
-            updates.set(node.id, {
-              status: "failed",
-              lastError: version.error || (isZh ? "生成造型失敗" : "Outfit generation failed"),
-            });
-            continue;
-          }
-          const url = version.blueprintUrl || version.portraitUrl || version.profileUrl;
-          if (version.status !== "completed" || !url) {
-            updates.set(node.id, { status: "running" });
-            continue;
-          }
-          updates.set(node.id, {
-            status: "completed",
-            outputUrl: url,
-            outputKind: "image",
-            lastError: undefined,
-          });
-        }
-        if (updates.size === 0) continue;
-        setNodes((prev) =>
-          prev.map((node) => {
-            const patch = updates.get(node.id);
-            if (!patch) return node;
-            return { ...node, data: { ...node.data, ...patch } };
-          }),
-        );
-        scheduleAutosave();
-      }
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    void tick();
-    const timer = window.setInterval(() => {
-      void tick();
-    }, JOB_POLL_INTERVAL_MS);
-    return () => {
-      alive = false;
-      window.clearInterval(timer);
-    };
-  }, [outfitWatchKey, isZh, scheduleAutosave, setNodes]);
+  const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
 
   // Runs the node a confirmed Replan was waiting for, after the new plan and unlocked rows render.
   useEffect(() => {
