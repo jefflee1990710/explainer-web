@@ -133,7 +133,7 @@ export async function submitCanvasNodeJob(
   );
   if (!inputCheck.ok) {
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    const details: string[] = [];
+    const details: string[] = inputCheck.reason ? [inputCheck.reason] : [];
     if (inputCheck.missingRequiredFields.length > 0) {
       details.push(`缺少必要輸入：${inputCheck.missingRequiredFields.join(", ")}`);
     }
@@ -271,6 +271,9 @@ export async function submitCanvasNodeJob(
       : {}),
     ...(inputCheck.inputs.refImages.length > 0
       ? { refImages: inputCheck.inputs.refImages }
+      : {}),
+    ...(inputCheck.inputs.characterRefPositions?.length
+      ? { characterRefPositions: inputCheck.inputs.characterRefPositions }
       : {}),
     ...(inputCheck.inputs.video ? { video: inputCheck.inputs.video } : {}),
     ...(inputCheck.inputs.videos.length > 0

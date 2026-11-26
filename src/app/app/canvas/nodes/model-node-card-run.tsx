@@ -1,12 +1,17 @@
 import { GitBranch, Loader2, Play, RotateCcw } from "lucide-react";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
+import { CharacterOutfitPendingNotice } from "@/app/app/canvas/nodes/character-outfit-pending-notice";
+import { characterOutfitPendingMessage } from "@/service/canvas/core/character-wardrobe";
 
 export function ModelNodeCardRun(view: ModelNodeCardView) {
-  const { id, onRunNode, onRunNodeWithDependents, isZh, isBusy, missingRequiredLabels, canRun, isRerun } = view;
+  const { id, onRunNode, onRunNodeWithDependents, isZh, isBusy, missingRequiredLabels, pendingOutfits, canRun, isRerun } =
+    view;
   const missingTitle =
     missingRequiredLabels.length > 0
       ? `${isZh ? "缺少必要輸入：" : "Missing required: "}${missingRequiredLabels.join(", ")}`
-      : undefined;
+      : pendingOutfits.length > 0
+        ? characterOutfitPendingMessage(pendingOutfits, isZh)
+        : undefined;
   const onlyLabel = isBusy
     ? isZh
       ? "執行中…"
@@ -24,6 +29,7 @@ export function ModelNodeCardRun(view: ModelNodeCardView) {
 
   return (
     <div className="flex flex-col gap-1.5">
+      <CharacterOutfitPendingNotice pending={pendingOutfits} isZh={isZh} />
       <button
         type="button"
         disabled={!canRun}
