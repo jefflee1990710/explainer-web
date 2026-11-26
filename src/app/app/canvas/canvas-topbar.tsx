@@ -21,6 +21,33 @@ import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
 
+export type CanvasFlowHeaderStatus = {
+  status: "running" | "completed" | "failed" | "stopped";
+  current: number;
+  total: number;
+  failedCount: number;
+};
+
+export function canvasFlowHeaderStatus(
+  run:
+    | {
+        status: CanvasFlowHeaderStatus["status"];
+        currentWave: number;
+        totalWaves: number;
+        failedNodeIds?: string[];
+      }
+    | null
+    | undefined,
+): CanvasFlowHeaderStatus | null {
+  if (!run) return null;
+  return {
+    status: run.status,
+    current: run.currentWave,
+    total: run.totalWaves,
+    failedCount: run.failedNodeIds?.length ?? 0,
+  };
+}
+
 export function CanvasTopbar({
   locale,
   projects,
@@ -32,6 +59,7 @@ export function CanvasTopbar({
   flowModelCount,
   isFlowRunning,
   flowWaveProgress,
+  flowStatus,
   onSelectProject,
   onCreateProject,
   onRenameProject,
@@ -53,6 +81,7 @@ export function CanvasTopbar({
   flowModelCount: number;
   isFlowRunning: boolean;
   flowWaveProgress: { current: number; total: number } | null;
+  flowStatus: CanvasFlowHeaderStatus | null;
   onSelectProject: (projectId: string) => void;
   onCreateProject: (folderId?: string) => void;
   onRenameProject: (projectId: string, nextTitle: string) => void;
@@ -183,6 +212,7 @@ export function CanvasTopbar({
           ) : null}
           {saveLabel}
         </span>
+        <FlowStatusPill status={flowStatus} isZh={isZh} />
       </div>
 
       {/* Right: USD balance + primary Run Flow button */}
@@ -249,5 +279,56 @@ export function CanvasTopbar({
       />
     ) : null}
     </>
+  );
+}
+
+function FlowStatusPill({
+  status,
+  isZh,
+}: {
+  status: CanvasFlowHeaderStatus | null;
+  isZh: boolean;
+}) {
+  if (!status) return null;
+  const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
+  const label =
+    status.status === "running"
+      ? isZh
+        ? `流程執行中${wave}`
+        : `Flow running${wave}`
+      : status.status === "completed"
+        ? isZh
+          ? `流程已完成${wave}`
+          : `Flow finished${wave}`
+        : status.status === "failed"
+          ? isZh
+            ? `流程結束 · ${status.failedCount} 個失敗`
+            : `Flow finished · ${status.failedCount} failed`
+          : isZh
+            ? "流程已停止"
+            : "Flow stopped";
+  const tone =
+    status.status === "running"
+      ? "border-[#c6f24b]/40 bg-[#c6f24b]/12 text-[#d6f58a]"
+      : status.status === "completed"
+        ? "border-emerald-400/35 bg-emerald-500/12 text-emerald-200"
+        : status.status === "failed"
+          ? "border-rose-400/40 bg-rose-500/12 text-rose-200"
+          : "border-white/15 bg-white/6 text-white/70";
+  return (
+    <span
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}
+    >
+      {status.status === "running" ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : status.status === "completed" ? (
+        <Check className="h-3 w-3" />
+      ) : status.status === "stopped" ? (
+        <Square className="h-2.5 w-2.5 fill-current" />
+      ) : (
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      )}
+      {label}
+    </span>
   );
 }

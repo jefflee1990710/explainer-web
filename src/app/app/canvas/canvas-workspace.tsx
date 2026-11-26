@@ -169,7 +169,12 @@ import {
 } from "@/app/app/canvas/canvas-sidebar";
 import { CANVAS_DRAG_PROMPT_MIME } from "@/app/app/canvas/canvas-prompt-tool";
 import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
-import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
+import {
+  CanvasTopbar,
+  canvasFlowHeaderStatus,
+  type CanvasFlowHeaderStatus,
+  type SaveStatus,
+} from "@/app/app/canvas/canvas-topbar";
 import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SETTING_COLOR, SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
@@ -464,6 +469,10 @@ function CanvasWorkspaceInner({
           total: initialProject.activeFlowRun.totalWaves,
         }
       : null,
+  );
+  // Stays after the run ends, so the top bar can show finished as well as running.
+  const [flowStatus, setFlowStatus] = useState<CanvasFlowHeaderStatus | null>(() =>
+    canvasFlowHeaderStatus(initialProject.activeFlowRun),
   );
 
   const [initialGraph] = useState(() => {
@@ -1401,6 +1410,7 @@ function CanvasWorkspaceInner({
         if ("waitingForUpstream" in res) {
           setIsFlowRunning(true);
           setFlowWaveProgress({ current: res.activeFlowRun.currentWave, total: res.activeFlowRun.totalWaves });
+          setFlowStatus(canvasFlowHeaderStatus(res.activeFlowRun));
           setSaveStatus("saved");
           toast.info(isZh ? "上游還在執行，完成後會自動執行這個節點" : "Waiting for the upstream node; this node runs when it finishes");
           return;
@@ -1943,6 +1953,8 @@ function CanvasWorkspaceInner({
         if (!run || run.status !== "running") {
           setIsFlowRunning(false);
           setFlowWaveProgress(null);
+          if (run) setFlowStatus(canvasFlowHeaderStatus(run));
+          else setFlowStatus((prev) => (prev ? { ...prev, status: "stopped" } : prev));
           if (run?.status === "completed") {
             toast.success(isZh ? "整條工作流執行完成！" : "Workflow completed!");
           } else if (run?.status === "failed") {
@@ -1954,6 +1966,7 @@ function CanvasWorkspaceInner({
           }
         } else {
           setFlowWaveProgress({ current: run.currentWave, total: run.totalWaves });
+          setFlowStatus(canvasFlowHeaderStatus(run));
         }
       } catch {
         // Keep polling silently on transient network hiccups.
@@ -2011,6 +2024,7 @@ function CanvasWorkspaceInner({
       current: res.activeFlowRun.currentWave,
       total: res.activeFlowRun.totalWaves,
     });
+    setFlowStatus(canvasFlowHeaderStatus(res.activeFlowRun));
   }, [syncWallet]);
 
   const handleRunFlow = useCallback(() => void startFlowRun(undefined, true), [startFlowRun]);
@@ -2213,6 +2227,7 @@ function CanvasWorkspaceInner({
     await stopCanvasFlowAction(activeProjectIdRef.current).catch(() => {});
     setIsFlowRunning(false);
     setFlowWaveProgress(null);
+    setFlowStatus((prev) => (prev ? { ...prev, status: "stopped" } : { status: "stopped", current: 0, total: 0, failedCount: 0 }));
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");
   }, [isZh]);
 
@@ -2804,6 +2819,7 @@ function CanvasWorkspaceInner({
         flowModelCount={flowModelCount}
         isFlowRunning={isFlowRunning}
         flowWaveProgress={flowWaveProgress}
+        flowStatus={flowStatus}
         onSelectProject={handleSelectProject}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
