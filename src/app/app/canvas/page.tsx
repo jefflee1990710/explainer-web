@@ -3,27 +3,16 @@
 import { redirect } from "next/navigation";
 import { requireAppUser } from "@/service/auth";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
-import { ensureSettingsNodes } from "@/service/canvas/legacy/explainer-settings-migrate";
-import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
 import {
   serializeCanvasProject,
   serializeCanvasProjectSummary,
 } from "@/presentation/serialize/canvas";
 import {
-  createCanvasProject,
-  getOrCreateDefaultCanvasProject,
-  listCanvasLibraryAssets,
-  listCanvasProjects,
-} from "@/service/canvas/use-cases/projects";
-import {
-  CANVAS_STARTER_TEMPLATES,
-  instantiateCanvasTemplate,
-  isCanvasStarterTemplateId,
-} from "@/service/canvas/core/templates";
-import {
-  listCanvasAgentMessages,
-  serializeCanvasAgentMessage,
-} from "@/service/canvas-agent/history";
+  createCanvasFromStarterTemplate,
+  loadCanvasWorkspaceData,
+  openCanvasProject,
+} from "@/service/canvas/use-cases/workspace";
+import { serializeCanvasAgentMessage } from "@/service/canvas-agent/history";
 import { canvasPageHref } from "@/app/app/canvas/canvas-href";
 import { CanvasWorkspace } from "@/app/app/canvas/canvas-workspace";
 import { getRequestLocale } from "@/util/i18n/request-locale";
@@ -42,39 +31,31 @@ export default async function CanvasPage({
   const requestedId = firstQueryValue(params.id);
   const requestedTemplate = firstQueryValue(params.template);
 
-  if (!requestedId && isCanvasStarterTemplateId(requestedTemplate)) {
-    const tpl = CANVAS_STARTER_TEMPLATES.find((t) => t.id === requestedTemplate);
-    const { nodes, edges } = instantiateCanvasTemplate(requestedTemplate);
-    const templateTitle =
-      tpl && (requestedLocale === "zh-Hant" ? tpl.name["zh-Hant"] : tpl.name.en);
-    const created = await createCanvasProject(user.clerkUserId, {
-      title: templateTitle ?? "Template Canvas",
-      nodes,
-      edges,
-    });
-    redirect(canvasPageHref(created._id.toHexString(), params));
+  if (!requestedId) {
+    const templateCanvasId = await createCanvasFromStarterTemplate(
+      user.clerkUserId,
+      requestedTemplate,
+      requestedLocale,
+    );
+    if (templateCanvasId) redirect(canvasPageHref(templateCanvasId, params));
   }
 
-  const loadedProject = await getOrCreateDefaultCanvasProject(user.clerkUserId, requestedId);
-  // Older groups get their settings nodes before the editor opens.
-  const activeProject = await ensureSettingsNodes(loadedProject);
+  const activeProject = await openCanvasProject(user.clerkUserId, requestedId);
   const canvasId = activeProject._id.toHexString();
   // The address bar names the open canvas, including the first visit with no id.
   if (requestedId !== canvasId) redirect(canvasPageHref(canvasId, params));
 
-  const [catalog, assets, allProjects, agentMessages] = await Promise.all([
-    getCanvasModelCatalog(),
-    listCanvasLibraryAssets(user.clerkUserId),
-    listCanvasProjects(user.clerkUserId),
-    listCanvasAgentMessages(user.clerkUserId, canvasId),
-  ]);
+  const { catalog, assets, projects, agentMessages } = await loadCanvasWorkspaceData(
+    user.clerkUserId,
+    canvasId,
+  );
   const balance = resolveUserUsdBalance(user);
 
   return (
     <CanvasWorkspace
       key={canvasId}
       initialProject={serializeCanvasProject(activeProject)}
-      initialProjects={allProjects.map(serializeCanvasProjectSummary)}
+      initialProjects={projects.map(serializeCanvasProjectSummary)}
       initialModels={catalog}
       initialAssets={assets}
       initialCreditUsd={balance.creditUsd}

@@ -97,8 +97,10 @@ describe("Canvas-First public website invariants", () => {
 
   it("template launcher titles are locale-aware and never name FFmpeg", () => {
     const canvasPage = read("src/app/app/canvas/page.tsx");
-    assert.match(canvasPage, /requestedLocale === "zh-Hant"/, "new Canvas titles must follow the visitor locale");
-    assert.match(canvasPage, /tpl\.name\.en/);
+    assert.match(canvasPage, /createCanvasFromStarterTemplate\([\s\S]*requestedLocale/);
+    const workspace = read("src/service/canvas/use-cases/workspace.ts");
+    assert.match(workspace, /locale === "zh-Hant"/, "new Canvas titles must follow the visitor locale");
+    assert.match(workspace, /tpl\.name\.en/);
     const templates = read("src/service/canvas/core/templates.ts");
     const ffmpegReelBlock = templates.slice(
       templates.indexOf('id: "merge-reel"'),
