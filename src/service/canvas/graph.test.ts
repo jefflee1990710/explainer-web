@@ -4,6 +4,7 @@ import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import {
   applyCompletedJobOutputs,
   computeExecutionWaves,
+  restoreBusyNodesFromCompletedJobs,
   getNodeOutputPortType,
   mergeCanvasNodeSnapshots,
   reorderTargetHandleEdges,
@@ -827,6 +828,89 @@ describe("canvas graph — completed output recovery", () => {
       { nodeId: "img", outputUrl: "https://blob.example/new.png", updatedAt: new Date("2026-11-23T08:01:00.000Z") },
     ]);
     assert.equal(after[0]?.data.outputUrl, "https://blob.example/new.png");
+  });
+
+  it("does not let a stale Running save overwrite a finished job", () => {
+    const jobId = "6740000100000000000000aa";
+    const existing = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "completed",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/new.mp4",
+        outputKind: "video",
+      }),
+    ];
+    const incoming = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "running",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/old.mp4",
+        outputKind: "video",
+        prompt: "updated prompt",
+      }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.status, "completed");
+    assert.equal(merged[0]?.data.outputUrl, "https://blob.example/new.mp4");
+    assert.equal(merged[0]?.data.prompt, "updated prompt");
+  });
+
+  it("keeps a newer run when the stored node is an older completed job", () => {
+    const existing = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "completed",
+        lastJobId: "6740000000000000000000aa",
+        outputUrl: "https://blob.example/old.mp4",
+      }),
+    ];
+    const incoming = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "running",
+        lastJobId: "6740000200000000000000aa",
+        outputUrl: "https://blob.example/old.mp4",
+      }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.status, "running");
+    assert.equal(merged[0]?.data.lastJobId, "6740000200000000000000aa");
+  });
+
+  it("marks a Running node completed when its job already has a video", () => {
+    const jobId = "6740000100000000000000aa";
+    const nodes = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "running",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/old.mp4",
+      }),
+    ];
+    const restored = restoreBusyNodesFromCompletedJobs(nodes, [
+      {
+        id: jobId,
+        nodeId: "vid",
+        outputUrl: "https://blob.example/new.mp4",
+        outputKind: "video",
+        chargedUsd: 0.4,
+      },
+    ]);
+    assert.deepEqual(restored.restoredIds, ["vid"]);
+    assert.equal(restored.nodes[0]?.data.status, "completed");
+    assert.equal(restored.nodes[0]?.data.outputUrl, "https://blob.example/new.mp4");
+  });
+
+  it("leaves a Running node alone when a different job finished", () => {
+    const nodes = [
+      modelNode("vid", "openrouter:bytedance/seedance-2.0", {
+        status: "running",
+        lastJobId: "6740000200000000000000aa",
+        outputUrl: "https://blob.example/old.mp4",
+      }),
+    ];
+    const restored = restoreBusyNodesFromCompletedJobs(nodes, [
+      { id: "6740000100000000000000aa", nodeId: "vid", outputUrl: "https://blob.example/older.mp4" },
+    ]);
+    assert.deepEqual(restored.restoredIds, []);
+    assert.equal(restored.nodes[0]?.data.status, "running");
   });
 
   it("gives the Explainer Settings node no output port", () => {

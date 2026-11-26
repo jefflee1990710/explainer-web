@@ -4,7 +4,16 @@
 // On the right, a collapsed dock becomes a slim vertical rail so the canvas stays wide.
 
 import type { ReactNode } from "react";
-import { Bot, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, PanelBottom, PanelRight, Trash2 } from "lucide-react";
+import {
+  Bot,
+  ChevronDown,
+  ChevronUp,
+  PanelBottom,
+  PanelRight,
+  PanelRightClose,
+  PanelRightOpen,
+  Trash2,
+} from "lucide-react";
 import {
   CANVAS_AGENT_LANGUAGES,
   CANVAS_AGENT_LANGUAGE_LABELS,
@@ -42,8 +51,8 @@ export function CanvasAgentHeader({
 }) {
   const sideLabel = side === "bottom" ? copy.moveRight : copy.moveBottom;
   const SideIcon = side === "bottom" ? PanelRight : PanelBottom;
-  const CollapseIcon =
-    side === "right" ? (collapsed ? ChevronLeft : ChevronRight) : collapsed ? ChevronUp : ChevronDown;
+  const HideIcon = side === "right" ? PanelRightClose : collapsed ? ChevronUp : ChevronDown;
+  const hideLabel = collapsed ? copy.show : copy.hide;
 
   // A 40px rail cannot fit the language picker, so only the side switch and expand stay.
   if (side === "right" && collapsed) {
@@ -52,27 +61,26 @@ export function CanvasAgentHeader({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          aria-label={copy.expand}
-          title={copy.expand}
-          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[#c6f24b]/15 text-[#c6f24b]"
+          aria-label={copy.show}
+          title={copy.show}
+          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-[8px] text-white/70 transition hover:bg-white/8 hover:text-white"
         >
-          <Bot className="h-3.5 w-3.5" />
+          <PanelRightOpen className="h-4 w-4" />
         </button>
         {lockSide ? null : (
           <IconButton label={sideLabel} onClick={onToggleSide}>
             <SideIcon className="h-3.5 w-3.5" />
           </IconButton>
         )}
-        <div className="flex-1" />
-        <IconButton label={copy.expand} onClick={onToggleCollapsed}>
-          <CollapseIcon className="h-4 w-4" />
-        </IconButton>
       </div>
     );
   }
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/8 px-3">
+    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/8 pl-1.5 pr-3">
+      <IconButton label={hideLabel} onClick={onToggleCollapsed}>
+        <HideIcon className="h-4 w-4" />
+      </IconButton>
       <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#c6f24b]/15 text-[#c6f24b]">
           <Bot className="h-3.5 w-3.5" />
@@ -106,11 +114,6 @@ export function CanvasAgentHeader({
       <IconButton label={copy.clear} onClick={onClear} disabled={busy || !hasMessages}>
         <Trash2 className="h-3.5 w-3.5" />
       </IconButton>
-      {lockSide ? null : (
-        <IconButton label={collapsed ? copy.expand : copy.collapse} onClick={onToggleCollapsed}>
-          <CollapseIcon className="h-4 w-4" />
-        </IconButton>
-      )}
     </div>
   );
 }

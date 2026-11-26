@@ -8,7 +8,7 @@
 // 4) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Film, Loader2, Music, RefreshCw, Search, Upload } from "lucide-react";
+import { Film, Loader2, Music, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Upload } from "lucide-react";
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import type { PublicCharacter } from "@/presentation/serialize";
@@ -40,6 +40,7 @@ export { CANVAS_DRAG_MODEL_MIME } from "@/app/app/canvas/canvas-model-tile";
 export const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";
 
 const SIDEBAR_WIDTH_KEY = "scro.canvasSidebar.width";
+const SIDEBAR_HIDDEN_KEY = "scro.canvasSidebar.hidden";
 // The left rail holds the four tabs. The rest of the width is the list.
 const SIDEBAR_MIN_WIDTH = 340;
 const SIDEBAR_MAX_WIDTH = 520;
@@ -138,17 +139,21 @@ export function CanvasSidebar({
   const [category, setCategory] = useState<CanvasModelCategory | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [nodesHidden, setNodesHidden] = useState(false);
   // First click selects a tile. Add to Canvas is the second click.
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const addLabel = isZh ? "加入畫布" : "Add to Canvas";
 
-  // Saved width is read after mount so server and client HTML match.
+  // Saved width and hide state are read after mount so server and client HTML match.
   useEffect(() => {
     const saved = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    const savedHidden = window.localStorage.getItem(SIDEBAR_HIDDEN_KEY) === "1";
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
     if (Number.isFinite(saved) && saved >= SIDEBAR_MIN_WIDTH) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage
       setWidth(Math.min(SIDEBAR_MAX_WIDTH, saved));
     }
+    if (savedHidden) setNodesHidden(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // A click outside a tile clears the selection so the overlay does not stay up.
@@ -283,6 +288,31 @@ export function CanvasSidebar({
   }, [listedModels, query, activeCategory, locale]);
 
   const collapseLabel = isZh ? "只顯示圖示" : "Icons only";
+  const hideNodesLabel = isZh ? "隱藏節點" : "Hide nodes";
+  const showNodesLabel = isZh ? "顯示節點" : "Show nodes";
+  const toggleNodes = () => {
+    setNodesHidden((prev) => {
+      window.localStorage.setItem(SIDEBAR_HIDDEN_KEY, prev ? "0" : "1");
+      return !prev;
+    });
+  };
+
+  if (nodesHidden) {
+    return (
+      <aside className="flex h-full w-10 shrink-0 flex-col items-center border-r border-white/8 bg-[#0e121a]/95 py-2">
+        <button
+          type="button"
+          onClick={toggleNodes}
+          aria-label={showNodesLabel}
+          title={showNodesLabel}
+          className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/70 transition hover:border-white/20 hover:text-white"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      </aside>
+    );
+  }
+
   if (collapsed) {
     return (
       <CanvasSidebarIcons
@@ -332,6 +362,15 @@ export function CanvasSidebar({
             className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/65 transition hover:border-white/20 hover:text-white disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingModels ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            type="button"
+            onClick={toggleNodes}
+            aria-label={hideNodesLabel}
+            title={hideNodesLabel}
+            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/65 transition hover:border-white/20 hover:text-white"
+          >
+            <PanelLeftClose className="h-4 w-4" />
           </button>
         </div>
       </div>

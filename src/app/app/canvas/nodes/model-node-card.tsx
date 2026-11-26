@@ -46,6 +46,7 @@ import {
   OUTDATED_BADGE_CLASS,
   OutdatedBanner,
   OutdatedPreviewTag,
+  PreviousResultTag,
   outdatedBadgeText,
 } from "@/app/app/canvas/nodes/outdated-notice";
 import {
@@ -1034,6 +1035,7 @@ export function ModelNodeCard({
             }`}
           >
             {outdated ? <OutdatedPreviewTag isZh={isZh} /> : null}
+            {isBusy && data.outputUrl ? <PreviousResultTag isZh={isZh} /> : null}
             {(data.outputKind ?? spec.output.type) === "video" ? (
               <video
                 src={data.outputUrl}

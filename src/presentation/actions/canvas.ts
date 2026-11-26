@@ -30,6 +30,7 @@ import {
   type SaveCanvasProjectPatch,
   createCanvasProject,
   deleteCanvasProject,
+  healFinishedCanvasRuns,
   saveCanvasProject,
   serializeCanvasJob,
   serializeCanvasProject,
@@ -403,6 +404,8 @@ export async function runCanvasFlowAction(input: {
   // Old-version previews the canvas is showing. The run regenerates these even if a
   // later save drops the mark, plus every finished node downstream of them.
   rerunNodeIds?: string[];
+  // The Run Flow button regenerates every node, not only the ones without a preview.
+  rerunAll?: boolean;
 }): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunDto; creditUsd: number }
   | { ok: false; error: string }
@@ -422,6 +425,7 @@ export async function runCanvasFlowAction(input: {
     canvasId: input.canvasId,
     ...(input.nodeIds ? { nodeIds: input.nodeIds } : {}),
     ...(input.rerunNodeIds ? { rerunNodeIds: input.rerunNodeIds } : {}),
+    ...(input.rerunAll ? { rerunAll: true } : {}),
   });
   if (!started.ok) return started;
 
@@ -504,6 +508,12 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
       })) ?? project;
   }
 
+  const nodes = await healFinishedCanvasRuns(
+    user.clerkUserId,
+    project._id,
+    project.nodes,
+  );
+
   const users = await usersCollection();
   const freshUser = await users.findOne({ clerkUserId: user.clerkUserId });
   const creditUsd = freshUser
@@ -511,7 +521,7 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
     : 0;
 
   return {
-    nodes: project.nodes,
+    nodes,
     ...(project.activeFlowRun
       ? {
           activeFlowRun: {

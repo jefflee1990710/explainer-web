@@ -30,6 +30,15 @@ export function OutdatedBanner({ reason, isZh }: { reason: OutdatedReason; isZh:
 }
 
 // Corner tag over an old preview.
+// Shown on the clip that is still on the card while a new run is in progress.
+export function PreviousResultTag({ isZh }: { isZh: boolean }) {
+  return (
+    <span className="pointer-events-none absolute left-1.5 top-1.5 z-10 inline-flex items-center rounded-full bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
+      {isZh ? "先前的結果" : "Previous result"}
+    </span>
+  );
+}
+
 export function OutdatedPreviewTag({ isZh }: { isZh: boolean }) {
   return (
     <span className="pointer-events-none absolute left-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold text-[#11141b]">

@@ -4,7 +4,7 @@
 // Handles local/library drag-and-drop, typed connection guardrails, 800ms debounced
 // MongoDB auto-save, 3s active-job polling, live USD balance updates, and multi-wave Run Flow.
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Background,
@@ -160,6 +160,7 @@ import {
   CanvasAgentDock,
   type CanvasAgentGraphSnapshot,
 } from "@/app/app/canvas/agent/canvas-agent-dock";
+import { canvasPageHref } from "@/app/app/canvas/canvas-href";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
 import {
   CANVAS_DRAG_ASSET_MIME,
@@ -446,8 +447,8 @@ function CanvasWorkspaceInner({
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  // True while the library dialog is opening or creating another canvas.
-  const [isSwitchingProject, startSwitchTransition] = useTransition();
+  // True while another canvas is opening, until this workspace unmounts.
+  const [isSwitchingProject, setIsSwitchingProject] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [lightbox, setLightbox] = useState<CanvasLightboxItem | null>(null);
   const [isFlowRunning, setIsFlowRunning] = useState(
@@ -1966,7 +1967,8 @@ function CanvasWorkspaceInner({
   }, [isFlowRunning, isZh, setEdges, setNodes, syncWallet]);
 
   // Worker-backed multi-wave Run Flow trigger; nodeIds limits it to one group.
-  const startFlowRun = useCallback(async (nodeIds?: string[]) => {
+  // rerunAll is the top Run Flow button: every model node generates again.
+  const startFlowRun = useCallback(async (nodeIds?: string[], rerunAll = false) => {
     const currentEdges = toDomainEdges(edgesRef.current);
     const liveNodes = toDomainNodes(nodesRef.current);
     // Old-version previews (after a replan or an input edit) must be generated again.
@@ -1996,6 +1998,7 @@ function CanvasWorkspaceInner({
       edges: currentEdges,
       viewport: viewportRef.current,
       ...(limitTo ? { nodeIds: limitTo } : {}),
+      ...(rerunAll ? { rerunAll: true } : {}),
       ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
     });
     if (!res.ok) {
@@ -2010,7 +2013,7 @@ function CanvasWorkspaceInner({
     });
   }, [syncWallet]);
 
-  const handleRunFlow = useCallback(() => void startFlowRun(), [startFlowRun]);
+  const handleRunFlow = useCallback(() => void startFlowRun(undefined, true), [startFlowRun]);
 
   // Run group: only the group's model nodes run, in dependency order.
   const handleRunGroup = useCallback(
@@ -2214,13 +2217,21 @@ function CanvasWorkspaceInner({
   }, [isZh]);
 
   // Project switcher / CRUD handlers. The transition stays pending until the next canvas renders.
-  const handleSelectProject = useCallback(
+  const openCanvas = useCallback(
     (projectId: string) => {
-      startSwitchTransition(() => {
-        router.push(`/app/canvas?id=${encodeURIComponent(projectId)}`);
-      });
+      if (!projectId || projectId === activeProjectIdRef.current) return;
+      setIsSwitchingProject(true);
+      // Push directly so the address bar updates. A nested transition was delaying it.
+      router.push(canvasPageHref(projectId, window.location.search));
     },
     [router],
+  );
+
+  const handleSelectProject = useCallback(
+    (projectId: string) => {
+      openCanvas(projectId);
+    },
+    [openCanvas],
   );
 
   const handleCreateProject = useCallback(async (folderId?: string) => {
@@ -2230,13 +2241,11 @@ function CanvasWorkspaceInner({
         title: isZh ? "未命名畫布" : "Untitled Canvas",
         ...(folderId ? { folderId } : {}),
       });
-      startSwitchTransition(() => {
-        router.push(`/app/canvas?id=${encodeURIComponent(project.id)}`);
-      });
+      openCanvas(project.id);
     } finally {
       setIsCreatingProject(false);
     }
-  }, [isZh, router]);
+  }, [isZh, openCanvas]);
 
   const handleRenameProject = useCallback(async (projectId: string, nextTitle: string) => {
     if (projectId === activeProjectIdRef.current) setActiveTitle(nextTitle);
@@ -2323,14 +2332,13 @@ function CanvasWorkspaceInner({
       const remaining = projects.filter((p) => p.id !== projectId);
       if (projectId === activeProjectIdRef.current) {
         const nextId = remaining[0]?.id;
-        router.push(
-          nextId ? `/app/canvas?id=${encodeURIComponent(nextId)}` : "/app/canvas",
-        );
+        if (nextId) openCanvas(nextId);
+        else router.push("/app/canvas");
       } else {
         setProjects(remaining);
       }
     },
-    [projects, isZh, router],
+    [projects, isZh, router, openCanvas],
   );
 
   const handleApplyTemplate = useCallback(

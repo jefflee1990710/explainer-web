@@ -22,6 +22,7 @@ import {
   listCanvasAgentMessages,
   serializeCanvasAgentMessage,
 } from "@/service/canvas-agent/history";
+import { canvasPageHref } from "@/app/app/canvas/canvas-href";
 import { CanvasWorkspace } from "@/app/app/canvas/canvas-workspace";
 import { getRequestLocale } from "@/util/i18n/request-locale";
 
@@ -31,14 +32,13 @@ export const maxDuration = 800;
 export default async function CanvasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; template?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireAppUser();
   const requestedLocale = await getRequestLocale();
   const params = await searchParams;
-  const requestedId = typeof params.id === "string" ? params.id : undefined;
-  const requestedTemplate =
-    typeof params.template === "string" ? params.template : undefined;
+  const requestedId = firstQueryValue(params.id);
+  const requestedTemplate = firstQueryValue(params.template);
 
   if (!requestedId && isCanvasStarterTemplateId(requestedTemplate)) {
     const tpl = CANVAS_STARTER_TEMPLATES.find((t) => t.id === requestedTemplate);
@@ -50,26 +50,27 @@ export default async function CanvasPage({
       nodes,
       edges,
     });
-    redirect(`/app/canvas?id=${created._id.toHexString()}`);
+    redirect(canvasPageHref(created._id.toHexString(), params));
   }
 
-  const [loadedProject, catalog, assets] = await Promise.all([
-    getOrCreateDefaultCanvasProject(user.clerkUserId, requestedId),
-    getCanvasModelCatalog(),
-    listCanvasLibraryAssets(user.clerkUserId),
-  ]);
+  const loadedProject = await getOrCreateDefaultCanvasProject(user.clerkUserId, requestedId);
   // Older groups get their settings nodes before the editor opens.
   const activeProject = await ensureSettingsNodes(loadedProject);
+  const canvasId = activeProject._id.toHexString();
+  // The address bar names the open canvas, including the first visit with no id.
+  if (requestedId !== canvasId) redirect(canvasPageHref(canvasId, params));
 
-  const [allProjects, agentMessages] = await Promise.all([
+  const [catalog, assets, allProjects, agentMessages] = await Promise.all([
+    getCanvasModelCatalog(),
+    listCanvasLibraryAssets(user.clerkUserId),
     listCanvasProjects(user.clerkUserId),
-    listCanvasAgentMessages(user.clerkUserId, activeProject._id.toHexString()),
+    listCanvasAgentMessages(user.clerkUserId, canvasId),
   ]);
   const balance = resolveUserUsdBalance(user);
 
   return (
     <CanvasWorkspace
-      key={activeProject._id.toHexString()}
+      key={canvasId}
       initialProject={serializeCanvasProject(activeProject)}
       initialProjects={allProjects.map(serializeCanvasProjectSummary)}
       initialModels={catalog}
@@ -79,4 +80,9 @@ export default async function CanvasPage({
       initialAgentMessages={agentMessages.map(serializeCanvasAgentMessage)}
     />
   );
+}
+
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  if (typeof value === "string") return value;
+  return value?.[0];
 }

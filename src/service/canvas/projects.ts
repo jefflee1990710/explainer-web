@@ -26,7 +26,7 @@ import {
 } from "@/model/canvas";
 import type { Character } from "@/model/character";
 import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
-import { mergeCanvasNodeSnapshots } from "@/service/canvas/graph";
+import { mergeCanvasNodeSnapshots, restoreBusyNodesFromCompletedJobs } from "@/service/canvas/graph";
 import { canvasGroupsForProject } from "@/service/canvas/groups";
 import { failOrphanBusyNodes } from "@/service/canvas/orphan-busy";
 import { liftLegacyExplainerSettings } from "@/service/canvas/director-migrate";
@@ -295,6 +295,73 @@ export async function getOrCreateDefaultCanvasProject(
 }
 
 // Saves partial updates (title, nodes, edges, groups, viewport, thumbnailUrl) to an owned canvas.
+// A finished job can be saved back to Running by a stale canvas snapshot. Put the node
+// back to completed when that job already has an output.
+export async function healFinishedCanvasRuns(
+  clerkUserId: string,
+  canvasId: ObjectId,
+  nodes: CanvasNode[],
+): Promise<CanvasNode[]> {
+  const jobIds = nodes.flatMap((node) => {
+    const busy = node.type === "model" && (node.data.status === "queued" || node.data.status === "running");
+    const jobId = node.data.lastJobId;
+    return busy && jobId && ObjectId.isValid(jobId) ? [new ObjectId(jobId)] : [];
+  });
+  if (jobIds.length === 0) return nodes;
+
+  const jobsCol = await canvasJobsCollection();
+  const jobs = await jobsCol
+    .find({ _id: { $in: jobIds }, clerkUserId, status: "completed" })
+    .toArray();
+  const healed = restoreBusyNodesFromCompletedJobs(
+    nodes,
+    jobs.map((job) => ({
+      id: job._id.toHexString(),
+      nodeId: job.nodeId,
+      outputUrl: job.outputUrl,
+      outputKind: job.outputKind,
+      chargedUsd: job.chargedUsd,
+    })),
+  );
+  if (healed.restoredIds.length === 0) return nodes;
+
+  const projects = await canvasProjectsCollection();
+  const now = new Date();
+  let result = nodes;
+  for (const nodeId of healed.restoredIds) {
+    const node = healed.nodes.find((item) => item.id === nodeId);
+    if (!node?.data.outputUrl || !node.data.lastJobId) continue;
+    const updated = await projects.updateOne(
+      {
+        _id: canvasId,
+        clerkUserId,
+        nodes: {
+          $elemMatch: {
+            id: nodeId,
+            "data.lastJobId": node.data.lastJobId,
+            "data.status": { $in: ["queued", "running"] },
+          },
+        },
+      },
+      {
+        $set: {
+          "nodes.$.data.status": "completed",
+          "nodes.$.data.outputUrl": node.data.outputUrl,
+          ...(node.data.outputKind ? { "nodes.$.data.outputKind": node.data.outputKind } : {}),
+          ...(node.data.lastCostUsd !== undefined ? { "nodes.$.data.lastCostUsd": node.data.lastCostUsd } : {}),
+          updatedAt: now,
+        },
+        $unset: { "nodes.$.data.lastError": "" },
+      },
+    );
+    if (updated.modifiedCount > 0) {
+      result = result.map((item) => (item.id === nodeId ? node : item));
+    }
+  }
+  return result;
+}
+
+// Saves partial updates (title, nodes, edges, groups, viewport, thumbnailUrl) to an owned canvas.
 export async function saveCanvasProject(
   clerkUserId: string,
   canvasId: string,
@@ -339,11 +406,14 @@ export async function saveCanvasProject(
     setFields.thumbnailUrl = patch.thumbnailUrl.trim();
   }
 
-  return projects.findOneAndUpdate(
+  const saved = await projects.findOneAndUpdate(
     { _id: canvasObjectId, clerkUserId },
     { $set: setFields },
     { returnDocument: "after" },
   );
+  if (!saved) return null;
+  const nodes = await healFinishedCanvasRuns(clerkUserId, canvasObjectId, saved.nodes);
+  return nodes === saved.nodes ? saved : { ...saved, nodes };
 }
 
 // Deletes an owned canvas project. Execution audit records in `canvas_jobs` are preserved.

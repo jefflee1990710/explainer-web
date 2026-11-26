@@ -4,6 +4,7 @@
 import type {
   CanvasEdge,
   CanvasNode,
+  CanvasNodeData,
   CanvasOutputKind,
 } from "@/model/canvas";
 import {
@@ -586,6 +587,56 @@ export function mergeCanvasNodeSnapshots(
     }
     const previousUrl = previous.data.outputUrl?.trim();
     const incomingUrl = node.data.outputUrl?.trim();
+    // A newer job id is the run that just started or just finished. An older
+    // autosave must not put that node back to "running" or swap in the old preview.
+    if (isNewerJob(previous.data.lastJobId, node.data.lastJobId)) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          ...(previous.data.status ? { status: previous.data.status } : {}),
+          ...(previousUrl ? { outputUrl: previousUrl } : {}),
+          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+          lastJobId: previous.data.lastJobId,
+          ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
+          ...(previous.data.lastError ? { lastError: previous.data.lastError } : {}),
+        },
+      };
+    }
+    if (isNewerJob(node.data.lastJobId, previous.data.lastJobId)) {
+      if (!incomingUrl && previousUrl) {
+        const clearedAt = node.data.outputClearedAt;
+        if (!(clearedAt && clearedAt !== previous.data.outputClearedAt)) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              outputUrl: previousUrl,
+              ...(previous.data.outputKind && !node.data.outputKind
+                ? { outputKind: previous.data.outputKind }
+                : {}),
+            },
+          };
+        }
+      }
+      return node;
+    }
+    const incomingBusy = node.data.status === "queued" || node.data.status === "running";
+    const previousDone = previous.data.status === "completed" && Boolean(previousUrl);
+    if (previousDone && incomingBusy) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          status: "completed",
+          outputUrl: previousUrl,
+          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+          ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
+          lastError: undefined,
+          ...(previous.data.lastCostUsd !== undefined ? { lastCostUsd: previous.data.lastCostUsd } : {}),
+        },
+      };
+    }
     if (!previousUrl || incomingUrl) return node;
     // A new clear stamp means the client cleared this preview on purpose.
     const clearedAt = node.data.outputClearedAt;
@@ -642,6 +693,57 @@ export function applyCompletedJobOutputs(
     };
   });
   return changed ? next : [...nodes];
+}
+
+// ObjectId's first 4 bytes are a unix timestamp, so job ids sort by when they were created.
+function jobTime(id: string | undefined): number {
+  if (!id || !/^[a-f0-9]{24}$/i.test(id)) return 0;
+  return Number.parseInt(id.slice(0, 8), 16);
+}
+
+function isNewerJob(nextId: string | undefined, previousId: string | undefined): boolean {
+  const next = jobTime(nextId);
+  const previous = jobTime(previousId);
+  return next > 0 && next > previous;
+}
+
+export type CompletedNodeJob = {
+  id: string;
+  nodeId: string;
+  outputUrl?: string;
+  outputKind?: CanvasOutputKind;
+  chargedUsd?: number;
+};
+
+// A node left on Running after its job already finished. The preview on the card can be
+// the previous clip, so the button keeps spinning even though this job has a video.
+export function restoreBusyNodesFromCompletedJobs<N extends { id: string; type: string; data: CanvasNodeData }>(
+  nodes: readonly N[],
+  jobs: readonly CompletedNodeJob[],
+): { nodes: N[]; restoredIds: string[] } {
+  const byId = new Map(jobs.map((job) => [job.id, job]));
+  const restoredIds: string[] = [];
+  const next = nodes.map((node) => {
+    const busy = node.data.status === "queued" || node.data.status === "running";
+    const jobId = node.data.lastJobId;
+    if (node.type !== "model" || !busy || !jobId) return node;
+    const job = byId.get(jobId);
+    const outputUrl = job?.outputUrl?.trim();
+    if (!job || job.nodeId !== node.id || !outputUrl) return node;
+    restoredIds.push(node.id);
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        status: "completed" as const,
+        outputUrl,
+        ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+        ...(job.chargedUsd !== undefined ? { lastCostUsd: job.chargedUsd } : {}),
+        lastError: undefined,
+      },
+    };
+  });
+  return { nodes: restoredIds.length > 0 ? next : [...nodes], restoredIds };
 }
 
 // Plans parallel execution waves across model nodes using Kahn's topological sort.

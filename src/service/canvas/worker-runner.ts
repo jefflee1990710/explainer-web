@@ -300,7 +300,13 @@ export function filterFlowWaves(waves: string[][], nodeIds: readonly string[]): 
 }
 
 export async function startCanvasFlowRun(
-  params: { clerkUserId: string; canvasId: string; nodeIds?: string[]; rerunNodeIds?: string[] },
+  params: {
+    clerkUserId: string;
+    canvasId: string;
+    nodeIds?: string[];
+    rerunNodeIds?: string[];
+    rerunAll?: boolean;
+  },
   deps?: Partial<CanvasFlowWorkerDeps>,
 ): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunState }
@@ -344,6 +350,7 @@ export async function startCanvasFlowRun(
     activeWaveJobIds: [],
     failedNodeIds: [],
     ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
+    ...(params.rerunAll ? { rerunAll: true } : {}),
     aborted: false,
     startedAt: now,
     updatedAt: now,
@@ -472,8 +479,9 @@ export async function executeCanvasFlowTask(
         continue;
       }
       const node = fresh.nodes.find((n) => n.id === nodeId);
-      const mustRerun = ownedRun.rerunNodeIds?.includes(nodeId) || isOutputStale(node?.data ?? {});
-      // Completed nodes are reused unless this run is regenerating that old preview.
+      const mustRerun =
+        ownedRun.rerunAll || ownedRun.rerunNodeIds?.includes(nodeId) || isOutputStale(node?.data ?? {});
+      // Completed nodes are reused unless this run regenerates every node, or that old preview.
       if (node?.data.status === "completed" && node.data.outputUrl?.trim() && !mustRerun) {
         continue;
       }

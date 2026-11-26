@@ -137,7 +137,7 @@ export function CanvasAgentDock({
   useEffect(() => {
     const savedHeight = Number(window.localStorage.getItem(HEIGHT_KEY));
     const savedWidth = Number(window.localStorage.getItem(WIDTH_KEY));
-    const savedCollapsed = !lockSide && window.localStorage.getItem(COLLAPSED_KEY) === "1";
+    const savedCollapsed = window.localStorage.getItem(COLLAPSED_KEY) === "1";
     /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from localStorage */
     if (Number.isFinite(savedHeight) && savedHeight >= MIN_HEIGHT) {
       setHeight(Math.min(MAX_HEIGHT, savedHeight));
