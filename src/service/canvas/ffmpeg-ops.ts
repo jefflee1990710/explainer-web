@@ -3,7 +3,7 @@
 // uploads outputs to Vercel Blob, and updates `canvas_jobs` + `canvas_projects`.
 
 import { createWriteStream } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -18,14 +18,20 @@ import { applyJutsuColorGradeBuffer, DEFAULT_JUTSU_COLOR_SETTINGS } from "@/serv
 import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { gradeTalkingHeadSensorTextureBuffer } from "@/service/style/realistic-grade";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
+import { buildEditFfmpegArgs, burnSubtitleAss } from "@/service/canvas/ffmpeg-edit";
 
 export type CanvasFfmpegLocalInputs = {
   videoFiles: string[];
   audioFile?: string;
+  imageFile?: string;
+  overlayVideoFile?: string;
+  subtitleFile?: string;
   hasAudioByVideo: boolean[];
   durationsSec?: number[];
   targetWidth?: number;
   targetHeight?: number;
+  // cropdetect result, "w:h:x:y", for the letterbox crop node.
+  detectedCrop?: string;
 };
 
 function numParam(snapshot: Record<string, unknown>, key: string, fallback: number): number {
@@ -80,6 +86,8 @@ export function buildCanvasFfmpegArgs(
   localInputs: CanvasFfmpegLocalInputs,
   outputFile: string,
 ): string[] {
+  const edited = buildEditFfmpegArgs(modelId, snapshot, localInputs, outputFile);
+  if (edited) return edited;
   const codecArgs = buildVideoCodecArgs({ pixFmt: "yuv420p" });
 
   if (modelId === "ffmpeg:concat") {
@@ -336,6 +344,21 @@ export type ExecuteCanvasFfmpegDeps = {
   }) => Promise<void>;
 };
 
+function ffmpegOutputFile(modelId: string): {
+  file: string;
+  kind: "video" | "audio" | "image";
+  contentType: string;
+  ext: string;
+} {
+  if (modelId === "ffmpeg:extract-audio") {
+    return { file: "output.mp3", kind: "audio", contentType: "audio/mpeg", ext: "mp3" };
+  }
+  if (modelId === "ffmpeg:frame-grab") {
+    return { file: "output.jpg", kind: "image", contentType: "image/jpeg", ext: "jpg" };
+  }
+  return { file: "output.mp4", kind: "video", contentType: "video/mp4", ext: "mp4" };
+}
+
 async function defaultDownloadToFile(url: string, dest: string): Promise<void> {
   const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
   if (!response.ok || !response.body) {
@@ -399,6 +422,8 @@ export async function executeCanvasFfmpegJob(
         ? [snapshot.video]
         : [];
     const audioUrl = typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined;
+    const imageUrl = typeof snapshot.image === "string" ? snapshot.image : undefined;
+    const overlayVideoUrl = typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined;
 
     const videoFiles: string[] = [];
     const hasAudioByVideo: boolean[] = [];
@@ -426,30 +451,62 @@ export async function executeCanvasFfmpegJob(
       await resolved.downloadToFile(audioUrl, join(dir, audioFile));
     }
 
+    let imageFile: string | undefined;
+    if (imageUrl) {
+      const lower = imageUrl.toLowerCase();
+      const ext = lower.includes(".png") ? "png" : lower.includes(".webp") ? "webp" : "jpg";
+      imageFile = `in-image.${ext}`;
+      await resolved.downloadToFile(imageUrl, join(dir, imageFile));
+    }
+
+    let overlayVideoFile: string | undefined;
+    if (overlayVideoUrl) {
+      overlayVideoFile = "overlay.mp4";
+      await resolved.downloadToFile(overlayVideoUrl, join(dir, overlayVideoFile));
+    }
+
     if (job.modelId === "ffmpeg:extract-audio" && !hasAudioByVideo[0]) {
       throw new Error("來源影片沒有音訊軌道，無法抽取音訊");
     }
 
-    const isAudioOut = job.modelId === "ffmpeg:extract-audio";
-    const outputFile = isAudioOut ? "output.mp3" : "output.mp4";
-    const outputKind = isAudioOut ? "audio" : "video";
+    let detectedCrop: string | undefined;
+    const cropMode = strParam(snapshot, "ffmpegCropMode", strParam(snapshot, "presetId", ""));
+    if (job.modelId === "ffmpeg:crop" && cropMode === "letterbox" && videoFiles[0]) {
+      const detect = await ffmpegStderr(dir, [
+        "-i",
+        videoFiles[0],
+        "-vf",
+        "cropdetect=24:16:0",
+        "-f",
+        "null",
+        "-",
+      ]);
+      const last = [...detect.matchAll(/crop=(\d+:\d+:\d+:\d+)/g)].at(-1)?.[1];
+      const full = firstWidth && firstHeight ? `${firstWidth}:${firstHeight}:0:0` : "";
+      if (last && last !== full) detectedCrop = last;
+    }
 
-    const args = buildCanvasFfmpegArgs(
-      job.modelId,
-      snapshot,
-      {
-        videoFiles,
-        audioFile,
-        hasAudioByVideo,
-        durationsSec,
-        targetWidth: firstWidth,
-        targetHeight: firstHeight,
-      },
-      outputFile,
-    );
+    const produced = ffmpegOutputFile(job.modelId);
+    const localInputs: CanvasFfmpegLocalInputs = {
+      videoFiles,
+      audioFile,
+      imageFile,
+      overlayVideoFile,
+      hasAudioByVideo,
+      durationsSec,
+      targetWidth: firstWidth,
+      targetHeight: firstHeight,
+      detectedCrop,
+    };
+    if (job.modelId === "ffmpeg:burn-subtitles") {
+      await writeFile(join(dir, "subs.ass"), burnSubtitleAss(snapshot, localInputs), "utf8");
+      localInputs.subtitleFile = "subs.ass";
+    }
+
+    const args = buildCanvasFfmpegArgs(job.modelId, snapshot, localInputs, produced.file);
 
     await resolved.runFfmpeg(dir, args);
-    let outBuf: Buffer = await readFile(join(dir, outputFile));
+    let outBuf: Buffer = await readFile(join(dir, produced.file));
 
     if (job.modelId === "ffmpeg:trim-speed" && boolParam(snapshot, "ffmpegTrimSilence", false)) {
       outBuf = Buffer.from(await resolved.trimSilence(outBuf));
@@ -474,17 +531,15 @@ export async function executeCanvasFfmpegJob(
       );
     }
 
-    const ext = isAudioOut ? "mp3" : "mp4";
-    const contentType = isAudioOut ? "audio/mpeg" : "video/mp4";
     const outputUrl = await resolved.persistBuffer(
       outBuf,
-      `canvas/${job.clerkUserId}/${jobIdHex}.${ext}`,
-      contentType,
+      `canvas/${job.clerkUserId}/${jobIdHex}.${produced.ext}`,
+      produced.contentType,
     );
 
     const now = new Date();
     await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-      $set: { status: "completed", outputUrl, outputKind, updatedAt: now },
+      $set: { status: "completed", outputUrl, outputKind: produced.kind, updatedAt: now },
       $unset: { error: "" },
     });
     await resolved.updateCanvasNodeState({
@@ -495,7 +550,7 @@ export async function executeCanvasFfmpegJob(
         status: "completed",
         lastJobId: jobIdHex,
         outputUrl,
-        outputKind,
+        outputKind: produced.kind,
         lastError: undefined,
       },
       updatedAt: now,

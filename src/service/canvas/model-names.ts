@@ -116,6 +116,72 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "FFmpeg 無音カット",
     ko: "FFmpeg 무음 다듬기",
   },
+  "scro:auto-captions": {
+    "zh-Hant": "自動字幕",
+    "zh-Hans": "自动字幕",
+    ja: "自動字幕",
+    ko: "자동 자막",
+  },
+  "ffmpeg:keep-ranges": {
+    "zh-Hant": "FFmpeg 保留區間",
+    "zh-Hans": "FFmpeg 保留区间",
+    ja: "FFmpeg 区間キープ",
+    ko: "FFmpeg 구간 유지",
+  },
+  "ffmpeg:volume": {
+    "zh-Hant": "FFmpeg 音量",
+    "zh-Hans": "FFmpeg 音量",
+    ja: "FFmpeg 音量",
+    ko: "FFmpeg 음량",
+  },
+  "ffmpeg:audio-fade": {
+    "zh-Hant": "FFmpeg 音訊淡化",
+    "zh-Hans": "FFmpeg 音频淡化",
+    ja: "FFmpeg 音声フェード",
+    ko: "FFmpeg 오디오 페이드",
+  },
+  "ffmpeg:fade": {
+    "zh-Hant": "FFmpeg 淡入淡出",
+    "zh-Hans": "FFmpeg 淡入淡出",
+    ja: "FFmpeg フェード",
+    ko: "FFmpeg 페이드",
+  },
+  "ffmpeg:crop": {
+    "zh-Hant": "FFmpeg 裁切",
+    "zh-Hans": "FFmpeg 裁切",
+    ja: "FFmpeg クロップ",
+    ko: "FFmpeg 자르기",
+  },
+  "ffmpeg:rotate": {
+    "zh-Hant": "FFmpeg 旋轉",
+    "zh-Hans": "FFmpeg 旋转",
+    ja: "FFmpeg 回転",
+    ko: "FFmpeg 회전",
+  },
+  "ffmpeg:overlay": {
+    "zh-Hant": "FFmpeg 疊加",
+    "zh-Hans": "FFmpeg 叠加",
+    ja: "FFmpeg オーバーレイ",
+    ko: "FFmpeg 오버레이",
+  },
+  "ffmpeg:image-to-video": {
+    "zh-Hant": "FFmpeg 圖片轉影片",
+    "zh-Hans": "FFmpeg 图片转视频",
+    ja: "FFmpeg 画像から動画",
+    ko: "FFmpeg 이미지를 영상으로",
+  },
+  "ffmpeg:frame-grab": {
+    "zh-Hant": "FFmpeg 截圖",
+    "zh-Hans": "FFmpeg 截图",
+    ja: "FFmpeg フレーム抽出",
+    ko: "FFmpeg 프레임 추출",
+  },
+  "ffmpeg:burn-subtitles": {
+    "zh-Hant": "FFmpeg 燒錄字幕",
+    "zh-Hans": "FFmpeg 烧录字幕",
+    ja: "FFmpeg 字幕焼き込み",
+    ko: "FFmpeg 자막 굽기",
+  },
 };
 
 // Name to show for a canvas node in the given UI locale; falls back to the English catalog name.

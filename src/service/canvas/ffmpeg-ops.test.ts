@@ -3,6 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
+import { parseKeepRanges } from "@/service/canvas/ffmpeg-edit";
 import {
   buildCanvasFfmpegArgs,
   executeCanvasFfmpegJob,
@@ -138,6 +139,89 @@ describe("canvas ffmpeg ops — arg builders", () => {
       );
       assert.deepEqual(args, ["-y", "-i", "in.mp4", "-c", "copy", "out.mp4"]);
     }
+  });
+});
+
+describe("canvas edit nodes", () => {
+  const local = {
+    videoFiles: ["in.mp4"],
+    hasAudioByVideo: [true],
+    durationsSec: [6],
+    targetWidth: 640,
+    targetHeight: 360,
+  };
+
+  it("keeps only the listed ranges", () => {
+    assert.deepEqual(parseKeepRanges("0-1, 3-4", 6), [
+      { start: 0, end: 1 },
+      { start: 3, end: 4 },
+    ]);
+    const args = buildCanvasFfmpegArgs(
+      "ffmpeg:keep-ranges",
+      { toolParams: { ffmpegRanges: "0-1, 4-6" } },
+      local,
+      "out.mp4",
+    ).join(" ");
+    assert.match(args, /trim=start=0:end=1/);
+    assert.match(args, /trim=start=4:end=6/);
+    assert.match(args, /concat=n=2/);
+  });
+
+  it("builds volume, fades, crop, rotate, overlay, still, grab, and burn args", () => {
+    assert.match(
+      buildCanvasFfmpegArgs("ffmpeg:volume", { toolParams: { ffmpegVolumeMode: "loudnorm" } }, local, "out.mp4").join(" "),
+      /loudnorm=I=-16/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs("ffmpeg:audio-fade", { toolParams: { ffmpegFadeInSec: 0.2, ffmpegFadeOutSec: 0.3 } }, local, "out.mp4").join(" "),
+      /afade=t=in:st=0:d=0\.200/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs("ffmpeg:fade", {}, local, "out.mp4").join(" "),
+      /fade=t=in/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs(
+        "ffmpeg:crop",
+        { toolParams: { ffmpegCropMode: "custom", ffmpegCropX: 10, ffmpegCropY: 20, ffmpegCropW: 100, ffmpegCropH: 80 } },
+        local,
+        "out.mp4",
+      ).join(" "),
+      /crop=100:80:10:20/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs("ffmpeg:rotate", { toolParams: { ffmpegRotate: "180" } }, local, "out.mp4").join(" "),
+      /transpose=1,transpose=1/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs(
+        "ffmpeg:overlay",
+        { toolParams: { ffmpegOverlayPosition: "center", ffmpegOverlayOpacity: 0.5 } },
+        { ...local, imageFile: "logo.png" },
+        "out.mp4",
+      ).join(" "),
+      /colorchannelmixer=aa=0\.50/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs(
+        "ffmpeg:image-to-video",
+        { aspectRatio: "1:1", toolParams: { ffmpegDurationSec: 2 } },
+        { videoFiles: [], hasAudioByVideo: [], imageFile: "still.png" },
+        "out.mp4",
+      ).join(" "),
+      /1080:1080/,
+    );
+    assert.match(
+      buildCanvasFfmpegArgs("ffmpeg:frame-grab", { toolParams: { ffmpegAtSec: 1.5 } }, local, "out.jpg").join(" "),
+      /-ss 1\.500 -frames:v 1/,
+    );
+    const burned = buildCanvasFfmpegArgs(
+      "ffmpeg:burn-subtitles",
+      { prompt: "你好" },
+      { ...local, subtitleFile: "subs.ass" },
+      "out.mp4",
+    ).join(" ");
+    assert.match(burned, /subtitles=subs\.ass/);
   });
 });
 

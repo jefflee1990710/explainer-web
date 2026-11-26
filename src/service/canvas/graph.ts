@@ -56,6 +56,7 @@ export type ResolvedCanvasInputs = {
   video?: string;
   videos: string[];
   refAudio?: string;
+  overlayVideo?: string;
 };
 
 export type ResolveNodeInputsResult =
@@ -417,10 +418,12 @@ export function resolveNodeInputs(
   const missingRequiredFields: string[] = [];
   let promptFromNode = false;
 
-  // Resolve prompt: a connected Prompt node or Director output overrides inline node.data.prompt.
+  // Resolve prompt: a connected Prompt node, Director output, or caption SRT overrides inline text.
   const promptEdges = edgesByHandle.get("prompt") ?? [];
   let promptSource: CanvasNode | undefined;
   let director: { node: CanvasNode; handle: string } | undefined;
+  let captionSource: CanvasNode | undefined;
+  let waitingOnCaption = false;
   for (const edge of promptEdges) {
     const source = nodeById.get(edge.source);
     if (source?.type === "prompt") {
@@ -429,6 +432,14 @@ export function resolveNodeInputs(
     }
     if (source && edge.sourceHandle && isPlanDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
       director = { node: source, handle: edge.sourceHandle };
+      break;
+    }
+    if (source?.type === "model" && getNodeOutputPortType(source, catalog) === "text") {
+      if (source.data.text?.trim()) captionSource = source;
+      else {
+        waitingOnCaption = true;
+        addUnique(missingUpstreamNodeIds, source.id);
+      }
       break;
     }
   }
@@ -444,7 +455,10 @@ export function resolveNodeInputs(
     const text = directorRawOutput(director.node, director.handle)?.trim();
     if (text) inputs.prompt = text;
     else addUnique(missingUpstreamNodeIds, director.node.id);
-  } else {
+  } else if (captionSource?.data.text) {
+    promptFromNode = true;
+    inputs.prompt = captionSource.data.text.trim();
+  } else if (!waitingOnCaption) {
     const inlinePrompt = targetNode.data.prompt?.trim();
     if (inlinePrompt) {
       inputs.prompt = inlinePrompt;
@@ -452,7 +466,8 @@ export function resolveNodeInputs(
   }
 
   // `{{key}}`: the Director card's text style, then the Setting wired to the Prompt node.
-  if (inputs.prompt) {
+  // Subtitle SRT is literal; a cue must not be treated as a missing template key.
+  if (inputs.prompt && !captionSource) {
     const vars = {
       ...(director ? directorBaseVars(director.node) : {}),
       ...(promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {}),
@@ -482,6 +497,7 @@ export function resolveNodeInputs(
   inputs.endImage = resolveSingleMedia("endImage");
   inputs.video = resolveSingleMedia("video");
   inputs.refAudio = resolveSingleMedia("refAudio");
+  inputs.overlayVideo = resolveSingleMedia("overlayVideo");
 
   // Resolve multi-value refImages preserving edge order up to model maxConnections.
   const refImagesSpec = spec.inputs.find((port) => port.id === "refImages");

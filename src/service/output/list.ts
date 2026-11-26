@@ -129,7 +129,7 @@ export async function listOutputs(clerkUserId: string): Promise<OutputListItem[]
 
   for (const job of canvasJobs) {
     const url = job.outputUrl?.trim();
-    if (!url) continue;
+    if (!url || job.outputKind === "text") continue;
     const kind = job.outputKind === "video" || job.outputKind === "audio" || job.outputKind === "image"
       ? job.outputKind
       : kindFromMediaUrl(url, "image");

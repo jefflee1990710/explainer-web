@@ -69,6 +69,9 @@ import {
 } from "@/service/minimax/official-canvas";
 import { minimaxApiKey } from "@/service/minimax/talking-head-reference";
 import { fetchGoogleStudioVideo, submitGoogleStudioVideo } from "@/service/google/studio-video";
+import { normalizeCaptionLanguage, probeRemoteDurationSec } from "@/service/canvas/captions";
+import { transcribeCaptionVideo } from "@/service/canvas/caption-transcribe";
+import { isElevenLabsConfigured } from "@/service/voice/elevenlabs";
 
 // Mentalok video models that accept a `keyframes` object (`startImage` / `endImage`).
 // Single-frame TI2V models (`wan-2-1`, `wan-2-2`, `ltx-video`) receive `imageUrl` instead.
@@ -680,6 +683,15 @@ export async function submitCanvasNodeJob(
       creditUsd,
     };
   }
+  if (spec.id === "scro:auto-captions" && !isElevenLabsConfigured()) {
+    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+    return {
+      ok: false,
+      code: "PROVIDER_UNAVAILABLE",
+      error: "ElevenLabs 尚未設定 API Key（ELEVENLABS_API_KEY），暫時無法偵測字幕。",
+      creditUsd,
+    };
+  }
   if (spec.provider === "google" && !resolved.hasGoogleStudioKey()) {
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return {
@@ -778,6 +790,12 @@ export async function submitCanvasNodeJob(
     resolvedDurationSeconds = Math.min(resolvedDurationSeconds ?? 10, 10);
   }
 
+  if (spec.id === "scro:auto-captions" && inputCheck.inputs.video) {
+    const probed = await probeRemoteDurationSec(inputCheck.inputs.video).catch(() => null);
+    // A failed probe still bills a short clip so the run is not free.
+    resolvedDurationSeconds = probed && probed > 0 ? probed : resolvedDurationSeconds ?? 10;
+  }
+
   const costUsd = estimateCanvasModelCostUsd(spec, {
     durationSeconds: resolvedDurationSeconds,
     resolution: node.data.resolution,
@@ -842,6 +860,9 @@ export async function submitCanvasNodeJob(
       : {}),
     ...(inputCheck.inputs.refAudio
       ? { refAudio: inputCheck.inputs.refAudio }
+      : {}),
+    ...(inputCheck.inputs.overlayVideo
+      ? { overlayVideo: inputCheck.inputs.overlayVideo }
       : {}),
     presetId,
   };
@@ -911,6 +932,7 @@ function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasIn
     video: typeof snapshot.video === "string" ? snapshot.video : undefined,
     videos: Array.isArray(snapshot.videos) ? snapshot.videos.map(String) : [],
     refAudio: typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined,
+    overlayVideo: typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined,
   };
 }
 
@@ -1339,6 +1361,56 @@ async function executeDispatchedCanvasJob(
 
     // Branch 5: Scro tool nodes (`scro:*`).
     if (spec.provider === "scro") {
+      if (spec.id === "scro:auto-captions") {
+        const videoUrl = inputCheck.inputs.video;
+        if (!videoUrl) throw new Error("自動字幕需要輸入有聲音的影片");
+        const language = normalizeCaptionLanguage(
+          node.data.toolParams?.captionLanguage ?? node.data.presetId,
+        );
+        const out = await transcribeCaptionVideo({
+          videoUrl,
+          language,
+          pathname: `canvas/${input.clerkUserId}/${jobIdHex}.srt`,
+        });
+        const completedAt = resolved.now();
+        await resolved.updateCanvasJob(jobId, input.clerkUserId, {
+          $set: {
+            status: "completed",
+            outputUrl: out.outputUrl,
+            outputKind: "text",
+            updatedAt: completedAt,
+          },
+          $unset: { error: "" },
+        });
+        await resolved.updateCanvasNodeState({
+          canvasId: canvasObjectId,
+          clerkUserId: input.clerkUserId,
+          nodeId: node.id,
+          patch: {
+            status: "completed",
+            lastJobId: jobIdHex,
+            outputUrl: out.outputUrl,
+            outputKind: "text",
+            text: out.srt,
+            lastCostUsd: costUsd,
+            lastError: undefined,
+          },
+          updatedAt: completedAt,
+        });
+        const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+        return {
+          ok: true,
+          job: {
+            ...initialJob,
+            status: "completed",
+            outputUrl: out.outputUrl,
+            outputKind: "text",
+            updatedAt: completedAt,
+          },
+          creditUsd,
+        };
+      }
+
       if (spec.id === "scro:tts" || spec.id === "scro:life" || spec.id === "scro:poster") {
         const out = await resolved.executeScroSyncNode({
           clerkUserId: input.clerkUserId,

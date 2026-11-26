@@ -38,6 +38,8 @@ import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-dir
 import { SwapDirectorCard } from "@/app/app/canvas/nodes/swap-director-card";
 import { TeleportDirectorCard } from "@/app/app/canvas/nodes/teleport-director-card";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
+import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
+import { FfmpegEditFields } from "@/app/app/canvas/nodes/ffmpeg-edit-fields";
 import { isExplainerDirectorNode } from "@/service/canvas/explainer-director";
 import { isSwapDirectorNode, isTeleportDirectorNode } from "@/service/canvas/scro-director";
 import {
@@ -588,6 +590,19 @@ export function ModelNodeCard({
         spec.id !== "scro:director-frame" &&
         spec.id !== "scro:teleport-render" ? (
           <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
+            <CaptionNodeFields
+              modelId={spec.id}
+              isZh={isZh}
+              language={String(toolParams.captionLanguage ?? data.presetId ?? "yue")}
+              text={data.text}
+              onLanguage={(captionLanguage) =>
+                onUpdateNodeData(id, {
+                  presetId: captionLanguage,
+                  toolParams: { ...toolParams, captionLanguage },
+                })
+              }
+              onText={(text) => onUpdateNodeData(id, { text })}
+            />
             {(spec.id === "scro:talking-head" ||
               spec.id === "scro:explainer" ||
               spec.id === "scro:swap" ||
@@ -899,6 +914,15 @@ export function ModelNodeCard({
               </div>
             ) : null}
 
+            <FfmpegEditFields
+              modelId={spec.id}
+              isZh={isZh}
+              toolParams={toolParams}
+              onToolParam={updateToolParam}
+              prompt={data.prompt}
+              promptWired={isPromptWired}
+              onPrompt={(prompt) => onUpdateNodeData(id, { prompt })}
+            />
             {spec.id === "ffmpeg:color-grade" ? (
               <select
                 value={String(toolParams.gradeLook ?? "jutsu")}
@@ -1003,7 +1027,7 @@ export function ModelNodeCard({
           </button>
 
         {/* Inline Output Preview */}
-        {data.outputUrl ? (
+        {data.outputUrl && (data.outputKind ?? spec.output.type) !== "text" ? (
           <div
             className={`relative overflow-hidden rounded-[10px] border bg-black/50 ${
               outdated ? "border-amber-400/40 opacity-70" : "border-white/10"
@@ -1035,7 +1059,12 @@ export function ModelNodeCard({
                 onClick={() =>
                   onOpenLightbox({
                     url: data.outputUrl!,
-                    kind: data.outputKind ?? spec.output.type,
+                    kind:
+                      (data.outputKind ?? spec.output.type) === "audio"
+                        ? "audio"
+                        : (data.outputKind ?? spec.output.type) === "video"
+                          ? "video"
+                          : "image",
                     title: displayName,
                   })
                 }

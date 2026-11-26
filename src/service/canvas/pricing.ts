@@ -25,6 +25,7 @@ import {
   googleStudioVideoUserUsd,
 } from "@/service/google/studio-price";
 import { minimaxCanvasBillingSlug } from "@/service/minimax/official-canvas";
+import { autoCaptionsCostUsd } from "@/service/canvas/captions";
 
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
@@ -88,6 +89,8 @@ export function estimateCanvasModelCostUsd(
     switch (spec.id) {
       case "scro:tts":
         return CANVAS_TTS_COST_USD;
+      case "scro:auto-captions":
+        return autoCaptionsCostUsd(duration);
       case "scro:explainer-frame":
         return EXPLAINER_STILL_COST_USD;
       case "scro:life":

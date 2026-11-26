@@ -16,7 +16,7 @@ export type CanvasNodeStatus =
   | "running"
   | "completed"
   | "failed";
-export type CanvasOutputKind = "image" | "video" | "audio";
+export type CanvasOutputKind = "image" | "video" | "audio" | "text";
 export type CanvasJobStatus = "queued" | "running" | "completed" | "failed";
 export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg" | "explainer_frame";
 
@@ -211,7 +211,7 @@ export const canvasNodeStatusSchema = z.enum([
   "completed",
   "failed",
 ]);
-export const canvasOutputKindSchema = z.enum(["image", "video", "audio"]);
+export const canvasOutputKindSchema = z.enum(["image", "video", "audio", "text"]);
 export const canvasJobStatusSchema = z.enum([
   "queued",
   "running",

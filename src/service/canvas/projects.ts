@@ -519,7 +519,7 @@ export async function listCanvasLibraryAssets(
   const recentOutputs: CanvasLibraryAsset[] = [];
   for (const job of recentJobs) {
     const url = job.outputUrl?.trim();
-    if (!url) continue;
+    if (!url || job.outputKind === "text") continue;
     const mediaKind =
       job.outputKind === "video"
         ? "video"

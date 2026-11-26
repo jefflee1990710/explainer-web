@@ -814,7 +814,16 @@ function CanvasWorkspaceInner({
           return n;
         }),
       );
-      if (stale) markStale([nodeId]);
+      // Editing the detected script only refreshes the burn node. Run on the captions node still re-transcribes.
+      const captionScriptEdit =
+        current?.data.modelId === "scro:auto-captions" &&
+        Object.keys(patch).length === 1 &&
+        Object.prototype.hasOwnProperty.call(patch, "text");
+      if (captionScriptEdit) {
+        markStale(edgesRef.current.filter((edge) => edge.source === nodeId).map((edge) => edge.target));
+      } else if (stale) {
+        markStale([nodeId]);
+      }
       if (syncRender) markStale([syncRender.renderId]);
       if (settingsTargets.length > 0) markStale(settingsTargets);
       scheduleAutosave();
@@ -1019,6 +1028,46 @@ function CanvasWorkspaceInner({
         scheduleAutosave();
         return;
       }
+      // One sidebar click places detection and burn, with the subtitle text already wired.
+      if (spec.id === "scro:auto-captions") {
+        const capId = `model-${crypto.randomUUID().slice(0, 8)}`;
+        const burnId = `model-${crypto.randomUUID().slice(0, 8)}`;
+        setNodes((prev) => [
+          ...prev,
+          {
+            id: capId,
+            type: "model",
+            position: pos,
+            data: {
+              modelId: spec.id,
+              presetId: "yue",
+              toolParams: { captionLanguage: "yue" },
+              status: "idle",
+            },
+          },
+          {
+            id: burnId,
+            type: "model",
+            position: { x: pos.x + 420, y: pos.y },
+            data: { modelId: "ffmpeg:burn-subtitles", presetId: "bottom", status: "idle" },
+          },
+        ]);
+        setEdges((prev) =>
+          addEdge(
+            {
+              id: `e-${crypto.randomUUID().slice(0, 8)}`,
+              source: capId,
+              sourceHandle: "output",
+              target: burnId,
+              targetHandle: "prompt",
+              style: { stroke: PORT_COLOR_MAP.text, strokeWidth: 2 },
+            },
+            prev,
+          ),
+        );
+        scheduleAutosave();
+        return;
+      }
       const dialogTool = SCRO_DIALOG_TOOL_BY_MODEL[spec.id];
       if (dialogTool) {
         setScroDialog({ tool: dialogTool, position: pos });
@@ -1041,7 +1090,7 @@ function CanvasWorkspaceInner({
       setNodes((prev) => [...prev, newNode]);
       scheduleAutosave();
     },
-    [models, getCenterPosition, setNodes, scheduleAutosave],
+    [models, getCenterPosition, setNodes, setEdges, scheduleAutosave],
   );
 
   const addAssetNodeAt = useCallback(
@@ -1474,7 +1523,12 @@ function CanvasWorkspaceInner({
             url,
           }];
         }
-        if (n.type === "model" && n.data.outputUrl && n.data.outputKind) {
+        if (
+          n.type === "model" &&
+          n.data.outputUrl &&
+          n.data.outputKind &&
+          n.data.outputKind !== "text"
+        ) {
           const spec = n.data.modelId ? findCanvasModel(n.data.modelId, models) : undefined;
           return [{
             nodeId: n.id,
