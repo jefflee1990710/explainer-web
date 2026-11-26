@@ -21,6 +21,15 @@ import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { consumeCreditUsd, refundCreditUsd } from "@/service/billing/credits";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import {
+  type RefundCanvasJobResult,
+  createDefaultCanvasJobLedgerDeps,
+  markJobCompleted,
+  markJobFailed,
+  markJobQueued,
+  markJobRunning,
+  refundCanvasJobOnce,
+} from "@/service/canvas/job-ledger";
+import {
   type ResolvedCanvasInputs,
   applyCompletedJobOutputs,
   resolveNodeInputs,
@@ -226,11 +235,8 @@ export type PollCanvasJobsResult = {
   creditUsd: number;
 };
 
-export type RefundCanvasJobResult = {
-  refunded: boolean;
-  alreadyRefunded: boolean;
-  refundedUsd: number;
-};
+export { refundCanvasJobOnce };
+export type { RefundCanvasJobResult };
 
 async function defaultGetUserCreditUsd(clerkUserId: string): Promise<number> {
   const users = await usersCollection();
@@ -240,67 +246,15 @@ async function defaultGetUserCreditUsd(clerkUserId: string): Promise<number> {
 }
 
 function createDefaultDeps(): CanvasExecutorDeps {
+  const defaultLedger = createDefaultCanvasJobLedgerDeps();
   return {
     findCanvasProject: async (canvasId, clerkUserId) => {
       const projects = await canvasProjectsCollection();
       return projects.findOne({ _id: canvasId, clerkUserId });
     },
-    updateCanvasNodeState: async ({
-      canvasId,
-      clerkUserId,
-      nodeId,
-      patch,
-      thumbnailUrl,
-      updatedAt,
-    }) => {
-      const projects = await canvasProjectsCollection();
-      const setFields: Record<string, unknown> = { updatedAt };
-      const unsetFields: Record<string, ""> = {};
-
-      for (const [key, value] of Object.entries(patch) as Array<
-        [keyof CanvasNodeData, unknown]
-      >) {
-        const path = `nodes.$.data.${key}`;
-        if (value === undefined) {
-          unsetFields[path] = "";
-        } else {
-          setFields[path] = value;
-        }
-      }
-      if (thumbnailUrl) {
-        setFields.thumbnailUrl = thumbnailUrl;
-      }
-      // A finished rerun is the current preview, even if this node was marked old.
-      if (patch.status === "completed" && typeof patch.outputUrl === "string" && patch.outputUrl.trim()) {
-        unsetFields["nodes.$.data.staleOutputUrl"] = "";
-      }
-
-      const updateDoc: Record<string, unknown> = { $set: setFields };
-      if (Object.keys(unsetFields).length > 0) {
-        updateDoc.$unset = unsetFields;
-      }
-
-      await projects.updateOne(
-        { _id: canvasId, clerkUserId, "nodes.id": nodeId },
-        updateDoc,
-      );
-    },
-    insertCanvasJob: async (job) => {
-      const jobs = await canvasJobsCollection();
-      await jobs.insertOne(job);
-    },
-    updateCanvasJob: async (jobId, clerkUserId, update) => {
-      const jobs = await canvasJobsCollection();
-      const mongoUpdate: Record<string, unknown> = {};
-      if (update.$set && Object.keys(update.$set).length > 0) {
-        mongoUpdate.$set = update.$set;
-      }
-      if (update.$unset && Object.keys(update.$unset).length > 0) {
-        mongoUpdate.$unset = update.$unset;
-      }
-      if (Object.keys(mongoUpdate).length === 0) return;
-      await jobs.updateOne({ _id: jobId, clerkUserId }, mongoUpdate);
-    },
+    updateCanvasNodeState: defaultLedger.updateCanvasNodeState,
+    insertCanvasJob: defaultLedger.insertCanvasJob,
+    updateCanvasJob: defaultLedger.updateCanvasJob,
     findCanvasJobsByIds: async (canvasId, clerkUserId, jobIds) => {
       if (jobIds.length === 0) return [];
       const jobs = await canvasJobsCollection();
@@ -322,20 +276,7 @@ function createDefaultDeps(): CanvasExecutorDeps {
         .sort({ updatedAt: -1 })
         .toArray();
     },
-    claimCanvasJobRefund: async (jobId, clerkUserId, refundedAt) => {
-      const jobs = await canvasJobsCollection();
-      return jobs.findOneAndUpdate(
-        {
-          _id: jobId,
-          clerkUserId,
-          refundedAt: { $exists: false },
-        },
-        {
-          $set: { refundedAt, updatedAt: refundedAt },
-        },
-        { returnDocument: "after" },
-      );
-    },
+    claimCanvasJobRefund: defaultLedger.claimCanvasJobRefund,
     getCatalog: () => getCanvasModelCatalog(),
     hasMentalokKey: () => hasMentalokApiKey(),
     hasOpenRouterKey: () => hasOpenRouterKey(),
@@ -523,49 +464,6 @@ async function buildMentalokJobPayload(
   }
 
   return payload;
-}
-
-// Atomically marks `refundedAt` on `canvas_jobs` (`refundedAt: { $exists: false }`)
-// before refunding USD credit so concurrent polls or retries can never double-refund.
-export async function refundCanvasJobOnce(
-  jobId: string | ObjectId,
-  clerkUserId: string,
-  deps?: Partial<CanvasExecutorDeps>,
-): Promise<RefundCanvasJobResult> {
-  const resolved = resolveDeps(deps);
-  const objectId =
-    typeof jobId === "string"
-      ? ObjectId.isValid(jobId)
-        ? new ObjectId(jobId)
-        : null
-      : jobId;
-
-  if (!objectId) {
-    return { refunded: false, alreadyRefunded: false, refundedUsd: 0 };
-  }
-
-  const claimed = await resolved.claimCanvasJobRefund(
-    objectId,
-    clerkUserId,
-    resolved.now(),
-  );
-  if (!claimed) {
-    return { refunded: false, alreadyRefunded: true, refundedUsd: 0 };
-  }
-
-  if (claimed.chargedUsd > 0) {
-    await resolved.refundCreditUsd(
-      clerkUserId,
-      claimed.chargedUsd,
-      claimed.spendEventKey,
-    );
-  }
-
-  return {
-    refunded: true,
-    alreadyRefunded: false,
-    refundedUsd: claimed.chargedUsd,
-  };
 }
 
 // Restores outputUrl from the newest completed job when a stale graph save wiped it.
@@ -827,7 +725,6 @@ export async function submitCanvasNodeJob(
   }
 
   const jobId = new ObjectId();
-  const jobIdHex = jobId.toHexString();
   const now = resolved.now();
   const presetId =
     spec.provider === "mentalok" || spec.provider === "ffmpeg"
@@ -890,19 +787,7 @@ export async function submitCanvasNodeJob(
     updatedAt: now,
   };
 
-  await resolved.insertCanvasJob(initialJob);
-  await resolved.updateCanvasNodeState({
-    canvasId: canvasObjectId,
-    clerkUserId: input.clerkUserId,
-    nodeId: node.id,
-    patch: {
-      status: "queued",
-      lastJobId: jobIdHex,
-      lastCostUsd: costUsd,
-      lastError: undefined,
-    },
-    updatedAt: now,
-  });
+  await markJobQueued(initialJob, resolved);
 
   if (input.queueToWorker) {
     await resolved.enqueueCanvasNodeWorkerTask?.(jobId);
@@ -985,91 +870,44 @@ export async function dispatchQueuedCanvasJobById(
 async function settleSubmittedVideo(input: {
   response: GenerationSubmitResult;
   initialJob: CanvasJob;
-  node: CanvasNode;
   clerkUserId: string;
-  canvasObjectId: ObjectId;
-  jobId: ObjectId;
   jobIdHex: string;
-  costUsd: number;
   resolved: CanvasExecutorDeps;
 }): Promise<SubmitCanvasNodeJobResult> {
-  const { response, initialJob, node, clerkUserId, canvasObjectId, jobId, jobIdHex, costUsd, resolved } =
-    input;
-  const updatedAt = resolved.now();
+  const { response, initialJob, clerkUserId, jobIdHex, resolved } = input;
   if (response.status === "completed" && response.video?.url) {
     const blobPath = buildCanvasBlobPathname(clerkUserId, jobIdHex, "video", response.video.url);
     const permanentUrl = await resolved.persistMedia(response.video.url, blobPath);
-    await resolved.updateCanvasJob(jobId, clerkUserId, {
-      $set: {
-        status: "completed",
+    const completedJob = await markJobCompleted(
+      initialJob,
+      {
+        outputUrl: permanentUrl,
+        outputKind: "video",
         externalJobId: response.request_id,
         statusUrl: response.status_url,
-        outputUrl: permanentUrl,
-        outputKind: "video",
-        updatedAt,
       },
-      $unset: { error: "" },
-    });
-    await resolved.updateCanvasNodeState({
-      canvasId: canvasObjectId,
-      clerkUserId,
-      nodeId: node.id,
-      patch: {
-        status: "completed",
-        lastJobId: jobIdHex,
-        outputUrl: permanentUrl,
-        outputKind: "video",
-        lastCostUsd: costUsd,
-        lastError: undefined,
-      },
-      updatedAt,
-    });
+      resolved,
+    );
     const creditUsd = await resolved.getUserCreditUsd(clerkUserId);
     return {
       ok: true,
-      job: {
-        ...initialJob,
-        status: "completed",
-        externalJobId: response.request_id,
-        statusUrl: response.status_url,
-        outputUrl: permanentUrl,
-        outputKind: "video",
-        updatedAt,
-      },
+      job: completedJob,
       creditUsd,
     };
   }
 
-  await resolved.updateCanvasJob(jobId, clerkUserId, {
-    $set: {
-      status: "running",
+  const runningJob = await markJobRunning(
+    initialJob,
+    {
       externalJobId: response.request_id,
       statusUrl: response.status_url,
-      updatedAt,
     },
-  });
-  await resolved.updateCanvasNodeState({
-    canvasId: canvasObjectId,
-    clerkUserId,
-    nodeId: node.id,
-    patch: {
-      status: "running",
-      lastJobId: jobIdHex,
-      lastCostUsd: costUsd,
-      lastError: undefined,
-    },
-    updatedAt,
-  });
+    resolved,
+  );
   const creditUsd = await resolved.getUserCreditUsd(clerkUserId);
   return {
     ok: true,
-    job: {
-      ...initialJob,
-      status: "running",
-      externalJobId: response.request_id,
-      statusUrl: response.status_url,
-      updatedAt,
-    },
+    job: runningJob,
     creditUsd,
   };
 }
@@ -1089,7 +927,6 @@ async function executeDispatchedCanvasJob(
   const jobIdHex = jobId.toHexString();
   const canvasObjectId = initialJob.canvasId;
   const clerkUserId = initialJob.clerkUserId;
-  const costUsd = initialJob.chargedUsd;
   const input = {
     clerkUserId,
     canvasId: canvasObjectId.toHexString(),
@@ -1136,44 +973,16 @@ async function executeDispatchedCanvasJob(
         rawOutputUrl,
       );
       const permanentUrl = await resolved.persistMedia(rawOutputUrl, blobPath);
-      const completedAt = resolved.now();
-
-      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-        $set: {
-          status: "completed",
+      const completedJob = await markJobCompleted(
+        initialJob,
+        {
+          outputUrl: permanentUrl,
+          outputKind: "image",
           externalJobId: response.request_id,
-          outputUrl: permanentUrl,
-          outputKind: "image",
-          updatedAt: completedAt,
         },
-        $unset: { error: "" },
-      });
-
-      await resolved.updateCanvasNodeState({
-        canvasId: canvasObjectId,
-        clerkUserId: input.clerkUserId,
-        nodeId: node.id,
-        patch: {
-          status: "completed",
-          lastJobId: jobIdHex,
-          outputUrl: permanentUrl,
-          outputKind: "image",
-          lastCostUsd: costUsd,
-          lastError: undefined,
-        },
-        thumbnailUrl: permanentUrl,
-        updatedAt: completedAt,
-      });
-
+        resolved,
+      );
       const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-      const completedJob: CanvasJob = {
-        ...initialJob,
-        status: "completed",
-        externalJobId: response.request_id,
-        outputUrl: permanentUrl,
-        outputKind: "image",
-        updatedAt: completedAt,
-      };
       return { ok: true, job: completedJob, creditUsd };
     }
 
@@ -1194,12 +1003,8 @@ async function executeDispatchedCanvasJob(
       return settleSubmittedVideo({
         response,
         initialJob,
-        node,
         clerkUserId: input.clerkUserId,
-        canvasObjectId,
-        jobId,
         jobIdHex,
-        costUsd,
         resolved,
       });
     }
@@ -1232,92 +1037,13 @@ async function executeDispatchedCanvasJob(
         );
       }
 
-      const updatedAt = resolved.now();
-      if (response.status === "completed" && response.video?.url) {
-        const blobPath = buildCanvasBlobPathname(
-          input.clerkUserId,
-          jobIdHex,
-          "video",
-          response.video.url,
-        );
-        const permanentUrl = await resolved.persistMedia(
-          response.video.url,
-          blobPath,
-        );
-        await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-          $set: {
-            status: "completed",
-            externalJobId: response.request_id,
-            statusUrl: response.status_url,
-            outputUrl: permanentUrl,
-            outputKind: "video",
-            updatedAt,
-          },
-          $unset: { error: "" },
-        });
-        await resolved.updateCanvasNodeState({
-          canvasId: canvasObjectId,
-          clerkUserId: input.clerkUserId,
-          nodeId: node.id,
-          patch: {
-            status: "completed",
-            lastJobId: jobIdHex,
-            outputUrl: permanentUrl,
-            outputKind: "video",
-            lastCostUsd: costUsd,
-            lastError: undefined,
-          },
-          updatedAt,
-        });
-        const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-        return {
-          ok: true,
-          job: {
-            ...initialJob,
-            status: "completed",
-            externalJobId: response.request_id,
-            statusUrl: response.status_url,
-            outputUrl: permanentUrl,
-            outputKind: "video",
-            updatedAt,
-          },
-          creditUsd,
-        };
-      }
-
-      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-        $set: {
-          status: "running",
-          externalJobId: response.request_id,
-          statusUrl: response.status_url,
-          updatedAt,
-        },
-      });
-      await resolved.updateCanvasNodeState({
-        canvasId: canvasObjectId,
+      return settleSubmittedVideo({
+        response,
+        initialJob,
         clerkUserId: input.clerkUserId,
-        nodeId: node.id,
-        patch: {
-          status: "running",
-          lastJobId: jobIdHex,
-          lastCostUsd: costUsd,
-          lastError: undefined,
-        },
-        updatedAt,
+        jobIdHex,
+        resolved,
       });
-
-      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-      return {
-        ok: true,
-        job: {
-          ...initialJob,
-          status: "running",
-          externalJobId: response.request_id,
-          statusUrl: response.status_url,
-          updatedAt,
-        },
-        creditUsd,
-      };
     }
 
     // Branch 4: Vast.ai Worker FFmpeg utility node.
@@ -1327,38 +1053,19 @@ async function executeDispatchedCanvasJob(
         modelId: spec.id,
         clerkUserId: input.clerkUserId,
       });
-      const updatedAt = resolved.now();
       const workerIdHex = workerTaskId.toHexString();
-      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-        $set: {
-          status: "running",
+      const runningJob = await markJobRunning(
+        initialJob,
+        {
           domainKind: "worker_ffmpeg",
           externalJobId: workerIdHex,
-          updatedAt,
         },
-      });
-      await resolved.updateCanvasNodeState({
-        canvasId: canvasObjectId,
-        clerkUserId: input.clerkUserId,
-        nodeId: node.id,
-        patch: {
-          status: "running",
-          lastJobId: jobIdHex,
-          lastCostUsd: costUsd,
-          lastError: undefined,
-        },
-        updatedAt,
-      });
+        resolved,
+      );
       const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
       return {
         ok: true,
-        job: {
-          ...initialJob,
-          status: "running",
-          domainKind: "worker_ffmpeg",
-          externalJobId: workerIdHex,
-          updatedAt,
-        },
+        job: runningJob,
         creditUsd,
       };
     }
@@ -1376,41 +1083,19 @@ async function executeDispatchedCanvasJob(
           language,
           pathname: `canvas/${input.clerkUserId}/${jobIdHex}.srt`,
         });
-        const completedAt = resolved.now();
-        await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-          $set: {
-            status: "completed",
+        const completedJob = await markJobCompleted(
+          initialJob,
+          {
             outputUrl: out.outputUrl,
             outputKind: "text",
-            updatedAt: completedAt,
+            extraNodePatch: { text: out.srt },
           },
-          $unset: { error: "" },
-        });
-        await resolved.updateCanvasNodeState({
-          canvasId: canvasObjectId,
-          clerkUserId: input.clerkUserId,
-          nodeId: node.id,
-          patch: {
-            status: "completed",
-            lastJobId: jobIdHex,
-            outputUrl: out.outputUrl,
-            outputKind: "text",
-            text: out.srt,
-            lastCostUsd: costUsd,
-            lastError: undefined,
-          },
-          updatedAt: completedAt,
-        });
+          resolved,
+        );
         const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
         return {
           ok: true,
-          job: {
-            ...initialJob,
-            status: "completed",
-            outputUrl: out.outputUrl,
-            outputKind: "text",
-            updatedAt: completedAt,
-          },
+          job: completedJob,
           creditUsd,
         };
       }
@@ -1423,41 +1108,18 @@ async function executeDispatchedCanvasJob(
           node,
           inputs: inputCheck.inputs,
         });
-        const completedAt = resolved.now();
-        await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-          $set: {
-            status: "completed",
+        const completedJob = await markJobCompleted(
+          initialJob,
+          {
             outputUrl: out.outputUrl,
             outputKind: out.outputKind,
-            updatedAt: completedAt,
           },
-          $unset: { error: "" },
-        });
-        await resolved.updateCanvasNodeState({
-          canvasId: canvasObjectId,
-          clerkUserId: input.clerkUserId,
-          nodeId: node.id,
-          patch: {
-            status: "completed",
-            lastJobId: jobIdHex,
-            outputUrl: out.outputUrl,
-            outputKind: out.outputKind,
-            lastCostUsd: costUsd,
-            lastError: undefined,
-          },
-          ...(out.outputKind === "image" ? { thumbnailUrl: out.outputUrl } : {}),
-          updatedAt: completedAt,
-        });
+          resolved,
+        );
         const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
         return {
           ok: true,
-          job: {
-            ...initialJob,
-            status: "completed",
-            outputUrl: out.outputUrl,
-            outputKind: out.outputKind,
-            updatedAt: completedAt,
-          },
+          job: completedJob,
           creditUsd,
         };
       }
@@ -1470,37 +1132,18 @@ async function executeDispatchedCanvasJob(
         node,
         inputs: inputCheck.inputs,
       });
-      const updatedAt = resolved.now();
-      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-        $set: {
-          status: "running",
+      const runningJob = await markJobRunning(
+        initialJob,
+        {
           domainKind: submitted.domainKind,
           externalJobId: submitted.externalJobId,
-          updatedAt,
         },
-      });
-      await resolved.updateCanvasNodeState({
-        canvasId: canvasObjectId,
-        clerkUserId: input.clerkUserId,
-        nodeId: node.id,
-        patch: {
-          status: "running",
-          lastJobId: jobIdHex,
-          lastCostUsd: costUsd,
-          lastError: undefined,
-        },
-        updatedAt,
-      });
+        resolved,
+      );
       const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
       return {
         ok: true,
-        job: {
-          ...initialJob,
-          status: "running",
-          domainKind: submitted.domainKind,
-          externalJobId: submitted.externalJobId,
-          updatedAt,
-        },
+        job: runningJob,
         creditUsd,
       };
     }
@@ -1518,7 +1161,6 @@ async function executeDispatchedCanvasJob(
       throw new Error(created.error || "Mentalok 任務送出失敗");
     }
 
-    const updatedAt = resolved.now();
     if (created.status === "completed" && created.outputUrl) {
       const outputKind = spec.output.type;
       const blobPath = buildCanvasBlobPathname(
@@ -1531,112 +1173,38 @@ async function executeDispatchedCanvasJob(
         created.outputUrl,
         blobPath,
       );
-      await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-        $set: {
-          status: "completed",
+      const completedJob = await markJobCompleted(
+        initialJob,
+        {
+          outputUrl: permanentUrl,
+          outputKind,
           externalJobId: created.id,
-          outputUrl: permanentUrl,
-          outputKind,
-          updatedAt,
         },
-        $unset: { error: "" },
-      });
-      await resolved.updateCanvasNodeState({
-        canvasId: canvasObjectId,
-        clerkUserId: input.clerkUserId,
-        nodeId: node.id,
-        patch: {
-          status: "completed",
-          lastJobId: jobIdHex,
-          outputUrl: permanentUrl,
-          outputKind,
-          lastCostUsd: costUsd,
-          lastError: undefined,
-        },
-        ...(outputKind === "image" ? { thumbnailUrl: permanentUrl } : {}),
-        updatedAt,
-      });
+        resolved,
+      );
       const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
       return {
         ok: true,
-        job: {
-          ...initialJob,
-          status: "completed",
-          externalJobId: created.id,
-          outputUrl: permanentUrl,
-          outputKind,
-          updatedAt,
-        },
+        job: completedJob,
         creditUsd,
       };
     }
 
-    await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-      $set: {
-        status: "running",
-        externalJobId: created.id,
-        updatedAt,
-      },
-    });
-    await resolved.updateCanvasNodeState({
-      canvasId: canvasObjectId,
-      clerkUserId: input.clerkUserId,
-      nodeId: node.id,
-      patch: {
-        status: "running",
-        lastJobId: jobIdHex,
-        lastCostUsd: costUsd,
-        lastError: undefined,
-      },
-      updatedAt,
-    });
-
+    const runningJob = await markJobRunning(
+      initialJob,
+      { externalJobId: created.id },
+      resolved,
+    );
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return {
       ok: true,
-      job: {
-        ...initialJob,
-        status: "running",
-        externalJobId: created.id,
-        updatedAt,
-      },
+      job: runningJob,
       creditUsd,
     };
   } catch (error) {
     const message = toErrorMessage(error, "模型執行失敗，已自動退還 USD Credit");
-    const failedAt = resolved.now();
-
-    // Idempotently refund charged USD credit and reverse any affiliate commission.
-    const refund = await refundCanvasJobOnce(jobId, input.clerkUserId, resolved);
-
-    await resolved.updateCanvasJob(jobId, input.clerkUserId, {
-      $set: {
-        status: "failed",
-        error: message,
-        updatedAt: failedAt,
-      },
-    });
-    await resolved.updateCanvasNodeState({
-      canvasId: canvasObjectId,
-      clerkUserId: input.clerkUserId,
-      nodeId: node.id,
-      patch: {
-        status: "failed",
-        lastJobId: jobIdHex,
-        lastError: message,
-        lastCostUsd: costUsd,
-      },
-      updatedAt: failedAt,
-    });
-
+    const failedJob = await markJobFailed(initialJob, message, resolved);
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    const failedJob: CanvasJob = {
-      ...initialJob,
-      status: "failed",
-      error: message,
-      ...(refund.refunded ? { refundedAt: failedAt } : {}),
-      updatedAt: failedAt,
-    };
     return {
       ok: false,
       code: "PROVIDER_ERROR",
@@ -1674,41 +1242,7 @@ async function settleCompletedJob(
     return job;
   }
 
-  const completedAt = resolved.now();
-  await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-    $set: {
-      status: "completed",
-      outputUrl: permanentUrl,
-      outputKind,
-      updatedAt: completedAt,
-    },
-    $unset: { error: "" },
-  });
-
-  await resolved.updateCanvasNodeState({
-    canvasId: job.canvasId,
-    clerkUserId: job.clerkUserId,
-    nodeId: job.nodeId,
-    patch: {
-      status: "completed",
-      lastJobId: jobIdHex,
-      outputUrl: permanentUrl,
-      outputKind,
-      lastCostUsd: job.chargedUsd,
-      lastError: undefined,
-    },
-    ...(outputKind === "image" ? { thumbnailUrl: permanentUrl } : {}),
-    updatedAt: completedAt,
-  });
-
-  return {
-    ...job,
-    status: "completed",
-    outputUrl: permanentUrl,
-    outputKind,
-    error: undefined,
-    updatedAt: completedAt,
-  };
+  return markJobCompleted(job, { outputUrl: permanentUrl, outputKind }, resolved);
 }
 
 async function settleFailedJob(
@@ -1716,37 +1250,7 @@ async function settleFailedJob(
   errorMessage: string,
   resolved: CanvasExecutorDeps,
 ): Promise<CanvasJob> {
-  const failedAt = resolved.now();
-  const refund = await refundCanvasJobOnce(job._id, job.clerkUserId, resolved);
-
-  await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-    $set: {
-      status: "failed",
-      error: errorMessage,
-      updatedAt: failedAt,
-    },
-  });
-
-  await resolved.updateCanvasNodeState({
-    canvasId: job.canvasId,
-    clerkUserId: job.clerkUserId,
-    nodeId: job.nodeId,
-    patch: {
-      status: "failed",
-      lastJobId: job._id.toHexString(),
-      lastError: errorMessage,
-      lastCostUsd: job.chargedUsd,
-    },
-    updatedAt: failedAt,
-  });
-
-  return {
-    ...job,
-    status: "failed",
-    error: errorMessage,
-    ...(refund.refunded ? { refundedAt: failedAt } : {}),
-    updatedAt: failedAt,
-  };
+  return markJobFailed(job, errorMessage, resolved);
 }
 
 // Maximum wall-clock wait for an async Canvas job before failing & refunding.
@@ -1816,38 +1320,11 @@ async function pollSingleCanvasJob(
     if (pollRes.status === "completed") {
       if (pollRes.outputUrl.includes(".public.blob.vercel-storage.com/")) {
         const outputKind: CanvasOutputKind = job.outputKind ?? "video";
-        const completedAt = resolved.now();
-        await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-          $set: {
-            status: "completed",
-            outputUrl: pollRes.outputUrl,
-            outputKind,
-            updatedAt: completedAt,
-          },
-          $unset: { error: "" },
-        });
-        await resolved.updateCanvasNodeState({
-          canvasId: job.canvasId,
-          clerkUserId: job.clerkUserId,
-          nodeId: job.nodeId,
-          patch: {
-            status: "completed",
-            lastJobId: job._id.toHexString(),
-            outputUrl: pollRes.outputUrl,
-            outputKind,
-            lastCostUsd: job.chargedUsd,
-            lastError: undefined,
-          },
-          updatedAt: completedAt,
-        });
-        return {
-          ...job,
-          status: "completed",
-          outputUrl: pollRes.outputUrl,
-          outputKind,
-          error: undefined,
-          updatedAt: completedAt,
-        };
+        return markJobCompleted(
+          job,
+          { outputUrl: pollRes.outputUrl, outputKind },
+          resolved,
+        );
       }
       return settleCompletedJob(job, pollRes.outputUrl, resolved);
     }

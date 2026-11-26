@@ -10,8 +10,13 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { ObjectId } from "mongodb";
-import { canvasJobsCollection, canvasProjectsCollection } from "@/dao";
+import { canvasJobsCollection } from "@/dao";
 import type { CanvasJob, CanvasNodeData } from "@/model/canvas";
+import {
+  createDefaultCanvasJobLedgerDeps,
+  markJobCompleted,
+  markJobFailed,
+} from "@/service/canvas/job-ledger";
 import { buildVideoCodecArgs } from "@/service/ffmpeg/video-encoder";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { applyJutsuColorGradeBuffer, DEFAULT_JUTSU_COLOR_SETTINGS } from "@/service/jutsu/color-grade";
@@ -340,8 +345,10 @@ export type ExecuteCanvasFfmpegDeps = {
     clerkUserId: string;
     nodeId: string;
     patch: Partial<CanvasNodeData>;
+    thumbnailUrl?: string;
     updatedAt: Date;
   }) => Promise<void>;
+  now?: () => Date;
 };
 
 function ffmpegOutputFile(modelId: string): {
@@ -371,6 +378,7 @@ export async function executeCanvasFfmpegJob(
   jobId: ObjectId,
   deps?: Partial<ExecuteCanvasFfmpegDeps>,
 ): Promise<{ outcome: "completed"; outputUrl: string } | { outcome: "failed"; error: string }> {
+  const defaultLedger = createDefaultCanvasJobLedgerDeps();
   const resolved: ExecuteCanvasFfmpegDeps = {
     findCanvasJob: async (id) => {
       const col = await canvasJobsCollection();
@@ -384,30 +392,9 @@ export async function executeCanvasFfmpegJob(
       applyJutsuColorGradeBuffer(buffer, DEFAULT_JUTSU_COLOR_SETTINGS),
     gradeTalkingHead: (buffer, options) => gradeTalkingHeadSensorTextureBuffer(buffer, options),
     persistBuffer,
-    updateCanvasJob: async (id, clerkUserId, update) => {
-      const col = await canvasJobsCollection();
-      const mongoUpdate: Record<string, unknown> = {};
-      if (update.$set) mongoUpdate.$set = update.$set;
-      if (update.$unset) mongoUpdate.$unset = update.$unset;
-      await col.updateOne({ _id: id, clerkUserId }, mongoUpdate);
-    },
-    updateCanvasNodeState: async ({ canvasId, clerkUserId, nodeId, patch, updatedAt }) => {
-      const projects = await canvasProjectsCollection();
-      const setFields: Record<string, unknown> = { updatedAt };
-      const unsetFields: Record<string, ""> = {};
-      for (const [key, value] of Object.entries(patch) as Array<[keyof CanvasNodeData, unknown]>) {
-        const path = `nodes.$.data.${key}`;
-        if (value === undefined) unsetFields[path] = "";
-        else setFields[path] = value;
-      }
-      // A finished rerun is the current preview, even if this node was marked old.
-      if (patch.status === "completed" && typeof patch.outputUrl === "string" && patch.outputUrl.trim()) {
-        unsetFields["nodes.$.data.staleOutputUrl"] = "";
-      }
-      const updateDoc: Record<string, unknown> = { $set: setFields };
-      if (Object.keys(unsetFields).length > 0) updateDoc.$unset = unsetFields;
-      await projects.updateOne({ _id: canvasId, clerkUserId, "nodes.id": nodeId }, updateDoc);
-    },
+    updateCanvasJob: defaultLedger.updateCanvasJob,
+    updateCanvasNodeState: defaultLedger.updateCanvasNodeState,
+    now: defaultLedger.now,
     ...deps,
   };
 
@@ -541,43 +528,33 @@ export async function executeCanvasFfmpegJob(
       produced.contentType,
     );
 
-    const now = new Date();
-    await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-      $set: { status: "completed", outputUrl, outputKind: produced.kind, updatedAt: now },
-      $unset: { error: "" },
-    });
-    await resolved.updateCanvasNodeState({
-      canvasId: job.canvasId,
-      clerkUserId: job.clerkUserId,
-      nodeId: job.nodeId,
-      patch: {
-        status: "completed",
-        lastJobId: jobIdHex,
+    await markJobCompleted(
+      job,
+      {
         outputUrl,
         outputKind: produced.kind,
-        lastError: undefined,
+        includeCostInPatch: false,
       },
-      updatedAt: now,
-    });
+      {
+        updateCanvasJob: resolved.updateCanvasJob,
+        updateCanvasNodeState: resolved.updateCanvasNodeState,
+        now: resolved.now,
+      },
+    );
 
     return { outcome: "completed", outputUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : "FFmpeg 處理失敗";
-    const now = new Date();
-    await resolved.updateCanvasJob(job._id, job.clerkUserId, {
-      $set: { status: "failed", error: message, updatedAt: now },
-    });
-    await resolved.updateCanvasNodeState({
-      canvasId: job.canvasId,
-      clerkUserId: job.clerkUserId,
-      nodeId: job.nodeId,
-      patch: {
-        status: "failed",
-        lastJobId: jobIdHex,
-        lastError: message,
+    await markJobFailed(
+      job,
+      message,
+      {
+        updateCanvasJob: resolved.updateCanvasJob,
+        updateCanvasNodeState: resolved.updateCanvasNodeState,
+        now: resolved.now,
       },
-      updatedAt: now,
-    });
+      { skipRefund: true, includeCostInPatch: false },
+    );
     return { outcome: "failed", error: message };
   } finally {
     await rm(dir, { recursive: true, force: true });
