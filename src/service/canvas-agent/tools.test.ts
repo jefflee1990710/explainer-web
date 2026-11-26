@@ -7,6 +7,7 @@ import { CANVAS_AGENT_TOOL_HANDLERS as T, buildCanvasAgentTools } from "@/servic
 import { CANVAS_AGENT_MAX_ADDED_NODES, createWorkingGraph } from "@/service/canvas-agent/working-graph";
 import { EDIT_TOOL_HANDLERS } from "@/service/canvas-agent/edit-tools";
 import { SEQUENCE_TOOL_HANDLERS } from "@/service/canvas-agent/sequence-tools";
+import { SMART_EDIT_TOOL_HANDLERS } from "@/service/canvas-agent/smart-edit-tools";
 
 const SEEDREAM = "openrouter:bytedance-seed/seedream-5-0-pro";
 const HAILUO = "minimax:MiniMax-H3";
@@ -599,6 +600,6 @@ describe("canvas agent tools", () => {
 
   it("exposes every handler as an AI SDK tool", () => {
     const tools = buildCanvasAgentTools(fresh());
-    assert.deepEqual(Object.keys(tools).sort(), [...Object.keys(T), ...Object.keys(EDIT_TOOL_HANDLERS), ...Object.keys(SEQUENCE_TOOL_HANDLERS)].sort());
+    assert.deepEqual(Object.keys(tools).sort(), [...Object.keys(T), ...Object.keys(EDIT_TOOL_HANDLERS), ...Object.keys(SEQUENCE_TOOL_HANDLERS), ...Object.keys(SMART_EDIT_TOOL_HANDLERS)].sort());
   });
 });

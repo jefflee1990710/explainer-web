@@ -27,6 +27,9 @@ export type EditToolHandlers = {
 };
 
 type Source = { sourceId: string; sourcePort?: string };
+
+// Scro tools that edit a video in place, so they insert like an FFmpeg node.
+export const SMART_EDIT_MODEL_IDS = new Set(["scro:clean-speech", "scro:smart-reframe"]);
 type Handle = { source: string; sourceHandle: string };
 
 const handleOf = (port?: string) => port || "output";
@@ -104,7 +107,9 @@ export function insertEdit(g: CanvasAgentWorkingGraph, h: EditToolHandlers, inpu
   const type = getNodeOutputPortType(source, g.catalog, sourceHandle);
   if (!type) return { error: `Node "${input.sourceId}" has no output "${sourceHandle}".` };
   const spec = findCanvasModel(input.modelId, g.catalog);
-  if (!spec || spec.provider !== "ffmpeg") return { error: `"${input.modelId}" is not an FFmpeg edit node.` };
+  if (!spec || (spec.provider !== "ffmpeg" && !SMART_EDIT_MODEL_IDS.has(spec.id))) {
+    return { error: `"${input.modelId}" is not an FFmpeg edit node.` };
+  }
   const port = inputPortFor(spec, type);
   if (!port) return { error: `${spec.name} takes no ${type} input.` };
 

@@ -61,6 +61,11 @@ import { SCRO_GROUP_TOOLS, type ScroGroupToolInput } from "@/service/canvas-agen
 import { addModelNode, type AddModelNodeInput } from "@/service/canvas-agent/model-node-tool";
 import { EDIT_TOOL_DESCRIPTIONS, EDIT_TOOL_HANDLERS, EDIT_TOOL_SCHEMAS } from "@/service/canvas-agent/edit-tools";
 import { SEQUENCE_TOOL_DESCRIPTIONS, SEQUENCE_TOOL_HANDLERS, SEQUENCE_TOOL_SCHEMAS } from "@/service/canvas-agent/sequence-tools";
+import {
+  SMART_EDIT_TOOL_DESCRIPTIONS,
+  SMART_EDIT_TOOL_HANDLERS,
+  SMART_EDIT_TOOL_SCHEMAS,
+} from "@/service/canvas-agent/smart-edit-tools";
 import { addScroGroup } from "@/service/canvas-agent/scro-group-handler";
 import {
   addNode,
@@ -414,9 +419,13 @@ const aspectRatio = canvasAspectRatioSchema.describe("Frame shape, e.g. 9:16 for
 
 // Edit tools (trim_clip, split_clip, add_bgm, ...) bound to one working graph.
 function buildEditTools(g: CanvasAgentWorkingGraph): ToolSet {
-  const schemas: Record<string, z.ZodType> = { ...EDIT_TOOL_SCHEMAS, ...SEQUENCE_TOOL_SCHEMAS };
-  const descriptions: Record<string, string> = { ...EDIT_TOOL_DESCRIPTIONS, ...SEQUENCE_TOOL_DESCRIPTIONS };
-  const handlers: Record<string, unknown> = { ...EDIT_TOOL_HANDLERS, ...SEQUENCE_TOOL_HANDLERS };
+  const schemas: Record<string, z.ZodType> = { ...EDIT_TOOL_SCHEMAS, ...SEQUENCE_TOOL_SCHEMAS, ...SMART_EDIT_TOOL_SCHEMAS };
+  const descriptions: Record<string, string> = {
+    ...EDIT_TOOL_DESCRIPTIONS,
+    ...SEQUENCE_TOOL_DESCRIPTIONS,
+    ...SMART_EDIT_TOOL_DESCRIPTIONS,
+  };
+  const handlers: Record<string, unknown> = { ...EDIT_TOOL_HANDLERS, ...SEQUENCE_TOOL_HANDLERS, ...SMART_EDIT_TOOL_HANDLERS };
   const entries = Object.keys(schemas).map((name) => [
     name,
     tool({

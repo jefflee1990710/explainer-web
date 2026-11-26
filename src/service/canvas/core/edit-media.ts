@@ -40,6 +40,8 @@ export function wiredEdges(g: Graph, nodeId: string, port: string): CanvasEdge[]
   return g.edges.filter((e) => e.target === nodeId && e.targetHandle === port);
 }
 
+const SMART_EDIT_MODELS = new Set(["scro:clean-speech", "scro:smart-reframe"]);
+
 const PASS_THROUGH = new Set([
   "ffmpeg:fade",
   "ffmpeg:crop",
@@ -93,6 +95,18 @@ function estimateEdit(g: Graph, node: CanvasNode, seen: Set<string>, handle?: st
       ...(modelId === "ffmpeg:crop" || modelId === "ffmpeg:transform" ? { width: undefined, height: undefined } : {}),
       estimated: true,
     };
+  }
+  // Same length in a new frame; Clean Speech only gets shorter, so its length stays unknown.
+  if (modelId === "scro:smart-reframe" || modelId === "scro:clean-speech") {
+    const src = source();
+    if (!src) return undefined;
+    if (modelId === "scro:clean-speech") return { hasAudio: src.hasAudio, width: src.width, height: src.height, estimated: true };
+    const aspect = String(param(node, "reframeAspect") ?? "9:16");
+    const [w, h] = (["9:16", "1:1", "4:5", "16:9"].includes(aspect) ? aspect : "9:16").split(":").map(Number);
+    const short = param(node, "reframeResolution") === "720p" ? 720 : 1080;
+    const even = (v: number) => Math.round(v / 2) * 2;
+    const size = w! < h! ? { width: short, height: even((short * h!) / w!) } : { width: even((short * w!) / h!), height: short };
+    return { ...src, ...size, estimated: true };
   }
   if (modelId === "ffmpeg:trim-speed") {
     const src = source();
@@ -229,7 +243,9 @@ export function expectedNodeMedia(
     };
   }
   if (node.type !== "model") return meta ? { ...meta, estimated: false } : undefined;
-  if (node.data.modelId?.startsWith("ffmpeg:")) return estimateEdit(g, node, seen, handle);
+  if (node.data.modelId?.startsWith("ffmpeg:") || SMART_EDIT_MODELS.has(node.data.modelId ?? "")) {
+    return estimateEdit(g, node, seen, handle);
+  }
   // An AI video that has not run yet: its length setting.
   return node.data.durationSeconds ? { durationSec: node.data.durationSeconds, estimated: true } : undefined;
 }

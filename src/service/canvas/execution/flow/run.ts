@@ -9,6 +9,8 @@ import { submitCanvasNodeJob } from "@/service/canvas/execution/executor";
 import { computeExecutionWaves } from "@/service/canvas/core/graph";
 import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/core/orphan-busy";
 import { flowRerunNodeIds, isOutputStale } from "@/service/canvas/core/stale-outputs";
+import { planFusedChain } from "@/service/canvas/core/chain-fusion";
+import { submitFusedChain, type FusedChainSubmitResult } from "@/service/canvas/execution/flow/fused-submit";
 import { scheduleCanvasFlowWorkerTask } from "@/service/worker/schedule";
 import type { WorkerTaskExecutionResult } from "@/service/worker/task-executor";
 
@@ -54,6 +56,13 @@ export type CanvasFlowWorkerDeps = {
     flowRunId: string,
     nodeIds: string[],
   ) => Promise<CanvasJob[]>;
+  // Queues a fused FFmpeg chain (head first) as one worker job.
+  submitFusedChain?: (input: {
+    clerkUserId: string;
+    canvasId: string;
+    flowRunId: string;
+    nodeIds: string[];
+  }) => Promise<FusedChainSubmitResult>;
   // True when this caller owns the flow step. False means another step is in progress.
   claimFlowStep: (canvasId: ObjectId, clerkUserId: string, flowRunId: string) => Promise<boolean>;
   now: () => Date;
@@ -172,6 +181,7 @@ function defaultFlowDeps(): CanvasFlowWorkerDeps {
         ...input,
         queueToWorker: true,
       }),
+    submitFusedChain: (input) => submitFusedChain(input),
     findCanvasJobsByIds: async (canvasId, clerkUserId, jobIds) => {
       if (jobIds.length === 0) return [];
       const col = await canvasJobsCollection();
@@ -277,6 +287,45 @@ export async function startCanvasNodeAfterUpstream(
   if (!started.ok) return started;
   await resolved.markNodeQueued(canvasObjectId, params.clerkUserId, params.nodeId);
   return { ...started, waitingOn };
+}
+
+// True when this flow will (re)generate the node: same rule as the wave loop's skip check.
+function nodeWillRun(node: CanvasNode | undefined, run: CanvasFlowRunState): boolean {
+  if (!node || isBusyStatus(node.data.status)) return false;
+  const mustRerun = run.rerunAll || run.rerunNodeIds?.includes(node.id) || isOutputStale(node.data);
+  return !(node.data.status === "completed" && node.data.outputUrl?.trim() && !mustRerun);
+}
+
+// Head node id -> fused chain (head first), for heads whose chain has at least one follower.
+export function planWaveChains(
+  project: Pick<CanvasProject, "nodes" | "edges">,
+  run: CanvasFlowRunState,
+  waveIndex: number,
+  heads: readonly string[],
+  failed: ReadonlySet<string>,
+): Map<string, string[]> {
+  const byId = new Map(project.nodes.map((n) => [n.id, n]));
+  const pending = new Set(
+    run.waves
+      .slice(waveIndex)
+      .flat()
+      .filter((id) => !failed.has(id) && nodeWillRun(byId.get(id), run)),
+  );
+  const out = new Map<string, string[]>();
+  const claimed = new Set<string>();
+  for (const headId of heads) {
+    const chain = planFusedChain({
+      nodes: project.nodes,
+      edges: project.edges,
+      headId,
+      willRun: (id) => pending.has(id),
+      canClaim: (id) => !claimed.has(id) && !heads.includes(id),
+    });
+    if (chain.length < 2) continue;
+    chain.forEach((id) => claimed.add(id));
+    out.set(headId, chain);
+  }
+  return out;
 }
 
 // Keeps only the listed nodes in each wave and drops waves left empty.
@@ -518,15 +567,21 @@ export async function executeCanvasFlowTask(
       continue;
     }
 
+    // Runs of FFmpeg nodes in later waves render inside this wave's head job.
+    const fuseChain = deps ? deps.submitFusedChain : resolved.submitFusedChain;
+    const chains = fuseChain
+      ? planWaveChains(fresh, ownedRun, waveIndex, toSubmit, failedSet)
+      : new Map<string, string[]>();
+
     const submitted = await Promise.all(
-      toSubmit.map((nodeId) =>
-        resolved.submitNodeQueued({
-          clerkUserId,
-          canvasId: task.targetId,
-          nodeId,
-          flowRunId,
-        }),
-      ),
+      toSubmit.map(async (nodeId) => {
+        const chain = chains.get(nodeId);
+        if (chain && fuseChain) {
+          return fuseChain({ clerkUserId, canvasId: task.targetId, flowRunId, nodeIds: chain });
+        }
+        const res = await resolved.submitNodeQueued({ clerkUserId, canvasId: task.targetId, nodeId, flowRunId });
+        return res.ok ? { ok: true as const, jobs: [res.job] } : res;
+      }),
     );
 
     const newJobIds: string[] = [...adoptedJobIds.values()];
@@ -536,10 +591,14 @@ export async function executeCanvasFlowTask(
       if (!res.ok) {
         failedSet.add(nodeId);
         await resolved.markNodeFailed(canvasObjectId, clerkUserId, nodeId, res.error);
-      } else if (res.job.status === "queued" || res.job.status === "running") {
-        newJobIds.push(res.job._id.toHexString());
-      } else if (res.job.status === "failed") {
-        failedSet.add(nodeId);
+        continue;
+      }
+      for (const job of res.jobs) {
+        if (job.status === "queued" || job.status === "running") {
+          newJobIds.push(job._id.toHexString());
+        } else if (job.status === "failed") {
+          failedSet.add(job.nodeId);
+        }
       }
     }
 

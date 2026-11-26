@@ -3,7 +3,7 @@
 // uploads outputs to Vercel Blob, and updates `canvas_jobs` + `canvas_projects`.
 
 import { createWriteStream } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -32,7 +32,16 @@ import {
 } from "@/service/canvas/execution/ffmpeg-edit-more";
 import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
 import { prepareSequenceRender } from "@/service/canvas/execution/ffmpeg-sequence-prepare";
-import { atempoChain, boolParam, clamp, numParam, strParam } from "@/service/canvas/execution/ffmpeg-params";
+import {
+  atempoChain,
+  boolParam,
+  clamp,
+  intermediateQualityArgs,
+  numParam,
+  strParam,
+} from "@/service/canvas/execution/ffmpeg-params";
+import { fusedOutputRef, isFusedOutputRef } from "@/service/canvas/core/chain-fusion";
+import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/core/orphan-busy";
 import { CONCAT_TRANSITIONS } from "@/service/canvas/catalog/ffmpeg-edit-models";
 import { SPLIT_SECOND_HANDLE, extraOutputPathname } from "@/service/canvas/core/extra-outputs";
 import { assertAllowedCanvasMediaUrl } from "@/service/canvas/execution/media-url-guard";
@@ -406,197 +415,287 @@ export async function executeCanvasFfmpegJob(
     return { outcome: "failed", error: "找不到對應的 Canvas FFmpeg 任務" };
   }
 
-  const jobIdHex = job._id.toHexString();
+  if (job.fusedJobIds?.length) return executeFusedFfmpegChain(job, resolved);
+
   const dir = await mkdtemp(join(tmpdir(), "canvas-ffmpeg-"));
   try {
-    const snapshot = job.inputSnapshot ?? {};
-    const produced = ffmpegOutputFile(job.modelId, snapshot);
-    let args: string[];
-    if (job.modelId === SEQUENCE_MODEL_ID) {
-      args = await prepareSequenceRender(dir, snapshot, produced.file, resolved);
-    } else {
-      const videoUrls = Array.isArray(snapshot.videos)
-        ? (snapshot.videos as string[])
-        : typeof snapshot.video === "string" && snapshot.video
-          ? [snapshot.video]
-          : [];
-      const audioUrl = typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined;
-      const audioUrls = Array.isArray(snapshot.audios) ? snapshot.audios.map(String) : [];
-      const imageUrl = typeof snapshot.image === "string" ? snapshot.image : undefined;
-      const overlayVideoUrl = typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined;
-
-      const videoFiles: string[] = [];
-      const hasAudioByVideo: boolean[] = [];
-      const durationsSec: number[] = [];
-      let firstWidth: number | undefined;
-      let firstHeight: number | undefined;
-
-      for (let i = 0; i < videoUrls.length; i += 1) {
-        const name = `in-${i}.mp4`;
-        await resolved.downloadToFile(videoUrls[i]!, join(dir, name));
-        const probeStr = await resolved.probeStderr(dir, name);
-        const probed = parseMediaProbe(probeStr);
-        if (probed.durationSec === undefined && NEEDS_DURATION.has(job.modelId)) {
-          throw new Error(`無法讀取第 ${i + 1} 段影片的長度，請重新產生或重新上傳`);
-        }
-        videoFiles.push(name);
-        hasAudioByVideo.push(probed.hasAudio);
-        durationsSec.push(probed.durationSec ?? 0);
-        if (i === 0) {
-          firstWidth = probed.width;
-          firstHeight = probed.height;
-        }
-      }
-
-      let audioFile: string | undefined;
-      let audioDurationSec: number | undefined;
-      if (audioUrl) {
-        audioFile = "in-audio.mp3";
-        await resolved.downloadToFile(audioUrl, join(dir, audioFile));
-        audioDurationSec = parseMediaProbe(await resolved.probeStderr(dir, audioFile).catch(() => "")).durationSec;
-      }
-      const audioFiles: string[] = [];
-      for (let i = 0; i < audioUrls.length; i += 1) {
-        const name = `in-audio-${i}.mp3`;
-        await resolved.downloadToFile(audioUrls[i]!, join(dir, name));
-        audioFiles.push(name);
-      }
-
-      let imageFile: string | undefined;
-      if (imageUrl) {
-        const lower = imageUrl.toLowerCase();
-        const ext = lower.includes(".png") ? "png" : lower.includes(".webp") ? "webp" : "jpg";
-        imageFile = `in-image.${ext}`;
-        await resolved.downloadToFile(imageUrl, join(dir, imageFile));
-      }
-
-      let overlayVideoFile: string | undefined;
-      if (overlayVideoUrl) {
-        overlayVideoFile = "overlay.mp4";
-        await resolved.downloadToFile(overlayVideoUrl, join(dir, overlayVideoFile));
-      }
-
-      if (job.modelId === "ffmpeg:extract-audio" && !hasAudioByVideo[0]) {
-        throw new Error("來源影片沒有音訊軌道，無法抽取音訊");
-      }
-
-      let detectedCrop: string | undefined;
-      const cropMode = strParam(snapshot, "ffmpegCropMode", strParam(snapshot, "presetId", ""));
-      if (job.modelId === "ffmpeg:crop" && cropMode === "letterbox" && videoFiles[0]) {
-        const detect = await ffmpegStderr(dir, [
-          "-i",
-          videoFiles[0],
-          "-vf",
-          "cropdetect=24:16:0",
-          "-f",
-          "null",
-          "-",
-        ], PROBE_TIMEOUT_MS);
-        const last = [...detect.matchAll(/crop=(\d+:\d+:\d+:\d+)/g)].at(-1)?.[1];
-        const full = firstWidth && firstHeight ? `${firstWidth}:${firstHeight}:0:0` : "";
-        if (last && last !== full) detectedCrop = last;
-      }
-
-      const localInputs: CanvasFfmpegLocalInputs = {
-        videoFiles,
-        audioFile,
-        imageFile,
-        overlayVideoFile,
-        hasAudioByVideo,
-        durationsSec,
-        targetWidth: firstWidth,
-        targetHeight: firstHeight,
-        detectedCrop,
-        audioFiles,
-        audioDurationSec,
-      };
-      if (job.modelId === "ffmpeg:text") {
-        await writeFile(join(dir, "text.ass"), textOverlayAss(snapshot, localInputs), "utf8");
-        localInputs.subtitleFile = "text.ass";
-      }
-      if (job.modelId === "ffmpeg:burn-subtitles") {
-        await writeFile(join(dir, "subs.ass"), burnSubtitleAss(snapshot, localInputs), "utf8");
-        localInputs.subtitleFile = "subs.ass";
-      }
-
-      args = buildCanvasFfmpegArgs(job.modelId, snapshot, localInputs, produced.file);
-    }
-
-    await resolved.runFfmpeg(dir, args, CANVAS_FFMPEG_TIMEOUT_MS);
-    let outBuf: Buffer = await readFile(join(dir, produced.file));
-
-    if (job.modelId === "ffmpeg:trim-speed" && boolParam(snapshot, "ffmpegTrimSilence", false)) {
-      outBuf = Buffer.from(await resolved.trimSilence(outBuf));
-    }
-    if (
-      job.modelId === "ffmpeg:transform" &&
-      strParam(snapshot, "ffmpegColorGrade", "none") === "h3-soft"
-    ) {
-      outBuf = Buffer.from(await resolved.applyColorGrade(outBuf));
-    }
-    if (job.modelId === "ffmpeg:smooth-silence") {
-      outBuf = Buffer.from(await resolved.trimSilence(outBuf));
-    }
-    if (job.modelId === "ffmpeg:color-grade") {
-      const look = strParam(snapshot, "gradeLook", strParam(snapshot, "presetId", "jutsu"));
-      outBuf = Buffer.from(
-        look === "jutsu"
-          ? await resolved.applyColorGrade(outBuf)
-          : await resolved.gradeTalkingHead(outBuf, {
-              handheldSelfie: look === "talking-head-selfie",
-            }),
-      );
-    }
-
-    const slug = job.modelId === "ffmpeg:export" ? exportFileSlug(snapshot) : "";
-    const pathname = `canvas/${job.clerkUserId}/${jobIdHex}${slug ? `-${slug}` : ""}.${produced.ext}`;
-    // Split's part B is saved first, at the path its edges derive from the main URL.
-    if (job.modelId === "ffmpeg:split") {
-      await resolved.persistBuffer(
-        await readFile(join(dir, extraOutputPathname(produced.file, SPLIT_SECOND_HANDLE))),
-        extraOutputPathname(pathname, SPLIT_SECOND_HANDLE),
-        produced.contentType,
-      );
-    }
-    const outputUrl = await resolved.persistBuffer(outBuf, pathname, produced.contentType);
-    // Length, sound, and size of the new file, so the assistant can reason about it.
-    let outputMeta: CanvasMediaMeta | undefined;
-    if (produced.kind !== "image") {
-      await writeFile(join(dir, `final.${produced.ext}`), outBuf);
-      const probed = parseMediaProbe(await resolved.probeStderr(dir, `final.${produced.ext}`).catch(() => ""));
-      if (isUsableProbe(probed)) outputMeta = mediaMetaFromProbe(outputUrl, probed);
-    }
-
-    await markJobCompleted(
-      job,
-      {
-        outputUrl,
-        outputKind: produced.kind,
-        includeCostInPatch: false,
-        ...(outputMeta ? { extraNodePatch: { outputMeta } } : {}),
-      },
-      {
-        updateCanvasJob: resolved.updateCanvasJob,
-        updateCanvasNodeState: resolved.updateCanvasNodeState,
-        now: resolved.now,
-      },
-    );
-
+    const { outBuf, produced } = await renderCanvasFfmpegStep(job, dir, resolved, false);
+    const outputUrl = await settleCanvasFfmpegStep(job, dir, outBuf, produced, resolved);
     return { outcome: "completed", outputUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : "FFmpeg 處理失敗";
-    await markJobFailed(
-      job,
-      message,
-      {
-        updateCanvasJob: resolved.updateCanvasJob,
-        updateCanvasNodeState: resolved.updateCanvasNodeState,
-        now: resolved.now,
-      },
-      { skipRefund: true, includeCostInPatch: false },
-    );
+    await failCanvasFfmpegJob(job, message, resolved);
     return { outcome: "failed", error: message };
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+}
+
+type ProducedFile = ReturnType<typeof ffmpegOutputFile>;
+
+function failCanvasFfmpegJob(job: CanvasJob, message: string, resolved: ExecuteCanvasFfmpegDeps) {
+  return markJobFailed(
+    job,
+    message,
+    {
+      updateCanvasJob: resolved.updateCanvasJob,
+      updateCanvasNodeState: resolved.updateCanvasNodeState,
+      now: resolved.now,
+    },
+    { skipRefund: true, includeCostInPatch: false },
+  );
+}
+
+// Downloads and probes the inputs, runs FFmpeg in `dir`, and applies any buffer post-step.
+// `intermediate` steps only feed the next fused step, so they encode near-lossless.
+async function renderCanvasFfmpegStep(
+  job: CanvasJob,
+  dir: string,
+  resolved: ExecuteCanvasFfmpegDeps,
+  intermediate: boolean,
+): Promise<{ outBuf: Buffer; produced: ProducedFile }> {
+  const snapshot = job.inputSnapshot ?? {};
+  const produced = ffmpegOutputFile(job.modelId, snapshot);
+  let args: string[];
+  if (job.modelId === SEQUENCE_MODEL_ID) {
+    args = await prepareSequenceRender(dir, snapshot, produced.file, resolved);
+  } else {
+    const videoUrls = Array.isArray(snapshot.videos)
+      ? (snapshot.videos as string[])
+      : typeof snapshot.video === "string" && snapshot.video
+        ? [snapshot.video]
+        : [];
+    const audioUrl = typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined;
+    const audioUrls = Array.isArray(snapshot.audios) ? snapshot.audios.map(String) : [];
+    const imageUrl = typeof snapshot.image === "string" ? snapshot.image : undefined;
+    const overlayVideoUrl = typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined;
+
+    const videoFiles: string[] = [];
+    const hasAudioByVideo: boolean[] = [];
+    const durationsSec: number[] = [];
+    let firstWidth: number | undefined;
+    let firstHeight: number | undefined;
+
+    for (let i = 0; i < videoUrls.length; i += 1) {
+      const name = `in-${i}.mp4`;
+      await resolved.downloadToFile(videoUrls[i]!, join(dir, name));
+      const probeStr = await resolved.probeStderr(dir, name);
+      const probed = parseMediaProbe(probeStr);
+      if (probed.durationSec === undefined && NEEDS_DURATION.has(job.modelId)) {
+        throw new Error(`無法讀取第 ${i + 1} 段影片的長度，請重新產生或重新上傳`);
+      }
+      videoFiles.push(name);
+      hasAudioByVideo.push(probed.hasAudio);
+      durationsSec.push(probed.durationSec ?? 0);
+      if (i === 0) {
+        firstWidth = probed.width;
+        firstHeight = probed.height;
+      }
+    }
+
+    let audioFile: string | undefined;
+    let audioDurationSec: number | undefined;
+    if (audioUrl) {
+      audioFile = "in-audio.mp3";
+      await resolved.downloadToFile(audioUrl, join(dir, audioFile));
+      audioDurationSec = parseMediaProbe(await resolved.probeStderr(dir, audioFile).catch(() => "")).durationSec;
+    }
+    const audioFiles: string[] = [];
+    for (let i = 0; i < audioUrls.length; i += 1) {
+      const name = `in-audio-${i}.mp3`;
+      await resolved.downloadToFile(audioUrls[i]!, join(dir, name));
+      audioFiles.push(name);
+    }
+
+    let imageFile: string | undefined;
+    if (imageUrl) {
+      const lower = imageUrl.toLowerCase();
+      const ext = lower.includes(".png") ? "png" : lower.includes(".webp") ? "webp" : "jpg";
+      imageFile = `in-image.${ext}`;
+      await resolved.downloadToFile(imageUrl, join(dir, imageFile));
+    }
+
+    let overlayVideoFile: string | undefined;
+    if (overlayVideoUrl) {
+      overlayVideoFile = "overlay.mp4";
+      await resolved.downloadToFile(overlayVideoUrl, join(dir, overlayVideoFile));
+    }
+
+    if (job.modelId === "ffmpeg:extract-audio" && !hasAudioByVideo[0]) {
+      throw new Error("來源影片沒有音訊軌道，無法抽取音訊");
+    }
+
+    let detectedCrop: string | undefined;
+    const cropMode = strParam(snapshot, "ffmpegCropMode", strParam(snapshot, "presetId", ""));
+    if (job.modelId === "ffmpeg:crop" && cropMode === "letterbox" && videoFiles[0]) {
+      const detect = await ffmpegStderr(dir, [
+        "-i",
+        videoFiles[0],
+        "-vf",
+        "cropdetect=24:16:0",
+        "-f",
+        "null",
+        "-",
+      ], PROBE_TIMEOUT_MS);
+      const last = [...detect.matchAll(/crop=(\d+:\d+:\d+:\d+)/g)].at(-1)?.[1];
+      const full = firstWidth && firstHeight ? `${firstWidth}:${firstHeight}:0:0` : "";
+      if (last && last !== full) detectedCrop = last;
+    }
+
+    const localInputs: CanvasFfmpegLocalInputs = {
+      videoFiles,
+      audioFile,
+      imageFile,
+      overlayVideoFile,
+      hasAudioByVideo,
+      durationsSec,
+      targetWidth: firstWidth,
+      targetHeight: firstHeight,
+      detectedCrop,
+      audioFiles,
+      audioDurationSec,
+    };
+    if (job.modelId === "ffmpeg:text") {
+      await writeFile(join(dir, "text.ass"), textOverlayAss(snapshot, localInputs), "utf8");
+      localInputs.subtitleFile = "text.ass";
+    }
+    if (job.modelId === "ffmpeg:burn-subtitles") {
+      await writeFile(join(dir, "subs.ass"), burnSubtitleAss(snapshot, localInputs), "utf8");
+      localInputs.subtitleFile = "subs.ass";
+    }
+
+    args = buildCanvasFfmpegArgs(job.modelId, snapshot, localInputs, produced.file);
+  }
+
+  await resolved.runFfmpeg(dir, intermediate ? intermediateQualityArgs(args) : args, CANVAS_FFMPEG_TIMEOUT_MS);
+  let outBuf: Buffer = await readFile(join(dir, produced.file));
+
+  if (job.modelId === "ffmpeg:trim-speed" && boolParam(snapshot, "ffmpegTrimSilence", false)) {
+    outBuf = Buffer.from(await resolved.trimSilence(outBuf));
+  }
+  if (
+    job.modelId === "ffmpeg:transform" &&
+    strParam(snapshot, "ffmpegColorGrade", "none") === "h3-soft"
+  ) {
+    outBuf = Buffer.from(await resolved.applyColorGrade(outBuf));
+  }
+  if (job.modelId === "ffmpeg:smooth-silence") {
+    outBuf = Buffer.from(await resolved.trimSilence(outBuf));
+  }
+  if (job.modelId === "ffmpeg:color-grade") {
+    const look = strParam(snapshot, "gradeLook", strParam(snapshot, "presetId", "jutsu"));
+    outBuf = Buffer.from(
+      look === "jutsu"
+        ? await resolved.applyColorGrade(outBuf)
+        : await resolved.gradeTalkingHead(outBuf, {
+            handheldSelfie: look === "talking-head-selfie",
+          }),
+    );
+  }
+
+  return { outBuf, produced };
+}
+
+// Saves the file (and Split's part B), probes its metadata, and completes the job and node.
+async function settleCanvasFfmpegStep(
+  job: CanvasJob,
+  dir: string,
+  outBuf: Buffer,
+  produced: ProducedFile,
+  resolved: ExecuteCanvasFfmpegDeps,
+): Promise<string> {
+  const snapshot = job.inputSnapshot ?? {};
+  const slug = job.modelId === "ffmpeg:export" ? exportFileSlug(snapshot) : "";
+  const pathname = `canvas/${job.clerkUserId}/${job._id.toHexString()}${slug ? `-${slug}` : ""}.${produced.ext}`;
+  // Split's part B is saved first, at the path its edges derive from the main URL.
+  if (job.modelId === "ffmpeg:split") {
+    await resolved.persistBuffer(
+      await readFile(join(dir, extraOutputPathname(produced.file, SPLIT_SECOND_HANDLE))),
+      extraOutputPathname(pathname, SPLIT_SECOND_HANDLE),
+      produced.contentType,
+    );
+  }
+  const outputUrl = await resolved.persistBuffer(outBuf, pathname, produced.contentType);
+  // Length, sound, and size of the new file, so the assistant can reason about it.
+  let outputMeta: CanvasMediaMeta | undefined;
+  if (produced.kind !== "image") {
+    await writeFile(join(dir, `final.${produced.ext}`), outBuf);
+    const probed = parseMediaProbe(await resolved.probeStderr(dir, `final.${produced.ext}`).catch(() => ""));
+    if (isUsableProbe(probed)) outputMeta = mediaMetaFromProbe(outputUrl, probed);
+  }
+
+  await markJobCompleted(
+    job,
+    {
+      outputUrl,
+      outputKind: produced.kind,
+      includeCostInPatch: false,
+      ...(outputMeta ? { extraNodePatch: { outputMeta } } : {}),
+    },
+    {
+      updateCanvasJob: resolved.updateCanvasJob,
+      updateCanvasNodeState: resolved.updateCanvasNodeState,
+      now: resolved.now,
+    },
+  );
+
+  return outputUrl;
+}
+
+// Renders a fused chain in one temp folder: each step reads the previous step's local file
+// through its fused:// input, and every step is still saved so each card keeps its preview.
+async function executeFusedFfmpegChain(
+  head: CanvasJob,
+  resolved: ExecuteCanvasFfmpegDeps,
+): Promise<{ outcome: "completed"; outputUrl: string } | { outcome: "failed"; error: string }> {
+  const followers = await Promise.all(
+    (head.fusedJobIds ?? []).filter((id) => ObjectId.isValid(id)).map((id) => resolved.findCanvasJob(new ObjectId(id))),
+  );
+  const steps = [head, ...followers.filter((j): j is CanvasJob => j?.status === "queued")];
+  const root = await mkdtemp(join(tmpdir(), "canvas-ffmpeg-chain-"));
+  const localFiles = new Map<string, string>();
+  // A retried chain reuses steps that already finished from their saved file.
+  const savedUrls = new Map(
+    followers
+      .filter((j): j is CanvasJob => j?.status === "completed" && Boolean(j.outputUrl))
+      .map((j) => [fusedOutputRef(j.nodeId), j.outputUrl!] as const),
+  );
+  const stepDeps: ExecuteCanvasFfmpegDeps = {
+    ...resolved,
+    downloadToFile: (url, dest) => {
+      const local = localFiles.get(url);
+      if (local) return copyFile(local, dest);
+      const saved = savedUrls.get(url);
+      if (saved) return resolved.downloadToFile(saved, dest);
+      if (isFusedOutputRef(url)) throw new Error("合併執行的上一步沒有產生輸出");
+      return resolved.downloadToFile(url, dest);
+    },
+  };
+  let headUrl = "";
+  try {
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = steps[i]!;
+      const dir = join(root, `step-${i}`);
+      await mkdir(dir);
+      try {
+        const { outBuf, produced } = await renderCanvasFfmpegStep(step, dir, stepDeps, i < steps.length - 1);
+        const kept = join(root, `out-${i}.${produced.ext}`);
+        await writeFile(kept, outBuf);
+        localFiles.set(fusedOutputRef(step.nodeId), kept);
+        const url = await settleCanvasFfmpegStep(step, dir, outBuf, produced, resolved);
+        if (i === 0) headUrl = url;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "FFmpeg 處理失敗";
+        await failCanvasFfmpegJob(step, message, resolved);
+        for (const later of steps.slice(i + 1)) await failCanvasFfmpegJob(later, UPSTREAM_FAILED_ERROR, resolved);
+        if (i === 0) return { outcome: "failed", error: message };
+        break;
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
+    }
+    return { outcome: "completed", outputUrl: headUrl };
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 }
