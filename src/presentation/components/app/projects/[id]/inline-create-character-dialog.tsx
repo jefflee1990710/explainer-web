@@ -26,6 +26,7 @@ export function InlineCreateCharacterDialog({
   defaultStyleId,
   credits = 0,
   subscribed = false,
+  initialTab = "image",
   onCreated,
   onClose,
 }: {
@@ -33,6 +34,8 @@ export function InlineCreateCharacterDialog({
   defaultStyleId?: string;
   credits?: number;
   subscribed?: boolean;
+  // Which method is open when the dialog appears.
+  initialTab?: CreateTab;
   onCreated: (character: PublicCharacter) => void;
   onClose: () => void;
 }) {
@@ -43,7 +46,7 @@ export function InlineCreateCharacterDialog({
 
   void styles;
   void defaultStyleId;
-  const [tab, setTab] = useState<CreateTab>("image");
+  const [tab, setTab] = useState<CreateTab>(initialTab);
   const [name, setName] = useState("");
   const styleId = "realistic";
   const [prompt, setPrompt] = useState("");

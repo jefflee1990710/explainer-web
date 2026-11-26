@@ -2,6 +2,8 @@
 
 import type { CanvasNodeData, CanvasNodeType } from "@/model/canvas";
 import { directorNeedsReplan, isPlanDirectorNode } from "@/service/canvas/explainer-director";
+import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
+import { isScroDirectorNode } from "@/service/canvas/scro-director";
 
 type GraphNode = { id: string; type: string; data: CanvasNodeData };
 type GraphEdge = { source: string; target: string };
@@ -70,6 +72,29 @@ function hasStaleState(node: GraphNode): boolean {
 // The preview was made before an input changed. A new output gets a new URL, which ends it.
 export function isOutputStale(data: CanvasNodeData): boolean {
   return Boolean(data.outputUrl && data.staleOutputUrl === data.outputUrl);
+}
+
+// Completed previews a flow must regenerate: the ones already marked old, any extra ids
+// (the canvas UI's old-version nodes), and every finished model downstream of those,
+// because a new upstream picture or clip makes the later preview old too.
+export function flowRerunNodeIds(
+  nodes: readonly GraphNode[],
+  edges: readonly GraphEdge[],
+  extraIds: readonly string[] = [],
+): string[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const seeds = new Set(extraIds);
+  for (const node of nodes) {
+    if (isOutputStale(node.data)) seeds.add(node.id);
+  }
+  if (seeds.size === 0) return [];
+  return downstreamNodeIds(edges, [...seeds]).filter((id) => {
+    const node = byId.get(id);
+    if (!node || node.type !== "model") return false;
+    const director = { type: node.type as CanvasNodeType, data: node.data };
+    if (isExplainerPlannerNode(director) || isScroDirectorNode(director)) return false;
+    return seeds.has(id) || Boolean(node.data.outputUrl?.trim());
+  });
 }
 
 // Keeps the old preview, marked as an old version that Run must regenerate.

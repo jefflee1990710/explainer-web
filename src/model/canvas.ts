@@ -87,6 +87,8 @@ export type CanvasFlowRunState = {
   waves: string[][];
   activeWaveJobIds: string[];
   failedNodeIds: string[];
+  // Completed previews this run must regenerate, including nodes downstream of one.
+  rerunNodeIds?: string[];
   aborted?: boolean;
   error?: string;
   startedAt: Date;
@@ -294,6 +296,7 @@ export const canvasFlowRunStateSchema: z.ZodType<CanvasFlowRunState> = z.object(
   waves: z.array(z.array(z.string())),
   activeWaveJobIds: z.array(z.string()),
   failedNodeIds: z.array(z.string()),
+  rerunNodeIds: z.array(z.string()).optional(),
   aborted: z.boolean().optional(),
   error: z.string().optional(),
   startedAt: z.date(),

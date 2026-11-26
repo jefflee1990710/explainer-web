@@ -288,6 +288,82 @@ describe("canvas worker runner — multi-wave flow", () => {
       flowDeps,
     );
     assert.deepEqual(submitted, ["b"]);
+    assert.deepEqual(project.activeFlowRun?.rerunNodeIds, ["b"]);
+  });
+
+  it("regenerates an already generated downstream node when an upstream preview is old", async () => {
+    const done = (id: string) => ({ status: "completed" as const, outputUrl: `https://blob.example/${id}` });
+    const project = makeProject(
+      [
+        {
+          id: "frame",
+          type: "model",
+          position: { x: 0, y: 0 },
+          data: { modelId: "google:gemini-nano-banana-2.1", prompt: "still", ...done("frame"), staleOutputUrl: "https://blob.example/frame" },
+        },
+        {
+          id: "video",
+          type: "model",
+          position: { x: 320, y: 0 },
+          data: { modelId: "minimax:MiniMax-H3", prompt: "motion", ...done("video") },
+        },
+      ],
+      [{ id: "e", source: "frame", sourceHandle: "output", target: "video", targetHandle: "startImage" }],
+    );
+    const submitted: string[] = [];
+    const jobs = new Map<string, CanvasJob>();
+    const flowDeps = {
+      findCanvasProject: async () => ({ ...project, nodes: project.nodes.map((n) => ({ ...n, data: { ...n.data } })) }),
+      setActiveFlowRun: async (_id: ObjectId, _uid: string, run: CanvasFlowRunState) => {
+        project.activeFlowRun = run;
+      },
+      scheduleFlowTask: () => {},
+      submitNodeQueued: async ({ nodeId }: { nodeId: string }) => {
+        submitted.push(nodeId);
+        const job = {
+          _id: new ObjectId(),
+          clerkUserId: "user-1",
+          canvasId: project._id,
+          nodeId,
+          provider: "openrouter",
+          modelId: "x",
+          providerModelId: "x",
+          status: "queued",
+          inputSnapshot: {},
+          chargedUsd: 0.1,
+          outputKind: "image",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as CanvasJob;
+        jobs.set(job._id.toHexString(), job);
+        return { ok: true as const, job, creditUsd: 9 };
+      },
+      findCanvasJobsByIds: async (_canvasId: ObjectId, _uid: string, ids: ObjectId[]) =>
+        ids.map((id) => jobs.get(id.toHexString())).filter((job): job is CanvasJob => Boolean(job)),
+      claimFlowStep: async () => true,
+    };
+    await startCanvasFlowRun({ clerkUserId: "user-1", canvasId: project._id.toHexString() }, flowDeps);
+    assert.deepEqual(project.activeFlowRun?.rerunNodeIds, ["frame", "video"]);
+    const task: WorkerTask = {
+      _id: new ObjectId(),
+      kind: "canvas_flow",
+      lane: "cpu",
+      status: "in_progress",
+      targetId: project._id.toHexString(),
+      payload: { flowRunId: project.activeFlowRun!.flowRunId, clerkUserId: "user-1" },
+      attempts: 1,
+      maxAttempts: 5,
+      nextAttemptAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const step1 = await executeCanvasFlowTask(task, flowDeps);
+    assert.equal(step1.outcome, "requeue");
+    assert.deepEqual(submitted, ["frame"]);
+    for (const job of jobs.values()) job.status = "completed";
+    const step2 = await executeCanvasFlowTask(task, flowDeps);
+    assert.equal(step2.outcome, "requeue");
+    assert.deepEqual(submitted, ["frame", "video"]);
   });
 
   it("halts gracefully when stopCanvasFlowRun sets aborted = true", async () => {

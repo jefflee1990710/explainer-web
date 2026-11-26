@@ -6,6 +6,7 @@ import {
   clearNodeOutput,
   clearStaleOutputs,
   downstreamNodeIds,
+  flowRerunNodeIds,
   isGenerationInputPatch,
   isOutputStale,
   markStaleOutputs,
@@ -105,6 +106,18 @@ describe("stale outputs", () => {
     assert.equal(isOutputStale(byId.get("f")!.data), true);
     assert.equal(isOutputStale(byId.get("voice")!.data), false);
     assert.equal(isOutputStale(byId.get("m")!.data), false);
+  });
+
+  it("a flow regenerates an old preview and the finished nodes downstream of it", () => {
+    const frame = model("f");
+    frame.data.staleOutputUrl = frame.data.outputUrl;
+    const nodes = [frame, model("voice"), model("v"), model("mux")];
+    const edges = [edge("f", "v"), edge("v", "mux"), edge("voice", "mux")];
+    assert.deepEqual(flowRerunNodeIds(nodes, edges).sort(), ["f", "mux", "v"]);
+    // An id the canvas already shows as old is included even if the saved mark was dropped.
+    const dropped = model("f");
+    delete dropped.data.staleOutputUrl;
+    assert.deepEqual(flowRerunNodeIds([dropped, model("v")], [edge("f", "v")], ["f"]).sort(), ["f", "v"]);
   });
 
   it("a regenerated output (new URL) is no longer stale", () => {

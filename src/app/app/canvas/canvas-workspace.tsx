@@ -60,6 +60,8 @@ import {
 import { notifyCreditsChanged } from "@/presentation/components/app/billing/credits-changed";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { formatUsd } from "@/service/billing/usd";
+import { BLUEPRINT_COST_USD } from "@/service/production-plan";
+import type { PublicCharacter } from "@/presentation/serialize";
 import {
   computeExecutionWaves,
   getNodeOutputPortType,
@@ -176,6 +178,7 @@ import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import {
   isGenerationInputPatch,
+  isOutputStale,
   markStaleOutputs,
   outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
@@ -319,16 +322,19 @@ function withRememberedJobOutputs(
   return nodes.map((node) => {
     const job = remembered.get(node.id);
     if (!job) return node;
+    // A finished job is the preview already on the card. Replacing its URL would make an
+    // old-version mark stop matching, and Run Flow would skip the node.
+    const keepStalePreview = isOutputStale(node.data) && job.status === "completed";
     return {
       ...node,
       data: {
         ...node.data,
-        status: job.status,
+        status: keepStalePreview ? (node.data.status ?? job.status) : job.status,
         lastJobId: job.lastJobId,
         ...(job.lastCostUsd !== undefined ? { lastCostUsd: job.lastCostUsd } : {}),
-        ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
-        ...(job.outputKind ? { outputKind: job.outputKind } : {}),
-        lastError: job.status === "failed" ? job.lastError : undefined,
+        ...(job.outputUrl && !keepStalePreview ? { outputUrl: job.outputUrl } : {}),
+        ...(job.outputKind && !keepStalePreview ? { outputKind: job.outputKind } : {}),
+        lastError: !keepStalePreview && job.status === "failed" ? job.lastError : undefined,
       },
     };
   });
@@ -432,7 +438,7 @@ function CanvasWorkspaceInner({
   const activeProjectId = initialProject.id;
   const [activeTitle, setActiveTitle] = useState(initialProject.title);
   const [models, setModels] = useState<CanvasModelSpec[]>(initialModels);
-  const [assets] = useState<CanvasLibraryAssetsResult>(initialAssets);
+  const [assets, setAssets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
   const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
@@ -555,6 +561,60 @@ function CanvasWorkspaceInner({
         : edge,
     );
   }, [displayEdges, planLocks]);
+
+  // A character created from the Assets icons joins the sidebar list immediately.
+  const onCharacterCreated = useCallback(
+    (character: PublicCharacter) => {
+      const version = character.versions[0];
+      const url =
+        character.previewUrl ||
+        version?.portraitUrl ||
+        version?.referenceImageUrl ||
+        version?.blueprintUrl ||
+        null;
+      setAssets((prev) => {
+        const option = {
+          id: character.id,
+          name: character.name,
+          ...(url ? { previewUrl: url } : {}),
+          ...(version?.portraitUrl ? { portraitUrl: version.portraitUrl } : {}),
+          ...(version?.profileUrl ? { fullBodyUrl: version.profileUrl } : {}),
+        };
+        const characters = url
+          ? [
+              {
+                id: character.id,
+                source: "character" as const,
+                name: character.name,
+                mediaKind: "image" as const,
+                url,
+                thumbnailUrl: url,
+                createdAt: character.createdAt,
+              },
+              ...prev.characters.filter((item) => item.id !== character.id),
+            ]
+          : prev.characters;
+        return {
+          ...prev,
+          characters,
+          characterOptions: [
+            option,
+            ...(prev.characterOptions ?? []).filter((item) => item.id !== character.id),
+          ],
+        };
+      });
+      setCreditUsd((current) => {
+        const next = Math.max(0, current - BLUEPRINT_COST_USD);
+        notifyCreditsChanged({
+          creditUsd: next,
+          creditLimitUsd: initialCreditLimitUsd,
+          subscribed: initialCreditLimitUsd > 0,
+        });
+        return next;
+      });
+    },
+    [initialCreditLimitUsd],
+  );
 
   const syncWallet = useCallback(
     (nextCreditUsd?: number) => {
@@ -1684,7 +1744,9 @@ function CanvasWorkspaceInner({
           { nodes: state.nodes, edges: state.edges },
           memberIds,
         );
-        const syncedById = new Map(synced.nodes.map((n) => [n.id, n]));
+        // Same update as the new prompts, so the old previews are marked before the next save.
+        const marked = markStaleOutputs(synced.nodes, synced.edges, [...changed, ...synced.changedIds]);
+        const syncedById = new Map(marked.nodes.map((n) => [n.id, n]));
         setNodes((prev) => {
           const kept = prev.flatMap((n) => {
             if (n.id === nodeId) return [{ ...n, data: { ...n.data, toolParams } }];
@@ -1692,7 +1754,7 @@ function CanvasWorkspaceInner({
             return row ? [{ ...n, data: row.data }] : [];
           });
           const have = new Set(kept.map((n) => n.id));
-          return [...kept, ...toFlowNodes(synced.nodes.filter((n) => !have.has(n.id)))];
+          return [...kept, ...toFlowNodes(marked.nodes.filter((n) => !have.has(n.id)))];
         });
         setEdges(toFlowEdges(synced.edges, synced.nodes, models));
         if (synced.addedIds.length > 0 || synced.removedIds.length > 0) {
@@ -1706,14 +1768,15 @@ function CanvasWorkspaceInner({
             }),
           );
         }
-        markStale([...changed, ...synced.changedIds]);
         if (waitingRun) {
           setReplannedRunId(waitingRun);
           toast.success(
             isZh ? "已更新規劃，正在重新生成；其他舊版本節點要再 Run" : "Plan updated; regenerating now. Other old versions need another Run",
           );
         } else {
-          toast.success(isZh ? "已更新規劃，按 Run group 重新生成" : "Plan updated; press Run group to regenerate");
+          toast.success(
+            isZh ? "已更新規劃，按右上角 Run Flow 重新生成舊版本" : "Plan updated. Run Flow regenerates the old versions",
+          );
         }
         scheduleAutosave();
         return;
@@ -1725,7 +1788,7 @@ function CanvasWorkspaceInner({
       }
       placeDirectorRows(nodeId, state, Boolean(oldPlan) || drafting);
     },
-    [setNodes, setEdges, markStale, scheduleAutosave, placeDirectorRows, snapshotGroups, updateGroups, models, isZh],
+    [setNodes, setEdges, scheduleAutosave, placeDirectorRows, snapshotGroups, updateGroups, models, isZh],
   );
 
   // Planning cards waiting on the worker (polled like canvas jobs).
@@ -1904,10 +1967,15 @@ function CanvasWorkspaceInner({
 
   // Worker-backed multi-wave Run Flow trigger; nodeIds limits it to one group.
   const startFlowRun = useCallback(async (nodeIds?: string[]) => {
+    const currentEdges = toDomainEdges(edgesRef.current);
+    const liveNodes = toDomainNodes(nodesRef.current);
+    // Old-version previews (after a replan or an input edit) must be generated again.
+    const rerunNodeIds = [...outdatedNodeReasons(liveNodes, currentEdges).entries()]
+      .filter(([, reason]) => reason === "inputs")
+      .map(([id]) => id);
     const currentNodes = toDomainNodes(
       withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
     );
-    const currentEdges = toDomainEdges(edgesRef.current);
 
     let waves: string[][];
     try {
@@ -1928,6 +1996,7 @@ function CanvasWorkspaceInner({
       edges: currentEdges,
       viewport: viewportRef.current,
       ...(limitTo ? { nodeIds: limitTo } : {}),
+      ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
     });
     if (!res.ok) {
       toast.error(res.error);
@@ -2752,6 +2821,9 @@ function CanvasWorkspaceInner({
           onAddSettingsNode={() => addSettingsNode()}
           onUploadFiles={(files) => void uploadAndPlaceFiles(files)}
           onRefreshModels={() => void handleRefreshModels()}
+          creditUsd={creditUsd}
+          subscribed={initialCreditLimitUsd > 0}
+          onCharacterCreated={onCharacterCreated}
         />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-row">

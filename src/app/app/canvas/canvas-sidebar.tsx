@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Film, Loader2, Music, RefreshCw, Search, Upload } from "lucide-react";
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
+import type { PublicCharacter } from "@/presentation/serialize";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { CanvasSidebarIcons, type CanvasSidebarTab } from "@/app/app/canvas/canvas-sidebar-icons";
@@ -107,6 +108,9 @@ export function CanvasSidebar({
   onAddSettingsNode,
   onUploadFiles,
   onRefreshModels,
+  creditUsd,
+  subscribed,
+  onCharacterCreated,
 }: {
   locale: string;
   collapsed?: boolean;
@@ -121,6 +125,9 @@ export function CanvasSidebar({
   onAddSettingsNode: () => void;
   onUploadFiles: (files: FileList | File[]) => void;
   onRefreshModels: () => void;
+  creditUsd: number;
+  subscribed: boolean;
+  onCharacterCreated: (character: PublicCharacter) => void;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const [tab, setTab] = useState<CanvasSidebarTab>("models");
@@ -512,7 +519,12 @@ export function CanvasSidebar({
             />
           ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2.5">
-          <CanvasAssetStudios isZh={isZh} />
+          <CanvasAssetStudios
+            isZh={isZh}
+            creditUsd={creditUsd}
+            subscribed={subscribed}
+            onCreated={onCharacterCreated}
+          />
           {/* Local file upload */}
           <input
             ref={fileInputRef}

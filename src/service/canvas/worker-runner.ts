@@ -13,7 +13,7 @@ import {
 import { executeCanvasFfmpegJob } from "@/service/canvas/ffmpeg-ops";
 import { computeExecutionWaves } from "@/service/canvas/graph";
 import { UPSTREAM_FAILED_ERROR } from "@/service/canvas/orphan-busy";
-import { isOutputStale } from "@/service/canvas/stale-outputs";
+import { flowRerunNodeIds, isOutputStale } from "@/service/canvas/stale-outputs";
 import { scheduleCanvasFlowWorkerTask } from "@/service/worker/schedule";
 import type { WorkerTaskExecutionResult } from "@/service/worker/task-executor";
 
@@ -300,7 +300,7 @@ export function filterFlowWaves(waves: string[][], nodeIds: readonly string[]): 
 }
 
 export async function startCanvasFlowRun(
-  params: { clerkUserId: string; canvasId: string; nodeIds?: string[] },
+  params: { clerkUserId: string; canvasId: string; nodeIds?: string[]; rerunNodeIds?: string[] },
   deps?: Partial<CanvasFlowWorkerDeps>,
 ): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunState }
@@ -332,6 +332,8 @@ export async function startCanvasFlowRun(
 
   const now = resolved.now();
   const flowRunId = `flow-${crypto.randomUUID().slice(0, 8)}`;
+  // Captured now, so a later autosave cannot clear the old-version mark before this run starts.
+  const rerunNodeIds = flowRerunNodeIds(project.nodes, project.edges, params.rerunNodeIds ?? []);
   const activeFlowRun: CanvasFlowRunState = {
     flowRunId,
     status: "running",
@@ -341,6 +343,7 @@ export async function startCanvasFlowRun(
     waves,
     activeWaveJobIds: [],
     failedNodeIds: [],
+    ...(rerunNodeIds.length > 0 ? { rerunNodeIds } : {}),
     aborted: false,
     startedAt: now,
     updatedAt: now,
@@ -469,8 +472,9 @@ export async function executeCanvasFlowTask(
         continue;
       }
       const node = fresh.nodes.find((n) => n.id === nodeId);
-      // Completed nodes are reused unless their preview is an old version.
-      if (node?.data.status === "completed" && node.data.outputUrl?.trim() && !isOutputStale(node.data)) {
+      const mustRerun = ownedRun.rerunNodeIds?.includes(nodeId) || isOutputStale(node?.data ?? {});
+      // Completed nodes are reused unless this run is regenerating that old preview.
+      if (node?.data.status === "completed" && node.data.outputUrl?.trim() && !mustRerun) {
         continue;
       }
       runnableIds.push(nodeId);

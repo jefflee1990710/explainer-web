@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { CanvasOutfitTile } from "@/app/app/canvas/canvas-outfit-list";
+import { CanvasOutfitGridSize } from "@/app/app/canvas/canvas-outfit-grid-size";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasLibraryAsset } from "@/service/canvas/projects";
 import {
@@ -18,6 +19,18 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 const PAGE_SIZE = 48;
+// Survives leaving the Outfit tab, so the chosen size is still there on the way back.
+let rememberedTileMin: number | null = null;
+
+function outfitGridStyle(tileMin: number): { className: string; style: { gridTemplateColumns: string; gap: number } } {
+  return {
+    className: "grid",
+    style: {
+      gridTemplateColumns: `repeat(auto-fill, minmax(${tileMin}px, 1fr))`,
+      gap: tileMin < 112 ? 4 : 6,
+    },
+  };
+}
 
 const PARTS: { id: OutfitPartFilter; zh: string; en: string }[] = [
   { id: "all", zh: "全部", en: "All" },
@@ -64,6 +77,10 @@ export function CanvasOutfitTab({
   const catalog = useMemo(() => listSystemDefaultOutfits(), []);
   const [query, setQuery] = useState("");
   const [part, setPart] = useState<OutfitPartFilter>("all");
+  // Wide sidebar starts near four columns. Narrow starts near two. The slider overrides this.
+  const [tileMin, setTileMin] = useState(rememberedTileMin ?? (dense ? 84 : 156));
+  const compact = tileMin < 112;
+  const grid = outfitGridStyle(tileMin);
   const filterKey = `${part}|${query}`;
 
   const named = useMemo(
@@ -118,6 +135,14 @@ export function CanvasOutfitTab({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
+        <CanvasOutfitGridSize
+          isZh={isZh}
+          value={tileMin}
+          onChange={(px) => {
+            rememberedTileMin = px;
+            setTileMin(px);
+          }}
+        />
         {mine.length === 0 && system.length === 0 ? (
           <p className="rounded-[10px] border border-white/6 bg-white/2 px-2.5 py-3 text-center text-[11px] text-white/35">
             {isZh ? "找不到符合的穿搭" : "No matching outfits"}
@@ -129,13 +154,13 @@ export function CanvasOutfitTab({
             <h3 className="mb-2 text-[10.5px] font-bold uppercase tracking-wider text-white/50">
               {isZh ? "我的穿搭" : "My outfits"}
             </h3>
-            <div className={dense ? "grid grid-cols-4 gap-1" : "grid grid-cols-2 gap-1.5"}>
+            <div className={grid.className} style={grid.style}>
               {mine.map((asset) => (
                 <CanvasOutfitTile
                   key={asset.id}
                   isZh={isZh}
                   asset={asset}
-                  dense={dense}
+                  dense={compact}
                   selected={pickedKey === `outfit:${asset.id}`}
                   addLabel={addLabel}
                   onSelect={() => onSelect(asset.id)}
@@ -154,7 +179,7 @@ export function CanvasOutfitTab({
             <SystemOutfitGrid
               key={filterKey}
               isZh={isZh}
-              dense={dense}
+              tileMin={tileMin}
               pickedKey={pickedKey}
               addLabel={addLabel}
               onSelect={onSelect}
@@ -170,7 +195,7 @@ export function CanvasOutfitTab({
 
 function SystemOutfitGrid({
   isZh,
-  dense,
+  tileMin,
   pickedKey,
   addLabel,
   onSelect,
@@ -178,7 +203,7 @@ function SystemOutfitGrid({
   onAddAsset,
 }: {
   isZh: boolean;
-  dense: boolean;
+  tileMin: number;
   pickedKey: string | null;
   addLabel: string;
   onSelect: (assetId: string) => void;
@@ -187,15 +212,16 @@ function SystemOutfitGrid({
 }) {
   const [count, setCount] = useState(PAGE_SIZE);
   const visible = items.slice(0, count);
+  const grid = outfitGridStyle(tileMin);
   return (
     <>
-      <div className={dense ? "grid grid-cols-4 gap-1" : "grid grid-cols-2 gap-1.5"}>
+      <div className={grid.className} style={grid.style}>
         {visible.map((item) => (
           <CanvasOutfitTile
             key={item.asset.id}
             isZh={isZh}
             asset={item.asset}
-            dense={dense}
+            dense={tileMin < 112}
             selected={pickedKey === `outfit:${item.asset.id}`}
             addLabel={addLabel}
             onSelect={() => onSelect(item.asset.id)}

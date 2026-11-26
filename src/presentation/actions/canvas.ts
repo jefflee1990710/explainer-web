@@ -400,6 +400,9 @@ export async function runCanvasFlowAction(input: {
   viewport?: CanvasViewport;
   // Run group: only these nodes run, in dependency order.
   nodeIds?: string[];
+  // Old-version previews the canvas is showing. The run regenerates these even if a
+  // later save drops the mark, plus every finished node downstream of them.
+  rerunNodeIds?: string[];
 }): Promise<
   | { ok: true; activeFlowRun: CanvasFlowRunDto; creditUsd: number }
   | { ok: false; error: string }
@@ -418,6 +421,7 @@ export async function runCanvasFlowAction(input: {
     clerkUserId: user.clerkUserId,
     canvasId: input.canvasId,
     ...(input.nodeIds ? { nodeIds: input.nodeIds } : {}),
+    ...(input.rerunNodeIds ? { rerunNodeIds: input.rerunNodeIds } : {}),
   });
   if (!started.ok) return started;
 
