@@ -93,6 +93,7 @@ import {
   applyDirectorBuild,
   directorRevealSteps,
   mergeDirectorRows,
+  syncDirectorReplanRows,
 } from "@/service/canvas/explainer-director-apply";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import type { CanvasExplainerPlanState } from "@/service/canvas/explainer-plan";
@@ -1620,7 +1621,38 @@ function CanvasWorkspaceInner({
       const waitingRun = runAfterReplanRef.current.get(nodeId);
       runAfterReplanRef.current.delete(nodeId);
       if (oldPlan && oldPlan.clips.length === state.plan.clips.length) {
-        markStale(changed);
+        // Rows keep their ids, so wires stay. Reference stills and voice settings still follow the new plan.
+        const memberIds =
+          snapshotGroups(toDomainNodes(nodesRef.current)).find((g) => g.memberIds.includes(nodeId))?.memberIds ??
+          [];
+        const synced = syncDirectorReplanRows(
+          { nodes: toDomainNodes(nodesRef.current), edges: toDomainEdges(edgesRef.current) },
+          { nodes: state.nodes, edges: state.edges },
+          memberIds,
+        );
+        const syncedById = new Map(synced.nodes.map((n) => [n.id, n]));
+        setNodes((prev) => {
+          const kept = prev.flatMap((n) => {
+            if (n.id === nodeId) return [{ ...n, data: { ...n.data, toolParams } }];
+            const row = syncedById.get(n.id);
+            return row ? [{ ...n, data: row.data }] : [];
+          });
+          const have = new Set(kept.map((n) => n.id));
+          return [...kept, ...toFlowNodes(synced.nodes.filter((n) => !have.has(n.id)))];
+        });
+        setEdges(toFlowEdges(synced.edges, synced.nodes, models));
+        if (synced.addedIds.length > 0 || synced.removedIds.length > 0) {
+          const drop = new Set(synced.removedIds);
+          updateGroups((prev) =>
+            prev.map((g) => {
+              if (!g.memberIds.includes(nodeId)) return g;
+              const ids = g.memberIds.filter((id) => !drop.has(id));
+              for (const id of synced.addedIds) if (!ids.includes(id)) ids.push(id);
+              return { ...g, memberIds: ids };
+            }),
+          );
+        }
+        markStale([...changed, ...synced.changedIds]);
         if (waitingRun) {
           setReplannedRunId(waitingRun);
           toast.success(
@@ -1639,7 +1671,7 @@ function CanvasWorkspaceInner({
       }
       placeDirectorRows(nodeId, state, Boolean(oldPlan) || drafting);
     },
-    [setNodes, markStale, scheduleAutosave, placeDirectorRows, isZh],
+    [setNodes, setEdges, markStale, scheduleAutosave, placeDirectorRows, snapshotGroups, updateGroups, models, isZh],
   );
 
   // Planning cards waiting on the worker (polled like canvas jobs).
