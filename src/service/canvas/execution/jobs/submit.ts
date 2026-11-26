@@ -9,10 +9,8 @@ import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-pla
 import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
-import { validateScroToolInputs } from "@/service/canvas/execution/scro-dispatch";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 import { probeRemoteDurationSec } from "@/service/canvas/execution/caption-transcribe";
-import { isElevenLabsConfigured } from "@/service/voice/elevenlabs";
 import {
   isInsufficientCreditError,
   resolveDeps,
@@ -22,6 +20,7 @@ import {
   type SubmitCanvasNodeJobResult,
 } from "@/service/canvas/execution/jobs/deps";
 import { executeDispatchedCanvasJob } from "@/service/canvas/execution/jobs/dispatch";
+import { canvasProviderAdapter } from "@/service/canvas/execution/providers";
 
 // Restores outputUrl from the newest completed job when a stale graph save wiped it.
 async function hydrateMissingModelOutputs(
@@ -61,7 +60,7 @@ async function hydrateMissingModelOutputs(
 }
 
 // Validates a model node, pre-charges authoritative USD credit, creates a `canvas_jobs`
-// record, dispatches to OpenRouter or Mentalok, and auto-refunds on any submit error.
+// record, dispatches to its provider adapter, and auto-refunds on any submit error.
 export async function submitCanvasNodeJob(
   input: SubmitCanvasNodeJobInput,
   deps?: Partial<CanvasExecutorDeps>,
@@ -113,51 +112,14 @@ export async function submitCanvasNodeJob(
   }
 
   // Verify provider credentials before charging any USD credit.
-  if (spec.provider === "mentalok" && !resolved.hasMentalokKey()) {
+  const adapter = canvasProviderAdapter(spec.provider);
+  const credentialError = adapter?.credentialError?.(spec, resolved);
+  if (credentialError) {
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return {
       ok: false,
       code: "PROVIDER_UNAVAILABLE",
-      error:
-        "Mentalok AI Studio 尚未設定 API Key（MENTALOK_AI_STUDIO_API_KEY），暫時無法執行此模型。",
-      creditUsd,
-    };
-  }
-  if (spec.provider === "openrouter" && !resolved.hasOpenRouterKey()) {
-    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    return {
-      ok: false,
-      code: "PROVIDER_UNAVAILABLE",
-      error:
-        "OpenRouter 尚未設定 API Key（OPENROUTER_API_KEY），暫時無法執行此模型。",
-      creditUsd,
-    };
-  }
-  if (spec.provider === "minimax" && !resolved.hasMinimaxKey()) {
-    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    return {
-      ok: false,
-      code: "PROVIDER_UNAVAILABLE",
-      error: "MiniMax 尚未設定 API Key（MINIMAX_API_KEY），暫時無法執行此模型。",
-      creditUsd,
-    };
-  }
-  if (spec.id === "scro:auto-captions" && !isElevenLabsConfigured()) {
-    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    return {
-      ok: false,
-      code: "PROVIDER_UNAVAILABLE",
-      error: "ElevenLabs 尚未設定 API Key（ELEVENLABS_API_KEY），暫時無法偵測字幕。",
-      creditUsd,
-    };
-  }
-  if (spec.provider === "google" && !resolved.hasGoogleStudioKey()) {
-    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    return {
-      ok: false,
-      code: "PROVIDER_UNAVAILABLE",
-      error:
-        "Google AI Studio 尚未設定 API Key（GOOGLE_GENERATIVE_AI_API_KEY），暫時無法執行此模型。",
+      error: credentialError,
       creditUsd,
     };
   }
@@ -188,18 +150,16 @@ export async function submitCanvasNodeJob(
     };
   }
 
-  if (spec.provider === "scro") {
-    const scroCheck = validateScroToolInputs(spec.id, node, inputCheck.inputs);
-    if (!scroCheck.ok) {
-      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-      return {
-        ok: false,
-        code: "INVALID_INPUTS",
-        error: scroCheck.reason,
-        missingRequiredFields: scroCheck.missingRequiredFields,
-        creditUsd,
-      };
-    }
+  const providerCheck = adapter?.validateInputs?.(spec, node, inputCheck.inputs);
+  if (providerCheck && !providerCheck.ok) {
+    const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+    return {
+      ok: false,
+      code: "INVALID_INPUTS",
+      error: providerCheck.reason,
+      missingRequiredFields: providerCheck.missingRequiredFields,
+      creditUsd,
+    };
   }
 
   // Recalculate authoritative USD cost server-side before deducting wallet balance.
@@ -284,7 +244,7 @@ export async function submitCanvasNodeJob(
   const jobId = new ObjectId();
   const now = resolved.now();
   const presetId =
-    spec.provider === "mentalok" || spec.provider === "ffmpeg"
+    adapter?.presetFromCatalog
       ? node.data.presetId && spec.presets.includes(node.data.presetId)
         ? node.data.presetId
         : spec.defaultPresetId
