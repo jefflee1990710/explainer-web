@@ -10,6 +10,7 @@ import type {
 } from "@/model/canvas";
 import type {
   CanvasFlowRunDto,
+  CanvasFolderDto,
   CanvasJobDto,
   CanvasProjectDto,
   CreateCanvasProjectInput,
@@ -24,7 +25,6 @@ import { requireAppUser } from "@/service/auth";
 import { generateCanvasCharacterOutfit } from "@/service/canvas/character-outfit";
 import type { SubmitCanvasNodeJobErrorCode } from "@/service/canvas/executor";
 import {
-  type CanvasFolderDto,
   createCanvasFolder,
   deleteCanvasFolder,
   listCanvasFolders,

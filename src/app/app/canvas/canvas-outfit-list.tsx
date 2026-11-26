@@ -3,7 +3,7 @@
 // Outfit tiles in the canvas Assets drawer. Drag one onto a character node to connect it.
 
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import { outfitHandleForPart } from "@/service/canvas/character-node";
 
 const CANVAS_DRAG_ASSET_MIME = "application/x-scro-canvas-asset";

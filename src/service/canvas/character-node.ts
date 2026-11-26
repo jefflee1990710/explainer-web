@@ -1,7 +1,7 @@
 // Character nodes on the canvas: one person, with an image input for each outfit slot.
 
 import type { CanvasNode, CanvasNodeData, CanvasNodeType } from "@/model/canvas";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 
 export const CHARACTER_OUTFIT_PORTS = [
   { id: "hair", multiple: false, maxConnections: 1, zh: "髮型", en: "Hair" },

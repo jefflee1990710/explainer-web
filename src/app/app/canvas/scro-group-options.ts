@@ -1,7 +1,7 @@
 // Builds the media choices the tool setup dialogs offer (canvas nodes first, then the library).
 
 import type { CanvasMediaKind } from "@/model/canvas";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import type { GroupMediaRef } from "@/service/canvas/scro-groups/builder";
 
 export type MediaPickOption = {

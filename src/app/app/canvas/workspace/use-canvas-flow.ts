@@ -8,7 +8,7 @@ import type { Edge } from "@xyflow/react";
 import { toast } from "sonner";
 import type { CanvasGroup, CanvasViewport } from "@/model/canvas";
 import { pollCanvasFlowAction, runCanvasFlowAction, stopCanvasFlowAction } from "@/presentation/actions/canvas";
-import type { CanvasProjectDto } from "@/service/canvas/projects";
+import type { CanvasProjectDto } from "@/model/canvas-dto";
 import { computeExecutionWaves } from "@/service/canvas/graph";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import { isScroDirectorNode } from "@/service/canvas/scro-director";

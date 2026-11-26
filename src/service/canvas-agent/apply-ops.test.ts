@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import { applyCanvasAgentOp, applyCanvasAgentOps } from "@/service/canvas-agent/apply-ops";
-import type { CanvasAgentGraph } from "@/service/canvas-agent/types";
+import type { CanvasAgentGraph } from "@/model/canvas-agent";
 
 const prompt: CanvasNode = {
   id: "p1",

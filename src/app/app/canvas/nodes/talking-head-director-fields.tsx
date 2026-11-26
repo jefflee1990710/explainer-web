@@ -3,7 +3,7 @@
 // Talking Head parameters, edited on the node: script, character, language, framing, ratio.
 
 import type { CanvasAspectRatio, CanvasNodeData } from "@/model/canvas";
-import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import { getTalkingHeadPose } from "@/model/talking-head-options";
 import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";

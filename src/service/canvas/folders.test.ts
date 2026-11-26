@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
+import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
 import { canvasesInFolder, normalizeCanvasFolderName } from "@/service/canvas/folder-library";
 
 function project(id: string, folderId?: string): CanvasProjectSummaryDto {

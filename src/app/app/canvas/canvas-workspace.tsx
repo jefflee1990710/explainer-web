@@ -54,9 +54,9 @@ import type {
   CanvasLibraryAssetsResult,
   CanvasProjectDto,
   CanvasProjectSummaryDto,
-} from "@/service/canvas/projects";
-import type { CanvasFolderDto } from "@/service/canvas/folder-library";
-import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
+} from "@/model/canvas-dto";
+import type { CanvasFolderDto } from "@/model/canvas-dto";
+import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import { CanvasAgentDock } from "@/app/app/canvas/agent/canvas-agent-dock";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
 import { CANVAS_DRAG_ASSET_MIME, CANVAS_DRAG_MODEL_MIME, CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";

@@ -9,7 +9,7 @@ import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import { isPlanDirectorNode } from "@/service/canvas/explainer-director";
 import { isExplainerPlannerNode, readPlannerParams } from "@/service/canvas/explainer-planner";
 import { applyCanvasAgentOp } from "@/service/canvas-agent/apply-ops";
-import type { CanvasAgentGraph, CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentGraph, CanvasAgentOp } from "@/model/canvas-agent";
 import type { CanvasAgentGraphSnapshot } from "@/app/app/canvas/agent/canvas-agent-dock";
 import type { DisplayNode } from "@/app/app/canvas/groups/group-frames";
 import { AGENT_OP_STEP_MS } from "@/app/app/canvas/workspace/canvas-timing";

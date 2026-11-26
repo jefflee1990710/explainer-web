@@ -3,7 +3,7 @@
 // Opens the setup dialog for a dropped Scro tool and turns the answers into a node group.
 
 import { useMemo } from "react";
-import type { CanvasLibraryAssetsResult } from "@/service/canvas/projects";
+import type { CanvasLibraryAssetsResult } from "@/model/canvas-dto";
 import type { GroupContext, ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { buildLifeGroup } from "@/service/canvas/scro-groups/life";
 import { buildPosterGroup } from "@/service/canvas/scro-groups/poster";

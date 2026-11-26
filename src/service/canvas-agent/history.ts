@@ -3,20 +3,9 @@
 import { ObjectId } from "mongodb";
 import { canvasAgentMessagesCollection } from "@/dao";
 import type { CanvasAgentMessage } from "@/model/canvas";
-import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
+import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 
 export const CANVAS_AGENT_LIST_LIMIT = 100;
-
-export type CanvasAgentMessageDto = {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-  language: string;
-  ops?: CanvasAgentOp[];
-  question?: CanvasAgentQuestion;
-  imageUrls?: string[];
-  createdAt: string;
-};
 
 export function serializeCanvasAgentMessage(message: CanvasAgentMessage): CanvasAgentMessageDto {
   return {

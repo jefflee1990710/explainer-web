@@ -3,13 +3,8 @@
 import { ObjectId } from "mongodb";
 import { canvasFoldersCollection, canvasProjectsCollection } from "@/dao";
 import type { CanvasFolder } from "@/model/canvas";
-import {
-  normalizeCanvasFolderName,
-  type CanvasFolderDto,
-} from "@/service/canvas/folder-library";
-
-export type { CanvasFolderDto, CanvasLibrarySelection } from "@/service/canvas/folder-library";
-export { canvasesInFolder, normalizeCanvasFolderName } from "@/service/canvas/folder-library";
+import type { CanvasFolderDto } from "@/model/canvas-dto";
+import { normalizeCanvasFolderName } from "@/service/canvas/folder-library";
 
 export function serializeCanvasFolder(folder: CanvasFolder): CanvasFolderDto {
   return {

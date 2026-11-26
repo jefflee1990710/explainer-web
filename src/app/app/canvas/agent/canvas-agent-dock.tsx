@@ -14,8 +14,8 @@ import {
   formatCanvasAgentContext,
   type CanvasAgentContextRef,
 } from "@/service/canvas-agent/context-block";
-import type { CanvasAgentMessageDto } from "@/service/canvas-agent/history";
-import { type CanvasAgentLanguage, type CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
+import { type CanvasAgentLanguage, type CanvasAgentOp } from "@/model/canvas-agent";
 import type { LocaleId } from "@/util/i18n/locales";
 import {
   canvasAgentCopy,

@@ -6,7 +6,7 @@ import {
   canvasAgentLanguageRule,
 } from "@/service/canvas-agent/prompt";
 import { createWorkingGraph } from "@/service/canvas-agent/tools";
-import { CANVAS_AGENT_LANGUAGES } from "@/service/canvas-agent/types";
+import { CANVAS_AGENT_LANGUAGES } from "@/model/canvas-agent";
 
 function graph() {
   return createWorkingGraph({

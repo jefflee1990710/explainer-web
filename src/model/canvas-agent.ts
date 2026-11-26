@@ -1,4 +1,5 @@
 // Shared types for the Scro canvas agent (chat dock below /app/canvas).
+// Zero runtime dependencies on `@/service/*` or `@/dao`, so Client Components can import it.
 
 import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasNodeData } from "@/model/canvas";
 
@@ -47,4 +48,16 @@ export type CanvasAgentQuestion = {
   allowMultiple: boolean;
   // Shows a free-text box for extra details or an answer that is not in the list.
   allowOther: boolean;
+};
+
+// JSON-safe chat message sent to the canvas dock.
+export type CanvasAgentMessageDto = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  language: string;
+  ops?: CanvasAgentOp[];
+  question?: CanvasAgentQuestion;
+  imageUrls?: string[];
+  createdAt: string;
 };

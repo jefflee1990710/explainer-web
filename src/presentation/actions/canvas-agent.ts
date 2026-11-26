@@ -8,8 +8,8 @@ import type { CanvasAgentMessage, CanvasEdge, CanvasGroup, CanvasNode, CanvasVie
 import { requireAppUser } from "@/service/auth";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import { listCanvasLibraryAssets, saveCanvasProject } from "@/service/canvas/projects";
+import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import {
-  type CanvasAgentMessageDto,
   appendCanvasAgentMessages,
   clearCanvasAgentMessages,
   listCanvasAgentMessages,
@@ -24,7 +24,7 @@ import {
   type CanvasAgentLanguage,
   type CanvasAgentOp,
   isCanvasAgentLanguage,
-} from "@/service/canvas-agent/types";
+} from "@/model/canvas-agent";
 
 const MAX_MESSAGE_CHARS = 2000;
 

@@ -11,7 +11,7 @@ import {
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/pricing";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import { SEEDREAM_MODEL_ID } from "@/service/canvas/scro-groups/builder";
 import { CANVAS_AGENT_TOOL_HANDLERS as T, createWorkingGraph } from "@/service/canvas-agent/tools";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";

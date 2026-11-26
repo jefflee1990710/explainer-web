@@ -34,8 +34,8 @@ import {
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
-} from "@/service/canvas/projects";
-import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
+} from "@/model/canvas-dto";
+import type { CanvasAgentOp, CanvasAgentQuestion } from "@/model/canvas-agent";
 import {
   type BatchAddNodeItem,
   type BatchUpdateNodeItem,

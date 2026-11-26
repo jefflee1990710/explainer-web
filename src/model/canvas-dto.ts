@@ -10,7 +10,17 @@ import type {
   CanvasOutputKind,
   CanvasViewport,
 } from "@/model/canvas";
-import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
+import type { CanvasModelProvider } from "@/model/canvas-model";
+
+export type CanvasFolderDto = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// "all" keeps every canvas; "unfiled" keeps canvases with no folder; otherwise a folder id.
+export type CanvasLibrarySelection = "all" | "unfiled" | string;
 
 export type CanvasProjectSummaryDto = {
   id: string;

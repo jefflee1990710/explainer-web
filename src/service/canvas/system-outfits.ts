@@ -8,7 +8,7 @@ import {
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
 import { lookOptionDescription, lookOptionTags } from "@/service/character/look-tags";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 
 export type SystemOutfitRecord = {
   part: CharacterWardrobePart;

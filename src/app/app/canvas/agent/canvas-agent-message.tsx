@@ -5,7 +5,7 @@
 
 import { Bot, RotateCcw } from "lucide-react";
 import { Spinner } from "@/presentation/components/spinner";
-import type { CanvasAgentOp, CanvasAgentQuestion as CanvasAgentQuestionData } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp, CanvasAgentQuestion as CanvasAgentQuestionData } from "@/model/canvas-agent";
 import {
   type CanvasAgentCopy,
   summarizeCanvasAgentOps,

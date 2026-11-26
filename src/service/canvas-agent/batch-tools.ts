@@ -4,7 +4,7 @@
 import { z } from "zod";
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { canvasAspectRatioSchema } from "@/model/canvas";
-import type { CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp } from "@/model/canvas-agent";
 
 export const CANVAS_AGENT_MAX_BATCH_DELETE = 60;
 export const CANVAS_AGENT_MAX_BATCH_UPDATE = 40;

@@ -16,8 +16,8 @@ import {
 import { CanvasLibraryDialog } from "@/app/app/canvas/canvas-library-dialog";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { formatUsd } from "@/service/billing/usd";
-import type { CanvasFolderDto } from "@/service/canvas/folder-library";
-import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
+import type { CanvasFolderDto } from "@/model/canvas-dto";
+import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
 import type { CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
 
 export type { CanvasFlowFailure, CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";

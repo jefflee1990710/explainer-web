@@ -11,7 +11,7 @@ import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
-} from "@/service/canvas/projects";
+} from "@/model/canvas-dto";
 import {
   autofixCanvasAgentGaps,
   describeCanvasAgentGaps,
@@ -32,7 +32,7 @@ import type {
   CanvasAgentLanguage,
   CanvasAgentOp,
   CanvasAgentQuestion,
-} from "@/service/canvas-agent/types";
+} from "@/model/canvas-agent";
 
 export const CANVAS_AGENT_MAX_STEPS = 12;
 export const CANVAS_AGENT_REPAIR_STEPS = 6;

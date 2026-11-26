@@ -22,7 +22,7 @@ import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { defaultGroupColor, defaultGroupTitle } from "@/service/canvas/groups";
 import { SCRO_DIALOG_TOOL_BY_MODEL, type ScroDialogState, type ScroDialogTool } from "@/app/app/canvas/scro-group-dialogs";
 import { type DisplayNode, GROUP_FRAME_TYPE, groupIdFromFrameId } from "@/app/app/canvas/groups/group-frames";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/app/app/canvas/workspace/canvas-timing";
 import {
   settingsStroke,
@@ -56,7 +56,7 @@ import {
 
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useReactFlow } from "@xyflow/react";
-import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
+import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
 import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
 import type { CanvasViewport } from "@/model/canvas";
 import type { SaveStatus } from "@/app/app/canvas/canvas-topbar";

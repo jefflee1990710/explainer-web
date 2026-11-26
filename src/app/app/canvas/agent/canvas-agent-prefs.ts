@@ -1,7 +1,7 @@
 // Browser preferences for the canvas assistant dock. The chat language lives in
 // localStorage so a reload or a switch to another canvas keeps the user's choice.
 
-import { isCanvasAgentLanguage, type CanvasAgentLanguage } from "@/service/canvas-agent/types";
+import { isCanvasAgentLanguage, type CanvasAgentLanguage } from "@/model/canvas-agent";
 
 export const CANVAS_AGENT_LANGUAGE_KEY = "scro.canvasAgent.language";
 

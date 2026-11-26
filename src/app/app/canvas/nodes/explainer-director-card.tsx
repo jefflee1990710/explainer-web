@@ -6,7 +6,7 @@
 import { Handle, Position } from "@xyflow/react";
 import { AlertCircle, Clapperboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
-import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import {
   directorHandleId,
   directorNeedsReplan,

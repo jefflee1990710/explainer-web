@@ -3,7 +3,7 @@
 
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/tools";
 import { CANVAS_AGENT_TOOL_HANDLERS } from "@/service/canvas-agent/tools";
-import type { CanvasAgentLanguage } from "@/service/canvas-agent/types";
+import type { CanvasAgentLanguage } from "@/model/canvas-agent";
 
 // UI locale does not change the model's language, so the reply language is spelled out here.
 export function canvasAgentLanguageRule(language: CanvasAgentLanguage): string {

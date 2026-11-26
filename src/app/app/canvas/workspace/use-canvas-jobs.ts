@@ -7,7 +7,7 @@ import type { Edge } from "@xyflow/react";
 import { toast } from "sonner";
 import type { CanvasViewport } from "@/model/canvas";
 import { pollCanvasJobsAction, runCanvasNodeAction } from "@/presentation/actions/canvas";
-import type { CanvasJobDto } from "@/service/canvas/projects";
+import type { CanvasJobDto } from "@/model/canvas-dto";
 import { formatUsd } from "@/service/billing/usd";
 import { directorPlanningLocks } from "@/service/canvas/director-plan-lock";
 import { JOB_POLL_INTERVAL_MS } from "@/app/app/canvas/workspace/canvas-timing";

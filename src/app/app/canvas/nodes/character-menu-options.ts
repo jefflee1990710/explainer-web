@@ -1,7 +1,7 @@
 // Turns library characters into the shared face + full-body dropdown options.
 
 import type { CanvasPreviewOption } from "@/app/app/canvas/nodes/canvas-preview-select";
-import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 
 export function libraryCharacterChoices(
   characters: readonly CanvasLibraryCharacterOption[],

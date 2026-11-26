@@ -1,7 +1,7 @@
 // Finds which saved characters already appear on the canvas, so new director cards reuse them.
 
 import type { CanvasNode } from "@/model/canvas";
-import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 
 const CHARACTER_URL = /\/characters\/([a-f0-9]{24})\//i;
 

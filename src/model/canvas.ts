@@ -2,7 +2,7 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import type { CanvasModelProvider } from "@/model/canvas-model";
 import { objectIdSchema } from "@/model/primitives";
-import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
+import type { CanvasAgentOp, CanvasAgentQuestion } from "@/model/canvas-agent";
 import { type CanvasSettingsData, canvasSettingsDataSchema } from "@/model/canvas-settings";
 
 // "settings" holds a tool's settings (Explainer, Swap, Teleport); it never runs.

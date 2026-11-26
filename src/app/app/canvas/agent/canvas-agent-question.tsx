@@ -6,7 +6,7 @@
 import { useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
-import type { CanvasAgentQuestion as CanvasAgentQuestionData } from "@/service/canvas-agent/types";
+import type { CanvasAgentQuestion as CanvasAgentQuestionData } from "@/model/canvas-agent";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
 
 const EXTRA_MAX = 500;

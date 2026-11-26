@@ -1,7 +1,7 @@
 // Photos the user attaches in the canvas assistant. The model sees the pixels,
 // and the same files are temporary assets so add_media_node can place them.
 
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 
 export const CANVAS_AGENT_MAX_IMAGES = 4;
 

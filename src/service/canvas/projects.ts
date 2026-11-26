@@ -35,18 +35,6 @@ import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
 import { mergeCanvasNodeSnapshots, restoreBusyNodesFromCompletedJobs } from "@/service/canvas/graph";
 import { liftLegacyExplainerSettings } from "@/service/canvas/director-migrate";
 
-export type {
-  CanvasFlowRunDto,
-  CanvasJobDto,
-  CanvasLibraryAsset,
-  CanvasLibraryAssetsResult,
-  CanvasLibraryCharacterOption,
-  CanvasProjectDto,
-  CanvasProjectSummaryDto,
-  CreateCanvasProjectInput,
-  SaveCanvasProjectPatch,
-};
-
 export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
 export const CANVAS_TITLE_MAX_LENGTH = 120;
 export const DEFAULT_CANVAS_VIEWPORT: CanvasViewport = { x: 0, y: 0, zoom: 1 };

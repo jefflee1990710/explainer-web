@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { CanvasOutfitTile } from "@/app/app/canvas/canvas-outfit-list";
 import { CanvasOutfitGridSize } from "@/app/app/canvas/canvas-outfit-grid-size";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
-import type { CanvasLibraryAsset } from "@/service/canvas/projects";
+import type { CanvasLibraryAsset } from "@/model/canvas-dto";
 import {
   listSystemDefaultOutfits,
   systemOutfitAsset,

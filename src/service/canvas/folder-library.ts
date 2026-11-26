@@ -1,15 +1,8 @@
 // Pure canvas-library helpers. Safe to import from client components; no database or Node APIs.
 
+import type { CanvasLibrarySelection } from "@/model/canvas-dto";
+
 export const CANVAS_FOLDER_NAME_MAX = 80;
-
-export type CanvasFolderDto = {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CanvasLibrarySelection = "all" | "unfiled" | string;
 
 export function normalizeCanvasFolderName(raw: string): string {
   return raw.trim().slice(0, CANVAS_FOLDER_NAME_MAX);

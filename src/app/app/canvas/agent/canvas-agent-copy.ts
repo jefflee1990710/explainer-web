@@ -1,6 +1,6 @@
 // UI strings and op summaries for the canvas agent dock (zh / en, like the rest of /app/canvas).
 
-import type { CanvasAgentLanguage, CanvasAgentOp } from "@/service/canvas-agent/types";
+import type { CanvasAgentLanguage, CanvasAgentOp } from "@/model/canvas-agent";
 import type { LocaleId } from "@/util/i18n/locales";
 
 export type CanvasAgentCopy = ReturnType<typeof canvasAgentCopy>;

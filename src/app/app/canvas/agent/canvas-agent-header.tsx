@@ -19,7 +19,7 @@ import {
   CANVAS_AGENT_LANGUAGE_LABELS,
   isCanvasAgentLanguage,
   type CanvasAgentLanguage,
-} from "@/service/canvas-agent/types";
+} from "@/model/canvas-agent";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
 import { CanvasSessionRailName } from "@/app/app/canvas/canvas-session-rail-name";
 

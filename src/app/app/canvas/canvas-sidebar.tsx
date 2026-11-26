@@ -32,7 +32,7 @@ import type {
 import type {
   CanvasLibraryAsset,
   CanvasLibraryAssetsResult,
-} from "@/service/canvas/projects";
+} from "@/model/canvas-dto";
 import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import { CATEGORY_LABELS } from "@/app/app/canvas/nodes/port-colors";
 import { CanvasModelTile } from "@/app/app/canvas/canvas-model-tile";

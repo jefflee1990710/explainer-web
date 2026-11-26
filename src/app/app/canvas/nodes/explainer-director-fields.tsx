@@ -9,7 +9,7 @@ import {
   EXPLAINER_SCENE_TEXT_CHOICES,
   EXPLAINER_SKILL_SLUGS,
 } from "@/model/explainer-settings";
-import type { CanvasLibraryCharacterOption } from "@/service/canvas/projects";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import { effectiveDirectorBackgroundId, explainerBackgroundPresets } from "@/service/canvas/explainer-settings";
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
