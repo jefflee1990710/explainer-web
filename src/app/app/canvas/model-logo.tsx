@@ -66,6 +66,14 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^image-to-video$/, asset: { src: "/canvas/model-logos/image-to-video.png", alt: "Image to video" } },
   { match: /^frame-grab$/, asset: { src: "/canvas/model-logos/frame-grab.png", alt: "Frame grab" } },
   { match: /^burn-subtitles$/, asset: { src: "/canvas/model-logos/burn-subtitles.png", alt: "Burn subtitles" } },
+  { match: /^split$/, asset: { src: "/canvas/model-logos/split.png", alt: "Split" } },
+  { match: /^text$/, asset: { src: "/canvas/model-logos/text.png", alt: "Text" } },
+  { match: /^audio-mix$/, asset: { src: "/canvas/model-logos/audio-mix.png", alt: "Background music" } },
+  { match: /^audio-trim$/, asset: { src: "/canvas/model-logos/audio-trim.png", alt: "Audio trim" } },
+  { match: /^audio-concat$/, asset: { src: "/canvas/model-logos/audio-concat.png", alt: "Audio join" } },
+  { match: /^adjust$/, asset: { src: "/canvas/model-logos/adjust.png", alt: "Adjust" } },
+  { match: /^freeze$/, asset: { src: "/canvas/model-logos/freeze.png", alt: "Freeze frame" } },
+  { match: /^export$/, asset: { src: "/canvas/model-logos/export.png", alt: "Export" } },
   { match: /^scribe/, asset: { src: "/canvas/model-logos/auto-captions.png", alt: "Auto captions" } },
 ];
 

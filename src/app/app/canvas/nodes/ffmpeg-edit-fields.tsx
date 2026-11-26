@@ -31,7 +31,15 @@ export function FfmpegEditFields({
   if (modelId === "ffmpeg:keep-ranges") {
     return (
       <div className="flex flex-col gap-1">
-        <Label>{isZh ? "保留區間（秒）" : "Keep ranges (seconds)"}</Label>
+        <Label>
+          {toolParams.ffmpegRangeMode === "remove"
+            ? isZh
+              ? "剪走區間（秒）"
+              : "Remove ranges (seconds)"
+            : isZh
+              ? "保留區間（秒）"
+              : "Keep ranges (seconds)"}
+        </Label>
         <input
           value={String(toolParams.ffmpegRanges ?? "")}
           onChange={(e) => onToolParam("ffmpegRanges", e.target.value)}
@@ -158,6 +166,8 @@ export function FfmpegEditFields({
         <option value="90">90°</option>
         <option value="180">180°</option>
         <option value="270">270°</option>
+        <option value="hflip">{isZh ? "左右翻轉" : "Flip horizontal"}</option>
+        <option value="vflip">{isZh ? "上下翻轉" : "Flip vertical"}</option>
       </select>
     );
   }
@@ -177,6 +187,7 @@ export function FfmpegEditFields({
             <option value="bottom-left">{isZh ? "左下" : "Bottom left"}</option>
             <option value="bottom-right">{isZh ? "右下" : "Bottom right"}</option>
             <option value="center">{isZh ? "置中" : "Center"}</option>
+            <option value="custom">{isZh ? "自訂位置" : "Custom"}</option>
           </select>
         </div>
         <div className="flex flex-col gap-1">

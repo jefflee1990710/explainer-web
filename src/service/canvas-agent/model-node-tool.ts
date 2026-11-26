@@ -19,7 +19,7 @@ export type AddModelNodeInput = {
   modelId: string;
   prompt?: string;
   promptText?: string;
-  wires?: Array<{ sourceId: string; targetPort: string }>;
+  wires?: Array<{ sourceId: string; sourcePort?: string; targetPort: string }>;
   aspectRatio?: CanvasAspectRatio;
   durationSeconds?: number;
   toolParams?: Record<string, unknown>;
@@ -99,6 +99,7 @@ export function addModelNode(
   for (const wire of input.wires ?? []) {
     const linked = handlers.connect(g, {
       sourceId: wire.sourceId,
+      ...(wire.sourcePort ? { sourcePort: wire.sourcePort } : {}),
       targetId: nodeId,
       targetPort: wire.targetPort,
     });

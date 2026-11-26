@@ -80,6 +80,7 @@ export function applyCanvasAgentOp(
         (e) =>
           e.id === edge.id ||
           (e.source === edge.source &&
+            (e.sourceHandle || "output") === (edge.sourceHandle || "output") &&
             e.target === edge.target &&
             e.targetHandle === edge.targetHandle),
       );

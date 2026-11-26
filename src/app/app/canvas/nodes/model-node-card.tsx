@@ -33,6 +33,7 @@ import { ModelNodeCardPorts } from "@/app/app/canvas/nodes/model-node-card-ports
 import { ModelNodeCardPreview } from "@/app/app/canvas/nodes/model-node-card-preview";
 import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
+import { ModelNodeExtraOutputs } from "@/app/app/canvas/nodes/model-node-extra-outputs";
 
 
 export function ModelNodeCard({
@@ -339,17 +340,21 @@ export function ModelNodeCard({
         <ModelNodeCardRun {...view} />
         <ModelNodeCardPreview {...view} />
       </div>
-      <Handle
-        type="source"
-        id="output"
-        position={Position.Right}
-        style={{
-          width: 13,
-          height: 13,
-          backgroundColor: outputColor,
-          border: "2px solid #0b0e13",
-        }}
-      />
+      {spec.extraOutputs?.length ? (
+        <ModelNodeExtraOutputs spec={spec} isZh={isZh} />
+      ) : (
+        <Handle
+          type="source"
+          id="output"
+          position={Position.Right}
+          style={{
+            width: 13,
+            height: 13,
+            backgroundColor: outputColor,
+            border: "2px solid #0b0e13",
+          }}
+        />
+      )}
     </div>
   );
 }

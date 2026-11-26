@@ -282,6 +282,7 @@ export async function submitCanvasNodeJob(
     ...(inputCheck.inputs.overlayVideo
       ? { overlayVideo: inputCheck.inputs.overlayVideo }
       : {}),
+    ...(inputCheck.inputs.audios?.length ? { audios: inputCheck.inputs.audios } : {}),
     presetId,
   };
 

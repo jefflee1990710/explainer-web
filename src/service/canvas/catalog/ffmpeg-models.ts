@@ -1,7 +1,11 @@
-// 17 $0.00 Vast.ai Worker FFmpeg editing & post-processing nodes (`ffmpeg:*`).
+// $0.00 Vast.ai Worker FFmpeg editing & post-processing nodes (`ffmpeg:*`); the
+// newer edit nodes live in ffmpeg-edit-models.ts and are appended at the end.
 // Each spec lists its toolParams so the assistant allowlist and prompt stay in sync.
 
-import type { CanvasModelSpec, CanvasToolParamSpec } from "@/model/canvas-model";
+import type { CanvasModelSpec } from "@/model/canvas-model";
+import { SUBTITLE_LOOK_IDS } from "@/model/subtitle-look-id";
+import { flag, num, oneOf, text } from "@/service/canvas/catalog/tool-param-specs";
+import { CONCAT_TRANSITIONS, EDIT_FRAME_SHAPES, FFMPEG_EDIT_MODELS } from "@/service/canvas/catalog/ffmpeg-edit-models";
 import {
   audioOutput,
   imageOutput,
@@ -12,22 +16,6 @@ import {
   videoPort,
   videosPort,
 } from "@/service/canvas/catalog/ports";
-
-const num = (key: string, min: number, max: number, hint?: string): CanvasToolParamSpec => ({
-  key,
-  kind: "number",
-  min,
-  max,
-  ...(hint ? { hint } : {}),
-});
-const oneOf = (key: string, values: readonly string[], hint?: string): CanvasToolParamSpec => ({
-  key,
-  kind: "enum",
-  values,
-  ...(hint ? { hint } : {}),
-});
-const flag = (key: string, hint?: string): CanvasToolParamSpec => ({ key, kind: "boolean", ...(hint ? { hint } : {}) });
-const text = (key: string, hint?: string): CanvasToolParamSpec => ({ key, kind: "string", ...(hint ? { hint } : {}) });
 
 const FADE_PARAMS = [num("ffmpegFadeInSec", 0, 5), num("ffmpegFadeOutSec", 0, 5)];
 
@@ -45,8 +33,13 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
-    agentHint: "Joins up to 8 videos in the order of its videos edges.",
-    toolParams: [oneOf("ffmpegTransition", ["pad-200ms", "cut", "fade"])],
+    agentHint:
+      "Joins up to 8 videos in the order of its videos edges, with a cut, a 0.2s hold, or a transition between clips.",
+    toolParams: [
+      oneOf("ffmpegTransition", CONCAT_TRANSITIONS),
+      num("ffmpegTransitionSec", 0.2, 1.5, "transition length, default 0.35"),
+      oneOf("ffmpegAspect", EDIT_FRAME_SHAPES, "output frame; source = first clip"),
+    ],
   },
   {
     id: "ffmpeg:audio-mux",
@@ -77,11 +70,12 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
-    agentHint: "Keeps start..end seconds of the source and changes speed.",
+    agentHint: "Keeps start..end seconds of the source, changes speed, and can play it backwards.",
     toolParams: [
       num("ffmpegStartSec", 0, 36_000),
       num("ffmpegEndSec", 0, 36_000, "0 or unset keeps to the end"),
-      num("ffmpegSpeed", 0.5, 2),
+      num("ffmpegSpeed", 0.25, 4),
+      flag("ffmpegReverse", "play backwards"),
       flag("ffmpegTrimSilence", "also cut silence at both ends"),
     ],
   },
@@ -98,8 +92,12 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: true,
     available: true,
-    agentHint: "Reframes to the node's aspectRatio (9:16, 16:9, 1:1).",
-    toolParams: [oneOf("ffmpegCropMode", ["center-crop", "fit-pad"]), oneOf("ffmpegColorGrade", ["none", "h3-soft"])],
+    agentHint: "Reframes to the node's aspectRatio (9:16, 16:9, 1:1) at 720p, 1080p, or 4K.",
+    toolParams: [
+      oneOf("ffmpegCropMode", ["center-crop", "fit-pad"]),
+      oneOf("ffmpegColorGrade", ["none", "h3-soft"]),
+      oneOf("ffmpegResolution", ["720p", "1080p", "4k"], "default 1080p"),
+    ],
   },
   {
     id: "ffmpeg:extract-audio",
@@ -153,7 +151,7 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     id: "ffmpeg:keep-ranges",
     provider: "ffmpeg",
     providerModelId: "keep-ranges",
-    name: "FFmpeg Keep Ranges",
+    name: "FFmpeg Keep / Cut Ranges",
     category: "ffmpeg",
     inputs: [videoPort(true)],
     output: videoOutput(),
@@ -162,8 +160,11 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
-    agentHint: "Keeps only the listed time ranges and joins them.",
-    toolParams: [text("ffmpegRanges", 'seconds, e.g. "0-3, 8-12" or "0:08-0:12"')],
+    agentHint: "Keeps only the listed time ranges (keep) or cuts them out (remove), then joins what is left.",
+    toolParams: [
+      text("ffmpegRanges", 'seconds, e.g. "0-3, 8-12" or "0:08-0:12"'),
+      oneOf("ffmpegRangeMode", ["keep", "remove"], "default keep"),
+    ],
   },
   {
     id: "ffmpeg:volume",
@@ -248,8 +249,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
-    agentHint: "Rotates clockwise.",
-    toolParams: [oneOf("ffmpegRotate", ["90", "180", "270"])],
+    agentHint: "Rotates clockwise or mirrors (hflip left-right, vflip upside down).",
+    toolParams: [oneOf("ffmpegRotate", ["90", "180", "270", "hflip", "vflip"])],
   },
   {
     id: "ffmpeg:overlay",
@@ -276,10 +277,17 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
-    agentHint: "Puts an image (logo, watermark) or overlayVideo (picture in picture) on the base video.",
+    agentHint:
+      "Puts an image (logo, watermark) or overlayVideo (picture in picture, green screen) on the base video, optionally only between start and end.",
     toolParams: [
-      oneOf("ffmpegOverlayPosition", ["bottom-right", "top-left", "top-right", "bottom-left", "center"]),
+      oneOf("ffmpegOverlayPosition", ["bottom-right", "top-left", "top-right", "bottom-left", "center", "custom"]),
+      num("ffmpegOverlayX", 0, 100, "custom: left edge, % of width"),
+      num("ffmpegOverlayY", 0, 100, "custom: top edge, % of height"),
+      num("ffmpegOverlaySizePct", 5, 100, "overlay width, % of the video width; default 22"),
       num("ffmpegOverlayOpacity", 0.05, 1),
+      num("ffmpegOverlayStartSec", 0, 36_000),
+      num("ffmpegOverlayEndSec", 0, 36_000, "0 = to the end"),
+      oneOf("ffmpegChromaKey", ["none", "green", "blue"], "key out a green or blue screen"),
     ],
   },
   {
@@ -328,6 +336,10 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     supportsAspectRatio: false,
     available: true,
     agentHint: "Burns SRT text from its prompt port (wire scro:auto-captions there) into the video.",
-    toolParams: [],
+    toolParams: [
+      oneOf("subtitleLook", SUBTITLE_LOOK_IDS, "default clean"),
+      oneOf("ffmpegSubtitlePosition", ["bottom", "middle", "top"]),
+    ],
   },
+  ...FFMPEG_EDIT_MODELS,
 ];

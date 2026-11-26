@@ -29,7 +29,7 @@ describe("service/canvas/catalog modular split", () => {
       FFMPEG_STATIC_MODELS.length;
     assert.equal(STATIC_CANVAS_MODELS.length, expectedTotal);
     assert.equal(MENTALOK_STATIC_MODELS.length, 16);
-    assert.equal(FFMPEG_STATIC_MODELS.length, 17);
+    assert.equal(FFMPEG_STATIC_MODELS.length, 25);
     assert.ok(NANO_BANANA_CANVAS_MODEL_ID.startsWith("google:"));
     assert.equal(findCanvasModel("openrouter:minimax/hailuo-3")?.provider, "minimax");
   });

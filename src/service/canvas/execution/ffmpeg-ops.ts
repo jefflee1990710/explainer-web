@@ -24,6 +24,15 @@ import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import { gradeTalkingHeadSensorTextureBuffer } from "@/service/style/realistic-grade";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 import { buildEditFfmpegArgs, burnSubtitleAss } from "@/service/canvas/execution/ffmpeg-edit";
+import {
+  buildMoreEditFfmpegArgs,
+  exportFileSlug,
+  exportFormat,
+  textOverlayAss,
+} from "@/service/canvas/execution/ffmpeg-edit-more";
+import { boolParam, clamp, numParam, strParam } from "@/service/canvas/execution/ffmpeg-params";
+import { CONCAT_TRANSITIONS } from "@/service/canvas/catalog/ffmpeg-edit-models";
+import { SPLIT_SECOND_HANDLE, extraOutputPathname } from "@/service/canvas/core/extra-outputs";
 import { assertAllowedCanvasMediaUrl } from "@/service/canvas/execution/media-url-guard";
 import { isUsableProbe, mediaMetaFromProbe, parseMediaProbe } from "@/service/canvas/core/media-meta";
 
@@ -39,25 +48,11 @@ export type CanvasFfmpegLocalInputs = {
   targetHeight?: number;
   // cropdetect result, "w:h:x:y", for the letterbox crop node.
   detectedCrop?: string;
+  // Audio Join inputs, in edge order.
+  audioFiles?: string[];
+  // Length of the single refAudio file, when probed.
+  audioDurationSec?: number;
 };
-
-function numParam(snapshot: Record<string, unknown>, key: string, fallback: number): number {
-  const tp = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = tp?.[key] ?? snapshot[key];
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : fallback;
-}
-
-function strParam(snapshot: Record<string, unknown>, key: string, fallback: string): string {
-  const tp = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = tp?.[key] ?? snapshot[key];
-  return typeof raw === "string" && raw.trim() ? raw.trim() : fallback;
-}
-
-function boolParam(snapshot: Record<string, unknown>, key: string, fallback = false): boolean {
-  const tp = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = tp?.[key] ?? snapshot[key];
-  return typeof raw === "boolean" ? raw : fallback;
-}
 
 export { parseMediaProbe };
 
@@ -68,16 +63,38 @@ const NEEDS_DURATION = new Set([
   "ffmpeg:audio-fade",
   "ffmpeg:fade",
   "ffmpeg:burn-subtitles",
+  "ffmpeg:split",
+  "ffmpeg:freeze",
+  "ffmpeg:audio-mix",
 ]);
 
 // One FFmpeg run may not hold a worker slot forever.
 export const CANVAS_FFMPEG_TIMEOUT_MS = 15 * 60_000;
 const PROBE_TIMEOUT_MS = 60_000;
 
-function targetDimsForAspect(aspect: string): { width: number; height: number } {
-  if (aspect === "16:9") return { width: 1920, height: 1080 };
-  if (aspect === "1:1") return { width: 1080, height: 1080 };
-  return { width: 1080, height: 1920 };
+function targetDimsForAspect(aspect: string, resolution = "1080p"): { width: number; height: number } {
+  const short = resolution === "720p" ? 720 : resolution === "4k" ? 2160 : 1080;
+  const long = Math.round((short * 16) / 9);
+  if (aspect === "16:9") return { width: long, height: short };
+  if (aspect === "1:1") return { width: short, height: short };
+  if (aspect === "4:5") return { width: short, height: Math.round((short * 5) / 4 / 2) * 2 };
+  return { width: short, height: long };
+}
+
+// atempo takes 0.5..2 per stage, so slower or faster speeds chain stages.
+export function atempoChain(speed: number): string {
+  const stages: number[] = [];
+  let left = speed;
+  while (left < 0.5) {
+    stages.push(0.5);
+    left /= 0.5;
+  }
+  while (left > 2) {
+    stages.push(2);
+    left /= 2;
+  }
+  stages.push(left);
+  return stages.map((s) => `atempo=${Number(s.toFixed(4))}`).join(",");
 }
 
 export function buildCanvasFfmpegArgs(
@@ -86,20 +103,23 @@ export function buildCanvasFfmpegArgs(
   localInputs: CanvasFfmpegLocalInputs,
   outputFile: string,
 ): string[] {
-  const edited = buildEditFfmpegArgs(modelId, snapshot, localInputs, outputFile);
+  const edited =
+    buildEditFfmpegArgs(modelId, snapshot, localInputs, outputFile) ??
+    buildMoreEditFfmpegArgs(modelId, snapshot, localInputs, outputFile);
   if (edited) return edited;
   const codecArgs = buildVideoCodecArgs({ pixFmt: "yuv420p" });
 
   if (modelId === "ffmpeg:concat") {
     const n = localInputs.videoFiles.length;
     if (n === 0) throw new Error("FFmpeg Concat 至少需要 1 段輸入影片");
-    const transition = strParam(
-      snapshot,
-      "ffmpegTransition",
-      strParam(snapshot, "presetId", "pad-200ms"),
-    );
-    const width = localInputs.targetWidth ?? 1080;
-    const height = localInputs.targetHeight ?? 1920;
+    const picked = strParam(snapshot, "ffmpegTransition", strParam(snapshot, "presetId", "pad-200ms"));
+    const transition = (CONCAT_TRANSITIONS as readonly string[]).includes(picked) ? picked : "pad-200ms";
+    const xfade = transition !== "pad-200ms" && transition !== "cut";
+    const fadeDur = clamp(numParam(snapshot, "ffmpegTransitionSec", 0.35), 0.2, 1.5);
+    const shape = strParam(snapshot, "ffmpegAspect", "source");
+    const shaped = shape !== "source" ? targetDimsForAspect(shape) : undefined;
+    const width = shaped?.width ?? localInputs.targetWidth ?? 1080;
+    const height = shaped?.height ?? localInputs.targetHeight ?? 1920;
 
     const args: string[] = ["-y"];
     for (const file of localInputs.videoFiles) {
@@ -107,9 +127,7 @@ export function buildCanvasFfmpegArgs(
     }
 
     const filters: string[] = [];
-    const durations = localInputs.videoFiles.map(
-      (_, i) => Math.max(0.5, localInputs.durationsSec?.[i] ?? 5),
-    );
+    const durations = localInputs.videoFiles.map((_, i) => Math.max(0.5, localInputs.durationsSec?.[i] ?? 0));
 
     for (let i = 0; i < n; i += 1) {
       const padStep =
@@ -117,7 +135,7 @@ export function buildCanvasFfmpegArgs(
           ? ",tpad=stop_mode=clone:stop_duration=0.2"
           : "";
       filters.push(
-        `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,setpts=PTS-STARTPTS${padStep}[v${i}]`,
+        `[${i}:v]setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p${padStep}[v${i}]`,
       );
       if (localInputs.hasAudioByVideo[i]) {
         const audioPad =
@@ -131,23 +149,22 @@ export function buildCanvasFfmpegArgs(
       }
     }
 
-    if (transition === "fade" && n >= 2) {
-      const fadeDur = 0.35;
+    if (xfade && n >= 2) {
+      // A transition cannot be longer than half of either clip it joins.
+      const span = Math.min(fadeDur, ...durations.map((d) => d / 2));
       let prevV = "v0";
       let prevA = "a0";
-      let offset = Math.max(0.2, durations[0]! - fadeDur);
+      let offset = Math.max(0.1, durations[0]! - span);
       for (let i = 1; i < n; i += 1) {
         const outV = i === n - 1 ? "vout" : `xv${i}`;
         const outA = i === n - 1 ? "aout" : `xa${i}`;
         filters.push(
-          `[${prevV}][v${i}]xfade=transition=fade:duration=${fadeDur}:offset=${offset.toFixed(3)}[${outV}]`,
+          `[${prevV}][v${i}]xfade=transition=${transition}:duration=${span.toFixed(3)}:offset=${offset.toFixed(3)}[${outV}]`,
         );
-        filters.push(
-          `[${prevA}][a${i}]acrossfade=d=${fadeDur}[${outA}]`,
-        );
+        filters.push(`[${prevA}][a${i}]acrossfade=d=${span.toFixed(3)}[${outA}]`);
         prevV = outV;
         prevA = outA;
-        offset += Math.max(0.2, durations[i]! - fadeDur);
+        offset += Math.max(0.1, durations[i]! - span);
       }
     } else {
       const pairs = localInputs.videoFiles.map((_, i) => `[v${i}][a${i}]`).join("");
@@ -243,7 +260,8 @@ export function buildCanvasFfmpegArgs(
     if (!videoFile) throw new Error("FFmpeg Trim & Speed 需要輸入影片");
     const startSec = Math.max(0, numParam(snapshot, "ffmpegStartSec", 0));
     const endSec = numParam(snapshot, "ffmpegEndSec", 0);
-    const speed = Math.min(2, Math.max(0.5, numParam(snapshot, "ffmpegSpeed", 1)));
+    const speed = clamp(numParam(snapshot, "ffmpegSpeed", 1), 0.25, 4);
+    const reverse = boolParam(snapshot, "ffmpegReverse");
     const hasAudio = Boolean(localInputs.hasAudioByVideo[0]);
 
     const args: string[] = ["-y"];
@@ -251,16 +269,11 @@ export function buildCanvasFfmpegArgs(
     if (endSec > startSec) args.push("-to", String(endSec));
     args.push("-i", videoFile);
 
-    if (Math.abs(speed - 1) >= 0.01) {
-      args.push("-filter:v", `setpts=PTS/${speed}`);
-      if (hasAudio) {
-        args.push("-filter:a", `atempo=${speed}`);
-      } else {
-        args.push("-an");
-      }
-    } else if (!hasAudio) {
-      args.push("-an");
-    }
+    const videoFilters = [reverse ? "reverse" : "", Math.abs(speed - 1) >= 0.01 ? `setpts=PTS/${speed}` : ""].filter(Boolean);
+    const audioFilters = [reverse ? "areverse" : "", Math.abs(speed - 1) >= 0.01 ? atempoChain(speed) : ""].filter(Boolean);
+    if (videoFilters.length) args.push("-filter:v", videoFilters.join(","));
+    if (hasAudio && audioFilters.length) args.push("-filter:a", audioFilters.join(","));
+    if (!hasAudio) args.push("-an");
 
     args.push(...codecArgs);
     if (hasAudio) args.push("-c:a", "aac", "-b:a", "192k");
@@ -273,7 +286,7 @@ export function buildCanvasFfmpegArgs(
     if (!videoFile) throw new Error("FFmpeg Transform 需要輸入影片");
     const aspect = strParam(snapshot, "aspectRatio", strParam(snapshot, "presetId", "9:16"));
     const cropMode = strParam(snapshot, "ffmpegCropMode", "center-crop");
-    const { width, height } = targetDimsForAspect(aspect);
+    const { width, height } = targetDimsForAspect(aspect, strParam(snapshot, "ffmpegResolution", "1080p"));
     const hasAudio = Boolean(localInputs.hasAudioByVideo[0]);
 
     const vf =
@@ -346,13 +359,18 @@ export type ExecuteCanvasFfmpegDeps = {
   now?: () => Date;
 };
 
-function ffmpegOutputFile(modelId: string): {
+function ffmpegOutputFile(modelId: string, snapshot: Record<string, unknown>): {
   file: string;
   kind: "video" | "audio" | "image";
   contentType: string;
   ext: string;
 } {
-  if (modelId === "ffmpeg:extract-audio") {
+  if (modelId === "ffmpeg:export") {
+    const format = exportFormat(snapshot);
+    if (format === "gif") return { file: "output.gif", kind: "image", contentType: "image/gif", ext: "gif" };
+    if (format === "webm") return { file: "output.webm", kind: "video", contentType: "video/webm", ext: "webm" };
+  }
+  if (modelId === "ffmpeg:extract-audio" || modelId === "ffmpeg:audio-trim" || modelId === "ffmpeg:audio-concat") {
     return { file: "output.mp3", kind: "audio", contentType: "audio/mpeg", ext: "mp3" };
   }
   if (modelId === "ffmpeg:frame-grab") {
@@ -410,6 +428,7 @@ export async function executeCanvasFfmpegJob(
         ? [snapshot.video]
         : [];
     const audioUrl = typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined;
+    const audioUrls = Array.isArray(snapshot.audios) ? snapshot.audios.map(String) : [];
     const imageUrl = typeof snapshot.image === "string" ? snapshot.image : undefined;
     const overlayVideoUrl = typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined;
 
@@ -437,9 +456,17 @@ export async function executeCanvasFfmpegJob(
     }
 
     let audioFile: string | undefined;
+    let audioDurationSec: number | undefined;
     if (audioUrl) {
       audioFile = "in-audio.mp3";
       await resolved.downloadToFile(audioUrl, join(dir, audioFile));
+      audioDurationSec = parseMediaProbe(await resolved.probeStderr(dir, audioFile).catch(() => "")).durationSec;
+    }
+    const audioFiles: string[] = [];
+    for (let i = 0; i < audioUrls.length; i += 1) {
+      const name = `in-audio-${i}.mp3`;
+      await resolved.downloadToFile(audioUrls[i]!, join(dir, name));
+      audioFiles.push(name);
     }
 
     let imageFile: string | undefined;
@@ -477,7 +504,7 @@ export async function executeCanvasFfmpegJob(
       if (last && last !== full) detectedCrop = last;
     }
 
-    const produced = ffmpegOutputFile(job.modelId);
+    const produced = ffmpegOutputFile(job.modelId, snapshot);
     const localInputs: CanvasFfmpegLocalInputs = {
       videoFiles,
       audioFile,
@@ -488,7 +515,13 @@ export async function executeCanvasFfmpegJob(
       targetWidth: firstWidth,
       targetHeight: firstHeight,
       detectedCrop,
+      audioFiles,
+      audioDurationSec,
     };
+    if (job.modelId === "ffmpeg:text") {
+      await writeFile(join(dir, "text.ass"), textOverlayAss(snapshot, localInputs), "utf8");
+      localInputs.subtitleFile = "text.ass";
+    }
     if (job.modelId === "ffmpeg:burn-subtitles") {
       await writeFile(join(dir, "subs.ass"), burnSubtitleAss(snapshot, localInputs), "utf8");
       localInputs.subtitleFile = "subs.ass";
@@ -522,11 +555,17 @@ export async function executeCanvasFfmpegJob(
       );
     }
 
-    const outputUrl = await resolved.persistBuffer(
-      outBuf,
-      `canvas/${job.clerkUserId}/${jobIdHex}.${produced.ext}`,
-      produced.contentType,
-    );
+    const slug = job.modelId === "ffmpeg:export" ? exportFileSlug(snapshot) : "";
+    const pathname = `canvas/${job.clerkUserId}/${jobIdHex}${slug ? `-${slug}` : ""}.${produced.ext}`;
+    // Split's part B is saved first, at the path its edges derive from the main URL.
+    if (job.modelId === "ffmpeg:split") {
+      await resolved.persistBuffer(
+        await readFile(join(dir, extraOutputPathname(produced.file, SPLIT_SECOND_HANDLE))),
+        extraOutputPathname(pathname, SPLIT_SECOND_HANDLE),
+        produced.contentType,
+      );
+    }
+    const outputUrl = await resolved.persistBuffer(outBuf, pathname, produced.contentType);
     // Length, sound, and size of the new file, so the assistant can reason about it.
     let outputMeta: CanvasMediaMeta | undefined;
     if (produced.kind !== "image") {

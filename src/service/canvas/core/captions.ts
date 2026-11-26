@@ -2,6 +2,7 @@
 // and the burn node turns that SRT into ASS for FFmpeg libass.
 
 import { mulUsd } from "@/service/billing/usd";
+import { type SubtitleAssStyle, subtitleAssStyle } from "@/service/canvas/core/subtitle-look-styles";
 
 export const SCRIBE_MODEL_ID = "scribe_v3";
 // ElevenLabs batch Scribe list price, billed per second of audio.
@@ -162,9 +163,13 @@ export function cuesToAss(
   width: number,
   height: number,
   fontFamily: string,
+  options?: { style?: SubtitleAssStyle; alignment?: 2 | 5 | 8 },
 ): string {
-  const fontSize = Math.max(28, Math.round(height / 18));
+  const style = options?.style ?? subtitleAssStyle("clean");
+  const alignment = options?.alignment ?? 2;
+  const fontSize = Math.max(28, Math.round((height / 18) * style.scale));
   const marginV = Math.max(24, Math.round(height * 0.08));
+  const flag = (on: boolean | undefined) => (on ? -1 : 0);
   const events = cues
     .map(
       (cue) =>
@@ -180,7 +185,7 @@ export function cuesToAss(
     "",
     "[V4+ Styles]",
     "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-    `Style: Default,${fontFamily},${fontSize},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,0,2,40,40,${marginV},1`,
+    `Style: Default,${fontFamily},${fontSize},${style.primary},&H000000FF,${style.outline},${style.back},${flag(style.bold)},${flag(style.italic)},0,0,100,100,${style.spacing ?? 0},0,${style.borderStyle},${style.outlineWidth},${style.shadow},${alignment},40,40,${marginV},1`,
     "",
     "[Events]",
     "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",

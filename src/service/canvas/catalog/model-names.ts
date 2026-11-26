@@ -123,10 +123,10 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ko: "자동 자막",
   },
   "ffmpeg:keep-ranges": {
-    "zh-Hant": "FFmpeg 保留區間",
-    "zh-Hans": "FFmpeg 保留区间",
-    ja: "FFmpeg 区間キープ",
-    ko: "FFmpeg 구간 유지",
+    "zh-Hant": "FFmpeg 保留／剪走區間",
+    "zh-Hans": "FFmpeg 保留／剪掉区间",
+    ja: "FFmpeg 区間キープ／カット",
+    ko: "FFmpeg 구간 유지／삭제",
   },
   "ffmpeg:volume": {
     "zh-Hant": "FFmpeg 音量",
@@ -182,6 +182,29 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "FFmpeg 字幕焼き込み",
     ko: "FFmpeg 자막 굽기",
   },
+  "ffmpeg:split": { "zh-Hant": "FFmpeg 分割", "zh-Hans": "FFmpeg 分割", ja: "FFmpeg 分割", ko: "FFmpeg 분할" },
+  "ffmpeg:text": { "zh-Hant": "FFmpeg 文字", "zh-Hans": "FFmpeg 文字", ja: "FFmpeg テキスト", ko: "FFmpeg 텍스트" },
+  "ffmpeg:audio-mix": {
+    "zh-Hant": "FFmpeg 背景音樂",
+    "zh-Hans": "FFmpeg 背景音乐",
+    ja: "FFmpeg BGM",
+    ko: "FFmpeg 배경음악",
+  },
+  "ffmpeg:audio-trim": {
+    "zh-Hant": "FFmpeg 音訊剪輯與音量",
+    "zh-Hans": "FFmpeg 音频剪辑与音量",
+    ja: "FFmpeg 音声トリム・音量",
+    ko: "FFmpeg 오디오 자르기·음량",
+  },
+  "ffmpeg:audio-concat": {
+    "zh-Hant": "FFmpeg 音訊合併",
+    "zh-Hans": "FFmpeg 音频合并",
+    ja: "FFmpeg 音声結合",
+    ko: "FFmpeg 오디오 합치기",
+  },
+  "ffmpeg:adjust": { "zh-Hant": "FFmpeg 畫面調整", "zh-Hans": "FFmpeg 画面调整", ja: "FFmpeg 色調整", ko: "FFmpeg 화면 조정" },
+  "ffmpeg:freeze": { "zh-Hant": "FFmpeg 定格", "zh-Hans": "FFmpeg 定格", ja: "FFmpeg フリーズ", ko: "FFmpeg 정지 화면" },
+  "ffmpeg:export": { "zh-Hant": "FFmpeg 匯出", "zh-Hans": "FFmpeg 导出", ja: "FFmpeg 書き出し", ko: "FFmpeg 내보내기" },
 };
 
 // Name to show for a canvas node in the given UI locale; falls back to the English catalog name.

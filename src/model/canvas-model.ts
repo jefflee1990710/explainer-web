@@ -43,6 +43,9 @@ export type CanvasModelOutputSpec = {
   type: "image" | "video" | "audio" | "text";
 };
 
+// A second file the node writes next to its main output (FFmpeg Split's part B).
+export type CanvasModelExtraOutputSpec = Omit<CanvasModelOutputSpec, "id"> & { id: string };
+
 export type CanvasModelRuntimeStatus =
   | "warm"
   | "cached"
@@ -86,6 +89,8 @@ export type CanvasModelSpec = {
   toolParams?: readonly CanvasToolParamSpec[];
   // One-line assistant note on what the node does.
   agentHint?: string;
+  // Named outputs besides "output"; edges pick one with sourceHandle.
+  extraOutputs?: readonly CanvasModelExtraOutputSpec[];
 };
 
 export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 120;
