@@ -272,6 +272,9 @@ export async function submitCanvasNodeJob(
     ...(inputCheck.inputs.refImages.length > 0
       ? { refImages: inputCheck.inputs.refImages }
       : {}),
+    ...(inputCheck.inputs.outfitRefs && inputCheck.inputs.outfitRefs.length > 0
+      ? { outfitRefs: inputCheck.inputs.outfitRefs }
+      : {}),
     ...(inputCheck.inputs.video ? { video: inputCheck.inputs.video } : {}),
     ...(inputCheck.inputs.videos.length > 0
       ? { videos: inputCheck.inputs.videos }

@@ -7,9 +7,11 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
+import { CHARACTER_BLUEPRINT_MODEL_ID } from "@/service/canvas/core/character-blueprint";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { wiredSettingsVars } from "@/service/canvas/core/graph";
+import { CharacterBlueprintNodeCard } from "@/app/app/canvas/nodes/character-blueprint-node-card";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
@@ -77,6 +79,10 @@ export function ModelNodeCard({
     }
     return map;
   }, [edges, id]);
+
+  if (data.modelId === CHARACTER_BLUEPRINT_MODEL_ID) {
+    return <CharacterBlueprintNodeCard id={id} data={data} selected={selected} />;
+  }
 
   if (isExplainerDirectorNode({ type: "model", data })) {
     return (

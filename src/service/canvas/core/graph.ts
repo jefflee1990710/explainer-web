@@ -14,6 +14,7 @@ export {
 } from "@/service/canvas/core/graph/ports";
 
 export type {
+  CanvasOutfitRef,
   ResolvedCanvasInputs,
   ResolveNodeInputsResult,
 } from "@/service/canvas/core/graph/inputs";

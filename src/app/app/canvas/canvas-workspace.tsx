@@ -66,6 +66,7 @@ import { useCanvasLibrary } from "@/app/app/canvas/workspace/use-canvas-library"
 import { useCanvasAgentReplay } from "@/app/app/canvas/workspace/use-canvas-agent-replay";
 import { useCanvasDirectors } from "@/app/app/canvas/workspace/use-canvas-directors";
 import { useCanvasDocument } from "@/app/app/canvas/workspace/use-canvas-document";
+import { useCanvasCharacterBlueprint } from "@/app/app/canvas/workspace/use-canvas-character-blueprint";
 import { useCanvasOutfits } from "@/app/app/canvas/workspace/use-canvas-outfits";
 import { useCanvasPaneDrop } from "@/app/app/canvas/workspace/use-canvas-pane-drop";
 import { useCanvasGroupActions } from "@/app/app/canvas/groups/use-canvas-group-actions";
@@ -252,47 +253,52 @@ function CanvasWorkspaceInner({
     );
   }, [displayEdges, planLocks]);
 
+  // A new library character shows up in the Assets list without waiting for a reload.
+  const rememberCharacter = useCallback((character: PublicCharacter) => {
+    const version = character.versions[0];
+    const url =
+      character.previewUrl ||
+      version?.portraitUrl ||
+      version?.referenceImageUrl ||
+      version?.blueprintUrl ||
+      null;
+    setAssets((prev) => {
+      const option = {
+        id: character.id,
+        name: character.name,
+        ...(url ? { previewUrl: url } : {}),
+        ...(version?.portraitUrl ? { portraitUrl: version.portraitUrl } : {}),
+        ...(version?.profileUrl ? { fullBodyUrl: version.profileUrl } : {}),
+      };
+      const characters = url
+        ? [
+            {
+              id: character.id,
+              source: "character" as const,
+              name: character.name,
+              mediaKind: "image" as const,
+              url,
+              thumbnailUrl: url,
+              createdAt: character.createdAt,
+            },
+            ...prev.characters.filter((item) => item.id !== character.id),
+          ]
+        : prev.characters;
+      return {
+        ...prev,
+        characters,
+        characterOptions: [
+          option,
+          ...(prev.characterOptions ?? []).filter((item) => item.id !== character.id),
+        ],
+      };
+    });
+  }, []);
+
   // A character created from the Assets icons joins the sidebar list immediately.
   const onCharacterCreated = useCallback(
     (character: PublicCharacter) => {
-      const version = character.versions[0];
-      const url =
-        character.previewUrl ||
-        version?.portraitUrl ||
-        version?.referenceImageUrl ||
-        version?.blueprintUrl ||
-        null;
-      setAssets((prev) => {
-        const option = {
-          id: character.id,
-          name: character.name,
-          ...(url ? { previewUrl: url } : {}),
-          ...(version?.portraitUrl ? { portraitUrl: version.portraitUrl } : {}),
-          ...(version?.profileUrl ? { fullBodyUrl: version.profileUrl } : {}),
-        };
-        const characters = url
-          ? [
-              {
-                id: character.id,
-                source: "character" as const,
-                name: character.name,
-                mediaKind: "image" as const,
-                url,
-                thumbnailUrl: url,
-                createdAt: character.createdAt,
-              },
-              ...prev.characters.filter((item) => item.id !== character.id),
-            ]
-          : prev.characters;
-        return {
-          ...prev,
-          characters,
-          characterOptions: [
-            option,
-            ...(prev.characterOptions ?? []).filter((item) => item.id !== character.id),
-          ],
-        };
-      });
+      rememberCharacter(character);
       setCreditUsd((current) => {
         const next = Math.max(0, current - BLUEPRINT_COST_USD);
         notifyCreditsChanged({
@@ -303,7 +309,7 @@ function CanvasWorkspaceInner({
         return next;
       });
     },
-    [initialCreditLimitUsd],
+    [initialCreditLimitUsd, rememberCharacter],
   );
 
   const syncWallet = useCallback(
@@ -559,6 +565,15 @@ function CanvasWorkspaceInner({
   });
 
   const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
+  const { onSaveCharacterBlueprint } = useCanvasCharacterBlueprint({
+    isZh,
+    models,
+    setNodes,
+    scheduleAutosave,
+    nodesRef,
+    edgesRef,
+    onSaved: rememberCharacter,
+  });
 
   // Runs the node a confirmed Replan was waiting for, after the new plan and unlocked rows render.
   useEffect(() => {
@@ -582,6 +597,7 @@ function CanvasWorkspaceInner({
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
+      onSaveCharacterBlueprint,
       onOpenLightbox: setLightbox,
       onPlanExplainer,
       onBuildScroDirector: handleBuildScroDirector,
@@ -601,6 +617,7 @@ function CanvasWorkspaceInner({
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
+      onSaveCharacterBlueprint,
       onPlanExplainer,
       handleBuildScroDirector,
       outdatedNodes,

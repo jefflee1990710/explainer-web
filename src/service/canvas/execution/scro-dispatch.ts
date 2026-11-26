@@ -19,6 +19,8 @@ import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/p
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/directors/explainer-frame";
 import { explainerVideoLookFields } from "@/service/canvas/directors/explainer-settings";
+import { characterBlueprintGap } from "@/service/canvas/core/character-blueprint";
+import { runCanvasCharacterBlueprint } from "@/service/canvas/execution/character-blueprint-run";
 import { buildLifePhotoPrompt } from "@/service/canvas/scro-groups/life";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
@@ -125,6 +127,18 @@ export function validateScroToolInputs(
   inputs: ResolvedCanvasInputs,
 ): ScroToolValidationResult {
   const characterId = readToolParamStr(node, "characterId");
+
+  if (modelId === "scro:character") {
+    const imageCount = inputs.refImages.length + (inputs.outfitRefs?.length ?? 0);
+    if (characterBlueprintGap({ prompt: inputs.prompt, imageCount })) {
+      return {
+        ok: false,
+        missingRequiredFields: ["refImages"],
+        reason: "請描述角色，或接上參考圖／穿搭",
+      };
+    }
+    return { ok: true };
+  }
 
   if (modelId === "scro:talking-head") {
     const missing: string[] = [];
@@ -287,6 +301,13 @@ export async function executeScroSyncNode(
       "audio/mpeg",
     );
     return { outputUrl, outputKind: "audio" };
+  }
+
+  if (params.modelId === "scro:character") {
+    return runCanvasCharacterBlueprint(params, {
+      submitImage: resolved.submitImage,
+      persistImageUrl: resolved.persistImageUrl,
+    });
   }
 
   const characterId = readToolParamStr(params.node, "characterId");

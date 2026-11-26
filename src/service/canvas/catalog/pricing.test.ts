@@ -121,6 +121,7 @@ describe("canvas USD pricing", () => {
     assert.equal(estimateCanvasModelCostUsd(teleport, { durationSeconds: 6 }), 1.305);
     assert.equal(estimateCanvasModelCostUsd(life), 0.135);
     assert.equal(estimateCanvasModelCostUsd(poster), 0.135);
+    assert.equal(estimateCanvasModelCostUsd(findCanvasModel("scro:character")!), 0.135);
     // 30s explainer = 5 Nano Banana 1K stills × $0.0504 + 30s × $0.195/s.
     assert.equal(estimateCanvasModelCostUsd(explainer, { durationSeconds: 30 }), 6.102);
   });

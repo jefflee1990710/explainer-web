@@ -29,6 +29,8 @@ describe("canvas agent prompt", () => {
     const text = buildCanvasAgentSystemPrompt({ language: "en", graph: graph() });
     assert.match(text, /minimax:MiniMax-H3/);
     assert.match(text, /scro:tts/);
+    assert.match(text, /scro:character \| Character/);
+    assert.match(text, /Seedream 5.0 Pro draws the blueprint/);
     assert.match(text, /add_scro_group/);
     assert.match(text, /tool "talking-head"/);
     assert.doesNotMatch(text, /^scro:life \|/m);

@@ -47,8 +47,13 @@ import { isGenerationInputPatch, markStaleOutputs } from "@/service/canvas/core/
 import { swapNodeModel } from "@/service/canvas/core/model-swap";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import {
+  blueprintAttachPlan,
+  blueprintDropHandle,
+  emptyCharacterBlueprintData,
+  findPortraitDropTarget,
+} from "@/service/canvas/core/character-blueprint";
+import {
   characterOutfitPort,
-  findCharacterNodeAt,
   libraryAssetNodeDraft,
   outfitHandleForPart,
 } from "@/service/canvas/core/character-node";
@@ -584,6 +589,20 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
         scheduleAutosave();
         return;
       }
+      // Dropping Character lands an empty character. Photos and outfits are wired in afterwards.
+      if (spec.id === "scro:character") {
+        setNodes((prev) => [
+          ...prev,
+          {
+            id: `model-${crypto.randomUUID().slice(0, 8)}`,
+            type: "model",
+            position: pos,
+            data: emptyCharacterBlueprintData(),
+          },
+        ]);
+        scheduleAutosave();
+        return;
+      }
       // One sidebar click places detection and burn, with the subtitle text already wired.
       if (spec.id === "scro:auto-captions") {
         const capId = `model-${crypto.randomUUID().slice(0, 8)}`;
@@ -656,23 +675,38 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
       const id = `${draft.type}-${crypto.randomUUID().slice(0, 8)}`;
       let place = pos;
       let outfitEdge: CanvasEdge | undefined;
-      if (asset.source === "outfit" && position) {
-        const targetId = findCharacterNodeAt(nodesRef.current, position);
-        if (targetId) {
-          const handle = outfitHandleForPart(asset.outfitPart);
-          place = { x: pos.x - 320, y: pos.y };
-          const port = characterOutfitPort(handle);
-          if (port && !port.multiple) {
-            setEdges((prev) =>
-              prev.filter((edge) => !(edge.target === targetId && edge.targetHandle === handle)),
-            );
-          }
+      const dropTarget = position ? findPortraitDropTarget(nodesRef.current, position) : undefined;
+      if (dropTarget?.kind === "character" && asset.source === "outfit") {
+        const handle = outfitHandleForPart(asset.outfitPart);
+        place = { x: pos.x - 320, y: pos.y };
+        const port = characterOutfitPort(handle);
+        if (port && !port.multiple) {
+          setEdges((prev) =>
+            prev.filter((edge) => !(edge.target === dropTarget.id && edge.targetHandle === handle)),
+          );
+        }
+        outfitEdge = {
+          id: `e-${crypto.randomUUID().slice(0, 8)}`,
+          source: id,
+          sourceHandle: "output",
+          target: dropTarget.id,
+          targetHandle: handle,
+        };
+      }
+      const blueprintHandle =
+        dropTarget?.kind === "blueprint" ? blueprintDropHandle(asset) : null;
+      if (dropTarget?.kind === "blueprint" && blueprintHandle) {
+        place = { x: pos.x - 320, y: pos.y };
+        const plan = blueprintAttachPlan(edgesRef.current, dropTarget.id, blueprintHandle);
+        if (plan === "full") {
+          toast.error(isZh ? "這個輸入已滿" : "That input is full");
+        } else {
           outfitEdge = {
             id: `e-${crypto.randomUUID().slice(0, 8)}`,
             source: id,
             sourceHandle: "output",
-            target: targetId,
-            targetHandle: handle,
+            target: dropTarget.id,
+            targetHandle: blueprintHandle,
           };
         }
       }
@@ -684,14 +718,21 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
       };
       setNodes((prev) => [...prev, newNode]);
       if (outfitEdge) {
+        const edge = outfitEdge;
         const stroke = PORT_COLOR_MAP.image;
-        setEdges((prev) =>
-          addEdge({ ...outfitEdge, style: { stroke, strokeWidth: 2 } }, prev),
-        );
+        setEdges((prev) => {
+          const plan = blueprintAttachPlan(prev, edge.target, edge.targetHandle);
+          if (plan === "full") return prev;
+          const base =
+            plan === "replace"
+              ? prev.filter((item) => !(item.target === edge.target && item.targetHandle === edge.targetHandle))
+              : prev;
+          return addEdge({ ...edge, style: { stroke, strokeWidth: 2 } }, base);
+        });
       }
       scheduleAutosave();
     },
-    [getCenterPosition, setNodes, setEdges, scheduleAutosave],
+    [getCenterPosition, isZh, setNodes, setEdges, scheduleAutosave],
   );
 
   // Hand-added empty Setting node; wire it into a Director, model, or Prompt node.
@@ -728,6 +769,14 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
       setIsUploading(true);
       try {
         const basePos = dropPosition ?? getCenterPosition();
+        const blueprintTarget = dropPosition
+          ? findPortraitDropTarget(nodesRef.current, dropPosition)
+          : undefined;
+        const wiredHandles = edgesRef.current.map((edge) => ({
+          target: edge.target,
+          targetHandle: edge.targetHandle,
+        }));
+        let toldPhotoFull = false;
         let offset = 0;
         for (const file of list) {
           const fd = new FormData();
@@ -737,10 +786,15 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
             toast.error(result.error);
             continue;
           }
+          const wirePhotos =
+            blueprintTarget?.kind === "blueprint" && result.mediaKind === "image";
+          const nodeId = `media-${crypto.randomUUID().slice(0, 8)}`;
           const node: FlowNode = {
-            id: `media-${crypto.randomUUID().slice(0, 8)}`,
+            id: nodeId,
             type: "media",
-            position: { x: basePos.x + offset, y: basePos.y + offset },
+            position: wirePhotos
+              ? { x: basePos.x - 340, y: basePos.y + offset }
+              : { x: basePos.x + offset, y: basePos.y + offset },
             data: {
               label: result.fileName,
               fileName: result.fileName,
@@ -750,6 +804,31 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
           };
           offset += 44;
           setNodes((prev) => [...prev, node]);
+          if (wirePhotos && blueprintTarget) {
+            const targetId = blueprintTarget.id;
+            if (blueprintAttachPlan(wiredHandles, targetId, "refImages") === "full") {
+              if (!toldPhotoFull) {
+                toast.error(isZh ? "參考圖已滿" : "Photo inputs are full");
+                toldPhotoFull = true;
+              }
+            } else {
+              wiredHandles.push({ target: targetId, targetHandle: "refImages" });
+              setEdges((prev) => {
+                if (blueprintAttachPlan(prev, targetId, "refImages") !== "add") return prev;
+                return addEdge(
+                  {
+                    id: `e-${crypto.randomUUID().slice(0, 8)}`,
+                    source: nodeId,
+                    sourceHandle: "output",
+                    target: targetId,
+                    targetHandle: "refImages",
+                    style: { stroke: PORT_COLOR_MAP.image, strokeWidth: 2 },
+                  },
+                  prev,
+                );
+              });
+            }
+          }
           scheduleAutosave();
         }
       } catch (err) {
@@ -758,7 +837,7 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
         setIsUploading(false);
       }
     },
-    [getCenterPosition, setNodes, scheduleAutosave],
+    [getCenterPosition, isZh, setNodes, setEdges, scheduleAutosave],
   );
 
 

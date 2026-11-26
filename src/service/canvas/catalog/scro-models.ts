@@ -15,6 +15,11 @@ import {
   videoPort,
 } from "@/service/canvas/catalog/ports";
 import {
+  CHARACTER_BLUEPRINT_MODEL_ID,
+  CHARACTER_BLUEPRINT_PROVIDER_MODEL_ID,
+  characterBlueprintInputPorts,
+} from "@/service/canvas/core/character-blueprint";
+import {
   EXPLAINER_STILL_COST_USD,
   IMAGE_COST_USD,
   VIDEO_COST_PER_SECOND_USD,
@@ -190,6 +195,22 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     defaultPresetId: "9:16",
     basePriceUsd: IMAGE_COST_USD,
     supportsAspectRatio: true,
+    available: true,
+  },
+  {
+    // Empty character. Run draws one blueprint on Seedream 5.0 Pro; save stores it as a character.
+    id: CHARACTER_BLUEPRINT_MODEL_ID,
+    provider: "scro",
+    providerModelId: CHARACTER_BLUEPRINT_PROVIDER_MODEL_ID,
+    name: "Character",
+    category: "scro-tool",
+    inputs: characterBlueprintInputPorts(),
+    output: imageOutput(),
+    presets: ["1:1"],
+    defaultPresetId: "1:1",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: false,
+    supportsResolution: true,
     available: true,
   },
   {

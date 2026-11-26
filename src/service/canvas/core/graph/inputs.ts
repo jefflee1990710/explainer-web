@@ -17,7 +17,15 @@ import {
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/settings/template";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
+import { CHARACTER_OUTFIT_PORT_IDS, outfitRefMeta } from "@/service/canvas/core/character-blueprint";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph/ports";
+
+export type CanvasOutfitRef = {
+  handle: string;
+  url: string;
+  name?: string;
+  prompt?: string;
+};
 
 export type ResolvedCanvasInputs = {
   prompt?: string;
@@ -29,6 +37,8 @@ export type ResolvedCanvasInputs = {
   videos: string[];
   refAudio?: string;
   overlayVideo?: string;
+  // Outfit slots on the empty character node (hair, top, pants, shoes, accessory, looks).
+  outfitRefs?: CanvasOutfitRef[];
 };
 
 export type ResolveNodeInputsResult =
@@ -234,6 +244,26 @@ export function resolveNodeInputs(
     }
   }
 
+  // Outfit slots used by the empty character node. Other models do not declare these ports.
+  const outfitRefs: CanvasOutfitRef[] = [];
+  for (const port of spec.inputs) {
+    if (!CHARACTER_OUTFIT_PORT_IDS.has(port.id)) continue;
+    const incoming = edgesByHandle.get(port.id) ?? [];
+    const max = port.multiple ? Math.max(1, port.maxConnections) : 1;
+    for (const edge of incoming) {
+      if (outfitRefs.filter((ref) => ref.handle === port.id).length >= max) break;
+      const sourceNode = nodeById.get(edge.source);
+      if (!sourceNode) continue;
+      const url = extractMediaUrl(sourceNode);
+      if (!url) {
+        addUnique(missingUpstreamNodeIds, sourceNode.id);
+        continue;
+      }
+      outfitRefs.push({ handle: port.id, url, ...outfitRefMeta(sourceNode) });
+    }
+  }
+  if (outfitRefs.length > 0) inputs.outfitRefs = outfitRefs;
+
   // Resolve multi-value videos preserving edge order up to model maxConnections.
   const videosSpec = spec.inputs.find((port) => port.id === "videos");
   const videoEdges = edgesByHandle.get("videos") ?? [];
@@ -261,7 +291,9 @@ export function resolveNodeInputs(
       (port.id === "video" && Boolean(inputs.video)) ||
       (port.id === "videos" && inputs.videos.length > 0) ||
       (port.id === "refAudio" && Boolean(inputs.refAudio)) ||
-      (port.id === "refImages" && inputs.refImages.length > 0);
+      (port.id === "refImages" && inputs.refImages.length > 0) ||
+      (CHARACTER_OUTFIT_PORT_IDS.has(port.id) &&
+        (inputs.outfitRefs ?? []).some((ref) => ref.handle === port.id));
     if (!satisfied) {
       addUnique(missingRequiredFields, port.id);
     }
