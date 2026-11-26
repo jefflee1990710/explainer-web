@@ -20,7 +20,7 @@ describe("canvas model catalog", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
     // 7 sidebar Scro tools + 4 hidden step nodes, plus Gemini image and Omni video on Google AI Studio.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 12 + 25);
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 12 + 26);
     assert.deepEqual(
       STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
       [
@@ -55,7 +55,7 @@ describe("canvas model catalog", () => {
       scro.filter((m) => m.hiddenInSidebar).map((m) => m.id),
       ["scro:explainer-frame", "scro:director-frame", "scro:swap-render", "scro:teleport-render"],
     );
-    assert.equal(ffmpeg.length, 25);
+    assert.equal(ffmpeg.length, 26);
 
     for (const model of STATIC_CANVAS_MODELS) {
       assert.ok(model.presets.length > 0, `model ${model.id} must have presets`);

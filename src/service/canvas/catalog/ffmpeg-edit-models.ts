@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/catalog/ports";
 import { flag, num, oneOf, text } from "@/service/canvas/catalog/tool-param-specs";
 import { SPLIT_SECOND_HANDLE } from "@/service/canvas/core/extra-outputs";
+import { FFMPEG_SEQUENCE_MODEL } from "@/service/canvas/catalog/ffmpeg-sequence-model";
 
 // Concat joins: a cut, a 0.2s hold, or any xfade transition the reel editor offers.
 export const CONCAT_TRANSITIONS = [
@@ -177,4 +178,5 @@ export const FFMPEG_EDIT_MODELS: CanvasModelSpec[] = [
       text("ffmpegFileName", "letters, digits, - and _"),
     ],
   },
+  FFMPEG_SEQUENCE_MODEL,
 ];

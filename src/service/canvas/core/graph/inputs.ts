@@ -19,6 +19,7 @@ import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/s
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph/ports";
 import { extraOutputUrl } from "@/service/canvas/core/extra-outputs";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
 
 export type ResolvedCanvasInputs = {
   prompt?: string;
@@ -31,6 +32,8 @@ export type ResolvedCanvasInputs = {
   refAudio?: string;
   overlayVideo?: string;
   audios?: string[];
+  // ffmpeg:sequence only: each wired edge's media URL, keyed by edge id (timeline refs).
+  sequenceSources?: Record<string, string>;
 };
 
 export type ResolveNodeInputsResult =
@@ -268,6 +271,18 @@ export function resolveNodeInputs(
     const url = extractMediaUrl(sourceNode, edge.sourceHandle);
     if (url) (inputs.audios ??= []).push(url);
     else addUnique(missingUpstreamNodeIds, sourceNode.id);
+  }
+
+  if (spec.id === SEQUENCE_MODEL_ID) {
+    const sources: Record<string, string> = {};
+    for (const port of ["videos", "audios", "refImages"]) {
+      for (const edge of edgesByHandle.get(port) ?? []) {
+        const sourceNode = nodeById.get(edge.source);
+        const url = sourceNode ? extractMediaUrl(sourceNode, edge.sourceHandle) : undefined;
+        if (url) sources[edge.id] = url;
+      }
+    }
+    inputs.sequenceSources = sources;
   }
 
   // Verify every required port declared on the model spec has a value.

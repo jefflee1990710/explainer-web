@@ -30,6 +30,9 @@ function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasIn
     refAudio: typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined,
     overlayVideo: typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined,
     ...(Array.isArray(snapshot.audios) ? { audios: snapshot.audios.map(String) } : {}),
+    ...(snapshot.sequenceSources && typeof snapshot.sequenceSources === "object"
+      ? { sequenceSources: snapshot.sequenceSources as Record<string, string> }
+      : {}),
   };
 }
 

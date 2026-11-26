@@ -204,6 +204,7 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
   },
   "ffmpeg:adjust": { "zh-Hant": "FFmpeg 畫面調整", "zh-Hans": "FFmpeg 画面调整", ja: "FFmpeg 色調整", ko: "FFmpeg 화면 조정" },
   "ffmpeg:freeze": { "zh-Hant": "FFmpeg 定格", "zh-Hans": "FFmpeg 定格", ja: "FFmpeg フリーズ", ko: "FFmpeg 정지 화면" },
+  "ffmpeg:sequence": { "zh-Hant": "FFmpeg 時間線", "zh-Hans": "FFmpeg 时间线", ja: "FFmpeg タイムライン", ko: "FFmpeg 타임라인" },
   "ffmpeg:export": { "zh-Hant": "FFmpeg 匯出", "zh-Hans": "FFmpeg 导出", ja: "FFmpeg 書き出し", ko: "FFmpeg 내보내기" },
 };
 
