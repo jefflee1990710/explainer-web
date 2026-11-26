@@ -100,3 +100,10 @@ export function selectionRef(seq: CanvasSequence, selection: SequenceSelection):
   if (selection.kind === "audio") return seq.tracks.audio.find((a) => a.id === selection.id)?.ref;
   return seq.tracks.overlay.find((l) => l.id === selection.id)?.ref;
 }
+
+// Largest zoom (index into `zooms`, px per second) that shows the whole timeline in `width` px.
+export function fitZoomIndex(zooms: readonly number[], width: number, totalSec: number, labelWidth: number): number {
+  const span = Math.max(totalSec, 10) + 2;
+  for (let i = zooms.length - 1; i >= 0; i -= 1) if (span * zooms[i]! + labelWidth <= width) return i;
+  return 0;
+}

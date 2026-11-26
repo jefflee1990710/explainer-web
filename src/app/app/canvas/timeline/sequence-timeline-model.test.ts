@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { canvasSequenceSchema } from "@/model/canvas-sequence";
 import {
   addTextLayer,
+  fitZoomIndex,
   formatSec,
   reorderClips,
   resizeLayer,
@@ -47,5 +48,11 @@ describe("sequence timeline edits", () => {
     assert.deepEqual([added.kind, added.startSec, added.endSec, added.text], ["text", 2, 5, "Hi"]);
     assert.deepEqual(resizeLayer(added, "end", 10, 8), { endSec: 8 });
     assert.deepEqual(resizeLayer(added, "start", 4, 8), { startSec: 4.8 });
+  });
+
+  it("fits the whole timeline into the pane, falling back to the smallest zoom", () => {
+    const zooms = [8, 15, 25, 40];
+    assert.equal(fitZoomIndex(zooms, 600, 9.4, 80), 3);
+    assert.equal(fitZoomIndex(zooms, 300, 120, 80), 0);
   });
 });

@@ -46,7 +46,8 @@ function Handle({ side, onPointerDown }: { side: "left" | "right"; onPointerDown
   return (
     <span
       onPointerDown={onPointerDown}
-      className={`absolute top-0 ${side === "left" ? "left-0 rounded-l-md" : "right-0 rounded-r-md"} z-10 h-full w-1.5 cursor-ew-resize bg-white/30 hover:bg-[#c6f24b]`}
+      // Right handles sit above left ones so both stay reachable where a transition overlaps two clips.
+      className={`absolute top-0 ${side === "left" ? "left-0 z-10 rounded-l-md" : "right-0 z-20 rounded-r-md"} h-full w-1.5 cursor-ew-resize bg-white/30 hover:bg-[#c6f24b]`}
     />
   );
 }

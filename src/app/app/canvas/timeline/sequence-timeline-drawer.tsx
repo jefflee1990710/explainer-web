@@ -3,7 +3,7 @@
 // Bottom drawer that edits one `ffmpeg:sequence` node's timeline. The wires stay the source of
 // truth: wiring adds items, removing an item deletes its wire. Run renders it in one FFmpeg job.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { AlertTriangle, Loader2, Minus, Pause, Play, Plus, Rows3, Type, X } from "lucide-react";
 import type { CanvasSequence } from "@/model/canvas-sequence";
@@ -22,6 +22,7 @@ import { SequencePreview } from "@/app/app/canvas/timeline/sequence-preview";
 import { SequenceTracks } from "@/app/app/canvas/timeline/sequence-tracks";
 import {
   addTextLayer,
+  fitZoomIndex,
   formatSec,
   removeTextLayer,
   selectionRef,
@@ -54,7 +55,19 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
   const [selection, setSelection] = useState<SequenceSelection>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [zoom, setZoom] = useState(3);
+  // null = fit the whole timeline into the track pane until the user zooms.
+  const [userZoom, setUserZoom] = useState<number | null>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
+  const paneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setPaneWidth(el.clientWidth));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const zoom = userZoom ?? fitZoomIndex(ZOOMS, paneWidth, totalSec, 80);
+  const setZoom = (update: (z: number) => number) => setUserZoom(update(zoom));
 
   const save = useCallback(
     (next: CanvasSequence) => onUpdateNodeData(nodeId, { toolParams: { ...(toolParams ?? {}), sequence: next } }),
@@ -153,7 +166,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
 
       {/* Body: preview · tracks · inspector */}
       <div className="flex min-h-0 flex-1">
-        <div className="w-[210px] shrink-0 border-r border-white/8">
+        <div className="w-[170px] shrink-0 border-r border-white/8">
           <SequencePreview
             seq={seq}
             placed={placed}
@@ -165,7 +178,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
             onStop={onStop}
           />
         </div>
-        <div className="min-w-0 flex-1 overflow-auto" onPointerDown={() => setSelection(null)}>
+        <div ref={paneRef} className="min-w-0 flex-1 overflow-auto" onPointerDown={() => setSelection(null)}>
           {placed.length === 0 ? (
             <div className="flex h-full items-center justify-center text-[12px] text-white/45">
               {t("把影片連到這個節點的「片段」輸入，就會出現在時間線上", "Wire videos into this node's Clips input to place them here")}
@@ -186,7 +199,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
             />
           )}
         </div>
-        <div className="w-[270px] shrink-0 overflow-y-auto border-l border-white/8 p-3">
+        <div className="w-[250px] shrink-0 overflow-y-auto border-l border-white/8 p-3">
           <SequenceInspector
             seq={seq}
             selection={selection}
