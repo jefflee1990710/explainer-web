@@ -69,8 +69,8 @@ import {
 } from "@/service/minimax/official-canvas";
 import { minimaxApiKey } from "@/service/minimax/talking-head-reference";
 import { fetchGoogleStudioVideo, submitGoogleStudioVideo } from "@/service/google/studio-video";
-import { normalizeCaptionLanguage, probeRemoteDurationSec } from "@/service/canvas/captions";
-import { transcribeCaptionVideo } from "@/service/canvas/caption-transcribe";
+import { normalizeCaptionLanguage } from "@/service/canvas/captions";
+import { probeRemoteDurationSec, transcribeCaptionVideo } from "@/service/canvas/caption-transcribe";
 import { isElevenLabsConfigured } from "@/service/voice/elevenlabs";
 
 // Mentalok video models that accept a `keyframes` object (`startImage` / `endImage`).

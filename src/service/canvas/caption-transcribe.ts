@@ -18,6 +18,12 @@ import {
   type ScribeWord,
 } from "@/service/canvas/captions";
 
+// Reads a remote or local media duration without downloading the whole file.
+export async function probeRemoteDurationSec(url: string): Promise<number | null> {
+  const stderr = await ffmpegStderr(process.cwd(), ["-i", url]).catch(() => "");
+  return durationFromProbe(stderr);
+}
+
 async function scribeAudio(
   audio: Buffer,
   language: CaptionLanguage,

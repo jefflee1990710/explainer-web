@@ -1,9 +1,7 @@
 // Auto captions for the canvas: ElevenLabs Scribe word times become an editable SRT,
 // and the burn node turns that SRT into ASS for FFmpeg libass.
 
-import { existsSync } from "node:fs";
 import { mulUsd } from "@/service/billing/usd";
-import { ffmpegStderr } from "@/service/reel/concat";
 
 export const SCRIBE_MODEL_ID = "scribe_v3";
 // ElevenLabs batch Scribe list price, billed per second of audio.
@@ -19,14 +17,6 @@ export type ScribeWord = {
   end?: number;
   type?: string;
 };
-
-type SubtitleFont = { family: string; directory: string };
-
-const SUBTITLE_FONTS: SubtitleFont[] = [
-  { family: "PingFang HK", directory: "/System/Library/Fonts" },
-  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/opentype/noto" },
-  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/noto-cjk" },
-];
 
 const CJK = /[\u3400-\u9fff]/g;
 
@@ -48,12 +38,6 @@ export function durationFromProbe(stderr: string): number | null {
 
 export function probeHasAudio(stderr: string): boolean {
   return /Stream\s+#\d+:\d+.*Audio:/i.test(stderr);
-}
-
-// Reads a remote or local media duration without downloading the whole file.
-export async function probeRemoteDurationSec(url: string): Promise<number | null> {
-  const stderr = await ffmpegStderr(process.cwd(), ["-i", url]).catch(() => "");
-  return durationFromProbe(stderr);
 }
 
 export function cuesFromScribeWords(words: readonly ScribeWord[]): CaptionCue[] {
@@ -203,13 +187,6 @@ export function cuesToAss(
     events,
     "",
   ].join("\n");
-}
-
-export function resolveSubtitleFont(): SubtitleFont | null {
-  for (const font of SUBTITLE_FONTS) {
-    if (existsSync(font.directory)) return font;
-  }
-  return null;
 }
 
 export function escapeFfmpegFilterPath(path: string): string {

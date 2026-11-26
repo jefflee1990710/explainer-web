@@ -1,13 +1,29 @@
 // Argument builders for the canvas edit nodes (cut, grade-free picture, sound, stills).
 // `buildCanvasFfmpegArgs` delegates here so each edit stays out of the concat/mux path.
 
+import { existsSync } from "node:fs";
 import { buildVideoCodecArgs } from "@/service/ffmpeg/video-encoder";
 import {
   cuesFromSubtitleText,
   cuesToAss,
   escapeFfmpegFilterPath,
-  resolveSubtitleFont,
 } from "@/service/canvas/captions";
+
+type SubtitleFont = { family: string; directory: string };
+
+const SUBTITLE_FONTS: SubtitleFont[] = [
+  { family: "PingFang HK", directory: "/System/Library/Fonts" },
+  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/opentype/noto" },
+  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/noto-cjk" },
+];
+
+// The first installed CJK font libass can draw. Checked only when a burn job runs.
+function resolveSubtitleFont(): SubtitleFont | null {
+  for (const font of SUBTITLE_FONTS) {
+    if (existsSync(font.directory)) return font;
+  }
+  return null;
+}
 import type { CanvasFfmpegLocalInputs } from "@/service/canvas/ffmpeg-ops";
 
 export const EDIT_FFMPEG_MODELS = [
