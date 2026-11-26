@@ -7,6 +7,7 @@ import {
   clearStaleOutputs,
   downstreamNodeIds,
   flowRerunNodeIds,
+  applyRememberedJobOutput,
   isGenerationInputPatch,
   isOutputStale,
   markStaleOutputs,
@@ -118,6 +119,61 @@ describe("stale outputs", () => {
     const dropped = model("f");
     delete dropped.data.staleOutputUrl;
     assert.deepEqual(flowRerunNodeIds([dropped, model("v")], [edge("f", "v")], ["f"]).sort(), ["f", "v"]);
+  });
+
+  it("a completed rerun replaces the old clip and clears the old-version mark", () => {
+    const data: CanvasNodeData = {
+      modelId: "ffmpeg:concat",
+      status: "completed",
+      outputUrl: "https://blob/old.mp4",
+      outputKind: "video",
+      staleOutputUrl: "https://blob/old.mp4",
+      lastJobId: "6740000000000000000000aa",
+    };
+    const next = applyRememberedJobOutput(data, {
+      status: "completed",
+      lastJobId: "6740000200000000000000bb",
+      outputUrl: "https://blob/new.mp4",
+      outputKind: "video",
+    });
+    assert.equal(next.outputUrl, "https://blob/new.mp4");
+    assert.equal(next.staleOutputUrl, undefined);
+    assert.equal(isOutputStale(next), false);
+  });
+
+  it("does not paint an older job over a newer rerun", () => {
+    const data: CanvasNodeData = {
+      modelId: "ffmpeg:concat",
+      status: "completed",
+      outputUrl: "https://blob/new.mp4",
+      outputKind: "video",
+      lastJobId: "6740000200000000000000bb",
+    };
+    const next = applyRememberedJobOutput(data, {
+      status: "completed",
+      lastJobId: "6740000000000000000000aa",
+      outputUrl: "https://blob/old.mp4",
+      outputKind: "video",
+    });
+    assert.equal(next.outputUrl, "https://blob/new.mp4");
+    assert.equal(next.lastJobId, "6740000200000000000000bb");
+  });
+
+  it("keeps an old-version preview when the completed job is still that same file", () => {
+    const data: CanvasNodeData = {
+      modelId: "ffmpeg:concat",
+      status: "completed",
+      outputUrl: "https://blob/old.mp4",
+      staleOutputUrl: "https://blob/old.mp4",
+    };
+    const next = applyRememberedJobOutput(data, {
+      status: "completed",
+      lastJobId: "6740000000000000000000aa",
+      outputUrl: "https://blob/old.mp4",
+      outputKind: "video",
+    });
+    assert.equal(next.outputUrl, "https://blob/old.mp4");
+    assert.equal(isOutputStale(next), true);
   });
 
   it("a regenerated output (new URL) is no longer stale", () => {

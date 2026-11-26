@@ -1,6 +1,7 @@
 // Pure: marks canvas previews made stale by an input change, plus everything downstream.
 
-import type { CanvasNodeData, CanvasNodeType } from "@/model/canvas";
+import type { CanvasNodeData, CanvasNodeStatus, CanvasNodeType, CanvasOutputKind } from "@/model/canvas";
+import { isNewerJob } from "@/service/canvas/graph";
 import { directorNeedsReplan, isPlanDirectorNode } from "@/service/canvas/explainer-director";
 import { isExplainerPlannerNode } from "@/service/canvas/explainer-planner";
 import { isScroDirectorNode } from "@/service/canvas/scro-director";
@@ -72,6 +73,46 @@ function hasStaleState(node: GraphNode): boolean {
 // The preview was made before an input changed. A new output gets a new URL, which ends it.
 export function isOutputStale(data: CanvasNodeData): boolean {
   return Boolean(data.outputUrl && data.staleOutputUrl === data.outputUrl);
+}
+
+type RememberedJobOutput = {
+  status: CanvasNodeStatus;
+  lastJobId: string;
+  lastCostUsd?: number;
+  outputUrl?: string;
+  outputKind?: CanvasOutputKind;
+  lastError?: string;
+};
+
+// Paint a polled job onto a node. A completed job with a new file replaces the old clip.
+// The same file must stay put while it is still marked as an old version, or Run Flow
+// would treat that preview as current and skip it.
+export function applyRememberedJobOutput(data: CanvasNodeData, job: RememberedJobOutput): CanvasNodeData {
+  // An older poll must not put the previous file back on a node that already moved on.
+  if (isNewerJob(data.lastJobId, job.lastJobId)) return data;
+  const sameOldClip =
+    isOutputStale(data) && job.status === "completed" && (!job.outputUrl || job.outputUrl === data.outputUrl);
+  if (sameOldClip) {
+    return {
+      ...data,
+      status: data.status ?? job.status,
+      lastJobId: job.lastJobId,
+      ...(job.lastCostUsd !== undefined ? { lastCostUsd: job.lastCostUsd } : {}),
+    };
+  }
+  const next: CanvasNodeData = {
+    ...data,
+    status: job.status,
+    lastJobId: job.lastJobId,
+    ...(job.lastCostUsd !== undefined ? { lastCostUsd: job.lastCostUsd } : {}),
+    ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
+    ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+    lastError: job.status === "failed" ? job.lastError : undefined,
+  };
+  if (job.status === "completed" && job.outputUrl && job.outputUrl !== data.outputUrl) {
+    delete next.staleOutputUrl;
+  }
+  return next;
 }
 
 // Completed previews a flow must regenerate: the ones already marked old, any extra ids

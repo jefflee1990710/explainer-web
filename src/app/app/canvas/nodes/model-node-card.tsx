@@ -1038,6 +1038,7 @@ export function ModelNodeCard({
             {isBusy && data.outputUrl ? <PreviousResultTag isZh={isZh} /> : null}
             {(data.outputKind ?? spec.output.type) === "video" ? (
               <video
+                key={data.outputUrl}
                 src={data.outputUrl}
                 controls
                 playsInline
@@ -1045,7 +1046,7 @@ export function ModelNodeCard({
               />
             ) : (data.outputKind ?? spec.output.type) === "audio" ? (
               <div className="bg-amber-500/8 p-2.5 pr-16">
-                <audio src={data.outputUrl} controls className="nodrag h-8 w-full" />
+                <audio key={data.outputUrl} src={data.outputUrl} controls className="nodrag h-8 w-full" />
               </div>
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */

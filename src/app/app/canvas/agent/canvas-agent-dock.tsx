@@ -66,6 +66,7 @@ export function CanvasAgentDock({
   hidden = false,
   expandToken = 0,
   lockSide = false,
+  sessionName = "",
   initialMessages,
   getGraph,
   contextRefs,
@@ -86,6 +87,7 @@ export function CanvasAgentDock({
   expandToken?: number;
   // Agent layout stays on the right edge.
   lockSide?: boolean;
+  sessionName?: string;
   initialMessages: CanvasAgentMessageDto[];
   getGraph: () => CanvasAgentGraphSnapshot;
   contextRefs: readonly CanvasAgentContextRef[];
@@ -109,6 +111,8 @@ export function CanvasAgentDock({
     () => fallbackLanguage,
   );
   const [collapsed, setCollapsed] = useState(false);
+  const [motionReady, setMotionReady] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [phase, setPhase] = useState<Phase | null>(null);
@@ -147,6 +151,8 @@ export function CanvasAgentDock({
     }
     setCollapsed(savedCollapsed);
     /* eslint-enable react-hooks/set-state-in-effect */
+    const frame = window.requestAnimationFrame(() => setMotionReady(true));
+    return () => window.cancelAnimationFrame(frame);
   }, [lockSide]);
 
   useEffect(() => {
@@ -179,6 +185,7 @@ export function CanvasAgentDock({
   const startResize = useCallback(
     (event: React.PointerEvent) => {
       event.preventDefault();
+      setResizing(true);
       const horizontal = side === "right";
       const start = horizontal ? event.clientX : event.clientY;
       const startSize = horizontal ? width : height;
@@ -194,6 +201,7 @@ export function CanvasAgentDock({
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        setResizing(false);
         window.localStorage.setItem(horizontal ? WIDTH_KEY : HEIGHT_KEY, String(Math.round(latest)));
       };
       window.addEventListener("pointermove", onMove);
@@ -290,6 +298,23 @@ export function CanvasAgentDock({
   }, [canvasId, copy.clearError]);
 
   const placedRight = side === "right";
+  const slide = motionReady && !resizing;
+  const headerProps = {
+    copy,
+    language,
+    side,
+    busy: busy || clearing,
+    hasMessages: messages.length > 0,
+    onLanguageChange: changeLanguage,
+    lockSide,
+    sessionName,
+    onToggleSide: toggleSide,
+    onClear: () => {
+      setClearError("");
+      setConfirmClear(true);
+    },
+    onToggleCollapsed: toggleCollapsed,
+  };
 
   return (
     <div
@@ -297,8 +322,8 @@ export function CanvasAgentDock({
         hidden
           ? "hidden"
           : placedRight
-            ? "relative flex h-full min-h-0 shrink-0 flex-col border-l border-white/10 bg-[#0e121a]"
-            : "relative flex shrink-0 flex-col border-t border-white/10 bg-[#0e121a]"
+            ? `relative h-full min-h-0 shrink-0 overflow-hidden border-l border-white/10 bg-[#0e121a] ${slide ? "transition-[width] duration-300 ease-out motion-reduce:transition-none" : ""}`
+            : `relative flex shrink-0 flex-col overflow-hidden border-t border-white/10 bg-[#0e121a] ${slide ? "transition-[height] duration-300 ease-out motion-reduce:transition-none" : ""}`
       }
       style={
         placedRight
@@ -306,6 +331,25 @@ export function CanvasAgentDock({
           : { height: collapsed ? COLLAPSED_SIZE : height }
       }
     >
+      {placedRight ? (
+        <div
+          className={`absolute inset-y-0 right-0 z-20 flex w-10 flex-col bg-[#0e121a] ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          aria-hidden={!collapsed}
+          inert={collapsed ? undefined : true}
+        >
+          <CanvasAgentHeader {...headerProps} collapsed />
+        </div>
+      ) : null}
+
+      <div
+        className={
+          placedRight
+            ? `absolute inset-y-0 right-0 z-10 flex min-h-0 flex-col bg-[#0e121a] ${slide ? "transition-transform duration-300 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "pointer-events-none" : ""}`
+            : "flex min-h-0 min-w-0 flex-1 flex-col"
+        }
+        style={placedRight ? { width, transform: collapsed ? "translateX(100%)" : undefined } : undefined}
+        inert={placedRight && collapsed ? true : undefined}
+      >
       {!collapsed ? (
         <div
           role="separator"
@@ -319,22 +363,7 @@ export function CanvasAgentDock({
         />
       ) : null}
 
-      <CanvasAgentHeader
-        copy={copy}
-        language={language}
-        side={side}
-        collapsed={collapsed}
-        busy={busy || clearing}
-        hasMessages={messages.length > 0}
-        onLanguageChange={changeLanguage}
-        lockSide={lockSide}
-        onToggleSide={toggleSide}
-        onClear={() => {
-          setClearError("");
-          setConfirmClear(true);
-        }}
-        onToggleCollapsed={toggleCollapsed}
-      />
+      <CanvasAgentHeader {...headerProps} collapsed={placedRight ? false : collapsed} />
 
       {confirmClear ? (
         <CanvasAgentClearDialog
@@ -346,9 +375,7 @@ export function CanvasAgentDock({
         />
       ) : null}
 
-      {!collapsed ? (
-        <>
-          <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
             {messages.length === 0 && !pending ? (
               <CanvasAgentEmpty copy={copy} disabled={busy} onPick={(text) => void send(text)} />
             ) : null}
@@ -414,8 +441,7 @@ export function CanvasAgentDock({
             onRemove={onRemoveContext}
           />
           <CanvasAgentComposer copy={copy} busy={busy} onSend={(text, imageUrls) => void send(text, imageUrls)} />
-        </>
-      ) : null}
+      </div>
     </div>
   );
 }

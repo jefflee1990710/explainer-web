@@ -21,11 +21,17 @@ import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
 
+export type CanvasFlowFailure = {
+  name: string;
+  error?: string;
+};
+
 export type CanvasFlowHeaderStatus = {
   status: "running" | "completed" | "failed" | "stopped";
   current: number;
   total: number;
   failedCount: number;
+  failures: CanvasFlowFailure[];
 };
 
 export function canvasFlowHeaderStatus(
@@ -38,13 +44,16 @@ export function canvasFlowHeaderStatus(
       }
     | null
     | undefined,
+  failures: CanvasFlowFailure[] = [],
 ): CanvasFlowHeaderStatus | null {
   if (!run) return null;
+  const failedCount = failures.length > 0 ? failures.length : (run.failedNodeIds?.length ?? 0);
   return {
     status: run.status,
     current: run.currentWave,
     total: run.totalWaves,
-    failedCount: run.failedNodeIds?.length ?? 0,
+    failedCount,
+    failures,
   };
 }
 
@@ -289,6 +298,8 @@ function FlowStatusPill({
   status: CanvasFlowHeaderStatus | null;
   isZh: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   if (!status) return null;
   const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
   const label =
@@ -315,10 +326,9 @@ function FlowStatusPill({
         : status.status === "failed"
           ? "border-rose-400/40 bg-rose-500/12 text-rose-200"
           : "border-white/15 bg-white/6 text-white/70";
-  return (
-    <span
-      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}
-    >
+  const canList = status.status === "failed" && status.failures.length > 0;
+  const body = (
+    <>
       {status.status === "running" ? (
         <Loader2 className="h-3 w-3 animate-spin" />
       ) : status.status === "completed" ? (
@@ -329,6 +339,48 @@ function FlowStatusPill({
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
       )}
       {label}
-    </span>
+      {canList ? <ChevronDown className={`h-3 w-3 transition ${open ? "rotate-180" : ""}`} /> : null}
+    </>
+  );
+  return (
+    <div
+      ref={rootRef}
+      className="relative"
+      onBlur={(event) => {
+        if (!rootRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      {canList ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+          className={`inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}
+        >
+          {body}
+        </button>
+      ) : (
+        <span className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}>
+          {body}
+        </span>
+      )}
+      {canList && open ? (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-80 rounded-xl border border-rose-400/30 bg-[#141820] p-2.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+          <p className="px-1 pb-1.5 text-[10px] font-semibold tracking-wide text-white/45">
+            {isZh ? "失敗的節點" : "Failed nodes"}
+          </p>
+          <ul className="max-h-72 space-y-1.5 overflow-y-auto">
+            {status.failures.map((failure, index) => (
+              <li key={`${failure.name}-${index}`} className="rounded-lg bg-rose-500/8 px-2 py-1.5">
+                <p className="text-[12px] font-semibold text-rose-100">{failure.name}</p>
+                {failure.error ? (
+                  <p className="mt-0.5 text-[11px] leading-snug text-rose-100/70">{failure.error}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }

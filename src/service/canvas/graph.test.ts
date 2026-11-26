@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import {
+  adoptServerPreview,
   applyCompletedJobOutputs,
   computeExecutionWaves,
   restoreBusyNodesFromCompletedJobs,
@@ -830,6 +831,29 @@ describe("canvas graph — completed output recovery", () => {
     assert.equal(after[0]?.data.outputUrl, "https://blob.example/new.png");
   });
 
+  it("does not save the previous video over a finished rerun of the same job", () => {
+    const jobId = "6740000200000000000000bb";
+    const existing = [
+      modelNode("vid", "ffmpeg:concat", {
+        status: "completed",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/new.mp4",
+        outputKind: "video",
+      }),
+    ];
+    const incoming = [
+      modelNode("vid", "ffmpeg:concat", {
+        status: "completed",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/old.mp4",
+        outputKind: "video",
+      }),
+    ];
+    const merged = mergeCanvasNodeSnapshots(existing, incoming);
+    assert.equal(merged[0]?.data.outputUrl, "https://blob.example/new.mp4");
+    assert.equal(merged[0]?.data.status, "completed");
+  });
+
   it("does not let a stale Running save overwrite a finished job", () => {
     const jobId = "6740000100000000000000aa";
     const existing = [
@@ -896,6 +920,83 @@ describe("canvas graph — completed output recovery", () => {
     assert.deepEqual(restored.restoredIds, ["vid"]);
     assert.equal(restored.nodes[0]?.data.status, "completed");
     assert.equal(restored.nodes[0]?.data.outputUrl, "https://blob.example/new.mp4");
+  });
+
+  it("replaces a finished node's previous video with that job's file", () => {
+    const jobId = "6740000200000000000000bb";
+    const nodes = [
+      modelNode("vid", "ffmpeg:concat", {
+        status: "completed",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/old.mp4",
+        outputKind: "video",
+        staleOutputUrl: "https://blob.example/old.mp4",
+      }),
+    ];
+    const restored = restoreBusyNodesFromCompletedJobs(nodes, [
+      {
+        id: jobId,
+        nodeId: "vid",
+        outputUrl: "https://blob.example/new.mp4",
+        outputKind: "video",
+      },
+    ]);
+    assert.deepEqual(restored.restoredIds, ["vid"]);
+    assert.equal(restored.nodes[0]?.data.outputUrl, "https://blob.example/new.mp4");
+    assert.equal(restored.nodes[0]?.data.status, "completed");
+    assert.equal(restored.nodes[0]?.data.staleOutputUrl, undefined);
+  });
+
+  it("paints the saved file onto a tab that still has the previous video", () => {
+    const local = modelNode("vid", "ffmpeg:concat", {
+      status: "completed",
+      lastJobId: "6740000200000000000000bb",
+      outputUrl: "https://blob.example/old.mp4",
+      prompt: "keep me",
+    });
+    const server = modelNode("vid", "ffmpeg:concat", {
+      status: "completed",
+      lastJobId: "6740000200000000000000bb",
+      outputUrl: "https://blob.example/new.mp4",
+      outputKind: "video",
+    });
+    const adopted = adoptServerPreview(local, server);
+    assert.equal(adopted.data.outputUrl, "https://blob.example/new.mp4");
+    assert.equal(adopted.data.prompt, "keep me");
+    assert.equal(adopted.data.staleOutputUrl, undefined);
+  });
+
+  it("does not paint an older save over a newer local run", () => {
+    const local = modelNode("vid", "ffmpeg:concat", {
+      status: "running",
+      lastJobId: "6740000300000000000000cc",
+      outputUrl: "https://blob.example/older.mp4",
+    });
+    const server = modelNode("vid", "ffmpeg:concat", {
+      status: "completed",
+      lastJobId: "6740000200000000000000bb",
+      outputUrl: "https://blob.example/middle.mp4",
+    });
+    const adopted = adoptServerPreview(local, server);
+    assert.equal(adopted.data.outputUrl, "https://blob.example/older.mp4");
+    assert.equal(adopted.data.status, "running");
+  });
+
+  it("leaves a finished node alone when it already shows that job's file", () => {
+    const jobId = "6740000200000000000000bb";
+    const nodes = [
+      modelNode("vid", "ffmpeg:concat", {
+        status: "completed",
+        lastJobId: jobId,
+        outputUrl: "https://blob.example/new.mp4",
+        staleOutputUrl: "https://blob.example/new.mp4",
+      }),
+    ];
+    const restored = restoreBusyNodesFromCompletedJobs(nodes, [
+      { id: jobId, nodeId: "vid", outputUrl: "https://blob.example/new.mp4", outputKind: "video" },
+    ]);
+    assert.deepEqual(restored.restoredIds, []);
+    assert.equal(restored.nodes[0]?.data.staleOutputUrl, "https://blob.example/new.mp4");
   });
 
   it("leaves a Running node alone when a different job finished", () => {

@@ -295,17 +295,16 @@ export async function getOrCreateDefaultCanvasProject(
 }
 
 // Saves partial updates (title, nodes, edges, groups, viewport, thumbnailUrl) to an owned canvas.
-// A finished job can be saved back to Running by a stale canvas snapshot. Put the node
-// back to completed when that job already has an output.
+// A stale canvas snapshot can save a finished job back to Running, or put the previous
+// file on a node whose job already finished. Use that job's file.
 export async function healFinishedCanvasRuns(
   clerkUserId: string,
   canvasId: ObjectId,
   nodes: CanvasNode[],
 ): Promise<CanvasNode[]> {
   const jobIds = nodes.flatMap((node) => {
-    const busy = node.type === "model" && (node.data.status === "queued" || node.data.status === "running");
     const jobId = node.data.lastJobId;
-    return busy && jobId && ObjectId.isValid(jobId) ? [new ObjectId(jobId)] : [];
+    return node.type === "model" && jobId && ObjectId.isValid(jobId) ? [new ObjectId(jobId)] : [];
   });
   if (jobIds.length === 0) return nodes;
 
@@ -339,7 +338,10 @@ export async function healFinishedCanvasRuns(
           $elemMatch: {
             id: nodeId,
             "data.lastJobId": node.data.lastJobId,
-            "data.status": { $in: ["queued", "running"] },
+            $or: [
+              { "data.status": { $in: ["queued", "running"] } },
+              { "data.outputUrl": { $ne: node.data.outputUrl } },
+            ],
           },
         },
       },
@@ -351,7 +353,10 @@ export async function healFinishedCanvasRuns(
           ...(node.data.lastCostUsd !== undefined ? { "nodes.$.data.lastCostUsd": node.data.lastCostUsd } : {}),
           updatedAt: now,
         },
-        $unset: { "nodes.$.data.lastError": "" },
+        $unset: {
+          "nodes.$.data.lastError": "",
+          ...(node.data.staleOutputUrl ? {} : { "nodes.$.data.staleOutputUrl": "" }),
+        },
       },
     );
     if (updated.modifiedCount > 0) {

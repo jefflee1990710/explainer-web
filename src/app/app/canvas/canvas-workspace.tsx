@@ -63,6 +63,7 @@ import { formatUsd } from "@/service/billing/usd";
 import { BLUEPRINT_COST_USD } from "@/service/production-plan";
 import type { PublicCharacter } from "@/presentation/serialize";
 import {
+  adoptServerPreview,
   computeExecutionWaves,
   getNodeOutputPortType,
   reorderTargetHandleEdges,
@@ -72,6 +73,7 @@ import {
   type CanvasModelSpec,
   findCanvasModel,
 } from "@/service/canvas/model-catalog";
+import { canvasModelDisplayName } from "@/service/canvas/model-names";
 import {
   addContextRef,
   contextMenuChoices,
@@ -172,6 +174,7 @@ import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
 import {
   CanvasTopbar,
   canvasFlowHeaderStatus,
+  type CanvasFlowFailure,
   type CanvasFlowHeaderStatus,
   type SaveStatus,
 } from "@/app/app/canvas/canvas-topbar";
@@ -183,8 +186,8 @@ import { settingsStaleTargets } from "@/service/canvas/settings/apply";
 import { withoutModelSettingsEdges } from "@/service/canvas/settings/registry";
 import { SETTINGS_HANDLE } from "@/service/canvas/settings/types";
 import {
+  applyRememberedJobOutput,
   isGenerationInputPatch,
-  isOutputStale,
   markStaleOutputs,
   outdatedNodeReasons,
 } from "@/service/canvas/stale-outputs";
@@ -320,6 +323,54 @@ type RememberedJobOutput = {
   lastError?: string;
 };
 
+const FLOW_ROLE_NAME: Record<string, { zh: string; en: string }> = {
+  frame: { zh: "分鏡畫面", en: "Frame" },
+  video: { zh: "影片", en: "Video" },
+  voice: { zh: "配音", en: "Voice" },
+  mux: { zh: "音畫合成", en: "Audio mix" },
+  concat: { zh: "合併串接", en: "Concat" },
+};
+
+function flowRoleLabel(id: string, locale: string): { name: string; index: string } | null {
+  const match = id.match(/-(frame|video|voice|mux|concat)-(\d+)$/);
+  const role = match ? FLOW_ROLE_NAME[match[1]!] : undefined;
+  if (!match || !role) return null;
+  const zh = locale.toLowerCase().startsWith("zh");
+  return { name: zh ? role.zh : role.en, index: match[2]! };
+}
+
+function describeFlowFailures(
+  nodes: readonly {
+    id: string;
+    data: { modelId?: string; label?: string; fileName?: string; lastError?: string };
+  }[],
+  ids: readonly string[] | undefined,
+  models: readonly CanvasModelSpec[],
+  locale: string,
+): CanvasFlowFailure[] {
+  const zh = locale.toLowerCase().startsWith("zh");
+  return (ids ?? []).map((id) => {
+    const node = nodes.find((item) => item.id === id);
+    const role = flowRoleLabel(id, locale);
+    const spec = node?.data.modelId ? findCanvasModel(node.data.modelId, models) : undefined;
+    const base = spec
+      ? canvasModelDisplayName(spec, locale)
+      : node?.data.label?.trim() || node?.data.fileName?.trim() || role?.name || id;
+    const name = role && !base.endsWith(` ${role.index}`) ? `${base} ${role.index}` : base;
+    const error = node?.data.lastError?.trim();
+    if (error) return { name, error };
+    if (!node) {
+      return {
+        name,
+        error: zh
+          ? "這張卡片已經不在畫布上，失敗原因沒有留下。這一輪沒有建立工作。"
+          : "This card is no longer on the canvas, so the error was not kept. This run never started a job.",
+      };
+    }
+    return { name };
+  });
+}
+
 function withRememberedJobOutputs(
   nodes: readonly FlowNode[],
   remembered: ReadonlyMap<string, RememberedJobOutput>,
@@ -328,21 +379,7 @@ function withRememberedJobOutputs(
   return nodes.map((node) => {
     const job = remembered.get(node.id);
     if (!job) return node;
-    // A finished job is the preview already on the card. Replacing its URL would make an
-    // old-version mark stop matching, and Run Flow would skip the node.
-    const keepStalePreview = isOutputStale(node.data) && job.status === "completed";
-    return {
-      ...node,
-      data: {
-        ...node.data,
-        status: keepStalePreview ? (node.data.status ?? job.status) : job.status,
-        lastJobId: job.lastJobId,
-        ...(job.lastCostUsd !== undefined ? { lastCostUsd: job.lastCostUsd } : {}),
-        ...(job.outputUrl && !keepStalePreview ? { outputUrl: job.outputUrl } : {}),
-        ...(job.outputKind && !keepStalePreview ? { outputKind: job.outputKind } : {}),
-        lastError: !keepStalePreview && job.status === "failed" ? job.lastError : undefined,
-      },
-    };
+    return { ...node, data: applyRememberedJobOutput(node.data, job) };
   });
 }
 
@@ -444,6 +481,7 @@ function CanvasWorkspaceInner({
   const activeProjectId = initialProject.id;
   const [activeTitle, setActiveTitle] = useState(initialProject.title);
   const [models, setModels] = useState<CanvasModelSpec[]>(initialModels);
+  const modelsRef = useRef(models);
   const [assets, setAssets] = useState<CanvasLibraryAssetsResult>(initialAssets);
   const [creditUsd, setCreditUsd] = useState(initialCreditUsd);
   const [contextRefs, setContextRefs] = useState<CanvasAgentContextRef[]>([]);
@@ -472,7 +510,15 @@ function CanvasWorkspaceInner({
   );
   // Stays after the run ends, so the top bar can show finished as well as running.
   const [flowStatus, setFlowStatus] = useState<CanvasFlowHeaderStatus | null>(() =>
-    canvasFlowHeaderStatus(initialProject.activeFlowRun),
+    canvasFlowHeaderStatus(
+      initialProject.activeFlowRun,
+      describeFlowFailures(
+        initialProject.nodes,
+        initialProject.activeFlowRun?.failedNodeIds,
+        initialModels,
+        locale,
+      ),
+    ),
   );
 
   const [initialGraph] = useState(() => {
@@ -508,6 +554,10 @@ function CanvasWorkspaceInner({
     scheduleAutosave: requestAutosave,
   });
   const { snapshotGroups, splitNodeChanges, addGroup, updateGroups, resetGroups } = groupsApi;
+
+  useEffect(() => {
+    modelsRef.current = models;
+  }, [models]);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -660,6 +710,24 @@ function CanvasWorkspaceInner({
         setSaveStatus("error");
         return;
       }
+      const savedById = new Map(res.project.nodes.map((node) => [node.id, node]));
+      const adopted = nodesRef.current.map((node) => adoptServerPreview(node, savedById.get(node.id)));
+      if (adopted.some((node, index) => node !== nodesRef.current[index])) {
+        nodesRef.current = adopted;
+        for (const node of adopted) {
+          const saved = savedById.get(node.id);
+          if (!saved?.data.outputUrl || !saved.data.lastJobId) continue;
+          if (saved.data.outputUrl !== node.data.outputUrl) continue;
+          jobOutputRef.current.set(node.id, {
+            status: saved.data.status ?? node.data.status ?? "completed",
+            lastJobId: saved.data.lastJobId,
+            ...(saved.data.lastCostUsd !== undefined ? { lastCostUsd: saved.data.lastCostUsd } : {}),
+            outputUrl: saved.data.outputUrl,
+            ...(saved.data.outputKind ? { outputKind: saved.data.outputKind } : {}),
+          });
+        }
+        setNodes(adopted);
+      }
       setSaveStatus("saved");
       setProjects((prev) =>
         prev.map((p) =>
@@ -677,7 +745,7 @@ function CanvasWorkspaceInner({
     } catch {
       setSaveStatus("error");
     }
-  }, [snapshotGroups]);
+  }, [setNodes, snapshotGroups]);
 
   const scheduleAutosave = useCallback(() => {
     setSaveStatus("dirty");
@@ -1410,7 +1478,17 @@ function CanvasWorkspaceInner({
         if ("waitingForUpstream" in res) {
           setIsFlowRunning(true);
           setFlowWaveProgress({ current: res.activeFlowRun.currentWave, total: res.activeFlowRun.totalWaves });
-          setFlowStatus(canvasFlowHeaderStatus(res.activeFlowRun));
+          setFlowStatus(
+            canvasFlowHeaderStatus(
+              res.activeFlowRun,
+              describeFlowFailures(
+                nodesRef.current,
+                res.activeFlowRun.failedNodeIds,
+                modelsRef.current,
+                locale,
+              ),
+            ),
+          );
           setSaveStatus("saved");
           toast.info(isZh ? "上游還在執行，完成後會自動執行這個節點" : "Waiting for the upstream node; this node runs when it finishes");
           return;
@@ -1437,7 +1515,7 @@ function CanvasWorkspaceInner({
         toast.error(msg);
       }
     },
-    [setNodes, syncWallet, applyJobUpdates, isZh, scheduleAutosave],
+    [setNodes, syncWallet, applyJobUpdates, isZh, locale, scheduleAutosave],
   );
 
   // Free Explainer planning: mark the card as planning, save the graph, then queue Phase A.
@@ -1953,8 +2031,14 @@ function CanvasWorkspaceInner({
         if (!run || run.status !== "running") {
           setIsFlowRunning(false);
           setFlowWaveProgress(null);
-          if (run) setFlowStatus(canvasFlowHeaderStatus(run));
-          else setFlowStatus((prev) => (prev ? { ...prev, status: "stopped" } : prev));
+          if (run) {
+            setFlowStatus(
+              canvasFlowHeaderStatus(
+                run,
+                describeFlowFailures(res.nodes, run.failedNodeIds, modelsRef.current, locale),
+              ),
+            );
+          } else setFlowStatus((prev) => (prev ? { ...prev, status: "stopped" } : prev));
           if (run?.status === "completed") {
             toast.success(isZh ? "整條工作流執行完成！" : "Workflow completed!");
           } else if (run?.status === "failed") {
@@ -1966,7 +2050,12 @@ function CanvasWorkspaceInner({
           }
         } else {
           setFlowWaveProgress({ current: run.currentWave, total: run.totalWaves });
-          setFlowStatus(canvasFlowHeaderStatus(run));
+          setFlowStatus(
+            canvasFlowHeaderStatus(
+              run,
+              describeFlowFailures(res.nodes, run.failedNodeIds, modelsRef.current, locale),
+            ),
+          );
         }
       } catch {
         // Keep polling silently on transient network hiccups.
@@ -1977,7 +2066,7 @@ function CanvasWorkspaceInner({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [isFlowRunning, isZh, setEdges, setNodes, syncWallet]);
+  }, [isFlowRunning, isZh, locale, setEdges, setNodes, syncWallet]);
 
   // Worker-backed multi-wave Run Flow trigger; nodeIds limits it to one group.
   // rerunAll is the top Run Flow button: every model node generates again.
@@ -2024,8 +2113,18 @@ function CanvasWorkspaceInner({
       current: res.activeFlowRun.currentWave,
       total: res.activeFlowRun.totalWaves,
     });
-    setFlowStatus(canvasFlowHeaderStatus(res.activeFlowRun));
-  }, [syncWallet]);
+    setFlowStatus(
+      canvasFlowHeaderStatus(
+        res.activeFlowRun,
+        describeFlowFailures(
+          nodesRef.current,
+          res.activeFlowRun.failedNodeIds,
+          modelsRef.current,
+          locale,
+        ),
+      ),
+    );
+  }, [locale, syncWallet]);
 
   const handleRunFlow = useCallback(() => void startFlowRun(undefined, true), [startFlowRun]);
 
@@ -2227,7 +2326,9 @@ function CanvasWorkspaceInner({
     await stopCanvasFlowAction(activeProjectIdRef.current).catch(() => {});
     setIsFlowRunning(false);
     setFlowWaveProgress(null);
-    setFlowStatus((prev) => (prev ? { ...prev, status: "stopped" } : { status: "stopped", current: 0, total: 0, failedCount: 0 }));
+    setFlowStatus((prev) =>
+      prev ? { ...prev, status: "stopped" } : { status: "stopped", current: 0, total: 0, failedCount: 0, failures: [] },
+    );
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");
   }, [isZh]);
 
@@ -2848,6 +2949,7 @@ function CanvasWorkspaceInner({
           creditUsd={creditUsd}
           subscribed={initialCreditLimitUsd > 0}
           onCharacterCreated={onCharacterCreated}
+          sessionName={activeTitle}
         />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-row">
@@ -3012,6 +3114,7 @@ function CanvasWorkspaceInner({
             locale={locale}
             canvasId={activeProjectId}
             lockSide
+            sessionName={activeTitle}
             side="right"
             initialMessages={initialAgentMessages}
             getGraph={getAgentGraph}

@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Film, Loader2, Music, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Upload } from "lucide-react";
 import { CanvasAddButton } from "@/app/app/canvas/canvas-add-button";
+import { CanvasSessionRailName } from "@/app/app/canvas/canvas-session-rail-name";
 import { CanvasAssetStudios } from "@/app/app/canvas/canvas-asset-studios";
 import type { PublicCharacter } from "@/presentation/serialize";
 import { CanvasOutfitTab } from "@/app/app/canvas/canvas-outfit-tab";
@@ -112,6 +113,7 @@ export function CanvasSidebar({
   creditUsd,
   subscribed,
   onCharacterCreated,
+  sessionName,
 }: {
   locale: string;
   collapsed?: boolean;
@@ -129,6 +131,7 @@ export function CanvasSidebar({
   creditUsd: number;
   subscribed: boolean;
   onCharacterCreated: (character: PublicCharacter) => void;
+  sessionName: string;
 }) {
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const [tab, setTab] = useState<CanvasSidebarTab>("models");
@@ -140,6 +143,8 @@ export function CanvasSidebar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [nodesHidden, setNodesHidden] = useState(false);
+  const [motionReady, setMotionReady] = useState(false);
+  const [resizing, setResizing] = useState(false);
   // First click selects a tile. Add to Canvas is the second click.
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const addLabel = isZh ? "加入畫布" : "Add to Canvas";
@@ -154,6 +159,8 @@ export function CanvasSidebar({
     }
     if (savedHidden) setNodesHidden(true);
     /* eslint-enable react-hooks/set-state-in-effect */
+    const frame = window.requestAnimationFrame(() => setMotionReady(true));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   // A click outside a tile clears the selection so the overlay does not stay up.
@@ -171,6 +178,7 @@ export function CanvasSidebar({
   const startResize = useCallback(
     (event: React.PointerEvent) => {
       event.preventDefault();
+      setResizing(true);
       const startX = event.clientX;
       const startWidth = width;
       let latest = startWidth;
@@ -184,6 +192,7 @@ export function CanvasSidebar({
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        setResizing(false);
         window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(latest)));
       };
       window.addEventListener("pointermove", onMove);
@@ -297,22 +306,6 @@ export function CanvasSidebar({
     });
   };
 
-  if (nodesHidden) {
-    return (
-      <aside className="flex h-full w-10 shrink-0 flex-col items-center border-r border-white/8 bg-[#0e121a]/95 py-2">
-        <button
-          type="button"
-          onClick={toggleNodes}
-          aria-label={showNodesLabel}
-          title={showNodesLabel}
-          className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/70 transition hover:border-white/20 hover:text-white"
-        >
-          <PanelLeftOpen className="h-4 w-4" />
-        </button>
-      </aside>
-    );
-  }
-
   if (collapsed) {
     return (
       <CanvasSidebarIcons
@@ -329,11 +322,34 @@ export function CanvasSidebar({
     );
   }
 
+  const slide = motionReady && !resizing;
+
   return (
     <aside
-      className="relative flex h-full shrink-0 flex-col border-r border-white/8 bg-[#0e121a]/95"
-      style={{ width }}
+      className={`relative h-full shrink-0 overflow-hidden border-r border-white/8 bg-[#0e121a]/95 ${slide ? "transition-[width] duration-300 ease-out motion-reduce:transition-none" : ""}`}
+      style={{ width: nodesHidden ? 40 : width }}
     >
+      <div
+        className={`absolute inset-y-0 left-0 z-20 flex w-10 flex-col items-center bg-[#0e121a]/95 py-2 ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${nodesHidden ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        aria-hidden={!nodesHidden}
+        inert={nodesHidden ? undefined : true}
+      >
+        <button
+          type="button"
+          onClick={toggleNodes}
+          aria-label={showNodesLabel}
+          title={showNodesLabel}
+          className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border border-white/10 bg-white/5 text-white/70 transition hover:border-white/20 hover:text-white"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+        <CanvasSessionRailName name={sessionName} />
+      </div>
+      <div
+        className={`absolute inset-y-0 left-0 z-10 flex h-full flex-col bg-[#0e121a]/95 ${slide ? "transition-transform duration-300 ease-out motion-reduce:transition-none" : ""} ${nodesHidden ? "pointer-events-none" : ""}`}
+        style={{ width, transform: nodesHidden ? "translateX(-100%)" : undefined }}
+        inert={nodesHidden ? true : undefined}
+      >
       <div
         role="separator"
         aria-orientation="vertical"
@@ -652,6 +668,7 @@ export function CanvasSidebar({
           )}
         </div>
       )}
+      </div>
       </div>
       </div>
     </aside>

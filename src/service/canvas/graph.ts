@@ -623,6 +623,20 @@ export function mergeCanvasNodeSnapshots(
     }
     const incomingBusy = node.data.status === "queued" || node.data.status === "running";
     const previousDone = previous.data.status === "completed" && Boolean(previousUrl);
+    // Same job, but the canvas tab still has the previous file. Do not save that over the rerun.
+    if (previousDone && incomingUrl && incomingUrl !== previousUrl) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          status: "completed",
+          outputUrl: previousUrl,
+          ...(previous.data.outputKind ? { outputKind: previous.data.outputKind } : {}),
+          ...(previous.data.lastJobId ? { lastJobId: previous.data.lastJobId } : {}),
+          lastError: undefined,
+        },
+      };
+    }
     if (previousDone && incomingBusy) {
       return {
         ...node,
@@ -701,10 +715,33 @@ function jobTime(id: string | undefined): number {
   return Number.parseInt(id.slice(0, 8), 16);
 }
 
-function isNewerJob(nextId: string | undefined, previousId: string | undefined): boolean {
+export function isNewerJob(nextId: string | undefined, previousId: string | undefined): boolean {
   const next = jobTime(nextId);
   const previous = jobTime(previousId);
   return next > 0 && next > previous;
+}
+
+// The save response is the file that survived the merge. Paint it when this tab still
+// has the previous clip, unless this tab has already started a newer job.
+export function adoptServerPreview<N extends { data: CanvasNodeData }>(
+  local: N,
+  server: { data: CanvasNodeData } | undefined,
+): N {
+  if (!server) return local;
+  const serverUrl = server.data.outputUrl?.trim();
+  if (!serverUrl || serverUrl === local.data.outputUrl?.trim()) return local;
+  if (isNewerJob(local.data.lastJobId, server.data.lastJobId)) return local;
+  const data: CanvasNodeData = {
+    ...local.data,
+    outputUrl: serverUrl,
+    ...(server.data.outputKind ? { outputKind: server.data.outputKind } : {}),
+    ...(server.data.status ? { status: server.data.status } : {}),
+    ...(server.data.lastJobId ? { lastJobId: server.data.lastJobId } : {}),
+    lastError: server.data.lastError,
+  };
+  if (server.data.staleOutputUrl) data.staleOutputUrl = server.data.staleOutputUrl;
+  else delete data.staleOutputUrl;
+  return { ...local, data };
 }
 
 export type CompletedNodeJob = {
@@ -715,8 +752,8 @@ export type CompletedNodeJob = {
   chargedUsd?: number;
 };
 
-// A node left on Running after its job already finished. The preview on the card can be
-// the previous clip, so the button keeps spinning even though this job has a video.
+// A finished job is the file the card should show. A node left on Running, or a finished
+// node whose autosave put the previous file back, is restored to that job's file.
 export function restoreBusyNodesFromCompletedJobs<N extends { id: string; type: string; data: CanvasNodeData }>(
   nodes: readonly N[],
   jobs: readonly CompletedNodeJob[],
@@ -724,24 +761,26 @@ export function restoreBusyNodesFromCompletedJobs<N extends { id: string; type: 
   const byId = new Map(jobs.map((job) => [job.id, job]));
   const restoredIds: string[] = [];
   const next = nodes.map((node) => {
-    const busy = node.data.status === "queued" || node.data.status === "running";
     const jobId = node.data.lastJobId;
-    if (node.type !== "model" || !busy || !jobId) return node;
+    if (node.type !== "model" || !jobId) return node;
     const job = byId.get(jobId);
     const outputUrl = job?.outputUrl?.trim();
     if (!job || job.nodeId !== node.id || !outputUrl) return node;
+    const busy = node.data.status === "queued" || node.data.status === "running";
+    const completed = node.data.status === "completed";
+    if (!busy && !completed) return node;
+    if (completed && node.data.outputUrl?.trim() === outputUrl) return node;
     restoredIds.push(node.id);
-    return {
-      ...node,
-      data: {
-        ...node.data,
-        status: "completed" as const,
-        outputUrl,
-        ...(job.outputKind ? { outputKind: job.outputKind } : {}),
-        ...(job.chargedUsd !== undefined ? { lastCostUsd: job.chargedUsd } : {}),
-        lastError: undefined,
-      },
+    const data: CanvasNodeData = {
+      ...node.data,
+      status: "completed",
+      outputUrl,
+      ...(job.outputKind ? { outputKind: job.outputKind } : {}),
+      ...(job.chargedUsd !== undefined ? { lastCostUsd: job.chargedUsd } : {}),
+      lastError: undefined,
     };
+    if (data.staleOutputUrl && data.staleOutputUrl !== outputUrl) delete data.staleOutputUrl;
+    return { ...node, data };
   });
   return { nodes: restoredIds.length > 0 ? next : [...nodes], restoredIds };
 }

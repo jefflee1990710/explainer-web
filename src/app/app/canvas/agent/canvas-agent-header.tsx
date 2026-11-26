@@ -21,6 +21,7 @@ import {
   type CanvasAgentLanguage,
 } from "@/service/canvas-agent/types";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
+import { CanvasSessionRailName } from "@/app/app/canvas/canvas-session-rail-name";
 
 export type CanvasAgentDockSide = "bottom" | "right";
 
@@ -32,6 +33,7 @@ export function CanvasAgentHeader({
   busy,
   hasMessages,
   lockSide,
+  sessionName,
   onLanguageChange,
   onToggleSide,
   onClear,
@@ -44,6 +46,7 @@ export function CanvasAgentHeader({
   busy: boolean;
   hasMessages: boolean;
   lockSide?: boolean;
+  sessionName?: string;
   onLanguageChange: (language: CanvasAgentLanguage) => void;
   onToggleSide: () => void;
   onClear: () => void;
@@ -57,7 +60,7 @@ export function CanvasAgentHeader({
   // A 40px rail cannot fit the language picker, so only the side switch and expand stay.
   if (side === "right" && collapsed) {
     return (
-      <div className="flex h-full w-full flex-col items-center gap-1 py-2">
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-2">
         <button
           type="button"
           onClick={onToggleCollapsed}
@@ -67,6 +70,7 @@ export function CanvasAgentHeader({
         >
           <PanelRightOpen className="h-4 w-4" />
         </button>
+        {sessionName ? <CanvasSessionRailName name={sessionName} /> : null}
         {lockSide ? null : (
           <IconButton label={sideLabel} onClick={onToggleSide}>
             <SideIcon className="h-3.5 w-3.5" />
