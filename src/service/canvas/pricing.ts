@@ -2,7 +2,10 @@
 // Uses integer-scaled arithmetic from `src/service/billing/usd.ts` to avoid floating-point drift.
 
 import { formatUsd, mulUsd, roundUsd4, addUsd } from "@/service/billing/usd";
-import type { CanvasModelSpec } from "@/service/canvas/model-catalog";
+import {
+  CANVAS_HEYGEN_MAX_VIDEO_SECONDS,
+  type CanvasModelSpec,
+} from "@/model/canvas-model";
 import {
   EXPLAINER_STILL_COST_USD,
   IMAGE_COST_USD,
@@ -30,7 +33,7 @@ import { autoCaptionsCostUsd } from "@/service/canvas/captions";
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
 export const DEFAULT_CANVAS_MENTALOK_MARKUP = 1.5;
-export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 120;
+export { CANVAS_HEYGEN_MAX_VIDEO_SECONDS };
 export const CANVAS_TTS_COST_USD = 0.02;
 
 function explainerEstimateClips(durationSeconds: number): number {

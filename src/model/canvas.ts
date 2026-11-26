@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
+import type { CanvasModelProvider } from "@/model/canvas-model";
 import { objectIdSchema } from "@/model/primitives";
-import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
 import type { CanvasAgentOp, CanvasAgentQuestion } from "@/service/canvas-agent/types";
 import { type CanvasSettingsData, canvasSettingsDataSchema } from "@/model/canvas-settings";
 
