@@ -4,7 +4,7 @@
 // Collapsed, it becomes an icon column:
 // 1) Models (generators, edit, cutout, upscale)
 // 2) Director (Talking Head Director, Explainer, Scro Swap, Teleport)
-// 3) Tools (Prompt, Setting, Life Photo, Poster, and FFmpeg)
+// 3) Tools (Prompt, Setting, Life Photo, Poster, Style Transfer, and FFmpeg)
 // 4) Assets (library upload, or the Outfit tab: saved looks + system defaults)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
