@@ -12,6 +12,7 @@ import {
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { SwapDirectorFields } from "@/app/app/canvas/nodes/swap-director-fields";
+import { SwapDirectorOutput } from "@/app/app/canvas/nodes/swap-director-output";
 
 type Props = {
   data: CanvasNodeData;
@@ -115,6 +116,7 @@ export function SwapDirectorCard({
           {built ? (isZh ? "重建" : "Rebuild") : isZh ? "建立" : "Build"}
         </button>
       </div>
+      <SwapDirectorOutput />
     </div>
   );
 }
