@@ -11,8 +11,10 @@ import {
   isCanvasJobTimedOut,
   pollCanvasJobs,
   refundCanvasJobOnce,
+  dispatchQueuedCanvasJobById,
   submitCanvasNodeJob,
 } from "@/service/canvas/execution/executor";
+import { STYLE_TRANSFER_PROMPT } from "@/service/canvas/core/style-transfer";
 import type { MentalokCreateJobPayload, MentalokJobRecord } from "@/service/mentalok/client";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 
@@ -1189,6 +1191,186 @@ describe("canvas executor", () => {
     assert.equal(res.code, "INVALID_INPUTS");
     assert.equal(harness.wallet.creditUsd, 20);
     assert.equal(harness.jobs.size, 0);
+  });
+
+  it("rejects style transfer until an image model is chosen", async () => {
+    let called = false;
+    const harness = createHarness({
+      nodes: [
+        {
+          id: "photo",
+          type: "media",
+          position: { x: 0, y: 0 },
+          data: { mediaKind: "image", mediaUrl: "https://blob.example/photo.png" },
+        },
+        {
+          id: "style",
+          type: "model",
+          position: { x: 40, y: 0 },
+          data: { modelId: "scro:style-transfer", presetId: "9:16", status: "idle" },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "photo", sourceHandle: "output", target: "style", targetHandle: "image" },
+      ],
+      overrides: {
+        submitGoogleStudioImage: async () => {
+          called = true;
+          throw new Error("should not be called");
+        },
+      },
+    });
+    const result = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "style" },
+      harness.deps,
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.code, "INVALID_INPUTS");
+      assert.match(result.error, /圖片模型/);
+    }
+    assert.equal(called, false);
+    assert.equal(harness.jobs.size, 0);
+    assert.equal(harness.wallet.creditUsd, 10);
+  });
+
+  it("runs style transfer from a character image through the chosen Google image job", async () => {
+    const calls: Array<{ model: string; prompt: string; aspectRatio?: string; referenceImageUrls?: Array<string | undefined> }> = [];
+    const harness = createHarness({
+      nodes: [
+        {
+          id: "hero",
+          type: "character",
+          position: { x: 0, y: 0 },
+          data: { characterId: "c1", mediaKind: "image", mediaUrl: "https://blob.example/hero.png" },
+        },
+        {
+          id: "style",
+          type: "model",
+          position: { x: 40, y: 0 },
+          data: {
+            modelId: "scro:style-transfer",
+            presetId: "9:16",
+            status: "idle",
+            toolParams: { imageModelId: "google:gemini-nano-banana-2.1" },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "hero", sourceHandle: "output", target: "style", targetHandle: "image" },
+      ],
+      overrides: {
+        submitGoogleStudioImage: async (input) => {
+          calls.push(input);
+          return { request_id: "g-style", status: "completed", images: [{ url: "data:image/png;base64,Z29vZ2xl" }] };
+        },
+        submitOpenRouterImage: async () => {
+          throw new Error("openrouter should not run");
+        },
+      },
+    });
+    const result = await submitCanvasNodeJob(
+      { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "style" },
+      harness.deps,
+    );
+    const google = findCanvasModel("google:gemini-nano-banana-2.1")!;
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.job.modelId, "google:gemini-nano-banana-2.1");
+      assert.equal(result.job.provider, "google");
+      assert.equal(result.job.providerModelId, "gemini-nano-banana-2.1");
+      assert.equal(result.job.outputKind, "image");
+      assert.equal(
+        result.job.chargedUsd,
+        estimateCanvasModelCostUsd(google, { referenceImages: 1 }),
+      );
+      assert.equal(result.job.status, "completed");
+    }
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.model, "gemini-nano-banana-2.1");
+    assert.equal(calls[0]?.prompt, STYLE_TRANSFER_PROMPT);
+    assert.equal(calls[0]?.aspectRatio, "9:16");
+    assert.deepEqual(calls[0]?.referenceImageUrls, ["https://blob.example/hero.png"]);
+    const node = harness.project.nodes.find((item) => item.id === "style");
+    assert.equal(node?.data.modelId, "scro:style-transfer");
+    assert.match(node?.data.outputUrl ?? "", /^https:\/\/blob\.vercel-storage\.com\/canvas\/user_1\//);
+  });
+
+  it("queues style transfer as the chosen OpenRouter image job, then the worker sends that input", async () => {
+    const calls: Array<{ model: string; prompt: string; referenceImageUrls?: Array<string | undefined> }> = [];
+    const harness = createHarness({
+      overrides: { enqueueCanvasNodeWorkerTask: async () => {} },
+      nodes: [
+        {
+          id: "photo",
+          type: "media",
+          position: { x: 0, y: 0 },
+          data: { mediaKind: "image", mediaUrl: "https://blob.example/photo.png" },
+        },
+        {
+          id: "still",
+          type: "model",
+          position: { x: 20, y: 0 },
+          data: {
+            modelId: "ffmpeg:frame-grab",
+            outputUrl: "https://blob.example/frame.png",
+            outputKind: "image",
+            status: "completed",
+          },
+        },
+        {
+          id: "style",
+          type: "model",
+          position: { x: 80, y: 0 },
+          data: {
+            modelId: "scro:style-transfer",
+            presetId: "1:1",
+            status: "idle",
+            toolParams: { imageModelId: "openrouter:bytedance-seed/seedream-5-0-pro" },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "still", sourceHandle: "output", target: "style", targetHandle: "image" },
+      ],
+    });
+    harness.deps.findCanvasJobById = async (jobId) => harness.jobs.get(jobId.toHexString()) ?? null;
+    harness.deps.submitOpenRouterImage = async (input) => {
+      calls.push(input);
+      return { request_id: "or-style", status: "completed", images: [{ url: "data:image/png;base64,aGVsbG8=" }] };
+    };
+
+    const queued = await submitCanvasNodeJob(
+      {
+        clerkUserId: "user_1",
+        canvasId: harness.project._id.toHexString(),
+        nodeId: "style",
+        queueToWorker: true,
+      },
+      harness.deps,
+    );
+    assert.equal(queued.ok, true);
+    if (!queued.ok) return;
+    assert.equal(calls.length, 0);
+    assert.equal(queued.job.modelId, "openrouter:bytedance-seed/seedream-5-0-pro");
+    assert.equal(queued.job.provider, "openrouter");
+    assert.equal(queued.job.status, "queued");
+    assert.equal(queued.job.inputSnapshot.prompt, STYLE_TRANSFER_PROMPT);
+    assert.deepEqual(queued.job.inputSnapshot.refImages, ["https://blob.example/frame.png"]);
+    const seedream = findCanvasModel("openrouter:bytedance-seed/seedream-5-0-pro")!;
+    assert.equal(queued.job.chargedUsd, estimateCanvasModelCostUsd(seedream, { referenceImages: 1 }));
+
+    const settled = await dispatchQueuedCanvasJobById(queued.job._id, harness.deps);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.model, "bytedance-seed/seedream-5-0-pro");
+    assert.equal(calls[0]?.prompt, STYLE_TRANSFER_PROMPT);
+    assert.deepEqual(calls[0]?.referenceImageUrls, ["https://blob.example/frame.png"]);
+    assert.equal(settled?.status, "completed");
+    assert.equal(harness.project.nodes.find((item) => item.id === "style")?.data.modelId, "scro:style-transfer");
+    assert.match(
+      harness.project.nodes.find((item) => item.id === "style")?.data.outputUrl ?? "",
+      /^https:\/\/blob\.vercel-storage\.com\/canvas\/user_1\//,
+    );
   });
 
   it("times out stuck async jobs past their provider window and ignores completed ones", () => {

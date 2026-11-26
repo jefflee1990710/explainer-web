@@ -20,6 +20,7 @@ import {
   type SubmitCanvasNodeJobResult,
 } from "@/service/canvas/execution/jobs/deps";
 import { executeDispatchedCanvasJob } from "@/service/canvas/execution/jobs/dispatch";
+import { STYLE_TRANSFER_MODEL_ID, prepareStyleTransferRun } from "@/service/canvas/core/style-transfer";
 import { canvasProviderAdapter } from "@/service/canvas/execution/providers";
 
 // Restores outputUrl from the newest completed job when a stale graph save wiped it.
@@ -150,7 +151,38 @@ export async function submitCanvasNodeJob(
     };
   }
 
-  const providerCheck = adapter?.validateInputs?.(spec, node, inputCheck.inputs);
+  // The canvas node stays scro:style-transfer. The job is the chosen image model's existing path.
+  let activeSpec = spec;
+  let activeInputs = inputCheck.inputs;
+  let activeAdapter = adapter;
+  if (spec.id === STYLE_TRANSFER_MODEL_ID) {
+    const prepared = prepareStyleTransferRun(node, inputCheck.inputs, catalog);
+    if (!prepared.ok) {
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: false,
+        code: "INVALID_INPUTS",
+        error: prepared.reason,
+        missingRequiredFields: prepared.missingRequiredFields,
+        creditUsd,
+      };
+    }
+    activeSpec = prepared.spec;
+    activeInputs = prepared.inputs;
+    activeAdapter = canvasProviderAdapter(activeSpec.provider);
+    const imageCredentialError = activeAdapter?.credentialError?.(activeSpec, resolved);
+    if (imageCredentialError) {
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: false,
+        code: "PROVIDER_UNAVAILABLE",
+        error: imageCredentialError,
+        creditUsd,
+      };
+    }
+  }
+
+  const providerCheck = activeAdapter?.validateInputs?.(activeSpec, node, activeInputs);
   if (providerCheck && !providerCheck.ok) {
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return {
@@ -215,10 +247,10 @@ export async function submitCanvasNodeJob(
     resolvedDurationSeconds = probed && probed > 0 ? probed : resolvedDurationSeconds ?? 10;
   }
 
-  const costUsd = estimateCanvasModelCostUsd(spec, {
+  const costUsd = estimateCanvasModelCostUsd(activeSpec, {
     durationSeconds: resolvedDurationSeconds,
     resolution: node.data.resolution,
-    referenceImages: inputCheck.inputs.refImages?.length,
+    referenceImages: activeInputs.refImages.length,
   });
 
   let spendEventKey: string | undefined;
@@ -244,14 +276,14 @@ export async function submitCanvasNodeJob(
   const jobId = new ObjectId();
   const now = resolved.now();
   const presetId =
-    adapter?.presetFromCatalog
-      ? node.data.presetId && spec.presets.includes(node.data.presetId)
+    activeAdapter?.presetFromCatalog
+      ? node.data.presetId && activeSpec.presets.includes(node.data.presetId)
         ? node.data.presetId
-        : spec.defaultPresetId
-      : node.data.aspectRatio || node.data.presetId || spec.defaultPresetId;
+        : activeSpec.defaultPresetId
+      : node.data.aspectRatio || node.data.presetId || activeSpec.defaultPresetId;
 
   const inputSnapshot: Record<string, unknown> = {
-    ...(inputCheck.inputs.prompt ? { prompt: inputCheck.inputs.prompt } : {}),
+    ...(activeInputs.prompt ? { prompt: activeInputs.prompt } : {}),
     ...(node.data.negativePrompt?.trim()
       ? { negativePrompt: node.data.negativePrompt.trim() }
       : {}),
@@ -262,25 +294,25 @@ export async function submitCanvasNodeJob(
       ? { durationSeconds: resolvedDurationSeconds }
       : {}),
     ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
-    ...(inputCheck.inputs.image ? { image: inputCheck.inputs.image } : {}),
-    ...(inputCheck.inputs.startImage
-      ? { startImage: inputCheck.inputs.startImage }
+    ...(activeInputs.image ? { image: activeInputs.image } : {}),
+    ...(activeInputs.startImage
+      ? { startImage: activeInputs.startImage }
       : {}),
-    ...(inputCheck.inputs.endImage
-      ? { endImage: inputCheck.inputs.endImage }
+    ...(activeInputs.endImage
+      ? { endImage: activeInputs.endImage }
       : {}),
-    ...(inputCheck.inputs.refImages.length > 0
-      ? { refImages: inputCheck.inputs.refImages }
+    ...(activeInputs.refImages.length > 0
+      ? { refImages: activeInputs.refImages }
       : {}),
-    ...(inputCheck.inputs.video ? { video: inputCheck.inputs.video } : {}),
-    ...(inputCheck.inputs.videos.length > 0
-      ? { videos: inputCheck.inputs.videos }
+    ...(activeInputs.video ? { video: activeInputs.video } : {}),
+    ...(activeInputs.videos.length > 0
+      ? { videos: activeInputs.videos }
       : {}),
-    ...(inputCheck.inputs.refAudio
-      ? { refAudio: inputCheck.inputs.refAudio }
+    ...(activeInputs.refAudio
+      ? { refAudio: activeInputs.refAudio }
       : {}),
-    ...(inputCheck.inputs.overlayVideo
-      ? { overlayVideo: inputCheck.inputs.overlayVideo }
+    ...(activeInputs.overlayVideo
+      ? { overlayVideo: activeInputs.overlayVideo }
       : {}),
     presetId,
   };
@@ -291,15 +323,15 @@ export async function submitCanvasNodeJob(
     canvasId: canvasObjectId,
     nodeId: node.id,
     ...(input.flowRunId ? { flowRunId: input.flowRunId } : {}),
-    provider: spec.provider,
-    modelId: spec.id,
-    providerModelId: spec.providerModelId,
+    provider: activeSpec.provider,
+    modelId: activeSpec.id,
+    providerModelId: activeSpec.providerModelId,
     presetId,
     status: "queued",
     inputSnapshot,
     chargedUsd: costUsd,
     ...(spendEventKey ? { spendEventKey } : {}),
-    outputKind: spec.output.type,
+    outputKind: activeSpec.output.type,
     createdAt: now,
     updatedAt: now,
   };
@@ -315,13 +347,13 @@ export async function submitCanvasNodeJob(
   return executeDispatchedCanvasJob(
     {
       initialJob,
-      spec,
+      spec: activeSpec,
       // Same as the worker path: submit the length that was priced.
       node:
         resolvedDurationSeconds !== undefined
           ? { ...node, data: { ...node.data, durationSeconds: resolvedDurationSeconds } }
           : node,
-      inputs: inputCheck.inputs,
+      inputs: activeInputs,
       presetId,
     },
     resolved,
