@@ -413,6 +413,8 @@ export function CanvasSidebar({
           setTab(next);
           setCategory(cat);
           setAssetSection(null);
+          // Image, Video, Audio, Edit, Cutout, and Upscale start from an empty node search.
+          if (next === "models" && cat) setQuery("");
         }}
         onSelectAsset={(section) => {
           setTab("assets");
