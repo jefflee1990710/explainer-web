@@ -53,6 +53,7 @@ export function ModelNodeCard({
     onUpdateNodeData,
     onDeleteNode,
     onRunNode,
+    onRunNodeWithDependents,
     onSwapModel,
     onOpenLightbox,
     onPlanExplainer,
@@ -114,6 +115,8 @@ export function ModelNodeCard({
 
   if (isSwapDirectorNode({ type: "model", data }) || isTeleportDirectorNode({ type: "model", data })) {
     const videoWired = incomingByHandle.has("video");
+    const videoSourceId = edges.find((edge) => edge.target === id && edge.targetHandle === "video")?.source;
+    const sourceNode = videoSourceId ? nodes.find((node) => node.id === videoSourceId) : undefined;
     const swap = isSwapDirectorNode({ type: "model", data });
     return swap ? (
       <SwapDirectorCard
@@ -123,6 +126,8 @@ export function ModelNodeCard({
         disabled={isFlowRunning}
         videoWired={videoWired}
         referenceWired={incomingByHandle.has("refImages")}
+        sourceNode={sourceNode}
+        characterOptions={characterOptions}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onBuild={() => onBuildScroDirector(id)}
         onRemove={() => onDeleteNode(id)}
@@ -295,6 +300,7 @@ export function ModelNodeCard({
     onUpdateNodeData,
     onDeleteNode,
     onRunNode,
+    onRunNodeWithDependents,
     onSwapModel,
     onOpenLightbox,
     showAdvanced,

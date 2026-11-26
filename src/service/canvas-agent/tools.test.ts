@@ -175,6 +175,22 @@ describe("canvas agent tools", () => {
     assert.ok(g.edges.some((e) => e.source === "clip" && e.target === res.nodeId && e.targetHandle === "video"));
     assert.ok(g.edges.some((e) => e.target === res.nodeId && e.targetHandle === "refImages"));
     assert.equal(g.nodes.some((n) => n.data.modelId === "scro:swap-render"), false);
+    const group = g.groups.find((item) => item.kind === "swap");
+    const character = g.nodes.find((item) => item.type === "character");
+    assert.ok(group);
+    assert.ok(character);
+    assert.ok(group.memberIds.includes(res.nodeId));
+    assert.ok(group.memberIds.includes("clip"));
+    assert.ok(group.memberIds.includes(character.id));
+
+    const videoEdge = g.edges.find((item) => item.source === "clip" && item.target === res.nodeId);
+    assert.ok(videoEdge);
+    assert.ok(!("error" in T.disconnect(g, { edgeId: videoEdge.id })));
+    const after = g.groups.find((item) => item.id === group.id);
+    assert.ok(after);
+    assert.equal(after.memberIds.includes("clip"), false);
+    assert.ok(after.memberIds.includes(res.nodeId));
+    assert.ok(after.memberIds.includes(character.id));
   });
 
   it("add_scro_group names the missing field", () => {

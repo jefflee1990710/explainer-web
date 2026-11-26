@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
 import { LandingCanvasShowcase } from "@/presentation/components/landing-canvas-showcase";
-import { LandingCanvasTemplates } from "@/presentation/components/landing-canvas-templates";
 import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingCatalog } from "@/presentation/components/landing-catalog";
 import { LandingFreeCredit } from "@/presentation/components/landing-free-credit";
@@ -27,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-// Canvas-First Homepage: interactive workflow showcase, 6 one-click templates, 3 steps, AI Characters, and Canvas studio engine.
+// Canvas-First Homepage: canvas hero, 4-step idea-to-reel walkthrough, 3 steps, AI Characters, and Canvas studio engine.
 export default async function HomePage() {
   const [session, locale] = await Promise.all([getAuthSession(), getRequestLocale()]);
   const messages = getMessages(locale);
@@ -100,7 +99,6 @@ export default async function HomePage() {
       />
       <LandingHero signedIn={signedIn} />
       <LandingCanvasShowcase signedIn={signedIn} />
-      <LandingCanvasTemplates signedIn={signedIn} />
       <LandingSteps signedIn={signedIn} />
       <LandingCast />
       <LandingCatalog stats={catalogStats} signedIn={signedIn} />

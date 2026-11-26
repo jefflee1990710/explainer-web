@@ -13,14 +13,13 @@ import {
   Square,
   Wallet,
 } from "lucide-react";
+import { CanvasFlowStatusBar } from "@/app/app/canvas/canvas-flow-status-bar";
 import { CanvasLibraryDialog } from "@/app/app/canvas/canvas-library-dialog";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { formatUsd } from "@/service/billing/usd";
 import type { CanvasFolderDto } from "@/model/canvas-dto";
 import type { CanvasProjectSummaryDto } from "@/model/canvas-dto";
 import type { CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
-
-export type { CanvasFlowFailure, CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
 
@@ -188,7 +187,6 @@ export function CanvasTopbar({
           ) : null}
           {saveLabel}
         </span>
-        <FlowStatusPill status={flowStatus} isZh={isZh} />
       </div>
 
       {/* Right: USD balance + primary Run Flow button */}
@@ -234,6 +232,8 @@ export function CanvasTopbar({
         )}
       </div>
     </header>
+    {/* Live flow status sits in its own bar, directly under the header. */}
+    <CanvasFlowStatusBar status={flowStatus} isZh={isZh} />
     {libraryOpen ? (
       <CanvasLibraryDialog
         locale={locale}
@@ -255,118 +255,5 @@ export function CanvasTopbar({
       />
     ) : null}
     </>
-  );
-}
-
-function flowStatusLabel(status: CanvasFlowHeaderStatus, isZh: boolean): string {
-  const failed =
-    status.failedCount > 0
-      ? isZh
-        ? ` · ${status.failedCount} 個失敗`
-        : ` · ${status.failedCount} failed`
-      : "";
-  if (status.status === "running") {
-    if (status.scope === "nodes") {
-      const running = isZh
-        ? `${status.current} 個執行中`
-        : status.current === 1
-          ? "1 running"
-          : `${status.current} running`;
-      return `${running}${failed}`;
-    }
-    const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
-    return `${isZh ? "流程執行中" : "Flow running"}${wave}${failed}`;
-  }
-  if (status.status === "completed") {
-    const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
-    return isZh ? `流程已完成${wave}` : `Flow finished${wave}`;
-  }
-  if (status.status === "failed") {
-    if (status.scope === "flow") {
-      return isZh
-        ? `流程結束 · ${status.failedCount} 個失敗`
-        : `Flow finished · ${status.failedCount} failed`;
-    }
-    return isZh ? `${status.failedCount} 個失敗` : `${status.failedCount} failed`;
-  }
-  const stopped = isZh ? "流程已停止" : "Flow stopped";
-  return `${stopped}${failed}`;
-}
-
-function FlowStatusPill({
-  status,
-  isZh,
-}: {
-  status: CanvasFlowHeaderStatus | null;
-  isZh: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  if (!status) return null;
-  const label = flowStatusLabel(status, isZh);
-  const tone =
-    status.failedCount > 0 && status.status !== "running"
-      ? "border-rose-400/40 bg-rose-500/12 text-rose-200"
-      : status.status === "running"
-        ? "border-[#c6f24b]/40 bg-[#c6f24b]/12 text-[#d6f58a]"
-        : status.status === "completed"
-          ? "border-emerald-400/35 bg-emerald-500/12 text-emerald-200"
-          : "border-white/15 bg-white/6 text-white/70";
-  const canList = status.failures.length > 0;
-  const body = (
-    <>
-      {status.status === "running" ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
-      ) : status.status === "completed" ? (
-        <Check className="h-3 w-3" />
-      ) : status.status === "stopped" && status.failedCount === 0 ? (
-        <Square className="h-2.5 w-2.5 fill-current" />
-      ) : (
-        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      )}
-      {label}
-      {canList ? <ChevronDown className={`h-3 w-3 transition ${open ? "rotate-180" : ""}`} /> : null}
-    </>
-  );
-  return (
-    <div
-      ref={rootRef}
-      className="relative"
-      onBlur={(event) => {
-        if (!rootRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
-      }}
-    >
-      {canList ? (
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-          className={`inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}
-        >
-          {body}
-        </button>
-      ) : (
-        <span className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tone}`}>
-          {body}
-        </span>
-      )}
-      {canList && open ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-80 rounded-xl border border-rose-400/30 bg-[#141820] p-2.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
-          <p className="px-1 pb-1.5 text-[10px] font-semibold tracking-wide text-white/45">
-            {isZh ? "失敗的節點" : "Failed nodes"}
-          </p>
-          <ul className="max-h-72 space-y-1.5 overflow-y-auto">
-            {status.failures.map((failure, index) => (
-              <li key={`${failure.name}-${index}`} className="rounded-lg bg-rose-500/8 px-2 py-1.5">
-                <p className="text-[12px] font-semibold text-rose-100">{failure.name}</p>
-                {failure.error ? (
-                  <p className="mt-0.5 text-[11px] leading-snug text-rose-100/70">{failure.error}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
   );
 }

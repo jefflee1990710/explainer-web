@@ -137,10 +137,10 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Scro Canvas · 零門檻一站式 AI 媒體工作台",
-      title: "一塊畫布，輕鬆開始製作 AI 影片。",
+      kicker: "Scro Canvas · 視覺化 AI 影片畫布",
+      title: "喺一塊畫布砌好積木，直接出完成短片。",
       subtitle:
-        "唔使學複雜設定。揀選範本或者同 AI 助理講一句，即自動生成真人口播、動畫解說、換角換場同自動配音合片。",
+        "放入講稿、角色同配音，或者叫 AI 助理幫你一次過排好。撳執行，Scro 就自動生成完整短片。",
       ctaStart: "免費開始創作",
       ctaWorkspace: "打開 Canvas",
       ctaUseCases: "睇角色 3 大創作場景",

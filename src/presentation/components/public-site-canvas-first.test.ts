@@ -16,7 +16,12 @@ const PUBLIC_COMPONENTS = [
   "src/presentation/components/site-footer.tsx",
   "src/presentation/components/landing-hero.tsx",
   "src/presentation/components/landing-canvas-showcase.tsx",
-  "src/presentation/components/landing-canvas-templates.tsx",
+  "src/presentation/components/landing-canvas-showcase-copy.ts",
+  "src/presentation/components/landing-canvas-showcase-stage.tsx",
+  "src/presentation/components/landing-canvas-showcase-steps.tsx",
+  "src/presentation/components/landing-hero-art.tsx",
+  "src/presentation/components/landing-hero-assistant.tsx",
+  "src/presentation/components/landing-hero-canvas-copy.ts",
   "src/presentation/components/canvas-template-launcher.tsx",
   "src/presentation/components/canvas-post-flow-visual.tsx",
   "src/presentation/components/landing-steps.tsx",
@@ -74,6 +79,15 @@ describe("Canvas-First public website invariants", () => {
     const header = read("src/presentation/components/site-header.tsx");
     assert.match(header, /canvasLaunchHref\(signedIn\)/);
     assert.doesNotMatch(header, />\s*Open Canvas\s*</);
+  });
+
+  it("header hides the Videos menu and the Post link, and no public link targets the removed templates anchor", () => {
+    const header = read("src/presentation/components/site-header.tsx");
+    assert.doesNotMatch(header, /SiteFeaturesMenu|SITE_FEATURE_LINKS/);
+    assert.doesNotMatch(header, /href="\/posts"|href="\/examples"/);
+    for (const rel of PUBLIC_COMPONENTS) {
+      assert.doesNotMatch(read(rel), /#canvas-templates/, `${rel} links to the removed #canvas-templates section`);
+    }
   });
 
   it("capability band has a zh-Hans branch instead of Cantonese copy", () => {
