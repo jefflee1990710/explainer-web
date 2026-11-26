@@ -6,12 +6,14 @@ import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { ensureSettingsNodes } from "@/service/canvas/explainer-settings-migrate";
 import { getCanvasModelCatalog } from "@/service/canvas/model-catalog";
 import {
+  serializeCanvasProject,
+  serializeCanvasProjectSummary,
+} from "@/presentation/serialize/canvas";
+import {
   createCanvasProject,
   getOrCreateDefaultCanvasProject,
   listCanvasLibraryAssets,
   listCanvasProjects,
-  serializeCanvasProject,
-  serializeCanvasProjectSummary,
 } from "@/service/canvas/projects";
 import {
   CANVAS_STARTER_TEMPLATES,

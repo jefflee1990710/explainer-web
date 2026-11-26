@@ -23,6 +23,11 @@ import {
   getCanvasModelCatalog,
 } from "@/service/canvas/model-catalog";
 import {
+  serializeCanvasFlowRun,
+  serializeCanvasJob,
+  serializeCanvasProject,
+} from "@/presentation/serialize/canvas";
+import {
   type CanvasFlowRunDto,
   type CanvasJobDto,
   type CanvasProjectDto,
@@ -32,8 +37,6 @@ import {
   deleteCanvasProject,
   healFinishedCanvasRuns,
   saveCanvasProject,
-  serializeCanvasJob,
-  serializeCanvasProject,
 } from "@/service/canvas/projects";
 import {
   createCanvasFolder,
@@ -292,13 +295,7 @@ export async function runCanvasNodeAction(
       return {
         ok: true,
         waitingForUpstream: true,
-        activeFlowRun: {
-          flowRunId: waiting.activeFlowRun.flowRunId,
-          status: waiting.activeFlowRun.status,
-          currentWave: waiting.activeFlowRun.currentWave,
-          totalWaves: waiting.activeFlowRun.totalWaves,
-          failedNodeIds: waiting.activeFlowRun.failedNodeIds,
-        },
+        activeFlowRun: serializeCanvasFlowRun(waiting.activeFlowRun),
         creditUsd: freshUser ? resolveUserUsdBalance(withUnlimitedCredits(freshUser)).creditUsd : 0,
       };
     }

@@ -1,4 +1,4 @@
-// Multi-project MongoDB CRUD, DTO serialization, and Scro library asset aggregation
+// Multi-project MongoDB CRUD and Scro library asset aggregation
 // for the Interactive Node Canvas Editor (/app/canvas).
 
 import { ObjectId } from "mongodb";
@@ -11,12 +11,7 @@ import {
   productsCollection,
 } from "@/dao";
 import {
-  type CanvasEdge,
-  type CanvasGroup,
-  type CanvasJob,
-  type CanvasJobStatus,
   type CanvasNode,
-  type CanvasOutputKind,
   type CanvasProject,
   type CanvasViewport,
   canvasEdgeSchema,
@@ -24,121 +19,37 @@ import {
   canvasNodeSchema,
   canvasViewportSchema,
 } from "@/model/canvas";
+import type {
+  CanvasFlowRunDto,
+  CanvasJobDto,
+  CanvasLibraryAsset,
+  CanvasLibraryAssetsResult,
+  CanvasLibraryCharacterOption,
+  CanvasProjectDto,
+  CanvasProjectSummaryDto,
+  CreateCanvasProjectInput,
+  SaveCanvasProjectPatch,
+} from "@/model/canvas-dto";
 import type { Character } from "@/model/character";
 import { listCustomWardrobeItems } from "@/service/character/custom-wardrobe";
 import { mergeCanvasNodeSnapshots, restoreBusyNodesFromCompletedJobs } from "@/service/canvas/graph";
-import { canvasGroupsForProject } from "@/service/canvas/groups";
-import { failOrphanBusyNodes } from "@/service/canvas/orphan-busy";
 import { liftLegacyExplainerSettings } from "@/service/canvas/director-migrate";
-import type { CanvasModelProvider } from "@/service/canvas/model-catalog";
+
+export type {
+  CanvasFlowRunDto,
+  CanvasJobDto,
+  CanvasLibraryAsset,
+  CanvasLibraryAssetsResult,
+  CanvasLibraryCharacterOption,
+  CanvasProjectDto,
+  CanvasProjectSummaryDto,
+  CreateCanvasProjectInput,
+  SaveCanvasProjectPatch,
+};
 
 export const DEFAULT_CANVAS_TITLE = "Untitled Canvas";
 export const CANVAS_TITLE_MAX_LENGTH = 120;
 export const DEFAULT_CANVAS_VIEWPORT: CanvasViewport = { x: 0, y: 0, zoom: 1 };
-
-export type CanvasProjectSummaryDto = {
-  id: string;
-  title: string;
-  thumbnailUrl?: string;
-  nodeCount: number;
-  folderId?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CanvasFlowRunDto = {
-  flowRunId: string;
-  status: "running" | "completed" | "failed" | "stopped";
-  currentWave: number;
-  totalWaves: number;
-  failedNodeIds: string[];
-  error?: string;
-};
-
-export type CanvasProjectDto = {
-  id: string;
-  title: string;
-  thumbnailUrl?: string;
-  viewport: CanvasViewport;
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  groups: CanvasGroup[];
-  activeFlowRun?: CanvasFlowRunDto;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CanvasJobDto = {
-  id: string;
-  canvasId: string;
-  nodeId: string;
-  flowRunId?: string;
-  provider: CanvasModelProvider;
-  modelId: string;
-  providerModelId: string;
-  presetId?: string;
-  status: CanvasJobStatus;
-  externalJobId?: string;
-  chargedUsd: number;
-  refundedAt?: string;
-  outputUrl?: string;
-  outputKind?: CanvasOutputKind;
-  error?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CanvasLibraryAsset = {
-  id: string;
-  source: "character" | "product" | "canvas_output" | "outfit";
-  name: string;
-  mediaKind: "image" | "video" | "audio";
-  url: string;
-  thumbnailUrl?: string;
-  // Face and standing figure, shown together when this asset is a character choice.
-  portraitUrl?: string;
-  fullBodyUrl?: string;
-  createdAt: string;
-  // Set on outfit tiles so a drop lands on the matching character input.
-  outfitPart?: "hair" | "top" | "pants" | "shoes" | "accessory" | "look";
-  outfitPrompt?: string;
-  characterId?: string;
-};
-
-export type CanvasLibraryCharacterOption = {
-  id: string;
-  name: string;
-  previewUrl?: string;
-  // Identity close-up and standing figure, shown together in the character menu.
-  portraitUrl?: string;
-  fullBodyUrl?: string;
-};
-
-export type CanvasLibraryAssetsResult = {
-  characters: CanvasLibraryAsset[];
-  outfits: CanvasLibraryAsset[];
-  products: CanvasLibraryAsset[];
-  recentOutputs: CanvasLibraryAsset[];
-  characterOptions: CanvasLibraryCharacterOption[];
-};
-
-export type CreateCanvasProjectInput = {
-  title?: string;
-  nodes?: CanvasNode[];
-  edges?: CanvasEdge[];
-  viewport?: CanvasViewport;
-  thumbnailUrl?: string;
-  folderId?: string;
-};
-
-export type SaveCanvasProjectPatch = {
-  title?: string;
-  nodes?: CanvasNode[];
-  edges?: CanvasEdge[];
-  groups?: CanvasGroup[];
-  viewport?: CanvasViewport;
-  thumbnailUrl?: string;
-};
 
 const nodesArraySchema = z.array(canvasNodeSchema);
 const edgesArraySchema = z.array(canvasEdgeSchema);
@@ -148,71 +59,6 @@ function normalizeCanvasTitle(raw?: string): string {
   const trimmed = (raw || "").trim();
   if (!trimmed) return DEFAULT_CANVAS_TITLE;
   return trimmed.slice(0, CANVAS_TITLE_MAX_LENGTH);
-}
-
-// Serializes a MongoDB CanvasProject into a plain JSON-safe DTO for Client Components.
-export function serializeCanvasProject(project: CanvasProject): CanvasProjectDto {
-  return {
-    id: project._id.toHexString(),
-    title: project.title,
-    ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
-    viewport: project.viewport,
-    nodes: failOrphanBusyNodes(project.nodes, project.activeFlowRun?.status === "running"),
-    edges: project.edges,
-    groups: canvasGroupsForProject(project.nodes, project.groups),
-    ...(project.activeFlowRun
-      ? {
-          activeFlowRun: {
-            flowRunId: project.activeFlowRun.flowRunId,
-            status: project.activeFlowRun.status,
-            currentWave: project.activeFlowRun.currentWave,
-            totalWaves: project.activeFlowRun.totalWaves,
-            failedNodeIds: project.activeFlowRun.failedNodeIds ?? [],
-            ...(project.activeFlowRun.error ? { error: project.activeFlowRun.error } : {}),
-          },
-        }
-      : {}),
-    createdAt: project.createdAt.toISOString(),
-    updatedAt: project.updatedAt.toISOString(),
-  };
-}
-
-// Serializes a CanvasProject into a lightweight list item for the project switcher dropdown.
-export function serializeCanvasProjectSummary(
-  project: CanvasProject,
-): CanvasProjectSummaryDto {
-  return {
-    id: project._id.toHexString(),
-    title: project.title,
-    ...(project.thumbnailUrl ? { thumbnailUrl: project.thumbnailUrl } : {}),
-    nodeCount: project.nodes.length,
-    ...(project.folderId ? { folderId: project.folderId.toHexString() } : {}),
-    createdAt: project.createdAt.toISOString(),
-    updatedAt: project.updatedAt.toISOString(),
-  };
-}
-
-// Serializes a MongoDB CanvasJob into a plain JSON-safe DTO for Server Actions.
-export function serializeCanvasJob(job: CanvasJob): CanvasJobDto {
-  return {
-    id: job._id.toHexString(),
-    canvasId: job.canvasId.toHexString(),
-    nodeId: job.nodeId,
-    ...(job.flowRunId ? { flowRunId: job.flowRunId } : {}),
-    provider: job.provider,
-    modelId: job.modelId,
-    providerModelId: job.providerModelId,
-    ...(job.presetId ? { presetId: job.presetId } : {}),
-    status: job.status,
-    ...(job.externalJobId ? { externalJobId: job.externalJobId } : {}),
-    chargedUsd: job.chargedUsd,
-    ...(job.refundedAt ? { refundedAt: job.refundedAt.toISOString() } : {}),
-    ...(job.outputUrl ? { outputUrl: job.outputUrl } : {}),
-    ...(job.outputKind ? { outputKind: job.outputKind } : {}),
-    ...(job.error ? { error: job.error } : {}),
-    createdAt: job.createdAt.toISOString(),
-    updatedAt: job.updatedAt.toISOString(),
-  };
 }
 
 // Lists all canvas projects owned by the user, newest updated first.
