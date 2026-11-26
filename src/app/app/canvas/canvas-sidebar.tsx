@@ -326,11 +326,11 @@ export function CanvasSidebar({
 
   return (
     <aside
-      className={`relative h-full shrink-0 overflow-hidden border-r border-white/8 bg-[#0e121a]/95 ${slide ? "transition-[width] duration-300 ease-out motion-reduce:transition-none" : ""}`}
+      className={`relative flex h-full shrink-0 flex-col overflow-hidden border-r border-white/8 bg-[#0e121a]/95 ${slide ? "transition-[width] duration-300 ease-out motion-reduce:transition-none" : ""}`}
       style={{ width: nodesHidden ? 40 : width }}
     >
       <div
-        className={`absolute inset-y-0 left-0 z-20 flex w-10 flex-col items-center bg-[#0e121a]/95 py-2 ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${nodesHidden ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`absolute inset-y-0 left-0 z-20 flex w-10 flex-col items-center bg-[#0e121a]/95 py-2 ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${nodesHidden ? "opacity-100 delay-100" : "pointer-events-none opacity-0 delay-0"}`}
         aria-hidden={!nodesHidden}
         inert={nodesHidden ? undefined : true}
       >
@@ -346,8 +346,8 @@ export function CanvasSidebar({
         <CanvasSessionRailName name={sessionName} />
       </div>
       <div
-        className={`absolute inset-y-0 left-0 z-10 flex h-full flex-col bg-[#0e121a]/95 ${slide ? "transition-transform duration-300 ease-out motion-reduce:transition-none" : ""} ${nodesHidden ? "pointer-events-none" : ""}`}
-        style={{ width, transform: nodesHidden ? "translateX(-100%)" : undefined }}
+        className={`flex h-full shrink-0 flex-col ${nodesHidden ? "pointer-events-none" : ""}`}
+        style={{ width }}
         inert={nodesHidden ? true : undefined}
       >
       <div

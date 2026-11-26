@@ -333,7 +333,7 @@ export function CanvasAgentDock({
     >
       {placedRight ? (
         <div
-          className={`absolute inset-y-0 right-0 z-20 flex w-10 flex-col bg-[#0e121a] ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          className={`absolute inset-y-0 right-0 z-20 flex w-10 flex-col bg-[#0e121a] ${slide ? "transition-opacity duration-200 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "opacity-100 delay-100" : "pointer-events-none opacity-0 delay-0"}`}
           aria-hidden={!collapsed}
           inert={collapsed ? undefined : true}
         >
@@ -344,10 +344,10 @@ export function CanvasAgentDock({
       <div
         className={
           placedRight
-            ? `absolute inset-y-0 right-0 z-10 flex min-h-0 flex-col bg-[#0e121a] ${slide ? "transition-transform duration-300 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "pointer-events-none" : ""}`
+            ? `absolute inset-y-0 right-0 z-10 flex min-h-0 flex-col bg-[#0e121a] ${collapsed ? "pointer-events-none" : ""}`
             : "flex min-h-0 min-w-0 flex-1 flex-col"
         }
-        style={placedRight ? { width, transform: collapsed ? "translateX(100%)" : undefined } : undefined}
+        style={placedRight ? { width } : undefined}
         inert={placedRight && collapsed ? true : undefined}
       >
       {!collapsed ? (
