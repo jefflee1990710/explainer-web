@@ -18,44 +18,11 @@ import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { formatUsd } from "@/service/billing/usd";
 import type { CanvasFolderDto } from "@/service/canvas/folder-library";
 import type { CanvasProjectSummaryDto } from "@/service/canvas/projects";
+import type { CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
+
+export type { CanvasFlowFailure, CanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
 
 export type SaveStatus = "saved" | "saving" | "dirty" | "error";
-
-export type CanvasFlowFailure = {
-  name: string;
-  error?: string;
-};
-
-export type CanvasFlowHeaderStatus = {
-  status: "running" | "completed" | "failed" | "stopped";
-  current: number;
-  total: number;
-  failedCount: number;
-  failures: CanvasFlowFailure[];
-};
-
-export function canvasFlowHeaderStatus(
-  run:
-    | {
-        status: CanvasFlowHeaderStatus["status"];
-        currentWave: number;
-        totalWaves: number;
-        failedNodeIds?: string[];
-      }
-    | null
-    | undefined,
-  failures: CanvasFlowFailure[] = [],
-): CanvasFlowHeaderStatus | null {
-  if (!run) return null;
-  const failedCount = failures.length > 0 ? failures.length : (run.failedNodeIds?.length ?? 0);
-  return {
-    status: run.status,
-    current: run.currentWave,
-    total: run.totalWaves,
-    failedCount,
-    failures,
-  };
-}
 
 export function CanvasTopbar({
   locale,
@@ -291,6 +258,41 @@ export function CanvasTopbar({
   );
 }
 
+function flowStatusLabel(status: CanvasFlowHeaderStatus, isZh: boolean): string {
+  const failed =
+    status.failedCount > 0
+      ? isZh
+        ? ` · ${status.failedCount} 個失敗`
+        : ` · ${status.failedCount} failed`
+      : "";
+  if (status.status === "running") {
+    if (status.scope === "nodes") {
+      const running = isZh
+        ? `${status.current} 個執行中`
+        : status.current === 1
+          ? "1 running"
+          : `${status.current} running`;
+      return `${running}${failed}`;
+    }
+    const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
+    return `${isZh ? "流程執行中" : "Flow running"}${wave}${failed}`;
+  }
+  if (status.status === "completed") {
+    const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
+    return isZh ? `流程已完成${wave}` : `Flow finished${wave}`;
+  }
+  if (status.status === "failed") {
+    if (status.scope === "flow") {
+      return isZh
+        ? `流程結束 · ${status.failedCount} 個失敗`
+        : `Flow finished · ${status.failedCount} failed`;
+    }
+    return isZh ? `${status.failedCount} 個失敗` : `${status.failedCount} failed`;
+  }
+  const stopped = isZh ? "流程已停止" : "Flow stopped";
+  return `${stopped}${failed}`;
+}
+
 function FlowStatusPill({
   status,
   isZh,
@@ -301,39 +303,23 @@ function FlowStatusPill({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   if (!status) return null;
-  const wave = status.total > 0 ? ` ${status.current}/${status.total}` : "";
-  const label =
-    status.status === "running"
-      ? isZh
-        ? `流程執行中${wave}`
-        : `Flow running${wave}`
-      : status.status === "completed"
-        ? isZh
-          ? `流程已完成${wave}`
-          : `Flow finished${wave}`
-        : status.status === "failed"
-          ? isZh
-            ? `流程結束 · ${status.failedCount} 個失敗`
-            : `Flow finished · ${status.failedCount} failed`
-          : isZh
-            ? "流程已停止"
-            : "Flow stopped";
+  const label = flowStatusLabel(status, isZh);
   const tone =
-    status.status === "running"
-      ? "border-[#c6f24b]/40 bg-[#c6f24b]/12 text-[#d6f58a]"
-      : status.status === "completed"
-        ? "border-emerald-400/35 bg-emerald-500/12 text-emerald-200"
-        : status.status === "failed"
-          ? "border-rose-400/40 bg-rose-500/12 text-rose-200"
+    status.failedCount > 0 && status.status !== "running"
+      ? "border-rose-400/40 bg-rose-500/12 text-rose-200"
+      : status.status === "running"
+        ? "border-[#c6f24b]/40 bg-[#c6f24b]/12 text-[#d6f58a]"
+        : status.status === "completed"
+          ? "border-emerald-400/35 bg-emerald-500/12 text-emerald-200"
           : "border-white/15 bg-white/6 text-white/70";
-  const canList = status.status === "failed" && status.failures.length > 0;
+  const canList = status.failures.length > 0;
   const body = (
     <>
       {status.status === "running" ? (
         <Loader2 className="h-3 w-3 animate-spin" />
       ) : status.status === "completed" ? (
         <Check className="h-3 w-3" />
-      ) : status.status === "stopped" ? (
+      ) : status.status === "stopped" && status.failedCount === 0 ? (
         <Square className="h-2.5 w-2.5 fill-current" />
       ) : (
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
