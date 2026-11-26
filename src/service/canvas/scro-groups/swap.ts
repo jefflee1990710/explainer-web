@@ -19,6 +19,8 @@ export type SwapGroupInput = {
   objectTarget?: string;
   objectEditMode?: "change" | "add" | "remove";
   lightLookId?: string;
+  // Library character. The swap job already accepts this on the render node.
+  characterId?: string;
   sectionStart: number;
   sectionLength: number;
   aspectRatio: CanvasAspectRatio;
@@ -54,6 +56,7 @@ export function buildSwapGroup(ctx: GroupContext, input: SwapGroupInput): ScroGr
     prompt: "",
     toolParams: {
       swapMode: input.mode,
+      ...(input.characterId ? { characterId: input.characterId } : {}),
       ...(input.objectTarget ? { objectTarget: input.objectTarget } : {}),
       ...(input.objectEditMode ? { objectEditMode: input.objectEditMode } : {}),
       ...(input.lightLookId ? { lightLookId: input.lightLookId } : {}),

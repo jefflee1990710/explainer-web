@@ -2,11 +2,10 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
-  Maximize2,
 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
-import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
@@ -18,60 +17,49 @@ import {
   OutdatedBanner,
 } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
+import { WiredPromptField } from "@/app/app/canvas/nodes/wired-prompt-field";
+import { readConnectedPromptText } from "@/service/canvas/core/graph";
 
 const ASPECT_OPTIONS = ["16:9", "9:16", "1:1", "3:4"] as const;
 const RESOLUTION_OPTIONS = ["1k", "2k", "4k"] as const;
 
 
 export function ModelNodeCardFields(view: ModelNodeCardView) {
-  const { id, data, characterOptions, onUpdateNodeData, showAdvanced, setShowAdvanced, promptEditorOpen, setPromptEditorOpen, isZh, spec, promptPort, isPromptWired, status, durationSeconds, activePreset, outdated, templateText, templateVars, toolParams, updateToolParam } = view;
+  const { id, data, nodes, edges, characterOptions, onUpdateNodeData, showAdvanced, setShowAdvanced, promptEditorOpen, setPromptEditorOpen, isZh, spec, promptPort, isPromptWired, status, durationSeconds, activePreset, outdated, templateVars, toolParams, updateToolParam } = view;
+  const promptEdited = data.toolParams?.promptEdited === true;
+  const wiredPrompt = isPromptWired ? readConnectedPromptText(id, nodes, edges) : undefined;
+  const shownPrompt = isPromptWired && !promptEdited ? (wiredPrompt ?? "") : (data.prompt ?? "");
+  const savePrompt = (prompt: string) => {
+    onUpdateNodeData(
+      id,
+      isPromptWired ? { prompt, toolParams: { ...toolParams, promptEdited: true } } : { prompt },
+    );
+  };
   return (
     <>
 {/* Inline prompt & compact model parameters */}
   {promptPort ? (
-    isPromptWired ? (
-      <div className="rounded-[10px] border border-[#c6f24b]/30 bg-[#c6f24b]/8 px-2.5 py-1.5 text-[11px] text-[#c6f24b]">
-        {isZh
-          ? "已由外部 Prompt 節點提供提示詞"
-          : "Prompt supplied by connected Prompt node"}
-      </div>
-    ) : (
-      <div className="relative">
-        <ComposedTextarea
-          value={data.prompt ?? ""}
-          onValue={(prompt) => onUpdateNodeData(id, { prompt })}
-          rows={3}
-          placeholder={
-            isZh ? "描述你想生成的畫面或動作…" : "Describe what to generate…"
-          }
-          className="nodrag disabled:cursor-not-allowed disabled:opacity-50 nowheel w-full resize-none rounded-[10px] border border-white/10 bg-[#0b0e14] px-2.5 py-2 pr-8 text-[11.5px] leading-relaxed text-white/90 placeholder:text-white/30 focus:border-[#c6f24b]/60 focus:outline-none"
-        />
-        {/* Icon-only: opens the larger prompt dialog. */}
-        <button
-          type="button"
-          title={isZh ? "放大編輯" : "Edit prompt"}
-          aria-label={isZh ? "放大編輯提示詞" : "Edit prompt"}
-          onClick={() => setPromptEditorOpen(true)}
-          className="nodrag absolute top-1.5 right-1.5 cursor-pointer rounded-md p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
-        >
-          <Maximize2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    )
+    <WiredPromptField
+      isZh={isZh}
+      value={shownPrompt}
+      wired={isPromptWired}
+      onEdit={savePrompt}
+      onOpenEditor={() => setPromptEditorOpen(true)}
+    />
   ) : null}
-  {promptEditorOpen && promptPort && !isPromptWired ? (
+  {promptEditorOpen && promptPort ? (
     <PromptEditorDialog
-      initial={data.prompt ?? ""}
+      initial={shownPrompt}
       isZh={isZh}
       onCancel={() => setPromptEditorOpen(false)}
       onSave={(prompt) => {
-        onUpdateNodeData(id, { prompt });
+        savePrompt(prompt);
         setPromptEditorOpen(false);
       }}
     />
   ) : null}
   {promptPort ? (
-    <PromptVarsHint isZh={isZh} text={templateText} vars={templateVars} missingBlocksRun />
+    <PromptVarsHint isZh={isZh} text={shownPrompt} vars={templateVars} missingBlocksRun />
   ) : null}
 
   {/* Provider-specific compact controls */}
