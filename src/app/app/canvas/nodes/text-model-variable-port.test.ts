@@ -109,11 +109,14 @@ test("a wired Setting still lands on the Variable port and reads Wired", () => {
   ] as CanvasEdge[];
   const html = renderToStaticMarkup(
     shell(
-      createElement(
-        CanvasTextSettings,
-        { nodeId: "tm", nodes, edges, isZh: false },
-        card(false),
-      ),
+      // eslint-disable-next-line react/no-children-prop -- Next's typecheck requires children on the props object.
+      createElement(CanvasTextSettings, {
+        nodeId: "tm",
+        nodes,
+        edges,
+        isZh: false,
+        children: card(false),
+      }),
     ),
   );
   const port = variablePort(html);
