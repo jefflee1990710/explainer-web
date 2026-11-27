@@ -3,6 +3,10 @@
 
 import type { CanvasAspectRatio } from "@/model/canvas";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import {
+  CHARACTER_BLUEPRINT_MODEL_ID,
+  emptyCharacterBlueprintData,
+} from "@/service/canvas/core/character-blueprint";
 import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
 import { SCRO_GROUP_MODEL_IDS } from "@/service/canvas-agent/scro-group-tool";
 import {
@@ -66,16 +70,22 @@ export function addModelNode(
     if (created.error || typeof created.nodeId !== "string") return created;
     return created;
   }
-  const created = addNode(g, "model", {
-    modelId: spec.id,
-    presetId: spec.defaultPresetId,
-    aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "9:16") : undefined,
-    resolution: spec.supportsResolution ? "2k" : undefined,
-    durationSeconds: clampDuration(spec, input.durationSeconds),
-    prompt: input.prompt ?? "",
-    ...(input.toolParams ? { toolParams: input.toolParams } : {}),
-    status: "idle",
-  });
+  const created = addNode(
+    g,
+    "model",
+    spec.id === CHARACTER_BLUEPRINT_MODEL_ID
+      ? { ...emptyCharacterBlueprintData(), prompt: input.prompt ?? "" }
+      : {
+          modelId: spec.id,
+          presetId: spec.defaultPresetId,
+          aspectRatio: spec.supportsAspectRatio ? (input.aspectRatio ?? "9:16") : undefined,
+          resolution: spec.supportsResolution ? "2k" : undefined,
+          durationSeconds: clampDuration(spec, input.durationSeconds),
+          prompt: input.prompt ?? "",
+          ...(input.toolParams ? { toolParams: input.toolParams } : {}),
+          status: "idle",
+        },
+  );
   if (created.error || typeof created.nodeId !== "string") return created;
 
   const nodeId = created.nodeId;

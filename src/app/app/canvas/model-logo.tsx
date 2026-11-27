@@ -68,6 +68,10 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^frame-grab$/, asset: { src: "/canvas/model-logos/frame-grab.png", alt: "Frame grab" } },
   { match: /^burn-subtitles$/, asset: { src: "/canvas/model-logos/burn-subtitles.png", alt: "Burn subtitles" } },
   { match: /^scribe/, asset: { src: "/canvas/model-logos/auto-captions.png", alt: "Auto captions" } },
+  {
+    match: /^video-style-transfer$/,
+    asset: { src: "/canvas/model-logos/color-grade.png", alt: "Video style transfer" },
+  },
 ];
 
 // Resolves the downloaded brand mark for a canvas model, or null when none exists.

@@ -108,6 +108,28 @@ describe("dropped image and video files", () => {
     assert.equal(nodes[1]?.data.mediaUpload, undefined);
   });
 
+  it("reports each image or video only after its placeholder settles", async () => {
+    const nodes: FlowNode[] = [];
+    const settled: string[] = [];
+    await placeDroppedCanvasFiles({
+      files: [file("a.png", "image/png"), file("b.mp4", "video/mp4")],
+      position: { x: 0, y: 0 },
+      createId: (() => {
+        let n = 0;
+        return () => `m-${++n}`;
+      })(),
+      upload: async (dropped) => ok(dropped.type.startsWith("video/") ? "video" : "image", dropped.name),
+      onNodes: (update) => apply(nodes, update),
+      onError: () => assert.fail("unexpected error"),
+      onSettled: () => {},
+      onVisualSettled: (item) => settled.push(`${item.id}:${item.mediaKind}:${item.mediaUrl}`),
+    });
+    assert.deepEqual(settled, [
+      "m-1:image:https://blob.example/a.png",
+      "m-2:video:https://blob.example/b.mp4",
+    ]);
+  });
+
   it("keeps a failed image on the canvas and does not restore one the user dismissed", async () => {
     const failedNodes: FlowNode[] = [];
     await placeDroppedCanvasFiles({

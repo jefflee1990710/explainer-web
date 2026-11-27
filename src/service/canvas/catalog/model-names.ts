@@ -68,6 +68,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "Poster ポスター投稿",
     ko: "Poster 포스터 게시물",
   },
+  "scro:character": {
+    "zh-Hant": "角色",
+    "zh-Hans": "角色",
+    ja: "キャラクター",
+    ko: "캐릭터",
+  },
   "scro:style-transfer": {
     "zh-Hant": "風格轉換",
     "zh-Hans": "风格转换",
@@ -127,6 +133,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     "zh-Hans": "自动字幕",
     ja: "自動字幕",
     ko: "자동 자막",
+  },
+  "scro:video-style-transfer": {
+    "zh-Hant": "影片風格轉移",
+    "zh-Hans": "视频风格迁移",
+    ja: "動画スタイル変換",
+    ko: "영상 스타일 변환",
   },
   "ffmpeg:keep-ranges": {
     "zh-Hant": "FFmpeg 保留區間",
