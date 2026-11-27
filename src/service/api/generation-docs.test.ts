@@ -134,15 +134,15 @@ test("llms.txt and llms-full.txt document USD Credit plans and action pricing", 
   assert.match(shortTxt, /\$399\/mo/);
 
   const fullTxt = buildLlmsFullTxt("https://scro.io");
-  assert.match(fullTxt, /\$6\.00/);
+  assert.match(fullTxt, /\$1\.50/);
   assert.match(fullTxt, /\$0\.14/);
   assert.match(fullTxt, /\$0\.27/);
   assert.match(fullTxt, /\$0\.20\/s/);
   assert.match(fullTxt, /\$0\.08\/s/);
   assert.match(fullTxt, /\$1\.17/);
-  assert.match(fullTxt, /\$59\.00/);
-  assert.match(fullTxt, /\$129\.00/);
-  assert.match(fullTxt, /\$249\.00/);
-  assert.match(fullTxt, /\$399\.00/);
+  assert.match(fullTxt, /\$64\.90/);
+  assert.match(fullTxt, /\$141\.90/);
+  assert.match(fullTxt, /\$273\.90/);
+  assert.match(fullTxt, /\$438\.90/);
   assert.doesNotMatch(fullTxt, /4 credits|2 credits\/s|4 credits\/s|monthly credits/i);
 });

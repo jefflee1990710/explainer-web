@@ -8,7 +8,8 @@ import {
   packPriceIsCurrent,
   packProductName,
 } from "@/service/billing/packs";
-import { planMarginPct, PLANS } from "@/service/billing/plans";
+import { invoiceRefillCreditUsd, planMarginPct, PLANS } from "@/service/billing/plans";
+import { mulUsd } from "@/service/billing/usd";
 import { typicalGrossMargin } from "@/service/billing/unit-economics";
 import {
   BLUEPRINT_COST_USD,
@@ -26,18 +27,32 @@ import {
   videoCostUsd,
 } from "@/service/production-plan";
 
-test("plans grant 1:1 USD monthly credit matching their list prices", () => {
-  assert.equal(PLANS.starter.monthlyCreditUsd, 59);
-  assert.equal(PLANS.pro.monthlyCreditUsd, 129);
-  assert.equal(PLANS.studio.monthlyCreditUsd, 249);
-  assert.equal(PLANS.scale.monthlyCreditUsd, 399);
+test("plans charge the list price and refill 1.1× that price in USD Credit", () => {
+  assert.equal(PLANS.starter.monthlyCreditUsd, 64.9);
+  assert.equal(PLANS.pro.monthlyCreditUsd, 141.9);
+  assert.equal(PLANS.studio.monthlyCreditUsd, 273.9);
+  assert.equal(PLANS.scale.monthlyCreditUsd, 438.9);
   assert.deepEqual(
     [PLANS.starter.amountUsd, PLANS.pro.amountUsd, PLANS.studio.amountUsd, PLANS.scale.amountUsd],
     [59, 129, 249, 399],
   );
   for (const plan of Object.values(PLANS)) {
-    assert.equal(plan.monthlyCreditUsd, plan.amountUsd);
-    assert.equal(planMarginPct(plan), 33);
+    assert.equal(plan.monthlyCreditUsd, mulUsd(plan.amountUsd, 1.1));
+    assert.equal(invoiceRefillCreditUsd(plan.id), plan.monthlyCreditUsd);
+    assert.equal(planMarginPct(plan), 27);
+  }
+});
+
+test("invoice refill uses the live catalog even when a subscription stored the old 1:1 amount", () => {
+  const storedMonthlyCreditUsd = {
+    starter: 59,
+    pro: 129,
+    studio: 249,
+    scale: 399,
+  } as const;
+  for (const plan of Object.values(PLANS)) {
+    assert.equal(invoiceRefillCreditUsd(plan.id), plan.monthlyCreditUsd);
+    assert.notEqual(invoiceRefillCreditUsd(plan.id), storedMonthlyCreditUsd[plan.id]);
   }
 });
 

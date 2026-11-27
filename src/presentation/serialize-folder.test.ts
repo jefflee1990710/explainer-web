@@ -125,6 +125,6 @@ test("publicSubscription emits monthlyCreditUsd with plan fallback for legacy re
     monthlyCredits: 3333,
   };
   const legacyDto = publicSubscription(legacySub) as Record<string, unknown>;
-  assert.equal(legacyDto.monthlyCreditUsd, 129);
+  assert.equal(legacyDto.monthlyCreditUsd, 141.9);
   assert.equal("monthlyCredits" in legacyDto, false);
 });

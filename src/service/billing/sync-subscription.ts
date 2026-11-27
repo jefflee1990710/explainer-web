@@ -3,7 +3,7 @@ import {
   getOrCreateStripePrices,
   getStripe,
 } from "@/service/billing/stripe";
-import { isPlanId, planByPriceId, PLANS } from "@/service/billing/plans";
+import { invoiceRefillCreditUsd, isPlanId, planByPriceId, PLANS } from "@/service/billing/plans";
 import { grantPackCreditUsd, resetMonthlyCreditUsd } from "@/service/billing/credits";
 import { resolveUserUsdBalance } from "@/service/billing/credit-balance";
 import { adhocBonusPercent, packCreditUsdWithBonus } from "@/service/billing/promo";
@@ -84,7 +84,7 @@ export async function syncStripeSubscription(
         stripePriceId: priceId,
         planId: plan.id,
         status,
-        monthlyCreditUsd: plan.monthlyCreditUsd,
+        monthlyCreditUsd: invoiceRefillCreditUsd(plan.id),
         currentPeriodStart,
         currentPeriodEnd,
         updatedAt: new Date(),
@@ -117,7 +117,7 @@ export async function syncStripeSubscription(
         planName: plan.name,
         planNameZh: plan.nameZh,
         amountUsd: plan.amountUsd,
-        monthlyCreditUsd: plan.monthlyCreditUsd,
+        monthlyCreditUsd: invoiceRefillCreditUsd(plan.id),
         status,
         at: new Date(),
       });
@@ -127,7 +127,7 @@ export async function syncStripeSubscription(
   if (status === "active" || status === "trialing") {
     const current = await users.findOne({ _id: user._id });
     if (current && toUsdUnits(resolveUserUsdBalance(current).creditUsd) === 0) {
-      await resetMonthlyCreditUsd(user.clerkUserId, plan.monthlyCreditUsd);
+      await resetMonthlyCreditUsd(user.clerkUserId, invoiceRefillCreditUsd(plan.id));
     }
   }
 }
@@ -151,18 +151,20 @@ export async function grantCreditsFromInvoice(invoice: Stripe.Invoice) {
 
   const prices = await getOrCreateStripePrices();
   const plan = resolvePlan(subscription, prices);
-  await resetMonthlyCreditUsd(user.clerkUserId, plan.monthlyCreditUsd);
+  // Live catalog allowance for this paid invoice.
+  const creditUsd = invoiceRefillCreditUsd(plan.id);
+  await resetMonthlyCreditUsd(user.clerkUserId, creditUsd);
 
   // Commission + USD FIFO lot from the paid invoice amount.
   const amountPaidCents = invoice.amount_paid || Math.round(plan.amountUsd * 100);
   await recordPurchaseCommission({
     buyerClerkUserId: user.clerkUserId,
     amountPaidCents,
-    creditUsd: plan.monthlyCreditUsd,
+    creditUsd,
     lot: {
       source: "subscription",
       sourceId: invoice.id || `sub:${subscriptionId}:${invoice.created}`,
-      creditUsd: plan.monthlyCreditUsd,
+      creditUsd,
       amountPaidCents,
     },
     eventKey: `invoice:${invoice.id || `${subscriptionId}:${invoice.created}`}`,

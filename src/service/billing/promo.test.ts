@@ -73,12 +73,12 @@ test("adhoc bonus defaults to 5 percent and scales pack USD credit cleanly", () 
   assert.equal(packCreditUsdWithBonus(CREDIT_PACKS.pack1000.creditUsd, 5), 1050);
 });
 
-test("permanent 85 percent pricing keeps healthy gross margin on 1:1 USD plans", () => {
+test("an 85 percent charge stays profitable when monthly credit is 1.1× the list price", () => {
   for (const plan of Object.values(PLANS)) {
     const list = typicalGrossMargin(plan.amountUsd, plan.monthlyCreditUsd);
     const discounted = typicalGrossMargin(plan.amountUsd * 0.85, plan.monthlyCreditUsd);
     assert.equal(discounted < list, true, plan.id);
-    assert.equal(discounted > 0.2, true, `${plan.id} ${discounted}`);
+    assert.equal(discounted > 0.13, true, `${plan.id} ${discounted}`);
   }
 });
 

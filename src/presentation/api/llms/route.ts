@@ -47,7 +47,7 @@ export function buildLlmsTxt(
     `- [Whiteboard Explainer Videos](${siteUrl}/explainer): Turn complex product concepts into clear 30–60s whiteboard doodle and vector explainer shorts.`,
     `- [Pick the Right AI Video Tool](${siteUrl}/right-tool): Compare DIY prompting vs. Scro's end-to-end AI director, keyframe approval, and built-in timeline editor.`,
     `- [Use Cases & Examples](${siteUrl}/examples): One finished video each for whiteboard explainers, product promos, talking-head, Hong Kong Cantonese, and AI Influencers.`,
-    `- [Pricing & Plans](${siteUrl}/pricing): 1:1 USD Credit monthly subscription tiers (Starter $${PLANS.starter.amountUsd}/mo, Pro $${PLANS.pro.amountUsd}/mo, Studio $${PLANS.studio.amountUsd}/mo, Scale $${PLANS.scale.amountUsd}/mo), top-up packs, and Enterprise custom plans.`,
+    `- [Pricing & Plans](${siteUrl}/pricing): Monthly plans charge the list price and refill 1.1× that price in USD Credit (Starter $${PLANS.starter.amountUsd}/mo, Pro $${PLANS.pro.amountUsd}/mo, Studio $${PLANS.studio.amountUsd}/mo, Scale $${PLANS.scale.amountUsd}/mo), top-up packs, and Enterprise custom plans.`,
     `- [Posts & Guides](${siteUrl}/posts): Tutorials, product updates, and playbooks on AI Influencers, short-form video marketing, and creative workflows.`,
     `- [Contact](${siteUrl}/contact): Customer support (cs@thenovax.com) and enterprise sales inquiries.`,
     "",

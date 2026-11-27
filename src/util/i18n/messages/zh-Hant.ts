@@ -1222,7 +1222,7 @@ export const zhHant: Messages = {
     addCreditsBlurb: "一次付清。未用完的加值 USD Credit 永久保留。",
     continueCheckoutPack: "以 ${amount} 前往結帳",
     monthlyPlansTitle: "每月 USD Credit 方案",
-    monthlyPlansSubtitle: "每月重置補滿等值美元額度，可用於 Scro 全站生成。",
+    monthlyPlansSubtitle: "每月重置補滿方案價格 1.1 倍的 USD Credit，可用於 Scro 全站生成。",
     payAsYouGoPlan: "Pay as you go",
     payAsYouGoName: "Pay as you go",
     payAsYouGoBlurb: "新註冊贈送 $1.50 免費 USD Credit；需要時再訂閱或加值。",
