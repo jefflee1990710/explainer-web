@@ -17,6 +17,7 @@ import {
   syncSequenceWithEdges,
 } from "@/service/canvas/core/sequence";
 import { useCanvasNodeActions } from "@/app/app/canvas/nodes/port-colors";
+import { BeatSyncButton } from "@/app/app/canvas/timeline/beat-sync-button";
 import { SequenceInspector } from "@/app/app/canvas/timeline/sequence-inspector";
 import { SequencePreview } from "@/app/app/canvas/timeline/sequence-preview";
 import { SequenceTracks } from "@/app/app/canvas/timeline/sequence-tracks";
@@ -134,6 +135,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
           <Type className="h-3 w-3" />
           {t("加文字", "Add text")}
         </button>
+        <BeatSyncButton seq={seq} sources={sources} durations={durations} isZh={isZh} onChange={save} />
         <div className="flex items-center gap-0.5 rounded-[8px] border border-white/10 px-1">
           <button type="button" aria-label={t("縮小", "Zoom out")} onClick={() => setZoom((z) => Math.max(0, z - 1))} className="cursor-pointer p-1 text-white/70 hover:text-white">
             <Minus className="h-3 w-3" />
