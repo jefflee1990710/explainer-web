@@ -79,6 +79,27 @@ describe("canvas graph — getNodeOutputPortType", () => {
       null,
     );
   });
+
+  it("hides the output port while a dropped image or video is still a placeholder", () => {
+    assert.equal(
+      getNodeOutputPortType({
+        id: "up",
+        type: "media",
+        position: { x: 0, y: 0 },
+        data: { mediaKind: "video", mediaUpload: { phase: "uploading" } },
+      }),
+      null,
+    );
+    assert.equal(
+      getNodeOutputPortType({
+        id: "bad",
+        type: "media",
+        position: { x: 0, y: 0 },
+        data: { mediaKind: "image", mediaUpload: { phase: "failed", error: "上傳失敗" } },
+      }),
+      null,
+    );
+  });
 });
 
 describe("canvas graph — validateEdgeConnection", () => {
