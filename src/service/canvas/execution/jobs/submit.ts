@@ -9,7 +9,7 @@ import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-pla
 import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
+import { isOpenRouterHeyGenAvatarModel } from "@/service/openrouter/generate";
 import { probeRemoteDurationSec } from "@/service/canvas/execution/caption-transcribe";
 import {
   isInsufficientCreditError,
@@ -211,7 +211,8 @@ export async function submitCanvasNodeJob(
       ? durationPresetSec ?? node.data.durationSeconds
       : node.data.durationSeconds ?? durationPresetSec;
 
-  const isHeyGen = spec.providerModelId === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  // Every HeyGen avatar (Avatar IV, Avatar 6, Avatar 6 Turbo) runs as long as its wired audio.
+  const isHeyGen = spec.provider === "openrouter" && isOpenRouterHeyGenAvatarModel(spec.providerModelId);
   if (spec.id === "scro:talking-head" || isHeyGen) {
     if (inputCheck.inputs.refAudio && resolved.probeAudioDurationSec) {
       const probed = await resolved.probeAudioDurationSec(inputCheck.inputs.refAudio);

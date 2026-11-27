@@ -1132,6 +1132,66 @@ describe("canvas executor", () => {
     assert.equal(submitted[0]?.durationSeconds, 90);
   });
 
+  // Avatar 6 user price is the 1080p SKU × 1.5: Turbo $0.075/s, Avatar 6 $0.15/s.
+  for (const scenario of [
+    { modelId: "openrouter:heygen/heygen-avatar-6-turbo", probed: 89.2, seconds: 90, usd: 6.75 },
+    { modelId: "openrouter:heygen/heygen-avatar-6", probed: 89.2, seconds: 90, usd: 13.5 },
+    { modelId: "openrouter:heygen/heygen-avatar-6-turbo", probed: 300, seconds: 120, usd: 9 },
+    { modelId: "openrouter:heygen/avatar-iv", probed: 300, seconds: 120, usd: 9 },
+  ]) {
+    it(`sizes ${scenario.modelId} to ${scenario.probed}s of voice (cap 120s) for price and submit`, async () => {
+      const submitted: Array<{ durationSeconds?: number }> = [];
+      const harness = createHarness({
+        initialCreditUsd: 50,
+        nodes: [
+          {
+            id: "img",
+            type: "media",
+            position: { x: 0, y: 0 },
+            data: { mediaKind: "image", mediaUrl: "https://blob.example/face.png" },
+          },
+          {
+            id: "aud",
+            type: "media",
+            position: { x: 0, y: 300 },
+            data: { mediaKind: "audio", mediaUrl: "https://blob.example/speech.mp3" },
+          },
+          {
+            id: "hg",
+            type: "model",
+            position: { x: 300, y: 0 },
+            data: { modelId: scenario.modelId, durationSeconds: 5 },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "img", sourceHandle: "output", target: "hg", targetHandle: "startImage" },
+          { id: "e2", source: "aud", sourceHandle: "output", target: "hg", targetHandle: "refAudio" },
+        ],
+        overrides: {
+          probeAudioDurationSec: async () => scenario.probed,
+          submitOpenRouterCanvasVideo: async (input: { durationSeconds?: number }) => {
+            submitted.push(input);
+            return {
+              request_id: "or-vid-1",
+              status_url: "https://openrouter.ai/api/v1/videos/or-vid-1",
+              status: "queued",
+            };
+          },
+        } as Partial<CanvasExecutorDeps>,
+      });
+
+      const res = await submitCanvasNodeJob(
+        { clerkUserId: "user_1", canvasId: harness.project._id.toHexString(), nodeId: "hg" },
+        harness.deps,
+      );
+      assert.equal(res.ok, true);
+      if (!res.ok) return;
+      assert.equal(res.job.chargedUsd, scenario.usd);
+      assert.equal(res.job.inputSnapshot.durationSeconds, scenario.seconds);
+      assert.equal(submitted[0]?.durationSeconds, scenario.seconds);
+    });
+  }
+
   it("uses toolParams.durationPreset for scro:explainer billing even when node.data.durationSeconds is stale", async () => {
     const harness = createHarness({
       initialCreditUsd: 20,
