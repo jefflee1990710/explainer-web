@@ -70,6 +70,7 @@ import { useCanvasAgentReplay } from "@/app/app/canvas/workspace/use-canvas-agen
 import { useCanvasDirectors } from "@/app/app/canvas/workspace/use-canvas-directors";
 import { useCanvasDocument } from "@/app/app/canvas/workspace/use-canvas-document";
 import { useCanvasOutfits } from "@/app/app/canvas/workspace/use-canvas-outfits";
+import { useCanvasProxies } from "@/app/app/canvas/workspace/use-canvas-proxies";
 import { useCanvasPaneDrop } from "@/app/app/canvas/workspace/use-canvas-pane-drop";
 import { useCanvasGroupActions } from "@/app/app/canvas/groups/use-canvas-group-actions";
 import { FAILED_EDGE_STROKE } from "@/app/app/canvas/workspace/canvas-timing";
@@ -582,6 +583,7 @@ function CanvasWorkspaceInner({
   });
 
   const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
+  useCanvasProxies({ canvasId: activeProjectId, nodes, setNodes });
 
   // Runs the node a confirmed Replan was waiting for, after the new plan and unlocked rows render.
   useEffect(() => {

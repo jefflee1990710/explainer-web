@@ -2,6 +2,7 @@ import {
   Download,
   Maximize2,
 } from "lucide-react";
+import { previewMediaUrl } from "@/service/canvas/core/media-proxy";
 import { CanvasDownloadButton } from "@/app/app/canvas/canvas-download-button";
 import {
   OutdatedPreviewTag,
@@ -25,7 +26,7 @@ export function ModelNodeCardPreview(view: ModelNodeCardView) {
       {(data.outputKind ?? spec.output.type) === "video" ? (
         <video
           key={data.outputUrl}
-          src={data.outputUrl}
+          src={previewMediaUrl({ type: "model", data }) ?? data.outputUrl}
           controls
           playsInline
           className="nodrag max-h-[190px] w-full object-contain"
