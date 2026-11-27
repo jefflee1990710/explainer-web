@@ -15,6 +15,7 @@ import type {
 import type { CanvasToolParamSpec } from "@/model/canvas-model";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
+import { canvasTextUserRates, formatTextTokenRate } from "@/service/canvas/catalog/text-token-price";
 import { canvasGroupsForProject } from "@/service/canvas/core/groups";
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { isOutputStale, markStaleOutputs } from "@/service/canvas/core/stale-outputs";
@@ -226,7 +227,10 @@ export function canvasAgentModelLine(spec: CanvasModelSpec): string {
       return `${port.id}${required}:${port.type}${many}`;
     })
     .join(",");
-  // Price of one run at the default length; video nodes are billed per run, not per second.
+  // Text models show the per-million rate. Other nodes show one run at the default length.
+  if (spec.category === "text") {
+    return `${spec.id} | ${spec.name} | ${spec.output.type} | ${ports} | ${formatTextTokenRate(canvasTextUserRates(spec.id), false)}`;
+  }
   const cost = estimateCanvasModelCostUsd(spec);
   const seconds = spec.output.type === "video" ? spec.defaultDurationSeconds : undefined;
   const price = seconds ? `${cost}/${seconds}s` : String(cost);

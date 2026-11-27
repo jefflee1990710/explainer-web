@@ -19,8 +19,8 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    // 16 Mentalok + account media + 7 Google media + 2 text + 1 ArgoLink + 17 Scro + 26 FFmpeg.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 2 + 1 + 17 + 26);
+    // 16 Mentalok + account media + 7 Google media + 4 text + 1 ArgoLink video + 17 Scro + 26 FFmpeg.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 4 + 1 + 17 + 26);
     assert.deepEqual(
       STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
       [

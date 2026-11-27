@@ -16,6 +16,14 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     "zh-Hant": "Gemini 4 Argon",
     "zh-Hans": "Gemini 4 Argon",
   },
+  "argolink:claude-sonnet-5-5": {
+    "zh-Hant": "Claude Sonnet 5.5",
+    "zh-Hans": "Claude Sonnet 5.5",
+  },
+  "argolink:gpt-5.6-sol": {
+    "zh-Hant": "GPT-5.6 Sol",
+    "zh-Hans": "GPT-5.6 Sol",
+  },
   "scro:talking-head": {
     "zh-Hant": "口播導演",
     "zh-Hans": "口播导演",

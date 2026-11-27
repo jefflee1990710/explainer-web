@@ -3,12 +3,12 @@
 
 import { mentalokProvider } from "@/service/canvas/execution/providers/mentalok";
 import {
-  completedResult,
   dispatchSyncImage,
   pollGenerationStatus,
   settleVideoSubmitResponse,
 } from "@/service/canvas/execution/providers/shared";
 import type { CanvasProviderAdapter } from "@/service/canvas/execution/providers/types";
+import { completeCanvasTextJob } from "@/service/canvas/execution/text-charge";
 
 const LABEL = "Google AI Studio";
 
@@ -27,16 +27,8 @@ export const googleProvider: CanvasProviderAdapter = {
     if (spec.category === "text") {
       const prompt = inputs.prompt?.trim();
       if (!prompt) throw new Error("請先輸入提示詞");
-      const { text } = await resolved.generateCanvasText({ model: spec.providerModelId, prompt });
-      const outputUrl = await resolved.persistText(
-        text,
-        `canvas/${ctx.clerkUserId}/${ctx.jobIdHex}.txt`,
-      );
-      return completedResult(ctx, {
-        outputUrl,
-        outputKind: "text",
-        extraNodePatch: { text },
-      });
+      const result = await resolved.generateCanvasText({ model: spec.providerModelId, prompt });
+      return completeCanvasTextJob(ctx, result);
     }
     if (spec.category !== "video") {
       // Image, text, and video are handled above. Anything else keeps the Mentalok fallback.
