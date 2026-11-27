@@ -61,7 +61,7 @@ describe("replace_group", () => {
     assert.equal(card.data.modelId, "scro:explainer");
     assert.equal(card.data.prompt, "1. As a parent, I am scared.");
     assert.equal(card.data.aspectRatio, "9:16");
-    assert.deepEqual(card.data.toolParams, { characterId: JIM, plannerMode: true });
+    assert.deepEqual(card.data.toolParams, { characterId: JIM, durationPreset: "auto", plannerMode: true });
     assert.deepEqual(card.position, { x: 538, y: 1199 + 325 });
     assert.deepEqual(g.ops.map((o) => o.kind), [
       "remove_node",
@@ -83,6 +83,7 @@ describe("replace_group", () => {
       characterId: JIM,
       language: "yue",
       skillSlug: "papercraft-diorama-director",
+      durationPreset: "auto",
       plannerMode: true,
     });
   });

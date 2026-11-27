@@ -1,6 +1,7 @@
 // Curated workflow templates for the Interactive Node Canvas Editor (/app/canvas).
 
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import { EXPLAINER_CARD_LENGTH_DEFAULT } from "@/service/canvas/directors/explainer-length";
 import {
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
   OPENROUTER_WAN_3_VIDEO_MODEL,
@@ -189,13 +190,12 @@ export function instantiateCanvasTemplate(
             modelId: "scro:explainer",
             presetId: "9:16",
             aspectRatio: "9:16",
-            durationSeconds: 30,
             prompt: "",
             toolParams: {
               plannerMode: true,
               skillSlug: "cartoon-explainer-video-director",
               language: "yue",
-              durationPreset: "30s",
+              durationPreset: EXPLAINER_CARD_LENGTH_DEFAULT,
             },
             status: "idle",
           },

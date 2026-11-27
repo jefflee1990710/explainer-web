@@ -24,6 +24,7 @@ import {
   SCENE_TEXT_LABELS,
 } from "@/app/app/canvas/nodes/explainer-settings-options";
 import { DirectorClipJoinField } from "@/app/app/canvas/nodes/director-clip-join-field";
+import { ExplainerLengthField } from "@/app/app/canvas/nodes/explainer-length-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
 type Props = {
@@ -81,20 +82,11 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
             <option value="en">English</option>
           </select>
         </label>
-        <label className={DIALOG_LABEL}>
-          {isZh ? "片長" : "Length"}
-          <select
-            value={String(tp.durationPreset ?? "30s")}
-            onChange={(e) => setParams({ durationPreset: e.target.value })}
-            className={DIALOG_FIELD}
-          >
-            {["15s", "30s", "45s", "60s"].map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExplainerLengthField
+          value={tp.durationPreset}
+          isZh={isZh}
+          onChange={(durationPreset) => setParams({ durationPreset })}
+        />
         <label className={`col-span-2 ${DIALOG_LABEL}`}>
           {isZh ? "比例" : "Ratio"}
           <select

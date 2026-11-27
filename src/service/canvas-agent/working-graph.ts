@@ -26,6 +26,7 @@ import {
   isExplainerDirectorNode,
   readDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
+import { EXPLAINER_CARD_LENGTHS } from "@/service/canvas/directors/explainer-length";
 import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
 import { SCRO_GROUP_MODEL_IDS } from "@/service/canvas-agent/scro-group-tool";
 import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
@@ -129,7 +130,7 @@ const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
     "paper-cutout-explainer-video-director",
     "papercraft-diorama-director",
   ],
-  durationPreset: ["15s", "30s", "45s", "60s"],
+  durationPreset: [...EXPLAINER_CARD_LENGTHS],
   swapMode: ["character", "object", "relight", "colorfix"],
   objectEditMode: ["change", "add", "remove"],
   voicePreset: ["alan", "cathy", "yu", "una", "brian", "bella"],

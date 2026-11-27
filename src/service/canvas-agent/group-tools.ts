@@ -17,6 +17,7 @@ import {
 } from "@/service/canvas/directors/explainer-planner";
 import { EXPLAINER_SKILL_SLUGS, type ExplainerSkillSlug } from "@/model/explainer-settings";
 import { isExplainerDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { EXPLAINER_CARD_LENGTH_DEFAULT, EXPLAINER_CARD_LENGTHS } from "@/service/canvas/directors/explainer-length";
 import { isTalkingHeadDirectorNode } from "@/service/canvas/directors/talking-head-director";
 import { updateExplainerDirector } from "@/service/canvas-agent/explainer-director-tool";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
@@ -240,7 +241,8 @@ export function replaceGroup(
         ...(characterId ? { characterId } : {}),
         ...(language ? { language } : {}),
         ...(skillSlug ? { skillSlug } : {}),
-        ...(durationPreset ? { durationPreset } : {}),
+        // A rebuilt card with no saved length starts on Auto.
+        durationPreset: durationPreset ?? EXPLAINER_CARD_LENGTH_DEFAULT,
         plannerMode: true,
       };
 
@@ -438,7 +440,10 @@ export const replaceGroupSchema = z.object({
     ])
     .optional()
     .describe("Explainer only."),
-  durationPreset: z.enum(["15s", "30s", "45s", "60s"]).optional().describe("Explainer only."),
+  durationPreset: z
+    .enum(EXPLAINER_CARD_LENGTHS)
+    .optional()
+    .describe('Explainer only. "auto" plans clip count from the content. 15s, 30s, 45s, and 60s keep a fixed length.'),
   aspectRatio: aspectRatio.optional(),
   framing: z
     .enum(["collarbone-close", "waist-up", "handheld-selfie", "full-body"])

@@ -55,7 +55,7 @@ describe("canvas agent tools", () => {
       toolParams: { language: "en" },
     }) as { nodeId: string };
     const node = g.nodes.find((n) => n.id === exp.nodeId)!;
-    assert.deepEqual(node.data.toolParams, { language: "en", plannerMode: true });
+    assert.deepEqual(node.data.toolParams, { durationPreset: "auto", language: "en", plannerMode: true });
     assert.equal(node.data.prompt, "Explain inflation");
     assert.equal(g.nodes.filter((n) => n.type === "prompt").length, 0);
     assert.ok("error" in T.add_model_node(g, { modelId: "scro:explainer-frame" }));

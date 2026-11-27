@@ -84,6 +84,20 @@ describe("explainer director", () => {
     assert.equal(directorRawOutput(node, "clip-9-voice"), undefined);
   });
 
+  it("treats a blank length as Auto, and a fixed length as a different plan", () => {
+    const base = director();
+    assert.equal(directorParams(base).durationPreset, "auto");
+    const omitted = {
+      ...plan(1, base).plannedWith,
+    } as { durationPreset?: string };
+    delete omitted.durationPreset;
+    const old = { ...plan(1, base), plannedWith: omitted };
+    assert.equal(directorNeedsReplan(director({ plan: old })), false);
+    assert.equal(directorNeedsReplan(director({ plan: old, durationPreset: "15s" })), true);
+    const fixed = director({ durationPreset: "30s" });
+    assert.equal(directorNeedsReplan(director({ durationPreset: "auto", plan: plan(1, fixed) })), true);
+  });
+
   it("needs a replan when any parameter but the text style changed", () => {
     const base = director();
     const planned = director({ plan: plan(1, base) });

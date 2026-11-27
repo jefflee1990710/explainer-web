@@ -7,6 +7,7 @@ import {
   CHARACTER_BLUEPRINT_MODEL_ID,
   emptyCharacterBlueprintData,
 } from "@/service/canvas/core/character-blueprint";
+import { EXPLAINER_CARD_LENGTH_DEFAULT } from "@/service/canvas/directors/explainer-length";
 import { soleCanvasCharacterId } from "@/service/canvas-agent/canvas-characters";
 import { SCRO_GROUP_MODEL_IDS } from "@/service/canvas-agent/scro-group-tool";
 import {
@@ -61,6 +62,8 @@ export function addModelNode(
       aspectRatio: input.aspectRatio ?? "9:16",
       prompt: topic,
       toolParams: {
+        // Auto until the user names 15s, 30s, 45s, or 60s.
+        durationPreset: EXPLAINER_CARD_LENGTH_DEFAULT,
         ...(reused ? { characterId: reused } : {}),
         ...(input.toolParams ?? {}),
         plannerMode: true,
