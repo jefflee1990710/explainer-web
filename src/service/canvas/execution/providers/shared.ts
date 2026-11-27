@@ -3,6 +3,7 @@
 import type { CanvasJob } from "@/model/canvas";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { withCanvasWardrobeLock } from "@/service/canvas/core/character-wardrobe";
 import { markJobCompleted, markJobRunning } from "@/service/canvas/execution/job-ledger";
 import {
   buildCanvasBlobPathname,
@@ -63,7 +64,7 @@ export async function dispatchSyncImage(
   const { spec, node, inputs } = ctx;
   const response = await submit({
     model: spec.providerModelId,
-    prompt: inputs.prompt || "",
+    prompt: withCanvasWardrobeLock(inputs.prompt || "", inputs.characterRefPositions),
     aspectRatio: normalizeOpenRouterImageAspectRatio(node.data.aspectRatio ?? node.data.presetId),
     resolution: node.data.resolution,
     referenceImageUrls: inputs.refImages,

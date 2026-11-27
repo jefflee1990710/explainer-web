@@ -63,6 +63,8 @@ export type CanvasNodeActionsContextValue = {
   ) => void;
   // Character node: generate a new outfit from the connected wardrobe inputs.
   onGenerateOutfit?: (nodeId: string) => void;
+  // Empty character node: save the Seedream blueprint into the character library.
+  onSaveCharacterBlueprint?: (nodeId: string) => void | Promise<void>;
   onOpenLightbox: (item: CanvasLightboxItem) => void;
   // Starts or retries free Explainer planning on a planning card.
   onPlanExplainer: (nodeId: string) => void;

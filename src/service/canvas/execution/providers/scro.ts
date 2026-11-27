@@ -15,7 +15,7 @@ import { smartReframeVideo } from "@/service/canvas/execution/smart-reframe";
 import { DEFAULT_SPEECH_CUT_OPTIONS } from "@/service/canvas/core/speech-cuts";
 import { REFRAME_ASPECTS, type ReframeAspect } from "@/service/canvas/core/smart-reframe";
 
-const SYNC_TOOL_IDS = new Set(["scro:tts", "scro:life", "scro:poster"]);
+const SYNC_TOOL_IDS = new Set(["scro:tts", "scro:life", "scro:poster", "scro:character"]);
 
 export const scroProvider: CanvasProviderAdapter = {
   provider: "scro",

@@ -16,9 +16,14 @@ import type { CanvasNode } from "@/model/canvas";
 import type { Character } from "@/model/character";
 import type { JutsuMode, JutsuObjectEditMode } from "@/model/jutsu-job";
 import type { AspectRatio, DurationPreset, Project, VoLanguage } from "@/model/project";
+import { STATIC_CANVAS_MODELS } from "@/service/canvas/catalog/model-catalog";
+import { VIDEO_STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/catalog/video-style-transfer";
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
+import { planVideoStyleTransfer } from "@/service/canvas/execution/video-style-transfer";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/directors/explainer-frame";
 import { explainerVideoLookFields } from "@/service/canvas/directors/explainer-settings";
+import { characterBlueprintGap } from "@/service/canvas/core/character-blueprint";
+import { runCanvasCharacterBlueprint } from "@/service/canvas/execution/character-blueprint-run";
 import { buildLifePhotoPrompt } from "@/service/canvas/scro-groups/life";
 import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { behaviorSlug } from "@/service/director/behavior-slug";
@@ -126,6 +131,18 @@ export function validateScroToolInputs(
 ): ScroToolValidationResult {
   const characterId = readToolParamStr(node, "characterId");
 
+  if (modelId === "scro:character") {
+    const imageCount = inputs.refImages.length + (inputs.outfitRefs?.length ?? 0);
+    if (characterBlueprintGap({ prompt: inputs.prompt, imageCount })) {
+      return {
+        ok: false,
+        missingRequiredFields: ["refImages"],
+        reason: "請描述角色，或接上參考圖／穿搭",
+      };
+    }
+    return { ok: true };
+  }
+
   if (modelId === "scro:talking-head") {
     const missing: string[] = [];
     if (!inputs.startImage && !characterId) {
@@ -152,6 +169,22 @@ export function validateScroToolInputs(
         ok: false,
         missingRequiredFields: ["characterId"],
         reason: "Life 生活照需要選擇角色",
+      };
+    }
+    return { ok: true };
+  }
+
+  if (modelId === VIDEO_STYLE_TRANSFER_MODEL_ID) {
+    const planned = planVideoStyleTransfer({
+      node,
+      videoUrl: inputs.video,
+      catalog: STATIC_CANVAS_MODELS,
+    });
+    if (!planned.ok) {
+      return {
+        ok: false,
+        missingRequiredFields: planned.missing,
+        reason: planned.reason,
       };
     }
     return { ok: true };
@@ -287,6 +320,13 @@ export async function executeScroSyncNode(
       "audio/mpeg",
     );
     return { outputUrl, outputKind: "audio" };
+  }
+
+  if (params.modelId === "scro:character") {
+    return runCanvasCharacterBlueprint(params, {
+      submitImage: resolved.submitImage,
+      persistImageUrl: resolved.persistImageUrl,
+    });
   }
 
   const characterId = readToolParamStr(params.node, "characterId");

@@ -99,6 +99,7 @@ export function estimateCanvasModelCostUsd(
         return EXPLAINER_STILL_COST_USD;
       case "scro:life":
       case "scro:poster":
+      case "scro:character":
       case "scro:director-frame":
       // Sidebar estimate. A style-transfer run bills the chosen image model instead.
       case "scro:style-transfer":

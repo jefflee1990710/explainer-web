@@ -15,6 +15,11 @@ import {
   videoPort,
 } from "@/service/canvas/catalog/ports";
 import {
+  CHARACTER_BLUEPRINT_MODEL_ID,
+  CHARACTER_BLUEPRINT_PROVIDER_MODEL_ID,
+  characterBlueprintInputPorts,
+} from "@/service/canvas/core/character-blueprint";
+import {
   EXPLAINER_STILL_COST_USD,
   IMAGE_COST_USD,
   VIDEO_COST_PER_SECOND_USD,
@@ -197,6 +202,22 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     available: true,
   },
   {
+    // Empty character. Run draws one blueprint on Seedream 5.0 Pro; save stores it as a character.
+    id: CHARACTER_BLUEPRINT_MODEL_ID,
+    provider: "scro",
+    providerModelId: CHARACTER_BLUEPRINT_PROVIDER_MODEL_ID,
+    name: "Character",
+    category: "scro-tool",
+    inputs: characterBlueprintInputPorts(),
+    output: imageOutput(),
+    presets: ["1:1"],
+    defaultPresetId: "1:1",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: false,
+    supportsResolution: true,
+    available: true,
+  },
+  {
     // One image in. The chosen image model is toolParams.imageModelId; Run uses that model's job.
     id: "scro:style-transfer",
     provider: "scro",
@@ -286,5 +307,23 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     available: true,
     agentHint:
       "Crops a wide video to 9:16 (or 1:1 / 4:5) following the speaker's face, found by Gemini on about one frame a second.",
+  },
+  {
+    // Restyles a connected video. The run is billed and sent as the video model stored on the node.
+    id: "scro:video-style-transfer",
+    provider: "scro",
+    providerModelId: "video-style-transfer",
+    name: "Video Style Transfer",
+    category: "scro-tool",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["16:9", "9:16", "1:1"],
+    defaultPresetId: "16:9",
+    basePriceUsd: mulUsd(VIDEO_COST_PER_SECOND_USD, 5),
+    defaultDurationSeconds: 5,
+    minDurationSeconds: 5,
+    maxDurationSeconds: 15,
+    supportsAspectRatio: true,
+    available: true,
   },
 ];
