@@ -344,7 +344,6 @@ function CanvasWorkspaceInner({
     handleRunFlow,
     handleRunGroup,
     handleStopFlow,
-    runNodeAndDependents,
   } = useCanvasFlow({
     initialFlowRun: initialProject.activeFlowRun,
     nodes,
@@ -649,7 +648,6 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode: requestRunNode,
-      onRunNodeWithDependents: runNodeAndDependents,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
@@ -673,7 +671,6 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       requestRunNode,
-      runNodeAndDependents,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,

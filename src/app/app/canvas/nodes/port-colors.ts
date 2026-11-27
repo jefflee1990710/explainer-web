@@ -51,8 +51,6 @@ export type CanvasNodeActionsContextValue = {
   onUpdateNodeData: (nodeId: string, patch: Partial<CanvasNodeData>) => void;
   onDeleteNode: (nodeId: string) => void;
   onRunNode: (nodeId: string) => void;
-  // Runs this node and every runnable node downstream of it.
-  onRunNodeWithDependents: (nodeId: string) => void;
   // Swaps a model node to another model of the same kind, dropping wires the new model cannot take.
   onSwapModel: (nodeId: string, modelId: string) => void;
   // Reorders one incoming edge on a multi-connection handle, such as concat videos.
