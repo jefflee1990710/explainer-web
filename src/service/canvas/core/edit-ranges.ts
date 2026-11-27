@@ -42,3 +42,15 @@ export function mergeRanges(ranges: readonly TimeRange[]): TimeRange[] {
 export function totalRangeSec(ranges: readonly TimeRange[]): number {
   return ranges.reduce((sum, r) => sum + (r.end - r.start), 0);
 }
+
+// The parts of 0..duration not covered by the ranges (cut-out mode keeps these).
+export function complementRanges(ranges: readonly TimeRange[], durationSec: number): TimeRange[] {
+  const out: TimeRange[] = [];
+  let cursor = 0;
+  for (const range of mergeRanges(ranges)) {
+    if (range.start > cursor + 0.04) out.push({ start: cursor, end: range.start });
+    cursor = Math.max(cursor, range.end);
+  }
+  if (durationSec > cursor + 0.04) out.push({ start: cursor, end: durationSec });
+  return out.map((r) => ({ start: Math.round(r.start * 1000) / 1000, end: Math.round(r.end * 1000) / 1000 }));
+}

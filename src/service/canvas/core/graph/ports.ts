@@ -60,6 +60,9 @@ export function getNodeOutputPortType(
   if (node.type === "model") {
     if (!node.data.modelId) return null;
     const spec = findCanvasModel(node.data.modelId, catalog);
+    if (sourceHandle && sourceHandle !== "output") {
+      return spec?.extraOutputs?.find((o) => o.id === sourceHandle)?.type ?? null;
+    }
     return spec?.output.type ?? null;
   }
   return null;
@@ -122,9 +125,13 @@ export function validateEdgeConnection(
 
   const sourceHandle = candidate.sourceHandle || "output";
   if (sourceHandle !== "output") {
-    // Only a planned Director has named outputs, one per clip text.
+    // A planned Director has one named output per clip text; some models declare extra outputs.
     const plan = isPlanDirectorNode(sourceNode) ? readDirectorPlan(sourceNode) : undefined;
-    if (!plan || !directorHandles(plan).includes(sourceHandle)) {
+    const extra =
+      sourceNode.type === "model" && sourceNode.data.modelId
+        ? findCanvasModel(sourceNode.data.modelId, catalog)?.extraOutputs?.some((o) => o.id === sourceHandle)
+        : false;
+    if (!extra && (!plan || !directorHandles(plan).includes(sourceHandle))) {
       return {
         valid: false,
         reason: `Unsupported source handle "${sourceHandle}"`,

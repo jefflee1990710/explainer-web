@@ -13,6 +13,7 @@ import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog"
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
 import { FfmpegEditFields } from "@/app/app/canvas/nodes/ffmpeg-edit-fields";
+import { FfmpegParamFields } from "@/app/app/canvas/nodes/ffmpeg-param-fields";
 import { VideoStyleTransferFields } from "@/app/app/canvas/nodes/video-style-transfer-fields";
 import {
   OutdatedBanner,
@@ -384,24 +385,9 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
   {spec.provider === "ffmpeg" ? (
     <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
       {spec.id === "ffmpeg:concat" ? (
-        <>
-          <ConcatVideoOrder nodeId={id} isZh={isZh} />
-          <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-white/50">
-            {isZh ? "轉場方式" : "Transition"}
-          </label>
-          <select
-            value={String(toolParams.ffmpegTransition ?? "pad-200ms")}
-            onChange={(e) => updateToolParam("ffmpegTransition", e.target.value)}
-            className="nodrag cursor-pointer rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
-          >
-            <option value="pad-200ms">{isZh ? "定格銜接 (200ms Pad)" : "Pad 200ms"}</option>
-            <option value="cut">{isZh ? "硬切 (Hard Cut)" : "Hard Cut"}</option>
-            <option value="fade">{isZh ? "淡入淡出 (Crossfade)" : "Crossfade"}</option>
-          </select>
-          </div>
-        </>
+        <ConcatVideoOrder nodeId={id} isZh={isZh} />
       ) : null}
+      {spec.id === "ffmpeg:audio-concat" ? <ConcatVideoOrder nodeId={id} isZh={isZh} port="audios" /> : null}
 
       {spec.id === "ffmpeg:audio-mux" ? (
         <div className="grid grid-cols-2 gap-1.5">
@@ -462,8 +448,8 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
             />
             <input
               type="number"
-              min={0.5}
-              max={2}
+              min={0.25}
+              max={4}
               step={0.05}
               value={Number(toolParams.ffmpegSpeed ?? 1)}
               onChange={(e) => updateToolParam("ffmpegSpeed", Number(e.target.value))}
@@ -513,6 +499,7 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
         promptWired={isPromptWired}
         onPrompt={(prompt) => onUpdateNodeData(id, { prompt })}
       />
+      <FfmpegParamFields modelId={spec.id} isZh={isZh} toolParams={toolParams} onToolParam={updateToolParam} />
       {spec.id === "ffmpeg:color-grade" ? (
         <select
           value={String(toolParams.gradeLook ?? "jutsu")}

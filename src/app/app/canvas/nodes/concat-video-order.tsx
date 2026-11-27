@@ -1,6 +1,7 @@
 "use client";
 
-// Ordered list of videos wired into an FFmpeg Concat node. Up/down changes edge order.
+// Ordered list of clips wired into a multi-input join port (Concat videos, Audio Concat audios).
+// Up/down changes edge order.
 
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
@@ -8,14 +9,22 @@ import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { concatClipLabel } from "@/app/app/canvas/nodes/concat-clip-label";
 import { useCanvasNodeActions } from "@/app/app/canvas/nodes/port-colors";
 
-export function ConcatVideoOrder({ nodeId, isZh }: { nodeId: string; isZh: boolean }) {
+export function ConcatVideoOrder({
+  nodeId,
+  isZh,
+  port = "videos",
+}: {
+  nodeId: string;
+  isZh: boolean;
+  port?: "videos" | "audios";
+}) {
   const { catalog, edges, nodes, locale, onReorderTargetEdges } = useCanvasNodeActions();
-  const videos = edges.filter((edge) => edge.target === nodeId && edge.targetHandle === "videos");
+  const videos = edges.filter((edge) => edge.target === nodeId && edge.targetHandle === port);
   if (videos.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] text-white/50">{isZh ? "接片順序" : "Clip order"}</label>
+      <label className="text-[10px] text-white/50">{port === "audios" ? (isZh ? "音訊順序" : "Track order") : isZh ? "接片順序" : "Clip order"}</label>
       <ol className="space-y-1">
         {videos.map((edge, index) => {
           const label = concatClipLabel({
@@ -47,7 +56,7 @@ export function ConcatVideoOrder({ nodeId, isZh }: { nodeId: string; isZh: boole
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onReorderTargetEdges(nodeId, "videos", index, index - 1);
+                  onReorderTargetEdges(nodeId, port, index, index - 1);
                 }}
                 className="nodrag nopan cursor-pointer rounded p-0.5 text-white/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
               >
@@ -61,7 +70,7 @@ export function ConcatVideoOrder({ nodeId, isZh }: { nodeId: string; isZh: boole
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onReorderTargetEdges(nodeId, "videos", index, index + 1);
+                  onReorderTargetEdges(nodeId, port, index, index + 1);
                 }}
                 className="nodrag nopan cursor-pointer rounded p-0.5 text-white/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
               >

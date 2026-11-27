@@ -27,7 +27,7 @@ export type BatchSingleNodeHandlers<G extends BatchGraphSlice> = {
       modelId: string;
       prompt?: string;
       promptText?: string;
-      wires?: Array<{ sourceId: string; targetPort: string }>;
+      wires?: Array<{ sourceId: string; sourcePort?: string; targetPort: string }>;
       aspectRatio?: CanvasAspectRatio;
       durationSeconds?: number;
       toolParams?: Record<string, unknown>;
@@ -63,7 +63,7 @@ export type BatchAddNodeItem = {
   text?: string;
   prompt?: string;
   promptText?: string;
-  wires?: Array<{ sourceId: string; targetPort: string }>;
+  wires?: Array<{ sourceId: string; sourcePort?: string; targetPort: string }>;
   aspectRatio?: CanvasAspectRatio;
   durationSeconds?: number;
   toolParams?: Record<string, unknown>;
@@ -208,6 +208,7 @@ export function runBatchAddNodes<G extends BatchGraphSlice>(
       } else {
         const resolvedWires = item.wires?.map((wire) => ({
           sourceId: keyMap.get(wire.sourceId) ?? wire.sourceId,
+          ...(wire.sourcePort ? { sourcePort: wire.sourcePort } : {}),
           targetPort: wire.targetPort,
         }));
         const res = handlers.add_model_node(g, {
@@ -303,7 +304,7 @@ export function createBatchAddNodesSchema(maxNodes: number) {
             .optional()
             .describe("English prompt. Creates a prompt node and wires it to this model's prompt port."),
           wires: z
-            .array(z.object({ sourceId: z.string(), targetPort: z.string() }))
+            .array(z.object({ sourceId: z.string(), sourcePort: z.string().optional(), targetPort: z.string() }))
             .max(8)
             .optional()
             .describe(

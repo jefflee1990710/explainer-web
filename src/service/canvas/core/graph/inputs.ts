@@ -19,6 +19,7 @@ import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/s
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { CHARACTER_OUTFIT_PORT_IDS, outfitRefMeta } from "@/service/canvas/core/character-blueprint";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph/ports";
+import { extraOutputUrl } from "@/service/canvas/core/extra-outputs";
 import {
   characterOutfitPendingMessage,
   isOutfitReferenceNode,
@@ -42,6 +43,7 @@ export type ResolvedCanvasInputs = {
   videos: string[];
   refAudio?: string;
   overlayVideo?: string;
+  audios?: string[];
   // Outfit slots on the empty character node (hair, top, pants, shoes, accessory, looks).
   outfitRefs?: CanvasOutfitRef[];
   // 1-based places in refImages that came from a character node; image prompts lock their outfit.
@@ -75,7 +77,12 @@ function editedPrompt(node: CanvasNode): string | undefined {
   return typeof node.data.prompt === "string" ? node.data.prompt.trim() : "";
 }
 
-function extractMediaUrl(sourceNode: CanvasNode): string | undefined {
+function extractMediaUrl(sourceNode: CanvasNode, sourceHandle?: string | null): string | undefined {
+  // A named extra output (FFmpeg Split part B) sits next to the main file.
+  if (sourceNode.type === "model" && sourceHandle && sourceHandle !== "output") {
+    const main = sourceNode.data.outputUrl?.trim();
+    return main ? extraOutputUrl(main, sourceHandle) : undefined;
+  }
   if (sourceNode.type === "media") {
     const trimmed = sourceNode.data.mediaUrl?.trim();
     return trimmed ? trimmed : undefined;
@@ -253,7 +260,7 @@ export function resolveNodeInputs(
     for (const edge of incoming) {
       const sourceNode = nodeById.get(edge.source);
       if (!sourceNode) continue;
-      const url = extractMediaUrl(sourceNode);
+      const url = extractMediaUrl(sourceNode, edge.sourceHandle);
       if (url) {
         return url;
       }
@@ -320,12 +327,25 @@ export function resolveNodeInputs(
     if (inputs.videos.length >= maxVideos) break;
     const sourceNode = nodeById.get(edge.source);
     if (!sourceNode) continue;
-    const url = extractMediaUrl(sourceNode);
+    const url = extractMediaUrl(sourceNode, edge.sourceHandle);
     if (url) {
       inputs.videos.push(url);
     } else {
       addUnique(missingUpstreamNodeIds, sourceNode.id);
     }
+  }
+
+  // Multi-value audios (FFmpeg Audio Join), in edge order.
+  const audiosSpec = spec.inputs.find((port) => port.id === "audios");
+  const audioEdges = edgesByHandle.get("audios") ?? [];
+  const maxAudios = audiosSpec?.maxConnections ?? audioEdges.length;
+  for (const edge of audioEdges) {
+    if ((inputs.audios?.length ?? 0) >= maxAudios) break;
+    const sourceNode = nodeById.get(edge.source);
+    if (!sourceNode) continue;
+    const url = extractMediaUrl(sourceNode, edge.sourceHandle);
+    if (url) (inputs.audios ??= []).push(url);
+    else addUnique(missingUpstreamNodeIds, sourceNode.id);
   }
 
   // Verify every required port declared on the model spec has a value.
@@ -338,6 +358,7 @@ export function resolveNodeInputs(
       (port.id === "endImage" && Boolean(inputs.endImage)) ||
       (port.id === "video" && Boolean(inputs.video)) ||
       (port.id === "videos" && inputs.videos.length > 0) ||
+      (port.id === "audios" && (inputs.audios?.length ?? 0) > 0) ||
       (port.id === "refAudio" && Boolean(inputs.refAudio)) ||
       (port.id === "refImages" && inputs.refImages.length > 0) ||
       (CHARACTER_OUTFIT_PORT_IDS.has(port.id) &&

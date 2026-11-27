@@ -1,31 +1,17 @@
 // Argument builders for the canvas edit nodes (cut, grade-free picture, sound, stills).
 // `buildCanvasFfmpegArgs` delegates here so each edit stays out of the concat/mux path.
 
-import { existsSync } from "node:fs";
 import { buildVideoCodecArgs } from "@/service/ffmpeg/video-encoder";
 import {
   cuesFromSubtitleText,
   cuesToAss,
   escapeFfmpegFilterPath,
 } from "@/service/canvas/core/captions";
-
-type SubtitleFont = { family: string; directory: string };
-
-const SUBTITLE_FONTS: SubtitleFont[] = [
-  { family: "PingFang HK", directory: "/System/Library/Fonts" },
-  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/opentype/noto" },
-  { family: "Noto Sans CJK TC", directory: "/usr/share/fonts/noto-cjk" },
-];
-
-// The first installed CJK font libass can draw. Checked only when a burn job runs.
-function resolveSubtitleFont(): SubtitleFont | null {
-  for (const font of SUBTITLE_FONTS) {
-    if (existsSync(font.directory)) return font;
-  }
-  return null;
-}
+import { complementRanges, parseKeepRanges } from "@/service/canvas/core/edit-ranges";
+import { subtitleAlignment, subtitleAssStyle } from "@/service/canvas/core/subtitle-look-styles";
+import { MISSING_CJK_FONT, resolveSubtitleFont } from "@/service/canvas/execution/edit-fonts";
 import type { CanvasFfmpegLocalInputs } from "@/service/canvas/execution/ffmpeg-ops";
-import { parseKeepRanges } from "@/service/canvas/core/edit-ranges";
+import { boolParam, clamp, even, numParam, strParam } from "@/service/canvas/execution/ffmpeg-params";
 
 export { parseKeepRanges };
 
@@ -42,28 +28,6 @@ export const EDIT_FFMPEG_MODELS = [
   "ffmpeg:burn-subtitles",
 ] as const;
 
-
-function numParam(snapshot: Record<string, unknown>, key: string, fallback: number): number {
-  const toolParams = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = toolParams?.[key] ?? snapshot[key];
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : fallback;
-}
-
-function strParam(snapshot: Record<string, unknown>, key: string, fallback: string): string {
-  const toolParams = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = toolParams?.[key] ?? snapshot[key];
-  return typeof raw === "string" && raw.trim() ? raw.trim() : fallback;
-}
-
-function boolParam(snapshot: Record<string, unknown>, key: string): boolean {
-  const toolParams = snapshot.toolParams as Record<string, unknown> | undefined;
-  const raw = toolParams?.[key] ?? snapshot[key];
-  return raw === true;
-}
-
-function even(value: number): number {
-  return Math.max(2, Math.floor(value / 2) * 2);
-}
 
 function frameSize(snapshot: Record<string, unknown>, local: CanvasFfmpegLocalInputs): { width: number; height: number } {
   const aspect = strParam(snapshot, "aspectRatio", strParam(snapshot, "presetId", "9:16"));
@@ -117,7 +81,9 @@ export function buildEditFfmpegArgs(
 
   if (modelId === "ffmpeg:keep-ranges") {
     if (!video) throw new Error("保留區間需要輸入影片");
-    const ranges = parseKeepRanges(strParam(snapshot, "ffmpegRanges", ""), duration);
+    const listed = parseKeepRanges(strParam(snapshot, "ffmpegRanges", ""), duration);
+    const ranges = strParam(snapshot, "ffmpegRangeMode", "keep") === "remove" ? complementRanges(listed, duration) : listed;
+    if (ranges.length === 0) throw new Error("剪掉這些區間後沒有剩下任何片段");
     const filters: string[] = [];
     ranges.forEach((range, index) => {
       const span = (range.end - range.start).toFixed(3);
@@ -199,7 +165,16 @@ export function buildEditFfmpegArgs(
   if (modelId === "ffmpeg:rotate") {
     if (!video) throw new Error("旋轉需要輸入影片");
     const turns = strParam(snapshot, "ffmpegRotate", strParam(snapshot, "presetId", "90"));
-    const filter = turns === "180" ? "transpose=1,transpose=1" : turns === "270" ? "transpose=2" : "transpose=1";
+    const filter =
+      turns === "180"
+        ? "transpose=1,transpose=1"
+        : turns === "270"
+          ? "transpose=2"
+          : turns === "hflip"
+            ? "hflip"
+            : turns === "vflip"
+              ? "vflip"
+              : "transpose=1";
     return withAudio(["-y", "-i", video, "-vf", `${filter},setsar=1`], hasAudio, outputFile, true);
   }
 
@@ -208,11 +183,26 @@ export function buildEditFfmpegArgs(
     const overlayImage = local.imageFile;
     const overlayVideo = local.overlayVideoFile;
     if (!overlayImage && !overlayVideo) throw new Error("請連接一張圖片或一段疊加影片");
-    const position = overlayXY(strParam(snapshot, "ffmpegOverlayPosition", "bottom-right"));
-    const opacity = Math.min(1, Math.max(0.05, numParam(snapshot, "ffmpegOverlayOpacity", 1)));
-    const width = Math.max(64, Math.round((local.targetWidth ?? 1080) * 0.22));
+    const positionName = strParam(snapshot, "ffmpegOverlayPosition", "bottom-right");
+    const position =
+      positionName === "custom"
+        ? {
+            x: `main_w*${(clamp(numParam(snapshot, "ffmpegOverlayX", 0), 0, 100) / 100).toFixed(4)}`,
+            y: `main_h*${(clamp(numParam(snapshot, "ffmpegOverlayY", 0), 0, 100) / 100).toFixed(4)}`,
+          }
+        : overlayXY(positionName);
+    const opacity = clamp(numParam(snapshot, "ffmpegOverlayOpacity", 1), 0.05, 1);
+    const sizePct = clamp(numParam(snapshot, "ffmpegOverlaySizePct", 22), 5, 100);
+    const width = even(Math.max(16, Math.round(((local.targetWidth ?? 1080) * sizePct) / 100)));
+    const key = strParam(snapshot, "ffmpegChromaKey", "none");
+    const keyFilter =
+      key === "green" ? "chromakey=0x00FF00:0.18:0.08," : key === "blue" ? "chromakey=0x0000FF:0.18:0.08," : "";
+    const start = Math.max(0, numParam(snapshot, "ffmpegOverlayStartSec", 0));
+    const end = numParam(snapshot, "ffmpegOverlayEndSec", 0);
+    const enable =
+      start > 0 || end > start ? `:enable='between(t,${start.toFixed(3)},${(end > start ? end : 1e6).toFixed(3)})'` : "";
     const source = overlayImage ? ["-loop", "1", "-i", overlayImage] : ["-i", overlayVideo!];
-    const graph = `[1:v]scale=${width}:-1,format=rgba,colorchannelmixer=aa=${opacity.toFixed(2)}[ov];[0:v][ov]overlay=${position.x}:${position.y}:eof_action=pass:format=auto[vout]`;
+    const graph = `[1:v]scale=${width}:-2,format=rgba,${keyFilter}colorchannelmixer=aa=${opacity.toFixed(2)}[ov];[0:v][ov]overlay=${position.x}:${position.y}:eof_action=pass:format=auto${enable}[vout]`;
     const args = ["-y", "-i", video, ...source, "-filter_complex", graph, "-map", "[vout]"];
     if (hasAudio) args.push("-map", "0:a:0");
     return withAudio(args, hasAudio, outputFile, true);
@@ -268,7 +258,7 @@ export function buildEditFfmpegArgs(
     if (!video) throw new Error("燒錄字幕需要輸入影片");
     if (!local.subtitleFile) throw new Error("沒有字幕內容");
     const font = resolveSubtitleFont();
-    if (!font) throw new Error("燒錄中文字幕需要系統字型（PingFang 或 Noto Sans CJK）");
+    if (!font) throw new Error(MISSING_CJK_FONT);
     const filter = `subtitles=${escapeFfmpegFilterPath(local.subtitleFile)}:fontsdir=${escapeFfmpegFilterPath(font.directory)}`;
     return withAudio(["-y", "-i", video, "-vf", filter], hasAudio, outputFile, true);
   }
@@ -285,11 +275,9 @@ export function burnSubtitleAss(
   const duration = Math.max(0.5, local.durationsSec?.[0] ?? 5);
   const cues = cuesFromSubtitleText(text, duration);
   const font = resolveSubtitleFont();
-  if (!font) throw new Error("燒錄中文字幕需要系統字型（PingFang 或 Noto Sans CJK）");
-  return cuesToAss(
-    cues,
-    local.targetWidth ?? 1080,
-    local.targetHeight ?? 1920,
-    font.family,
-  );
+  if (!font) throw new Error(MISSING_CJK_FONT);
+  return cuesToAss(cues, local.targetWidth ?? 1080, local.targetHeight ?? 1920, font.family, {
+    style: subtitleAssStyle(strParam(snapshot, "subtitleLook", "clean")),
+    alignment: subtitleAlignment(strParam(snapshot, "ffmpegSubtitlePosition", "bottom")),
+  });
 }

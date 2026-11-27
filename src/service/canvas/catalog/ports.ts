@@ -133,3 +133,15 @@ export function textOutput(): CanvasModelOutputSpec {
     type: "text",
   };
 }
+
+export function audiosPort(maxConnections = 8): CanvasPortSpec {
+  return {
+    id: "audios",
+    label: "多段音訊 Audios",
+    labels: { "zh-Hant": "多段音訊", en: "Audios" },
+    type: "audio",
+    required: true,
+    multiple: true,
+    maxConnections,
+  };
+}

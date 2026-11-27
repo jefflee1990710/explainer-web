@@ -358,6 +358,7 @@ export async function submitCanvasNodeJob(
     ...(activeInputs.overlayVideo
       ? { overlayVideo: activeInputs.overlayVideo }
       : {}),
+    ...(activeInputs.audios?.length ? { audios: activeInputs.audios } : {}),
     presetId,
   };
 

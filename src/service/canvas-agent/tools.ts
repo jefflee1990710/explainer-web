@@ -59,6 +59,7 @@ import {
 } from "@/service/canvas-agent/group-tools";
 import { SCRO_GROUP_TOOLS, type ScroGroupToolInput } from "@/service/canvas-agent/scro-group-tool";
 import { addModelNode, type AddModelNodeInput } from "@/service/canvas-agent/model-node-tool";
+import { EDIT_TOOL_DESCRIPTIONS, EDIT_TOOL_HANDLERS, EDIT_TOOL_SCHEMAS } from "@/service/canvas-agent/edit-tools";
 import { addScroGroup } from "@/service/canvas-agent/scro-group-handler";
 import { commitSwapDirectorGroups, edgeTouchesSwapDirector } from "@/service/canvas-agent/swap-group-sync";
 import {
@@ -88,6 +89,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
       edges: g.edges.map((e) => ({
         id: e.id,
         sourceId: e.source,
+        ...(e.sourceHandle && e.sourceHandle !== "output" ? { sourcePort: e.sourceHandle } : {}),
         targetId: e.target,
         targetPort: e.targetHandle,
       })),
@@ -217,7 +219,8 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     }
     const candidate = {
       source: input.sourceId,
-      sourceHandle: directorSource && input.sourcePort ? input.sourcePort : "output",
+      // Directors name clip outputs; some edit nodes have extra outputs (Split's "video-b").
+      sourceHandle: input.sourcePort || "output",
       target: input.targetId,
       targetHandle: input.targetPort,
     };
@@ -411,10 +414,29 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
 const empty = z.object({});
 const aspectRatio = canvasAspectRatioSchema.describe("Frame shape, e.g. 9:16 for vertical video.");
 
+// Edit tools (trim_clip, split_clip, add_bgm, ...) bound to one working graph.
+function buildEditTools(g: CanvasAgentWorkingGraph): ToolSet {
+  const entries = (Object.keys(EDIT_TOOL_SCHEMAS) as Array<keyof typeof EDIT_TOOL_SCHEMAS>).map((name) => [
+    name,
+    tool({
+      description: EDIT_TOOL_DESCRIPTIONS[name],
+      inputSchema: EDIT_TOOL_SCHEMAS[name] as z.ZodType<Record<string, unknown>>,
+      execute: async (input: Record<string, unknown>) =>
+        (EDIT_TOOL_HANDLERS[name] as (g: CanvasAgentWorkingGraph, h: typeof CANVAS_AGENT_TOOL_HANDLERS, i: unknown) => CanvasAgentToolResult)(
+          g,
+          CANVAS_AGENT_TOOL_HANDLERS,
+          input,
+        ),
+    }),
+  ]);
+  return Object.fromEntries(entries) as ToolSet;
+}
+
 // AI SDK tool set bound to one working graph.
 export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
   const H = CANVAS_AGENT_TOOL_HANDLERS;
   return {
+    ...buildEditTools(g),
     get_canvas: tool({
       description: "Read every group, node, and edge currently on the canvas. Nodes in a group carry its groupId.",
       inputSchema: empty,
@@ -448,7 +470,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
           .optional()
           .describe("English prompt. Creates a prompt node and connects it to this model's prompt port."),
         wires: z
-          .array(z.object({ sourceId: z.string(), targetPort: z.string() }))
+          .array(z.object({ sourceId: z.string(), sourcePort: z.string().optional(), targetPort: z.string() }))
           .max(8)
           .optional()
           .describe(
@@ -516,7 +538,10 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
         "Connect a node's output to an input port. Types must match (text→prompt, image→startImage/endImage/refImages/image, audio→refAudio, video→video/videos). Multi-input ports (refImages, videos) append edges in order. A planned Explainer Director needs sourcePort clip-<n>-frame / clip-<n>-motion / clip-<n>-voice (text).",
       inputSchema: z.object({
         sourceId: z.string(),
-        sourcePort: z.string().optional().describe("Only for an Explainer Director's clip outputs."),
+        sourcePort: z
+          .string()
+          .optional()
+          .describe('An Explainer Director\'s clip outputs, or a named extra output such as an ffmpeg:split\'s "video-b".'),
         targetId: z.string(),
         targetPort: z.string(),
       }),

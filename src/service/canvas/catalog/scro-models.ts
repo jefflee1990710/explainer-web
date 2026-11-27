@@ -27,6 +27,7 @@ import {
   talkingHeadVideoCostUsd,
   teleportCostUsd,
 } from "@/service/credit-costs";
+import { oneOf } from "@/service/canvas/catalog/tool-param-specs";
 
 export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
   {
@@ -252,6 +253,7 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     output: textOutput(),
     presets: ["yue", "zh", "en", "auto"],
     defaultPresetId: "yue",
+    toolParams: [oneOf("captionLanguage", ["yue", "zh", "en", "auto"], "spoken language; yue is written in HK Traditional")],
     basePriceUsd: 0.2,
     defaultDurationSeconds: 10,
     supportsAspectRatio: false,
