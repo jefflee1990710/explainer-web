@@ -12,11 +12,13 @@ import type {
   CanvasLibraryAsset,
   CanvasLibraryCharacterOption,
 } from "@/model/canvas-dto";
+import type { CanvasToolParamSpec } from "@/model/canvas-model";
 import { type CanvasModelSpec, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
 import { canvasGroupsForProject } from "@/service/canvas/core/groups";
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { isOutputStale, markStaleOutputs } from "@/service/canvas/core/stale-outputs";
+import { currentMediaMeta } from "@/service/canvas/core/media-meta";
 import {
   directorNeedsReplan,
   directorParams,
@@ -115,13 +117,6 @@ const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "scro:poster": ["characterId", "productId", "styleId"],
   "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed", "ttsConversational"],
   [STYLE_TRANSFER_MODEL_ID]: [STYLE_TRANSFER_IMAGE_MODEL_KEY],
-  "ffmpeg:concat": ["ffmpegTransition"],
-  "ffmpeg:audio-mux": ["ffmpegMixMode", "ffmpegAudioGainDb"],
-  "ffmpeg:trim-speed": ["ffmpegStartSec", "ffmpegEndSec", "ffmpegSpeed", "ffmpegTrimSilence"],
-  "ffmpeg:transform": ["ffmpegCropMode", "ffmpegColorGrade"],
-  "ffmpeg:extract-audio": [],
-  "ffmpeg:color-grade": ["gradeLook"],
-  "ffmpeg:smooth-silence": [],
 };
 
 const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
@@ -136,12 +131,31 @@ const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
   swapMode: ["character", "object", "relight", "colorfix"],
   objectEditMode: ["change", "add", "remove"],
   voicePreset: ["alan", "cathy", "yu", "una", "brian", "bella"],
-  ffmpegTransition: ["cut", "pad-200ms", "fade"],
-  ffmpegMixMode: ["replace", "mix-ducking"],
-  ffmpegCropMode: ["fit-pad", "center-crop"],
-  ffmpegColorGrade: ["none", "h3-soft"],
-  gradeLook: ["jutsu", "talking-head", "talking-head-selfie"],
 };
+
+// Checks one value against the catalog's param spec. Returns an error or null.
+function toolParamValueError(modelId: string, param: CanvasToolParamSpec, val: unknown): string | null {
+  const where = `toolParams.${param.key} on "${modelId}"`;
+  if (param.kind === "enum") {
+    return typeof val === "string" && param.values?.includes(val)
+      ? null
+      : `Invalid value ${JSON.stringify(val)} for ${where}. Allowed: ${(param.values ?? []).join(", ")}.`;
+  }
+  if (param.kind === "boolean") return typeof val === "boolean" ? null : `${where} must be true or false.`;
+  if (param.kind === "string") return typeof val === "string" ? null : `${where} must be a string.`;
+  if (typeof val !== "number" || !Number.isFinite(val)) return `${where} must be a number.`;
+  if ((param.min !== undefined && val < param.min) || (param.max !== undefined && val > param.max)) {
+    return `${where} must be between ${param.min ?? "-∞"} and ${param.max ?? "∞"}.`;
+  }
+  return null;
+}
+
+// Keys the assistant may set: the catalog spec's toolParams, else the Scro tool list above.
+export function agentToolParamKeys(g: Pick<CanvasAgentWorkingGraph, "catalog">, modelId: string): readonly string[] | undefined {
+  const spec = findCanvasModel(modelId, g.catalog);
+  if (spec?.toolParams) return spec.toolParams.map((p) => p.key);
+  return TOOL_PARAMS_ALLOWED_KEYS[modelId];
+}
 
 export function validateToolParamsForModel(
   g: CanvasAgentWorkingGraph,
@@ -149,6 +163,18 @@ export function validateToolParamsForModel(
   toolParams?: Record<string, unknown>,
 ): string | null {
   if (!toolParams) return null;
+  const specParams = findCanvasModel(modelId, g.catalog)?.toolParams;
+  if (specParams) {
+    for (const [key, val] of Object.entries(toolParams)) {
+      const param = specParams.find((p) => p.key === key);
+      if (!param) {
+        return `Invalid toolParams key "${key}" for "${modelId}". Allowed: ${specParams.map((p) => p.key).join(", ") || "(none)"}.`;
+      }
+      const error = toolParamValueError(modelId, param, val);
+      if (error) return error;
+    }
+    return null;
+  }
   const allowed = TOOL_PARAMS_ALLOWED_KEYS[modelId];
   if (!allowed) {
     return Object.keys(toolParams).length > 0
@@ -246,13 +272,26 @@ export function addNode(
   return { ok: true, nodeId: node.id };
 }
 
+// Length, sound, and size of the node's current file, in the shape get_canvas returns.
+export function describeMedia(node: CanvasNode) {
+  const meta = currentMediaMeta(node);
+  if (!meta) return undefined;
+  return {
+    ...(meta.durationSec !== undefined ? { durationSec: meta.durationSec } : {}),
+    ...(meta.hasAudio !== undefined ? { hasAudio: meta.hasAudio } : {}),
+    ...(meta.width && meta.height ? { width: meta.width, height: meta.height } : {}),
+  };
+}
+
 export function describeNode(g: CanvasAgentWorkingGraph, node: CanvasNode) {
   const spec = node.data.modelId ? findCanvasModel(node.data.modelId, g.catalog) : undefined;
   const groupId = g.groups.find((gr) => gr.memberIds.includes(node.id))?.id;
+  const media = describeMedia(node);
   return {
     id: node.id,
     type: node.type,
     ...(groupId ? { groupId } : {}),
+    ...(media ? { media } : {}),
     ...(node.type === "prompt" ? { text: clip(node.data.text) } : {}),
     ...(node.type === "media"
       ? { mediaKind: node.data.mediaKind, name: node.data.fileName ?? node.data.label }

@@ -1,6 +1,7 @@
 // 17 $0.00 Vast.ai Worker FFmpeg editing & post-processing nodes (`ffmpeg:*`).
+// Each spec lists its toolParams so the assistant allowlist and prompt stay in sync.
 
-import type { CanvasModelSpec } from "@/model/canvas-model";
+import type { CanvasModelSpec, CanvasToolParamSpec } from "@/model/canvas-model";
 import {
   audioOutput,
   imageOutput,
@@ -11,6 +12,24 @@ import {
   videoPort,
   videosPort,
 } from "@/service/canvas/catalog/ports";
+
+const num = (key: string, min: number, max: number, hint?: string): CanvasToolParamSpec => ({
+  key,
+  kind: "number",
+  min,
+  max,
+  ...(hint ? { hint } : {}),
+});
+const oneOf = (key: string, values: readonly string[], hint?: string): CanvasToolParamSpec => ({
+  key,
+  kind: "enum",
+  values,
+  ...(hint ? { hint } : {}),
+});
+const flag = (key: string, hint?: string): CanvasToolParamSpec => ({ key, kind: "boolean", ...(hint ? { hint } : {}) });
+const text = (key: string, hint?: string): CanvasToolParamSpec => ({ key, kind: "string", ...(hint ? { hint } : {}) });
+
+const FADE_PARAMS = [num("ffmpegFadeInSec", 0, 5), num("ffmpegFadeOutSec", 0, 5)];
 
 export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
   {
@@ -26,6 +45,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Joins up to 8 videos in the order of its videos edges.",
+    toolParams: [oneOf("ffmpegTransition", ["pad-200ms", "cut", "fade"])],
   },
   {
     id: "ffmpeg:audio-mux",
@@ -40,6 +61,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Puts the refAudio track on the video (replace) or mixes it over the ducked original sound.",
+    toolParams: [oneOf("ffmpegMixMode", ["replace", "mix-ducking"]), num("ffmpegAudioGainDb", -24, 12)],
   },
   {
     id: "ffmpeg:trim-speed",
@@ -54,6 +77,13 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Keeps start..end seconds of the source and changes speed.",
+    toolParams: [
+      num("ffmpegStartSec", 0, 36_000),
+      num("ffmpegEndSec", 0, 36_000, "0 or unset keeps to the end"),
+      num("ffmpegSpeed", 0.5, 2),
+      flag("ffmpegTrimSilence", "also cut silence at both ends"),
+    ],
   },
   {
     id: "ffmpeg:transform",
@@ -68,6 +98,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: true,
     available: true,
+    agentHint: "Reframes to the node's aspectRatio (9:16, 16:9, 1:1).",
+    toolParams: [oneOf("ffmpegCropMode", ["center-crop", "fit-pad"]), oneOf("ffmpegColorGrade", ["none", "h3-soft"])],
   },
   {
     id: "ffmpeg:extract-audio",
@@ -82,6 +114,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Outputs the video's sound as mp3 audio.",
+    toolParams: [],
   },
   {
     id: "ffmpeg:color-grade",
@@ -96,6 +130,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Applies a fixed look.",
+    toolParams: [oneOf("gradeLook", ["jutsu", "talking-head", "talking-head-selfie"])],
   },
   {
     id: "ffmpeg:smooth-silence",
@@ -110,6 +146,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Trims long pauses.",
+    toolParams: [],
   },
   {
     id: "ffmpeg:keep-ranges",
@@ -124,6 +162,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Keeps only the listed time ranges and joins them.",
+    toolParams: [text("ffmpegRanges", 'seconds, e.g. "0-3, 8-12" or "0:08-0:12"')],
   },
   {
     id: "ffmpeg:volume",
@@ -138,6 +178,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Changes the video's sound level; the source must have sound.",
+    toolParams: [oneOf("ffmpegVolumeMode", ["gain", "mute", "loudnorm"]), num("ffmpegAudioGainDb", -40, 24)],
   },
   {
     id: "ffmpeg:audio-fade",
@@ -152,6 +194,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Fades the sound in and out; the source must have sound.",
+    toolParams: FADE_PARAMS,
   },
   {
     id: "ffmpeg:fade",
@@ -166,6 +210,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Fades picture and sound from and to black.",
+    toolParams: FADE_PARAMS,
   },
   {
     id: "ffmpeg:crop",
@@ -180,6 +226,14 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Crops a pixel box (custom) or removes black bars (letterbox).",
+    toolParams: [
+      oneOf("ffmpegCropMode", ["custom", "letterbox"]),
+      num("ffmpegCropX", 0, 8192),
+      num("ffmpegCropY", 0, 8192),
+      num("ffmpegCropW", 2, 8192),
+      num("ffmpegCropH", 2, 8192),
+    ],
   },
   {
     id: "ffmpeg:rotate",
@@ -194,6 +248,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Rotates clockwise.",
+    toolParams: [oneOf("ffmpegRotate", ["90", "180", "270"])],
   },
   {
     id: "ffmpeg:overlay",
@@ -220,6 +276,11 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Puts an image (logo, watermark) or overlayVideo (picture in picture) on the base video.",
+    toolParams: [
+      oneOf("ffmpegOverlayPosition", ["bottom-right", "top-left", "top-right", "bottom-left", "center"]),
+      num("ffmpegOverlayOpacity", 0.05, 1),
+    ],
   },
   {
     id: "ffmpeg:image-to-video",
@@ -234,6 +295,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: true,
     available: true,
+    agentHint: "Turns a still into a silent clip.",
+    toolParams: [num("ffmpegDurationSec", 1, 30), flag("ffmpegKenBurns", "slow push-in")],
   },
   {
     id: "ffmpeg:frame-grab",
@@ -248,6 +311,8 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Outputs one frame as an image.",
+    toolParams: [num("ffmpegAtSec", 0, 36_000)],
   },
   {
     id: "ffmpeg:burn-subtitles",
@@ -262,5 +327,7 @@ export const FFMPEG_STATIC_MODELS: CanvasModelSpec[] = [
     basePriceUsd: 0,
     supportsAspectRatio: false,
     available: true,
+    agentHint: "Burns SRT text from its prompt port (wire scro:auto-captions there) into the video.",
+    toolParams: [],
   },
 ];

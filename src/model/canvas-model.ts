@@ -51,6 +51,17 @@ export type CanvasModelRuntimeStatus =
   | "busy"
   | "unavailable";
 
+// One `toolParams` key a node accepts. The assistant allowlist and prompt are built from these.
+export type CanvasToolParamSpec = {
+  key: string;
+  kind: "number" | "string" | "boolean" | "enum";
+  values?: readonly string[];
+  min?: number;
+  max?: number;
+  // Short English note for the assistant prompt.
+  hint?: string;
+};
+
 export type CanvasModelSpec = {
   id: string;
   provider: CanvasModelProvider;
@@ -71,6 +82,10 @@ export type CanvasModelSpec = {
   available?: boolean;
   // Created only by other features (e.g. Explainer expansion); not listed in the sidebar or agent catalog.
   hiddenInSidebar?: boolean;
+  // Every toolParams key the node reads; the assistant may set only these.
+  toolParams?: readonly CanvasToolParamSpec[];
+  // One-line assistant note on what the node does.
+  agentHint?: string;
 };
 
 export const CANVAS_HEYGEN_MAX_VIDEO_SECONDS = 120;

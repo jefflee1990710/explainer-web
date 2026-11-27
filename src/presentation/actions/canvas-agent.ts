@@ -8,6 +8,7 @@ import type { CanvasAgentMessage, CanvasEdge, CanvasGroup, CanvasNode, CanvasVie
 import { requireAppUser } from "@/service/auth";
 import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
 import { listCanvasLibraryAssets, saveCanvasProject } from "@/service/canvas/use-cases/projects";
+import { fillMissingMediaMeta } from "@/service/canvas/use-cases/media-meta";
 import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import {
   appendCanvasAgentMessages,
@@ -81,10 +82,12 @@ export async function sendCanvasAgentMessageAction(
   });
   if (!project) return { ok: false, error: "Canvas not found" };
 
-  const [catalog, library, history] = await Promise.all([
+  const [catalog, library, history, nodes] = await Promise.all([
     getCanvasModelCatalog(),
     listCanvasLibraryAssets(user.clerkUserId),
     listCanvasAgentMessages(user.clerkUserId, input.canvasId, CANVAS_AGENT_HISTORY_LIMIT),
+    // Durations for clips made before probing existed or by non-FFmpeg models.
+    fillMissingMediaMeta(user.clerkUserId, input.canvasId, project.nodes),
   ]);
 
   let turn: Awaited<ReturnType<typeof runCanvasAgentTurn>>;
@@ -101,7 +104,7 @@ export async function sendCanvasAgentMessageAction(
           ...(imageUrls.length > 0 ? { imageUrls } : {}),
         };
       }),
-      nodes: project.nodes,
+      nodes,
       edges: project.edges,
       groups: project.groups,
       catalog,

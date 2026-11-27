@@ -1,10 +1,12 @@
 // Post-turn check for the Scro canvas agent: finds model nodes added this turn that
 // cannot run yet (empty required port) or that skipped the reference image every
-// other node in the same batch uses, and wires the cases that have only one answer.
+// other node in the same batch uses, plus edit settings that do not fit their source,
+// and wires the cases that have only one answer.
 
 import type { CanvasNode } from "@/model/canvas";
 import { getNodeOutputPortType, validateEdgeConnection } from "@/service/canvas/core/graph";
 import { type CanvasPortType, findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { findCanvasAgentEditIssues } from "@/service/canvas-agent/edit-gaps";
 import { CANVAS_AGENT_TOOL_HANDLERS } from "@/service/canvas-agent/tools";
 import { type CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
 
@@ -14,9 +16,11 @@ export type CanvasAgentGap = {
   port: string;
   portType: CanvasPortType;
   // "required": the node cannot run. "batch_reference": siblings share a reference this node lacks.
-  reason: "required" | "batch_reference";
+  // "edit": a time, fade, or sound setting does not fit the source (port is the field).
+  reason: "required" | "batch_reference" | "edit";
   // Node ids that could feed this port, best first.
   candidates: string[];
+  message?: string;
 };
 
 // Model nodes created by this turn that are still on the canvas, in creation order.
@@ -97,6 +101,17 @@ export function findCanvasAgentGaps(g: CanvasAgentWorkingGraph): CanvasAgentGap[
       candidates: shared,
     });
   }
+  for (const issue of findCanvasAgentEditIssues(g)) {
+    gaps.push({
+      nodeId: issue.nodeId,
+      modelName: issue.modelName,
+      port: issue.field,
+      portType: "text",
+      reason: "edit",
+      candidates: [],
+      message: issue.message,
+    });
+  }
   return gaps;
 }
 
@@ -105,7 +120,11 @@ export function autofixCanvasAgentGaps(g: CanvasAgentWorkingGraph, gaps: readonl
   let fixed = 0;
   for (const gap of gaps) {
     const sources =
-      gap.reason === "batch_reference" ? gap.candidates : gap.candidates.length === 1 ? gap.candidates : [];
+      gap.reason === "batch_reference"
+        ? gap.candidates
+        : gap.reason === "required" && gap.candidates.length === 1
+          ? gap.candidates
+          : [];
     for (const sourceId of sources) {
       const linked = CANVAS_AGENT_TOOL_HANDLERS.connect(g, {
         sourceId,
@@ -128,6 +147,7 @@ export function describeCanvasAgentGaps(g: CanvasAgentWorkingGraph, gaps: readon
   };
   return gaps
     .map((gap) => {
+      if (gap.reason === "edit") return `- ${gap.modelName} ${gap.nodeId} "${gap.port}" ${gap.message}.`;
       const what =
         gap.reason === "required"
           ? `has nothing on required port "${gap.port}" (${gap.portType})`

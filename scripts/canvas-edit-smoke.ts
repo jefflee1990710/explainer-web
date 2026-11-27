@@ -16,7 +16,9 @@ const outDir = join(tmpdir(), "canvas-edit-smoke");
 
 async function probe(file: string) {
   const stderr = await ffmpegStderr(outDir, ["-i", file]);
-  return parseMediaProbe(stderr);
+  const parsed = parseMediaProbe(stderr);
+  if (parsed.durationSec === undefined) throw new Error(`${file}: no duration`);
+  return { ...parsed, durationSec: parsed.durationSec };
 }
 
 async function frame(video: string, jpg: string, at = "0.4") {

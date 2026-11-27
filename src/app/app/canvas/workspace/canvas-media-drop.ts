@@ -79,6 +79,7 @@ function settledMediaData(result: Extract<UploadCanvasMediaResult, { ok: true }>
     fileName: result.fileName,
     mediaKind: result.mediaKind,
     mediaUrl: result.url,
+    ...(result.meta ? { outputMeta: result.meta } : {}),
   };
 }
 

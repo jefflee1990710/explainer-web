@@ -25,6 +25,9 @@ function resolveSubtitleFont(): SubtitleFont | null {
   return null;
 }
 import type { CanvasFfmpegLocalInputs } from "@/service/canvas/execution/ffmpeg-ops";
+import { parseKeepRanges } from "@/service/canvas/core/edit-ranges";
+
+export { parseKeepRanges };
 
 export const EDIT_FFMPEG_MODELS = [
   "ffmpeg:keep-ranges",
@@ -39,7 +42,6 @@ export const EDIT_FFMPEG_MODELS = [
   "ffmpeg:burn-subtitles",
 ] as const;
 
-type Range = { start: number; end: number };
 
 function numParam(snapshot: Record<string, unknown>, key: string, fallback: number): number {
   const toolParams = snapshot.toolParams as Record<string, unknown> | undefined;
@@ -61,31 +63,6 @@ function boolParam(snapshot: Record<string, unknown>, key: string): boolean {
 
 function even(value: number): number {
   return Math.max(2, Math.floor(value / 2) * 2);
-}
-
-function clockToken(token: string): number {
-  const bits = token.split(":").map(Number);
-  if (bits.some((n) => !Number.isFinite(n))) throw new Error("時間格式不正確");
-  if (bits.length === 1) return bits[0]!;
-  if (bits.length === 2) return bits[0]! * 60 + bits[1]!;
-  return bits[0]! * 3600 + bits[1]! * 60 + bits[2]!;
-}
-
-// "0-3, 8-12" or "0:08-0:12". Ranges past the end of the clip are clipped.
-export function parseKeepRanges(raw: string, durationSec: number): Range[] {
-  const text = raw.trim();
-  if (!text) throw new Error("請填保留區間，例如 0-3, 8-12");
-  const ranges: Range[] = [];
-  for (const part of text.split(/[,，]/).map((item) => item.trim()).filter(Boolean)) {
-    const match = part.match(/^(\d+(?::\d+){0,2}(?:\.\d+)?)\s*[-–~]\s*(\d+(?::\d+){0,2}(?:\.\d+)?)$/);
-    if (!match) throw new Error(`無法讀取區間「${part}」，請用 0-3 或 0:08-0:12`);
-    const start = Math.max(0, clockToken(match[1]!));
-    const end = Math.min(Math.max(durationSec, 0), clockToken(match[2]!));
-    if (!(end > start + 0.04)) throw new Error(`區間「${part}」沒有落在影片長度內`);
-    ranges.push({ start: Math.round(start * 1000) / 1000, end: Math.round(end * 1000) / 1000 });
-  }
-  if (ranges.length === 0) throw new Error("請填至少一段保留區間");
-  return ranges;
 }
 
 function frameSize(snapshot: Record<string, unknown>, local: CanvasFfmpegLocalInputs): { width: number; height: number } {
