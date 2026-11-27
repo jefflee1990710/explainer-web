@@ -11,17 +11,18 @@ export function ModelNodeCardRun(view: ModelNodeCardView) {
       : pendingOutfits.length > 0
         ? characterOutfitPendingMessage(pendingOutfits, isZh)
         : undefined;
-  const onlyLabel = isBusy
+  // Visible label only. Click still runs this one node.
+  const runLabel = isBusy
     ? isZh
       ? "執行中…"
       : "Running…"
     : isRerun
       ? isZh
-        ? "只重新執行此節點"
-        : "Re-run this node only"
+        ? "重新執行"
+        : "Re-run"
       : isZh
-        ? "只執行此節點"
-        : "Run this node only";
+        ? "執行"
+        : "Run";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -46,7 +47,7 @@ export function ModelNodeCardRun(view: ModelNodeCardView) {
         ) : (
           <Play className="h-3.5 w-3.5 shrink-0 fill-current" />
         )}
-        <span>{onlyLabel}</span>
+        <span>{runLabel}</span>
       </button>
     </div>
   );
