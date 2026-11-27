@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { AuthForm } from "@/presentation/components/auth/auth-form";
+import { referralCodeOrNull } from "@/service/affiliate/referral-code";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,13 +22,18 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; ref?: string }>;
 }) {
   const params = await searchParams;
   return (
     <PolicyLayout>
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <AuthForm mode="sign-in" nextPath={params.next} tone="dark" />
+        <AuthForm
+          mode="sign-in"
+          nextPath={params.next}
+          referralCode={referralCodeOrNull(params.ref)}
+          tone="dark"
+        />
       </div>
     </PolicyLayout>
   );

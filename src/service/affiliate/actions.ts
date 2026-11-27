@@ -3,6 +3,7 @@ import { type OptionalId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { isAffiliateAccount } from "@/service/affiliate/enabled";
 import { ensureAffiliateProfile } from "@/service/affiliate/engine";
+import { affiliateRegistrationUrl } from "@/service/affiliate/link";
 import { PAYOUT_MIN_CENTS } from "@/service/affiliate/rates";
 import {
   affiliateLedgerCollection,
@@ -172,7 +173,8 @@ export async function getAffiliateDashboardData() {
 
   return {
     code: profile.code,
-    link: `${appUrl}/r/${profile.code}`,
+    // Registration entry. /r/[code] still redirects here for links already shared.
+    link: affiliateRegistrationUrl(appUrl, profile.code),
     pendingUsd: formatUsd(profile.pendingCents),
     paidUsd: formatUsd(profile.paidCents),
     thisMonthUsd: formatUsd(thisMonthCents),
