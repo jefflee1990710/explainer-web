@@ -342,6 +342,9 @@ export async function submitCanvasNodeJob(
     ...(activeInputs.refImages.length > 0
       ? { refImages: activeInputs.refImages }
       : {}),
+    ...(activeInputs.outfitRefs && activeInputs.outfitRefs.length > 0
+      ? { outfitRefs: activeInputs.outfitRefs }
+      : {}),
     ...(activeInputs.characterRefPositions?.length
       ? { characterRefPositions: activeInputs.characterRefPositions }
       : {}),

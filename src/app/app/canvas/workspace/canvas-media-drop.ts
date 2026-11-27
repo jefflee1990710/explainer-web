@@ -82,6 +82,13 @@ function settledMediaData(result: Extract<UploadCanvasMediaResult, { ok: true }>
   };
 }
 
+export type SettledCanvasDrop = {
+  id: string;
+  mediaKind: "image" | "video" | "audio";
+  mediaUrl: string;
+  fileName: string;
+};
+
 // Image/video placeholders first, then each file uploads. Audio and other files never get a placeholder.
 export async function placeDroppedCanvasFiles(input: {
   files: ArrayLike<File> | File[];
@@ -90,6 +97,8 @@ export async function placeDroppedCanvasFiles(input: {
   onNodes: (update: (prev: FlowNode[]) => FlowNode[]) => void;
   onError: (message: string) => void;
   onSettled: () => void;
+  // Fires once an image or video placeholder becomes a real media node.
+  onVisualSettled?: (settled: SettledCanvasDrop) => void;
   createId?: () => string;
 }): Promise<void> {
   const list = Array.from(input.files);
@@ -205,6 +214,7 @@ async function uploadVisualFile(
     upload: CanvasFileUploader;
     onNodes: (update: (prev: FlowNode[]) => FlowNode[]) => void;
     onSettled: () => void;
+    onVisualSettled?: (settled: SettledCanvasDrop) => void;
   },
 ): Promise<void> {
   const patchUploading = (progress: number) => {
@@ -246,7 +256,14 @@ async function uploadVisualFile(
       node.id === id ? { ...node, connectable: true, data: settled } : node,
     );
   });
-  if (stillThere) input.onSettled();
+  if (!stillThere || !settled.mediaUrl || !settled.mediaKind || !settled.fileName) return;
+  input.onSettled();
+  input.onVisualSettled?.({
+    id,
+    mediaKind: settled.mediaKind,
+    mediaUrl: settled.mediaUrl,
+    fileName: settled.fileName,
+  });
 }
 
 function markUploadFailed(

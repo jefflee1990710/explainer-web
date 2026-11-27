@@ -3,6 +3,7 @@
 // Thin authenticated Next.js Server Actions for the Interactive Node Canvas Editor (/app/canvas).
 // Delegates all domain rules, persistence, and worker polling to `src/service/canvas/*`.
 
+import { revalidatePath } from "next/cache";
 import type {
   CanvasEdge,
   CanvasNode,
@@ -23,6 +24,8 @@ import {
 } from "@/presentation/serialize/canvas";
 import { requireAppUser } from "@/service/auth";
 import { generateCanvasCharacterOutfit } from "@/service/canvas/use-cases/character-outfit";
+import { saveCanvasCharacterBlueprint } from "@/service/canvas/use-cases/save-character-blueprint";
+import { toPublicCharacter, type PublicCharacter } from "@/presentation/serialize";
 import type { SubmitCanvasNodeJobErrorCode } from "@/service/canvas/execution/executor";
 import {
   createCanvasFolder,
@@ -317,6 +320,21 @@ export async function pollCanvasFlowAction(canvasId: string): Promise<{
       : {}),
     creditUsd: polled.creditUsd,
   };
+}
+
+// Empty character node: store the finished Seedream blueprint as a library character.
+export async function saveCanvasCharacterBlueprintAction(input: {
+  name?: string;
+  blueprintUrl?: string;
+  prompt?: string;
+  referenceImageUrls?: string[];
+}): Promise<{ ok: true; character: PublicCharacter } | { ok: false; error: string }> {
+  const result = await saveCanvasCharacterBlueprint(input);
+  if (!result.ok) return result;
+  const character = toPublicCharacter(result.character);
+  revalidatePath("/app/characters");
+  revalidatePath(`/app/characters/${character.id}`);
+  return { ok: true, character };
 }
 
 // Character node: branch a new outfit from the pieces wired into that person.
