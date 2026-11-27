@@ -62,6 +62,7 @@ import { addModelNode, type AddModelNodeInput } from "@/service/canvas-agent/mod
 import { EDIT_TOOL_DESCRIPTIONS, EDIT_TOOL_HANDLERS, EDIT_TOOL_SCHEMAS } from "@/service/canvas-agent/edit-tools";
 import { SEQUENCE_TOOL_DESCRIPTIONS, SEQUENCE_TOOL_HANDLERS, SEQUENCE_TOOL_SCHEMAS } from "@/service/canvas-agent/sequence-tools";
 import { addScroGroup } from "@/service/canvas-agent/scro-group-handler";
+import { commitSwapDirectorGroups, edgeTouchesSwapDirector } from "@/service/canvas-agent/swap-group-sync";
 import {
   addNode,
   CANVAS_AGENT_MAX_ADDED_NODES,
@@ -247,6 +248,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     g.edges.push(edge);
     g.ops.push({ kind: "add_edge", edge });
     markStale(g, [edge.target]);
+    commitSwapDirectorGroups(g, edgeTouchesSwapDirector(g, edge.source, edge.target));
     return { ok: true, edgeId: edge.id };
   },
 
@@ -258,6 +260,7 @@ export const CANVAS_AGENT_TOOL_HANDLERS = {
     g.edges = g.edges.filter((e) => e.id !== input.edgeId);
     g.ops.push({ kind: "remove_edge", edgeId: input.edgeId });
     markStale(g, [removed.target]);
+    commitSwapDirectorGroups(g, false);
     return { ok: true };
   },
 

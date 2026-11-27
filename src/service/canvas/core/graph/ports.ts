@@ -1,7 +1,7 @@
 // Port types, connection rules, and multi-edge order for the canvas graph.
 // Callers keep importing these from "@/service/canvas/core/graph".
 
-import type { CanvasEdge, CanvasNode } from "@/model/canvas";
+import { isUnsettledMediaUpload, type CanvasEdge, type CanvasNode } from "@/model/canvas";
 import {
   type CanvasModelSpec,
   type CanvasPortType,
@@ -47,6 +47,8 @@ export function getNodeOutputPortType(
   // Director outputs are text; the Director has no plain output.
   if (isPlanDirectorNode(node)) return parseDirectorHandle(sourceHandle) ? "text" : null;
   if (node.type === "media") {
+    // A file that is still uploading has nothing to wire yet.
+    if (isUnsettledMediaUpload(node.data)) return null;
     return node.data.mediaKind ?? null;
   }
   if (node.type === "prompt") {

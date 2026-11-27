@@ -16,6 +16,14 @@ export type CanvasNodeStatus =
   | "running"
   | "completed"
   | "failed";
+
+// Local image/video drop. Kept off the saved graph until the upload settles.
+export type CanvasMediaUploadState = {
+  phase: "uploading" | "failed";
+  // 0–100 when the upload reports a percentage. Absent means an indeterminate upload.
+  progress?: number;
+  error?: string;
+};
 export type CanvasOutputKind = "image" | "video" | "audio" | "text";
 export type CanvasJobStatus = "queued" | "running" | "completed" | "failed";
 export type CanvasJobDomainKind = "video" | "jutsu" | "teleport" | "worker_ffmpeg" | "explainer_frame";
@@ -36,6 +44,8 @@ export type CanvasNodeData = {
   mediaKind?: CanvasMediaKind;
   mediaUrl?: string;
   fileName?: string;
+  // Present only while a dropped image or video is uploading or showing a failure.
+  mediaUpload?: CanvasMediaUploadState;
   characterId?: string;
   // Prompt node fields
   text?: string;
@@ -259,11 +269,26 @@ export const canvasMediaMetaSchema: z.ZodType<CanvasMediaMeta> = z.object({
   height: z.number().int().positive().optional(),
 });
 
+export const canvasMediaUploadSchema = z.object({
+  phase: z.enum(["uploading", "failed"]),
+  progress: z.number().min(0).max(100).optional(),
+  error: z.string().optional(),
+});
+
+// True while a dropped image or video is still a placeholder.
+export function isUnsettledMediaUpload(
+  data: { mediaUpload?: { phase?: string } } | undefined,
+): boolean {
+  const phase = data?.mediaUpload?.phase;
+  return phase === "uploading" || phase === "failed";
+}
+
 export const canvasNodeDataSchema: z.ZodType<CanvasNodeData> = z.object({
   label: z.string().optional(),
   mediaKind: canvasMediaKindSchema.optional(),
   mediaUrl: z.string().optional(),
   fileName: z.string().optional(),
+  mediaUpload: canvasMediaUploadSchema.optional(),
   characterId: z.string().optional(),
   text: z.string().optional(),
   modelId: z.string().optional(),

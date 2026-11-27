@@ -51,11 +51,10 @@ test("landing messages focus Scro on effortless Canvas AI media creation with ze
   assert.match(heroArt, /#0d0e13/);
 });
 
-test("HomePage leads with Canvas-First hero, interactive showcase, 6 templates, and zero ComfyUI/OpenCut/FFmpeg jargon", () => {
+test("HomePage leads with Canvas-First hero, idea-to-reel showcase, and zero ComfyUI/OpenCut/FFmpeg jargon", () => {
   const homePage = fs.readFileSync(path.join(ROOT, "src/app/page.tsx"), "utf8");
   const heroIdx = homePage.indexOf("<LandingHero");
   const showcaseIdx = homePage.indexOf("<LandingCanvasShowcase");
-  const templatesIdx = homePage.indexOf("<LandingCanvasTemplates");
   const stepsIdx = homePage.indexOf("<LandingSteps");
   const castIdx = homePage.indexOf("<LandingCast");
   const powerIdx = homePage.indexOf("<StudioPowertoolsBand");
@@ -63,13 +62,14 @@ test("HomePage leads with Canvas-First hero, interactive showcase, 6 templates, 
   assert.ok(
     heroIdx >= 0 &&
       showcaseIdx > heroIdx &&
-      templatesIdx > showcaseIdx &&
-      stepsIdx > templatesIdx &&
+      stepsIdx > showcaseIdx &&
       castIdx > stepsIdx &&
       powerIdx > castIdx &&
       freeIdx > powerIdx,
-    "HomePage should follow the 6-band Canvas-First flow",
+    "HomePage should follow the Canvas-First band order",
   );
+  // The one-click templates grid is gone from the homepage; nothing may link to its anchor.
+  assert.doesNotMatch(homePage, /LandingCanvasTemplates/);
   assert.doesNotMatch(homePage, /Multi-Track|OpenCut|ComfyUI|FFmpeg/i);
 
   const heroSrc = fs.readFileSync(
@@ -77,6 +77,8 @@ test("HomePage leads with Canvas-First hero, interactive showcase, 6 templates, 
     "utf8",
   );
   assert.match(heroSrc, /canvasLaunchHref/);
+  assert.match(heroSrc, /#canvas-showcase/);
+  assert.doesNotMatch(heroSrc, /#canvas-templates/);
   assert.doesNotMatch(heroSrc, /href="\/simple"|2 cr\/s|comfy|opencut|ffmpeg/i);
 
   const powerSrc = fs.readFileSync(
@@ -97,8 +99,11 @@ test("landing and feature page components use the clean Studio / Editor design s
     "src/presentation/components/landing-explainer-reel.tsx",
     "src/presentation/components/landing-hero.tsx",
     "src/presentation/components/landing-hero-art.tsx",
-    "src/presentation/components/landing-hero-cast-rail.tsx",
-    "src/presentation/components/landing-hero-outputs.tsx",
+    "src/presentation/components/landing-hero-assistant.tsx",
+    "src/presentation/components/landing-hero-canvas-block.tsx",
+    "src/presentation/components/landing-canvas-showcase.tsx",
+    "src/presentation/components/landing-canvas-showcase-stage.tsx",
+    "src/presentation/components/landing-canvas-showcase-steps.tsx",
     "src/presentation/components/landing-cast.tsx",
     "src/presentation/components/landing-ip.tsx",
     "src/presentation/components/influencer-ip-showcase.tsx",
@@ -198,17 +203,14 @@ test("landing and feature page components use the clean Studio / Editor design s
   assert.match(productPromoWild, /\/landing\/product-promo\/iceberg\.jpg/);
   assert.doesNotMatch(productPromoWild, /\/landing\/product-promo\/hero\.jpg/);
 
-  // Video styles tiles are locked to 16:9 at every breakpoint so the previews are not cropped on the left and right.
-  const castRail = fs.readFileSync(
-    path.join(ROOT, "src/presentation/components/landing-hero-cast-rail.tsx"),
+  // The hero art is the canvas illustration (blocks, wires, assistant, finished reel), not the old galleries.
+  const heroArt = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/landing-hero-art.tsx"),
     "utf8",
   );
-  const videoStylesIdx = castRail.indexOf("Video styles");
-  assert.ok(videoStylesIdx >= 0);
-  const videoStylesBlock = castRail.slice(videoStylesIdx);
-  assert.match(videoStylesBlock, /grid-cols-2/);
-  assert.match(videoStylesBlock, /relative aspect-video overflow-hidden/);
-  assert.doesNotMatch(videoStylesBlock, /lg:grid-rows-3|lg:aspect-auto/);
+  assert.match(heroArt, /HeroCanvasWires/);
+  assert.match(heroArt, /HeroAssistant/);
+  assert.doesNotMatch(heroArt, /LandingHeroCastRail|LandingHeroOutputs/);
 
   // Public tool pages must use CanvasTemplateLauncher (never PublicStudioCreationHub) and never render OpenCut editor-desk.png
   for (const rel of [

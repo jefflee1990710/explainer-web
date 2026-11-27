@@ -60,9 +60,9 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "Scro Canvas · 零门槛一站式 AI 媒体工作台",
-      title: "一块画布，轻松开始制作 AI 视频。",
-      subtitle: "不必学复杂配置。选择模板或对 AI 助理说一句，即自动生成真人口播、动画解说、换角换场与自动配音合片。",
+      kicker: "Scro Canvas · 可视化 AI 视频画布",
+      title: "在一块画布搭好积木，直接出完成短视频。",
+      subtitle: "放入讲稿、角色和配音，或让 AI 助理帮你一次排好。点运行，Scro 自动生成完整短视频。",
       ctaStart: "免费开始创作",
       ctaWorkspace: "打开 Canvas",
       ctaUseCases: "查看角色 3 大创作场景",
