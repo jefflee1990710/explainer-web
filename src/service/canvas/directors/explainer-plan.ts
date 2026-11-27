@@ -22,6 +22,7 @@ import {
   isPlanDirectorNode,
   planDirectorParams,
   readDirectorPlan,
+  wiredDirectorReferenceImage,
   type DirectorPlanParams,
   type ExplainerDirectorParams,
   type ExplainerDirectorPlan,
@@ -196,6 +197,9 @@ export function planStateFromVideo(params: {
   buildFramePrompt: (project: Project, clipNumber: number) => string;
   frameInputs?: CanvasPlanFrameInputs;
   idPrefix: string;
+  // Connected reference image wins over the character lock still.
+  characterImageUrl?: string;
+  characterLabel?: string;
 }): CanvasExplainerPlanState {
   const { video, plannerNode } = params;
   if (!video) return { status: "failed", error: "找不到這次的分鏡規劃" };
@@ -319,6 +323,8 @@ function expandPlan(
     language,
     voicePreset,
     characterId,
+    characterImageUrl: params.characterImageUrl ?? params.frameInputs?.characterImageUrl,
+    characterLabel: params.characterLabel ?? params.frameInputs?.characterLabel,
     directorId,
     clipJoin: readClipJoin(plannerNode.data.toolParams),
     clips,
@@ -372,10 +378,15 @@ export async function readCanvasExplainerPlan(params: {
           video.phaseA.clips.map((clip) => clip.clipNumber),
         )
       : undefined;
+  const wiredRef = isExplainerDirectorNode(loaded.node)
+    ? wiredDirectorReferenceImage(loaded.node.id, loaded.canvas.nodes, loaded.canvas.edges)
+    : undefined;
   return planStateFromVideo({
     video,
     blocker,
     frameInputs,
+    characterImageUrl: wiredRef?.url ?? frameInputs?.characterImageUrl,
+    characterLabel: wiredRef?.label ?? frameInputs?.characterLabel,
     plannerNode: loaded.node,
     buildFramePrompt: (project, clipNumber) => buildFramePrompt(project, clipNumber, "start"),
     idPrefix: `${loaded.node.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID ? "th" : "exp"}-${plannerVideoId.slice(-6)}`,

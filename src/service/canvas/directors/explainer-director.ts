@@ -57,9 +57,18 @@ const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : unde
 type CharacterWireNode = {
   id: string;
   type?: string | null;
-  data: { characterId?: string; label?: string; fileName?: string };
+  data: {
+    characterId?: string;
+    label?: string;
+    fileName?: string;
+    mediaUrl?: string;
+    outputUrl?: string;
+  };
 };
 type CharacterWireEdge = { source: string; target: string; targetHandle?: string | null };
+
+// "參考圖 1" is a still card, not a person's name.
+const REFERENCE_CARD_LABEL = /^參考圖\s*\d+$/;
 
 // The character node wired into this Director, if any. Its id wins over the dropdown.
 export function wiredDirectorCharacter(
@@ -78,6 +87,31 @@ export function wiredDirectorCharacter(
     ...(characterId ? { characterId } : {}),
     ...(label ? { label } : {}),
   };
+}
+
+function referenceImageUrl(node: CharacterWireNode): string | undefined {
+  if (node.type === "media") return str(node.data.mediaUrl);
+  if (node.type === "character" || node.type === "model") {
+    return str(node.data.outputUrl) ?? str(node.data.mediaUrl);
+  }
+  return str(node.data.mediaUrl) ?? str(node.data.outputUrl);
+}
+
+// The first image wired into the Director's reference port. Its picture can become the planned character.
+export function wiredDirectorReferenceImage(
+  directorId: string,
+  nodes: readonly CharacterWireNode[],
+  edges: readonly CharacterWireEdge[],
+): { nodeId: string; url: string; label?: string } | undefined {
+  const edge = edges.find((e) => e.target === directorId && e.targetHandle === "refImages");
+  if (!edge) return undefined;
+  const source = nodes.find((n) => n.id === edge.source);
+  if (!source) return undefined;
+  const url = referenceImageUrl(source);
+  if (!url) return undefined;
+  const raw = str(source.data.label) ?? str(source.data.fileName);
+  const label = raw && !REFERENCE_CARD_LABEL.test(raw) ? raw : undefined;
+  return { nodeId: source.id, url, ...(label ? { label } : {}) };
 }
 
 // A connected text source replaces the card's topic or script until the user edits it.

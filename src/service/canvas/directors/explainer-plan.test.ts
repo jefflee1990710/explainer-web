@@ -203,6 +203,32 @@ describe("planStateFromVideo", () => {
     assert.match(ready.summary, /1\. 第一句/);
   });
 
+  it("plans a character node from the lock image and keeps the clip rows", () => {
+    const ready = planStateFromVideo({
+      ...args(video({ canvasPlan: { prompts } })),
+      characterImageUrl: "https://wired.png",
+      frameInputs: {
+        refsByClip: new Map([
+          [1, ["https://lock.png"]],
+          [2, ["https://lock.png"]],
+        ]),
+        resolution: "1k",
+        characterImageUrl: "https://lock.png",
+        characterLabel: "Jim",
+      },
+    });
+    assert.equal(ready.status, "ready");
+    if (ready.status !== "ready") return;
+    const character = ready.nodes.find((n) => n.type === "character");
+    assert.equal(character?.data.mediaUrl, "https://wired.png");
+    assert.equal(character?.data.label, "Jim");
+    assert.equal(character?.data.characterId, "c1");
+    assert.ok(ready.nodes.some((n) => n.type === "media" && n.data.label === "參考圖 1"));
+    assert.equal(ready.nodes.filter((n) => n.data.modelId === "google:gemini-nano-banana-2.1").length, 2);
+    assert.equal(ready.nodes.filter((n) => n.data.modelId === "scro:tts").length, 2);
+    assert.equal(ready.group.memberIds.includes(character!.id), true);
+  });
+
   it("keeps a Talking Head Director and wires its frame, motion, and voice outputs into the rows", () => {
     const thPlanner: CanvasNode = {
       ...planner,

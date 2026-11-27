@@ -31,6 +31,9 @@ export type ExplainerExpansionInput = {
   language: "yue" | "zh" | "en";
   voicePreset: string;
   characterId?: string;
+  // Picture for the planned character card: a connected reference, or the character lock.
+  characterImageUrl?: string;
+  characterLabel?: string;
   // Director node whose clip outputs feed each frame / video / voice prompt.
   directorId?: string;
   // Join the clips with a Concat chain (default) or one Sequence node.
@@ -167,6 +170,26 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     edge(voiceId, muxId, "refAudio");
     clipOutputs.push(muxId);
   });
+
+  // Clip rows stay. This card is the person from the connected reference image (usually 參考圖 1).
+  const characterImageUrl = input.characterImageUrl?.trim();
+  if (characterImageUrl) {
+    const rawLabel = input.characterLabel?.trim();
+    const label = rawLabel && !/^參考圖\s*\d+$/.test(rawLabel) ? rawLabel : "角色";
+    nodes.unshift({
+      id: id("character-1"),
+      type: "character",
+      position: { ...unplaced },
+      data: {
+        label,
+        fileName: label,
+        mediaKind: "image",
+        mediaUrl: characterImageUrl,
+        ...(input.characterId ? { characterId: input.characterId } : {}),
+        status: "idle",
+      },
+    });
+  }
 
   joinClips(clipOutputs, {
     mode: input.clipJoin ?? "concat",

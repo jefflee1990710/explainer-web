@@ -80,6 +80,30 @@ describe("buildExplainerExpansion", () => {
     });
   });
 
+  it("plans a character node from the reference image and keeps every clip row", () => {
+    const withRefs = clips(2).map((clip) => ({ ...clip, refUrls: ["https://hero.png", "https://prop.png"] }));
+    const out = buildExplainerExpansion({
+      ...base,
+      characterId: "char1",
+      characterImageUrl: "https://hero.png",
+      characterLabel: "參考圖 1",
+      clips: withRefs,
+    });
+    const character = out.nodes.find((n) => n.type === "character");
+    assert.ok(character);
+    assert.equal(character?.id, "x-character-1");
+    assert.equal(character?.data.mediaUrl, "https://hero.png");
+    assert.equal(character?.data.label, "角色");
+    assert.equal(character?.data.characterId, "char1");
+    assert.deepEqual(
+      out.nodes.filter((n) => n.type === "media").map((n) => n.data.mediaUrl),
+      ["https://hero.png", "https://prop.png"],
+    );
+    assert.equal(out.nodes.filter((n) => n.data.modelId === EXPLAINER_FRAME_MODEL_ID).length, 2);
+    assert.equal(out.nodes.filter((n) => n.data.modelId === EXPLAINER_HAILUO_MODEL_ID).length, 2);
+    assert.ok(out.nodes.every((n) => n.id !== "x-character-1" || n.position.x === base.origin.x));
+  });
+
   it("adds each reference image once and wires it into refImages in prompt order", () => {
     const withRefs = clips(2).map((clip, i) => ({
       ...clip,

@@ -109,6 +109,7 @@ export function ModelNodeCard({
         characterOptions={characterOptions}
         incomingHandles={[...incomingByHandle.keys()].filter((handle) => handle !== SETTINGS_HANDLE)}
         wiredPrompt={wiredPrompt}
+        referenceWired={incomingByHandle.has("refImages")}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}

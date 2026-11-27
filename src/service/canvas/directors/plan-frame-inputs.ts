@@ -5,6 +5,7 @@ import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { frameSubmitPlan } from "@/service/higgsfield/frame-prompts";
+import { frameLockReferenceUrls } from "@/service/character/cast-prompt";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
@@ -12,6 +13,9 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 export type CanvasPlanFrameInputs = {
   refsByClip: Map<number, string[]>;
   resolution: "1k" | "2k" | "4k";
+  // Character lock still. The plan turns this into a character node; clip refs stay.
+  characterImageUrl?: string;
+  characterLabel?: string;
 };
 
 export async function canvasPlanFrameInputs(
@@ -37,8 +41,12 @@ export async function canvasPlanFrameInputs(
         : refs,
     );
   }
+  const characterImageUrl = frameLockReferenceUrls(project)[0];
+  const characterLabel = project.cast?.[0]?.name?.trim();
   return {
     refsByClip,
     resolution: realistic ? "2k" : skill?.higgsfieldDefaults.imageResolution || "1k",
+    ...(characterImageUrl ? { characterImageUrl } : {}),
+    ...(characterLabel ? { characterLabel } : {}),
   };
 }

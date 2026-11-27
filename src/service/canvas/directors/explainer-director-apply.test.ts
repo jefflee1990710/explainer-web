@@ -344,6 +344,104 @@ describe("director graph apply", () => {
     assert.ok(out.edges.some((e) => e.source === "exp-other-ref-1" && e.target === "exp-other-frame-1"));
   });
 
+  it("fills the planned character from the reference image and keeps the clip rows", () => {
+    const clearedAt = "2026-11-27T02:00:00.000Z";
+    const character = (id: string, url: string): CanvasNode => ({
+      id,
+      type: "character",
+      position: { x: 4, y: 8 },
+      data: { label: "舊角色", mediaKind: "image", mediaUrl: url, status: "completed", outputUrl: "https://cdn.example/outfit.png" },
+    });
+    const graph = {
+      nodes: [
+        node("dir"),
+        character("exp-old-character-1", "https://cdn.example/old.png"),
+        media("exp-old-ref-1", "https://cdn.example/old.png"),
+        model("exp-old-frame-1", { modelId: "google:gemini-nano-banana-2.1", status: "completed", outputUrl: "https://cdn.example/frame.png" }),
+      ],
+      edges: [refWire("exp-old-ref-1", "exp-old-frame-1")],
+    };
+    const expansion = {
+      nodes: [
+        character("exp-new-character-1", "https://cdn.example/hero.png"),
+        media("exp-new-ref-1", "https://cdn.example/hero.png"),
+        model("exp-new-frame-1", { modelId: "google:gemini-nano-banana-2.1", prompt: "", status: "idle" }),
+        model("exp-new-video-1", { modelId: "minimax:MiniMax-H3", prompt: "", status: "idle" }),
+      ],
+      edges: [refWire("exp-new-ref-1", "exp-new-frame-1")],
+    };
+    const out = syncDirectorReplanRows(
+      graph,
+      expansion,
+      ["dir", "exp-old-character-1", "exp-old-ref-1", "exp-old-frame-1"],
+      clearedAt,
+    );
+    const kept = out.nodes.find((n) => n.id === "exp-old-character-1")!;
+    assert.equal(kept.data.mediaUrl, "https://cdn.example/hero.png");
+    assert.equal(kept.data.label, "舊角色");
+    assert.equal(kept.data.outputUrl, undefined);
+    assert.equal(out.nodes.some((n) => n.id === "exp-new-character-1"), false);
+    assert.equal(out.nodes.some((n) => n.id === "exp-old-frame-1"), true);
+    assert.equal(out.nodes.some((n) => n.id === "exp-old-ref-1"), true);
+    assert.deepEqual(out.addedIds, []);
+  });
+
+  it("fills a character already in the group instead of adding another", () => {
+    const hero: CanvasNode = {
+      id: "hero",
+      type: "character",
+      position: { x: 12, y: 16 },
+      data: { label: "Mia", mediaKind: "image", status: "idle" },
+    };
+    const graph = {
+      nodes: [node("dir"), hero, model("exp-old-frame-1", { modelId: "google:gemini-nano-banana-2.1" })],
+      edges: [],
+    };
+    const expansion = {
+      nodes: [
+        {
+          id: "exp-new-character-1",
+          type: "character" as const,
+          position: { x: 0, y: 0 },
+          data: { label: "角色", fileName: "角色", mediaKind: "image" as const, mediaUrl: "https://cdn.example/hero.png", characterId: "mia" },
+        },
+        model("exp-new-frame-1", { modelId: "google:gemini-nano-banana-2.1" }),
+      ],
+      edges: [],
+    };
+    const out = syncDirectorReplanRows(graph, expansion, ["dir", "hero", "exp-old-frame-1"]);
+    const filled = out.nodes.find((n) => n.id === "hero")!;
+    assert.equal(filled.data.mediaUrl, "https://cdn.example/hero.png");
+    assert.equal(filled.data.characterId, "mia");
+    assert.equal(filled.data.label, "Mia");
+    assert.equal(out.nodes.some((n) => n.id === "exp-new-character-1"), false);
+    assert.equal(out.nodes.some((n) => n.id === "exp-old-frame-1"), true);
+    assert.deepEqual(out.addedIds, []);
+  });
+
+  it("adds a character node when the group does not have one yet", () => {
+    const graph = {
+      nodes: [node("dir"), model("exp-old-frame-1", { modelId: "google:gemini-nano-banana-2.1" })],
+      edges: [],
+    };
+    const expansion = {
+      nodes: [
+        {
+          id: "exp-new-character-1",
+          type: "character" as const,
+          position: { x: 30, y: 40 },
+          data: { label: "角色", mediaKind: "image" as const, mediaUrl: "https://cdn.example/hero.png" },
+        },
+        model("exp-new-frame-1", { modelId: "google:gemini-nano-banana-2.1" }),
+      ],
+      edges: [],
+    };
+    const out = syncDirectorReplanRows(graph, expansion, ["dir", "exp-old-frame-1"]);
+    assert.deepEqual(out.addedIds, ["exp-new-character-1"]);
+    assert.equal(out.nodes.find((n) => n.id === "exp-new-character-1")?.data.mediaUrl, "https://cdn.example/hero.png");
+    assert.equal(out.nodes.some((n) => n.id === "exp-old-frame-1"), true);
+  });
+
   it("reveals one node per step and each wire once both ends are placed", () => {
     const steps = directorRevealSteps(
       {

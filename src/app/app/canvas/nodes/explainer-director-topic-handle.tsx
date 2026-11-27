@@ -24,7 +24,8 @@ export function ExplainerDirectorTopicHandle({ wired, isZh }: Props) {
         backgroundColor: wired ? color : "#12161f",
         border: `2px solid ${color}`,
         left: -6,
-        top: 46,
+        // Sits on the title row so the reference port below can take the next row.
+        top: 20,
       }}
     />
   );
