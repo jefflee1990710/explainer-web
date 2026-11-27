@@ -64,6 +64,7 @@ import { CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";
 import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
 import { CanvasMultiSelectMenu } from "@/app/app/canvas/canvas-multi-select-menu";
 import { CanvasSelectionBox } from "@/app/app/canvas/canvas-selection-box";
+import { CANVAS_DEFAULT_EDGE_OPTIONS, CANVAS_EDGE_TYPES } from "@/app/app/canvas/canvas-edge-delete-button";
 import { useCanvasModifierSelection } from "@/app/app/canvas/use-canvas-modifier-selection";
 import "@/app/app/canvas/canvas-multi-select.css";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
@@ -744,6 +745,9 @@ function CanvasWorkspaceInner({
                   nodes={flowNodes}
                   edges={flowEdges}
                   nodeTypes={NODE_TYPES}
+                  // Nodes stay selectable. A selected connection keeps its stroke and shows a delete button.
+                  edgeTypes={CANVAS_EDGE_TYPES}
+                  defaultEdgeOptions={CANVAS_DEFAULT_EDGE_OPTIONS}
                   onNodesChange={handleNodesChange}
                   onEdgesChange={handleEdgesChange}
                   onNodeContextMenu={(event, flowNode) => {
