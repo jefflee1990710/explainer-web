@@ -15,6 +15,10 @@ import {
   validateEdgeConnection,
 } from "@/service/canvas/core/graph";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import {
+  VIDEO_STYLE_TRANSFER_MODEL_ID,
+  videoStyleTransferNodeData,
+} from "@/service/canvas/catalog/video-style-transfer";
 import { directorChangedTargets, isPlanDirectorNode } from "@/service/canvas/directors/explainer-director";
 import { renderDurationForTrim } from "@/service/canvas/scro-groups/section-sync";
 import { layoutExplainerGroup, shiftGroupClearOf, type LayoutSize } from "@/service/canvas/directors/explainer-layout";
@@ -622,6 +626,17 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
             prev,
           ),
         );
+        scheduleAutosave();
+        return;
+      }
+      if (spec.id === VIDEO_STYLE_TRANSFER_MODEL_ID) {
+        const styleNode: FlowNode = {
+          id: `model-${crypto.randomUUID().slice(0, 8)}`,
+          type: "model",
+          position: pos,
+          data: videoStyleTransferNodeData(models),
+        };
+        setNodes((prev) => [...prev, styleNode]);
         scheduleAutosave();
         return;
       }
