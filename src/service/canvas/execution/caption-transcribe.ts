@@ -29,7 +29,7 @@ export async function probeRemoteDurationSec(url: string): Promise<number | null
   return durationFromProbe(stderr);
 }
 
-async function scribeAudio(
+export async function scribeAudio(
   audio: Buffer,
   language: CaptionLanguage,
 ): Promise<{ words: ScribeWord[]; text: string }> {

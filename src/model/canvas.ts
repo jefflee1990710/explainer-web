@@ -200,6 +200,10 @@ export type CanvasJob = {
   outputUrl?: string;
   outputKind?: CanvasOutputKind;
   error?: string;
+  // Fused FFmpeg chain: the head job lists the follower jobs it renders in the same worker run.
+  fusedJobIds?: string[];
+  // Follower job: settled by this head job, never dispatched on its own.
+  fusedIntoJobId?: string;
   createdAt: Date;
   updatedAt: Date;
 };

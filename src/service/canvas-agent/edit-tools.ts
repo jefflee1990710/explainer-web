@@ -27,6 +27,9 @@ export type EditToolHandlers = {
 };
 
 type Source = { sourceId: string; sourcePort?: string };
+
+// Scro tools that edit a video in place, so they insert like an FFmpeg node.
+export const SMART_EDIT_MODEL_IDS = new Set(["scro:clean-speech", "scro:smart-reframe"]);
 type Handle = { source: string; sourceHandle: string };
 
 const handleOf = (port?: string) => port || "output";
@@ -86,6 +89,19 @@ function placeRightOf(g: CanvasAgentWorkingGraph, nodeId: string, anchorId: stri
   const node = g.nodes.find((n) => n.id === nodeId);
   if (!anchor || !node) return;
   const position = { x: anchor.position.x + COLUMN_GAP, y: anchor.position.y + row * 260 };
+  // Model cards are tall; step down past any card already in that column so nothing stacks.
+  const height = (n: { type: string }) => (n.type === "model" ? 560 : 320);
+  for (let moved = true; moved; ) {
+    moved = false;
+    for (const other of g.nodes) {
+      if (other.id === nodeId || Math.abs(other.position.x - position.x) >= COLUMN_GAP - 40) continue;
+      const overlaps = position.y < other.position.y + height(other) && other.position.y < position.y + height(node);
+      if (overlaps) {
+        position.y = other.position.y + height(other) + 40;
+        moved = true;
+      }
+    }
+  }
   node.position = position;
   g.ops.push({ kind: "move_node", nodeId, position });
 }
@@ -104,7 +120,9 @@ export function insertEdit(g: CanvasAgentWorkingGraph, h: EditToolHandlers, inpu
   const type = getNodeOutputPortType(source, g.catalog, sourceHandle);
   if (!type) return { error: `Node "${input.sourceId}" has no output "${sourceHandle}".` };
   const spec = findCanvasModel(input.modelId, g.catalog);
-  if (!spec || spec.provider !== "ffmpeg") return { error: `"${input.modelId}" is not an FFmpeg edit node.` };
+  if (!spec || (spec.provider !== "ffmpeg" && !SMART_EDIT_MODEL_IDS.has(spec.id))) {
+    return { error: `"${input.modelId}" is not an FFmpeg edit node.` };
+  }
   const port = inputPortFor(spec, type);
   if (!port) return { error: `${spec.name} takes no ${type} input.` };
 

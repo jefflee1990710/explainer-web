@@ -249,4 +249,61 @@ export const FFMPEG_PARAM_FIELDS: Record<string, readonly FfmpegParamField[]> = 
     { key: "ffmpegFileName", zh: "檔名", en: "File name", kind: "text", wide: true },
     { key: "ffmpegLoudnorm", zh: "統一響度 (-14 LUFS)", en: "Loudness -14 LUFS", kind: "check" },
   ],
+  // Smart edit Scro tools share the table; defaults match providers/scro.ts.
+  "scro:clean-speech": [
+    {
+      key: "captionLanguage",
+      zh: "語言",
+      en: "Language",
+      kind: "select",
+      def: "yue",
+      options: [
+        ["yue", "廣東話", "Cantonese"],
+        ["zh", "國語", "Mandarin"],
+        ["en", "English", "English"],
+        ["auto", "自動", "Auto"],
+      ],
+    },
+    { key: "cleanMaxPauseSec", zh: "停頓上限（秒，0＝不剪）", en: "Max pause (s, 0 = keep)", kind: "number", def: 0.8, min: 0, max: 5, step: 0.1 },
+    { key: "cleanFillers", zh: "剪語氣詞（嗯／呃）", en: "Cut fillers (um / uh)", kind: "check", def: true },
+    { key: "cleanRepeats", zh: "剪重複句", en: "Cut restarts", kind: "check", def: true },
+  ],
+  "scro:smart-reframe": [
+    {
+      key: "reframeAspect",
+      zh: "畫面比例",
+      en: "Frame",
+      kind: "select",
+      def: "9:16",
+      options: [
+        ["9:16", "9:16 直向", "9:16 vertical"],
+        ["1:1", "1:1 方形", "1:1 square"],
+        ["4:5", "4:5", "4:5"],
+        ["16:9", "16:9 橫向", "16:9 wide"],
+      ],
+    },
+    {
+      key: "reframeResolution",
+      zh: "解像度",
+      en: "Resolution",
+      kind: "select",
+      def: "1080p",
+      options: [
+        ["1080p", "1080p", "1080p"],
+        ["720p", "720p", "720p"],
+      ],
+    },
+    {
+      key: "reframeMotion",
+      zh: "鏡頭",
+      en: "Camera",
+      kind: "select",
+      def: "steady",
+      options: [
+        ["steady", "穩定（少移動）", "Steady"],
+        ["follow", "跟隨主體", "Follow subject"],
+      ],
+    },
+    { key: "reframeFocus", zh: "跟邊個（留空＝講者）", en: "Follow (empty = speaker)", kind: "text", wide: true },
+  ],
 };

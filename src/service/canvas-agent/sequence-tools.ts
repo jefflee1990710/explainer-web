@@ -162,7 +162,11 @@ function defined<T extends Record<string, unknown>>(values: T): Partial<T> {
   return Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
 
-function updateSequence(g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"update_sequence">): CanvasAgentToolResult {
+export function updateSequence(
+  g: CanvasAgentWorkingGraph,
+  h: EditToolHandlers,
+  input: In<"update_sequence">,
+): CanvasAgentToolResult {
   const node = g.nodes.find((n) => n.id === input.nodeId);
   if (!node || node.data.modelId !== SEQUENCE_MODEL_ID) return { error: `"${input.nodeId}" is not an ${SEQUENCE_MODEL_ID} node.` };
   const current = syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, g.edges);
