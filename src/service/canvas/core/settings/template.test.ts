@@ -5,6 +5,7 @@ import {
   ensureTextStylePlaceholder,
   explainerTextStyleLine,
   MAX_TEXT_STYLE_LINE_CHARS,
+  promptWithTextStyle,
   templateTextStyleLine,
 } from "@/service/canvas/core/settings/explainer-text-style";
 
@@ -38,6 +39,12 @@ describe("explainer text style placeholder", () => {
     assert.equal(templateTextStyleLine("no lettering here", "neon").templated, false);
     assert.equal(ensureTextStylePlaceholder("short"), "short\n{{text_style}}");
     assert.equal(ensureTextStylePlaceholder("a {{text_style}} b"), "a {{text_style}} b");
+  });
+
+  it("shows the style line when text_style is supplied and keeps the token when it is not", () => {
+    const line = explainerTextStyleLine("handwritten");
+    assert.equal(promptWithTextStyle("board {{text_style}}", {}), "board {{text_style}}");
+    assert.equal(promptWithTextStyle("board {{text_style}} {{mood}}", { text_style: line }), `board ${line} {{mood}}`);
   });
 
   it("knows the longest style line", () => {

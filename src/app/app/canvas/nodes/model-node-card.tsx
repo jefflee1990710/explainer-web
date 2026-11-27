@@ -12,7 +12,7 @@ import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { CHARACTER_BLUEPRINT_MODEL_ID } from "@/service/canvas/core/character-blueprint";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
-import { wiredSettingsVars } from "@/service/canvas/core/graph";
+import { modelPromptVars } from "@/service/canvas/core/graph";
 import { CharacterBlueprintNodeCard } from "@/app/app/canvas/nodes/character-blueprint-node-card";
 import { pendingCharacterOutfitSources } from "@/service/canvas/core/character-wardrobe";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
@@ -215,11 +215,11 @@ export function ModelNodeCard({
     );
   }
 
-  // `{{key}}` on a wired Prompt is filled by that Prompt's Setting.
+  // Director text style fills {{text_style}}. A Setting overrides a key only when it is wired.
   const promptWire = edges.find((e) => e.target === id && e.targetHandle === "prompt");
   const promptNode = promptWire ? nodes.find((n) => n.id === promptWire.source && n.type === "prompt") : undefined;
   const templateText = promptNode ? (promptNode.data.text ?? "") : (data.prompt ?? "");
-  const templateVars = promptNode ? wiredSettingsVars(promptNode.id, nodes, edges) : {};
+  const templateVars = modelPromptVars(id, nodes, edges, catalog);
 
   const toolParams = data.toolParams ?? {};
   const updateToolParam = (key: string, value: unknown) => {

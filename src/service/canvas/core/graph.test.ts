@@ -9,11 +9,12 @@ import {
   getNodeOutputPortType,
   mergeCanvasNodeSnapshots,
   reorderTargetHandleEdges,
+  modelPromptVars,
   resolveNodeInputs,
   readConnectedPromptText,
   validateEdgeConnection,
 } from "@/service/canvas/core/graph";
-import { explainerTextStyleLine } from "@/service/canvas/core/settings/explainer-text-style";
+import { explainerTextStyleLine, promptWithTextStyle } from "@/service/canvas/core/settings/explainer-text-style";
 
 function mediaNode(
   id: string,
@@ -451,12 +452,64 @@ describe("canvas graph — resolveNodeInputs", () => {
   });
 
   it("fills {{text_style}} from the Director card, ignoring a Setting wired to the Director", () => {
-    const nodes: CanvasNode[] = [plannedDirector, settingNode("s-dir", { mood: "calm" }), modelNode("img", "mentalok:flux-schnell")];
+    const nodes: CanvasNode[] = [plannedDirector, settingNode("s-dir", { mood: "calm", text_style: "FROM SETTING" }), modelNode("img", "mentalok:flux-schnell")];
     const edges: CanvasEdge[] = [edge("e1", "dir", "img", "prompt", "clip-1-frame"), edge("e2", "s-dir", "dir", "settings")];
     const prompt = resolveNodeInputs("img", nodes, edges).inputs.prompt ?? "";
     assert.equal(prompt.includes("{{mood}}"), true);
     assert.equal(prompt.includes(explainerTextStyleLine("neon")), true);
     assert.equal(prompt.includes("calm"), false);
+    assert.equal(prompt.includes("FROM SETTING"), false);
+  });
+
+  it("runs a new Explainer frame with no Setting by filling the default handwritten style", () => {
+    const dir: CanvasNode = {
+      ...plannedDirector,
+      data: {
+        ...plannedDirector.data,
+        toolParams: {
+          ...plannedDirector.data.toolParams,
+          textStyleId: undefined,
+          plan: {
+            ...(plannedDirector.data.toolParams?.plan as object),
+            clips: [
+              {
+                clipNumber: 1,
+                framePrompt: "board {{text_style}}",
+                videoPrompt: "pan",
+                spokenLine: "hi",
+                durationSeconds: 6,
+                refUrls: [],
+              },
+            ],
+          },
+        },
+      },
+    };
+    const nodes: CanvasNode[] = [dir, modelNode("img", "mentalok:flux-schnell")];
+    const edges: CanvasEdge[] = [edge("e1", "dir", "img", "prompt", "clip-1-frame")];
+    const resolved = resolveNodeInputs("img", nodes, edges);
+    assert.equal(resolved.ok, true);
+    const prompt = resolved.inputs.prompt ?? "";
+    const line = explainerTextStyleLine("handwritten");
+    assert.equal(prompt.includes("{{text_style}}"), false);
+    assert.equal(prompt.includes(line), true);
+    const shown = promptWithTextStyle(readConnectedPromptText("img", nodes, edges) ?? "", modelPromptVars("img", nodes, edges));
+    assert.equal(shown.includes("{{text_style}}"), false);
+    assert.equal(shown.includes(line), true);
+  });
+
+  it("lets a wired Setting override text_style and blocks when that wire is absent", () => {
+    const nodes: CanvasNode[] = [
+      settingNode("s", { text_style: "CUSTOM LOOK" }),
+      promptNode("p", "Title {{text_style}}"),
+      modelNode("img", "mentalok:flux-schnell"),
+    ];
+    const wired = resolveNodeInputs("img", nodes, [edge("e1", "p", "img", "prompt"), edge("e2", "s", "p", "settings")]);
+    assert.equal(wired.ok, true);
+    assert.equal(wired.inputs.prompt, "Title CUSTOM LOOK");
+    const bare = resolveNodeInputs("img", nodes, [edge("e1", "p", "img", "prompt")]);
+    assert.equal(bare.ok, false);
+    if (!bare.ok) assert.deepEqual(bare.missingRequiredFields, ["{{text_style}}"]);
   });
 
   it("reports an unplanned Director as a missing upstream", () => {
