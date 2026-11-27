@@ -13,15 +13,15 @@ function shell(child: ReactNode) {
   return createElement(
     ReactFlowProvider,
     null,
-    createElement(
-      I18nProvider,
-      { initialLocale: "en" },
-      createElement(
+    // eslint-disable-next-line react/no-children-prop -- Next's typecheck requires children on the props object.
+    createElement(I18nProvider, {
+      initialLocale: "en",
+      children: createElement(
         CanvasNodeActionsContext.Provider,
         { value: {} as CanvasNodeActionsContextValue },
         child,
       ),
-    ),
+    }),
   );
 }
 
