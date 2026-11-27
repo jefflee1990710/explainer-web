@@ -6,7 +6,7 @@ export type PlanDefinition = {
   id: PlanId;
   name: string;
   nameZh: string;
-  // 1:1 monthly USD credit allowance granted each billing cycle.
+  // USD Credit refilled each cycle: 1.1× the Stripe price (`amountUsd`).
   monthlyCreditUsd: number;
   amountUsd: number;
   blurb: string;
@@ -22,13 +22,13 @@ export const PLAN_RANK: Record<PlanId, number> = {
   scale: 3,
 };
 
-// 1:1 USD credit subscription plans: each plan grants its full monthly price in USD credit.
+// Monthly plans charge `amountUsd` and refill 1.1× that price in USD Credit.
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
     name: "Starter",
     nameZh: "入門",
-    monthlyCreditUsd: 59,
+    monthlyCreditUsd: 64.9,
     amountUsd: 59,
     blurb: "適合先試用 Scro。",
   },
@@ -36,7 +36,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "pro",
     name: "Pro",
     nameZh: "專業",
-    monthlyCreditUsd: 129,
+    monthlyCreditUsd: 141.9,
     amountUsd: 129,
     blurb: "適合自己在做生意的人。",
   },
@@ -44,7 +44,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "studio",
     name: "Studio",
     nameZh: "工作室",
-    monthlyCreditUsd: 249,
+    monthlyCreditUsd: 273.9,
     amountUsd: 249,
     blurb: "適合用 Scro 接案賺錢的人。",
     highlight: true,
@@ -53,11 +53,16 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "scale",
     name: "Scale",
     nameZh: "規模",
-    monthlyCreditUsd: 399,
+    monthlyCreditUsd: 438.9,
     amountUsd: 399,
     blurb: "適合幫很多客戶做片的團隊。",
   },
 };
+
+// USD Credit a paid invoice refills from the live catalog.
+export function invoiceRefillCreditUsd(planId: PlanId): number {
+  return PLANS[planId].monthlyCreditUsd;
+}
 
 // Higher monthly plans a subscriber can move to from `current`.
 export function upgradeablePlans(current?: PlanId | null) {

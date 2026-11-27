@@ -1232,7 +1232,7 @@ export const en: Messages = {
     addCreditsBlurb: "One-time purchase. Unused top-up USD Credit never expires.",
     continueCheckoutPack: "Continue to checkout with ${amount}",
     monthlyPlansTitle: "Monthly USD Credit plans",
-    monthlyPlansSubtitle: "Get USD Credit refilled every month, usable across Scro.",
+    monthlyPlansSubtitle: "Each month refills 1.1× the plan price in USD Credit, usable across Scro.",
     payAsYouGoPlan: "Pay as you go",
     payAsYouGoName: "Pay as you go",
     payAsYouGoBlurb: "Start with $1.50 free USD Credit; subscribe or top up when you need more.",

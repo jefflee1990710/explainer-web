@@ -27,8 +27,8 @@ export function BillingPlanCard({
     locale === "en"
       ? `${formatUsd(plan.monthlyCreditUsd)} USD Credit · Refills monthly`
       : locale === "zh-Hans"
-        ? `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置补满至方案金额`
-        : `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置補滿至方案金額`;
+        ? `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置补满`
+        : `${formatUsd(plan.monthlyCreditUsd)} USD Credit · 每月重置補滿`;
 
   return (
     <article

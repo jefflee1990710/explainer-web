@@ -12,12 +12,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { EnterpriseCta } from "@/presentation/components/pricing/enterprise-cta";
 import { creditProgressUsd } from "@/service/billing/credit-balance";
 import type { PlanDefinition } from "@/service/billing/plans";
-import { addUsd, formatUsd, formatUsdRate, subUsd, toUsdUnits } from "@/service/billing/usd";
-import {
-  FRAME_COST_USD,
-  TALKING_HEAD_COST_PER_SECOND_USD,
-  VIDEO_COST_PER_SECOND_USD,
-} from "@/service/credit-costs";
+import { addUsd, formatUsd, subUsd, toUsdUnits } from "@/service/billing/usd";
 
 /**
  * Dedicated Usage & USD Credit page (`/app/usage`):
@@ -103,13 +98,6 @@ export function UsageView({
       : locale === "zh-Hans"
         ? "查看你的剩余 USD Credit 余额，并在下方随时单次充值（永久保留）或订阅每月重置方案。"
         : "View your remaining USD Credit balance, buy never-expiring top-up packs, or subscribe to a monthly refill plan below.";
-
-  const rateNote =
-    locale === "zh-Hant"
-      ? `每張 2K 圖片／畫格／海報 ${formatUsd(FRAME_COST_USD)}；標準影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}；對嘴口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（已含語音）。月費方案每月重置補滿至方案金額，單次加值永久保留。`
-      : locale === "zh-Hans"
-        ? `每张 2K 图片／画格／海报 ${formatUsd(FRAME_COST_USD)}；标准影片 ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)}；对嘴口播影片 ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)}（已含语音）。月费方案每月重置补满至方案金额，单次充值永久保留。`
-        : `${formatUsd(FRAME_COST_USD)} per 2K image/frame/poster · ${formatUsdRate(VIDEO_COST_PER_SECOND_USD)} standard video · ${formatUsdRate(TALKING_HEAD_COST_PER_SECOND_USD)} talking-head video (voice included). Monthly plans refill each cycle; one-time top-ups never expire.`;
 
   const billingBtnLabel =
     locale === "zh-Hant"
@@ -226,7 +214,6 @@ export function UsageView({
                   : `${hasMonthly ? `每月重置額度：${formatUsd(monthlyCreditUsd)}/月` : ""}${hasMonthly && hasBonus ? " · " : ""}${hasBonus ? `單次加值永久餘額：${formatUsd(bonusCreditUsd)}` : ""}`}
             </p>
           ) : null}
-          <p className="mt-2 text-xs text-muted">{rateNote}</p>
         </div>
       </section>
 
