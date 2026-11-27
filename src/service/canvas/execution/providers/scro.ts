@@ -11,7 +11,7 @@ import { completedResult, runningResult } from "@/service/canvas/execution/provi
 import type { CanvasProviderAdapter } from "@/service/canvas/execution/providers/types";
 import { isElevenLabsConfigured } from "@/service/voice/elevenlabs";
 
-const SYNC_TOOL_IDS = new Set(["scro:tts", "scro:life", "scro:poster"]);
+const SYNC_TOOL_IDS = new Set(["scro:tts", "scro:life", "scro:poster", "scro:character"]);
 
 export const scroProvider: CanvasProviderAdapter = {
   provider: "scro",

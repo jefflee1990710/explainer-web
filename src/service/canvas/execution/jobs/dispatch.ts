@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 import { canvasJobsCollection } from "@/dao";
 import type { CanvasJob, CanvasNode } from "@/model/canvas";
 import { markJobFailed } from "@/service/canvas/execution/job-ledger";
-import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
+import type { CanvasOutfitRef, ResolvedCanvasInputs } from "@/service/canvas/core/graph";
 import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import {
@@ -16,9 +16,28 @@ import {
   type SubmitCanvasNodeJobResult,
 } from "@/service/canvas/execution/jobs/deps";
 import { settleFailedJob } from "@/service/canvas/execution/jobs/settle";
+import { retargetVideoStyleTransferJob } from "@/service/canvas/execution/video-style-transfer";
 import { dispatchAdapterFor } from "@/service/canvas/execution/providers";
 
+function outfitRefsFromSnapshot(value: unknown): CanvasOutfitRef[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const refs: CanvasOutfitRef[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    if (typeof record.handle !== "string" || typeof record.url !== "string") continue;
+    refs.push({
+      handle: record.handle,
+      url: record.url,
+      ...(typeof record.name === "string" ? { name: record.name } : {}),
+      ...(typeof record.prompt === "string" ? { prompt: record.prompt } : {}),
+    });
+  }
+  return refs.length > 0 ? refs : undefined;
+}
+
 function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasInputs {
+  const outfitRefs = outfitRefsFromSnapshot(snapshot.outfitRefs);
   return {
     prompt: typeof snapshot.prompt === "string" ? snapshot.prompt : undefined,
     image: typeof snapshot.image === "string" ? snapshot.image : undefined,
@@ -30,6 +49,14 @@ function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasIn
     refAudio: typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined,
     overlayVideo: typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined,
     ...(Array.isArray(snapshot.audios) ? { audios: snapshot.audios.map(String) } : {}),
+    ...(outfitRefs ? { outfitRefs } : {}),
+    ...(Array.isArray(snapshot.characterRefPositions)
+      ? {
+          characterRefPositions: snapshot.characterRefPositions
+            .map(Number)
+            .filter((n) => Number.isInteger(n) && n > 0),
+        }
+      : {}),
   };
 }
 
@@ -85,12 +112,14 @@ export async function executeDispatchedCanvasJob(
   },
   resolved: CanvasExecutorDeps,
 ): Promise<SubmitCanvasNodeJobResult> {
-  const { initialJob, spec } = ctx;
+  const { initialJob } = ctx;
   const clerkUserId = initialJob.clerkUserId;
 
   try {
-    return await dispatchAdapterFor(spec.provider).dispatch({
-      ...ctx,
+    // A style-transfer node becomes the selected video model's existing job.
+    const prepared = await retargetVideoStyleTransferJob(ctx, resolved);
+    return await dispatchAdapterFor(prepared.spec.provider).dispatch({
+      ...prepared,
       clerkUserId,
       canvasIdHex: initialJob.canvasId.toHexString(),
       jobIdHex: initialJob._id.toHexString(),

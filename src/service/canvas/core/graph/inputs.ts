@@ -17,8 +17,21 @@ import {
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/settings/template";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
+import { CHARACTER_OUTFIT_PORT_IDS, outfitRefMeta } from "@/service/canvas/core/character-blueprint";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph/ports";
 import { extraOutputUrl } from "@/service/canvas/core/extra-outputs";
+import {
+  characterOutfitPendingMessage,
+  isOutfitReferenceNode,
+  pendingCharacterOutfitSources,
+} from "@/service/canvas/core/character-wardrobe";
+
+export type CanvasOutfitRef = {
+  handle: string;
+  url: string;
+  name?: string;
+  prompt?: string;
+};
 
 export type ResolvedCanvasInputs = {
   prompt?: string;
@@ -31,6 +44,10 @@ export type ResolvedCanvasInputs = {
   refAudio?: string;
   overlayVideo?: string;
   audios?: string[];
+  // Outfit slots on the empty character node (hair, top, pants, shoes, accessory, looks).
+  outfitRefs?: CanvasOutfitRef[];
+  // 1-based places in refImages that came from a character node; image prompts lock their outfit.
+  characterRefPositions?: number[];
 };
 
 export type ResolveNodeInputsResult =
@@ -263,6 +280,8 @@ export function resolveNodeInputs(
   const refImagesSpec = spec.inputs.find((port) => port.id === "refImages");
   const refEdges = edgesByHandle.get("refImages") ?? [];
   const maxRefs = refImagesSpec?.maxConnections ?? refEdges.length;
+  const characterRefPositions: number[] = [];
+  let outfitReferenceWired = false;
   for (const edge of refEdges) {
     if (inputs.refImages.length >= maxRefs) break;
     const sourceNode = nodeById.get(edge.source);
@@ -270,10 +289,35 @@ export function resolveNodeInputs(
     const url = extractMediaUrl(sourceNode);
     if (url) {
       inputs.refImages.push(url);
+      if (sourceNode.type === "character") characterRefPositions.push(inputs.refImages.length);
+      if (isOutfitReferenceNode(sourceNode)) outfitReferenceWired = true;
     } else {
       addUnique(missingUpstreamNodeIds, sourceNode.id);
     }
   }
+  if (characterRefPositions.length > 0 && !outfitReferenceWired) {
+    inputs.characterRefPositions = characterRefPositions;
+  }
+
+  // Outfit slots used by the empty character node. Other models do not declare these ports.
+  const outfitRefs: CanvasOutfitRef[] = [];
+  for (const port of spec.inputs) {
+    if (!CHARACTER_OUTFIT_PORT_IDS.has(port.id)) continue;
+    const incoming = edgesByHandle.get(port.id) ?? [];
+    const max = port.multiple ? Math.max(1, port.maxConnections) : 1;
+    for (const edge of incoming) {
+      if (outfitRefs.filter((ref) => ref.handle === port.id).length >= max) break;
+      const sourceNode = nodeById.get(edge.source);
+      if (!sourceNode) continue;
+      const url = extractMediaUrl(sourceNode);
+      if (!url) {
+        addUnique(missingUpstreamNodeIds, sourceNode.id);
+        continue;
+      }
+      outfitRefs.push({ handle: port.id, url, ...outfitRefMeta(sourceNode) });
+    }
+  }
+  if (outfitRefs.length > 0) inputs.outfitRefs = outfitRefs;
 
   // Resolve multi-value videos preserving edge order up to model maxConnections.
   const videosSpec = spec.inputs.find((port) => port.id === "videos");
@@ -316,19 +360,26 @@ export function resolveNodeInputs(
       (port.id === "videos" && inputs.videos.length > 0) ||
       (port.id === "audios" && (inputs.audios?.length ?? 0) > 0) ||
       (port.id === "refAudio" && Boolean(inputs.refAudio)) ||
-      (port.id === "refImages" && inputs.refImages.length > 0);
+      (port.id === "refImages" && inputs.refImages.length > 0) ||
+      (CHARACTER_OUTFIT_PORT_IDS.has(port.id) &&
+        (inputs.outfitRefs ?? []).some((ref) => ref.handle === port.id));
     if (!satisfied) {
       addUnique(missingRequiredFields, port.id);
     }
   }
 
-  if (missingUpstreamNodeIds.length > 0 || missingRequiredFields.length > 0) {
+  // A character with wired outfit pieces but no generated look would send its default outfit.
+  const pendingOutfits = pendingCharacterOutfitSources(nodeId, nodes, edges);
+  const outfitReason = pendingOutfits.length > 0 ? characterOutfitPendingMessage(pendingOutfits) : undefined;
+
+  if (missingUpstreamNodeIds.length > 0 || missingRequiredFields.length > 0 || outfitReason) {
     return {
       ok: false,
       inputs,
       promptFromNode,
       missingUpstreamNodeIds,
       missingRequiredFields,
+      ...(outfitReason ? { reason: outfitReason } : {}),
     };
   }
 
