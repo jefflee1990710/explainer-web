@@ -33,6 +33,7 @@ function card(data: CanvasNodeData, wiredPrompt?: string, isZh = false) {
     characterOptions: [],
     incomingHandles: [],
     wiredPrompt,
+    referenceWired: false,
     onUpdate: () => {},
     onPlan: () => {},
     onRemove: () => {},
@@ -65,6 +66,31 @@ function planButton(html: string): string {
   assert.ok(match);
   return match[0];
 }
+
+test("the reference port is optional and says when an image is connected", () => {
+  const empty = renderToStaticMarkup(shell(card(base, undefined, true)));
+  assert.match(empty, /data-handleid="refImages"/);
+  assert.match(empty, /參考圖/);
+  assert.match(empty, /可接/);
+  const wired = renderToStaticMarkup(
+    shell(
+      createElement(ExplainerDirectorCard, {
+        data: base,
+        isZh: true,
+        selected: false,
+        disabled: false,
+        characterOptions: [],
+        incomingHandles: [],
+        referenceWired: true,
+        onUpdate: () => {},
+        onPlan: () => {},
+        onRemove: () => {},
+      }),
+    ),
+  );
+  assert.match(wired, /已連/);
+  assert.match(wired, /data-handleid="prompt"/);
+});
 
 test("a wired topic enables Plan without showing the topic text", () => {
   const html = renderToStaticMarkup(shell(card({ ...base, prompt: "" }, "How compound interest works")));

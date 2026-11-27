@@ -15,6 +15,7 @@ import {
   planDirectorParams,
   readDirectorPlan,
   wiredDirectorCharacter,
+  wiredDirectorReferenceImage,
   withoutDirectorCharacterEdges,
   type ExplainerDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
@@ -168,6 +169,25 @@ describe("explainer director", () => {
     const next = directorNodeWithWiredCharacter(node, nodes, wired);
     assert.equal(next.data.toolParams?.characterId, "jim-id");
     assert.equal(directorNodeWithWiredCharacter(node, nodes, []).data.toolParams?.characterId, "dropdown");
+  });
+
+  it("reads the reference image wired into the Director, and skips a 參考圖 card name", () => {
+    const nodes: CanvasNode[] = [
+      {
+        id: "shot",
+        type: "media",
+        position: { x: 0, y: 0 },
+        data: { label: "參考圖 1", fileName: "參考圖 1", mediaKind: "image", mediaUrl: "https://x/hero.png" },
+      },
+    ];
+    assert.deepEqual(
+      wiredDirectorReferenceImage("dir", nodes, [{ source: "shot", target: "dir", targetHandle: "refImages" }]),
+      { nodeId: "shot", url: "https://x/hero.png" },
+    );
+    assert.equal(
+      wiredDirectorReferenceImage("dir", nodes, [{ source: "shot", target: "dir", targetHandle: "prompt" }]),
+      undefined,
+    );
   });
 
   it("drops a character wire into an Explainer or Talking Head Director", () => {

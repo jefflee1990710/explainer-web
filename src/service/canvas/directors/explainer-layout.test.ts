@@ -78,6 +78,26 @@ describe("layoutExplainerGroup", () => {
     assert.ok(at("ref-3").y >= at("frame-3").y);
   });
 
+  it("puts the planned character left of the reference stills without covering the clip rows", () => {
+    const out = buildExplainerExpansion({
+      idPrefix: "exp-abc123",
+      origin: { x: 100, y: 50 },
+      aspectRatio: "9:16",
+      language: "en",
+      voicePreset: "bella",
+      characterImageUrl: "https://hero.png",
+      characterLabel: "Mia",
+      clips: clips(2).map((clip) => ({ ...clip, refUrls: ["https://hero.png"] })),
+    });
+    const positions = new Map(out.nodes.map((n) => [n.id, n.position]));
+    assertNoOverlap(boxes(positions, estimated));
+    const at = (id: string) => positions.get(`exp-abc123-${id}`)!;
+    assert.deepEqual(at("character-1"), { x: 100, y: 50 });
+    assert.ok(at("ref-1").x >= 100 + EXPLAINER_ESTIMATED_SIZE.character.width);
+    assert.ok(at("frame-1").x > at("ref-1").x);
+    assert.equal(out.nodes.filter((n) => n.id.includes("-frame-")).length, 2);
+  });
+
   it("keeps the voice card below the video card so its wire never crosses it", () => {
     const out = expansion(2);
     const at = (id: string) => out.nodes.find((n) => n.id === `exp-abc123-${id}`)!.position;

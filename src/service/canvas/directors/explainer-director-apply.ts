@@ -78,7 +78,7 @@ export function mergeDirectorRows<N extends GraphNode & { data: object }, E exte
 }
 
 // Row role shared by the old plan and a replan (`exp-old-voice-1` and `exp-new-voice-1` are both `voice-1`).
-const ROW_ROLE = /-(frame|video|voice|mux|concat|ref|silence|grade)-(\d+)$/;
+const ROW_ROLE = /-(frame|video|voice|mux|concat|ref|silence|grade|character)-(\d+)$/;
 
 function rowRole(id: string): string | undefined {
   const match = ROW_ROLE.exec(id);
@@ -111,6 +111,7 @@ function planInputPatch(next: CanvasNodeData): Partial<CanvasNodeData> {
   if (next.mediaKind !== undefined) patch.mediaKind = next.mediaKind;
   if (next.label !== undefined) patch.label = next.label;
   if (next.fileName !== undefined) patch.fileName = next.fileName;
+  if (next.characterId !== undefined) patch.characterId = next.characterId;
   return patch;
 }
 
@@ -171,15 +172,28 @@ export function syncDirectorReplanRows<N extends ReplanNode, E extends ReplanEdg
   const removed = new Set(removedIds);
   for (const id of removedIds) changed.add(id);
 
+  // A character already in the group is filled instead of adding a second card.
+  const plannedCharacter = [...expansionByRole.entries()].find(([role]) => role.startsWith("character-"));
+  const strayCharacter =
+    plannedCharacter && !existingByRole.has(plannedCharacter[0])
+      ? graph.nodes.find((node) => members.has(node.id) && node.type === "character" && !directorIds.has(node.id))
+      : undefined;
+  if (strayCharacter && plannedCharacter) existingByRole.set(plannedCharacter[0], strayCharacter);
+
   const added = [...expansionByRole.entries()]
-    .filter(([role]) => role.startsWith("ref-") && !existingByRole.has(role))
+    .filter(([role]) => (role.startsWith("ref-") || role.startsWith("character-")) && !existingByRole.has(role))
     .map(([, node]) => node);
   const anchor = [...existingByRole.values()].find((node) => rowRole(node.id)?.startsWith("ref-"));
-  const addedNodes = added.map((node, index) =>
-    anchor
-      ? { ...node, position: { x: anchor.position.x, y: anchor.position.y + (index + 1) * 180 } }
-      : node,
-  );
+  let extraRefs = 0;
+  const addedNodes = added.map((node) => {
+    const role = rowRole(node.id);
+    if (!anchor) return node;
+    if (role?.startsWith("character-")) {
+      return { ...node, position: { x: anchor.position.x - 370, y: anchor.position.y } };
+    }
+    extraRefs += 1;
+    return { ...node, position: { x: anchor.position.x, y: anchor.position.y + extraRefs * 180 } };
+  });
 
   const idFor = (id: string) => {
     const role = rowRole(id);
@@ -192,9 +206,18 @@ export function syncDirectorReplanRows<N extends ReplanNode, E extends ReplanEdg
   const patchedNodes = graph.nodes.flatMap((node) => {
     if (removed.has(node.id)) return [];
     const role = members.has(node.id) ? rowRole(node.id) : undefined;
-    const next = role ? expansionByRole.get(role) : undefined;
+    const adoptedRole =
+      strayCharacter && plannedCharacter && node.id === strayCharacter.id ? plannedCharacter[0] : undefined;
+    const next =
+      (role ? expansionByRole.get(role) : undefined) ??
+      (adoptedRole ? expansionByRole.get(adoptedRole) : undefined);
     if (!next) return [node];
     const patch = planInputPatch(next.data);
+    // A character the user already named keeps that name; the picture still comes from the reference.
+    if (adoptedRole && (node.data.label?.trim() || node.data.fileName?.trim())) {
+      delete patch.label;
+      delete patch.fileName;
+    }
     if (isGenerationInputPatch(node.data, patch)) changed.add(node.id);
     return [{ ...node, data: { ...node.data, ...patch } }];
   });

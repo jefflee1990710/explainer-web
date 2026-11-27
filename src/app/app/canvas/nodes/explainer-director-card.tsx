@@ -18,6 +18,7 @@ import {
 import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
+import { ExplainerDirectorReferenceHandle } from "@/app/app/canvas/nodes/explainer-director-reference-handle";
 import { ExplainerDirectorTopicHandle } from "@/app/app/canvas/nodes/explainer-director-topic-handle";
 import { SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
@@ -39,6 +40,8 @@ type Props = {
   incomingHandles: readonly string[];
   // Text wired into the topic port. Undefined when nothing is connected.
   wiredPrompt?: string;
+  // An image wired into the reference port. Plan turns it into the character node.
+  referenceWired: boolean;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -52,6 +55,7 @@ export function ExplainerDirectorCard({
   characterOptions,
   incomingHandles,
   wiredPrompt,
+  referenceWired,
   onUpdate,
   onPlan,
   onRemove,
@@ -72,7 +76,7 @@ export function ExplainerDirectorCard({
       }`}
     >
       {incomingHandles
-        .filter((handle) => handle !== "prompt" && handle !== "settings")
+        .filter((handle) => handle !== "prompt" && handle !== "settings" && handle !== "refImages")
         .map((handle) => (
           <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
         ))}
@@ -97,6 +101,7 @@ export function ExplainerDirectorCard({
         </button>
       </div>
       <ExplainerDirectorTopicHandle wired={topicWired} isZh={isZh} />
+      <ExplainerDirectorReferenceHandle wired={referenceWired} isZh={isZh} />
       <SettingsInputRow />
 
       <div className="flex flex-col gap-2.5 p-3">
