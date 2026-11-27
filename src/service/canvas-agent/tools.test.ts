@@ -81,6 +81,24 @@ describe("canvas agent tools", () => {
     );
   });
 
+  it("drops scro:character as an empty character", () => {
+    const g = fresh();
+    const created = T.add_model_node(g, {
+      modelId: "scro:character",
+      prompt: "warm smile",
+    }) as { nodeId: string };
+    const node = g.nodes.find((item) => item.id === created.nodeId)!;
+    assert.equal(node.type, "model");
+    assert.equal(node.data.modelId, "scro:character");
+    assert.equal(node.data.label, "");
+    assert.equal(node.data.characterId, undefined);
+    assert.equal(node.data.mediaUrl, undefined);
+    assert.equal(node.data.outputUrl, undefined);
+    assert.equal(node.data.prompt, "warm smile");
+    assert.equal(node.data.status, "idle");
+    assert.equal("error" in T.add_model_node(g, { modelId: "scro:character", toolParams: { characterId: "char-1" } }), true);
+  });
+
   it("supports toolParams on Scro tools, audio -> refAudio wiring, and multi-video ffmpeg:concat", () => {
     const g = fresh();
     const tts = T.add_model_node(g, {

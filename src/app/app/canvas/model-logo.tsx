@@ -77,6 +77,10 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^export$/, asset: { src: "/canvas/model-logos/export.png", alt: "Export" } },
   { match: /^sequence$/, asset: { src: "/canvas/model-logos/sequence.png", alt: "Sequence timeline" } },
   { match: /^scribe/, asset: { src: "/canvas/model-logos/auto-captions.png", alt: "Auto captions" } },
+  {
+    match: /^video-style-transfer$/,
+    asset: { src: "/canvas/model-logos/color-grade.png", alt: "Video style transfer" },
+  },
 ];
 
 // Resolves the downloaded brand mark for a canvas model, or null when none exists.
