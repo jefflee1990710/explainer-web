@@ -1,0 +1,5 @@
+/* Armed Move: empty-canvas drags translate the selection. The pane draws its cursor on ::before. */
+.scro-move-selection .react-flow__pane,
+.scro-move-selection .react-flow__pane::before {
+  cursor: grabbing;
+}
