@@ -8,6 +8,7 @@ import {
   directorNodeWithWiredCharacter,
   directorParams,
   directorRawOutput,
+  explainerNodeWithWiredTopic,
   isExplainerDirectorNode,
   isPlanDirectorNode,
   parseDirectorHandle,
@@ -96,6 +97,13 @@ describe("explainer director", () => {
     assert.equal(directorNeedsReplan(director({ plan: old, durationPreset: "15s" })), true);
     const fixed = director({ durationPreset: "30s" });
     assert.equal(directorNeedsReplan(director({ durationPreset: "auto", plan: plan(1, fixed) })), true);
+  });
+
+  it("uses a connected topic even after the card was edited", () => {
+    const node = director({ promptEdited: true }, "typed on the card");
+    assert.equal(explainerNodeWithWiredTopic(node, undefined).data.prompt, "typed on the card");
+    assert.equal(explainerNodeWithWiredTopic(node, "from the text node").data.prompt, "from the text node");
+    assert.equal(explainerNodeWithWiredTopic(node, "").data.prompt, "");
   });
 
   it("needs a replan when any parameter but the text style changed", () => {

@@ -2,6 +2,7 @@
 
 // Explainer Director: owns every Explainer parameter and the plan, with Plan / Replan and
 // three text outputs per clip (still prompt, motion prompt, voiceover).
+// Topic comes from the connected text port, not a field on the card.
 
 import { Handle, Position } from "@xyflow/react";
 import { AlertCircle, Clapperboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
@@ -10,16 +11,15 @@ import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import {
   directorHandleId,
   directorNeedsReplan,
-  directorNodeWithWiredPrompt,
-  directorPromptPatch,
+  explainerNodeWithWiredTopic,
   readDirectorPlan,
   type DirectorOutputKind,
 } from "@/service/canvas/directors/explainer-director";
 import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
+import { ExplainerDirectorTopicHandle } from "@/app/app/canvas/nodes/explainer-director-topic-handle";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
-import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 
 const OUTPUT_LABELS: { kind: DirectorOutputKind; zh: string; en: string }[] = [
   { kind: "frame", zh: "靜幀", en: "Still" },
@@ -56,7 +56,7 @@ export function ExplainerDirectorCard({
   onRemove,
 }: Props) {
   const topicWired = wiredPrompt !== undefined;
-  const live = directorNodeWithWiredPrompt({ type: "model" as const, data }, wiredPrompt);
+  const live = explainerNodeWithWiredTopic({ type: "model" as const, data }, wiredPrompt);
   const node = live;
   const plan = readDirectorPlan(node);
   const { planStatus, planError } = readPlannerParams({ data });
@@ -95,14 +95,7 @@ export function ExplainerDirectorCard({
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
-      <ScroDirectorPort
-        id="prompt"
-        color={PORT_COLOR_MAP.text}
-        label={isZh ? "主題" : "Topic"}
-        title={isZh ? "主題／講稿（可接文字輸出）" : "Topic (connect a text output)"}
-        wired={topicWired}
-        detail={topicWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
-      />
+      <ExplainerDirectorTopicHandle wired={topicWired} isZh={isZh} />
 
       <div className="flex flex-col gap-2.5 p-3">
         <ExplainerDirectorFields
@@ -110,7 +103,7 @@ export function ExplainerDirectorCard({
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          onUpdate={(patch) => onUpdate(directorPromptPatch(data, patch, topicWired))}
+          onUpdate={onUpdate}
         />
 
         {dirty && !planning ? (
