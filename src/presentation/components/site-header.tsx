@@ -8,7 +8,6 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 import { canvasLaunchHref } from "@/presentation/components/canvas-launch-href";
 import { SiteAccountMenu, type SiteAccount } from "@/presentation/components/site-account-menu";
-import { SITE_FEATURE_LINKS, SiteFeaturesMenu } from "@/presentation/components/site-features-menu";
 import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
 import { WELCOME_CREDIT_USD } from "@/service/billing/welcome-credits";
 
@@ -74,7 +73,6 @@ export function SiteHeader({
             >
               {t("nav.openCanvas")}
             </Link>
-            <SiteFeaturesMenu />
             {showAffiliate ? (
               <Link
                 href="/affiliate"
@@ -88,12 +86,6 @@ export function SiteHeader({
               className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
             >
               {t("nav.pricing")}
-            </Link>
-            <Link
-              href="/posts"
-              className="shrink-0 font-medium text-zinc-300 transition-colors hover:text-[#A3FF47]"
-            >
-              {t("nav.blog")}
             </Link>
           </nav>
 
@@ -158,25 +150,11 @@ export function SiteHeader({
                 {t("nav.openCanvas")} →
               </Link>
               <Link
-                href="/examples"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
-              >
-                {t("nav.features")}
-              </Link>
-              <Link
                 href="/pricing"
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
               >
                 {t("nav.pricing")}
-              </Link>
-              <Link
-                href="/posts"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
-              >
-                {t("nav.blog")}
               </Link>
               {showAffiliate ? (
                 <Link
@@ -187,26 +165,6 @@ export function SiteHeader({
                   {t("nav.affiliate")}
                 </Link>
               ) : null}
-            </div>
-
-            <div className="mt-3 border-t border-zinc-200 pt-3">
-              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                {SITE_FEATURE_LINKS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-xl px-3 py-2 transition-colors hover:bg-[#f4fcd4]"
-                  >
-                    <span className="block text-sm font-semibold text-[#12141c]">
-                      {t(item.labelKey)}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-4 text-zinc-500">
-                      {t(item.blurbKey)}
-                    </span>
-                  </Link>
-                ))}
-              </div>
             </div>
 
             <div className="mt-4 border-t border-zinc-200 pt-3">

@@ -37,6 +37,7 @@ describe("canvas agent tools", () => {
     assert.ok(res.models.every((line) => !line.startsWith("scro:talking-head |")));
     assert.ok(res.models.every((line) => !line.startsWith("scro:life |")));
     assert.ok(res.models.some((line) => line.startsWith("scro:tts |")));
+    assert.ok(res.models.some((line) => line.startsWith("scro:style-transfer |")));
     assert.ok(res.models.some((line) => line.startsWith("ffmpeg:concat |")));
     assert.ok(res.models.some((line) => line.startsWith("ffmpeg:audio-mux |")));
     assert.ok(res.models.every((line) => !line.startsWith("scro:explainer-frame |")));
@@ -126,6 +127,41 @@ describe("canvas agent tools", () => {
       toolParams: { characterId: "missing-char-999" },
     });
     assert.ok("error" in badChar);
+  });
+
+  it("adds style transfer with an image model and an image wire", () => {
+    const g = fresh([
+      {
+        id: "photo",
+        type: "media",
+        position: { x: 0, y: 0 },
+        data: { mediaKind: "image", mediaUrl: "https://blob.example/photo.png" },
+      },
+      {
+        id: "hero",
+        type: "character",
+        position: { x: 0, y: 80 },
+        data: { characterId: "char-1", mediaKind: "image", mediaUrl: "https://blob.example/mia.png" },
+      },
+    ]);
+    const bad = T.add_model_node(g, {
+      modelId: "scro:style-transfer",
+      toolParams: { imageModelId: "mentalok:flux-schnell" },
+    }) as { error?: string };
+    assert.match(bad.error ?? "", /imageModelId/);
+
+    const node = T.add_model_node(g, {
+      modelId: "scro:style-transfer",
+      toolParams: { imageModelId: "google:gemini-nano-banana-2.1" },
+      wires: [{ sourceId: "photo", targetPort: "image" }],
+    }) as { nodeId?: string; error?: string };
+    assert.equal(node.error, undefined);
+    assert.equal(
+      g.edges.some((edge) => edge.target === node.nodeId && edge.targetHandle === "image" && edge.source === "photo"),
+      true,
+    );
+    const fromCharacter = T.connect(g, { sourceId: "hero", targetId: node.nodeId!, targetPort: "image" });
+    assert.equal("error" in fromCharacter, false);
   });
 
   it("sends the five Scro group tools to add_scro_group", () => {
