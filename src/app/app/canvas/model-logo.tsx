@@ -49,6 +49,7 @@ const MODEL_LOGOS: ReadonlyArray<{
   { match: /^teleport-render$/, asset: { src: "/canvas/model-logos/teleport.png", alt: "Scene teleport" } },
   { match: /^life$/, asset: { src: "/canvas/model-logos/life.png", alt: "Life photos" } },
   { match: /^poster$/, asset: { src: "/canvas/model-logos/poster.png", alt: "Poster" } },
+  { match: /^style-transfer$/, asset: { src: "/canvas/model-logos/style-transfer.svg", alt: "Style transfer" } },
   { match: /^concat$/, asset: { src: "/canvas/model-logos/concat.png", alt: "Merge clips" } },
   { match: /^audio-mux$/, asset: { src: "/canvas/model-logos/audio-mux.png", alt: "Audio mix" } },
   { match: /^trim-speed$/, asset: { src: "/canvas/model-logos/trim.png", alt: "Trim and speed" } },

@@ -1,12 +1,14 @@
 // React Flow <-> saved canvas graph conversions shared by the workspace and its hooks.
 
 import type { Edge } from "@xyflow/react";
-import type {
-  CanvasEdge,
-  CanvasNode,
-  CanvasNodeStatus,
-  CanvasNodeType,
-  CanvasOutputKind,
+import {
+  isUnsettledMediaUpload,
+  type CanvasEdge,
+  type CanvasNode,
+  type CanvasNodeData,
+  type CanvasNodeStatus,
+  type CanvasNodeType,
+  type CanvasOutputKind,
 } from "@/model/canvas";
 import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph";
@@ -52,13 +54,26 @@ export function toFlowNodes(nodes: readonly CanvasNode[]): FlowNode[] {
   }));
 }
 
+function dataForSave(data: CanvasNodeData): CanvasNodeData {
+  if (!data.mediaUpload) return data;
+  const next = { ...data };
+  delete next.mediaUpload;
+  return next;
+}
+
+// Drop in-progress and failed upload placeholders so a refresh cannot restore a stuck card.
 export function toDomainNodes(nodes: readonly FlowNode[]): CanvasNode[] {
-  return nodes.map((n) => ({
-    id: n.id,
-    type: (n.type ?? "model") as CanvasNodeType,
-    position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
-    data: { ...n.data },
-  }));
+  const saved: CanvasNode[] = [];
+  for (const n of nodes) {
+    if (n.type === "media" && isUnsettledMediaUpload(n.data)) continue;
+    saved.push({
+      id: n.id,
+      type: (n.type ?? "model") as CanvasNodeType,
+      position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
+      data: dataForSave(n.data),
+    });
+  }
+  return saved;
 }
 
 export function toFlowEdges(

@@ -22,7 +22,23 @@ export const OPENROUTER_NANO_BANANA_2_1_IMAGE_MODEL = "google/gemini-nano-banana
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
 export const OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL = "heygen/avatar-iv";
+export const OPENROUTER_HEYGEN_AVATAR_6_VIDEO_MODEL = "heygen/heygen-avatar-6";
+export const OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL = "heygen/heygen-avatar-6-turbo";
 export const OPENROUTER_HEYGEN_VIDEO_1_MODEL = "heygen/heygen-video-1";
+
+// Avatar 6 and Avatar 6 Turbo: length follows the audio, no duration or aspect_ratio fields.
+export function isOpenRouterHeyGenAvatar6Model(model: string): boolean {
+  return (
+    model === OPENROUTER_HEYGEN_AVATAR_6_VIDEO_MODEL ||
+    model === OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL
+  );
+}
+
+// Photo + audio HeyGen avatars whose video length follows the wired audio.
+export function isOpenRouterHeyGenAvatarModel(model: string | undefined): boolean {
+  if (!model) return false;
+  return model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL || isOpenRouterHeyGenAvatar6Model(model);
+}
 export const OPENROUTER_SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0";
 export const OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL = "bytedance/seedance-2.0-fast";
 export const OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL = "bytedance/seedance-2.0-mini";
@@ -286,13 +302,15 @@ export type OpenRouterVideoFrameImage = {
 export type OpenRouterClipVideoRequestBody = {
   model: string;
   prompt: string;
-  aspect_ratio: AspectRatio;
+  aspect_ratio?: AspectRatio;
   duration?: number;
   resolution: string;
   generate_audio?: boolean;
   callback_url?: string;
   motion_prompt?: string;
   expressiveness?: "low" | "medium" | "high";
+  // Avatar 6 passthrough (the only extra field OpenRouter allows for that model).
+  motion_expressiveness?: "low" | "medium" | "high";
   frame_images?: OpenRouterVideoFrameImage[];
   input_references?: OpenRouterVideoInputReference[];
 };
@@ -302,6 +320,10 @@ export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
 
 export const HEYGEN_AVATAR_IV_FULL_BODY_MOTION_PROMPT =
   "Keep the exact framing, warm 3400K–4200K golden-amber indoor lighting and warm colour temperature (warm creamy highlights, warm healthy skin undertones, and warm room tones — never shift toward cold blue, cyan, or clinical grey white balance), background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. Keep both arms and hands calm, relaxed, and still down at the sides/pocket throughout the video — NO hand gestures, NO waving, NO raising arms, and NO blurry hand motion. Add subtle, natural human breathing and clear 2–3 degree head nods, tilts, or shakes matching the sentence meaning while facing the camera. PRIORITY 1 — EXPRESSIVE, READABLE CONTENT-DRIVEN MICRO-EXPRESSIONS (NEVER A FROZEN POKER FACE, NEVER JUST LAUGH): Animate clear, readable ~3–4mm brow and eye micro-expressions with 2–3° head language (ZERO eye-squinting laughs, ZERO big toothy grins) that visibly shift based on the text content — inquisitive brow lift and head tilt on questions, serious un-smiled brow furrow and gentle head shake on problems/pain points, earnest confident nod on solutions, and brightened eyes with a warm closed-lip half-smile on positive reveals and the closing CTA. PRIORITY 2 — PHONEME-ACCURATE CANTONESE & ENGLISH CO-ARTICULATED LIP-SYNC: (1) Natural ~20–25% vertical jaw opening (never gape wide); (2) Mandatory bilabial `-m / m / b / p` lip closure — on every syllable with a bilabial consonant or `-m` coda (such as `冇 mou5`, `諗 nam2`, `點 dim2`), the upper and lower lips MUST press cleanly closed together before releasing into the next syllable (never leave the mouth hanging open on `諗`); (3) Subtle, restrained lip rounding on `o / u / w / gw` vowels (such as `過 gwo3`, `都 dou1`, `做 zou6`) — form only a small, soft, natural lip rounding with relaxed cheeks, NEVER a tight pucker or huge circular cartoon O-mouth, and keep the eyes calmly open (no squinting or closing eyes on rounded vowels); (4) Lower lip cushions and covers the lower teeth at all times (never show both rows of teeth, never rubbery face warp). Natural blinks every few seconds while eyes stay engaged on the lens.";
+
+// Used when an Avatar 6 node has no prompt wired.
+export const HEYGEN_AVATAR_6_DEFAULT_PROMPT =
+  "A natural, expressive talking-head delivery lip-synced to the reference audio. Keep the framing, lighting, and background from the reference image unchanged, with eyes on the camera.";
 
 export function heyGenAvatarIvLanguageSpeechLock(
   language?: VoLanguage,
@@ -434,6 +456,22 @@ export function openRouterHeyGenAudioVideoBody(input: {
 }): OpenRouterClipVideoRequestBody {
   const model = input.model || OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const configured = clipVideoResolution();
+  const references: OpenRouterVideoInputReference[] = [
+    { type: "image_url", image_url: { url: input.startImageUrl } },
+    { type: "audio_url", audio_url: { url: input.audioUrl } },
+  ];
+  if (isOpenRouterHeyGenAvatar6Model(model)) {
+    // OpenRouter lists no durations or aspect ratios for Avatar 6, so sending either is rejected.
+    return {
+      model,
+      prompt: capOpenRouterVideoPrompt(input.prompt.trim() || HEYGEN_AVATAR_6_DEFAULT_PROMPT),
+      ...(input.expressiveness ? { motion_expressiveness: input.expressiveness } : {}),
+      // Matches defaultOpenRouterVideoResolution so the request and the charge use one tier.
+      resolution: "1080p",
+      ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
+      input_references: references,
+    };
+  }
   const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const langLock = isAvatarIv
     ? heyGenAvatarIvLanguageSpeechLock(input.language, input.spokenScript)
@@ -488,16 +526,7 @@ export function openRouterHeyGenAudioVideoBody(input: {
       return openRouterAccountVideoResolution(model, fallback) ?? fallback;
     })(),
     ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
-    input_references: [
-      {
-        type: "image_url" as const,
-        image_url: { url: input.startImageUrl },
-      },
-      {
-        type: "audio_url" as const,
-        audio_url: { url: input.audioUrl },
-      },
-    ],
+    input_references: references,
   };
 }
 
@@ -739,7 +768,7 @@ export function openRouterCanvasVideoBody(
 ): OpenRouterClipVideoRequestBody {
   const model = input.model;
   const isHeyGenAudioModel =
-    model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
+    isOpenRouterHeyGenAvatarModel(model) ||
     model === OPENROUTER_HEYGEN_VIDEO_1_MODEL ||
     /heygen\/.*avatar/i.test(model);
 

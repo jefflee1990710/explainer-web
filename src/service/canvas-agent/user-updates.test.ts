@@ -230,8 +230,11 @@ describe("user updates Swap and Teleport from the agent", () => {
     assert.ok(g.edges.some((e) => e.source === "clip" && e.target === created.nodeId && e.targetHandle === "video"));
     assert.equal(g.nodes.some((n) => n.data.modelId === "scro:swap-render"), false);
 
+    const nodeIds = g.nodes.map((item) => item.id);
     const refused = T.replace_group(g, { prompt: "new", nodeId: created.nodeId }) as { error?: string };
-    assert.match(refused.error ?? "", /Explainer or Talking Head/);
+    assert.match(refused.error ?? "", /swap group/);
+    assert.equal(node(g, created.nodeId).data.prompt, "wear a red jacket");
+    assert.deepEqual(g.nodes.map((item) => item.id), nodeIds);
   });
 
   it("keeps a teleport scene and mood on the director card", () => {

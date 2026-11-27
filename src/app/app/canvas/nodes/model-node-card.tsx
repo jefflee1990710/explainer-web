@@ -32,8 +32,10 @@ import { ModelNodeCardHeader } from "@/app/app/canvas/nodes/model-node-card-head
 import { ModelNodeCardPorts } from "@/app/app/canvas/nodes/model-node-card-ports";
 import { ModelNodeCardPreview } from "@/app/app/canvas/nodes/model-node-card-preview";
 import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
+import { StyleTransferNodeCard } from "@/app/app/canvas/nodes/style-transfer-node-card";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
 import { ModelNodeExtraOutputs } from "@/app/app/canvas/nodes/model-node-extra-outputs";
+import { STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/core/style-transfer";
 
 
 export function ModelNodeCard({
@@ -52,6 +54,7 @@ export function ModelNodeCard({
     onUpdateNodeData,
     onDeleteNode,
     onRunNode,
+    onRunNodeWithDependents,
     onSwapModel,
     onOpenLightbox,
     onPlanExplainer,
@@ -113,6 +116,8 @@ export function ModelNodeCard({
 
   if (isSwapDirectorNode({ type: "model", data }) || isTeleportDirectorNode({ type: "model", data })) {
     const videoWired = incomingByHandle.has("video");
+    const videoSourceId = edges.find((edge) => edge.target === id && edge.targetHandle === "video")?.source;
+    const sourceNode = videoSourceId ? nodes.find((node) => node.id === videoSourceId) : undefined;
     const swap = isSwapDirectorNode({ type: "model", data });
     return swap ? (
       <SwapDirectorCard
@@ -122,6 +127,8 @@ export function ModelNodeCard({
         disabled={isFlowRunning}
         videoWired={videoWired}
         referenceWired={incomingByHandle.has("refImages")}
+        sourceNode={sourceNode}
+        characterOptions={characterOptions}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onBuild={() => onBuildScroDirector(id)}
         onRemove={() => onDeleteNode(id)}
@@ -172,6 +179,30 @@ export function ModelNodeCard({
       <div className="w-[280px] rounded-[16px] border border-rose-500/40 bg-[#18141c] p-3 text-xs text-rose-200">
         Unknown model: {data.modelId || "(none)"}
       </div>
+    );
+  }
+
+  // Style transfer picks an image model in its own dialog, then runs that model's job.
+  if (spec.id === STYLE_TRANSFER_MODEL_ID) {
+    const status = data.status ?? "idle";
+    const isBusy = status === "queued" || status === "running";
+    return (
+      <StyleTransferNodeCard
+        id={id}
+        data={data}
+        selected={Boolean(selected)}
+        spec={spec}
+        catalog={catalog}
+        locale={locale}
+        projectTitle={projectTitle}
+        isFlowRunning={isFlowRunning}
+        incomingCount={incomingByHandle.get("image") ?? 0}
+        outdated={isBusy ? undefined : outdatedNodes.get(id)}
+        onUpdateNodeData={onUpdateNodeData}
+        onDeleteNode={onDeleteNode}
+        onRunNode={onRunNode}
+        onOpenLightbox={onOpenLightbox}
+      />
     );
   }
 
@@ -288,6 +319,7 @@ export function ModelNodeCard({
     onUpdateNodeData,
     onDeleteNode,
     onRunNode,
+    onRunNodeWithDependents,
     onSwapModel,
     onOpenLightbox,
     showAdvanced,
