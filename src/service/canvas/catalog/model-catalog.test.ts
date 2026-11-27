@@ -19,8 +19,8 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    // 16 Mentalok + account media + 7 Google media + 4 text + 1 ArgoLink video + 17 Scro + 26 FFmpeg.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 4 + 1 + 17 + 26);
+    // 16 Mentalok + account media + 7 Google media + 28 text + 1 ArgoLink video + 17 Scro + 26 FFmpeg.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 28 + 1 + 17 + 26);
     assert.deepEqual(
       STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
       [
@@ -33,6 +33,14 @@ describe("canvas model catalog", () => {
         "google:gemini-omni-1.1-flash",
         "google:gemini-3.8-flash",
         "google:gemini-4-argon",
+        "google:gemini-4-carbon",
+        "google:gemini-4-neon",
+        "google:gemini-4-hydrogen",
+        "google:gemini-3.6-flash",
+        "google:gemini-3.5-flash-lite",
+        "google:gemini-3.1-flash-lite",
+        "google:gemini-3-flash-preview",
+        "google:gemini-2.5-flash-lite",
       ],
     );
 

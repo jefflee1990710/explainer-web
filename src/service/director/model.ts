@@ -5,6 +5,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 const DEFAULT_MODEL = "gemini-3.8-flash";
 // Gemini 4 Argon is called through the Interactions API.
 const ARGON_MODEL = "gemini-4-argon";
+
+// Gemini 4 text models use the Interactions API. Earlier ids use generateContent.
+export function canvasChatUsesInteractions(modelId: string): boolean {
+  return modelId.startsWith("gemini-4-");
+}
 // Storyboard planning runs on Gemini 3.8 Flash at `low` thinking for 3–4x faster
 // structured JSON generation while keeping high storyboard quality and lower cost.
 export const STORYBOARD_MODEL: string = DEFAULT_MODEL;
@@ -25,10 +30,10 @@ export function directorModel() {
 }
 
 // Same Google AI Studio client the director chat already uses.
-// Argon goes through the Interactions API; every other id is generateContent.
+// Gemini 4 ids go through the Interactions API; every earlier id is generateContent.
 export function canvasChatModel(modelId: string) {
   const client = googleClient();
-  if (modelId === ARGON_MODEL) {
+  if (canvasChatUsesInteractions(modelId)) {
     return client.interactions(modelId);
   }
   return client(modelId);
@@ -45,7 +50,7 @@ export function storyboardModelForSkill(skillSlug?: string): string {
 export function storyboardModel(skillSlug?: string) {
   const client = googleClient();
   const modelId = storyboardModelForSkill(skillSlug);
-  if (modelId === ARGON_MODEL) {
+  if (canvasChatUsesInteractions(modelId)) {
     return client.interactions(modelId);
   }
   return client(modelId);

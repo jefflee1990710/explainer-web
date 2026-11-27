@@ -20,6 +20,102 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     "zh-Hant": "Claude Sonnet 5.5",
     "zh-Hans": "Claude Sonnet 5.5",
   },
+  "google:gemini-4-carbon": {
+    "zh-Hant": "Gemini 4 Carbon",
+    "zh-Hans": "Gemini 4 Carbon",
+  },
+  "google:gemini-4-neon": {
+    "zh-Hant": "Gemini 4 Neon",
+    "zh-Hans": "Gemini 4 Neon",
+  },
+  "google:gemini-4-hydrogen": {
+    "zh-Hant": "Gemini 4 Hydrogen",
+    "zh-Hans": "Gemini 4 Hydrogen",
+  },
+  "google:gemini-3.6-flash": {
+    "zh-Hant": "Gemini 3.6 Flash",
+    "zh-Hans": "Gemini 3.6 Flash",
+  },
+  "google:gemini-3.5-flash-lite": {
+    "zh-Hant": "Gemini 3.5 Flash-Lite",
+    "zh-Hans": "Gemini 3.5 Flash-Lite",
+  },
+  "google:gemini-3.1-flash-lite": {
+    "zh-Hant": "Gemini 3.1 Flash-Lite",
+    "zh-Hans": "Gemini 3.1 Flash-Lite",
+  },
+  "google:gemini-3-flash-preview": {
+    "zh-Hant": "Gemini 3 Flash",
+    "zh-Hans": "Gemini 3 Flash",
+  },
+  "google:gemini-2.5-flash-lite": {
+    "zh-Hant": "Gemini 2.5 Flash-Lite",
+    "zh-Hans": "Gemini 2.5 Flash-Lite",
+  },
+  "argolink:claude-sonnet-5": {
+    "zh-Hant": "Claude Sonnet 5",
+    "zh-Hans": "Claude Sonnet 5",
+  },
+  "argolink:claude-haiku-5-5": {
+    "zh-Hant": "Claude Haiku 5.5",
+    "zh-Hans": "Claude Haiku 5.5",
+  },
+  "argolink:claude-opus-5-5": {
+    "zh-Hant": "Claude Opus 5.5",
+    "zh-Hans": "Claude Opus 5.5",
+  },
+  "argolink:claude-opus-5": {
+    "zh-Hant": "Claude Opus 5",
+    "zh-Hans": "Claude Opus 5",
+  },
+  "argolink:claude-opus-4-8": {
+    "zh-Hant": "Claude Opus 4.8",
+    "zh-Hans": "Claude Opus 4.8",
+  },
+  "argolink:claude-fable-5-2": {
+    "zh-Hant": "Claude Fable 5.2",
+    "zh-Hans": "Claude Fable 5.2",
+  },
+  "argolink:claude-fable-5-1": {
+    "zh-Hant": "Claude Fable 5.1",
+    "zh-Hans": "Claude Fable 5.1",
+  },
+  "argolink:claude-fable-5": {
+    "zh-Hant": "Claude Fable 5",
+    "zh-Hans": "Claude Fable 5",
+  },
+  "argolink:gpt-5.6-terra": {
+    "zh-Hant": "GPT-5.6 Terra",
+    "zh-Hans": "GPT-5.6 Terra",
+  },
+  "argolink:gpt-5.5": {
+    "zh-Hant": "GPT-5.5",
+    "zh-Hans": "GPT-5.5",
+  },
+  "argolink:gpt-6-astra": {
+    "zh-Hant": "GPT-6 Astra",
+    "zh-Hans": "GPT-6 Astra",
+  },
+  "argolink:gpt-6.2-astra": {
+    "zh-Hant": "GPT-6.2 Astra",
+    "zh-Hans": "GPT-6.2 Astra",
+  },
+  "argolink:gpt-6.2-sol": {
+    "zh-Hant": "GPT-6.2 Sol",
+    "zh-Hans": "GPT-6.2 Sol",
+  },
+  "argolink:gpt-6-sol": {
+    "zh-Hant": "GPT-6 Sol",
+    "zh-Hans": "GPT-6 Sol",
+  },
+  "argolink:gpt-6.1-sol": {
+    "zh-Hant": "GPT-6.1 Sol",
+    "zh-Hans": "GPT-6.1 Sol",
+  },
+  "argolink:gpt-6.1-terra": {
+    "zh-Hant": "GPT-6.1 Terra",
+    "zh-Hans": "GPT-6.1 Terra",
+  },
   "argolink:gpt-5.6-sol": {
     "zh-Hant": "GPT-5.6 Sol",
     "zh-Hans": "GPT-5.6 Sol",

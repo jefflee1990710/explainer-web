@@ -37,11 +37,11 @@ export function TextModelPicker({
       >
         {choices.map((model) => (
           <option key={model.id} value={model.id}>
-            {canvasModelDisplayName(model, locale)} · {formatTextTokenRate(canvasTextUserRates(model.id), isZh)}
+            {canvasModelDisplayName(model, locale)}
           </option>
         ))}
       </select>
-      {/* Visible while the menu is closed, so the selected rate is not only inside the option list. */}
+      {/* The menu lists names only. The selected model's token rate stays under it. */}
       <span className="text-[10px] text-white/45">{selected}</span>
     </label>
   );
