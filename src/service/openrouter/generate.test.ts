@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   fetchOpenRouterStatus,
+  HEYGEN_AVATAR_6_DEFAULT_PROMPT,
   HEYGEN_AVATAR_IV_MOTION_PROMPT,
   heyGenAvatarIvMotionPrompt,
+  isOpenRouterHeyGenAvatarModel,
   isOpenRouterStatusUrl,
+  OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL,
+  OPENROUTER_HEYGEN_AVATAR_6_VIDEO_MODEL,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+  OPENROUTER_HEYGEN_VIDEO_1_MODEL,
   openRouterCanvasVideoBody,
   openRouterClipVideoBody,
   openRouterHeyGenAudioVideoBody,
@@ -665,6 +670,76 @@ test("openRouterCanvasVideoBody supports text-only, first/last frames, reference
   assert.equal(hailuo23.resolution, "1080p");
   assert.equal(hailuo23.duration, 6);
   assert.equal("generate_audio" in hailuo23, false);
+});
+
+test("openRouterCanvasVideoBody sends Avatar 6 and Avatar 6 Turbo without duration or aspect_ratio", () => {
+  for (const model of [
+    OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL,
+    OPENROUTER_HEYGEN_AVATAR_6_VIDEO_MODEL,
+  ]) {
+    const body = openRouterCanvasVideoBody({
+      model,
+      prompt: "",
+      aspectRatio: "9:16",
+      durationSeconds: 42,
+      startImageUrl: "https://blob/avatar.png",
+      audioUrl: "https://blob/speech.mp3",
+    });
+    assert.deepEqual(body, {
+      model,
+      prompt: HEYGEN_AVATAR_6_DEFAULT_PROMPT,
+      resolution: "1080p",
+      input_references: [
+        { type: "image_url", image_url: { url: "https://blob/avatar.png" } },
+        { type: "audio_url", audio_url: { url: "https://blob/speech.mp3" } },
+      ],
+    });
+  }
+
+  // A wired prompt is kept, and expressiveness goes out as motion_expressiveness.
+  const withPrompt = openRouterHeyGenAudioVideoBody({
+    model: OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL,
+    prompt: "  Calm, friendly delivery  ",
+    expressiveness: "high",
+    aspectRatio: "16:9",
+    durationSeconds: 30,
+    startImageUrl: "https://blob/avatar.png",
+    audioUrl: "https://blob/speech.mp3",
+    callbackUrl: "https://scro.io/cb",
+  });
+  assert.equal(withPrompt.prompt, "Calm, friendly delivery");
+  assert.equal(withPrompt.motion_expressiveness, "high");
+  assert.equal(withPrompt.callback_url, "https://scro.io/cb");
+  for (const key of ["duration", "aspect_ratio", "motion_prompt", "expressiveness"]) {
+    assert.equal(key in withPrompt, false, key);
+  }
+});
+
+test("openRouterCanvasVideoBody keeps Avatar IV aspect_ratio and motion fields without duration", () => {
+  const body = openRouterCanvasVideoBody({
+    model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+    prompt: "",
+    aspectRatio: "9:16",
+    durationSeconds: 42,
+    startImageUrl: "https://blob/avatar.png",
+    audioUrl: "https://blob/speech.mp3",
+  });
+  assert.equal(body.aspect_ratio, "9:16");
+  assert.equal(body.resolution, "1080p");
+  assert.equal(body.expressiveness, "low");
+  assert.ok(body.prompt.length > 0);
+  assert.equal(body.motion_prompt, body.prompt);
+  assert.equal("duration" in body, false);
+  assert.equal("motion_expressiveness" in body, false);
+});
+
+test("isOpenRouterHeyGenAvatarModel covers photo + audio avatars only", () => {
+  assert.equal(isOpenRouterHeyGenAvatarModel(OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL), true);
+  assert.equal(isOpenRouterHeyGenAvatarModel(OPENROUTER_HEYGEN_AVATAR_6_VIDEO_MODEL), true);
+  assert.equal(isOpenRouterHeyGenAvatarModel(OPENROUTER_HEYGEN_AVATAR_6_TURBO_VIDEO_MODEL), true);
+  assert.equal(isOpenRouterHeyGenAvatarModel(OPENROUTER_HEYGEN_VIDEO_1_MODEL), false);
+  assert.equal(isOpenRouterHeyGenAvatarModel("minimax/hailuo-3"), false);
+  assert.equal(isOpenRouterHeyGenAvatarModel(undefined), false);
 });
 
 test("submitOpenRouterCanvasVideo posts canvas video request and returns polling state", async () => {
