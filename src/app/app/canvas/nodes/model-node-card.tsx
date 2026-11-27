@@ -12,6 +12,7 @@ import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { wiredSettingsVars } from "@/service/canvas/core/graph";
+import { pendingCharacterOutfitSources } from "@/service/canvas/core/character-wardrobe";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
@@ -277,7 +278,9 @@ export function ModelNodeCard({
     if (!videoModelId.trim()) missingRequiredLabels.push(isZh ? "影片模型" : "Video model");
   }
 
-  const canRun = !isBusy && !isFlowRunning && missingRequiredLabels.length === 0;
+  const pendingOutfits = pendingCharacterOutfitSources(id, nodes, edges);
+  const canRun =
+    !isBusy && !isFlowRunning && missingRequiredLabels.length === 0 && pendingOutfits.length === 0;
   const categoryLabel = isZh
     ? CATEGORY_LABELS[spec.category]["zh-Hant"]
     : CATEGORY_LABELS[spec.category].en;
@@ -349,6 +352,7 @@ export function ModelNodeCard({
     durationSeconds,
     activePreset,
     missingRequiredLabels,
+    pendingOutfits,
     canRun,
     categoryLabel,
     outdated,

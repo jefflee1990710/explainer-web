@@ -5,6 +5,7 @@ import type { CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import type { CanvasModelSpec, CanvasPortSpec } from "@/model/canvas-model";
 import type { SettingsVars } from "@/model/canvas-settings";
 import type { OutdatedReason } from "@/service/canvas/core/stale-outputs";
+import type { CharacterOutfitPending } from "@/service/canvas/core/character-wardrobe";
 import type { CanvasNodeActionsContextValue } from "@/app/app/canvas/nodes/port-colors";
 
 export type ModelNodeCardView = {
@@ -44,6 +45,8 @@ export type ModelNodeCardView = {
   durationSeconds: number;
   activePreset: string;
   missingRequiredLabels: string[];
+  // Wired characters whose outfit is not generated yet; Run stays off until they finish.
+  pendingOutfits: CharacterOutfitPending[];
   canRun: boolean;
   categoryLabel: string;
   outdated: OutdatedReason | undefined;

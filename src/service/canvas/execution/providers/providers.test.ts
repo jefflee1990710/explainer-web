@@ -10,6 +10,7 @@ import {
   pollAdapterFor,
 } from "@/service/canvas/execution/providers";
 import { buildMentalokJobPayload } from "@/service/canvas/execution/providers/mentalok";
+import type { CanvasDispatchContext } from "@/service/canvas/execution/providers/types";
 
 const PROVIDERS: CanvasModelProvider[] = ["mentalok", "openrouter", "google", "minimax", "scro", "ffmpeg"];
 
@@ -47,6 +48,41 @@ describe("service/canvas/execution/providers", () => {
     assert.match(CANVAS_PROVIDER_ADAPTERS.google.credentialError!(spec, noKeys)!, /GOOGLE_GENERATIVE_AI_API_KEY/);
     assert.match(CANVAS_PROVIDER_ADAPTERS.mentalok.credentialError!(spec, noKeys)!, /MENTALOK_AI_STUDIO_API_KEY/);
     assert.equal(CANVAS_PROVIDER_ADAPTERS.ffmpeg.credentialError, undefined);
+  });
+
+  it("adds the wardrobe lock to every sync image model that gets a character reference", async () => {
+    const cases = [
+      { modelId: "google:gemini-nano-banana-2.1", submitKey: "submitGoogleStudioImage" },
+      { modelId: "openrouter:bytedance-seed/seedream-5-0-pro", submitKey: "submitOpenRouterImage" },
+      { modelId: "minimax:MiniMax-H3-Image", submitKey: "submitMinimaxCanvasImage" },
+    ] as const;
+    for (const { modelId, submitKey } of cases) {
+      const spec = findCanvasModel(modelId);
+      assert.ok(spec, modelId);
+      const sent: Array<{ prompt: string; referenceImageUrls?: Array<string | undefined> }> = [];
+      // A failed reply stops dispatch right after the request, so nothing is persisted.
+      const resolved = {
+        [submitKey]: async (input: { prompt: string; referenceImageUrls?: Array<string | undefined> }) => {
+          sent.push(input);
+          return { request_id: "r1", status: "failed", error: "stop" };
+        },
+      } as unknown as CanvasExecutorDeps;
+      const ctx = {
+        spec,
+        node: { id: "img", type: "model" as const, position: { x: 0, y: 0 }, data: { modelId } },
+        inputs: {
+          prompt: "Jim walks through a rainy street",
+          refImages: ["https://img/office.png", "https://img/jim.png"],
+          videos: [],
+          characterRefPositions: [2],
+        },
+        resolved,
+      } as unknown as CanvasDispatchContext;
+      await assert.rejects(CANVAS_PROVIDER_ADAPTERS[spec.provider].dispatch(ctx), /stop/);
+      assert.equal(sent.length, 1, modelId);
+      assert.match(sent[0]!.prompt, /^Jim walks through a rainy street\n\nWARDROBE LOCK: Reference image 2 is the character;/);
+      assert.deepEqual(sent[0]!.referenceImageUrls, ["https://img/office.png", "https://img/jim.png"]);
+    }
   });
 
   it("maps Mentalok keyframes for ref2va and imageUrl for single-frame models", async () => {

@@ -30,6 +30,13 @@ function inputsFromSnapshot(snapshot: Record<string, unknown>): ResolvedCanvasIn
     videos: Array.isArray(snapshot.videos) ? snapshot.videos.map(String) : [],
     refAudio: typeof snapshot.refAudio === "string" ? snapshot.refAudio : undefined,
     overlayVideo: typeof snapshot.overlayVideo === "string" ? snapshot.overlayVideo : undefined,
+    ...(Array.isArray(snapshot.characterRefPositions)
+      ? {
+          characterRefPositions: snapshot.characterRefPositions
+            .map(Number)
+            .filter((n) => Number.isInteger(n) && n > 0),
+        }
+      : {}),
   };
 }
 
