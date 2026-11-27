@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Folder, FolderPlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { CanvasDeleteButton } from "@/app/app/canvas/canvas-delete-button";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasFolderDto, CanvasLibrarySelection } from "@/model/canvas-dto";
 import { canvasesInFolder } from "@/service/canvas/core/folder-library";
@@ -51,6 +52,8 @@ export function CanvasLibraryDialog({
   const [renamingCanvas, setRenamingCanvas] = useState<string | null>(null);
   const [canvasDraft, setCanvasDraft] = useState("");
   const [movingId, setMovingId] = useState<string | null>(null);
+  // Canvas id whose trash button is waiting for a second click.
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const skipNameCommit = useRef(false);
 
   useEffect(() => {
@@ -116,7 +119,14 @@ export function CanvasLibraryDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm"
     >
       <div
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          // A click outside the armed trash button, including another card, drops the confirm.
+          const target = event.target;
+          if (!(target instanceof Element) || !target.closest("[data-canvas-delete]")) {
+            setArmedDeleteId(null);
+          }
+        }}
         className="flex h-[min(720px,85vh)] w-[920px] max-w-full overflow-hidden rounded-2xl border border-white/15 bg-[#10141c] text-white shadow-2xl"
       >
         <aside className="flex w-[230px] shrink-0 flex-col border-r border-white/8 bg-[#0c1017] p-3">
@@ -349,14 +359,15 @@ export function CanvasLibraryDialog({
                         >
                           <Folder className="h-3 w-3" />
                         </button>
-                        <button
-                          type="button"
-                          title={isZh ? "刪除畫布" : "Delete canvas"}
-                          onClick={() => onDelete(project.id)}
-                          className="ml-auto grid h-6 w-6 cursor-pointer place-items-center rounded-md text-white/40 hover:bg-white/10 hover:text-rose-300"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <CanvasDeleteButton
+                          armed={armedDeleteId === project.id}
+                          isZh={isZh}
+                          onArm={() => setArmedDeleteId(project.id)}
+                          onConfirm={() => {
+                            setArmedDeleteId(null);
+                            onDelete(project.id);
+                          }}
+                        />
                       </div>
                       {movingId === project.id ? (
                         <div className="absolute right-2 bottom-10 z-10 w-40 rounded-[10px] border border-white/12 bg-[#161b26] p-1 shadow-xl">
