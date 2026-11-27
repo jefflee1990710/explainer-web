@@ -6,14 +6,13 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
-  ChevronDown,
   Loader2,
-  Pencil,
   Play,
   Square,
   Wallet,
 } from "lucide-react";
-import { CanvasFlowStatusBar } from "@/app/app/canvas/canvas-flow-status-bar";
+import { CanvasHeaderFlowStatus } from "@/app/app/canvas/canvas-header-flow-status";
+import { CanvasHeaderTitle } from "@/app/app/canvas/canvas-header-title";
 import { CanvasLibraryDialog } from "@/app/app/canvas/canvas-library-dialog";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { formatUsd } from "@/service/billing/usd";
@@ -112,6 +111,8 @@ export function CanvasTopbar({
   return (
     <>
     <header className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 border-b border-white/8 bg-[#0e121a]/95 px-3 backdrop-blur-md">
+      {/* Centered live flow status. Sits above the side controls without a second bar. */}
+      <CanvasHeaderFlowStatus status={flowStatus} isZh={isZh} />
       {/* Left: project switcher, inline rename, save pill */}
       <div className="flex min-w-0 items-center gap-2">
         {editingTitle ? (
@@ -151,26 +152,12 @@ export function CanvasTopbar({
             </button>
           </div>
         ) : (
-          <div className="relative flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setLibraryOpen(true)}
-              title={isZh ? "開啟或管理畫布" : "Open or manage canvases"}
-              className="flex h-8 max-w-[220px] cursor-pointer items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/5 px-2.5 text-xs font-semibold text-white transition hover:border-white/20 hover:bg-white/8"
-            >
-              <span className="truncate">{activeTitle}</span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/55" />
-            </button>
-            <button
-              type="button"
-              onClick={startRename}
-              title={isZh ? "重新命名" : "Rename canvas"}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] text-white/50 transition hover:bg-white/8 hover:text-white"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-
-          </div>
+          <CanvasHeaderTitle
+            title={activeTitle}
+            isZh={isZh}
+            onOpenLibrary={() => setLibraryOpen(true)}
+            onStartRename={startRename}
+          />
         )}
 
         <span
@@ -232,8 +219,6 @@ export function CanvasTopbar({
         )}
       </div>
     </header>
-    {/* Live flow status sits in its own bar, directly under the header. */}
-    <CanvasFlowStatusBar status={flowStatus} isZh={isZh} />
     {libraryOpen ? (
       <CanvasLibraryDialog
         locale={locale}

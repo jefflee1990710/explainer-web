@@ -81,21 +81,21 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
         }
       : null,
   );
-  // finished = a Run Flow ended; stopped = the user stopped it. The status bar is derived from cards.
+  // finished = a Run Flow ended; stopped = the user stopped it. The header text is derived from cards.
   const [flowSettled, setFlowSettled] = useState<"finished" | "stopped" | null>(() => {
     const status = initialFlowRun?.status;
     if (status === "completed" || status === "failed") return "finished";
     if (status === "stopped") return "stopped";
     return null;
   });
-  // Failures belonging to the flow that is running now. An idle status bar ignores this and reads each card.
+  // Failures belonging to the flow that is running now. Idle header text ignores this and reads each card.
   const [runFailureIds, setRunFailureIds] = useState<string[]>(
     initialFlowRun?.status === "running"
       ? [...(initialFlowRun.failedNodeIds ?? [])]
       : [],
   );
 
-  // Status bar tracks the cards on screen, including retries after a flow has finished.
+  // Header status tracks the cards on screen, including retries after a flow has finished.
   const flowStatus = useMemo(
     () =>
       deriveCanvasFlowHeaderStatus({
