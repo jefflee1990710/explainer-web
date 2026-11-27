@@ -2,7 +2,7 @@
 
 // Variable input (a Setting node still connects here) and the enlarge control shared by canvas text fields.
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type PropsWithChildren } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Maximize2 } from "lucide-react";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
@@ -28,13 +28,12 @@ export function CanvasTextSettings({
   edges,
   isZh,
   children,
-}: {
+}: PropsWithChildren<{
   nodeId: string;
   nodes: readonly CanvasNode[];
   edges: readonly CanvasEdge[];
   isZh: boolean;
-  children: ReactNode;
-}) {
+}>) {
   const vars = connectedSettingsVars(nodeId, nodes, edges);
   return (
     <CanvasTextSettingsContext.Provider value={{ isZh, connected: vars !== undefined, vars }}>
