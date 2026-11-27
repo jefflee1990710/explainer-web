@@ -3,7 +3,9 @@
 // Sources are read through their output handle, so Split's part B has its own length.
 
 import type { CanvasNode } from "@/model/canvas";
-import { expectedNodeMedia, wiredEdges, wiredSourceMedia } from "@/service/canvas/core/edit-media";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
+import { expectedNodeMedia, sequenceSourceDurations, wiredEdges, wiredSourceMedia } from "@/service/canvas/core/edit-media";
+import { readSequence, sequenceIssues, syncSequenceWithEdges } from "@/service/canvas/core/sequence";
 import { complementRanges, mergeRanges, parseKeepRanges } from "@/service/canvas/core/edit-ranges";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import type { CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
@@ -42,6 +44,12 @@ export function findCanvasAgentEditIssues(g: CanvasAgentWorkingGraph): CanvasAge
     const pastEnd = (field: string, what: string, at: number) => {
       if (duration !== undefined && at >= duration) add(field, `${what} at ${sec(at)} but the source is only ${sec(duration)} long`);
     };
+
+    if (modelId === SEQUENCE_MODEL_ID) {
+      const seq = syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, g.edges);
+      for (const issue of sequenceIssues(seq, sequenceSourceDurations(g, node.id))) add(`timeline.${issue.field}`, issue.message);
+      continue;
+    }
 
     if (NEEDS_SOUND.has(modelId) && source?.hasAudio === false) {
       add("video", `its source ${sourceId} has no sound, so this edit fails`);

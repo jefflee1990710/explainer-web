@@ -57,6 +57,8 @@ import type {
 import type { CanvasFolderDto } from "@/model/canvas-dto";
 import type { CanvasAgentMessageDto } from "@/model/canvas-agent";
 import { CanvasAgentDock } from "@/app/app/canvas/agent/canvas-agent-dock";
+import { SequenceTimelineDrawer } from "@/app/app/canvas/timeline/sequence-timeline-drawer";
+import { useSequenceTimeline } from "@/app/app/canvas/timeline/use-sequence-timeline";
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
 import { CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";
 import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
@@ -573,6 +575,18 @@ function CanvasWorkspaceInner({
     uploadAndPlaceFiles,
   });
 
+  const { timelineNodeId, openTimeline, closeTimeline, convertConcat } = useSequenceTimeline({
+    models,
+    isZh,
+    setNodes,
+    setEdges,
+    nodesRef,
+    edgesRef,
+    snapshotGroups,
+    updateGroups,
+    scheduleAutosave,
+  });
+
   const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
   const { onSaveCharacterBlueprint } = useCanvasCharacterBlueprint({
     isZh,
@@ -612,6 +626,8 @@ function CanvasWorkspaceInner({
       onPlanExplainer,
       onBuildScroDirector: handleBuildScroDirector,
       outdatedNodes,
+      onOpenTimeline: openTimeline,
+      onConvertConcat: convertConcat,
     }),
     [
       models,
@@ -632,6 +648,8 @@ function CanvasWorkspaceInner({
       onPlanExplainer,
       handleBuildScroDirector,
       outdatedNodes,
+      openTimeline,
+      convertConcat,
     ],
   );
 
@@ -741,6 +759,7 @@ function CanvasWorkspaceInner({
                     className="!bottom-16 !right-3 !rounded-xl !border !border-white/10 !bg-[#12161f]/90"
                   />
                 </ReactFlow>
+                {timelineNodeId ? <SequenceTimelineDrawer nodeId={timelineNodeId} onClose={closeTimeline} /> : null}
               </CanvasGroupActionsContext.Provider>
               </PlanLockProvider>
             </CanvasNodeActionsContext.Provider>

@@ -24,6 +24,8 @@ import {
 import { executeDispatchedCanvasJob } from "@/service/canvas/execution/jobs/dispatch";
 import { STYLE_TRANSFER_MODEL_ID, prepareStyleTransferRun } from "@/service/canvas/core/style-transfer";
 import { canvasProviderAdapter } from "@/service/canvas/execution/providers";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
+import { readSequence, syncSequenceWithEdges } from "@/service/canvas/core/sequence";
 
 // Restores outputUrl from the newest completed job when a stale graph save wiped it.
 async function hydrateMissingModelOutputs(
@@ -331,7 +333,17 @@ export async function submitCanvasNodeJob(
     ...(resolvedDurationSeconds !== undefined
       ? { durationSeconds: resolvedDurationSeconds }
       : {}),
-    ...(node.data.toolParams ? { toolParams: node.data.toolParams } : {}),
+    ...(spec.id === SEQUENCE_MODEL_ID
+      ? {
+          // Clips wired since the timeline was last opened still render, at the end.
+          toolParams: {
+            ...(node.data.toolParams ?? {}),
+            sequence: syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, project.edges),
+          },
+        }
+      : node.data.toolParams
+        ? { toolParams: node.data.toolParams }
+        : {}),
     ...(activeInputs.image ? { image: activeInputs.image } : {}),
     ...(activeInputs.startImage
       ? { startImage: activeInputs.startImage }
@@ -359,6 +371,7 @@ export async function submitCanvasNodeJob(
       ? { overlayVideo: activeInputs.overlayVideo }
       : {}),
     ...(activeInputs.audios?.length ? { audios: activeInputs.audios } : {}),
+    ...(activeInputs.sequenceSources ? { sequenceSources: activeInputs.sequenceSources } : {}),
     presetId,
   };
 

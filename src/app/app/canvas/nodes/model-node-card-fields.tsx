@@ -9,6 +9,9 @@ import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
+import { ConcatToSequenceButton } from "@/app/app/canvas/nodes/concat-to-sequence-button";
+import { SequenceNodeSummary } from "@/app/app/canvas/nodes/sequence-node-summary";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
 import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
@@ -40,7 +43,7 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
   return (
     <>
 {/* Inline prompt & compact model parameters */}
-  {promptPort ? (
+  {promptPort && spec.id !== SEQUENCE_MODEL_ID ? (
     <WiredPromptField
       isZh={isZh}
       value={shownPrompt}
@@ -60,7 +63,7 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
       }}
     />
   ) : null}
-  {promptPort ? (
+  {promptPort && spec.id !== SEQUENCE_MODEL_ID ? (
     <PromptVarsHint isZh={isZh} text={shownPrompt} vars={templateVars} missingBlocksRun />
   ) : null}
 
@@ -385,8 +388,12 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
   {spec.provider === "ffmpeg" ? (
     <div className="space-y-2 rounded-[10px] border border-white/8 bg-[#0b0e14]/80 p-2">
       {spec.id === "ffmpeg:concat" ? (
-        <ConcatVideoOrder nodeId={id} isZh={isZh} />
+        <>
+          <ConcatVideoOrder nodeId={id} isZh={isZh} />
+          <ConcatToSequenceButton nodeId={id} isZh={isZh} />
+        </>
       ) : null}
+      {spec.id === SEQUENCE_MODEL_ID ? <SequenceNodeSummary nodeId={id} isZh={isZh} /> : null}
       {spec.id === "ffmpeg:audio-concat" ? <ConcatVideoOrder nodeId={id} isZh={isZh} port="audios" /> : null}
 
       {spec.id === "ffmpeg:audio-mux" ? (

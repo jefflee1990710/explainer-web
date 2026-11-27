@@ -19,6 +19,7 @@ export type {
   ResolveNodeInputsResult,
 } from "@/service/canvas/core/graph/inputs";
 export {
+  extractMediaUrl,
   readConnectedPromptText,
   resolveNodeInputs,
   wiredSettingsVars,

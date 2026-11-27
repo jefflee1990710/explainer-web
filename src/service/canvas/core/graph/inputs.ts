@@ -20,6 +20,7 @@ import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { CHARACTER_OUTFIT_PORT_IDS, outfitRefMeta } from "@/service/canvas/core/character-blueprint";
 import { getNodeOutputPortType } from "@/service/canvas/core/graph/ports";
 import { extraOutputUrl } from "@/service/canvas/core/extra-outputs";
+import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
 import {
   characterOutfitPendingMessage,
   isOutfitReferenceNode,
@@ -44,6 +45,8 @@ export type ResolvedCanvasInputs = {
   refAudio?: string;
   overlayVideo?: string;
   audios?: string[];
+  // ffmpeg:sequence only: each wired edge's media URL, keyed by edge id (timeline refs).
+  sequenceSources?: Record<string, string>;
   // Outfit slots on the empty character node (hair, top, pants, shoes, accessory, looks).
   outfitRefs?: CanvasOutfitRef[];
   // 1-based places in refImages that came from a character node; image prompts lock their outfit.
@@ -77,7 +80,7 @@ function editedPrompt(node: CanvasNode): string | undefined {
   return typeof node.data.prompt === "string" ? node.data.prompt.trim() : "";
 }
 
-function extractMediaUrl(sourceNode: CanvasNode, sourceHandle?: string | null): string | undefined {
+export function extractMediaUrl(sourceNode: CanvasNode, sourceHandle?: string | null): string | undefined {
   // A named extra output (FFmpeg Split part B) sits next to the main file.
   if (sourceNode.type === "model" && sourceHandle && sourceHandle !== "output") {
     const main = sourceNode.data.outputUrl?.trim();
@@ -346,6 +349,18 @@ export function resolveNodeInputs(
     const url = extractMediaUrl(sourceNode, edge.sourceHandle);
     if (url) (inputs.audios ??= []).push(url);
     else addUnique(missingUpstreamNodeIds, sourceNode.id);
+  }
+
+  if (spec.id === SEQUENCE_MODEL_ID) {
+    const sources: Record<string, string> = {};
+    for (const port of ["videos", "audios", "refImages"]) {
+      for (const edge of edgesByHandle.get(port) ?? []) {
+        const sourceNode = nodeById.get(edge.source);
+        const url = sourceNode ? extractMediaUrl(sourceNode, edge.sourceHandle) : undefined;
+        if (url) sources[edge.id] = url;
+      }
+    }
+    inputs.sequenceSources = sources;
   }
 
   // Verify every required port declared on the model spec has a value.

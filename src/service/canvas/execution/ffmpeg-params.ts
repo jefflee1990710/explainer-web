@@ -25,3 +25,19 @@ export const clamp = (value: number, min: number, max: number) => Math.min(max, 
 export function even(value: number): number {
   return Math.max(2, Math.floor(value / 2) * 2);
 }
+
+// atempo takes 0.5..2 per stage, so slower or faster speeds chain stages.
+export function atempoChain(speed: number): string {
+  const stages: number[] = [];
+  let left = speed;
+  while (left < 0.5) {
+    stages.push(0.5);
+    left /= 0.5;
+  }
+  while (left > 2) {
+    stages.push(2);
+    left /= 2;
+  }
+  stages.push(left);
+  return stages.map((s) => `atempo=${Number(s.toFixed(4))}`).join(",");
+}
