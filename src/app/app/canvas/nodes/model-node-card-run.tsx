@@ -23,7 +23,9 @@ export function ModelNodeCardRun(view: ModelNodeCardView) {
       : isZh
         ? "只執行此節點"
         : "Run this node only";
-  const withDependentsLabel = isZh
+  // Visible label stays one line on a ~300px card; title keeps the full action.
+  const withDependentsLabel = isZh ? "執行此節點與下游" : "Run this and downstream";
+  const withDependentsTitle = isZh
     ? "執行此節點和所有依賴它的節點"
     : "Run this node and every node that depends on it";
 
@@ -56,7 +58,7 @@ export function ModelNodeCardRun(view: ModelNodeCardView) {
         type="button"
         disabled={!canRun}
         onClick={() => onRunNodeWithDependents(id)}
-        title={missingTitle ?? withDependentsLabel}
+        title={missingTitle ?? withDependentsTitle}
         className={`nodrag flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-center text-[12px] font-bold leading-tight transition ${
           !canRun
             ? "cursor-not-allowed border-white/10 bg-white/5 text-white/35"
