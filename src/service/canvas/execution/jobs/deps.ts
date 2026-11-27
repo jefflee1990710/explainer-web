@@ -37,7 +37,7 @@ import {
   submitOpenRouterCanvasVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
-import { generateCanvasText } from "@/service/canvas/execution/canvas-text";
+import { generateCanvasText, type CanvasTextResult } from "@/service/canvas/execution/canvas-text";
 import { hasGoogleStudioKey, submitGoogleStudioImage } from "@/service/google/studio-image";
 import {
   type MinimaxCanvasImageInput,
@@ -145,7 +145,7 @@ export type CanvasExecutorDeps = {
   ensureMentalokUrl: (mediaUrl: string) => Promise<string>;
   persistMedia: (url: string, pathname: string) => Promise<string>;
   // Chat completion for a text-model node. Tests pass a fake so no API key is used.
-  generateCanvasText: (input: { model: string; prompt: string }) => Promise<{ text: string }>;
+  generateCanvasText: (input: { model: string; prompt: string }) => Promise<CanvasTextResult>;
   // Stores the generated text and returns its public URL.
   persistText: (text: string, pathname: string) => Promise<string>;
   executeScroSyncNode: typeof executeScroSyncNode;

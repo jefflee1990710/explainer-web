@@ -9,12 +9,9 @@ import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
 import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { OutdatedBanner } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
-import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
+import { TextModelPicker } from "@/app/app/canvas/nodes/text-model-picker";
 import { readConnectedPromptText } from "@/service/canvas/core/graph";
 import { swapCandidates } from "@/service/canvas/core/model-swap";
-
-const fieldClass =
-  "nodrag w-full cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none";
 
 export function TextModelNodeCard(view: ModelNodeCardView) {
   const {
@@ -67,24 +64,14 @@ export function TextModelNodeCard(view: ModelNodeCardView) {
       <ModelNodeCardHeader {...view} />
       <ModelNodeCardPorts {...view} />
       <div className="space-y-2.5 p-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/50">{isZh ? "文字模型" : "Text model"}</span>
-          <select
-            value={spec.id}
-            aria-label={isZh ? "文字模型" : "Text model"}
-            disabled={isBusy}
-            onChange={(event) => {
-              if (event.target.value !== spec.id) view.onSwapModel(id, event.target.value);
-            }}
-            className={fieldClass}
-          >
-            {choices.map((model) => (
-              <option key={model.id} value={model.id}>
-                {canvasModelDisplayName(model, locale)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <TextModelPicker
+          spec={spec}
+          choices={choices}
+          locale={locale}
+          isZh={isZh}
+          disabled={isBusy}
+          onChange={(modelId) => view.onSwapModel(id, modelId)}
+        />
 
         <ModelPromptField
           isZh={isZh}

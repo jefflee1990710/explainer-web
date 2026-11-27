@@ -26,6 +26,7 @@ const MODEL_LOGOS: ReadonlyArray<{
     asset: { src: "/canvas/model-logos/google.svg", alt: "Google" },
   },
   { match: /openai|gpt-5/, asset: { src: "/canvas/model-logos/openai.svg", alt: "OpenAI" } },
+  { match: /claude/, asset: { src: "/canvas/model-logos/text.png", alt: "Claude" } },
   { match: /heygen/, asset: { src: "/canvas/model-logos/heygen-icon.png", alt: "HeyGen" } },
   { match: /magi/, asset: { src: "/canvas/model-logos/sand-ai.svg", alt: "Sand AI" } },
   { match: /microsoft/, asset: { src: "/canvas/model-logos/microsoft.svg", alt: "Microsoft" } },

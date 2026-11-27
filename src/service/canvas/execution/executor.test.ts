@@ -223,7 +223,7 @@ function createHarness(options: {
       persistedCalls.push({ url, pathname });
       return `https://blob.vercel-storage.com/${pathname}`;
     },
-    generateCanvasText: async () => ({ text: "mocked text" }),
+    generateCanvasText: async () => ({ text: "mocked text", usage: { inputTokens: 0, outputTokens: 0 } }),
     persistText: async (_text, pathname) => `https://blob.vercel-storage.com/${pathname}`,
     executeScroSyncNode: async () => ({
       outputUrl: "https://blob.example/scro-sync.png",

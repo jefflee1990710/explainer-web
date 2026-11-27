@@ -1,4 +1,5 @@
-// ArgoLink (ARGOLINK_API_KEY): async video. A callback settles the job; polling is the fallback.
+// ArgoLink (ARGOLINK_API_KEY): chat text settles immediately; video is async.
+// A callback settles a video job; polling is the fallback.
 
 import { argolinkCallbackUrl, argolinkStatusUrl } from "@/service/argolink/client";
 import {
@@ -6,6 +7,7 @@ import {
   settleVideoSubmitResponse,
 } from "@/service/canvas/execution/providers/shared";
 import type { CanvasProviderAdapter } from "@/service/canvas/execution/providers/types";
+import { completeCanvasTextJob } from "@/service/canvas/execution/text-charge";
 
 const LABEL = "ArgoLink";
 
@@ -18,6 +20,12 @@ export const argolinkProvider: CanvasProviderAdapter = {
       : "ArgoLink 尚未設定 API Key（ARGOLINK_API_KEY），暫時無法執行此模型。",
   dispatch: async (ctx) => {
     const { spec, node, inputs } = ctx;
+    if (spec.category === "text") {
+      const prompt = inputs.prompt?.trim();
+      if (!prompt) throw new Error("請先輸入提示詞");
+      const result = await ctx.resolved.generateCanvasText({ model: spec.providerModelId, prompt });
+      return completeCanvasTextJob(ctx, result);
+    }
     const response = await ctx.resolved.submitArgolinkCanvasVideo({
       model: spec.providerModelId,
       prompt: inputs.prompt,

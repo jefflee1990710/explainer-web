@@ -4,14 +4,18 @@ import { ObjectId } from "mongodb";
 import type { CanvasJob } from "@/model/canvas";
 import type { CanvasNodeData } from "@/model/canvas";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { swapCandidates } from "@/service/canvas/core/model-swap";
 import {
   CANVAS_TEXT_ARGON_ID,
-  CANVAS_TEXT_ARGON_USD,
+  CANVAS_TEXT_CLAUDE_ID,
   CANVAS_TEXT_FLASH_ID,
-  CANVAS_TEXT_FLASH_USD,
+  CANVAS_TEXT_GPT_ID,
+  TEXT_STATIC_MODELS,
 } from "@/service/canvas/catalog/text-models";
+import { canvasTextUserRates, textTokenCostUsd } from "@/service/canvas/catalog/text-token-price";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
 import { generateCanvasText } from "@/service/canvas/execution/canvas-text";
+import { argolinkProvider } from "@/service/canvas/execution/providers/argolink";
 import { googleProvider } from "@/service/canvas/execution/providers/google";
 import type { CanvasDispatchContext } from "@/service/canvas/execution/providers/types";
 import type { CanvasExecutorDeps } from "@/service/canvas/execution/jobs/deps";
@@ -19,24 +23,42 @@ import { resolveNodeInputs, validateEdgeConnection } from "@/service/canvas/core
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
 import { directorNodeWithWiredPrompt, directorPromptPatch } from "@/service/canvas/directors/explainer-director";
 
+const ON_2026_11_27 = new Date("2026-11-27T09:00:00.000Z");
+
 describe("canvas text models", () => {
-  it("lists two Google chat models with a text output and a flat price", () => {
+  it("lists Gemini on Google and Claude plus GPT on ArgoLink, billed by tokens", () => {
     const flash = findCanvasModel(CANVAS_TEXT_FLASH_ID);
     const argon = findCanvasModel(CANVAS_TEXT_ARGON_ID);
-    assert.ok(flash && argon);
-    assert.equal(flash.category, "text");
-    assert.equal(argon.category, "text");
-    assert.equal(flash.output.type, "text");
+    const claude = findCanvasModel(CANVAS_TEXT_CLAUDE_ID);
+    const gpt = findCanvasModel(CANVAS_TEXT_GPT_ID);
+    assert.ok(flash && argon && claude && gpt);
+    assert.equal(TEXT_STATIC_MODELS.length, 4);
+    for (const spec of [flash, argon, claude, gpt]) {
+      assert.equal(spec.category, "text");
+      assert.equal(spec.output.type, "text");
+      assert.equal(spec.inputs[0]?.id, "prompt");
+      assert.equal(spec.basePriceUsd, 0);
+      assert.equal(estimateCanvasModelCostUsd(spec), 0);
+      assert.equal(spec.hiddenInSidebar, undefined);
+    }
     assert.equal(flash.provider, "google");
     assert.equal(flash.providerModelId, "gemini-3.8-flash");
     assert.equal(argon.providerModelId, "gemini-4-argon");
-    assert.equal(flash.inputs[0]?.id, "prompt");
-    assert.equal(estimateCanvasModelCostUsd(flash), CANVAS_TEXT_FLASH_USD);
-    assert.equal(estimateCanvasModelCostUsd(argon), CANVAS_TEXT_ARGON_USD);
-    assert.equal(flash.hiddenInSidebar, undefined);
+    assert.equal(claude.provider, "argolink");
+    assert.equal(claude.providerModelId, "claude-sonnet-5-5");
+    assert.equal(gpt.providerModelId, "gpt-5.6-sol");
+    assert.deepEqual(
+      swapCandidates(flash, TEXT_STATIC_MODELS).map((spec) => spec.id).sort(),
+      [CANVAS_TEXT_ARGON_ID, CANVAS_TEXT_CLAUDE_ID, CANVAS_TEXT_GPT_ID].sort(),
+    );
+    const pricedAt = ON_2026_11_27;
+    assert.equal(
+      estimateCanvasModelCostUsd(flash, { inputTokens: 1_000_000, outputTokens: 0, pricedAt }),
+      canvasTextUserRates(flash.id, pricedAt).inputUsdPerMillion,
+    );
   });
 
-  it("returns mocked chat text and rejects an empty prompt or an empty reply", async () => {
+  it("returns mocked Gemini chat text with usage, and rejects an empty prompt, reply, or usage", async () => {
     const calls: string[] = [];
     const out = await generateCanvasText(
       { model: "gemini-3.8-flash", prompt: "  Explain hooks  " },
@@ -45,18 +67,29 @@ describe("canvas text models", () => {
           calls.push(modelId);
           return {} as never;
         },
-        generateText: async ({ prompt }) => ({ text: ` ${prompt} ok ` }),
+        generateText: async ({ prompt }) => ({
+          text: ` ${prompt} ok `,
+          usage: { inputTokens: 40, outputTokens: 12 },
+        }),
       },
     );
     assert.deepEqual(calls, ["gemini-3.8-flash"]);
     assert.equal(out.text, "Explain hooks ok");
+    assert.deepEqual(out.usage, { inputTokens: 40, outputTokens: 12 });
     await assert.rejects(generateCanvasText({ model: "gemini-3.8-flash", prompt: "  " }), /提示詞/);
     await assert.rejects(
       generateCanvasText(
         { model: "gemini-4-argon", prompt: "hi" },
-        { modelFor: () => ({}) as never, generateText: async () => ({ text: "   " }) },
+        { modelFor: () => ({}) as never, generateText: async () => ({ text: "   ", usage: { inputTokens: 1, outputTokens: 0 } }) },
       ),
       /沒有回傳/,
+    );
+    await assert.rejects(
+      generateCanvasText(
+        { model: "gemini-3.8-flash", prompt: "hi" },
+        { modelFor: () => ({}) as never, generateText: async () => ({ text: "ok" }) },
+      ),
+      /token 用量/,
     );
   });
 
@@ -64,6 +97,8 @@ describe("canvas text models", () => {
     const spec = findCanvasModel(CANVAS_TEXT_FLASH_ID)!;
     const patches: Partial<CanvasNodeData>[] = [];
     let sent = "";
+    const charges: number[] = [];
+    const jobSets: Array<Partial<CanvasJob>> = [];
     const jobId = new ObjectId();
     const canvasId = new ObjectId();
     const initialJob = {
@@ -76,7 +111,7 @@ describe("canvas text models", () => {
       providerModelId: spec.providerModelId,
       status: "queued",
       inputSnapshot: {},
-      chargedUsd: CANVAS_TEXT_FLASH_USD,
+      chargedUsd: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as CanvasJob;
@@ -84,10 +119,19 @@ describe("canvas text models", () => {
       hasGoogleStudioKey: () => true,
       generateCanvasText: async (input: { model: string; prompt: string }) => {
         sent = `${input.model}:${input.prompt}`;
-        return { text: "A short explainer topic" };
+        return { text: "A short explainer topic", usage: { inputTokens: 1_000_000, outputTokens: 0 } };
       },
-      persistText: async (_text: string, pathname: string) => `https://blob.example/${pathname}`,
-      updateCanvasJob: async () => undefined,
+      consumeCreditUsd: async (_user: string, costUsd: number) => {
+        charges.push(costUsd);
+        return "spend:text";
+      },
+      persistText: async (_text: string, pathname: string) => {
+        assert.equal(jobSets.length, 1);
+        return `https://blob.example/${pathname}`;
+      },
+      updateCanvasJob: async (_id: ObjectId, _user: string, update: { $set?: Partial<CanvasJob> }) => {
+        if (update.$set) jobSets.push(update.$set);
+      },
       updateCanvasNodeState: async (params: { patch: Partial<CanvasNodeData> }) => {
         patches.push(params.patch);
       },
@@ -111,18 +155,94 @@ describe("canvas text models", () => {
       resolved,
     } as CanvasDispatchContext;
     const result = await googleProvider.dispatch(ctx);
+    const expected = textTokenCostUsd(canvasTextUserRates(spec.id), {
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
     assert.equal(result.ok, true);
     assert.equal(sent, "gemini-3.8-flash:Write a topic");
+    assert.deepEqual(charges, [expected]);
+    assert.equal(jobSets[0]?.chargedUsd, expected);
+    assert.equal(jobSets[0]?.spendEventKey, "spend:text");
     if (result.ok) {
       assert.equal(result.job.outputKind, "text");
+      assert.equal(result.job.chargedUsd, expected);
+      assert.equal(result.job.spendEventKey, "spend:text");
       assert.match(result.job.outputUrl ?? "", /\.txt$/);
     }
     assert.equal(patches[0]?.text, "A short explainer topic");
     assert.equal(patches[0]?.outputKind, "text");
+    assert.equal(patches[0]?.lastCostUsd, expected);
     await assert.rejects(
       googleProvider.dispatch({ ...ctx, inputs: { prompt: "  ", refImages: [], videos: [] } }),
       /提示詞/,
     );
+  });
+
+  it("charges an ArgoLink text node from mocked token usage and keeps the text output", async () => {
+    const spec = findCanvasModel(CANVAS_TEXT_CLAUDE_ID)!;
+    const jobId = new ObjectId();
+    const canvasId = new ObjectId();
+    let model = "";
+    const charges: number[] = [];
+    const resolved = {
+      hasArgolinkKey: () => true,
+      generateCanvasText: async (input: { model: string; prompt: string }) => {
+        model = input.model;
+        return { text: "Three bullets", usage: { inputTokens: 2_000_000, outputTokens: 500_000 } };
+      },
+      consumeCreditUsd: async (_user: string, costUsd: number) => {
+        charges.push(costUsd);
+        return "spend:claude";
+      },
+      persistText: async () => "https://blob.example/claude.txt",
+      updateCanvasJob: async () => undefined,
+      updateCanvasNodeState: async () => undefined,
+      getUserCreditUsd: async () => 20,
+      now: () => ON_2026_11_27,
+    } as unknown as CanvasExecutorDeps;
+    const result = await argolinkProvider.dispatch({
+      initialJob: {
+        _id: jobId,
+        clerkUserId: "user_1",
+        canvasId,
+        nodeId: "text-2",
+        provider: "argolink",
+        modelId: spec.id,
+        providerModelId: spec.providerModelId,
+        status: "queued",
+        inputSnapshot: {},
+        chargedUsd: 0,
+        createdAt: ON_2026_11_27,
+        updatedAt: ON_2026_11_27,
+      } as CanvasJob,
+      spec,
+      node: {
+        id: "text-2",
+        type: "model",
+        position: { x: 0, y: 0 },
+        data: { modelId: spec.id, prompt: "Compare locks" },
+      },
+      inputs: { prompt: "Compare locks", refImages: [], videos: [] },
+      presetId: "chat",
+      clerkUserId: "user_1",
+      canvasIdHex: canvasId.toHexString(),
+      jobIdHex: jobId.toHexString(),
+      resolved,
+    } as CanvasDispatchContext);
+    assert.equal(model, "claude-sonnet-5-5");
+    const expected = textTokenCostUsd(canvasTextUserRates(spec.id, ON_2026_11_27), {
+      inputTokens: 2_000_000,
+      outputTokens: 500_000,
+    });
+    assert.equal(expected, 4.725);
+    assert.deepEqual(charges, [expected]);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.job.outputKind, "text");
+      assert.equal(result.job.chargedUsd, expected);
+      assert.equal(result.job.outputUrl, "https://blob.example/claude.txt");
+    }
   });
 });
 
@@ -136,7 +256,7 @@ function edge(source: string, target: string, targetHandle: string, sourceHandle
 
 describe("canvas text output wires", () => {
   it("connects a text model to a prompt port, a director topic, and another text input", () => {
-    const text = modelNode("writer", CANVAS_TEXT_FLASH_ID, {
+    const text = modelNode("writer", CANVAS_TEXT_CLAUDE_ID, {
       status: "completed",
       outputKind: "text",
       outputUrl: "https://blob.example/out.txt",

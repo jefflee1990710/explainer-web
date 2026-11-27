@@ -30,6 +30,7 @@ import {
 import { minimaxCanvasBillingSlug } from "@/service/minimax/official-canvas";
 import { argolinkVideoUserUsd } from "@/service/argolink/price";
 import { autoCaptionsCostUsd } from "@/service/canvas/core/captions";
+import { canvasTextUserRates, textTokenCostUsd } from "@/service/canvas/catalog/text-token-price";
 
 // Minimum USD charge per Mentalok execution ($0.005).
 export const CANVAS_MIN_CHARGE_USD = 0.005;
@@ -69,6 +70,10 @@ export type CanvasCostEstimateParams = {
   markup?: number;
   resolution?: string;
   referenceImages?: number;
+  // Text models only. Absent tokens mean the run has not happened yet, so the hold is $0.
+  inputTokens?: number;
+  outputTokens?: number;
+  pricedAt?: Date;
 };
 
 function canvasVideoSeconds(spec: CanvasModelSpec, requested?: number): number {
@@ -174,9 +179,13 @@ export function estimateCanvasModelCostUsd(
     }
   }
 
-  // Text models charge their flat per-run price (not a video second).
+  // Text models bill the measured input and output tokens. Before the run, the hold is $0.
   if (spec.category === "text") {
-    return spec.basePriceUsd;
+    if (params?.inputTokens === undefined && params?.outputTokens === undefined) return 0;
+    return textTokenCostUsd(canvasTextUserRates(spec.id, params?.pricedAt), {
+      inputTokens: params?.inputTokens ?? 0,
+      outputTokens: params?.outputTokens ?? 0,
+    });
   }
 
   if (spec.category === "image") {
