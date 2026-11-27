@@ -17,6 +17,7 @@ import {
   directorHandles,
   directorNodeWithWiredPrompt,
   directorParams,
+  explainerNodeWithWiredTopic,
   isExplainerDirectorNode,
   isPlanDirectorNode,
   planDirectorParams,
@@ -26,7 +27,7 @@ import {
   type ExplainerDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
 import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
-import { resolveNodeInputs } from "@/service/canvas/core/graph";
+import { readConnectedPromptText, resolveNodeInputs } from "@/service/canvas/core/graph";
 import { defaultGroupColor, defaultGroupTitle, readGroupParams } from "@/service/canvas/core/groups";
 import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
 import { type CanvasPlanFrameInputs, canvasPlanFrameInputs } from "@/service/canvas/directors/plan-frame-inputs";
@@ -97,14 +98,20 @@ export async function startCanvasExplainerPlan(params: {
     loaded.canvas.edges,
     catalog,
   );
-  // A wired text node (or Prompt node) is the topic / script until the card is edited.
-  const plannerNode = directorNodeWithWiredPrompt(
-    loaded.node,
-    resolved.promptFromNode ? resolved.inputs.prompt : undefined,
-  );
+  // Explainer topic is the connected text, even if the card was edited before. Talking Head still lets a typed script win.
+  const plannerNode = director
+    ? explainerNodeWithWiredTopic(
+        loaded.node,
+        readConnectedPromptText(params.nodeId, loaded.canvas.nodes, loaded.canvas.edges, catalog),
+      )
+    : directorNodeWithWiredPrompt(
+        loaded.node,
+        resolved.promptFromNode ? resolved.inputs.prompt : undefined,
+      );
   const isTalking = plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
-  if (!resolved.inputs.prompt?.trim()) {
-    return { ok: false, error: isTalking ? "請先輸入講稿" : "請先輸入或連接解說主題" };
+  const readyPrompt = director ? (plannerNode.data.prompt ?? "").trim() : (resolved.inputs.prompt ?? "").trim();
+  if (!readyPrompt) {
+    return { ok: false, error: isTalking ? "請先輸入講稿" : director ? "請先連接解說主題" : "請先輸入或連接解說主題" };
   }
   const inputs = director ? { ...resolved.inputs, prompt: explainerPlanSource(plannerNode) } : resolved.inputs;
   try {

@@ -19,9 +19,13 @@ import { argolinkProvider } from "@/service/canvas/execution/providers/argolink"
 import { googleProvider } from "@/service/canvas/execution/providers/google";
 import type { CanvasDispatchContext } from "@/service/canvas/execution/providers/types";
 import type { CanvasExecutorDeps } from "@/service/canvas/execution/jobs/deps";
-import { resolveNodeInputs, validateEdgeConnection } from "@/service/canvas/core/graph";
+import { readConnectedPromptText, resolveNodeInputs, validateEdgeConnection } from "@/service/canvas/core/graph";
 import type { CanvasEdge, CanvasNode } from "@/model/canvas";
-import { directorNodeWithWiredPrompt, directorPromptPatch } from "@/service/canvas/directors/explainer-director";
+import {
+  directorNodeWithWiredPrompt,
+  directorPromptPatch,
+  explainerNodeWithWiredTopic,
+} from "@/service/canvas/directors/explainer-director";
 
 const ON_2026_11_27 = new Date("2026-11-27T09:00:00.000Z");
 
@@ -295,5 +299,28 @@ describe("canvas text output wires", () => {
     const patch = directorPromptPatch(director.data, { prompt: "mine" }, true);
     assert.equal(patch.prompt, "mine");
     assert.equal(patch.toolParams?.promptEdited, true);
+  });
+
+  it("keeps an Explainer topic on the connected text or prompt node", () => {
+    const text = modelNode("writer", CANVAS_TEXT_CLAUDE_ID, {
+      status: "completed",
+      outputKind: "text",
+      text: "How compound interest works",
+    });
+    const prompt: CanvasNode = {
+      id: "prompt",
+      type: "prompt",
+      position: { x: 0, y: 0 },
+      data: { text: "From a prompt node" },
+    };
+    const director = modelNode("dir", "scro:explainer", {
+      prompt: "typed on the card",
+      toolParams: { plannerMode: true, promptEdited: true },
+    });
+    const fromText = readConnectedPromptText("dir", [text, director], [edge("writer", "dir", "prompt")]);
+    assert.equal(explainerNodeWithWiredTopic(director, fromText).data.prompt, "How compound interest works");
+    const fromPrompt = readConnectedPromptText("dir", [prompt, director], [edge("prompt", "dir", "prompt")]);
+    assert.equal(explainerNodeWithWiredTopic(director, fromPrompt).data.prompt, "From a prompt node");
+    assert.equal(readConnectedPromptText("dir", [director], []), undefined);
   });
 });

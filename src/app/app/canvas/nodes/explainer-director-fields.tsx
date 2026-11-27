@@ -1,7 +1,7 @@
 "use client";
 
-// Explainer Director parameters: topic, character, length, ratio, art style, languages,
-// background, presenter position, and text style.
+// Explainer Director parameters: character, length, ratio, art style, languages,
+// background, presenter position, and text style. Topic comes from a connected text node.
 
 import type { CanvasNodeData } from "@/model/canvas";
 import {
@@ -16,7 +16,6 @@ import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
-import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import {
   ART_STYLE_LABELS,
   ART_STYLE_PREVIEWS,
@@ -25,7 +24,7 @@ import {
 } from "@/app/app/canvas/nodes/explainer-settings-options";
 import { DirectorClipJoinField } from "@/app/app/canvas/nodes/director-clip-join-field";
 import { ExplainerLengthField } from "@/app/app/canvas/nodes/explainer-length-field";
-import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
+import { DIALOG_FIELD, DIALOG_LABEL } from "@/app/app/canvas/scro-dialog-shell";
 
 type Props = {
   data: CanvasNodeData;
@@ -45,17 +44,6 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
 
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
-      <label className={DIALOG_LABEL}>
-        {isZh ? "主題 / 講稿" : "Topic / script"}
-        <ComposedTextarea
-          rows={3}
-          value={data.prompt ?? ""}
-          onValue={(prompt) => onUpdate({ prompt })}
-          placeholder={isZh ? "例如：用煮食譜嘅比喻解釋乜嘢係源代碼…" : "e.g. Explain compound interest with three analogies…"}
-          className={DIALOG_TEXTAREA}
-        />
-      </label>
-
       <div className={DIALOG_LABEL}>
         {isZh ? "畫風" : "Art style"}
         <CanvasPreviewSelect
