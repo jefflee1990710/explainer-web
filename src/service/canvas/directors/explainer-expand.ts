@@ -5,7 +5,7 @@ import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/dire
 import { isSilentSpokenLine } from "@/service/director/spoken-line";
 import { layoutExplainerGroup } from "@/service/canvas/directors/explainer-layout";
 import { NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/catalog/model-catalog";
-import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
+import { joinClips, type ClipJoinMode } from "@/service/canvas/scro-groups/clip-join";
 
 export const EXPLAINER_HAILUO_MODEL_ID = "minimax:MiniMax-H3";
 // Explainer start stills use the same image model as the director pipeline.
@@ -33,6 +33,8 @@ export type ExplainerExpansionInput = {
   characterId?: string;
   // Director node whose clip outputs feed each frame / video / voice prompt.
   directorId?: string;
+  // Join the clips with a Concat chain (default) or one Sequence node.
+  clipJoin?: ClipJoinMode;
   clips: ExplainerExpansionClip[];
 };
 
@@ -166,20 +168,17 @@ export function buildExplainerExpansion(input: ExplainerExpansionInput) {
     clipOutputs.push(muxId);
   });
 
-  chainConcats(
-    clipOutputs,
-    (step) => {
-      const concatId = id(`concat-${step}`);
-      nodes.push({
-        id: concatId,
-        type: "model",
-        position: { ...unplaced },
-        data: { ...CONCAT_NODE_DATA, status: "idle" },
-      });
-      return concatId;
+  joinClips(clipOutputs, {
+    mode: input.clipJoin ?? "concat",
+    idPrefix: input.idPrefix,
+    aspectRatio: input.aspectRatio,
+    addNode: (suffix, data) => {
+      const nodeId = id(suffix);
+      nodes.push({ id: nodeId, type: "model", position: { ...unplaced }, data: { ...data, status: "idle" } });
+      return nodeId;
     },
-    edge,
-  );
+    wire: edge,
+  });
 
   const positions = layoutExplainerGroup({
     nodeIds: nodes.map((n) => n.id),

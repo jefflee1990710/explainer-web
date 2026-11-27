@@ -45,6 +45,7 @@ import {
   requeueWorkerTaskForPoll,
   updateWorkerTaskProgress,
 } from "@/service/worker/task-queue";
+import { executeCanvasProxyTask } from "@/service/canvas/execution/media-proxy";
 
 export type WorkerTaskExecutionResult =
   | { outcome: "completed"; outputUrl?: string; stage?: string }
@@ -449,6 +450,13 @@ export async function executeWorkerTask(
     case "canvas_flow": {
       await report(25, "running_canvas_flow");
       return executeCanvasFlowTask(task);
+    }
+
+    case "canvas_proxy": {
+      await report(20, "rendering_canvas_proxy");
+      const res = await executeCanvasProxyTask(task);
+      if (res.outcome === "failed") return { outcome: "failed", error: res.error, permanent: true };
+      return { outcome: "completed", outputUrl: res.outputUrl, stage: "canvas_proxy_done" };
     }
   }
 }

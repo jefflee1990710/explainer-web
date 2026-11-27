@@ -10,11 +10,14 @@ import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { sequenceSourceDurations } from "@/service/canvas/core/edit-media";
 import { extractMediaUrl } from "@/service/canvas/core/graph";
+import { currentMediaMeta } from "@/service/canvas/core/media-meta";
 import { SEQUENCE_PORTS } from "@/service/canvas/core/sequence";
 import { concatClipLabel } from "@/app/app/canvas/nodes/concat-clip-label";
 
 export type SequenceSource = {
   url?: string;
+  // 540p proxy of the main output, for playback only.
+  previewUrl?: string;
   kind: "video" | "image" | "audio";
   label: string;
   durationSec?: number;
@@ -73,6 +76,8 @@ export function useSequenceSources({
       counts[edge.targetHandle] = index + 1;
       out[edge.id] = {
         url: source ? extractMediaUrl(source, edge.sourceHandle) : undefined,
+        previewUrl:
+          source && (edge.sourceHandle || "output") === "output" ? currentMediaMeta(source)?.proxyUrl : undefined,
         kind,
         durationSec: known[edge.id],
         label: concatClipLabel({

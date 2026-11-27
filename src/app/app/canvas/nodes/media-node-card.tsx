@@ -5,6 +5,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Film, Image as ImageIcon, Maximize2, Music, Trash2 } from "lucide-react";
 import { isUnsettledMediaUpload, type CanvasNodeData } from "@/model/canvas";
+import { previewMediaUrl } from "@/service/canvas/core/media-proxy";
 import { MediaUploadPlaceholder } from "@/app/app/canvas/nodes/media-upload-placeholder";
 import {
   PORT_COLOR_MAP,
@@ -77,7 +78,7 @@ export function MediaNodeCard({
           kind === "video" ? (
             <div className="relative overflow-hidden rounded-[10px] bg-black/50">
               <video
-                src={data.mediaUrl}
+                src={previewMediaUrl({ type: "media", data }) ?? data.mediaUrl}
                 controls
                 muted
                 playsInline

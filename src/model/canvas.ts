@@ -35,6 +35,8 @@ export type CanvasMediaMeta = {
   hasAudio?: boolean;
   width?: number;
   height?: number;
+  // 540p preview copy of a long or very large video (previews only; renders use `url`).
+  proxyUrl?: string;
 };
 
 // Serializable payload stored on each node in the Interactive Node Canvas Editor.
@@ -271,6 +273,7 @@ export const canvasMediaMetaSchema: z.ZodType<CanvasMediaMeta> = z.object({
   hasAudio: z.boolean().optional(),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
+  proxyUrl: z.string().url().optional(),
 });
 
 export const canvasMediaUploadSchema = z.object({

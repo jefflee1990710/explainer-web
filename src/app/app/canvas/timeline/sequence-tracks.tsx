@@ -7,6 +7,7 @@ import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Film, ImageIcon, Music, Type } from "lucide-react";
 import type { CanvasSequence } from "@/model/canvas-sequence";
 import { audioItemSec, type PlacedClip } from "@/service/canvas/core/sequence";
+import { BeatMarkers } from "@/app/app/canvas/timeline/beat-markers";
 import {
   patchAudio,
   patchClip,
@@ -262,6 +263,7 @@ export function SequenceTracks({
                   startDrag(e, pps, (d) => onChange(patchAudio(seq, item.id, shiftWindow({ startSec: item.startSec }, d, totalSec))));
                 }}
               >
+                <BeatMarkers item={item} sourceSec={sources[item.ref]?.durationSec} totalSec={totalSec} pps={pps} />
                 <Music className="h-3 w-3 shrink-0" />
                 <span className="pointer-events-none truncate">
                   {sources[item.ref]?.label ?? "?"}

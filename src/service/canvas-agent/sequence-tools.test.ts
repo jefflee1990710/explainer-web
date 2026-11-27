@@ -10,6 +10,7 @@ import { findCanvasAgentEditIssues } from "@/service/canvas-agent/edit-gaps";
 import { SEQUENCE_TOOL_HANDLERS as S } from "@/service/canvas-agent/sequence-tools";
 import { CANVAS_AGENT_TOOL_HANDLERS as H } from "@/service/canvas-agent/tools";
 import { createWorkingGraph, describeNode } from "@/service/canvas-agent/working-graph";
+import { buildExplainerExpansion } from "@/service/canvas/directors/explainer-expand";
 
 function media(id: string, kind: "video" | "audio" | "image", meta: Omit<CanvasMediaMeta, "url">): CanvasNode {
   const url = `https://x.public.blob.vercel-storage.com/${id}.${kind === "video" ? "mp4" : kind === "audio" ? "mp3" : "png"}`;
@@ -124,5 +125,39 @@ describe("canvas agent sequence tools", () => {
     assert.match(String(S.update_sequence(g, H, { nodeId: "c1" }).error), /not an ffmpeg:sequence/);
     const res = S.build_sequence(g, H, { clips: [{ source: "c1" }, { source: "ghost" }] });
     assert.match(String(res.error), /ghost/);
+  });
+
+  it("set_director_finish swaps a built Director's Concat chain for one Sequence via replayable ops", () => {
+    const rows = buildExplainerExpansion({
+      idPrefix: "exp-a",
+      origin: { x: 0, y: 0 },
+      aspectRatio: "9:16",
+      language: "en",
+      voicePreset: "bella",
+      directorId: "dir",
+      clips: [1, 2, 3].map((n) => ({ clipNumber: n, framePrompt: "f", videoPrompt: "v", durationSeconds: 6, spokenLine: "l" })),
+    });
+    const director: CanvasNode = {
+      id: "dir",
+      type: "model",
+      position: { x: -400, y: 0 },
+      data: { modelId: "scro:explainer", toolParams: { plannerMode: true } },
+    };
+    const initial = { nodes: [director, ...rows.nodes], edges: rows.edges };
+    const g = createWorkingGraph({
+      ...initial,
+      groups: [{ id: "exp-a", kind: "explainer", title: "Explainer", color: "lime", memberIds: initial.nodes.map((n) => n.id) }],
+      catalog: STATIC_CANVAS_MODELS,
+      assets: [],
+      nextId: () => "x",
+    });
+    const res = S.set_director_finish(g, H, { directorId: "dir", finishWith: "sequence" });
+    assert.equal(res.ok, true);
+    assert.equal(res.outputId, "exp-a-sequence");
+    const replayed = applyCanvasAgentOps(initial, g.ops).graph;
+    assert.ok(!replayed.nodes.some((n) => n.data.modelId === "ffmpeg:concat"));
+    assert.equal(replayed.edges.filter((e) => e.target === "exp-a-sequence").length, 3);
+    assert.equal(replayed.nodes.find((n) => n.id === "dir")!.data.toolParams?.finishWith, "sequence");
+    assert.equal(S.set_director_finish(g, H, { directorId: "exp-a-mux-1", finishWith: "concat" }).ok, undefined);
   });
 });

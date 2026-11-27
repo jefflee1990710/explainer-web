@@ -68,6 +68,9 @@ export const sequenceAudioSchema = z.object({
   fadeOutSec: z.number().min(0).max(10).default(0),
   duck: z.boolean().default(false),
   loop: z.boolean().default(false),
+  // Beat grid of the source file (source seconds), from "Snap to beats"; the render ignores it.
+  bpm: z.number().min(0).max(400).optional(),
+  beats: z.array(z.number().min(0)).max(4000).optional(),
 });
 
 export const canvasSequenceSchema = z.object({

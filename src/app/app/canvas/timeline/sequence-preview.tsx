@@ -69,7 +69,7 @@ export function SequencePreview({
       const p = placed[i];
       if (!video || !p) return;
       indexRef.current = i;
-      const url = sources[p.clip.ref]?.url;
+      const url = sources[p.clip.ref]?.previewUrl ?? sources[p.clip.ref]?.url;
       if (!url) return;
       if (video.getAttribute("src") !== url) video.src = url;
       video.muted = Boolean(p.clip.muted);
@@ -180,7 +180,7 @@ export function SequencePreview({
               </div>
             );
           }
-          const url = layer.ref ? sources[layer.ref]?.url : undefined;
+          const url = layer.ref ? (sources[layer.ref]?.previewUrl ?? sources[layer.ref]?.url) : undefined;
           if (!url) return null;
           const style = {
             left: `${layer.x}%`,
