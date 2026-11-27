@@ -1,6 +1,6 @@
 "use client";
 
-// Setting input and the enlarge control shared by canvas text fields.
+// Variable input (a Setting node still connects here) and the enlarge control shared by canvas text fields.
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Handle, Position } from "@xyflow/react";
@@ -47,17 +47,25 @@ export function useCanvasTextSettings(): CanvasTextSettingsValue {
   return useContext(CanvasTextSettingsContext);
 }
 
+// Visible name of this input. The source node is still a Setting.
+export function variablePortCopy(isZh: boolean): { label: string; title: string } {
+  return isZh
+    ? { label: "變數", title: "變數（填入 {{key}}）" }
+    : { label: "Variable", title: "Variable (fills {{key}})" };
+}
+
 // Left-side handle a Setting node connects to.
 export function SettingsInputRow() {
   const { isZh, connected } = useCanvasTextSettings();
   const color = connected ? SETTING_COLOR : "#64748b";
+  const copy = variablePortCopy(isZh);
   return (
     <div className="relative flex items-center justify-between border-b border-white/6 px-3 py-1.5 text-[11px]">
       <Handle
         type="target"
         id={SETTINGS_HANDLE}
         position={Position.Left}
-        title={isZh ? "設定（填入 {{key}}）" : "Setting (fills {{key}})"}
+        title={copy.title}
         style={{
           width: 11,
           height: 11,
@@ -68,7 +76,7 @@ export function SettingsInputRow() {
       />
       <span className="flex items-center gap-1.5 text-white/80">
         <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-        {isZh ? "設定" : "Setting"}
+        {copy.label}
       </span>
       <span className="text-[10px] text-white/45">{connected ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}</span>
     </div>

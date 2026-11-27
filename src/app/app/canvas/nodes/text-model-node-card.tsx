@@ -12,6 +12,7 @@ import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { OutdatedBanner } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
 import { TextModelPicker } from "@/app/app/canvas/nodes/text-model-picker";
+import { TextModelVariablePort } from "@/app/app/canvas/nodes/text-model-variable-port";
 import { readConnectedPromptText } from "@/service/canvas/core/graph";
 import { swapCandidates } from "@/service/canvas/core/model-swap";
 
@@ -84,6 +85,7 @@ export function TextModelNodeCard(view: ModelNodeCardView) {
           onEdit={savePrompt}
           onOpenEditor={() => setPromptEditorOpen(true)}
           onCloseEditor={() => setPromptEditorOpen(false)}
+          aside={<TextModelVariablePort isZh={isZh} />}
         />
         {status === "failed" ? <ModelNodeFailedBanner message={data.lastError} /> : null}
         {outdated ? <OutdatedBanner reason={outdated} isZh={isZh} /> : null}
