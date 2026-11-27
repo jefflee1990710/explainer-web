@@ -134,6 +134,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "自動字幕",
     ko: "자동 자막",
   },
+  "scro:video-style-transfer": {
+    "zh-Hant": "影片風格轉移",
+    "zh-Hans": "视频风格迁移",
+    ja: "動画スタイル変換",
+    ko: "영상 스타일 변환",
+  },
   "ffmpeg:keep-ranges": {
     "zh-Hant": "FFmpeg 保留區間",
     "zh-Hans": "FFmpeg 保留区间",

@@ -8,7 +8,9 @@ import { applyCompletedJobOutputs, resolveNodeInputs } from "@/service/canvas/co
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { VIDEO_STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/catalog/video-style-transfer";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
+import { planVideoStyleTransfer } from "@/service/canvas/execution/video-style-transfer";
 import { isOpenRouterHeyGenAvatarModel } from "@/service/openrouter/generate";
 import { probeRemoteDurationSec } from "@/service/canvas/execution/caption-transcribe";
 import {
@@ -134,7 +136,7 @@ export async function submitCanvasNodeJob(
   );
   if (!inputCheck.ok) {
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
-    const details: string[] = [];
+    const details: string[] = inputCheck.reason ? [inputCheck.reason] : [];
     if (inputCheck.missingRequiredFields.length > 0) {
       details.push(`缺少必要輸入：${inputCheck.missingRequiredFields.join(", ")}`);
     }
@@ -248,7 +250,42 @@ export async function submitCanvasNodeJob(
     resolvedDurationSeconds = probed && probed > 0 ? probed : resolvedDurationSeconds ?? 10;
   }
 
-  const costUsd = estimateCanvasModelCostUsd(activeSpec, {
+  // Image style transfer already swapped activeSpec. Video style transfer overrides only the charge.
+  let chargeSpec = activeSpec;
+  if (spec.id === VIDEO_STYLE_TRANSFER_MODEL_ID) {
+    const planned = planVideoStyleTransfer({
+      node,
+      videoUrl: inputCheck.inputs.video,
+      catalog,
+    });
+    if (!planned.ok) {
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: false,
+        code: "INVALID_INPUTS",
+        error: planned.reason,
+        missingRequiredFields: planned.missing,
+        creditUsd,
+      };
+    }
+    const targetError = canvasProviderAdapter(planned.plan.model.provider)?.credentialError?.(
+      planned.plan.model,
+      resolved,
+    );
+    if (targetError) {
+      const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
+      return {
+        ok: false,
+        code: "PROVIDER_UNAVAILABLE",
+        error: targetError,
+        creditUsd,
+      };
+    }
+    chargeSpec = planned.plan.model;
+    resolvedDurationSeconds = planned.plan.durationSeconds;
+  }
+
+  const costUsd = estimateCanvasModelCostUsd(chargeSpec, {
     durationSeconds: resolvedDurationSeconds,
     resolution: node.data.resolution,
     referenceImages: activeInputs.refImages.length,
@@ -307,6 +344,9 @@ export async function submitCanvasNodeJob(
       : {}),
     ...(activeInputs.outfitRefs && activeInputs.outfitRefs.length > 0
       ? { outfitRefs: activeInputs.outfitRefs }
+      : {}),
+    ...(activeInputs.characterRefPositions?.length
+      ? { characterRefPositions: activeInputs.characterRefPositions }
       : {}),
     ...(activeInputs.video ? { video: activeInputs.video } : {}),
     ...(activeInputs.videos.length > 0

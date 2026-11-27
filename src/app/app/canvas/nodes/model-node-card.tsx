@@ -6,12 +6,15 @@ import { useMemo, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
+import { VIDEO_STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/catalog/video-style-transfer";
+import { isStyleId } from "@/model/style-id";
 import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { CHARACTER_BLUEPRINT_MODEL_ID } from "@/service/canvas/core/character-blueprint";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { wiredSettingsVars } from "@/service/canvas/core/graph";
 import { CharacterBlueprintNodeCard } from "@/app/app/canvas/nodes/character-blueprint-node-card";
+import { pendingCharacterOutfitSources } from "@/service/canvas/core/character-wardrobe";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
 import { ExplainerDirectorCard } from "@/app/app/canvas/nodes/explainer-director-card";
 import { TalkingHeadDirectorCard } from "@/app/app/canvas/nodes/talking-head-director-card";
@@ -274,8 +277,16 @@ export function ModelNodeCard({
   if (spec.id === "scro:life" && !String(toolParams.characterId ?? "").trim()) {
     missingRequiredLabels.push(isZh ? "角色" : "Character");
   }
+  if (spec.id === VIDEO_STYLE_TRANSFER_MODEL_ID) {
+    const styleId = typeof toolParams.styleId === "string" ? toolParams.styleId : "";
+    const videoModelId = typeof toolParams.videoModelId === "string" ? toolParams.videoModelId : "";
+    if (!isStyleId(styleId)) missingRequiredLabels.push(isZh ? "風格" : "Style");
+    if (!videoModelId.trim()) missingRequiredLabels.push(isZh ? "影片模型" : "Video model");
+  }
 
-  const canRun = !isBusy && !isFlowRunning && missingRequiredLabels.length === 0;
+  const pendingOutfits = pendingCharacterOutfitSources(id, nodes, edges);
+  const canRun =
+    !isBusy && !isFlowRunning && missingRequiredLabels.length === 0 && pendingOutfits.length === 0;
   const categoryLabel = isZh
     ? CATEGORY_LABELS[spec.category]["zh-Hant"]
     : CATEGORY_LABELS[spec.category].en;
@@ -347,6 +358,7 @@ export function ModelNodeCard({
     durationSeconds,
     activePreset,
     missingRequiredLabels,
+    pendingOutfits,
     canRun,
     categoryLabel,
     outdated,
