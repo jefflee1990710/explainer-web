@@ -62,6 +62,10 @@ import { useSequenceTimeline } from "@/app/app/canvas/timeline/use-sequence-time
 import { CanvasLightbox } from "@/app/app/canvas/canvas-lightbox";
 import { CanvasSidebar } from "@/app/app/canvas/canvas-sidebar";
 import { CanvasFitViewButton } from "@/app/app/canvas/canvas-fit-view-button";
+import { CanvasMultiSelectMenu } from "@/app/app/canvas/canvas-multi-select-menu";
+import { CanvasSelectionBox } from "@/app/app/canvas/canvas-selection-box";
+import { useCanvasModifierSelection } from "@/app/app/canvas/use-canvas-modifier-selection";
+import "@/app/app/canvas/canvas-multi-select.css";
 import { CanvasTopbar, type SaveStatus } from "@/app/app/canvas/canvas-topbar";
 import { useCanvasFlow } from "@/app/app/canvas/workspace/use-canvas-flow";
 import { useCanvasJobs } from "@/app/app/canvas/workspace/use-canvas-jobs";
@@ -588,6 +592,32 @@ function CanvasWorkspaceInner({
     scheduleAutosave,
   });
 
+  const paneRootRef = useRef<HTMLDivElement>(null);
+  const hiddenIds = useMemo(
+    () => new Set(groupsApi.groups.filter((group) => group.collapsed).flatMap((group) => group.memberIds)),
+    [groupsApi.groups],
+  );
+  const selectionKey = groupsApi.selectedIds.slice().sort().join("\0");
+  const multiSelect = useCanvasModifierSelection({
+    containerRef: paneRootRef,
+    nodesRef,
+    setNodes,
+    screenToFlowPosition: (point) => reactFlow.screenToFlowPosition(point),
+    getZoom: () => reactFlow.getViewport().zoom,
+    lockedIds: planLocks.nodeIds,
+    hiddenIds,
+    selectionKey,
+    selectedCount: groupsApi.selectedIds.length,
+    onMoveEnd: scheduleAutosave,
+  });
+  const deleteSelectedNodes = useCallback(() => {
+    const locked = planLockRef.current.nodeIds;
+    for (const id of groupsApi.selectedIds) {
+      if (!locked.has(id)) onDeleteNode(id);
+    }
+  }, [groupsApi.selectedIds, onDeleteNode]);
+  const movableSelectionCount = groupsApi.selectedIds.filter((id) => !planLocks.nodeIds.has(id)).length;
+
   const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
   useCanvasProxies({ canvasId: activeProjectId, nodes, setNodes });
   const { onSaveCharacterBlueprint } = useCanvasCharacterBlueprint({
@@ -704,7 +734,8 @@ function CanvasWorkspaceInner({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-row">
           <div
-            className="relative min-h-0 min-w-0 flex-1"
+            ref={paneRootRef}
+            className={`relative min-h-0 min-w-0 flex-1${multiSelect.moveArmed ? " scro-move-selection" : ""}`}
             onDragOver={handlePaneDragOver}
             onDragLeave={handlePaneDragLeave}
             onDrop={handlePaneDrop}
@@ -730,6 +761,9 @@ function CanvasWorkspaceInner({
                     scheduleAutosave();
                   }}
                   deleteKeyCode={["Backspace", "Delete"]}
+                  // Left-drag pans. Command (Mac) or Control (Windows) on the pane draws a selection box.
+                  selectionOnDrag={false}
+                  panOnDrag={multiSelect.moveArmed ? [1] : true}
                   // Mac trackpad: two fingers moving together pan the canvas. Pinch arrives as ctrl+wheel and zooms.
                   panOnScroll
                   panOnScrollSpeed={1}
@@ -789,6 +823,22 @@ function CanvasWorkspaceInner({
                   setNodeMenu(null);
                 }}
                 onClose={() => setNodeMenu(null)}
+              />
+            ) : null}
+
+            {multiSelect.selectionBox ? <CanvasSelectionBox box={multiSelect.selectionBox} /> : null}
+            {groupsApi.selectedIds.length >= 2 ? (
+              <CanvasMultiSelectMenu
+                isZh={isZh}
+                count={groupsApi.selectedIds.length}
+                moveArmed={multiSelect.moveArmed}
+                canDelete={movableSelectionCount > 0}
+                canMove={movableSelectionCount > 0}
+                onDelete={deleteSelectedNodes}
+                onToggleMove={multiSelect.toggleMove}
+                onMoveStart={multiSelect.beginMove}
+                onMoveBy={multiSelect.updateMove}
+                onMoveEnd={multiSelect.endMove}
               />
             ) : null}
 
