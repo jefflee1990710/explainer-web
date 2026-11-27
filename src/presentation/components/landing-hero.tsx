@@ -40,9 +40,9 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
     { tpl: "teleport" as const, label: isZhHant ? "🌍 實景換場" : isZhHans ? "🌍 实景换场" : "🌍 Scene Teleport" },
   ];
 
-  // Fills the viewport under the sticky header on wide screens; stacks copy over the canvas below xl.
+  // Height follows the content (no forced full viewport); copy sits beside the canvas from xl, stacked above it below.
   return (
-    <section className="relative flex w-full flex-col overflow-hidden border-b border-[#272a36] bg-[#0d0e13] xl:h-[calc(100dvh-4rem)] xl:min-h-[44rem]">
+    <section className="relative flex w-full flex-col overflow-hidden border-b border-[#272a36] bg-[#0d0e13]">
       {/* Ambient lime glow and faint studio grid */}
       <div
         aria-hidden
@@ -65,7 +65,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
         }}
       />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 items-center gap-8 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:gap-12 xl:px-10 xl:py-8 2xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
+      <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 items-center gap-8 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:gap-12 xl:px-10 xl:py-14 2xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
         <div className="mx-auto flex w-full max-w-xl flex-col items-center text-center xl:mx-0 xl:items-start xl:text-left">
           <motion.div
             custom={0}
