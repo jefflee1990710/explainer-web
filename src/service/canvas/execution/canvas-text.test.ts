@@ -15,6 +15,7 @@ import {
 import { canvasTextUserRates, textTokenCostUsd } from "@/service/canvas/catalog/text-token-price";
 import { estimateCanvasModelCostUsd } from "@/service/canvas/catalog/pricing";
 import { generateCanvasText } from "@/service/canvas/execution/canvas-text";
+import { ARGOLINK_CHAT_COMPLETIONS_URL } from "@/service/argolink/chat";
 import { argolinkProvider } from "@/service/canvas/execution/providers/argolink";
 import { googleProvider } from "@/service/canvas/execution/providers/google";
 import type { CanvasDispatchContext } from "@/service/canvas/execution/providers/types";
@@ -36,7 +37,7 @@ describe("canvas text models", () => {
     const claude = findCanvasModel(CANVAS_TEXT_CLAUDE_ID);
     const gpt = findCanvasModel(CANVAS_TEXT_GPT_ID);
     assert.ok(flash && argon && claude && gpt);
-    assert.equal(TEXT_STATIC_MODELS.length, 4);
+    assert.equal(TEXT_STATIC_MODELS.length, 28);
     for (const spec of [flash, argon, claude, gpt]) {
       assert.equal(spec.category, "text");
       assert.equal(spec.output.type, "text");
@@ -53,8 +54,12 @@ describe("canvas text models", () => {
     assert.equal(gpt.providerModelId, "gpt-5.6-sol");
     assert.deepEqual(
       swapCandidates(flash, TEXT_STATIC_MODELS).map((spec) => spec.id).sort(),
-      [CANVAS_TEXT_ARGON_ID, CANVAS_TEXT_CLAUDE_ID, CANVAS_TEXT_GPT_ID].sort(),
+      TEXT_STATIC_MODELS.map((spec) => spec.id).filter((id) => id !== flash.id).sort(),
     );
+    for (const spec of TEXT_STATIC_MODELS) {
+      assert.equal(spec.provider === "google" || spec.provider === "argolink", true, spec.id);
+      assert.equal(spec.id.endsWith(spec.providerModelId), true);
+    }
     const pricedAt = ON_2026_11_27;
     assert.equal(
       estimateCanvasModelCostUsd(flash, { inputTokens: 1_000_000, outputTokens: 0, pricedAt }),
@@ -95,6 +100,68 @@ describe("canvas text models", () => {
       ),
       /token 用量/,
     );
+  });
+
+  it("sends new Gemini ids through the chat client and new Claude or GPT ids through mocked ArgoLink", async () => {
+    const geminiCalls: string[] = [];
+    const carbon = await generateCanvasText(
+      { model: "gemini-4-carbon", prompt: "Name the locks" },
+      {
+        modelFor: (modelId) => {
+          geminiCalls.push(modelId);
+          return {} as never;
+        },
+        generateText: async () => ({ text: "Carbon", usage: { inputTokens: 8, outputTokens: 2 } }),
+        fetch: async () => {
+          throw new Error("Gemini must not call ArgoLink");
+        },
+      },
+    );
+    assert.deepEqual(geminiCalls, ["gemini-4-carbon"]);
+    assert.equal(carbon.text, "Carbon");
+
+    let posted = "";
+    const haiku = await generateCanvasText(
+      { model: "claude-haiku-5-5", prompt: "List three cuts" },
+      {
+        apiKey: "test-argolink-key",
+        fetch: async (url, init) => {
+          posted = String(url);
+          const body = JSON.parse(String(init?.body)) as { model?: string };
+          assert.equal(body.model, "claude-haiku-5-5");
+          assert.equal(new Headers(init?.headers).get("authorization"), "Bearer test-argolink-key");
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "Cut, hold, release" } }],
+              usage: { prompt_tokens: 11, completion_tokens: 4 },
+            }),
+            { status: 200 },
+          );
+        },
+      },
+    );
+    assert.equal(posted, ARGOLINK_CHAT_COMPLETIONS_URL);
+    assert.equal(haiku.text, "Cut, hold, release");
+    assert.deepEqual(haiku.usage, { inputTokens: 11, outputTokens: 4 });
+
+    const terra = await generateCanvasText(
+      { model: "gpt-6.1-terra", prompt: "One line" },
+      {
+        apiKey: "test-argolink-key",
+        fetch: async (_url, init) => {
+          const body = JSON.parse(String(init?.body)) as { model?: string };
+          assert.equal(body.model, "gpt-6.1-terra");
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "Ready" } }],
+              usage: { prompt_tokens: 5, completion_tokens: 1 },
+            }),
+            { status: 200 },
+          );
+        },
+      },
+    );
+    assert.equal(terra.text, "Ready");
   });
 
   it("dispatches a text node through the mocked Google chat client and stores the text", async () => {
