@@ -13,14 +13,15 @@ function shell(child: ReactNode) {
   return createElement(
     ReactFlowProvider,
     null,
-    createElement(I18nProvider, {
-      initialLocale: "en",
-      children: createElement(
+    createElement(
+      I18nProvider,
+      { initialLocale: "en" },
+      createElement(
         CanvasNodeActionsContext.Provider,
         { value: {} as CanvasNodeActionsContextValue },
         child,
       ),
-    }),
+    ),
   );
 }
 
@@ -46,19 +47,25 @@ const base: CanvasNodeData = {
   toolParams: { plannerMode: true },
 };
 
-test("the Explainer Director card has no Topic row and no topic field", () => {
+test("the Explainer Director card has a topic field and keeps Reference and Variable", () => {
   const html = renderToStaticMarkup(shell(card(base)));
   assert.match(html, /Explainer Director/);
   assert.match(html, /data-handleid="prompt"/);
-  assert.doesNotMatch(html, /Or type/);
-  assert.doesNotMatch(html, /Topic \/ script/);
-  assert.doesNotMatch(html, />Topic</);
-  assert.doesNotMatch(html, /typed on the card/);
+  assert.match(html, /data-handleid="refImages"/);
+  assert.match(html, /data-handleid="settings"/);
+  assert.match(html, />Topic</);
+  assert.match(html, /Or type/);
+  assert.match(html, /Topic \/ script/);
+  assert.match(html, /typed on the card/);
+  assert.match(html, /Reference/);
+  assert.match(html, /Variable/);
   const zh = renderToStaticMarkup(shell(card(base, undefined, true)));
   assert.match(zh, /解說導演/);
-  assert.doesNotMatch(zh, /可輸入/);
-  assert.doesNotMatch(zh, /主題 \/ 講稿/);
-  assert.doesNotMatch(zh, />主題</);
+  assert.match(zh, /可輸入/);
+  assert.match(zh, /主題 \/ 講稿/);
+  assert.match(zh, />主題</);
+  assert.match(zh, /參考圖/);
+  assert.match(zh, /typed on the card/);
 });
 
 function planButton(html: string): string {
@@ -92,10 +99,13 @@ test("the reference port is optional and says when an image is connected", () =>
   assert.match(wired, /data-handleid="prompt"/);
 });
 
-test("a wired topic enables Plan without showing the topic text", () => {
+test("a wired topic fills the field and enables Plan", () => {
   const html = renderToStaticMarkup(shell(card({ ...base, prompt: "" }, "How compound interest works")));
   assert.match(html, /data-handleid="prompt"/);
-  assert.doesNotMatch(html, /How compound interest works/);
+  assert.match(html, /How compound interest works/);
+  assert.match(html, />Wired</);
+  assert.match(html, /Reference/);
+  assert.match(html, /Variable/);
   assert.doesNotMatch(planButton(html), /disabled=""/);
 });
 
@@ -119,7 +129,14 @@ test("Talking Head still has its script row", () => {
   assert.match(html, /Hello/);
 });
 
-test("Plan stays off until a topic is connected or already stored", () => {
+test("Plan stays off until a topic is typed or connected", () => {
   const html = renderToStaticMarkup(shell(card({ ...base, prompt: "" })));
+  assert.match(html, /Topic \/ script/);
   assert.match(planButton(html), /disabled=""/);
+});
+
+test("a topic typed on the card enables Plan with no wire", () => {
+  const html = renderToStaticMarkup(shell(card(base)));
+  assert.match(html, /typed on the card/);
+  assert.doesNotMatch(planButton(html), /disabled=""/);
 });

@@ -100,11 +100,13 @@ describe("explainer director", () => {
     assert.equal(directorNeedsReplan(director({ durationPreset: "auto", plan: plan(1, fixed) })), true);
   });
 
-  it("uses a connected topic even after the card was edited", () => {
-    const node = director({ promptEdited: true }, "typed on the card");
+  it("uses a connected topic until the card is edited", () => {
+    const node = director({}, "typed on the card");
     assert.equal(explainerNodeWithWiredTopic(node, undefined).data.prompt, "typed on the card");
     assert.equal(explainerNodeWithWiredTopic(node, "from the text node").data.prompt, "from the text node");
     assert.equal(explainerNodeWithWiredTopic(node, "").data.prompt, "");
+    const edited = director({ promptEdited: true }, "typed on the card");
+    assert.equal(explainerNodeWithWiredTopic(edited, "from the text node").data.prompt, "typed on the card");
   });
 
   it("needs a replan when any parameter but the text style changed", () => {
