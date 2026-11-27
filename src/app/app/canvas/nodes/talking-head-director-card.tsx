@@ -19,6 +19,7 @@ import {
 } from "@/service/canvas/directors/explainer-director";
 import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
+import { SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { TalkingHeadDirectorFields } from "@/app/app/canvas/nodes/talking-head-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
@@ -95,6 +96,7 @@ export function TalkingHeadDirectorCard({
         wired={scriptWired}
         detail={scriptWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
       />
+      <SettingsInputRow />
 
       <div className="flex flex-col gap-2.5 p-3">
         <TalkingHeadDirectorFields

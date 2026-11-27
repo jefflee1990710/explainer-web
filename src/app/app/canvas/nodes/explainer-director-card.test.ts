@@ -13,15 +13,14 @@ function shell(child: ReactNode) {
   return createElement(
     ReactFlowProvider,
     null,
-    createElement(
-      I18nProvider,
-      { initialLocale: "en" },
-      createElement(
+    createElement(I18nProvider, {
+      initialLocale: "en",
+      children: createElement(
         CanvasNodeActionsContext.Provider,
         { value: {} as CanvasNodeActionsContextValue },
         child,
       ),
-    ),
+    }),
   );
 }
 

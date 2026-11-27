@@ -444,10 +444,11 @@ describe("canvas graph — resolveNodeInputs", () => {
       false,
     );
     const resolved = resolveNodeInputs("img", nodes, edges);
-    assert.equal(resolved.inputs.prompt, `{{mood}} board ${explainerTextStyleLine("neon")}`);
+    assert.equal(resolved.ok, true);
+    assert.equal(resolved.inputs.prompt, `busy board ${explainerTextStyleLine("neon")}`);
     assert.equal(
       validateEdgeConnection(nodes, [], { source: "s-img", target: "img", targetHandle: "settings" }).valid,
-      false,
+      true,
     );
   });
 
@@ -678,9 +679,10 @@ describe("canvas graph — resolveNodeInputs", () => {
       edge("e3", "s-model", "img", "settings"),
     ];
     assert.equal(validateEdgeConnection(nodes, [], { source: "s-prompt", target: "p", targetHandle: "settings" }).valid, true);
-    assert.equal(validateEdgeConnection(nodes, [], { source: "s-model", target: "img", targetHandle: "settings" }).valid, false);
+    assert.equal(validateEdgeConnection(nodes, [], { source: "s-model", target: "img", targetHandle: "settings" }).valid, true);
     const resolved = resolveNodeInputs("img", nodes, edges);
-    assert.equal(resolved.inputs.prompt, "A rainy street, ink look");
+    // The Prompt's Setting fills mood. The model's own Setting wins on style.
+    assert.equal(resolved.inputs.prompt, "A rainy street, neon look");
   });
 
   it("blocks a run while a {{key}} has no value", () => {
@@ -1278,10 +1280,21 @@ describe("canvas graph — settings edges", () => {
     assert.deepEqual(validateEdgeConnection([settingsNode, prompt], [], candidate("p")), { valid: true });
   });
 
-  it("rejects a Setting wire onto a model, including other handles", () => {
-    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, false);
+  it("lets a Setting wire onto a text field and rejects a model with none", () => {
+    assert.equal(validateEdgeConnection([settingsNode, tts], [], candidate("t")).valid, true);
     assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g")).valid, false);
     assert.equal(validateEdgeConnection([settingsNode, grade], [], candidate("g", "video")).valid, false);
+  });
+
+  it("fills an inline prompt from the Setting wired to that model", () => {
+    const rich = { ...settingsNode, data: { settings: { vars: { mood: "rainy" } } } };
+    const image = modelNode("img", "mentalok:flux-schnell", { prompt: "A {{mood}} street" });
+    const wired = resolveNodeInputs("img", [rich, image], [edge("e", "s", "img", "settings")]);
+    assert.equal(wired.ok, true);
+    if (wired.ok) assert.equal(wired.inputs.prompt, "A rainy street");
+    const bare = resolveNodeInputs("img", [image], []);
+    assert.equal(bare.ok, false);
+    if (!bare.ok) assert.ok(bare.missingRequiredFields.includes("{{mood}}"));
   });
 
   it("rejects a second settings wire unless replacing", () => {

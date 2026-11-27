@@ -30,7 +30,8 @@ import {
 import type { CanvasExplainerPlanState } from "@/service/canvas/directors/explainer-plan";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { defaultGroupColor, defaultGroupTitle, withGroup } from "@/service/canvas/core/groups";
-import { readConnectedPromptText } from "@/service/canvas/core/graph";
+import { modelPromptVars, readConnectedPromptText } from "@/service/canvas/core/graph";
+import { fillNodeTextData, missingPlaceholderLabels, settingsTexts } from "@/service/canvas/core/settings/fill";
 import {
   buildSwapDirectorGroup,
   buildTeleportDirectorGroup,
@@ -611,10 +612,19 @@ export function useCanvasDirectors(deps: CanvasDirectorsHookDeps) {
       const stored = nodesRef.current.find((n) => n.id === nodeId);
       if (!stored || !isScroDirectorNode(stored)) return;
       // Build uses the wired text when the card has not been edited away from it.
+      const domainNodes = toDomainNodes(nodesRef.current);
+      const domainEdges = toDomainEdges(edgesRef.current);
       const node = directorNodeWithWiredPrompt(
         stored,
-        readConnectedPromptText(nodeId, toDomainNodes(nodesRef.current), toDomainEdges(edgesRef.current), models),
+        readConnectedPromptText(nodeId, domainNodes, domainEdges, models),
       );
+      const settingVars = modelPromptVars(nodeId, domainNodes, domainEdges, models);
+      const missingSettings = missingPlaceholderLabels(settingsTexts(node), settingVars);
+      if (missingSettings.length > 0) {
+        toast.error(isZh ? `缺少設定：${missingSettings.join("、")}` : `Missing Setting values: ${missingSettings.join(", ")}`);
+        return;
+      }
+      const filled = fillNodeTextData(node, settingVars, models);
       const swap = isSwapDirectorNode(node);
       const videoNodeId = edgesRef.current.find((e) => e.target === nodeId && e.targetHandle === "video")?.source;
       const referenceNodeId = edgesRef.current.find(
@@ -631,7 +641,7 @@ export function useCanvasDirectors(deps: CanvasDirectorsHookDeps) {
         idPrefix: builtGroupId,
         origin: { x: node.position.x + 380, y: node.position.y },
       };
-      const built = swap ? buildSwapDirectorGroup(node, input) : buildTeleportDirectorGroup(node, input);
+      const built = swap ? buildSwapDirectorGroup(filled, input) : buildTeleportDirectorGroup(filled, input);
       if ("error" in built) {
         toast.error(scroDirectorBuildMessage(built.error, isZh));
         return;

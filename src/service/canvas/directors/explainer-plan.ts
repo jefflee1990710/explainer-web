@@ -27,7 +27,9 @@ import {
   type ExplainerDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
 import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
-import { readConnectedPromptText, resolveNodeInputs } from "@/service/canvas/core/graph";
+import type { SettingsVars } from "@/model/canvas-settings";
+import { modelPromptVars, readConnectedPromptText, resolveNodeInputs } from "@/service/canvas/core/graph";
+import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/settings/template";
 import { defaultGroupColor, defaultGroupTitle, readGroupParams } from "@/service/canvas/core/groups";
 import { getCanvasModelCatalog } from "@/service/canvas/catalog/model-catalog";
 import { type CanvasPlanFrameInputs, canvasPlanFrameInputs } from "@/service/canvas/directors/plan-frame-inputs";
@@ -59,13 +61,14 @@ export type CanvasExplainerPlanState =
   | (ExpandedPlan & { status: "ready" });
 
 // Plan source for a Director: topic, presenter line, and the old voiceover when the topic is unchanged.
-export function explainerPlanSource(node: CanvasNode): string {
+export function explainerPlanSource(node: CanvasNode, vars?: SettingsVars): string {
   const params = directorParams(node);
   const plan = readDirectorPlan(node);
   const keepNarration =
     plan !== undefined && (plan.plannedWith as ExplainerDirectorParams).topic === params.topic;
+  const topic = vars ? renderPromptTemplate(params.topic, vars).text.trim() : params.topic;
   return composeExplainerPlanSource({
-    topic: params.topic,
+    topic,
     presenterPosition: params.presenterPosition as ExplainerPresenterPosition,
     narration: keepNarration ? plan.clips.map((c) => c.spokenLine) : [],
   });
@@ -109,11 +112,18 @@ export async function startCanvasExplainerPlan(params: {
         resolved.promptFromNode ? resolved.inputs.prompt : undefined,
       );
   const isTalking = plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
-  const readyPrompt = director ? (plannerNode.data.prompt ?? "").trim() : (resolved.inputs.prompt ?? "").trim();
-  if (!readyPrompt) {
+  const settingVars = modelPromptVars(params.nodeId, loaded.canvas.nodes, loaded.canvas.edges, catalog);
+  const readySource = director ? (plannerNode.data.prompt ?? "").trim() : (resolved.inputs.prompt ?? "").trim();
+  const filledTopic = renderPromptTemplate(readySource, settingVars);
+  if (filledTopic.missing.length > 0) {
+    return { ok: false, error: `缺少設定：${filledTopic.missing.map((key) => promptPlaceholder(key)).join("、")}` };
+  }
+  if (!filledTopic.text) {
     return { ok: false, error: isTalking ? "請先輸入講稿" : director ? "請先連接解說主題" : "請先輸入或連接解說主題" };
   }
-  const inputs = director ? { ...resolved.inputs, prompt: explainerPlanSource(plannerNode) } : resolved.inputs;
+  const inputs = director
+    ? { ...resolved.inputs, prompt: explainerPlanSource(plannerNode, settingVars) }
+    : { ...resolved.inputs, prompt: filledTopic.text };
   try {
     const videoId = await createCanvasDirectorVideo({
       clerkUserId: params.clerkUserId,

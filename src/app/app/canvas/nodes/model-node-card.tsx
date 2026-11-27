@@ -2,7 +2,7 @@
 
 // Model node card: director cards return early; the generic card composes the sections below.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
@@ -40,6 +40,7 @@ import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
 import { StyleTransferNodeCard } from "@/app/app/canvas/nodes/style-transfer-node-card";
 import { TextModelNodeCard } from "@/app/app/canvas/nodes/text-model-node-card";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
+import { CanvasTextSettings } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { ModelNodeExtraOutputs } from "@/app/app/canvas/nodes/model-node-extra-outputs";
 import { STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/core/style-transfer";
 
@@ -71,6 +72,11 @@ export function ModelNodeCard({
   const [promptEditorOpen, setPromptEditorOpen] = useState(false);
 
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
+  const withTextSettings = (child: ReactNode) => (
+    <CanvasTextSettings nodeId={id} nodes={nodes} edges={edges} isZh={isZh}>
+      {child}
+    </CanvasTextSettings>
+  );
   const spec = useMemo(
     () => (data.modelId ? findCanvasModel(data.modelId, catalog) : undefined),
     [catalog, data.modelId],
@@ -94,7 +100,7 @@ export function ModelNodeCard({
   }
 
   if (isExplainerDirectorNode({ type: "model", data })) {
-    return (
+    return withTextSettings(
       <ExplainerDirectorCard
         data={data}
         isZh={isZh}
@@ -106,13 +112,13 @@ export function ModelNodeCard({
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
-      />
+      />,
     );
   }
 
   // Talking Head settings stay on the card. Plan is pressed there; nothing pops up on drop.
   if (data.modelId === "scro:talking-head" && data.toolParams?.plannerMode === true) {
-    return (
+    return withTextSettings(
       <TalkingHeadDirectorCard
         data={data}
         isZh={isZh}
@@ -123,7 +129,7 @@ export function ModelNodeCard({
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
-      />
+      />,
     );
   }
 
@@ -132,7 +138,7 @@ export function ModelNodeCard({
     const videoSourceId = edges.find((edge) => edge.target === id && edge.targetHandle === "video")?.source;
     const sourceNode = videoSourceId ? nodes.find((node) => node.id === videoSourceId) : undefined;
     const swap = isSwapDirectorNode({ type: "model", data });
-    return swap ? (
+    return withTextSettings(swap ? (
       <SwapDirectorCard
         data={data}
         isZh={isZh}
@@ -160,7 +166,7 @@ export function ModelNodeCard({
         onBuild={() => onBuildScroDirector(id)}
         onRemove={() => onDeleteNode(id)}
       />
-    );
+    ));
   }
 
   if (isExplainerPlannerNode({ type: "model", data })) {
@@ -377,10 +383,10 @@ export function ModelNodeCard({
   };
 
   if (spec.category === "text") {
-    return <TextModelNodeCard {...view} />;
+    return withTextSettings(<TextModelNodeCard {...view} />);
   }
 
-  return (
+  return withTextSettings(
     <div
       className={`relative w-[312px] rounded-[16px] border bg-[#12161f]/95 shadow-[0_18px_42px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all ${
         isBusy

@@ -9,33 +9,39 @@ describe("Setting registry", () => {
     assert.deepEqual(settingsVars(undefined), {});
   });
 
-  it("wires into Prompt nodes only", () => {
+  it("wires into a Prompt and into any model that has a text field", () => {
     assert.equal(canWireSettings({ id: "p", type: "prompt", data: {} }), true);
     assert.equal(canWireSettings({ id: "m", type: "model", data: {} }), false);
     assert.equal(canWireSettings({ id: "x", type: "media", data: {} }), false);
+    assert.equal(canWireSettings({ id: "g", type: "model", data: { modelId: "ffmpeg:color-grade" } }), false);
+    assert.equal(canWireSettings({ id: "t", type: "model", data: { modelId: "scro:tts" } }), true);
+    assert.equal(canWireSettings({ id: "title", type: "model", data: { modelId: "ffmpeg:text" } }), true);
+    assert.equal(canWireSettings({ id: "cap", type: "model", data: { modelId: "scro:auto-captions" } }), true);
     assert.equal(
       canWireSettings({
         id: "exp",
         type: "model",
         data: { modelId: "scro:explainer", toolParams: { plannerMode: true } },
       }),
-      false,
+      true,
     );
   });
 
-  it("drops a Setting wire that lands on a model and keeps one that lands on a Prompt", () => {
+  it("drops a Setting wire on a model with no text field and keeps one on a Prompt or a text field", () => {
     const nodes = [
       { id: "s", type: "settings" },
-      { id: "mux", type: "model" },
+      { id: "mux", type: "model", data: { modelId: "ffmpeg:audio-mux" } },
+      { id: "title", type: "model", data: { modelId: "ffmpeg:text" } },
       { id: "p", type: "prompt" },
     ];
     const edges = [
       { target: "mux", targetHandle: "settings" },
+      { target: "title", targetHandle: "settings" },
       { target: "p", targetHandle: "settings" },
       { target: "mux", targetHandle: "video" },
     ];
     const dropped = withoutModelSettingsEdges(nodes, edges);
     assert.equal(dropped.dropped, true);
-    assert.deepEqual(dropped.edges, [edges[1], edges[2]]);
+    assert.deepEqual(dropped.edges, [edges[1], edges[2], edges[3]]);
   });
 });

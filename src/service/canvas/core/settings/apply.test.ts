@@ -43,9 +43,24 @@ describe("settingsStaleTargets", () => {
     assert.deepEqual(settingsStaleTargets([settings, moody, placed], edges, "s", next), ["a"]);
   });
 
-  it("reads a model's wired Prompt text", () => {
+  it("reads a model's wired Prompt text and its own text fields", () => {
     const edges = [edge("p", "m", "prompt")];
     assert.equal(templateText([prompt, model], edges, model), "Wired {{mood}}");
     assert.equal(templateText([prompt, model], edges, prompt), "Wired {{mood}}");
+  });
+
+  it("marks a text-field model stale when its used Setting value changes", () => {
+    const title: CanvasNode = {
+      id: "title",
+      type: "model",
+      position: { x: 0, y: 0 },
+      data: { modelId: "ffmpeg:text", toolParams: { ffmpegText: "Hello {{mood}}" } },
+    };
+    const edges = [edge("s", "title")];
+    assert.deepEqual(
+      settingsStaleTargets([settings, title], edges, "s", { vars: { mood: "tense", place: "beach" } }),
+      ["title"],
+    );
+    assert.deepEqual(settingsStaleTargets([settings, title], edges, "s", { vars: { mood: "calm", place: "city" } }), []);
   });
 });

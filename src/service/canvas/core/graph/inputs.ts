@@ -14,6 +14,7 @@ import {
   isPlanDirectorNode,
   parseDirectorHandle,
 } from "@/service/canvas/directors/explainer-director";
+import { missingPlaceholderLabels, settingsTexts } from "@/service/canvas/core/settings/fill";
 import { settingsVars } from "@/service/canvas/core/settings/registry";
 import { promptPlaceholder, renderPromptTemplate } from "@/service/canvas/core/settings/template";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
@@ -127,20 +128,31 @@ export function readConnectedPromptText(
   return connected ? "" : undefined;
 }
 
+// Vars of the Setting wired into `nodeId`. Undefined when nothing is connected.
+export function connectedSettingsVars(
+  nodeId: string,
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+): SettingsVars | undefined {
+  const wire = edges.find((e) => e.target === nodeId && e.targetHandle === SETTINGS_HANDLE);
+  if (!wire) return undefined;
+  const source = nodes.find((n) => n.id === wire.source);
+  if (source?.type !== "settings") return undefined;
+  return settingsVars(source.data.settings);
+}
+
 // Vars of the Setting node wired into `nodeId`, or none.
 export function wiredSettingsVars(
   nodeId: string,
   nodes: readonly CanvasNode[],
   edges: readonly CanvasEdge[],
 ): SettingsVars {
-  const wire = edges.find((e) => e.target === nodeId && e.targetHandle === SETTINGS_HANDLE);
-  const source = wire ? nodes.find((n) => n.id === wire.source) : undefined;
-  return source?.type === "settings" && source.data.settings ? settingsVars(source.data.settings) : {};
+  return connectedSettingsVars(nodeId, nodes, edges) ?? {};
 }
 
 // {{key}} values for a model prompt.
 // The Explainer Director fills text_style from its card, so a new director needs no Setting.
-// A Setting overrides a key only when it is wired to the Prompt that feeds this node.
+// A Setting on the Prompt that feeds this node fills that prompt. The model's own Setting wins.
 export function modelPromptVars(
   nodeId: string,
   nodes: readonly CanvasNode[],
@@ -148,6 +160,7 @@ export function modelPromptVars(
   catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
 ): SettingsVars {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const own = wiredSettingsVars(nodeId, nodes, edges);
   let director: CanvasNode | undefined;
   let promptSource: CanvasNode | undefined;
   for (const edge of edges) {
@@ -162,13 +175,14 @@ export function modelPromptVars(
       director = source;
       break;
     }
-    // Subtitle SRT is literal; do not treat a cue as a template key.
-    if (source.type === "model" && getNodeOutputPortType(source, catalog) === "text") return {};
+    // A text-model or caption wire stays literal except for this node's own Setting.
+    if (source.type === "model" && getNodeOutputPortType(source, catalog) === "text") return own;
   }
   const settingVars = promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {};
   return {
     ...(director ? directorBaseVars(director) : {}),
     ...settingVars,
+    ...own,
   };
 }
 
@@ -279,13 +293,20 @@ export function resolveNodeInputs(
     }
   }
 
-  // `{{key}}`: the Director card's text style, then a Setting only if one is wired to the Prompt.
-  // Subtitle SRT is literal; a cue must not be treated as a missing template key.
-  if (inputs.prompt && !captionSource) {
-    const rendered = renderPromptTemplate(inputs.prompt, modelPromptVars(nodeId, nodes, edges, catalog));
+  // `{{key}}`: director text style, then the Prompt's Setting, then this node's own Setting.
+  // A caption or text-model wire keeps unknown tokens so a cue is not a missing field.
+  const promptVars = modelPromptVars(nodeId, nodes, edges, catalog);
+  if (inputs.prompt && captionSource) {
+    // Known keys from the text node's Setting, then this node's Setting. Unknown tokens stay.
+    const sourceVars = wiredSettingsVars(captionSource.id, nodes, edges);
+    inputs.prompt = renderPromptTemplate(inputs.prompt, { ...sourceVars, ...promptVars }).text.trim() || undefined;
+  } else if (inputs.prompt) {
+    const rendered = renderPromptTemplate(inputs.prompt, promptVars);
     inputs.prompt = rendered.text.trim() || undefined;
     for (const key of rendered.missing) addUnique(missingRequiredFields, promptPlaceholder(key));
   }
+  const extraTexts = settingsTexts(targetNode, catalog).filter((text) => text !== (targetNode.data.prompt ?? ""));
+  for (const label of missingPlaceholderLabels(extraTexts, promptVars)) addUnique(missingRequiredFields, label);
 
   // Helper to resolve a single-value media input handle.
   const resolveSingleMedia = (handle: string): string | undefined => {

@@ -139,11 +139,11 @@ export function validateEdgeConnection(
     }
   }
 
-  // A Setting fills `{{key}}` on a Prompt node. Model nodes do not take one.
+  // A Setting fills `{{key}}` on a Prompt node or any node that has a text field.
   const settingsHandle = candidate.targetHandle ?? "";
   if (sourceNode.type === "settings" || settingsHandle === SETTINGS_HANDLE) {
     const settings = sourceNode.type === "settings" ? sourceNode.data.settings : undefined;
-    if (!settings || settingsHandle !== SETTINGS_HANDLE || !canWireSettings(targetNode)) {
+    if (!settings || settingsHandle !== SETTINGS_HANDLE || !canWireSettings(targetNode, catalog)) {
       return { valid: false, reason: "This settings node cannot connect to that input" };
     }
     const existing = edges.filter((e) => e.target === targetNode.id && e.targetHandle === SETTINGS_HANDLE);

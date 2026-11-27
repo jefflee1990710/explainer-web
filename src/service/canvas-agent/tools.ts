@@ -584,7 +584,7 @@ export function buildCanvasAgentTools(g: CanvasAgentWorkingGraph): ToolSet {
     }),
     update_settings: tool({
       description:
-        "Change a Setting node's vars: the key-value pairs that fill {{key}} placeholders in the Prompt node it is wired to. Model nodes have no Setting input. They apply when those nodes run. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
+        "Change a Setting node's vars: the key-value pairs that fill {{key}} in every text field it is wired to (Prompt nodes and model or Director text fields). They apply when those nodes run. A node with no text field has no Setting input. Swap / Teleport section, mode, light look, mood, and grade live on their trim, render, and grade nodes; change those with update_group_nodes.",
       inputSchema: updateSettingsSchema,
       execute: async (input) => H.update_settings(g, input),
     }),

@@ -1,5 +1,6 @@
 // Table-driven controls for FFmpeg edit params (see ffmpeg-param-field-table.ts).
 
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { FFMPEG_PARAM_FIELDS, type FfmpegParamField } from "@/app/app/canvas/nodes/ffmpeg-param-field-table";
 
 const fieldClass =
@@ -56,14 +57,21 @@ function FieldControl({ field, isZh, toolParams, onToolParam }: { field: FfmpegP
           className={fieldClass}
         />
       ) : field.kind === "textarea" ? (
-        <textarea
+        <CanvasTextDialogField
           value={String(raw ?? "")}
-          onChange={(e) => onToolParam(field.key, e.target.value)}
+          onValue={(next) => onToolParam(field.key, next)}
           rows={2}
+          dialogLabel={label}
           className={`${fieldClass} resize-y`}
         />
       ) : (
-        <input value={String(raw ?? "")} onChange={(e) => onToolParam(field.key, e.target.value)} className={fieldClass} />
+        <CanvasTextDialogField
+          multiline={false}
+          value={String(raw ?? "")}
+          onValue={(next) => onToolParam(field.key, next)}
+          dialogLabel={label}
+          className={fieldClass}
+        />
       )}
     </div>
   );
