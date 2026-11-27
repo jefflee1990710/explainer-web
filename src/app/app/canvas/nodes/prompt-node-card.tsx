@@ -7,10 +7,8 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Trash2, Type } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { wiredSettingsVars } from "@/service/canvas/core/graph";
-import { SETTING_COLOR } from "@/app/app/canvas/nodes/settings-node-card";
-import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
-import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { CanvasTextDialogField, CanvasTextSettings, SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -25,10 +23,9 @@ export function PromptNodeCard({
   const isZh = locale === "zh-Hant" || locale === "zh-Hans";
   const color = PORT_COLOR_MAP.text;
   const text = data.text ?? "";
-  const settingsEdge = edges.find((e) => e.target === id && e.targetHandle === SETTINGS_HANDLE);
-  const settingsColor = settingsEdge && nodes.some((n) => n.id === settingsEdge.source) ? SETTING_COLOR : undefined;
 
   return (
+    <CanvasTextSettings nodeId={id} nodes={nodes} edges={edges} isZh={isZh}>
     <div
       className={`relative w-[264px] rounded-[16px] border bg-[#12161f]/95 shadow-[0_14px_34px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all ${
         selected
@@ -59,35 +56,15 @@ export function PromptNodeCard({
         </button>
       </div>
 
-      {/* Setting input: fills `{{key}}` placeholders in this text */}
-      <div className="relative flex items-center justify-between px-3 pt-2 text-[11px]">
-        <Handle
-          type="target"
-          id={SETTINGS_HANDLE}
-          position={Position.Left}
-          style={{
-            width: 11,
-            height: 11,
-            backgroundColor: settingsColor ?? "#0b0e13",
-            border: `2px solid ${settingsColor ?? "#64748b"}`,
-            left: -6,
-          }}
-        />
-        <span className="flex items-center gap-1.5 text-white/80">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: settingsColor ?? "#64748b" }} />
-          {isZh ? "設定" : "Setting"}
-        </span>
-        <span className="text-[10px] text-white/45">
-          {settingsColor ? (isZh ? "已連" : "Wired") : isZh ? "選填" : "Optional"}
-        </span>
-      </div>
+      <SettingsInputRow />
 
       {/* Editable prompt body */}
       <div className="space-y-1.5 p-2.5">
-        <ComposedTextarea
+        <CanvasTextDialogField
           value={text}
           onValue={(next) => onUpdateNodeData(id, { text: next })}
           rows={4}
+          dialogLabel={isZh ? "編輯提示詞" : "Edit prompt"}
           placeholder={
             isZh
               ? "輸入提示詞，可用 {{key}} 留位，由設定填入…"
@@ -120,5 +97,6 @@ export function PromptNodeCard({
         }}
       />
     </div>
+    </CanvasTextSettings>
   );
 }

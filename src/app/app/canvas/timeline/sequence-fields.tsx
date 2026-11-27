@@ -3,6 +3,7 @@
 // Compact inputs for the timeline inspector, styled like the node card fields.
 
 import type { ReactNode } from "react";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 
 const INPUT =
   "nodrag w-full rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none";
@@ -102,12 +103,13 @@ export function TextAreaField({
 }) {
   return (
     <FieldRow label={label}>
-      <textarea
+      <CanvasTextDialogField
         className={`${INPUT} nowheel resize-none leading-relaxed`}
         rows={rows}
         value={value}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        dialogLabel={label}
+        onValue={onChange}
       />
     </FieldRow>
   );

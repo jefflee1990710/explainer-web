@@ -16,6 +16,7 @@ import {
   sequenceTotalSec,
   syncSequenceWithEdges,
 } from "@/service/canvas/core/sequence";
+import { CanvasTextSettings } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { useCanvasNodeActions } from "@/app/app/canvas/nodes/port-colors";
 import { BeatSyncButton } from "@/app/app/canvas/timeline/beat-sync-button";
 import { SequenceInspector } from "@/app/app/canvas/timeline/sequence-inspector";
@@ -202,6 +203,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
           )}
         </div>
         <div className="w-[250px] shrink-0 overflow-y-auto border-l border-white/8 p-3">
+          <CanvasTextSettings nodeId={nodeId} nodes={nodes} edges={edges} isZh={isZh}>
           <SequenceInspector
             seq={seq}
             selection={selection}
@@ -213,6 +215,7 @@ export function SequenceTimelineDrawer({ nodeId, onClose }: { nodeId: string; on
             onCaptionsText={(prompt) => onUpdateNodeData(nodeId, { prompt })}
             onRemove={removeSelected}
           />
+          </CanvasTextSettings>
         </div>
       </div>
     </div>

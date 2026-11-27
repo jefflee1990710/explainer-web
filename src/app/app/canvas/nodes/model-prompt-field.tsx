@@ -5,6 +5,7 @@
 
 import type { SettingsVars } from "@/model/canvas-settings";
 import { promptWithTextStyle } from "@/service/canvas/core/settings/explainer-text-style";
+import { useCanvasTextSettings } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog";
 import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { WiredPromptField } from "@/app/app/canvas/nodes/wired-prompt-field";
@@ -32,6 +33,7 @@ export function ModelPromptField({
   onCloseEditor,
 }: Props) {
   const shown = promptWithTextStyle(text, vars);
+  const { vars: settingVars } = useCanvasTextSettings();
   return (
     <>
       <WiredPromptField isZh={isZh} value={shown} wired={wired} onEdit={onEdit} onOpenEditor={onOpenEditor} />
@@ -39,6 +41,7 @@ export function ModelPromptField({
         <PromptEditorDialog
           initial={shown}
           isZh={isZh}
+          placeholders={settingVars}
           onCancel={onCloseEditor}
           onSave={(prompt) => {
             onCloseEditor();

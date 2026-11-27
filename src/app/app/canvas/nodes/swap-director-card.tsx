@@ -12,6 +12,7 @@ import {
 } from "@/service/canvas/directors/scro-director";
 import { directorNodeWithWiredPrompt, directorPromptPatch } from "@/service/canvas/directors/explainer-director";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
+import { SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { SwapDirectorFields } from "@/app/app/canvas/nodes/swap-director-fields";
 import { SwapDirectorOutput } from "@/app/app/canvas/nodes/swap-director-output";
@@ -114,6 +115,7 @@ export function SwapDirectorCard({
         wired={promptWired}
         detail={promptWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
       />
+      <SettingsInputRow />
       <div className="flex flex-col gap-2.5 p-3">
         <SwapDirectorFields
           data={live.data}

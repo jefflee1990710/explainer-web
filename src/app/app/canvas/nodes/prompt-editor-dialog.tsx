@@ -4,21 +4,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { SettingsVars } from "@/model/canvas-settings";
 import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { SettingPlaceholderList } from "@/app/app/canvas/nodes/setting-placeholder-list";
 
 type Props = {
   initial: string;
   isZh: boolean;
+  label?: string;
+  // Set only when a Setting is connected. The list stays hidden otherwise.
+  placeholders?: SettingsVars;
   onCancel: () => void;
   onSave: (prompt: string) => void;
 };
 
-export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
+export function PromptEditorDialog({ initial, isZh, label, placeholders, onCancel, onSave }: Props) {
   const draftRef = useRef(initial);
   const [draft, setDraftState] = useState(initial);
   const setDraft = (next: string) => {
     draftRef.current = next;
     setDraftState(next);
+  };
+  const title = label ?? (isZh ? "編輯提示詞" : "Edit prompt");
+  const insertPlaceholder = (token: string) => {
+    const current = draftRef.current;
+    const next = current.length === 0 || /\s$/.test(current) ? `${current}${token}` : `${current} ${token}`;
+    setDraft(next);
   };
 
   useEffect(() => {
@@ -33,7 +44,7 @@ export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={isZh ? "編輯提示詞" : "Edit prompt"}
+      aria-label={title}
       onClick={onCancel}
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm"
     >
@@ -41,10 +52,11 @@ export function PromptEditorDialog({ initial, isZh, onCancel, onSave }: Props) {
         onClick={(event) => event.stopPropagation()}
         className="flex max-h-[90vh] w-[720px] max-w-full flex-col rounded-2xl border border-white/15 bg-[#10141c] p-5 text-white shadow-2xl"
       >
-        <div className="text-sm font-semibold">{isZh ? "編輯提示詞" : "Edit prompt"}</div>
+        <div className="text-sm font-semibold">{title}</div>
         <p className="mt-1 text-xs leading-relaxed text-white/60">
-          {isZh ? "在較大的欄位修改這段提示詞。" : "Edit this prompt in a larger box."}
+          {isZh ? "在較大的欄位修改這段文字。" : "Edit this text in a larger box."}
         </p>
+        <SettingPlaceholderList isZh={isZh} vars={placeholders} onInsert={insertPlaceholder} />
         <ComposedTextarea
           autoFocus
           value={draft}

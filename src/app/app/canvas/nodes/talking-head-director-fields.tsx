@@ -8,7 +8,7 @@ import { getTalkingHeadPose } from "@/model/talking-head-options";
 import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
-import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { DirectorClipJoinField } from "@/app/app/canvas/nodes/director-clip-join-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
@@ -55,11 +55,12 @@ export function TalkingHeadDirectorFields({
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
       <label className={DIALOG_LABEL}>
         {isZh ? "講稿" : "Script"}
-        <ComposedTextarea
+        <CanvasTextDialogField
           rows={4}
           value={data.prompt ?? ""}
           onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "角色對住鏡頭要講嘅說話…" : "What the character says to camera…"}
+          dialogLabel={isZh ? "編輯講稿" : "Edit script"}
           className={DIALOG_TEXTAREA}
         />
       </label>

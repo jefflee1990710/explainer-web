@@ -4,7 +4,9 @@
 import { ObjectId } from "mongodb";
 import type { CanvasJob, CanvasNode, CanvasProject } from "@/model/canvas";
 import { markJobQueued } from "@/service/canvas/execution/job-ledger";
-import { applyCompletedJobOutputs, resolveNodeInputs } from "@/service/canvas/core/graph";
+import { applyCompletedJobOutputs, modelPromptVars, resolveNodeInputs } from "@/service/canvas/core/graph";
+import { fillToolParams } from "@/service/canvas/core/settings/fill";
+import { renderPromptTemplate } from "@/service/canvas/core/settings/template";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
 import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
@@ -332,11 +334,14 @@ export async function submitCanvasNodeJob(
         : activeSpec.defaultPresetId
       : node.data.aspectRatio || node.data.presetId || activeSpec.defaultPresetId;
 
+  const settingVars = modelPromptVars(node.id, projectNodes, project.edges, catalog);
+  const negativePrompt = node.data.negativePrompt?.trim()
+    ? renderPromptTemplate(node.data.negativePrompt.trim(), settingVars).text.trim()
+    : "";
+  const filledParams = fillToolParams(spec.id, node.data.toolParams, settingVars, catalog);
   const inputSnapshot: Record<string, unknown> = {
     ...(activeInputs.prompt ? { prompt: activeInputs.prompt } : {}),
-    ...(node.data.negativePrompt?.trim()
-      ? { negativePrompt: node.data.negativePrompt.trim() }
-      : {}),
+    ...(negativePrompt ? { negativePrompt } : {}),
     ...(typeof node.data.seed === "number" ? { seed: node.data.seed } : {}),
     ...(node.data.aspectRatio ? { aspectRatio: node.data.aspectRatio } : {}),
     ...(node.data.resolution ? { resolution: node.data.resolution } : {}),
@@ -346,13 +351,18 @@ export async function submitCanvasNodeJob(
     ...(spec.id === SEQUENCE_MODEL_ID
       ? {
           // Clips wired since the timeline was last opened still render, at the end.
-          toolParams: {
-            ...(node.data.toolParams ?? {}),
-            sequence: syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, project.edges),
-          },
+          toolParams: fillToolParams(
+            spec.id,
+            {
+              ...(filledParams ?? {}),
+              sequence: syncSequenceWithEdges(readSequence(filledParams), node.id, project.edges),
+            },
+            settingVars,
+            catalog,
+          ),
         }
-      : node.data.toolParams
-        ? { toolParams: node.data.toolParams }
+      : filledParams
+        ? { toolParams: filledParams }
         : {}),
     ...(activeInputs.image ? { image: activeInputs.image } : {}),
     ...(activeInputs.startImage

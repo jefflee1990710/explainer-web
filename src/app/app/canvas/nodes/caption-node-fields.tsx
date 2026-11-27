@@ -1,5 +1,7 @@
 // Language picker and the editable SRT produced by the auto-captions node.
 
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
+
 const fieldClass =
   "nodrag w-full rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90";
 
@@ -28,10 +30,11 @@ export function CaptionNodeFields({ modelId, isZh, language, text, onLanguage, o
       {text ? (
         <label className="flex flex-col gap-1">
           <span className="text-[10px] text-white/50">{isZh ? "字幕稿（可改，不會重跑辨識）" : "Subtitles (edit without re-transcribing)"}</span>
-          <textarea
+          <CanvasTextDialogField
             value={text}
-            onChange={(e) => onText(e.target.value)}
+            onValue={onText}
             rows={6}
+            dialogLabel={isZh ? "編輯字幕稿" : "Edit subtitles"}
             className={`${fieldClass} resize-y font-mono`}
           />
         </label>

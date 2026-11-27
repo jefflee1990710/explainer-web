@@ -19,6 +19,7 @@ import { readPlannerParams } from "@/service/canvas/directors/explainer-planner"
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
 import { ExplainerDirectorTopicHandle } from "@/app/app/canvas/nodes/explainer-director-topic-handle";
+import { SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
 
 const OUTPUT_LABELS: { kind: DirectorOutputKind; zh: string; en: string }[] = [
@@ -71,7 +72,7 @@ export function ExplainerDirectorCard({
       }`}
     >
       {incomingHandles
-        .filter((handle) => handle !== "prompt")
+        .filter((handle) => handle !== "prompt" && handle !== "settings")
         .map((handle) => (
           <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
         ))}
@@ -96,6 +97,7 @@ export function ExplainerDirectorCard({
         </button>
       </div>
       <ExplainerDirectorTopicHandle wired={topicWired} isZh={isZh} />
+      <SettingsInputRow />
 
       <div className="flex flex-col gap-2.5 p-3">
         <ExplainerDirectorFields

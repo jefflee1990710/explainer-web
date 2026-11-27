@@ -1,6 +1,7 @@
 // Controls for the canvas edit nodes: ranges, sound, crop, overlay, stills, and burned subtitles.
 
 import type { ReactNode } from "react";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 
 const fieldClass =
   "nodrag rounded-[8px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90";
@@ -40,10 +41,12 @@ export function FfmpegEditFields({
               ? "保留區間（秒）"
               : "Keep ranges (seconds)"}
         </Label>
-        <input
+        <CanvasTextDialogField
+          multiline={false}
           value={String(toolParams.ffmpegRanges ?? "")}
-          onChange={(e) => onToolParam("ffmpegRanges", e.target.value)}
+          onValue={(ffmpegRanges) => onToolParam("ffmpegRanges", ffmpegRanges)}
           placeholder="0-3, 8-12"
+          dialogLabel={isZh ? "編輯區間" : "Edit ranges"}
           className={fieldClass}
         />
       </div>
@@ -255,12 +258,13 @@ export function FfmpegEditFields({
     return (
       <div className="flex flex-col gap-1">
         <Label>{isZh ? "字幕稿（沒有連線時使用）" : "Subtitle text (used when unwired)"}</Label>
-        <textarea
+        <CanvasTextDialogField
           value={promptWired ? "" : (prompt ?? "")}
           disabled={promptWired}
-          onChange={(e) => onPrompt?.(e.target.value)}
+          onValue={(next) => onPrompt?.(next)}
           placeholder={promptWired ? (isZh ? "使用連線的字幕稿" : "Using the wired subtitle") : "1\n00:00:00,000 --> 00:00:02,000\n你好"}
           rows={4}
+          dialogLabel={isZh ? "編輯字幕稿" : "Edit subtitles"}
           className={`${fieldClass} resize-y disabled:opacity-50`}
         />
       </div>

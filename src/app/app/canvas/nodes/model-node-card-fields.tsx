@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import type { CanvasNodeData } from "@/model/canvas";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
-import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ConcatToSequenceButton } from "@/app/app/canvas/nodes/concat-to-sequence-button";
@@ -345,11 +345,12 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
           </div>
           {toolParams.swapMode === "object" ? (
             <div className="grid grid-cols-2 gap-1.5">
-              <ComposedInput
-                type="text"
+              <CanvasTextDialogField
+                multiline={false}
                 value={String(toolParams.objectTarget ?? "")}
                 onValue={(objectTarget) => updateToolParam("objectTarget", objectTarget)}
                 placeholder={isZh ? "目標物 (e.g. jacket)" : "Target (e.g. jacket)"}
+                dialogLabel={isZh ? "編輯目標物" : "Edit target"}
                 className="nodrag disabled:cursor-not-allowed disabled:opacity-50 rounded-[7px] border border-white/10 bg-[#12161f] px-2 py-1 text-[11px] text-white/90"
               />
               <select
@@ -530,11 +531,12 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
       </button>
       {showAdvanced ? (
         <div className="mt-2 space-y-1.5 rounded-[10px] border border-white/6 bg-[#0b0e14]/70 p-2">
-          <ComposedInput
-            type="text"
+          <CanvasTextDialogField
+            multiline={false}
             value={data.negativePrompt ?? ""}
             onValue={(negativePrompt) => onUpdateNodeData(id, { negativePrompt })}
             placeholder="Negative prompt (optional)"
+            dialogLabel={isZh ? "編輯負向詞" : "Edit negative prompt"}
             className="nodrag w-full rounded-[7px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/85 placeholder:text-white/30 focus:border-[#c6f24b]/50 focus:outline-none"
           />
           <input

@@ -6,7 +6,7 @@ import { useEffect, useMemo } from "react";
 import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import type { CanvasNode, CanvasNodeData } from "@/model/canvas";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
-import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { SourceVideoSectionFields } from "@/app/app/canvas/nodes/source-video-section-fields";
 import { SwapDirectorCharacterField } from "@/app/app/canvas/nodes/swap-director-character-field";
 import {
@@ -80,11 +80,12 @@ export function SwapDirectorFields({
       ) : null}
       <label className={DIALOG_LABEL}>
         {isZh ? "指示" : "Instruction"}
-        <ComposedTextarea
+        <CanvasTextDialogField
           rows={3}
           value={data.prompt ?? ""}
           onValue={(prompt) => onUpdate({ prompt })}
           placeholder={isZh ? "例如換成藍色外套…" : "e.g. change into a blue jacket…"}
+          dialogLabel={isZh ? "編輯指示" : "Edit instruction"}
           className={DIALOG_TEXTAREA}
         />
       </label>

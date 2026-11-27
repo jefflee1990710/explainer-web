@@ -7,6 +7,7 @@ import { ModelNodeCardHeader } from "@/app/app/canvas/nodes/model-node-card-head
 import { ModelNodeCardPorts } from "@/app/app/canvas/nodes/model-node-card-ports";
 import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
 import { ModelNodeFailedBanner } from "@/app/app/canvas/nodes/model-node-failed-banner";
+import { CanvasTextDialogField } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { OutdatedBanner } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
@@ -93,10 +94,11 @@ export function TextModelNodeCard(view: ModelNodeCardView) {
             <span className="text-[10px] text-white/50">
               {isZh ? "輸出文字（可改，不會重跑）" : "Output (edit without re-running)"}
             </span>
-            <textarea
+            <CanvasTextDialogField
               value={outputText}
               rows={6}
-              onChange={(event) => onUpdateNodeData(id, { text: event.target.value })}
+              onValue={(text) => onUpdateNodeData(id, { text })}
+              dialogLabel={isZh ? "編輯輸出文字" : "Edit output"}
               className="nodrag w-full resize-y rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
             />
           </label>
