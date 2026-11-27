@@ -166,6 +166,11 @@ export type SubmitCanvasNodeJobInput = {
   nodeId: string;
   flowRunId?: string;
   queueToWorker?: boolean;
+  // Fused chain: these upstream nodes are rendered earlier in the same job (inputs become fused:// refs).
+  fusedUpstream?: string[];
+  fusedIntoJobId?: string;
+  // Create the queued job but start no worker; the fused chain starts its head itself.
+  deferWorker?: boolean;
 };
 
 export type SubmitCanvasNodeJobErrorCode =

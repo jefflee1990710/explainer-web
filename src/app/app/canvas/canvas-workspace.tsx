@@ -71,6 +71,7 @@ import { useCanvasDirectors } from "@/app/app/canvas/workspace/use-canvas-direct
 import { useCanvasDocument } from "@/app/app/canvas/workspace/use-canvas-document";
 import { useCanvasCharacterBlueprint } from "@/app/app/canvas/workspace/use-canvas-character-blueprint";
 import { useCanvasOutfits } from "@/app/app/canvas/workspace/use-canvas-outfits";
+import { useCanvasProxies } from "@/app/app/canvas/workspace/use-canvas-proxies";
 import { useCanvasPaneDrop } from "@/app/app/canvas/workspace/use-canvas-pane-drop";
 import { useCanvasGroupActions } from "@/app/app/canvas/groups/use-canvas-group-actions";
 import { FAILED_EDGE_STROKE } from "@/app/app/canvas/workspace/canvas-timing";
@@ -575,7 +576,7 @@ function CanvasWorkspaceInner({
     uploadAndPlaceFiles,
   });
 
-  const { timelineNodeId, openTimeline, closeTimeline, convertConcat } = useSequenceTimeline({
+  const { timelineNodeId, openTimeline, closeTimeline, convertConcat, setDirectorClipJoin } = useSequenceTimeline({
     models,
     isZh,
     setNodes,
@@ -588,6 +589,7 @@ function CanvasWorkspaceInner({
   });
 
   const { onGenerateOutfit } = useCanvasOutfits({ nodes, isZh, setNodes, scheduleAutosave, nodesRef, edgesRef });
+  useCanvasProxies({ canvasId: activeProjectId, nodes, setNodes });
   const { onSaveCharacterBlueprint } = useCanvasCharacterBlueprint({
     isZh,
     models,
@@ -628,6 +630,7 @@ function CanvasWorkspaceInner({
       outdatedNodes,
       onOpenTimeline: openTimeline,
       onConvertConcat: convertConcat,
+      onSetDirectorClipJoin: setDirectorClipJoin,
     }),
     [
       models,
@@ -650,6 +653,7 @@ function CanvasWorkspaceInner({
       outdatedNodes,
       openTimeline,
       convertConcat,
+      setDirectorClipJoin,
     ],
   );
 

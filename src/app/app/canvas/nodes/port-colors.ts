@@ -76,6 +76,8 @@ export type CanvasNodeActionsContextValue = {
   onOpenTimeline?: (nodeId: string) => void;
   // Replaces a concat chain with one Sequence node.
   onConvertConcat?: (nodeId: string) => void;
+  // Explainer / Talking Head Director: join clips with Concat nodes or one Sequence.
+  onSetDirectorClipJoin?: (directorId: string, mode: "concat" | "sequence") => void;
 };
 
 export const CanvasNodeActionsContext =

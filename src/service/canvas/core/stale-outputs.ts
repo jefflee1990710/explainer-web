@@ -124,6 +124,8 @@ export function applyRememberedJobOutput(data: CanvasNodeData, job: RememberedJo
   return next;
 }
 
+const SERVER_TEXT_MODELS = new Set(["scro:auto-captions", "scro:clean-speech", "scro:smart-reframe"]);
+
 // Merges only server execution fields from a flow poll into local node data,
 // preserving any unsaved user edits (prompt, model params, toolParams, etc.).
 export function mergeFlowPollNodeData(
@@ -149,9 +151,9 @@ export function mergeFlowPollNodeData(
     ...(server.outputMeta !== undefined ? { outputMeta: server.outputMeta } : {}),
     lastError: server.status === "failed" ? server.lastError : undefined,
   };
-  // Auto-captions writes the transcribed SRT into `data.text` on completion.
+  // These Scro nodes write their SRT or cut report into `data.text` on completion.
   if (
-    local.modelId === "scro:auto-captions" &&
+    SERVER_TEXT_MODELS.has(local.modelId ?? "") &&
     server.status === "completed" &&
     server.text !== undefined &&
     server.lastJobId &&

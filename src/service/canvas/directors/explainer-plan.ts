@@ -5,6 +5,7 @@ import { canvasProjectsCollection, videosCollection } from "@/dao";
 import type { CanvasEdge, CanvasGroup, CanvasGroupKind, CanvasNode } from "@/model/canvas";
 import type { Project } from "@/model/project";
 import { buildExplainerExpansion, explainerVoicePreset } from "@/service/canvas/directors/explainer-expand";
+import { readClipJoin } from "@/service/canvas/scro-groups/clip-join";
 import {
   isDirectorPlannerNode,
   readPlannerParams,
@@ -249,6 +250,7 @@ function expandPlan(
       frameRefUrls: params.frameInputs?.refsByClip.get(1),
       clips: thClips,
       ...(directorId ? { directorId } : {}),
+      clipJoin: readClipJoin(plannerNode.data.toolParams),
     });
     const group = planGroup({
       id: params.idPrefix,
@@ -296,6 +298,7 @@ function expandPlan(
     voicePreset,
     characterId,
     directorId,
+    clipJoin: readClipJoin(plannerNode.data.toolParams),
     clips,
   });
   const plannedWith = planningWith ?? directorParams(plannerNode);

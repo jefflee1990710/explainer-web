@@ -94,6 +94,7 @@ export function estimateCanvasModelCostUsd(
       case "scro:tts":
         return CANVAS_TTS_COST_USD;
       case "scro:auto-captions":
+      case "scro:clean-speech":
         return autoCaptionsCostUsd(duration);
       case "scro:explainer-frame":
         return EXPLAINER_STILL_COST_USD;

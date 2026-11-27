@@ -256,4 +256,17 @@ describe("stale outputs", () => {
     assert.equal(merged.outputUrl, "https://blob/new.png");
     assert.equal(merged.staleOutputUrl, undefined);
   });
+
+  it("mergeFlowPollNodeData brings back the Clean Speech cut report", () => {
+    const local: CanvasNodeData = { modelId: "scro:clean-speech", status: "running", lastJobId: "674000000000000000000001" };
+    const server: CanvasNodeData = {
+      ...local,
+      status: "completed",
+      lastJobId: "674000000000000000000002",
+      outputUrl: "https://blob/clean.mp4",
+      text: "8.0s → 5.1s",
+    };
+    assert.equal(mergeFlowPollNodeData(local, server).text, "8.0s → 5.1s");
+    assert.equal(mergeFlowPollNodeData({ ...local, modelId: "ffmpeg:trim-speed" }, server).text, undefined);
+  });
 });

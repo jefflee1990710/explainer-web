@@ -26,6 +26,7 @@ import { STYLE_TRANSFER_MODEL_ID, prepareStyleTransferRun } from "@/service/canv
 import { canvasProviderAdapter } from "@/service/canvas/execution/providers";
 import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
 import { readSequence, syncSequenceWithEdges } from "@/service/canvas/core/sequence";
+import { fusedOutputRef } from "@/service/canvas/core/chain-fusion";
 
 // Restores outputUrl from the newest completed job when a stale graph save wiped it.
 async function hydrateMissingModelOutputs(
@@ -129,7 +130,16 @@ export async function submitCanvasNodeJob(
     };
   }
 
-  const projectNodes = await hydrateMissingModelOutputs(project, resolved);
+  const hydratedNodes = await hydrateMissingModelOutputs(project, resolved);
+  const fusedUpstream = new Set(input.fusedUpstream ?? []);
+  const projectNodes =
+    fusedUpstream.size === 0
+      ? hydratedNodes
+      : hydratedNodes.map((n) =>
+          fusedUpstream.has(n.id)
+            ? { ...n, data: { ...n.data, status: "completed" as const, outputUrl: fusedOutputRef(n.id) } }
+            : n,
+        );
   const inputCheck = resolveNodeInputs(
     node.id,
     projectNodes,
@@ -246,7 +256,7 @@ export async function submitCanvasNodeJob(
     resolvedDurationSeconds = Math.min(resolvedDurationSeconds ?? 10, 10);
   }
 
-  if (spec.id === "scro:auto-captions" && inputCheck.inputs.video) {
+  if ((spec.id === "scro:auto-captions" || spec.id === "scro:clean-speech") && inputCheck.inputs.video) {
     const probed = await probeRemoteDurationSec(inputCheck.inputs.video).catch(() => null);
     // A failed probe still bills a short clip so the run is not free.
     resolvedDurationSeconds = probed && probed > 0 ? probed : resolvedDurationSeconds ?? 10;
@@ -381,6 +391,7 @@ export async function submitCanvasNodeJob(
     canvasId: canvasObjectId,
     nodeId: node.id,
     ...(input.flowRunId ? { flowRunId: input.flowRunId } : {}),
+    ...(input.fusedIntoJobId ? { fusedIntoJobId: input.fusedIntoJobId } : {}),
     provider: activeSpec.provider,
     modelId: activeSpec.id,
     providerModelId: activeSpec.providerModelId,
@@ -396,8 +407,8 @@ export async function submitCanvasNodeJob(
 
   await markJobQueued(initialJob, resolved);
 
-  if (input.queueToWorker) {
-    await resolved.enqueueCanvasNodeWorkerTask?.(jobId);
+  if (input.queueToWorker || input.deferWorker) {
+    if (!input.deferWorker) await resolved.enqueueCanvasNodeWorkerTask?.(jobId);
     const creditUsd = await resolved.getUserCreditUsd(input.clerkUserId);
     return { ok: true, job: initialJob, creditUsd };
   }

@@ -22,6 +22,9 @@ import {
   sequenceItemId,
   syncSequenceWithEdges,
 } from "@/service/canvas/core/sequence";
+import { isPlanDirectorNode } from "@/service/canvas/directors/explainer-director";
+import { switchDirectorClipJoin } from "@/service/canvas/directors/director-clip-join";
+import { CLIP_JOIN_MODES, CLIP_JOIN_PARAM } from "@/service/canvas/scro-groups/clip-join";
 import type { EditToolHandlers } from "@/service/canvas-agent/edit-tools";
 import { describeSequence } from "@/service/canvas-agent/sequence-describe";
 import { COLUMN_GAP, markStale, type CanvasAgentToolResult, type CanvasAgentWorkingGraph } from "@/service/canvas-agent/working-graph";
@@ -75,6 +78,10 @@ const settingsSchema = {
 };
 
 export const SEQUENCE_TOOL_SCHEMAS = {
+  set_director_finish: z.object({
+    directorId: z.string().describe("An Explainer Director or Talking Head Director node."),
+    finishWith: z.enum(CLIP_JOIN_MODES),
+  }),
   build_sequence: z.object({
     fromConcatId: z.string().optional().describe("Replace this ffmpeg:concat (and concats feeding only it) with a Sequence."),
     clips: z.array(clipSchema).max(SEQUENCE_LIMITS.videoClips).optional().describe("Or build from these sources, in play order."),
@@ -162,7 +169,11 @@ function defined<T extends Record<string, unknown>>(values: T): Partial<T> {
   return Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
 
-function updateSequence(g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"update_sequence">): CanvasAgentToolResult {
+export function updateSequence(
+  g: CanvasAgentWorkingGraph,
+  h: EditToolHandlers,
+  input: In<"update_sequence">,
+): CanvasAgentToolResult {
   const node = g.nodes.find((n) => n.id === input.nodeId);
   if (!node || node.data.modelId !== SEQUENCE_MODEL_ID) return { error: `"${input.nodeId}" is not an ${SEQUENCE_MODEL_ID} node.` };
   const current = syncSequenceWithEdges(readSequence(node.data.toolParams), node.id, g.edges);
@@ -266,12 +277,50 @@ function updateSequence(g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: 
   };
 }
 
+// Director finish: sets the param, and on built rows swaps the join nodes in place.
+function setDirectorFinish(g: CanvasAgentWorkingGraph, input: In<"set_director_finish">): CanvasAgentToolResult {
+  const director = g.nodes.find((n) => n.id === input.directorId);
+  if (!director || !isPlanDirectorNode(director)) return { error: `${input.directorId} is not an Explainer or Talking Head Director.` };
+  const next = switchDirectorClipJoin(g, director.id, input.finishWith);
+  if (!next) {
+    const toolParams = { ...(director.data.toolParams ?? {}), [CLIP_JOIN_PARAM]: input.finishWith };
+    director.data = { ...director.data, toolParams };
+    g.ops.push({ kind: "update_node", nodeId: director.id, patch: { toolParams } });
+    return { ok: true, directorId: director.id, finishWith: input.finishWith, note: "Applies when the rows are built." };
+  }
+  const keep = new Set(next.edges.map((e) => e.id));
+  for (const e of g.edges) if (!keep.has(e.id)) g.ops.push({ kind: "remove_edge", edgeId: e.id });
+  for (const id of next.removedIds) g.ops.push({ kind: "remove_node", nodeId: id });
+  const toolParams = next.nodes.find((n) => n.id === director.id)!.data.toolParams;
+  g.ops.push({ kind: "update_node", nodeId: director.id, patch: { toolParams } });
+  for (const node of next.nodes.filter((n) => next.addedIds.includes(n.id))) g.ops.push({ kind: "add_node", node });
+  const old = new Set(g.edges.map((e) => e.id));
+  for (const e of next.edges) if (!old.has(e.id)) g.ops.push({ kind: "add_edge", edge: e });
+  g.nodes = next.nodes;
+  g.edges = next.edges;
+  g.groups = next.groups;
+  g.addedNodes += next.addedIds.length;
+  markStale(g, next.addedIds);
+  return {
+    ok: true,
+    directorId: director.id,
+    finishWith: input.finishWith,
+    outputId: next.outputId,
+    replaced: next.removedIds,
+    ...(input.finishWith === "sequence" ? { timeline: describeSequence(g, next.outputId) } : {}),
+  };
+}
+
 export const SEQUENCE_TOOL_HANDLERS = {
+  set_director_finish: (g: CanvasAgentWorkingGraph, _h: EditToolHandlers, input: In<"set_director_finish">) =>
+    setDirectorFinish(g, input),
   build_sequence: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"build_sequence">) => buildSequence(g, h, input),
   update_sequence: (g: CanvasAgentWorkingGraph, h: EditToolHandlers, input: In<"update_sequence">) => updateSequence(g, h, input),
 };
 
 export const SEQUENCE_TOOL_DESCRIPTIONS: Record<keyof typeof SEQUENCE_TOOL_SCHEMAS, string> = {
+  set_director_finish:
+    "Choose how an Explainer / Talking Head Director joins its clips: \"concat\" (FFmpeg Concat chain, default) or \"sequence\" (one ffmpeg:sequence timeline, fewer nodes, editable with update_sequence). On built rows it swaps the join nodes in place; no Replan, nothing runs.",
   build_sequence:
     "Create an ffmpeg:sequence timeline (one node, rendered in one FFmpeg run) from clips in play order, or convert an existing ffmpeg:concat chain with fromConcatId. Prefer it when the user wants several edits together: titles, logos, music, transitions, captions.",
   update_sequence:

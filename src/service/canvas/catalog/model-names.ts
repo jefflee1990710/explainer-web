@@ -134,6 +134,18 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "自動字幕",
     ko: "자동 자막",
   },
+  "scro:clean-speech": {
+    "zh-Hant": "智慧去口誤",
+    "zh-Hans": "智能去口误",
+    ja: "言い直し自動カット",
+    ko: "말실수 자동 컷",
+  },
+  "scro:smart-reframe": {
+    "zh-Hant": "智慧直向構圖",
+    "zh-Hans": "智能竖屏构图",
+    ja: "スマートリフレーム",
+    ko: "스마트 리프레임",
+  },
   "scro:video-style-transfer": {
     "zh-Hant": "影片風格轉移",
     "zh-Hans": "视频风格迁移",

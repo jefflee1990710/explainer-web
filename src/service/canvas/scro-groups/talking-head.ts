@@ -3,7 +3,7 @@
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
 import { SEEDREAM_MODEL_ID, createGroupBuilder } from "@/service/canvas/scro-groups/builder";
-import { CONCAT_NODE_DATA, chainConcats } from "@/service/canvas/scro-groups/concat-chain";
+import { joinClips, type ClipJoinMode } from "@/service/canvas/scro-groups/clip-join";
 import { directorHandleId, type DirectorOutputKind } from "@/service/canvas/directors/explainer-director";
 import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 
@@ -25,6 +25,8 @@ export type TalkingHeadExpansionInput = {
   clips: { clipNumber: number; spokenLine: string; heygenPrompt: string; durationSeconds?: number }[];
   // Talking Head Director whose outputs feed the still, voice, and HeyGen prompts.
   directorId?: string;
+  // Join the clips with a Concat chain (default) or one Sequence node.
+  clipJoin?: ClipJoinMode;
 };
 
 export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
@@ -101,9 +103,17 @@ export function buildTalkingHeadExpansion(input: TalkingHeadExpansionInput): {
     return grade;
   });
 
+  const clipJoin = input.clipJoin ?? "concat";
+  // A single clip needs no Concat, but a Sequence still gives it a timeline.
   const output =
-    clipOutputs.length > 1
-      ? chainConcats(clipOutputs, (step) => b.model(`concat-${step}`, CONCAT_NODE_DATA), b.wire)
+    clipOutputs.length > 1 || (clipJoin === "sequence" && clipOutputs.length > 0)
+      ? joinClips(clipOutputs, {
+          mode: clipJoin,
+          idPrefix: input.idPrefix,
+          aspectRatio: input.aspectRatio,
+          addNode: b.model,
+          wire: b.wire,
+        })
       : clipOutputs[0] ?? frame;
   const group = b.finish(output);
   return {

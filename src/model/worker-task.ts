@@ -21,6 +21,7 @@ export const WORKER_TASK_KINDS = [
   "canvas_ffmpeg",
   "canvas_node",
   "canvas_flow",
+  "canvas_proxy",
 ] as const;
 export type WorkerTaskKind = (typeof WORKER_TASK_KINDS)[number];
 

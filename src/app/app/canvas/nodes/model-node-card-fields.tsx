@@ -17,6 +17,7 @@ import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
 import { FfmpegEditFields } from "@/app/app/canvas/nodes/ffmpeg-edit-fields";
 import { FfmpegParamFields } from "@/app/app/canvas/nodes/ffmpeg-param-fields";
+import { SmartEditReport } from "@/app/app/canvas/nodes/smart-edit-report";
 import { VideoStyleTransferFields } from "@/app/app/canvas/nodes/video-style-transfer-fields";
 import {
   OutdatedBanner,
@@ -197,6 +198,8 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
         }
         onText={(text) => onUpdateNodeData(id, { text })}
       />
+      <FfmpegParamFields modelId={spec.id} isZh={isZh} toolParams={toolParams} onToolParam={updateToolParam} />
+      <SmartEditReport modelId={spec.id} isZh={isZh} text={data.text} />
       {(spec.id === "scro:talking-head" ||
         spec.id === "scro:explainer" ||
         spec.id === "scro:swap" ||

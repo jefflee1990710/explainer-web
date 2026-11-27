@@ -64,7 +64,13 @@ export function carryMediaMeta(
   next: CanvasNodeData,
   type: CanvasNode["type"],
 ): CanvasNodeData {
-  if (currentMediaMeta({ type, data: next }) || !previous.outputMeta) return next;
+  const nextMeta = currentMediaMeta({ type, data: next });
+  if (nextMeta) {
+    // A tab that has not seen the proxy yet keeps the stored one for the same file.
+    const proxyUrl = previous.outputMeta?.url === nextMeta.url ? previous.outputMeta.proxyUrl : undefined;
+    return proxyUrl && !nextMeta.proxyUrl ? { ...next, outputMeta: { ...nextMeta, proxyUrl } } : next;
+  }
+  if (!previous.outputMeta) return next;
   const url = nodeMediaUrl({ type, data: next });
   return url && previous.outputMeta.url === url ? { ...next, outputMeta: previous.outputMeta } : next;
 }

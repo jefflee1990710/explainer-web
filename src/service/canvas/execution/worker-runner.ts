@@ -9,6 +9,7 @@ import {
   pollSingleCanvasJobById,
 } from "@/service/canvas/execution/executor";
 import { executeCanvasFfmpegJob } from "@/service/canvas/execution/ffmpeg-ops";
+import { createDefaultCanvasJobLedgerDeps, markJobFailed } from "@/service/canvas/execution/job-ledger";
 import type { WorkerTaskExecutionResult } from "@/service/worker/task-executor";
 
 export type CanvasNodeWorkerDeps = {
@@ -18,6 +19,7 @@ export type CanvasNodeWorkerDeps = {
   runFfmpegJob: (
     jobId: ObjectId,
   ) => Promise<{ outcome: "completed"; outputUrl: string } | { outcome: "failed"; error: string }>;
+  failFusedFollower: (job: CanvasJob, error: string) => Promise<void>;
 };
 
 export async function executeCanvasNodeTask(
@@ -32,6 +34,10 @@ export async function executeCanvasNodeTask(
     dispatchQueuedJob: (id) => dispatchQueuedCanvasJobById(id),
     pollRunningJob: (id) => pollSingleCanvasJobById(id),
     runFfmpegJob: (id) => executeCanvasFfmpegJob(id),
+    failFusedFollower: async (followerJob, error) => {
+      const ledger = createDefaultCanvasJobLedgerDeps();
+      await markJobFailed(followerJob, error, ledger, { skipRefund: true, includeCostInPatch: false });
+    },
     ...deps,
   };
 
@@ -48,6 +54,18 @@ export async function executeCanvasNodeTask(
       error: job.error || "畫布節點執行失敗",
       permanent: true,
     };
+  }
+
+  // A fused chain follower is rendered and settled by its head job.
+  if (job.fusedIntoJobId && job.status === "queued") {
+    const head = ObjectId.isValid(job.fusedIntoJobId)
+      ? await resolved.findCanvasJob(new ObjectId(job.fusedIntoJobId))
+      : null;
+    if (head && (head.status === "queued" || head.status === "running" || head.status === "completed")) {
+      return { outcome: "completed", stage: "fused_into_head" };
+    }
+    await resolved.failFusedFollower(job, head?.error || "合併執行的上游任務已失敗");
+    return { outcome: "failed", error: "合併執行的上游任務已失敗", permanent: true };
   }
 
   // FFmpeg nodes execute directly on the Vast.ai worker without double queueing.

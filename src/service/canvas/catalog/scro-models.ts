@@ -27,7 +27,10 @@ import {
   talkingHeadVideoCostUsd,
   teleportCostUsd,
 } from "@/service/credit-costs";
-import { oneOf } from "@/service/canvas/catalog/tool-param-specs";
+import { flag, num, oneOf, text } from "@/service/canvas/catalog/tool-param-specs";
+
+// One Gemini vision call on about 16 small frames, plus the worker render.
+export const SMART_REFRAME_COST_USD = 0.02;
 
 export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
   {
@@ -258,6 +261,52 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     defaultDurationSeconds: 10,
     supportsAspectRatio: false,
     available: true,
+  },
+  {
+    id: "scro:clean-speech",
+    provider: "scro",
+    providerModelId: "clean-speech",
+    name: "Clean Speech",
+    category: "scro-tool",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["yue", "zh", "en", "auto"],
+    defaultPresetId: "yue",
+    toolParams: [
+      oneOf("captionLanguage", ["yue", "zh", "en", "auto"], "spoken language"),
+      flag("cleanFillers", "cut 嗯 / 呃 / um / uh (default true)"),
+      flag("cleanRepeats", "cut the first take of a phrase said twice in a row (default true)"),
+      num("cleanMaxPauseSec", 0, 5, "shorten pauses longer than this to 0.4s; 0 keeps pauses (default 0.8)"),
+    ],
+    // Billed like auto captions: Scribe per hour of the source.
+    basePriceUsd: 0.2,
+    defaultDurationSeconds: 10,
+    supportsAspectRatio: false,
+    available: true,
+    agentHint:
+      "Transcribes with Scribe ($0.20/hour of source) and cuts fillers, restarted phrases, and long pauses; outputs the cleaned video and a cut report.",
+  },
+  {
+    id: "scro:smart-reframe",
+    provider: "scro",
+    providerModelId: "smart-reframe",
+    name: "Smart Reframe",
+    category: "scro-tool",
+    inputs: [videoPort(true)],
+    output: videoOutput(),
+    presets: ["9:16"],
+    defaultPresetId: "9:16",
+    toolParams: [
+      oneOf("reframeAspect", ["9:16", "1:1", "4:5", "16:9"], "output frame shape"),
+      oneOf("reframeResolution", ["720p", "1080p"]),
+      oneOf("reframeMotion", ["steady", "follow"], "steady holds one framing unless the subject moves a lot"),
+      text("reframeFocus", "who or what to follow, e.g. 'the woman on the left'; empty = the speaker"),
+    ],
+    basePriceUsd: SMART_REFRAME_COST_USD,
+    supportsAspectRatio: false,
+    available: true,
+    agentHint:
+      "Crops a wide video to 9:16 (or 1:1 / 4:5) following the speaker's face, found by Gemini on about one frame a second.",
   },
   {
     // Restyles a connected video. The run is billed and sent as the video model stored on the node.
