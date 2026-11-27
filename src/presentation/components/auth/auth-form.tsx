@@ -12,6 +12,7 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { firebaseAuth } from "@/presentation/components/auth/firebase-client";
 import { establishSessionAction } from "@/presentation/actions/auth";
+import { referralCodeOrNull } from "@/service/affiliate/referral-code";
 import {
   detectInAppBrowser,
   getOrCreateAnonId,
@@ -32,6 +33,28 @@ function safeNext(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return STUDIO_HOME;
   if (isStudioHome(value)) return STUDIO_HOME;
   return value;
+}
+
+// Keep the affiliate code when the visitor switches between sign-in and sign-up.
+function authSwitchHref(
+  path: "/sign-in" | "/sign-up",
+  nextPath: string | undefined,
+  referralCode: string | undefined,
+) {
+  const params = new URLSearchParams();
+  if (nextPath) params.set("next", nextPath);
+  const code = referralCodeOrNull(referralCode);
+  if (code) params.set("ref", code);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+// Prop from the page, or ?ref= still on this URL if the cookie was dropped.
+function referralOnThisPage(explicit: string | undefined) {
+  const fromProp = referralCodeOrNull(explicit);
+  if (fromProp) return fromProp;
+  if (typeof window === "undefined") return undefined;
+  return referralCodeOrNull(new URLSearchParams(window.location.search).get("ref"));
 }
 
 function classifyAuthEntryReason(nextPath: string | undefined): string {
@@ -63,12 +86,14 @@ function authErrorKey(code: string) {
 export function AuthForm({
   mode,
   nextPath,
+  referralCode,
   onAuthSuccess,
   onSwitchMode,
   tone = "light",
 }: {
   mode: "sign-in" | "sign-up";
   nextPath?: string;
+  referralCode?: string;
   onAuthSuccess?: () => void | Promise<void>;
   onSwitchMode?: (nextMode: "sign-in" | "sign-up") => void;
   // Sign-in pages sit on the dark site shell. The studio dialog stays light.
@@ -128,6 +153,7 @@ export function AuthForm({
         ...(register && acceptedLegal
           ? { acceptedLegal: true, marketingOptIn }
           : {}),
+        referralCode: referralOnThisPage(referralCode),
       });
     } catch (sessionErr) {
       const msg = sessionErr instanceof Error ? sessionErr.message : "session_failed";
@@ -374,7 +400,7 @@ export function AuthForm({
             </button>
           ) : (
             <Link
-              href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : "/sign-in"}
+              href={authSwitchHref("/sign-in", nextPath, referralCode)}
               onClick={() =>
                 track("auth_mode_switch", {
                   from: "sign-up",
@@ -404,7 +430,7 @@ export function AuthForm({
           </button>
         ) : (
           <Link
-            href={nextPath ? `/sign-up?next=${encodeURIComponent(nextPath)}` : "/sign-up"}
+            href={authSwitchHref("/sign-up", nextPath, referralCode)}
             onClick={() =>
               track("auth_mode_switch", {
                 from: "sign-in",

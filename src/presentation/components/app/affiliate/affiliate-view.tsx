@@ -78,6 +78,7 @@ export function AffiliateView({
           >
             {copied === "code" ? t("affiliate.copied") : t("affiliate.copyCode")}
           </button>
+          {/* Copies the registration URL, for example https://www.scro.io/sign-up?ref=CODE */}
           <button
             type="button"
             onClick={() => copy("link", link)}

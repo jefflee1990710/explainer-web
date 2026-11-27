@@ -6,6 +6,7 @@ import {
   ensureAffiliateProfile,
 } from "@/service/affiliate/engine";
 import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
+import { pickReferralCode } from "@/service/affiliate/referral-code";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { signupDiscountPercent, signupPromoEnabled } from "@/service/billing/promo";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
@@ -44,7 +45,7 @@ export type FirebaseIdentity = {
 // Used by the web session (below) and by the mobile REST API (src/service/api/auth.ts).
 export async function upsertAppUserFromIdentity(
   identity: FirebaseIdentity,
-  options: { readReferralCookie?: boolean } = {},
+  options: { readReferralCookie?: boolean; referralCode?: string } = {},
 ): Promise<AppUser> {
   const email = identity.email || "";
   const name = identity.name || email.split("@")[0] || "User";
@@ -77,16 +78,19 @@ export async function upsertAppUserFromIdentity(
     return withUnlimitedCredits(updated);
   }
 
-  // First-touch referral cookie from /r/[code]. Ignored while affiliate is off
-  // and on the mobile API path, which has no browser cookie jar.
+  // ?ref= on the registration link wins. The cookie covers a return visit that lost the query.
+  // Ignored while affiliate is off. The mobile API has no browser cookie jar.
   let referralCode: string | undefined;
-  if (AFFILIATE_ENABLED && options.readReferralCookie !== false) {
-    try {
-      const jar = await cookies();
-      referralCode = jar.get(REFERRAL_COOKIE)?.value;
-    } catch {
-      referralCode = undefined;
+  if (AFFILIATE_ENABLED) {
+    let fromCookie: string | undefined;
+    if (options.readReferralCookie !== false) {
+      try {
+        fromCookie = (await cookies()).get(REFERRAL_COOKIE)?.value;
+      } catch {
+        fromCookie = undefined;
+      }
     }
+    referralCode = pickReferralCode(options.referralCode, fromCookie);
   }
 
   // Terms and privacy are accepted in the first-login dialog, not at account creation.

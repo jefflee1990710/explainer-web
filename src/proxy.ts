@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { referralCookieSettings } from "@/service/affiliate/link";
+import { referralCodeOrNull } from "@/service/affiliate/referral-code";
+import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { SESSION_COOKIE } from "@/service/firebase/session";
 import { isLocaleId, REQUEST_LOCALE_HEADER } from "@/util/i18n/locales";
 
@@ -9,6 +12,18 @@ function nextWithLocale(request: NextRequest) {
   const hl = request.nextUrl.searchParams.get("hl");
   if (isLocaleId(hl)) requestHeaders.set(REQUEST_LOCALE_HEADER, hl);
   return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+// Store ?ref= for account creation when this browser has no referral cookie yet.
+function withReferral(request: NextRequest, response: NextResponse) {
+  const code = referralCodeOrNull(request.nextUrl.searchParams.get("ref"));
+  if (!code || request.cookies.get(REFERRAL_COOKIE)?.value) return response;
+  response.cookies.set(
+    REFERRAL_COOKIE,
+    code,
+    referralCookieSettings(request.nextUrl.protocol === "https:"),
+  );
+  return response;
 }
 
 // Send unsigned visitors to sign-in. The session itself is verified in the app layout.
@@ -24,9 +39,11 @@ export function proxy(request: NextRequest) {
     url.pathname = "/sign-in";
     url.search = "";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    const code = referralCodeOrNull(request.nextUrl.searchParams.get("ref"));
+    if (code) url.searchParams.set("ref", code);
+    return withReferral(request, NextResponse.redirect(url));
   }
-  return nextWithLocale(request);
+  return withReferral(request, nextWithLocale(request));
 }
 
 export const config = {

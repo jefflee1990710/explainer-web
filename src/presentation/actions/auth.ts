@@ -4,6 +4,8 @@ import { cookies, headers } from "next/headers";
 import { usersCollection } from "@/dao";
 import { isEmailOrUidBlocked } from "@/dao/blocked-users";
 import { persistUxEvent } from "@/service/analytics/ux-tracker";
+import { pickReferralCode } from "@/service/affiliate/referral-code";
+import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { upsertAppUserFromIdentity } from "@/service/auth";
 import { adminAuth } from "@/service/firebase/admin";
 import { SESSION_COOKIE } from "@/service/firebase/session";
@@ -28,6 +30,7 @@ export type EstablishSessionTelemetry = {
   locale?: string | null;
   acceptedLegal?: boolean;
   marketingOptIn?: boolean;
+  referralCode?: string;
 };
 
 // Trade a Firebase ID token for an httpOnly session cookie the server can verify.
@@ -52,6 +55,8 @@ export async function establishSessionAction(
   const expiresIn = TWO_WEEKS_MS;
   const session = await auth.createSessionCookie(idToken, { expiresIn });
   const jar = await cookies();
+  // Read before set. A later cookies().get in this action can miss the inbound cookie.
+  const referralCookie = jar.get(REFERRAL_COOKIE)?.value;
   jar.set(SESSION_COOKIE, session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -68,26 +73,33 @@ export async function establishSessionAction(
     const hdrs = await headers();
     const userAgent = hdrs.get("user-agent");
 
-    if (telemetry?.acceptedLegal) {
-      const now = new Date();
-      const marketingOptIn = Boolean(telemetry.marketingOptIn);
-      await upsertAppUserFromIdentity({
-        uid: decoded.uid,
-        email: userEmail,
-        name: record.displayName || decoded.name,
-        emailVerified: record.emailVerified,
-      });
-      const users = await usersCollection();
-      await users.updateOne(
-        { clerkUserId: decoded.uid },
+    // Bind the upline on this request. The registration ?ref= still counts if the cookie was dropped.
+    const signupReferral = pickReferralCode(telemetry?.referralCode, referralCookie);
+    if (telemetry?.acceptedLegal || signupReferral) {
+      await upsertAppUserFromIdentity(
         {
-          $set: {
-            legalAcceptance: currentLegalAcceptance(now),
-            ...buildMarketingConsentUpdate(marketingOptIn, now),
-            updatedAt: now,
-          },
+          uid: decoded.uid,
+          email: userEmail,
+          name: record.displayName || decoded.name,
+          emailVerified: record.emailVerified,
         },
+        { referralCode: signupReferral },
       );
+      if (telemetry?.acceptedLegal) {
+        const now = new Date();
+        const marketingOptIn = Boolean(telemetry.marketingOptIn);
+        const users = await usersCollection();
+        await users.updateOne(
+          { clerkUserId: decoded.uid },
+          {
+            $set: {
+              legalAcceptance: currentLegalAcceptance(now),
+              ...buildMarketingConsentUpdate(marketingOptIn, now),
+              updatedAt: now,
+            },
+          },
+        );
+      }
     }
 
     if (telemetry?.event) {

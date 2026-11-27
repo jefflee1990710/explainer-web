@@ -5,11 +5,18 @@ import { cashCentsPerUsd, planFifoSpendUsd } from "@/service/affiliate/lots";
 import {
   BUY_RATES,
   CONSUME_RATES,
+  REFERRAL_COOKIE_DAYS,
   commissionCents,
   maxStackPct,
 } from "@/service/affiliate/rates";
 import { buildUplineIds, executeFifoLotDeductions } from "@/service/affiliate/engine";
 import { normalizeAffiliateCode } from "@/service/affiliate/code";
+import {
+  affiliateRegistrationPath,
+  affiliateRegistrationUrl,
+  referralCookieSettings,
+} from "@/service/affiliate/link";
+import { pickReferralCode } from "@/service/affiliate/referral-code";
 
 describe("affiliate rates", () => {
   it("keeps stack at 25%", () => {
@@ -197,5 +204,39 @@ describe("upline chain", () => {
 describe("affiliate code", () => {
   it("normalizes codes", () => {
     assert.equal(normalizeAffiliateCode(" ab-12 "), "AB12");
+  });
+});
+
+describe("registration link", () => {
+  it("copies a sign-up URL that keeps the affiliate code", () => {
+    assert.equal(
+      affiliateRegistrationUrl("https://www.scro.io", "3tpt4dhx"),
+      "https://www.scro.io/sign-up?ref=3TPT4DHX",
+    );
+    assert.equal(
+      affiliateRegistrationUrl("https://www.scro.io/", "3TPT4DHX"),
+      "https://www.scro.io/sign-up?ref=3TPT4DHX",
+    );
+    assert.equal(affiliateRegistrationPath("3TPT4DHX"), "/sign-up?ref=3TPT4DHX");
+  });
+
+  it("drops a code that is not a referral token", () => {
+    assert.equal(affiliateRegistrationUrl("https://www.scro.io", "ab"), "https://www.scro.io/sign-up");
+    assert.equal(affiliateRegistrationPath("!!!"), "/sign-up");
+  });
+
+  it("prefers the registration ref over an older cookie", () => {
+    assert.equal(pickReferralCode("3tpt4dhx", "AAAAAAAA"), "3TPT4DHX");
+    assert.equal(pickReferralCode("", "ab12cd"), "AB12CD");
+    assert.equal(pickReferralCode("no", "ab12cd"), "AB12CD");
+    assert.equal(pickReferralCode("!!!", "ab12cd"), "AB12CD");
+    assert.equal(pickReferralCode(undefined, undefined), undefined);
+  });
+
+  it("keeps the referral cookie for 90 days", () => {
+    assert.equal(referralCookieSettings(true).maxAge, REFERRAL_COOKIE_DAYS * 24 * 60 * 60);
+    assert.equal(referralCookieSettings(true).httpOnly, true);
+    assert.equal(referralCookieSettings(true).sameSite, "lax");
+    assert.equal(referralCookieSettings(false).secure, false);
   });
 });
