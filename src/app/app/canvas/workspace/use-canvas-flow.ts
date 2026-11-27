@@ -12,7 +12,6 @@ import type { CanvasProjectDto } from "@/model/canvas-dto";
 import { computeExecutionWaves } from "@/service/canvas/core/graph";
 import type { CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import { isScroDirectorNode } from "@/service/canvas/directors/scro-director";
-import { runnableNodeAndDependents } from "@/service/canvas/core/run-selection";
 import { mergeFlowPollNodeData, outdatedNodeReasons } from "@/service/canvas/core/stale-outputs";
 import { directorPlanningLocks } from "@/service/canvas/directors/director-plan-lock";
 import { deriveCanvasFlowHeaderStatus } from "@/app/app/canvas/flow-header-status";
@@ -202,7 +201,6 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
   const startFlowRun = useCallback(async (
     nodeIds?: string[],
     rerunAll = false,
-    forceRerunIds?: readonly string[],
   ) => {
     if (flowStartingRef.current) return;
     flowStartingRef.current = true;
@@ -216,12 +214,11 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
       const liveNodes = toDomainNodes(nodesRef.current);
       // Old-version previews (after a replan or an input edit) must be generated again.
       const rerunNodeIds = [
-        ...new Set([
-          ...[...outdatedNodeReasons(liveNodes, currentEdges).entries()]
+        ...new Set(
+          [...outdatedNodeReasons(liveNodes, currentEdges).entries()]
             .filter(([, reason]) => reason === "inputs")
             .map(([id]) => id),
-          ...(forceRerunIds ?? []),
-        ]),
+        ),
       ];
       const currentNodes = toDomainNodes(
         withRememberedJobOutputs(nodesRef.current, jobOutputRef.current),
@@ -316,19 +313,6 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
     toast.info(isZh ? "已停止後續波次執行" : "Stopped remaining flow waves");
   }, [isZh, setNodes]);
 
-  // This node plus every runnable model that depends on it. Side branches stay out.
-  const runNodeAndDependents = useCallback(
-    (nodeId: string) => {
-      if (planLockRef.current.nodeIds.has(nodeId)) return;
-      const currentNodes = toDomainNodes(withRememberedJobOutputs(nodesRef.current, jobOutputRef.current));
-      const currentEdges = toDomainEdges(edgesRef.current);
-      const ids = runnableNodeAndDependents(currentNodes, currentEdges, nodeId);
-      if (ids.length === 0) return;
-      void startFlowRun(ids, false, ids);
-    },
-    [edgesRef, jobOutputRef, nodesRef, planLockRef, startFlowRun],
-  );
-
   return {
     isFlowRunning,
     flowWaveProgress,
@@ -341,6 +325,5 @@ export function useCanvasFlow(deps: CanvasFlowHookDeps) {
     handleRunFlow,
     handleRunGroup,
     handleStopFlow,
-    runNodeAndDependents,
   };
 }
