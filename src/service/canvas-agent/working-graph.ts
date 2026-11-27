@@ -28,6 +28,11 @@ import {
 } from "@/service/canvas/directors/explainer-director";
 import { isTalkingHeadDirectorNode, talkingHeadDirectorParams } from "@/service/canvas/directors/talking-head-director";
 import { SCRO_GROUP_MODEL_IDS } from "@/service/canvas-agent/scro-group-tool";
+import {
+  STYLE_TRANSFER_IMAGE_MODEL_KEY,
+  STYLE_TRANSFER_MODEL_ID,
+  styleTransferImageModels,
+} from "@/service/canvas/core/style-transfer";
 
 export const CANVAS_AGENT_MAX_ADDED_NODES = 20;
 export const CANVAS_AGENT_MAX_QUESTION_OPTIONS = 6;
@@ -111,6 +116,7 @@ const TOOL_PARAMS_ALLOWED_KEYS: Record<string, readonly string[]> = {
   "scro:life": ["characterId", "poseId"],
   "scro:poster": ["characterId", "productId", "styleId"],
   "scro:tts": ["characterId", "language", "voicePreset", "ttsVoiceId", "ttsSpeed", "ttsConversational"],
+  [STYLE_TRANSFER_MODEL_ID]: [STYLE_TRANSFER_IMAGE_MODEL_KEY],
 };
 
 const TOOL_PARAM_ENUMS: Record<string, readonly string[]> = {
@@ -178,6 +184,12 @@ export function validateToolParamsForModel(
   for (const [key, val] of Object.entries(toolParams)) {
     if (!allowed.includes(key)) {
       return `Invalid toolParams key "${key}" for "${modelId}". Allowed: ${allowed.join(", ") || "(none)"}.`;
+    }
+    if (key === STYLE_TRANSFER_IMAGE_MODEL_KEY) {
+      const id = typeof val === "string" ? val.trim() : "";
+      if (!styleTransferImageModels(g.catalog).some((model) => model.id === id)) {
+        return `Invalid toolParams.imageModelId "${String(val)}". Pick an image model that accepts a reference image.`;
+      }
     }
     if (key === "characterId" && typeof val === "string" && val.trim()) {
       if (!g.characters.some((c) => c.id === val.trim())) {

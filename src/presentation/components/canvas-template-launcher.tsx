@@ -30,10 +30,10 @@ export function CanvasTemplateLauncher({
         : "Launch in Scro Canvas";
   const secondaryLabel =
     lang === "zh-Hant"
-      ? "查看其他範本"
+      ? "睇 Canvas 點樣運作"
       : lang === "zh-Hans"
-        ? "查看其他模板"
-        : "Browse All Templates";
+        ? "看 Canvas 怎么运作"
+        : "See How Canvas Works";
   const aiLabel =
     lang === "zh-Hant"
       ? "或直接同 Canvas AI 助理講："
@@ -92,7 +92,7 @@ export function CanvasTemplateLauncher({
               <span>{ctaLabel}</span>
             </Link>
             <Link
-              href="/#canvas-templates"
+              href="/#canvas-showcase"
               className="inline-flex min-h-12 items-center gap-1.5 rounded-full border border-white/20 bg-white/8 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
             >
               <span>{secondaryLabel}</span>

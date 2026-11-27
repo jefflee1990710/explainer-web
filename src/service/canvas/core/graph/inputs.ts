@@ -52,6 +52,12 @@ function addUnique(list: string[], value: string): void {
   }
 }
 
+// The user edited the prompt on the model card, so that text replaces the wired source.
+function editedPrompt(node: CanvasNode): string | undefined {
+  if (node.data.toolParams?.promptEdited !== true) return undefined;
+  return typeof node.data.prompt === "string" ? node.data.prompt.trim() : "";
+}
+
 function extractMediaUrl(sourceNode: CanvasNode): string | undefined {
   if (sourceNode.type === "media") {
     const trimmed = sourceNode.data.mediaUrl?.trim();
@@ -68,6 +74,30 @@ function extractMediaUrl(sourceNode: CanvasNode): string | undefined {
     return preview ? preview : undefined;
   }
   return undefined;
+}
+
+// Raw text of the prompt wire, before template fill. Undefined when nothing is connected.
+export function readConnectedPromptText(
+  nodeId: string,
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+  catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
+): string | undefined {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  for (const edge of edges) {
+    if (edge.target !== nodeId || edge.targetHandle !== "prompt") continue;
+    const source = nodeById.get(edge.source);
+    if (!source) continue;
+    if (source.type === "prompt") return source.data.text ?? "";
+    if (edge.sourceHandle && isPlanDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
+      return directorRawOutput(source, edge.sourceHandle) ?? "";
+    }
+    if (source.type === "model" && getNodeOutputPortType(source, catalog) === "text") {
+      return source.data.text ?? "";
+    }
+  }
+  const connected = edges.some((edge) => edge.target === nodeId && edge.targetHandle === "prompt");
+  return connected ? "" : undefined;
 }
 
 // Vars of the Setting node wired into `nodeId`, or none.
@@ -137,8 +167,10 @@ export function resolveNodeInputs(
   const missingRequiredFields: string[] = [];
   let promptFromNode = false;
 
-  // Resolve prompt: a connected Prompt node, Director output, or caption SRT overrides inline text.
+  // Resolve prompt: a connected Prompt node, Director output, or caption SRT overrides inline text
+  // until the user edits that text on the model card.
   const promptEdges = edgesByHandle.get("prompt") ?? [];
+  const takenPrompt = editedPrompt(targetNode);
   let promptSource: CanvasNode | undefined;
   let director: { node: CanvasNode; handle: string } | undefined;
   let captionSource: CanvasNode | undefined;
@@ -155,7 +187,7 @@ export function resolveNodeInputs(
     }
     if (source?.type === "model" && getNodeOutputPortType(source, catalog) === "text") {
       if (source.data.text?.trim()) captionSource = source;
-      else {
+      else if (takenPrompt === undefined) {
         waitingOnCaption = true;
         addUnique(missingUpstreamNodeIds, source.id);
       }
@@ -163,7 +195,9 @@ export function resolveNodeInputs(
     }
   }
 
-  if (promptSource) {
+  if (takenPrompt !== undefined) {
+    if (takenPrompt) inputs.prompt = takenPrompt;
+  } else if (promptSource) {
     promptFromNode = true;
     const connectedText = promptSource.data.text?.trim();
     if (connectedText) {

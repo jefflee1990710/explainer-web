@@ -39,6 +39,8 @@ export function defaultOpenRouterVideoResolution(modelId: string): string {
   if (id === HAILUO_3_VIDEO_MODEL) return "2K";
   if (id === "alibaba/wan-3.0") return "480p";
   if (id === HEYGEN_AVATAR_IV_VIDEO_MODEL) return "1080p";
+  // Avatar 6 requests always go out at 1080p.
+  if (id === "heygen/heygen-avatar-6" || id === "heygen/heygen-avatar-6-turbo") return "1080p";
   return "720p";
 }
 

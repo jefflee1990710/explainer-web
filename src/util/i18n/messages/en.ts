@@ -137,10 +137,10 @@ export const en: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Scro Canvas · Effortless AI Video & Media Studio",
-      title: "One Simple Canvas. Every AI Video You Need.",
+      kicker: "Scro Canvas · The Visual AI Video Canvas",
+      title: "Connect Blocks on One Canvas. Get a Finished Reel.",
       subtitle:
-        "Pick a template or ask the AI Assistant, then generate talking-head reels, explainers, swaps, and fully assembled videos.",
+        "Drop in a script, a character, and a voice, or ask the AI Assistant to set it up. Hit Run and Scro renders the finished short.",
       ctaStart: "Start Creating Free",
       ctaWorkspace: "Open Canvas",
       ctaUseCases: "See What Your Creator Can Do",
