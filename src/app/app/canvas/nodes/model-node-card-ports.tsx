@@ -9,11 +9,13 @@ import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-v
 export function ModelNodeCardPorts(view: ModelNodeCardView) {
   const { id, data, isZh, spec, catalog, incomingByHandle } = view;
   const acceptsSettings = canWireSettings({ id, type: "model", data }, catalog);
+  // Text models draw the Variable port beside the prompt, not in this list.
+  const showSettingsRow = acceptsSettings && spec.category !== "text";
   return (
     <>
 {/* Typed input handle rows */}
 <div className="space-y-1 border-b border-white/6 py-2">
-  {acceptsSettings ? <SettingsInputRow /> : null}
+  {showSettingsRow ? <SettingsInputRow /> : null}
   {spec.inputs.map((port) => {
     const count = incomingByHandle.get(port.id) ?? 0;
     const color = PORT_COLOR_MAP[port.type];

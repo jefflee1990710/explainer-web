@@ -3,6 +3,7 @@
 // Prompt on a model card. The Explainer Director fills {{text_style}} from its own text style,
 // so a new director does not show the token or ask for a Setting.
 
+import type { ReactNode } from "react";
 import type { SettingsVars } from "@/model/canvas-settings";
 import { promptWithTextStyle } from "@/service/canvas/core/settings/explainer-text-style";
 import { useCanvasTextSettings } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
@@ -20,6 +21,8 @@ type Props = {
   onEdit: (prompt: string) => void;
   onOpenEditor: () => void;
   onCloseEditor: () => void;
+  // Optional column on the left of the textarea, used by the text-model Variable port.
+  aside?: ReactNode;
 };
 
 export function ModelPromptField({
@@ -31,12 +34,23 @@ export function ModelPromptField({
   onEdit,
   onOpenEditor,
   onCloseEditor,
+  aside,
 }: Props) {
   const shown = promptWithTextStyle(text, vars);
   const { vars: settingVars } = useCanvasTextSettings();
+  const field = (
+    <WiredPromptField isZh={isZh} value={shown} wired={wired} onEdit={onEdit} onOpenEditor={onOpenEditor} />
+  );
   return (
     <>
-      <WiredPromptField isZh={isZh} value={shown} wired={wired} onEdit={onEdit} onOpenEditor={onOpenEditor} />
+      {aside ? (
+        <div className="flex items-stretch gap-1">
+          {aside}
+          <div className="min-w-0 flex-1">{field}</div>
+        </div>
+      ) : (
+        field
+      )}
       {editorOpen ? (
         <PromptEditorDialog
           initial={shown}
