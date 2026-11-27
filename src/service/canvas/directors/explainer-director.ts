@@ -2,6 +2,7 @@
 // plus the plan, handle, and replan helpers shared with the Talking Head Director.
 
 import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
+import { explainerCardLength } from "@/service/canvas/directors/explainer-length";
 import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/directors/explainer-planner";
 import { effectiveDirectorBackgroundId, plannedDirectorBackgroundId } from "@/service/canvas/directors/explainer-settings";
 import {
@@ -128,7 +129,8 @@ export function planDirectorParams(node: NodeLike): DirectorPlanParams {
 export function directorParams(node: NodeLike): ExplainerDirectorParams {
   const tp = node.data.toolParams ?? {};
   const characterId = str(tp.characterId);
-  const durationPreset = str(tp.durationPreset);
+  // Blank length is Auto: the plan chooses how many clips the topic needs.
+  const durationPreset = explainerCardLength(tp.durationPreset);
   const sceneTextLanguage = str(tp.sceneTextLanguage);
   const skillSlug = str(tp.skillSlug) ?? "cartoon-explainer-video-director";
   const directorBackgroundId = effectiveDirectorBackgroundId(skillSlug, tp.directorBackgroundId);
@@ -136,7 +138,7 @@ export function directorParams(node: NodeLike): ExplainerDirectorParams {
   return {
     topic: (node.data.prompt ?? "").trim(),
     ...(characterId ? { characterId } : {}),
-    ...(durationPreset ? { durationPreset } : {}),
+    durationPreset,
     aspectRatio: node.data.aspectRatio ?? "9:16",
     skillSlug,
     language: str(tp.language) ?? "yue",
@@ -208,8 +210,15 @@ export function directorNeedsReplan(node: NodeLike): boolean {
   if (!isTalkingHeadDirectorNode(node)) {
     then.directorBackgroundId = plannedDirectorBackgroundId(str(then.skillSlug), then.directorBackgroundId);
   }
+  const explainer = !isTalkingHeadDirectorNode(node);
   const keys = new Set([...Object.keys(now), ...Object.keys(then)]);
-  return [...keys].some((key) => (now[key] ?? null) !== (then[key] ?? null));
+  return [...keys].some((key) => !samePlanParam(key, now[key], then[key], explainer));
+}
+
+// A missing Explainer length and an explicit Auto are the same plan. Fixed lengths are not.
+function samePlanParam(key: string, now: unknown, then: unknown, explainer: boolean): boolean {
+  if (explainer && key === "durationPreset") return explainerCardLength(now) === explainerCardLength(then);
+  return (now ?? null) === (then ?? null);
 }
 
 // The Director's own vars: its text style fills {{text_style}}.

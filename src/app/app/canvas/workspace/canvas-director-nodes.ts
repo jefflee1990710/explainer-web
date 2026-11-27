@@ -1,6 +1,7 @@
 // Director cards placed by a drop or a template. Plan and Build stay on the card.
 
 import type { FlowNode } from "@/app/app/canvas/workspace/canvas-graph-state";
+import { EXPLAINER_CARD_LENGTH_DEFAULT } from "@/service/canvas/directors/explainer-length";
 
 // A dropped Talking Head is the planning card itself. Script and framing stay on the node.
 export function talkingHeadDirectorNode(position: { x: number; y: number }, prompt = ""): FlowNode {
@@ -68,7 +69,7 @@ export function explainerDirectorNode(position: { x: number; y: number }, prompt
         plannerMode: true,
         skillSlug: "cartoon-explainer-video-director",
         language: "yue",
-        durationPreset: "30s",
+        durationPreset: EXPLAINER_CARD_LENGTH_DEFAULT,
         textStyleId: "handwritten",
         presenterPosition: "auto",
       },

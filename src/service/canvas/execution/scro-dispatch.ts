@@ -21,6 +21,7 @@ import { VIDEO_STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/catalog/video-st
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
 import { planVideoStyleTransfer } from "@/service/canvas/execution/video-style-transfer";
 import { pollExplainerFrame, submitExplainerFrame } from "@/service/canvas/directors/explainer-frame";
+import { explainerCardDurationPreset } from "@/service/canvas/directors/explainer-length";
 import { explainerVideoLookFields } from "@/service/canvas/directors/explainer-settings";
 import { characterBlueprintGap } from "@/service/canvas/core/character-blueprint";
 import { runCanvasCharacterBlueprint } from "@/service/canvas/execution/character-blueprint-run";
@@ -539,7 +540,12 @@ export async function createCanvasDirectorVideo(params: {
 
   const language = normalizeLanguage(readToolParamStr(node, "language"));
   const aspectRatio = normalizeAspect(node.data.aspectRatio ?? node.data.presetId);
-  const durationPreset = normalizeDurationPreset(readToolParamStr(node, "durationPreset"));
+  const rawDuration = readToolParamStr(node, "durationPreset");
+  // Planner Auto (and a blank card) chooses clip count from the topic. Fixed lengths keep their budgets.
+  const durationPreset =
+    !isTalking && node.data.toolParams?.plannerMode === true
+      ? explainerCardDurationPreset(rawDuration)
+      : normalizeDurationPreset(rawDuration);
   // Explainer Settings (background, text style, on-screen text language) the card was planned with.
   const look = isTalking ? undefined : explainerVideoLookFields(node.data.toolParams, ruleSlug, language);
   const now = new Date();
