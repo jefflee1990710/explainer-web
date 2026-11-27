@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import type { CanvasGroup } from "@/model/canvas";
 import type { CanvasModelSpec } from "@/model/canvas-model";
 import { applyConcatToSequence, planConcatToSequence } from "@/service/canvas/core/sequence";
+import { markStaleOutputs } from "@/service/canvas/core/stale-outputs";
+import { switchDirectorClipJoin } from "@/service/canvas/directors/director-clip-join";
+import { CLIP_JOIN_PARAM, type ClipJoinMode } from "@/service/canvas/scro-groups/clip-join";
 import {
   toDomainEdges,
   toDomainNodes,
@@ -72,5 +75,37 @@ export function useSequenceTimeline({
     [edgesRef, isZh, models, nodesRef, scheduleAutosave, setEdges, setNodes, snapshotGroups, updateGroups],
   );
 
-  return { timelineNodeId, openTimeline, closeTimeline, convertConcat };
+  // Director finish: before Plan it only sets the param; once built it swaps the join nodes in place.
+  const setDirectorClipJoin = useCallback(
+    (directorId: string, mode: ClipJoinMode) => {
+      const nodes = toDomainNodes(nodesRef.current);
+      const edges = toDomainEdges(edgesRef.current);
+      const groups = snapshotGroups(nodes);
+      const next = switchDirectorClipJoin({ nodes, edges, groups }, directorId, mode);
+      if (!next) {
+        setNodes((prev) =>
+          prev.map((n) =>
+            n.id === directorId
+              ? { ...n, data: { ...n.data, toolParams: { ...n.data.toolParams, [CLIP_JOIN_PARAM]: mode } } }
+              : n,
+          ),
+        );
+        scheduleAutosave();
+        return;
+      }
+      const marked = markStaleOutputs(next.nodes, next.edges, next.addedIds);
+      setNodes(toFlowNodes(marked.nodes));
+      setEdges(toFlowEdges(next.edges, marked.nodes, models));
+      updateGroups(() => next.groups);
+      scheduleAutosave();
+      toast.success(
+        mode === "sequence"
+          ? isZh ? "已改用一條時間線收尾" : "Clips now end in one Sequence"
+          : isZh ? "已改用接片節點收尾" : "Clips now end in Concat nodes",
+      );
+    },
+    [edgesRef, isZh, models, nodesRef, scheduleAutosave, setEdges, setNodes, snapshotGroups, updateGroups],
+  );
+
+  return { timelineNodeId, openTimeline, closeTimeline, convertConcat, setDirectorClipJoin };
 }

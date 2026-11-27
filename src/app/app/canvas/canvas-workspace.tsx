@@ -569,7 +569,7 @@ function CanvasWorkspaceInner({
     uploadAndPlaceFiles,
   });
 
-  const { timelineNodeId, openTimeline, closeTimeline, convertConcat } = useSequenceTimeline({
+  const { timelineNodeId, openTimeline, closeTimeline, convertConcat, setDirectorClipJoin } = useSequenceTimeline({
     models,
     isZh,
     setNodes,
@@ -612,6 +612,7 @@ function CanvasWorkspaceInner({
       outdatedNodes,
       onOpenTimeline: openTimeline,
       onConvertConcat: convertConcat,
+      onSetDirectorClipJoin: setDirectorClipJoin,
     }),
     [
       models,
@@ -633,6 +634,7 @@ function CanvasWorkspaceInner({
       outdatedNodes,
       openTimeline,
       convertConcat,
+      setDirectorClipJoin,
     ],
   );
 

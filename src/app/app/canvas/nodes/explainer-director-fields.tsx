@@ -23,6 +23,7 @@ import {
   PRESENTER_LABELS,
   SCENE_TEXT_LABELS,
 } from "@/app/app/canvas/nodes/explainer-settings-options";
+import { DirectorClipJoinField } from "@/app/app/canvas/nodes/director-clip-join-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
 type Props = {
@@ -187,6 +188,7 @@ export function ExplainerDirectorFields({ data, isZh, disabled, characterOptions
           onChange={(textStyleId) => setParams({ textStyleId })}
         />
       </div>
+      <DirectorClipJoinField data={data} isZh={isZh} />
     </fieldset>
   );
 }

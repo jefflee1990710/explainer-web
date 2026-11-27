@@ -9,6 +9,7 @@ import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { DirectorClipJoinField } from "@/app/app/canvas/nodes/director-clip-join-field";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
 
 export const TALKING_HEAD_FRAMINGS = [
@@ -93,6 +94,7 @@ export function TalkingHeadDirectorFields({
         />
       </div>
       <AspectRatioField isZh={isZh} value={ratio} onChange={(aspectRatio) => onUpdate({ aspectRatio })} />
+      <DirectorClipJoinField data={data} isZh={isZh} />
     </fieldset>
   );
 }
