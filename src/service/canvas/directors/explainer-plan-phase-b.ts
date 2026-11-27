@@ -60,7 +60,7 @@ export async function buildCanvasPlanFramePrompts(project: Project) {
   return Promise.all(
     (written.phaseA?.clips ?? []).map(async (clip) => {
       const built = frameSubmitPlan(written, clip.clipNumber, "start", undefined, style).prompt;
-      // Explainer lettering becomes `{{text_style}}`, filled by the wired Setting at run time.
+      // Explainer lettering becomes `{{text_style}}`, filled from the Director card at run time.
       const templated =
         look && isDiagramExplainerSkill(project.skillSlug)
           ? templateTextStyleLine(built, look)

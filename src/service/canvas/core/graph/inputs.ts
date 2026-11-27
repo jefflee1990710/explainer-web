@@ -138,6 +138,40 @@ export function wiredSettingsVars(
   return source?.type === "settings" && source.data.settings ? settingsVars(source.data.settings) : {};
 }
 
+// {{key}} values for a model prompt.
+// The Explainer Director fills text_style from its card, so a new director needs no Setting.
+// A Setting overrides a key only when it is wired to the Prompt that feeds this node.
+export function modelPromptVars(
+  nodeId: string,
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+  catalog: readonly CanvasModelSpec[] = STATIC_CANVAS_MODELS,
+): SettingsVars {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  let director: CanvasNode | undefined;
+  let promptSource: CanvasNode | undefined;
+  for (const edge of edges) {
+    if (edge.target !== nodeId || edge.targetHandle !== "prompt") continue;
+    const source = nodeById.get(edge.source);
+    if (!source) continue;
+    if (source.type === "prompt") {
+      promptSource = source;
+      break;
+    }
+    if (edge.sourceHandle && isPlanDirectorNode(source) && parseDirectorHandle(edge.sourceHandle)) {
+      director = source;
+      break;
+    }
+    // Subtitle SRT is literal; do not treat a cue as a template key.
+    if (source.type === "model" && getNodeOutputPortType(source, catalog) === "text") return {};
+  }
+  const settingVars = promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {};
+  return {
+    ...(director ? directorBaseVars(director) : {}),
+    ...settingVars,
+  };
+}
+
 // Collects and validates all inputs for a target model node from incoming edges
 // (preferring connected Prompt nodes over inline prompt text) and upstream outputs.
 export function resolveNodeInputs(
@@ -245,14 +279,10 @@ export function resolveNodeInputs(
     }
   }
 
-  // `{{key}}`: the Director card's text style, then the Setting wired to the Prompt node.
+  // `{{key}}`: the Director card's text style, then a Setting only if one is wired to the Prompt.
   // Subtitle SRT is literal; a cue must not be treated as a missing template key.
   if (inputs.prompt && !captionSource) {
-    const vars = {
-      ...(director ? directorBaseVars(director.node) : {}),
-      ...(promptSource ? wiredSettingsVars(promptSource.id, nodes, edges) : {}),
-    };
-    const rendered = renderPromptTemplate(inputs.prompt, vars);
+    const rendered = renderPromptTemplate(inputs.prompt, modelPromptVars(nodeId, nodes, edges, catalog));
     inputs.prompt = rendered.text.trim() || undefined;
     for (const key of rendered.missing) addUnique(missingRequiredFields, promptPlaceholder(key));
   }

@@ -20,6 +20,7 @@ export type {
 } from "@/service/canvas/core/graph/inputs";
 export {
   extractMediaUrl,
+  modelPromptVars,
   readConnectedPromptText,
   resolveNodeInputs,
   wiredSettingsVars,

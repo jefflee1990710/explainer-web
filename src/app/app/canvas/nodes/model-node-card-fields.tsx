@@ -7,12 +7,11 @@ import type { CanvasNodeData } from "@/model/canvas";
 import { libraryCharacterChoices } from "@/app/app/canvas/nodes/character-menu-options";
 import { ComposedInput } from "@/app/app/canvas/nodes/composed-text-field";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
-import { PromptVarsHint } from "@/app/app/canvas/nodes/prompt-vars-hint";
 import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ConcatToSequenceButton } from "@/app/app/canvas/nodes/concat-to-sequence-button";
 import { SequenceNodeSummary } from "@/app/app/canvas/nodes/sequence-node-summary";
 import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
-import { PromptEditorDialog } from "@/app/app/canvas/nodes/prompt-editor-dialog";
+import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
 import { FfmpegEditFields } from "@/app/app/canvas/nodes/ffmpeg-edit-fields";
@@ -23,7 +22,6 @@ import {
   OutdatedBanner,
 } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
-import { WiredPromptField } from "@/app/app/canvas/nodes/wired-prompt-field";
 import { readConnectedPromptText } from "@/service/canvas/core/graph";
 
 const ASPECT_OPTIONS = ["16:9", "9:16", "1:1", "3:4"] as const;
@@ -45,27 +43,16 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
     <>
 {/* Inline prompt & compact model parameters */}
   {promptPort && spec.id !== SEQUENCE_MODEL_ID ? (
-    <WiredPromptField
+    <ModelPromptField
       isZh={isZh}
-      value={shownPrompt}
+      text={shownPrompt}
+      vars={templateVars}
       wired={isPromptWired}
+      editorOpen={promptEditorOpen}
       onEdit={savePrompt}
       onOpenEditor={() => setPromptEditorOpen(true)}
+      onCloseEditor={() => setPromptEditorOpen(false)}
     />
-  ) : null}
-  {promptEditorOpen && promptPort ? (
-    <PromptEditorDialog
-      initial={shownPrompt}
-      isZh={isZh}
-      onCancel={() => setPromptEditorOpen(false)}
-      onSave={(prompt) => {
-        savePrompt(prompt);
-        setPromptEditorOpen(false);
-      }}
-    />
-  ) : null}
-  {promptPort && spec.id !== SEQUENCE_MODEL_ID ? (
-    <PromptVarsHint isZh={isZh} text={shownPrompt} vars={templateVars} missingBlocksRun />
   ) : null}
 
   {/* Provider-specific compact controls */}
