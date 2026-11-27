@@ -55,12 +55,12 @@ const DIRECTOR_MODEL_IDS = new Set([
   "scro:teleport",
 ]);
 
-// Models hold generators plus edit, cutout, and upscale. Tools are the remaining Scro pipelines and FFmpeg.
+// Models tab order: Text first, then image, video, audio, edit, cutout, upscale.
 const MODEL_CATEGORIES: CanvasModelCategory[] = [
+  "text",
   "image",
   "video",
   "audio",
-  "text",
   "editing",
   "segmentation",
   "upscale",
