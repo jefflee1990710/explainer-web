@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { ObjectId } from "mongodb";
 import type { CanvasNode } from "@/model/canvas";
 import type { ResolvedCanvasInputs } from "@/service/canvas/core/graph";
+import { findCanvasModel } from "@/service/canvas/catalog/model-catalog";
 import {
   executeScroSyncNode,
   pollScroAsyncJob,
@@ -11,6 +12,7 @@ import {
   submitScroAsyncNode,
   validateScroToolInputs,
 } from "@/service/canvas/execution/scro-dispatch";
+import { OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/openrouter/generate";
 
 function makeNode(
   id: string,
@@ -65,6 +67,21 @@ describe("scro canvas dispatch — validation", () => {
       emptyInputs({ refAudio: "https://blob.example/vo.mp3" }),
     );
     assert.deepEqual(res, { ok: true });
+  });
+
+  it("rejects an empty character blueprint and accepts one photo", () => {
+    const empty = validateScroToolInputs(
+      "scro:character",
+      makeNode("char-empty", "scro:character"),
+      emptyInputs(),
+    );
+    assert.equal(empty.ok, false);
+    const ready = validateScroToolInputs(
+      "scro:character",
+      makeNode("char-ready", "scro:character", { prompt: "short hair" }),
+      emptyInputs({ refImages: ["https://blob.example/face.png"] }),
+    );
+    assert.deepEqual(ready, { ok: true });
   });
 
   it("requires toolParams.characterId for scro:life and allows prompt without poseId", () => {
@@ -176,6 +193,64 @@ describe("scro canvas dispatch — sync execution", () => {
     assert.match(seenPrompt, /Hong Kong cafe/i);
     assert.equal(lifeOut.outputKind, "image");
     assert.equal(lifeOut.outputUrl, "https://blob.example/canvas/user-1/job456.png");
+  });
+
+  it("runs scro:character through Seedream 5.0 Pro", async () => {
+    assert.equal(
+      findCanvasModel("scro:character")?.providerModelId,
+      OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+    );
+    let seen: { model?: string; prompt?: string; aspectRatio?: string; resolution?: string; refs?: string[] } =
+      {};
+    const out = await executeScroSyncNode(
+      {
+        clerkUserId: "user-1",
+        jobIdHex: "job-char",
+        modelId: "scro:character",
+        node: makeNode("char-1", "scro:character", { label: "Mia", prompt: "warm smile" }),
+        inputs: emptyInputs({
+          prompt: "warm smile",
+          refImages: ["https://blob.example/face.png", "https://blob.example/face-2.png"],
+          outfitRefs: [
+            {
+              handle: "top",
+              url: "https://blob.example/jacket.png",
+              name: "Navy blazer",
+              prompt: "a navy wool blazer",
+            },
+          ],
+        }),
+      },
+      {
+        submitImage: async (input) => {
+          seen = {
+            model: input.model,
+            prompt: input.prompt,
+            aspectRatio: input.aspectRatio,
+            resolution: input.resolution,
+            refs: (input.referenceImageUrls ?? []).filter((url): url is string => Boolean(url)),
+          };
+          return {
+            request_id: "req-char",
+            status: "completed",
+            images: [{ url: "https://blob.example/raw.png" }],
+          };
+        },
+        persistImageUrl: async () => "https://blob.example/canvas/user-1/job-char.png",
+      },
+    );
+    assert.equal(seen.model, OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL);
+    assert.equal(seen.aspectRatio, "1:1");
+    assert.equal(seen.resolution, "2k");
+    assert.match(seen.prompt ?? "", /navy wool blazer/);
+    assert.match(seen.prompt ?? "", /Mia/);
+    assert.deepEqual(seen.refs, [
+      "https://blob.example/face.png",
+      "https://blob.example/face-2.png",
+      "https://blob.example/jacket.png",
+    ]);
+    assert.equal(out.outputKind, "image");
+    assert.equal(out.outputUrl, "https://blob.example/canvas/user-1/job-char.png");
   });
 });
 

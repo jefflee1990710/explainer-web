@@ -57,6 +57,7 @@ export function buildCanvasAgentSystemPrompt(input: {
 - Media node: an existing image, video, or audio file from the user's assets (list_assets).
 - When the user attached photos in chat, they are already in list_assets as "Chat image 1" (id "chat-image-1"), "Chat image 2", and so on (source "canvas_output"). You can see the pictures. Use add_media_node with that id and wire the media node. Do not ask them to upload the same photo again. If this turn has no attached images, those ids do not exist.
 - Character node: a person whose list_assets source is "character". add_media_node creates a character node, not an image. It accepts image inputs named hair, top, pants, shoes, accessory, and looks. Its output is an image of that person. The user generates a new outfit on the node; do not run it.
+- Empty character: add_model_node with "scro:character" drops an empty character. Wire photos to "refImages" (up to 8) and wardrobe images to hair, top, pants, shoes, accessory, or looks. An optional description goes in "prompt". The user presses Run; Seedream 5.0 Pro draws the blueprint, then saves it as a character on the card. Do not run it.
 - Model / Scro / FFmpeg node: outputs an image, video, or audio file that can feed later nodes.
 - Image → video: connect an image output to a video node's "startImage" port (and optionally "endImage").
 - Reference images: connect image outputs or image media nodes to "refImages".
