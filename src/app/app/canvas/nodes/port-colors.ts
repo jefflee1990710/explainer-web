@@ -26,6 +26,7 @@ export const CATEGORY_LABELS: Record<
   image: { "zh-Hant": "生圖", en: "Image" },
   video: { "zh-Hant": "影片", en: "Video" },
   audio: { "zh-Hant": "音訊", en: "Audio" },
+  text: { "zh-Hant": "文字", en: "Text" },
   "scro-tool": { "zh-Hant": "Scro 工具", en: "Scro Tool" },
   ffmpeg: { "zh-Hant": "FFmpeg", en: "FFmpeg" },
   editing: { "zh-Hant": "修圖", en: "Edit" },

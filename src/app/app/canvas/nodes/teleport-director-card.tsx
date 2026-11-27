@@ -9,6 +9,7 @@ import {
   scroDirectorBuildMessage,
   type ScroDirectorBuildError,
 } from "@/service/canvas/directors/scro-director";
+import { directorNodeWithWiredPrompt, directorPromptPatch } from "@/service/canvas/directors/explainer-director";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { TeleportDirectorFields } from "@/app/app/canvas/nodes/teleport-director-fields";
@@ -20,6 +21,8 @@ type Props = {
   disabled: boolean;
   videoWired: boolean;
   sceneWired: boolean;
+  // Text wired into the mood port. Undefined when nothing is connected.
+  wiredPrompt?: string;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onBuild: () => void;
   onRemove: () => void;
@@ -32,10 +35,13 @@ export function TeleportDirectorCard({
   disabled,
   videoWired,
   sceneWired,
+  wiredPrompt,
   onUpdate,
   onBuild,
   onRemove,
 }: Props) {
+  const promptWired = wiredPrompt !== undefined;
+  const live = directorNodeWithWiredPrompt({ type: "model" as const, data }, wiredPrompt);
   const sceneText = typeof data.toolParams?.sceneText === "string" ? data.toolParams.sceneText.trim() : "";
   const built = readExpandedNodeIds(data).length > 0;
   const block: ScroDirectorBuildError | undefined = !videoWired ? "video" : !sceneWired && !sceneText ? "scene" : undefined;
@@ -78,8 +84,21 @@ export function TeleportDirectorCard({
         wired={sceneWired}
         detail={sceneWired ? (isZh ? "已連" : "Wired") : isZh ? "或用文字" : "Or use text"}
       />
+      <ScroDirectorPort
+        id="prompt"
+        color={PORT_COLOR_MAP.text}
+        label={isZh ? "氣氛" : "Mood"}
+        title={isZh ? "氣氛（可接文字輸出）" : "Mood (connect a text output)"}
+        wired={promptWired}
+        detail={promptWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
+      />
       <div className="flex flex-col gap-2.5 p-3">
-        <TeleportDirectorFields data={data} isZh={isZh} disabled={disabled} onUpdate={onUpdate} />
+        <TeleportDirectorFields
+          data={live.data}
+          isZh={isZh}
+          disabled={disabled}
+          onUpdate={(patch) => onUpdate(directorPromptPatch(data, patch, promptWired))}
+        />
         {block ? (
           <p className="text-[10.5px] text-white/45">{scroDirectorBuildMessage(block, isZh)}</p>
         ) : (

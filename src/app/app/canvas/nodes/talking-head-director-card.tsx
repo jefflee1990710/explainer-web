@@ -11,12 +11,15 @@ import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import {
   directorHandles,
   directorNeedsReplan,
+  directorNodeWithWiredPrompt,
+  directorPromptPatch,
   parseDirectorHandle,
   readDirectorPlan,
   type DirectorOutputKind,
 } from "@/service/canvas/directors/explainer-director";
 import { readPlannerParams } from "@/service/canvas/directors/explainer-planner";
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
+import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 import { TalkingHeadDirectorFields } from "@/app/app/canvas/nodes/talking-head-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
 
@@ -32,6 +35,8 @@ type Props = {
   selected: boolean;
   disabled: boolean;
   characterOptions: readonly CanvasLibraryCharacterOption[];
+  // Text wired into the script port. Undefined when nothing is connected.
+  wiredPrompt?: string;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -43,17 +48,20 @@ export function TalkingHeadDirectorCard({
   selected,
   disabled,
   characterOptions,
+  wiredPrompt,
   onUpdate,
   onPlan,
   onRemove,
 }: Props) {
-  const node = { type: "model" as const, data };
+  const scriptWired = wiredPrompt !== undefined;
+  const live = directorNodeWithWiredPrompt({ type: "model" as const, data }, wiredPrompt);
+  const node = live;
   const plan = readDirectorPlan(node);
   const dirty = directorNeedsReplan(node);
   const { planStatus, planError } = readPlannerParams({ data });
   const planning = planStatus === "planning";
   const failed = planStatus === "failed";
-  const hasScript = Boolean((data.prompt ?? "").trim());
+  const hasScript = Boolean((live.data.prompt ?? "").trim());
   const hasCharacter = Boolean(data.toolParams?.characterId);
   const canPlan = !disabled && !planning && hasScript && hasCharacter;
 
@@ -79,14 +87,22 @@ export function TalkingHeadDirectorCard({
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
+      <ScroDirectorPort
+        id="prompt"
+        color={PORT_COLOR_MAP.text}
+        label={isZh ? "講稿" : "Script"}
+        title={isZh ? "講稿（可接文字輸出）" : "Script (connect a text output)"}
+        wired={scriptWired}
+        detail={scriptWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
+      />
 
       <div className="flex flex-col gap-2.5 p-3">
         <TalkingHeadDirectorFields
-          data={data}
+          data={live.data}
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          onUpdate={onUpdate}
+          onUpdate={(patch) => onUpdate(directorPromptPatch(data, patch, scriptWired))}
         />
         {dirty && !planning ? (
           <p className="rounded-[8px] border border-amber-400/30 bg-amber-500/10 px-2 py-1.5 text-[10.5px] leading-relaxed text-amber-100">

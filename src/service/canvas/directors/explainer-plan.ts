@@ -15,6 +15,7 @@ import { composeExplainerPlanSource } from "@/service/canvas/directors/explainer
 import type { ExplainerPresenterPosition } from "@/model/explainer-settings";
 import {
   directorHandles,
+  directorNodeWithWiredPrompt,
   directorParams,
   isExplainerDirectorNode,
   isPlanDirectorNode,
@@ -90,12 +91,16 @@ export async function startCanvasExplainerPlan(params: {
   const catalog = await getCanvasModelCatalog();
   const director = isExplainerDirectorNode(loaded.node);
   const planDirector = isPlanDirectorNode(loaded.node);
-  const plannerNode = loaded.node;
   const resolved = resolveNodeInputs(
     params.nodeId,
     loaded.canvas.nodes,
     loaded.canvas.edges,
     catalog,
+  );
+  // A wired text node (or Prompt node) is the topic / script until the card is edited.
+  const plannerNode = directorNodeWithWiredPrompt(
+    loaded.node,
+    resolved.promptFromNode ? resolved.inputs.prompt : undefined,
   );
   const isTalking = plannerNode.data.modelId === TALKING_HEAD_PLANNER_MODEL_ID;
   if (!resolved.inputs.prompt?.trim()) {

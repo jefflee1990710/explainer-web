@@ -219,6 +219,8 @@ describe("video style transfer", () => {
       getMentalokJob: unused,
       ensureMentalokUrl: async (url) => url,
       persistMedia: async (_url, pathname) => `https://blob.example/${pathname}`,
+      generateCanvasText: unused,
+      persistText: async () => "https://blob.example/text.txt",
       executeScroSyncNode: unused,
       submitScroAsyncNode: unused,
       pollScroAsyncJob: async () => ({ status: "running" }),

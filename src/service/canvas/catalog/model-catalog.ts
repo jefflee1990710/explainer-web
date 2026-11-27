@@ -29,6 +29,7 @@ import {
   OPENROUTER_STATIC_MODELS,
 } from "@/service/canvas/catalog/openrouter-minimax-models";
 import { SCRO_STATIC_MODELS } from "@/service/canvas/catalog/scro-models";
+import { TEXT_STATIC_MODELS } from "@/service/canvas/catalog/text-models";
 import { MINIMAX_CANVAS_LEGACY_IDS } from "@/service/minimax/official-canvas";
 
 export type {
@@ -51,11 +52,14 @@ export {
   clearMentalokCatalogCache,
 };
 
+export { TEXT_STATIC_MODELS };
+
 export const STATIC_CANVAS_MODELS: readonly CanvasModelSpec[] = [
   ...MENTALOK_STATIC_MODELS,
   ...OPENROUTER_STATIC_MODELS,
   ...MINIMAX_STATIC_MODELS,
   ...GOOGLE_STATIC_MODELS,
+  ...TEXT_STATIC_MODELS,
   ...ARGOLINK_STATIC_MODELS,
   ...SCRO_STATIC_MODELS,
   ...FFMPEG_STATIC_MODELS,

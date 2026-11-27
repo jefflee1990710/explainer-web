@@ -1,7 +1,7 @@
 // Pure helpers for the persistent Explainer Director node (scro:explainer in planner mode),
 // plus the plan, handle, and replan helpers shared with the Talking Head Director.
 
-import type { CanvasAspectRatio, CanvasEdge, CanvasNode } from "@/model/canvas";
+import type { CanvasAspectRatio, CanvasEdge, CanvasNode, CanvasNodeData } from "@/model/canvas";
 import { explainerCardLength } from "@/service/canvas/directors/explainer-length";
 import { EXPLAINER_PLANNER_MODEL_ID } from "@/service/canvas/directors/explainer-planner";
 import { effectiveDirectorBackgroundId, plannedDirectorBackgroundId } from "@/service/canvas/directors/explainer-settings";
@@ -77,6 +77,28 @@ export function wiredDirectorCharacter(
     nodeId: source.id,
     ...(characterId ? { characterId } : {}),
     ...(label ? { label } : {}),
+  };
+}
+
+// A connected text source replaces the card's topic or script until the user edits it.
+export function directorNodeWithWiredPrompt<T extends NodeLike>(
+  node: T,
+  wiredPrompt: string | undefined,
+): T {
+  if (node.data.toolParams?.promptEdited === true || wiredPrompt === undefined) return node;
+  return { ...node, data: { ...node.data, prompt: wiredPrompt } };
+}
+
+// The first edit of a wired topic keeps that text and stops following the wire.
+export function directorPromptPatch(
+  data: CanvasNodeData,
+  patch: Partial<CanvasNodeData>,
+  wired: boolean,
+): Partial<CanvasNodeData> {
+  if (!wired || !("prompt" in patch) || data.toolParams?.promptEdited === true) return patch;
+  return {
+    ...patch,
+    toolParams: { ...(data.toolParams ?? {}), ...(patch.toolParams ?? {}), promptEdited: true },
   };
 }
 

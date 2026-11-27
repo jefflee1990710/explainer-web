@@ -12,7 +12,7 @@ import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
 import { CHARACTER_BLUEPRINT_MODEL_ID } from "@/service/canvas/core/character-blueprint";
 import { isExplainerPlannerNode } from "@/service/canvas/directors/explainer-planner";
 import { SETTINGS_HANDLE } from "@/service/canvas/core/settings/types";
-import { modelPromptVars } from "@/service/canvas/core/graph";
+import { modelPromptVars, readConnectedPromptText } from "@/service/canvas/core/graph";
 import { CharacterBlueprintNodeCard } from "@/app/app/canvas/nodes/character-blueprint-node-card";
 import { pendingCharacterOutfitSources } from "@/service/canvas/core/character-wardrobe";
 import { ExplainerPlanningCard } from "@/app/app/canvas/nodes/explainer-planning-card";
@@ -38,6 +38,7 @@ import { ModelNodeCardPorts } from "@/app/app/canvas/nodes/model-node-card-ports
 import { ModelNodeCardPreview } from "@/app/app/canvas/nodes/model-node-card-preview";
 import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
 import { StyleTransferNodeCard } from "@/app/app/canvas/nodes/style-transfer-node-card";
+import { TextModelNodeCard } from "@/app/app/canvas/nodes/text-model-node-card";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
 import { ModelNodeExtraOutputs } from "@/app/app/canvas/nodes/model-node-extra-outputs";
 import { STYLE_TRANSFER_MODEL_ID } from "@/service/canvas/core/style-transfer";
@@ -86,6 +87,8 @@ export function ModelNodeCard({
     }
     return map;
   }, [edges, id]);
+  // Undefined when no text wire is connected; empty string when the source has not run yet.
+  const wiredPrompt = readConnectedPromptText(id, nodes, edges, catalog);
 
   if (data.modelId === CHARACTER_BLUEPRINT_MODEL_ID) {
     return <CharacterBlueprintNodeCard id={id} data={data} selected={selected} />;
@@ -100,6 +103,7 @@ export function ModelNodeCard({
         disabled={isFlowRunning}
         characterOptions={characterOptions}
         incomingHandles={[...incomingByHandle.keys()].filter((handle) => handle !== SETTINGS_HANDLE)}
+        wiredPrompt={wiredPrompt}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
@@ -116,6 +120,7 @@ export function ModelNodeCard({
         selected={Boolean(selected)}
         disabled={isFlowRunning}
         characterOptions={characterOptions}
+        wiredPrompt={wiredPrompt}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onPlan={() => onPlanExplainer(id)}
         onRemove={() => onDeleteNode(id)}
@@ -136,6 +141,7 @@ export function ModelNodeCard({
         disabled={isFlowRunning}
         videoWired={videoWired}
         referenceWired={incomingByHandle.has("refImages")}
+        wiredPrompt={wiredPrompt}
         sourceNode={sourceNode}
         characterOptions={characterOptions}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
@@ -150,6 +156,7 @@ export function ModelNodeCard({
         disabled={isFlowRunning}
         videoWired={videoWired}
         sceneWired={incomingByHandle.has("image")}
+        wiredPrompt={wiredPrompt}
         onUpdate={(patch) => onUpdateNodeData(id, patch)}
         onBuild={() => onBuildScroDirector(id)}
         onRemove={() => onDeleteNode(id)}
@@ -370,6 +377,10 @@ export function ModelNodeCard({
     toolParams,
     updateToolParam,
   };
+
+  if (spec.category === "text") {
+    return <TextModelNodeCard {...view} />;
+  }
 
   return (
     <div

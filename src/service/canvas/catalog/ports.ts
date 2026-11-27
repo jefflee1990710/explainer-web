@@ -134,6 +134,16 @@ export function textOutput(): CanvasModelOutputSpec {
   };
 }
 
+// Plain generated text (a text-model node), not a subtitle file.
+export function generatedTextOutput(): CanvasModelOutputSpec {
+  return {
+    id: "output",
+    label: "輸出文字 Text",
+    labels: { "zh-Hant": "輸出文字", en: "Text" },
+    type: "text",
+  };
+}
+
 export function audiosPort(maxConnections = 8): CanvasPortSpec {
   return {
     id: "audios",

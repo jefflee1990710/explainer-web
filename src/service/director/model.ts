@@ -21,7 +21,12 @@ function googleClient() {
 }
 
 export function directorModel() {
-  const modelId = process.env.DIRECTOR_MODEL || DEFAULT_MODEL;
+  return canvasChatModel(process.env.DIRECTOR_MODEL || DEFAULT_MODEL);
+}
+
+// Same Google AI Studio client the director chat already uses.
+// Argon goes through the Interactions API; every other id is generateContent.
+export function canvasChatModel(modelId: string) {
   const client = googleClient();
   if (modelId === ARGON_MODEL) {
     return client.interactions(modelId);
