@@ -118,6 +118,45 @@ test("submit and poll MiniMax H3 against the official host", async () => {
   ]);
 });
 
+test("MiniMax H3 poll keeps failed status and stores task.error.message", async () => {
+  const fetchImpl: typeof fetch = async () =>
+    new Response(
+      JSON.stringify({
+        task: {
+          id: "task-sensitive",
+          status: "failed",
+          error: { code: 1026, message: "input new_sensitive, input image sensitive" },
+        },
+      }),
+      { status: 200 },
+    );
+  const polled = await fetchMinimaxCanvasVideo(
+    "https://api.minimax.io/v2/query/video_generation/task-sensitive",
+    { fetch: fetchImpl, apiKey: "test-key" },
+  );
+  assert.equal(polled.status, "failed");
+  assert.equal(polled.error, "input new_sensitive, input image sensitive");
+});
+
+test("a running MiniMax task is not failed just because task.error is present", async () => {
+  const fetchImpl: typeof fetch = async () =>
+    new Response(
+      JSON.stringify({
+        task: {
+          status: "running",
+          error: { code: 1026, message: "input new_sensitive, input image sensitive" },
+        },
+      }),
+      { status: 200 },
+    );
+  const polled = await fetchMinimaxCanvasVideo(
+    "https://api.minimax.io/v2/query/video_generation/task-running",
+    { fetch: fetchImpl, apiKey: "test-key" },
+  );
+  assert.equal(polled.status, "in_progress");
+  assert.equal(polled.error, undefined);
+});
+
 test("Hailuo 2.3 poll reads the v1 file download url", async () => {
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);

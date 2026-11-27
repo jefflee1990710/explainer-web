@@ -779,3 +779,33 @@ test("submitOpenRouterCanvasVideo posts canvas video request and returns polling
     else process.env.OPENROUTER_API_KEY = prevKey;
   }
 });
+
+test("fetchOpenRouterStatus keeps a failed HeyGen job failed and stores the nested provider message", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  const fakeFetch: typeof fetch = async () =>
+    new Response(
+      JSON.stringify({
+        id: "vid-heygen-fail",
+        status: "failed",
+        error: {
+          message: "Provider returned error",
+          metadata: {
+            provider_name: "heygen",
+            raw: JSON.stringify({ data: { error: { message: "No face detected" } } }),
+          },
+        },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  try {
+    const polled = await fetchOpenRouterStatus("https://openrouter.ai/api/v1/videos/vid-heygen-fail", {
+      fetch: fakeFetch,
+    });
+    assert.equal(polled.status, "failed");
+    assert.equal(polled.error, "No face detected");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});

@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -11,6 +10,7 @@ import { ConcatVideoOrder } from "@/app/app/canvas/nodes/concat-video-order";
 import { ConcatToSequenceButton } from "@/app/app/canvas/nodes/concat-to-sequence-button";
 import { SequenceNodeSummary } from "@/app/app/canvas/nodes/sequence-node-summary";
 import { SEQUENCE_MODEL_ID } from "@/model/canvas-sequence";
+import { ModelNodeFailedBanner } from "@/app/app/canvas/nodes/model-node-failed-banner";
 import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
 import { CaptionNodeFields } from "@/app/app/canvas/nodes/caption-node-fields";
@@ -554,13 +554,7 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
     </div>
   ) : null}
 
-  {/* Error banner */}
-  {status === "failed" && data.lastError ? (
-    <div className="flex items-start gap-1.5 rounded-[10px] border border-rose-500/35 bg-rose-500/10 p-2 text-[11px] text-rose-200">
-      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-400" />
-      <span className="line-clamp-3">{data.lastError}</span>
-    </div>
-  ) : null}
+  {status === "failed" ? <ModelNodeFailedBanner message={data.lastError} /> : null}
 
   {outdated ? <OutdatedBanner reason={outdated} isZh={isZh} /> : null}
     </>

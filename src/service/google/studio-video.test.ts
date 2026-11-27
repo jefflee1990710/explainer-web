@@ -58,6 +58,22 @@ test("a completed interaction reads the last video step", async () => {
   assert.equal(result.video?.url, "data:video/mp4;base64,AAAA");
 });
 
+test("a failed interaction keeps failed status and reads the nested provider message", async () => {
+  const result = await googleStudioVideoResult(
+    {
+      id: "v1_failed",
+      status: "failed",
+      error: {
+        message: "Provider returned error",
+        details: [{ message: "aspect ratio is not supported" }],
+      },
+    },
+    fetch,
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(result.error, "aspect ratio is not supported");
+});
+
 test("submitGoogleStudioVideo posts to the Interactions API and keeps the id for polling", async () => {
   const prev = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   process.env.GOOGLE_GENERATIVE_AI_API_KEY = "studio-test";
