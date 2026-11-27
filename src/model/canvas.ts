@@ -257,6 +257,7 @@ export const canvasModelProviderSchema = z.enum([
   "openrouter",
   "google",
   "minimax",
+  "argolink",
   "scro",
   "ffmpeg",
 ]);

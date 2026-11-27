@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/model/canvas-model";
+import { ARGOLINK_STATIC_MODELS } from "@/service/canvas/catalog/argolink-models";
 import { FFMPEG_STATIC_MODELS } from "@/service/canvas/catalog/ffmpeg-models";
 import { GOOGLE_STATIC_MODELS, NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/catalog/google-models";
 import { MENTALOK_STATIC_MODELS } from "@/service/canvas/catalog/mentalok-models";
@@ -25,6 +26,7 @@ describe("service/canvas/catalog modular split", () => {
       OPENROUTER_STATIC_MODELS.length +
       MINIMAX_STATIC_MODELS.length +
       GOOGLE_STATIC_MODELS.length +
+      ARGOLINK_STATIC_MODELS.length +
       SCRO_STATIC_MODELS.length +
       FFMPEG_STATIC_MODELS.length;
     assert.equal(STATIC_CANVAS_MODELS.length, expectedTotal);

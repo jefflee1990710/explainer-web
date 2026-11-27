@@ -12,7 +12,15 @@ import {
 import { buildMentalokJobPayload } from "@/service/canvas/execution/providers/mentalok";
 import type { CanvasDispatchContext } from "@/service/canvas/execution/providers/types";
 
-const PROVIDERS: CanvasModelProvider[] = ["mentalok", "openrouter", "google", "minimax", "scro", "ffmpeg"];
+const PROVIDERS: CanvasModelProvider[] = [
+  "mentalok",
+  "openrouter",
+  "google",
+  "minimax",
+  "argolink",
+  "scro",
+  "ffmpeg",
+];
 
 // Only the key checks are read by credentialError.
 const noKeys = {
@@ -20,6 +28,7 @@ const noKeys = {
   hasOpenRouterKey: () => false,
   hasMinimaxKey: () => false,
   hasGoogleStudioKey: () => false,
+  hasArgolinkKey: () => false,
 } as unknown as CanvasExecutorDeps;
 
 describe("service/canvas/execution/providers", () => {
@@ -46,6 +55,7 @@ describe("service/canvas/execution/providers", () => {
     assert.match(CANVAS_PROVIDER_ADAPTERS.openrouter.credentialError!(spec, noKeys)!, /OPENROUTER_API_KEY/);
     assert.match(CANVAS_PROVIDER_ADAPTERS.minimax.credentialError!(spec, noKeys)!, /MINIMAX_API_KEY/);
     assert.match(CANVAS_PROVIDER_ADAPTERS.google.credentialError!(spec, noKeys)!, /GOOGLE_GENERATIVE_AI_API_KEY/);
+    assert.match(CANVAS_PROVIDER_ADAPTERS.argolink.credentialError!(spec, noKeys)!, /ARGOLINK_API_KEY/);
     assert.match(CANVAS_PROVIDER_ADAPTERS.mentalok.credentialError!(spec, noKeys)!, /MENTALOK_AI_STUDIO_API_KEY/);
     assert.equal(CANVAS_PROVIDER_ADAPTERS.ffmpeg.credentialError, undefined);
   });

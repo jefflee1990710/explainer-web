@@ -136,6 +136,7 @@ function createHarness(options: {
     hasOpenRouterKey: () => options.hasOpenRouterKey ?? true,
     hasMinimaxKey: () => true,
     hasGoogleStudioKey: () => true,
+    hasArgolinkKey: () => true,
     consumeCreditUsd: async (clerkUserId, costUsd) => {
       consumeCalls.push({ clerkUserId, costUsd });
       if (wallet.creditUsd < costUsd) {
@@ -196,6 +197,16 @@ function createHarness(options: {
       status_url: "https://api.minimax.io/v2/query/video_generation/mm-vid-1",
       status: "completed",
       video: { url: "https://cdn.minimax.io/mm-vid-1.mp4" },
+    }),
+    submitArgolinkCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "al-vid-1",
+      status_url: "https://argolink.io/v1/videos/al-vid-1",
+      status: "queued",
+    }),
+    fetchArgolinkCanvasVideo: async (): Promise<GenerationSubmitResult> => ({
+      request_id: "al-vid-1",
+      status: "completed",
+      video: { url: "https://argolink.io/v1/videos/al-vid-1/file" },
     }),
     createMentalokJob: async (payload): Promise<MentalokJobRecord> => {
       mentalokPayloads.push(payload);

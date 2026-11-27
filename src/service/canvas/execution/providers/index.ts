@@ -2,6 +2,7 @@
 // Adding a provider means adding its adapter here; submit, dispatch, and poll need no new branch.
 
 import type { CanvasModelProvider } from "@/model/canvas-model";
+import { argolinkProvider } from "@/service/canvas/execution/providers/argolink";
 import { ffmpegProvider } from "@/service/canvas/execution/providers/ffmpeg";
 import { googleProvider } from "@/service/canvas/execution/providers/google";
 import { mentalokProvider } from "@/service/canvas/execution/providers/mentalok";
@@ -17,6 +18,7 @@ export const CANVAS_PROVIDER_ADAPTERS: Record<CanvasModelProvider, CanvasProvide
   openrouter: openRouterProvider,
   google: googleProvider,
   minimax: minimaxProvider,
+  argolink: argolinkProvider,
   scro: scroProvider,
   ffmpeg: ffmpegProvider,
 };

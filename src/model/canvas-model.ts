@@ -18,6 +18,7 @@ export type CanvasModelProvider =
   | "openrouter"
   | "google"
   | "minimax"
+  | "argolink"
   | "scro"
   | "ffmpeg";
 

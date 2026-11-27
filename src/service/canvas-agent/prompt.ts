@@ -60,6 +60,7 @@ export function buildCanvasAgentSystemPrompt(input: {
 - Empty character: add_model_node with "scro:character" drops an empty character. Wire photos to "refImages" (up to 8) and wardrobe images to hair, top, pants, shoes, accessory, or looks. An optional description goes in "prompt". The user presses Run; Seedream 5.0 Pro draws the blueprint, then saves it as a character on the card. Do not run it.
 - Model / Scro / FFmpeg node: outputs an image, video, or audio file that can feed later nodes.
 - Image → video: connect an image output to a video node's "startImage" port (and optionally "endImage").
+- Sand AI MAGI-2 ("argolink:magi-2"): 1080p, 4–30 seconds, native sound, $0.102 per second. It has no startImage or endImage. Put stills on "refImages" (up to 10, this is its image-to-video), one motion clip on "video", and an optional voice or beat on "refAudio".
 - Reference images: connect image outputs or image media nodes to "refImages".
 - Audio → video: "scro:tts" and "ffmpeg:extract-audio" output "audio", which connects to "refAudio" on "openrouter:heygen/avatar-iv" or "ffmpeg:audio-mux".
 - Multi-video editing: "ffmpeg:concat" accepts up to 8 video connections on its "videos" port in order.

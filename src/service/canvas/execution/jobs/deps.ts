@@ -47,6 +47,12 @@ import {
 } from "@/service/minimax/official-canvas";
 import { minimaxApiKey } from "@/service/minimax/talking-head-reference";
 import { fetchGoogleStudioVideo, submitGoogleStudioVideo } from "@/service/google/studio-video";
+import {
+  type ArgolinkCanvasVideoInput,
+  fetchArgolinkCanvasVideo,
+  hasArgolinkKey,
+  submitArgolinkCanvasVideo,
+} from "@/service/argolink/client";
 
 export type CanvasExecutorDeps = {
   findCanvasProject: (
@@ -91,6 +97,7 @@ export type CanvasExecutorDeps = {
   hasOpenRouterKey: () => boolean;
   hasMinimaxKey: () => boolean;
   hasGoogleStudioKey: () => boolean;
+  hasArgolinkKey: () => boolean;
   consumeCreditUsd: (clerkUserId: string, costUsd: number) => Promise<string>;
   refundCreditUsd: (
     clerkUserId: string,
@@ -130,6 +137,8 @@ export type CanvasExecutorDeps = {
   submitMinimaxCanvasImage: (input: MinimaxCanvasImageInput) => Promise<GenerationSubmitResult>;
   submitMinimaxCanvasVideo: (input: MinimaxCanvasVideoInput) => Promise<GenerationSubmitResult>;
   fetchMinimaxCanvasVideo: (statusUrl: string) => Promise<GenerationSubmitResult>;
+  submitArgolinkCanvasVideo: (input: ArgolinkCanvasVideoInput) => Promise<GenerationSubmitResult>;
+  fetchArgolinkCanvasVideo: (statusUrl: string) => Promise<GenerationSubmitResult>;
   createMentalokJob: (payload: MentalokCreateJobPayload) => Promise<MentalokJobRecord>;
   getMentalokJob: (jobId: string) => Promise<MentalokJobRecord>;
   ensureMentalokUrl: (mediaUrl: string) => Promise<string>;
@@ -234,6 +243,7 @@ function createDefaultDeps(): CanvasExecutorDeps {
     hasOpenRouterKey: () => hasOpenRouterKey(),
     hasMinimaxKey: () => Boolean(minimaxApiKey()),
     hasGoogleStudioKey: () => hasGoogleStudioKey(),
+    hasArgolinkKey: () => hasArgolinkKey(),
     consumeCreditUsd,
     refundCreditUsd,
     getUserCreditUsd: readUserCreditUsd,
@@ -246,6 +256,8 @@ function createDefaultDeps(): CanvasExecutorDeps {
     submitMinimaxCanvasImage: (input) => submitMinimaxCanvasImage(input),
     submitMinimaxCanvasVideo: (input) => submitMinimaxCanvasVideo(input),
     fetchMinimaxCanvasVideo: (statusUrl) => fetchMinimaxCanvasVideo(statusUrl),
+    submitArgolinkCanvasVideo: (input) => submitArgolinkCanvasVideo(input),
+    fetchArgolinkCanvasVideo: (statusUrl) => fetchArgolinkCanvasVideo(statusUrl),
     createMentalokJob: (payload) => createMentalokJob(payload),
     getMentalokJob: (jobId) => getMentalokJob(jobId),
     ensureMentalokUrl: (mediaUrl) => ensureMentalokUrl(mediaUrl),

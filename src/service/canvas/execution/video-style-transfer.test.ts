@@ -44,6 +44,7 @@ describe("video style transfer", () => {
     assert.ok(choices.length > 0);
     assert.ok(choices.every((spec) => spec.category === "video"));
     assert.equal(choices.some((spec) => spec.provider === "google"), false);
+    assert.equal(choices.some((spec) => spec.provider === "argolink"), false);
     assert.equal(choices.some((spec) => spec.provider === "mentalok"), false);
     assert.equal(choices.some((spec) => /heygen|avatar/i.test(spec.id)), false);
     assert.equal(defaultVideoStyleTransferModel(STATIC_CANVAS_MODELS)?.id, EDIT_MODEL_ID);
@@ -189,6 +190,7 @@ describe("video style transfer", () => {
       hasOpenRouterKey: () => true,
       hasMinimaxKey: () => false,
       hasGoogleStudioKey: () => false,
+      hasArgolinkKey: () => false,
       consumeCreditUsd: async (_user, costUsd) => {
         wallet -= costUsd;
         return "spend-1";
@@ -211,6 +213,8 @@ describe("video style transfer", () => {
       submitMinimaxCanvasImage: unused,
       submitMinimaxCanvasVideo: unused,
       fetchMinimaxCanvasVideo: unused,
+      submitArgolinkCanvasVideo: unused,
+      fetchArgolinkCanvasVideo: unused,
       createMentalokJob: unused,
       getMentalokJob: unused,
       ensureMentalokUrl: async (url) => url,

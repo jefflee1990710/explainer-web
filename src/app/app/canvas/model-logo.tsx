@@ -27,6 +27,7 @@ const MODEL_LOGOS: ReadonlyArray<{
   },
   { match: /openai|gpt-5/, asset: { src: "/canvas/model-logos/openai.svg", alt: "OpenAI" } },
   { match: /heygen/, asset: { src: "/canvas/model-logos/heygen-icon.png", alt: "HeyGen" } },
+  { match: /magi/, asset: { src: "/canvas/model-logos/sand-ai.svg", alt: "Sand AI" } },
   { match: /microsoft/, asset: { src: "/canvas/model-logos/microsoft.svg", alt: "Microsoft" } },
   { match: /recraft/, asset: { src: "/canvas/model-logos/recraft.svg", alt: "Recraft" } },
   { match: /tencent/, asset: { src: "/canvas/model-logos/tencent.svg", alt: "Tencent" } },
