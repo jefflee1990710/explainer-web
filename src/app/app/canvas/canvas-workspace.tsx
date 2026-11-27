@@ -48,6 +48,7 @@ import { directorPlanningLocks } from "@/service/canvas/directors/director-plan-
 import { ReplanBeforeRunDialog, type ReplanBeforeRunItem } from "@/app/app/canvas/replan-before-run-dialog";
 import { CanvasNodeMenu } from "@/app/app/canvas/canvas-node-menu";
 import { useCanvasGroups } from "@/app/app/canvas/groups/use-canvas-groups";
+import { useSwapDirectorGroupSync } from "@/app/app/canvas/groups/use-swap-director-groups";
 import type {
   CanvasLibraryAssetsResult,
   CanvasProjectDto,
@@ -336,6 +337,7 @@ function CanvasWorkspaceInner({
     handleRunFlow,
     handleRunGroup,
     handleStopFlow,
+    runNodeAndDependents,
   } = useCanvasFlow({
     initialFlowRun: initialProject.activeFlowRun,
     nodes,
@@ -401,6 +403,13 @@ function CanvasWorkspaceInner({
     splitNodeChanges,
     onNodesChange,
     onEdgesChange,
+  });
+
+  useSwapDirectorGroupSync({
+    nodes: domainNodes,
+    edges: domainEdges,
+    snapshotGroups,
+    updateGroups,
   });
 
   const { onRunNode } = useCanvasJobs({
@@ -594,6 +603,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       onRunNode: requestRunNode,
+      onRunNodeWithDependents: runNodeAndDependents,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,
@@ -614,6 +624,7 @@ function CanvasWorkspaceInner({
       onUpdateNodeData,
       onDeleteNode,
       requestRunNode,
+      runNodeAndDependents,
       onSwapModel,
       onReorderTargetEdges,
       onGenerateOutfit,

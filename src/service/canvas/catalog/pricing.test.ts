@@ -126,6 +126,13 @@ describe("canvas USD pricing", () => {
     assert.equal(estimateCanvasModelCostUsd(explainer, { durationSeconds: 30 }), 6.102);
   });
 
+  it("prices the style-transfer row like one still; the job bills the chosen image model", () => {
+    const style = findCanvasModel("scro:style-transfer");
+    assert.ok(style);
+    assert.equal(style.output.type, "image");
+    assert.equal(estimateCanvasModelCostUsd(style), 0.135);
+  });
+
   it("prices scro:explainer-frame at one Nano Banana 1K still", () => {
     const frame = findCanvasModel("scro:explainer-frame");
     assert.ok(frame);

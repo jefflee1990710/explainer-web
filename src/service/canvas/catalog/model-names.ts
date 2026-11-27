@@ -74,6 +74,12 @@ export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
     ja: "キャラクター",
     ko: "캐릭터",
   },
+  "scro:style-transfer": {
+    "zh-Hant": "風格轉換",
+    "zh-Hans": "风格转换",
+    ja: "スタイル変換",
+    ko: "스타일 변환",
+  },
   "scro:tts": {
     "zh-Hant": "ElevenLabs TTS 配音",
     "zh-Hans": "ElevenLabs TTS 配音",

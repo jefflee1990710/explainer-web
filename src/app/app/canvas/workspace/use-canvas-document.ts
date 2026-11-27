@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { addEdge, EdgeChangeset, NodeChangeset, type Connection, type Edge } from "@xyflow/react";
 import type { CanvasEdge, CanvasNodeData } from "@/model/canvas";
 import { saveCanvasProjectAction, uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { placeDroppedCanvasFiles } from "@/app/app/canvas/workspace/canvas-media-drop";
 import {
   adoptServerPreview,
   getNodeOutputPortType,
@@ -772,65 +773,55 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
         const blueprintTarget = dropPosition
           ? findPortraitDropTarget(nodesRef.current, dropPosition)
           : undefined;
+        const wirePhotos = blueprintTarget?.kind === "blueprint";
         const wiredHandles = edgesRef.current.map((edge) => ({
           target: edge.target,
           targetHandle: edge.targetHandle,
         }));
         let toldPhotoFull = false;
-        let offset = 0;
-        for (const file of list) {
-          const fd = new FormData();
-          fd.append("file", file);
-          const result = await uploadCanvasMediaAction(fd);
-          if (!result.ok) {
-            toast.error(result.error);
-            continue;
-          }
-          const wirePhotos =
-            blueprintTarget?.kind === "blueprint" && result.mediaKind === "image";
-          const nodeId = `media-${crypto.randomUUID().slice(0, 8)}`;
-          const node: FlowNode = {
-            id: nodeId,
-            type: "media",
-            position: wirePhotos
-              ? { x: basePos.x - 340, y: basePos.y + offset }
-              : { x: basePos.x + offset, y: basePos.y + offset },
-            data: {
-              label: result.fileName,
-              fileName: result.fileName,
-              mediaKind: result.mediaKind,
-              mediaUrl: result.url,
-            },
-          };
-          offset += 44;
-          setNodes((prev) => [...prev, node]);
-          if (wirePhotos && blueprintTarget) {
+        await placeDroppedCanvasFiles({
+          files: list,
+          // Photos dropped on an empty character sit to its left, then wire into refImages.
+          position:
+            wirePhotos && list.some((file) => file.type.toLowerCase().startsWith("image/"))
+              ? { x: basePos.x - 340, y: basePos.y }
+              : basePos,
+          // The server action returns when the upload finishes. It does not emit a percentage.
+          upload: async (file) => {
+            const fd = new FormData();
+            fd.append("file", file);
+            return uploadCanvasMediaAction(fd);
+          },
+          onNodes: setNodes,
+          onError: (message) => toast.error(message),
+          onSettled: scheduleAutosave,
+          onVisualSettled: (settled) => {
+            if (!wirePhotos || !blueprintTarget || settled.mediaKind !== "image") return;
             const targetId = blueprintTarget.id;
             if (blueprintAttachPlan(wiredHandles, targetId, "refImages") === "full") {
               if (!toldPhotoFull) {
                 toast.error(isZh ? "參考圖已滿" : "Photo inputs are full");
                 toldPhotoFull = true;
               }
-            } else {
-              wiredHandles.push({ target: targetId, targetHandle: "refImages" });
-              setEdges((prev) => {
-                if (blueprintAttachPlan(prev, targetId, "refImages") !== "add") return prev;
-                return addEdge(
-                  {
-                    id: `e-${crypto.randomUUID().slice(0, 8)}`,
-                    source: nodeId,
-                    sourceHandle: "output",
-                    target: targetId,
-                    targetHandle: "refImages",
-                    style: { stroke: PORT_COLOR_MAP.image, strokeWidth: 2 },
-                  },
-                  prev,
-                );
-              });
+              return;
             }
-          }
-          scheduleAutosave();
-        }
+            wiredHandles.push({ target: targetId, targetHandle: "refImages" });
+            setEdges((prev) => {
+              if (blueprintAttachPlan(prev, targetId, "refImages") !== "add") return prev;
+              return addEdge(
+                {
+                  id: `e-${crypto.randomUUID().slice(0, 8)}`,
+                  source: settled.id,
+                  sourceHandle: "output",
+                  target: targetId,
+                  targetHandle: "refImages",
+                  style: { stroke: PORT_COLOR_MAP.image, strokeWidth: 2 },
+                },
+                prev,
+              );
+            });
+          },
+        });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed");
       } finally {

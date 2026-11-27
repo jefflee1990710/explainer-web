@@ -19,8 +19,8 @@ describe("canvas model catalog", () => {
   it("contains Mentalok, every account OpenRouter media model, Scro, and FFmpeg models with unique IDs", () => {
     const openRouterCount =
       OPENROUTER_ACCOUNT_IMAGE_MODELS.length + OPENROUTER_ACCOUNT_VIDEO_MODELS.length;
-    // 9 sidebar Scro tools + 4 hidden step nodes, plus Gemini image and Omni video on Google AI Studio.
-    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 13 + 17);
+    // 16 Mentalok + account media + 7 Google + 14 Scro + 17 FFmpeg.
+    assert.equal(STATIC_CANVAS_MODELS.length, 16 + openRouterCount + 7 + 14 + 17);
     assert.deepEqual(
       STATIC_CANVAS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
       [
@@ -50,7 +50,7 @@ describe("canvas model catalog", () => {
     assert.equal(minimax.length, minimaxAccountCount);
     assert.equal(openrouter.length, openRouterCount - minimaxAccountCount);
     assert.equal(openrouter.some((model) => model.providerModelId.startsWith("minimax/")), false);
-    assert.equal(scro.length, 13);
+    assert.equal(scro.length, 14);
     assert.deepEqual(
       scro.filter((m) => m.hiddenInSidebar).map((m) => m.id),
       ["scro:explainer-frame", "scro:director-frame", "scro:swap-render", "scro:teleport-render"],

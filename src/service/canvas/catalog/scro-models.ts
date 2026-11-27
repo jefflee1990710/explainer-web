@@ -214,6 +214,21 @@ export const SCRO_STATIC_MODELS: CanvasModelSpec[] = [
     available: true,
   },
   {
+    // One image in. The chosen image model is toolParams.imageModelId; Run uses that model's job.
+    id: "scro:style-transfer",
+    provider: "scro",
+    providerModelId: "style-transfer",
+    name: "Style Transfer",
+    category: "scro-tool",
+    inputs: [imagePort(true)],
+    output: imageOutput(),
+    presets: ["9:16", "1:1", "16:9"],
+    defaultPresetId: "9:16",
+    basePriceUsd: IMAGE_COST_USD,
+    supportsAspectRatio: false,
+    available: true,
+  },
+  {
     id: "scro:tts",
     provider: "scro",
     providerModelId: "tts",
