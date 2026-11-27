@@ -58,6 +58,19 @@ describe("scro director build", () => {
     assert.equal(built.group.nodes.find((n) => n.id === "swap-1-instruction")?.data.text, "blue jacket");
   });
 
+  it("builds a character swap from the selected character when no reference image is wired", () => {
+    const built = buildSwapDirectorGroup(
+      director("scro:swap", { toolParams: { swapMode: "character", characterId: "jim" } }),
+      { ...origin, videoNodeId: "clip" },
+    );
+    assert.ok(!("error" in built));
+    if ("error" in built) return;
+    const render = built.group.nodes.find((n) => n.id === "swap-1-render");
+    assert.equal(render?.data.toolParams?.characterId, "jim");
+    assert.equal(render?.data.toolParams?.swapMode, "character");
+    assert.equal(built.group.edges.some((e) => e.targetHandle === "refImages"), false);
+  });
+
   it("refuses a character swap with no reference and an object swap with no instruction", () => {
     const missingRef = buildSwapDirectorGroup(director("scro:swap"), { ...origin, videoNodeId: "clip" });
     assert.deepEqual(missingRef, { error: "reference" });

@@ -1,76 +1,85 @@
 "use client";
 
-// Swap director settings: mode, section, ratio, and the edit instruction.
+// Swap director settings. Mode stays Character. Start, length, and ratio come from the source video.
 
-import type { CanvasAspectRatio, CanvasNodeData } from "@/model/canvas";
-import { AspectRatioField } from "@/app/app/canvas/aspect-ratio-field";
+import { useEffect, useMemo } from "react";
+import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
+import type { CanvasNode, CanvasNodeData } from "@/model/canvas";
 import { DIALOG_FIELD, DIALOG_LABEL, DIALOG_TEXTAREA } from "@/app/app/canvas/scro-dialog-shell";
-import { ComposedInput, ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
-import { SwapLightLookField } from "@/app/app/canvas/nodes/swap-light-look-field";
+import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
+import { SourceVideoSectionFields } from "@/app/app/canvas/nodes/source-video-section-fields";
+import { SwapDirectorCharacterField } from "@/app/app/canvas/nodes/swap-director-character-field";
+import {
+  mergeSourceVideoMeasure,
+  sectionFromSourceVideo,
+  sourceVideoFromNode,
+} from "@/app/app/canvas/nodes/source-video-section";
+import { useSourceVideoProbe } from "@/app/app/canvas/nodes/use-source-video-probe";
 
 type Props = {
   data: CanvasNodeData;
   isZh: boolean;
   disabled: boolean;
+  sourceNode: CanvasNode | undefined;
+  characterOptions: readonly CanvasLibraryCharacterOption[];
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
 };
 
-export function SwapDirectorFields({ data, isZh, disabled, onUpdate }: Props) {
+export function SwapDirectorFields({
+  data,
+  isZh,
+  disabled,
+  sourceNode,
+  characterOptions,
+  onUpdate,
+}: Props) {
   const tp = data.toolParams ?? {};
-  const mode = String(tp.swapMode ?? "character");
-  const setParams = (patch: Record<string, unknown>) => onUpdate({ toolParams: { ...tp, ...patch } });
-  const ratio = (data.aspectRatio ?? "9:16") as CanvasAspectRatio;
+  const source = sourceVideoFromNode(sourceNode);
+  const probe = useSourceVideoProbe(source?.url);
+  const section = useMemo(
+    () => sectionFromSourceVideo(mergeSourceVideoMeasure(source?.measure, probe)),
+    [source, probe],
+  );
+  const sectionKey = section ? `${section.start}|${section.length}|${section.ratio}` : "";
+  const characterId = typeof tp.characterId === "string" ? tp.characterId : "";
+
+  // Keep the card on Character, and store the section once the source video can be read.
+  useEffect(() => {
+    const current = data.toolParams ?? {};
+    const patch: Record<string, unknown> = {};
+    if (current.swapMode !== "character") patch.swapMode = "character";
+    if (section) {
+      if (Number(current.sectionStart) !== section.start) patch.sectionStart = section.start;
+      if (Number(current.sectionLength) !== section.length) patch.sectionLength = section.length;
+    }
+    const aspect = section && data.aspectRatio !== section.ratio ? section.ratio : undefined;
+    if (!aspect && Object.keys(patch).length === 0) return;
+    onUpdate({
+      ...(aspect ? { aspectRatio: aspect } : {}),
+      toolParams: { ...current, ...patch },
+    });
+  }, [data.aspectRatio, data.toolParams, onUpdate, section, sectionKey]);
+
+  const setParams = (patch: Record<string, unknown>) => onUpdate({ toolParams: { ...tp, swapMode: "character", ...patch } });
 
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-60">
       <label className={DIALOG_LABEL}>
         {isZh ? "模式" : "Mode"}
-        <select
-          value={mode}
-          onChange={(e) => setParams({ swapMode: e.target.value })}
-          className={DIALOG_FIELD}
-        >
+        <select value="character" disabled aria-label={isZh ? "模式" : "Mode"} className={DIALOG_FIELD}>
           <option value="character">{isZh ? "角色替換" : "Character"}</option>
-          <option value="object">{isZh ? "物件／穿搭" : "Object / outfit"}</option>
-          <option value="relight">{isZh ? "電影打光" : "Relight"}</option>
-          <option value="colorfix">{isZh ? "H3 Soft 調色" : "H3 Soft color"}</option>
         </select>
       </label>
-      {mode === "object" ? (
-        <div className="grid grid-cols-2 gap-2">
-          <label className={DIALOG_LABEL}>
-            {isZh ? "目標物" : "Target"}
-            <ComposedInput
-              value={String(tp.objectTarget ?? "")}
-              onValue={(objectTarget) => setParams({ objectTarget })}
-              placeholder={isZh ? "例如外套" : "e.g. jacket"}
-              className={DIALOG_FIELD}
-            />
-          </label>
-          <label className={DIALOG_LABEL}>
-            {isZh ? "做法" : "Edit"}
-            <select
-              value={String(tp.objectEditMode ?? "change")}
-              onChange={(e) => setParams({ objectEditMode: e.target.value })}
-              className={DIALOG_FIELD}
-            >
-              <option value="change">Change</option>
-              <option value="add">Add</option>
-              <option value="remove">Remove</option>
-            </select>
-          </label>
-        </div>
-      ) : null}
-      {mode === "relight" ? (
-        <SwapLightLookField
+      {source ? (
+        <SwapDirectorCharacterField
           isZh={isZh}
-          disabled={disabled}
-          value={typeof tp.lightLookId === "string" ? tp.lightLookId : undefined}
-          onChange={(lightLookId) => setParams({ lightLookId })}
+          characterId={characterId}
+          characterOptions={characterOptions}
+          onChange={(next) => setParams({ characterId: next || undefined })}
         />
       ) : null}
       <label className={DIALOG_LABEL}>
-        {mode === "object" ? (isZh ? "換成什麼" : "Change into") : isZh ? "指示" : "Instruction"}
+        {isZh ? "指示" : "Instruction"}
         <ComposedTextarea
           rows={3}
           value={data.prompt ?? ""}
@@ -79,32 +88,7 @@ export function SwapDirectorFields({ data, isZh, disabled, onUpdate }: Props) {
           className={DIALOG_TEXTAREA}
         />
       </label>
-      <div className="grid grid-cols-3 gap-2">
-        <label className={DIALOG_LABEL}>
-          {isZh ? "開始（秒）" : "Start (s)"}
-          <input
-            type="number"
-            min={0}
-            step={0.1}
-            value={Number(tp.sectionStart ?? 0)}
-            onChange={(e) => setParams({ sectionStart: Number(e.target.value) })}
-            className={DIALOG_FIELD}
-          />
-        </label>
-        <label className={DIALOG_LABEL}>
-          {isZh ? "長度（秒）" : "Length (s)"}
-          <input
-            type="number"
-            min={2}
-            max={15}
-            step={1}
-            value={Number(tp.sectionLength ?? 6)}
-            onChange={(e) => setParams({ sectionLength: Number(e.target.value) })}
-            className={DIALOG_FIELD}
-          />
-        </label>
-        <AspectRatioField isZh={isZh} value={ratio} onChange={(aspectRatio) => onUpdate({ aspectRatio })} />
-      </div>
+      <SourceVideoSectionFields isZh={isZh} section={section} />
     </fieldset>
   );
 }

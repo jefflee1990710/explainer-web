@@ -4,7 +4,8 @@
 
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Film, Image as ImageIcon, Maximize2, Music, Trash2 } from "lucide-react";
-import type { CanvasNodeData } from "@/model/canvas";
+import { isUnsettledMediaUpload, type CanvasNodeData } from "@/model/canvas";
+import { MediaUploadPlaceholder } from "@/app/app/canvas/nodes/media-upload-placeholder";
 import {
   PORT_COLOR_MAP,
   useCanvasNodeActions,
@@ -19,6 +20,19 @@ export function MediaNodeCard({
   const kind = data.mediaKind ?? "image";
   const color = PORT_COLOR_MAP[kind];
   const fileName = data.fileName || data.label || kind.toUpperCase();
+
+  // Same node id: the card swaps to the real preview once mediaUrl replaces mediaUpload.
+  if (isUnsettledMediaUpload(data) && data.mediaUpload && kind !== "audio") {
+    return (
+      <MediaUploadPlaceholder
+        id={id}
+        selected={selected}
+        fileName={fileName}
+        mediaKind={kind === "video" ? "video" : "image"}
+        upload={data.mediaUpload}
+      />
+    );
+  }
 
   return (
     <div
