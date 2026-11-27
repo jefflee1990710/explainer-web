@@ -1,5 +1,5 @@
-// Live flow status for the bar under the canvas header. Counts come from node
-// cards on the canvas, so a retry or a later failure updates it without another Run Flow.
+// Live flow status for the canvas header. Counts come from node cards, so a
+// retry or a later failure updates the centered text without another Run Flow.
 
 import { findCanvasModel, type CanvasModelSpec } from "@/service/canvas/catalog/model-catalog";
 import { canvasModelDisplayName } from "@/service/canvas/catalog/model-names";
@@ -80,7 +80,7 @@ function isBusyStatus(status: string | undefined): boolean {
   return status === "queued" || status === "running";
 }
 
-// Builds the status bar from the cards the user can see right now.
+// Builds the header status from the cards the user can see right now.
 // While Run Flow is in progress, failures are only the ones this run has recorded.
 // After it settles, a card that is retried or fails on its own updates the count.
 export function deriveCanvasFlowHeaderStatus(input: {
