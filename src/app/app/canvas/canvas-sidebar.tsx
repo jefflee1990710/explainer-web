@@ -60,6 +60,7 @@ const MODEL_CATEGORIES: CanvasModelCategory[] = [
   "image",
   "video",
   "audio",
+  "text",
   "editing",
   "segmentation",
   "upscale",

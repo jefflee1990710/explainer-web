@@ -380,12 +380,12 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
           return n;
         }),
       );
-      // Editing the detected script only refreshes the burn node. Run on the captions node still re-transcribes.
-      const captionScriptEdit =
-        current?.data.modelId === "scro:auto-captions" &&
+      // Editing generated text (captions or a text model) refreshes whatever is wired to it.
+      const textOutputEdit =
+        current?.data.outputKind === "text" &&
         Object.keys(patch).length === 1 &&
         Object.prototype.hasOwnProperty.call(patch, "text");
-      if (captionScriptEdit) {
+      if (textOutputEdit) {
         markStale(edgesRef.current.filter((edge) => edge.source === nodeId).map((edge) => edge.target));
       } else if (stale) {
         markStale([nodeId]);

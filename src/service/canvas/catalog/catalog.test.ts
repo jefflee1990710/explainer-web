@@ -6,6 +6,7 @@ import { CANVAS_HEYGEN_MAX_VIDEO_SECONDS } from "@/model/canvas-model";
 import { ARGOLINK_STATIC_MODELS } from "@/service/canvas/catalog/argolink-models";
 import { FFMPEG_STATIC_MODELS } from "@/service/canvas/catalog/ffmpeg-models";
 import { GOOGLE_STATIC_MODELS, NANO_BANANA_CANVAS_MODEL_ID } from "@/service/canvas/catalog/google-models";
+import { TEXT_STATIC_MODELS } from "@/service/canvas/catalog/text-models";
 import { MENTALOK_STATIC_MODELS } from "@/service/canvas/catalog/mentalok-models";
 import { MINIMAX_STATIC_MODELS, OPENROUTER_STATIC_MODELS } from "@/service/canvas/catalog/openrouter-minimax-models";
 import { SCRO_STATIC_MODELS } from "@/service/canvas/catalog/scro-models";
@@ -26,6 +27,7 @@ describe("service/canvas/catalog modular split", () => {
       OPENROUTER_STATIC_MODELS.length +
       MINIMAX_STATIC_MODELS.length +
       GOOGLE_STATIC_MODELS.length +
+      TEXT_STATIC_MODELS.length +
       ARGOLINK_STATIC_MODELS.length +
       SCRO_STATIC_MODELS.length +
       FFMPEG_STATIC_MODELS.length;

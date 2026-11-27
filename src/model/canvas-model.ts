@@ -7,6 +7,7 @@ export type CanvasModelCategory =
   | "image"
   | "video"
   | "audio"
+  | "text"
   | "scro-tool"
   | "ffmpeg"
   | "editing"

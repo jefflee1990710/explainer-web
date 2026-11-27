@@ -17,6 +17,7 @@ import {
 } from "@/service/canvas/directors/explainer-planner";
 import { replacePlannerWithExpansion } from "@/service/canvas/directors/explainer-expand";
 import {
+  directorNodeWithWiredPrompt,
   isPlanDirectorNode,
   readDirectorPlan,
 } from "@/service/canvas/directors/explainer-director";
@@ -29,6 +30,7 @@ import {
 import type { CanvasExplainerPlanState } from "@/service/canvas/directors/explainer-plan";
 import type { ScroGroup } from "@/service/canvas/scro-groups/builder";
 import { defaultGroupColor, defaultGroupTitle, withGroup } from "@/service/canvas/core/groups";
+import { readConnectedPromptText } from "@/service/canvas/core/graph";
 import {
   buildSwapDirectorGroup,
   buildTeleportDirectorGroup,
@@ -606,8 +608,13 @@ export function useCanvasDirectors(deps: CanvasDirectorsHookDeps) {
   // Build replaces the previous trim → render → grade rows and keeps the director card.
   const handleBuildScroDirector = useCallback(
     (nodeId: string) => {
-      const node = nodesRef.current.find((n) => n.id === nodeId);
-      if (!node || !isScroDirectorNode(node)) return;
+      const stored = nodesRef.current.find((n) => n.id === nodeId);
+      if (!stored || !isScroDirectorNode(stored)) return;
+      // Build uses the wired text when the card has not been edited away from it.
+      const node = directorNodeWithWiredPrompt(
+        stored,
+        readConnectedPromptText(nodeId, toDomainNodes(nodesRef.current), toDomainEdges(edgesRef.current), models),
+      );
       const swap = isSwapDirectorNode(node);
       const videoNodeId = edgesRef.current.find((e) => e.target === nodeId && e.targetHandle === "video")?.source;
       const referenceNodeId = edgesRef.current.find(

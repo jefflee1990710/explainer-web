@@ -10,6 +10,8 @@ import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import {
   directorHandleId,
   directorNeedsReplan,
+  directorNodeWithWiredPrompt,
+  directorPromptPatch,
   readDirectorPlan,
   type DirectorOutputKind,
 } from "@/service/canvas/directors/explainer-director";
@@ -17,6 +19,7 @@ import { readPlannerParams } from "@/service/canvas/directors/explainer-planner"
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
+import { ScroDirectorPort } from "@/app/app/canvas/nodes/scro-director-port";
 
 const OUTPUT_LABELS: { kind: DirectorOutputKind; zh: string; en: string }[] = [
   { kind: "frame", zh: "靜幀", en: "Still" },
@@ -33,6 +36,8 @@ type Props = {
   characterOptions: readonly CanvasLibraryCharacterOption[];
   // Input handles that already have wires (older planner cards), kept so those wires render.
   incomingHandles: readonly string[];
+  // Text wired into the topic port. Undefined when nothing is connected.
+  wiredPrompt?: string;
   onUpdate: (patch: Partial<CanvasNodeData>) => void;
   onPlan: () => void;
   onRemove: () => void;
@@ -45,16 +50,19 @@ export function ExplainerDirectorCard({
   disabled,
   characterOptions,
   incomingHandles,
+  wiredPrompt,
   onUpdate,
   onPlan,
   onRemove,
 }: Props) {
-  const node = { type: "model" as const, data };
+  const topicWired = wiredPrompt !== undefined;
+  const live = directorNodeWithWiredPrompt({ type: "model" as const, data }, wiredPrompt);
+  const node = live;
   const plan = readDirectorPlan(node);
   const { planStatus, planError } = readPlannerParams({ data });
   const planning = planStatus === "planning";
   const dirty = directorNeedsReplan(node);
-  const canPlan = !disabled && !planning && Boolean((data.prompt ?? "").trim());
+  const canPlan = !disabled && !planning && Boolean((live.data.prompt ?? "").trim());
 
   return (
     <div
@@ -62,9 +70,11 @@ export function ExplainerDirectorCard({
         selected ? "border-[#c6f24b] ring-2 ring-[#c6f24b]/25" : "border-[#252c3b] hover:border-[#374157]"
       }`}
     >
-      {incomingHandles.map((handle) => (
-        <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
-      ))}
+      {incomingHandles
+        .filter((handle) => handle !== "prompt")
+        .map((handle) => (
+          <Handle key={handle} type="target" id={handle} position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
+        ))}
 
       <div className="flex items-center justify-between border-b border-white/6 px-3 py-2">
         <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-white/90">
@@ -85,14 +95,22 @@ export function ExplainerDirectorCard({
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
+      <ScroDirectorPort
+        id="prompt"
+        color={PORT_COLOR_MAP.text}
+        label={isZh ? "主題" : "Topic"}
+        title={isZh ? "主題／講稿（可接文字輸出）" : "Topic (connect a text output)"}
+        wired={topicWired}
+        detail={topicWired ? (isZh ? "已連" : "Wired") : isZh ? "可輸入" : "Or type"}
+      />
 
       <div className="flex flex-col gap-2.5 p-3">
         <ExplainerDirectorFields
-          data={data}
+          data={live.data}
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          onUpdate={onUpdate}
+          onUpdate={(patch) => onUpdate(directorPromptPatch(data, patch, topicWired))}
         />
 
         {dirty && !planning ? (

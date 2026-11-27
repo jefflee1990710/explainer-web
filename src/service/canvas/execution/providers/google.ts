@@ -1,8 +1,9 @@
-// Google AI Studio (GOOGLE_GENERATIVE_AI_API_KEY): synchronous Gemini images and Omni videos
-// whose interaction is polled until it finishes.
+// Google AI Studio (GOOGLE_GENERATIVE_AI_API_KEY): synchronous Gemini images, chat text,
+// and Omni videos whose interaction is polled until it finishes.
 
 import { mentalokProvider } from "@/service/canvas/execution/providers/mentalok";
 import {
+  completedResult,
   dispatchSyncImage,
   pollGenerationStatus,
   settleVideoSubmitResponse,
@@ -23,8 +24,22 @@ export const googleProvider: CanvasProviderAdapter = {
     if (spec.category === "image") {
       return dispatchSyncImage(ctx, LABEL, (input) => resolved.submitGoogleStudioImage(input));
     }
+    if (spec.category === "text") {
+      const prompt = inputs.prompt?.trim();
+      if (!prompt) throw new Error("請先輸入提示詞");
+      const { text } = await resolved.generateCanvasText({ model: spec.providerModelId, prompt });
+      const outputUrl = await resolved.persistText(
+        text,
+        `canvas/${ctx.clerkUserId}/${ctx.jobIdHex}.txt`,
+      );
+      return completedResult(ctx, {
+        outputUrl,
+        outputKind: "text",
+        extraNodePatch: { text },
+      });
+    }
     if (spec.category !== "video") {
-      // Google lists only image and video models; any other kind keeps the Mentalok fallback.
+      // Image, text, and video are handled above. Anything else keeps the Mentalok fallback.
       return mentalokProvider.dispatch(ctx);
     }
     const response = await resolved.submitGoogleStudioVideo({

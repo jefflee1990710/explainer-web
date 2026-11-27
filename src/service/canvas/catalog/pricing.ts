@@ -174,6 +174,11 @@ export function estimateCanvasModelCostUsd(
     }
   }
 
+  // Text models charge their flat per-run price (not a video second).
+  if (spec.category === "text") {
+    return spec.basePriceUsd;
+  }
+
   if (spec.category === "image") {
     return IMAGE_COST_USD;
   }

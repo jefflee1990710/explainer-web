@@ -8,6 +8,14 @@ import type { LocaleId } from "@/util/i18n/locales";
 type LocalizedName = Partial<Record<LocaleId, string>>;
 
 export const CANVAS_MODEL_LOCAL_NAMES: Record<string, LocalizedName> = {
+  "google:gemini-3.8-flash": {
+    "zh-Hant": "Gemini 3.8 Flash",
+    "zh-Hans": "Gemini 3.8 Flash",
+  },
+  "google:gemini-4-argon": {
+    "zh-Hant": "Gemini 4 Argon",
+    "zh-Hans": "Gemini 4 Argon",
+  },
   "scro:talking-head": {
     "zh-Hant": "口播導演",
     "zh-Hans": "口播导演",
