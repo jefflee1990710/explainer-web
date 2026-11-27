@@ -46,6 +46,8 @@ export async function canvasJobsCollection(): Promise<Collection<CanvasJob>> {
     await Promise.all([
       collection.createIndex({ clerkUserId: 1, updatedAt: -1 }),
       collection.createIndex({ canvasId: 1, createdAt: -1 }),
+      // ArgoLink webhook looks up the running job by the provider request id.
+      collection.createIndex({ provider: 1, externalJobId: 1 }),
     ]).catch(() => {
       jobsIndexed = false;
     });

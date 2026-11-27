@@ -11,6 +11,7 @@ import type {
   CanvasPortSpec,
   CanvasPortType,
 } from "@/model/canvas-model";
+import { ARGOLINK_STATIC_MODELS } from "@/service/canvas/catalog/argolink-models";
 import { FFMPEG_STATIC_MODELS } from "@/service/canvas/catalog/ffmpeg-models";
 import {
   GOOGLE_STATIC_MODELS,
@@ -55,6 +56,7 @@ export const STATIC_CANVAS_MODELS: readonly CanvasModelSpec[] = [
   ...OPENROUTER_STATIC_MODELS,
   ...MINIMAX_STATIC_MODELS,
   ...GOOGLE_STATIC_MODELS,
+  ...ARGOLINK_STATIC_MODELS,
   ...SCRO_STATIC_MODELS,
   ...FFMPEG_STATIC_MODELS,
 ];

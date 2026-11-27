@@ -28,6 +28,7 @@ import {
   googleStudioVideoUserUsd,
 } from "@/service/google/studio-price";
 import { minimaxCanvasBillingSlug } from "@/service/minimax/official-canvas";
+import { argolinkVideoUserUsd } from "@/service/argolink/price";
 import { autoCaptionsCostUsd } from "@/service/canvas/core/captions";
 
 // Minimum USD charge per Mentalok execution ($0.005).
@@ -145,6 +146,13 @@ export function estimateCanvasModelCostUsd(
         durationSeconds: canvasVideoSeconds(spec, params?.durationSeconds),
       });
     }
+  }
+
+  // ArgoLink bills whole output seconds; reference stills and audio are free.
+  if (spec.provider === "argolink" && spec.category === "video") {
+    return argolinkVideoUserUsd(spec.providerModelId, {
+      durationSeconds: canvasVideoSeconds(spec, params?.durationSeconds),
+    });
   }
 
   if ((spec.provider === "openrouter" || spec.provider === "minimax") && spec.providerModelId) {

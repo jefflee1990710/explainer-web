@@ -208,6 +208,7 @@ export function CanvasSidebar({
       google: 2,
       openrouter: 2,
       minimax: 2,
+      argolink: 2,
       mentalok: 3,
     };
     const openRouterCategories = new Set(

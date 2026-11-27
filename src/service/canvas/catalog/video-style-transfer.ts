@@ -27,7 +27,10 @@ export function videoStyleTransferModelChoices(
   return catalog
     .filter((spec) => {
       if (spec.category !== "video" || spec.available === false || spec.hiddenInSidebar) return false;
-      if (spec.provider === "google" || spec.provider === "mentalok") return false;
+      // MAGI-2 treats a clip as a motion reference, not as a video to restyle.
+      if (spec.provider === "google" || spec.provider === "mentalok" || spec.provider === "argolink") {
+        return false;
+      }
       if (spec.inputs.some((port) => port.id === "refAudio" && port.required)) return false;
       if (AVATAR_MODEL.test(spec.id) || AVATAR_MODEL.test(spec.providerModelId)) return false;
       return true;

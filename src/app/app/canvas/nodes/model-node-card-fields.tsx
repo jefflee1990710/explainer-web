@@ -102,8 +102,8 @@ export function ModelNodeCardFields(view: ModelNodeCardView) {
             }
             className="nodrag disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[8px] border border-white/10 bg-[#0b0e14] px-2 py-1 text-[11px] text-white/90 focus:border-[#c6f24b]/60 focus:outline-none"
           >
-            {(spec.provider === "google"
-              ? ASPECT_OPTIONS.filter((ratio) => spec.presets.includes(ratio))
+            {(spec.provider === "google" || spec.provider === "argolink"
+              ? spec.presets
               : ASPECT_OPTIONS
             ).map((r) => (
               <option key={r} value={r}>
