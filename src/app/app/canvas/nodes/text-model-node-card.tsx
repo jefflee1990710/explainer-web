@@ -6,6 +6,7 @@ import { Handle, Position } from "@xyflow/react";
 import { ModelNodeCardHeader } from "@/app/app/canvas/nodes/model-node-card-header";
 import { ModelNodeCardPorts } from "@/app/app/canvas/nodes/model-node-card-ports";
 import { ModelNodeCardRun } from "@/app/app/canvas/nodes/model-node-card-run";
+import { ModelNodeFailedBanner } from "@/app/app/canvas/nodes/model-node-failed-banner";
 import { ModelPromptField } from "@/app/app/canvas/nodes/model-prompt-field";
 import { OutdatedBanner } from "@/app/app/canvas/nodes/outdated-notice";
 import type { ModelNodeCardView } from "@/app/app/canvas/nodes/model-node-card-view";
@@ -83,6 +84,7 @@ export function TextModelNodeCard(view: ModelNodeCardView) {
           onOpenEditor={() => setPromptEditorOpen(true)}
           onCloseEditor={() => setPromptEditorOpen(false)}
         />
+        {status === "failed" ? <ModelNodeFailedBanner message={data.lastError} /> : null}
         {outdated ? <OutdatedBanner reason={outdated} isZh={isZh} /> : null}
         <ModelNodeCardRun {...view} />
 

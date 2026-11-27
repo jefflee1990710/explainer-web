@@ -2,6 +2,7 @@
 
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import type { GenerationStatus } from "@/model/generation-job";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 import { googleStudioApiKey, googleStudioInlineImageFromUrl } from "@/service/google/studio-image";
 import {
   GOOGLE_STUDIO_VIDEO_MODELS,
@@ -105,12 +106,9 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+// Google nests the reason on error.message, error.details, or a JSON string.
 function errorText(body: Record<string, unknown>): string | undefined {
-  const err = body.error;
-  if (typeof err === "string" && err.trim()) return err.trim();
-  const record = asRecord(err);
-  if (typeof record.message === "string" && record.message.trim()) return record.message.trim();
-  return undefined;
+  return providerErrorMessage(body);
 }
 
 function videoPart(body: Record<string, unknown>): Record<string, unknown> | undefined {

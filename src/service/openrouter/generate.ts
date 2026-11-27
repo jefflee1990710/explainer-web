@@ -2,6 +2,7 @@ import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio, VoLanguage } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import { planTalkingHeadFacialExpressionArc } from "@/service/director/talking-performance";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 import { talkingHeadLanguageName } from "@/service/minimax/talking-head-reference";
 import {
   OPENROUTER_ACCOUNT_IMAGE_MODELS,
@@ -106,16 +107,9 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+// OpenRouter and HeyGen hide the upstream reason under error.metadata.raw or data.error.
 function openRouterError(body: Record<string, unknown>): string | undefined {
-  const err = body.error;
-  if (typeof err === "string" && err.trim()) return err.trim();
-  if (err && typeof err === "object") {
-    const rec = err as Record<string, unknown>;
-    if (typeof rec.message === "string" && rec.message.trim()) return rec.message.trim();
-    if (typeof rec.code === "string" && rec.code.trim()) return rec.code.trim();
-  }
-  if (typeof body.message === "string" && body.message.trim()) return body.message.trim();
-  return undefined;
+  return providerErrorMessage(body);
 }
 
 function nsfwFrom(error?: string): GenerationStatus | undefined {

@@ -1,5 +1,6 @@
 import type { GenerationStatus } from "@/model/generation-job";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 import { mapMinimaxVideoStatus, minimaxApiKey } from "@/service/minimax/talking-head-reference";
 
 // Canvas MiniMax models call api.minimax.io. OpenRouter currently lists these
@@ -121,18 +122,9 @@ function h3Resolution(model: string, resolution: string | undefined): "480P" | "
   return asked === "480p" || asked === "1k" ? "480P" : "768P";
 }
 
+// MiniMax puts the reason on task.error, body.error, or base_resp. A bare status is not a reason.
 function errorMessage(body: unknown): string | undefined {
-  if (!body || typeof body !== "object") return undefined;
-  const record = body as {
-    error?: { message?: unknown };
-    base_resp?: { status_msg?: unknown; status_code?: unknown };
-  };
-  if (typeof record.error?.message === "string" && record.error.message) return record.error.message;
-  const code = record.base_resp?.status_code;
-  if (typeof code === "number" && code !== 0 && typeof record.base_resp?.status_msg === "string") {
-    return record.base_resp.status_msg;
-  }
-  return undefined;
+  return providerErrorMessage(body);
 }
 
 function sensitive(message: string | undefined): boolean {

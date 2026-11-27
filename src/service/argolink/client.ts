@@ -4,6 +4,7 @@
 
 import type { GenerationStatus } from "@/model/generation-job";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 
 export const ARGOLINK_API = "https://argolink.io";
@@ -109,13 +110,7 @@ export function argolinkCanvasVideoBody(input: ArgolinkCanvasVideoInput): Record
 }
 
 function errorText(value: unknown): string | undefined {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (!value || typeof value !== "object") return undefined;
-  const record = value as { message?: unknown; code?: unknown; error?: unknown };
-  if (typeof record.message === "string" && record.message.trim()) return record.message.trim();
-  if (record.error !== undefined) return errorText(record.error);
-  if (typeof record.code === "string" && record.code.trim()) return record.code.trim();
-  return undefined;
+  return providerErrorMessage(value);
 }
 
 function moderated(message: string | undefined): boolean {
@@ -147,7 +142,7 @@ export function parseArgolinkVideoStatus(body: unknown, statusUrl?: string): Gen
   };
   if (status === "failed") {
     const message =
-      errorText(record.error) ||
+      errorText(record) ||
       (record.status === "expired" ? "ArgoLink 任務已過期" : "ArgoLink 影片生成失敗");
     return { ...base, status: moderated(message) ? "nsfw" : "failed", error: message };
   }
@@ -227,7 +222,7 @@ export async function fetchArgolinkCanvasVideo(
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(errorText((body as { error?: unknown }).error) || `ArgoLink 影片狀態查詢失敗（${response.status}）`);
+    throw new Error(errorText(body) || `ArgoLink 影片狀態查詢失敗（${response.status}）`);
   }
   return parseArgolinkVideoStatus(body, statusUrl);
 }

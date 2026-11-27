@@ -2,6 +2,7 @@
 // POST https://argolink.io/v1/chat/completions — OpenAI message shape.
 
 import { argolinkApiKey } from "@/service/argolink/client";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 
 export const ARGOLINK_CHAT_COMPLETIONS_URL = "https://argolink.io/v1/chat/completions";
 
@@ -47,9 +48,7 @@ export async function argolinkChatCompletion(
 function argolinkChatError(status: number, raw: string, apiKey: string): string {
   let detail = "";
   try {
-    const body = JSON.parse(raw) as { error?: { message?: string } | string };
-    if (typeof body.error === "string") detail = body.error;
-    else if (body.error && typeof body.error.message === "string") detail = body.error.message;
+    detail = providerErrorMessage(JSON.parse(raw)) || "";
   } catch {
     detail = "";
   }

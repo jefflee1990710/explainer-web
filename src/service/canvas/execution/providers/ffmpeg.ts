@@ -4,6 +4,7 @@
 import { settleFailedJob } from "@/service/canvas/execution/jobs/settle";
 import { runningResult } from "@/service/canvas/execution/providers/shared";
 import type { CanvasProviderAdapter } from "@/service/canvas/execution/providers/types";
+import { providerFailureText } from "@/service/generation/provider-error";
 
 export const ffmpegProvider: CanvasProviderAdapter = {
   provider: "ffmpeg",
@@ -23,7 +24,7 @@ export const ffmpegProvider: CanvasProviderAdapter = {
     if (!job.externalJobId) return job;
     const wt = await resolved.findWorkerTaskStatus(job.externalJobId).catch(() => null);
     if (wt?.status === "failed") {
-      return settleFailedJob(job, wt.error || "FFmpeg 處理失敗", resolved);
+      return settleFailedJob(job, providerFailureText(wt.error, "FFmpeg 處理失敗"), resolved);
     }
     return job;
   },

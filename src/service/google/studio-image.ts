@@ -1,5 +1,6 @@
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 import type { AspectRatio } from "@/model/project";
+import { providerErrorMessage } from "@/service/generation/provider-error";
 import {
   GOOGLE_STUDIO_IMAGE_MODELS,
   GOOGLE_STUDIO_NANO_BANANA,
@@ -84,13 +85,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function googleError(body: Record<string, unknown>): string | undefined {
-  const err = asRecord(body.error);
-  if (typeof err.message === "string" && err.message.trim()) return err.message.trim();
-  const feedback = asRecord(body.promptFeedback);
-  if (typeof feedback.blockReason === "string" && feedback.blockReason.trim()) {
-    return feedback.blockReason.trim();
-  }
-  return undefined;
+  return providerErrorMessage(body);
 }
 
 function inlineImage(part: Record<string, unknown>): InlineImage | undefined {
