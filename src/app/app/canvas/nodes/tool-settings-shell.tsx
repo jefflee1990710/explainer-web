@@ -34,7 +34,8 @@ export function ToolSettingsShell({
         </span>
         <span className="text-[11.5px] font-semibold text-white/90">{title}</span>
       </div>
-      <div className="flex flex-col gap-2.5 p-3">
+      {/* min-w-0 lets variable rows shrink inside the fixed card width. */}
+      <div className="flex min-w-0 flex-col gap-2.5 p-3">
         {children}
         <p className="text-[10.5px] leading-relaxed text-white/45">
           {isZh
