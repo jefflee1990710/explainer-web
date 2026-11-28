@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Plus, X } from "lucide-react";
-import { uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { uploadCanvasMediaFile } from "@/app/app/canvas/workspace/upload-canvas-media";
 import { Spinner } from "@/presentation/components/spinner";
 import { ComposedTextarea } from "@/app/app/canvas/nodes/composed-text-field";
 import type { CanvasAgentCopy } from "@/app/app/canvas/agent/canvas-agent-copy";
@@ -103,9 +103,7 @@ export function CanvasAgentComposer({
     try {
       const urls: string[] = [];
       for (const item of files) {
-        const body = new FormData();
-        body.set("file", item.file);
-        const res = await uploadCanvasMediaAction(body);
+        const res = await uploadCanvasMediaFile(item.file);
         if (!res.ok) {
           setLocalError(res.error);
           return;

@@ -4,6 +4,10 @@ import type { NextRequest } from "next/server";
 import { referralCookieSettings } from "@/service/affiliate/link";
 import { referralCodeOrNull } from "@/service/affiliate/referral-code";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
+import {
+  SERVER_ACTION_ERROR_CONTENT_TYPE,
+  serverActionAuthPlainBody,
+} from "@/service/auth/server-action-auth";
 import { SESSION_COOKIE } from "@/service/firebase/session";
 import { isLocaleId, REQUEST_LOCALE_HEADER } from "@/util/i18n/locales";
 
@@ -35,6 +39,14 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/scroadmin") ||
     pathname === "/legal/accept";
   if (needsAuth && !request.cookies.get(SESSION_COOKIE)?.value) {
+    const plain = serverActionAuthPlainBody(request.headers);
+    if (plain) {
+      // The HTML sign-in page is not an RSC payload, so Next.js would hide this 401.
+      return new NextResponse(plain, {
+        status: 401,
+        headers: { "content-type": SERVER_ACTION_ERROR_CONTENT_TYPE },
+      });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.search = "";
