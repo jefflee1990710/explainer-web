@@ -88,6 +88,7 @@ import {
   type FlowNode,
   type RememberedJobOutput,
 } from "@/app/app/canvas/workspace/canvas-graph-state";
+import { CanvasEmptyWelcome } from "@/app/app/canvas/canvas-empty-welcome";
 import { CanvasSwitchOverlay } from "@/app/app/canvas/canvas-switch-overlay";
 import { CharacterNodeCard } from "@/app/app/canvas/nodes/character-node-card";
 import { SettingsNodeCard } from "@/app/app/canvas/nodes/settings-node-card";
@@ -852,44 +853,12 @@ function CanvasWorkspaceInner({
               onUngroup={ungroupSelectedNodes}
             />
 
-            {/* Empty canvas onboarding overlay */}
-            {domainNodes.length === 0 ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-                <div className="pointer-events-auto max-w-md rounded-2xl border border-white/10 bg-[#12161f]/90 p-6 text-center shadow-2xl backdrop-blur-md">
-                  <h2 className="text-base font-bold text-white">
-                    {isZh ? "開始打造你的 AI 生成工作流" : "Build Your AI Visual Workflow"}
-                  </h2>
-                  <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                    {isZh
-                      ? "把電腦上的圖片／影片直接拖到畫布、從左側點擊或拖入模型，連線後即可單節點或一鍵 Run Flow 生成。"
-                      : "Drop local images/videos onto the canvas, click or drag a model from the left panel, wire ports together, and click Run."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleApplyTemplate("talking-head")}
-                      className="cursor-pointer rounded-[10px] bg-[#c6f24b] px-3.5 py-2 text-xs font-bold text-[#11141b] transition hover:brightness-105"
-                    >
-                      {isZh ? "套用：口播導演" : "Try: Talking Head Director"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleApplyTemplate("explainer")}
-                      className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
-                    >
-                      {isZh ? "套用：Explainer 解說片" : "Try: AI Explainer"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleApplyTemplate("text-image-video")}
-                      className="cursor-pointer rounded-[10px] border border-white/12 bg-white/6 px-3.5 py-2 text-xs font-semibold text-white/90 transition hover:bg-white/12"
-                    >
-                      {isZh ? "套用：文生圖 → 圖生影片" : "Try: Text → Image → Video"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            {/* Live nodes, not the saved graph: upload placeholders are on screen but not saved. */}
+            <CanvasEmptyWelcome
+              nodeCount={nodes.length}
+              isZh={isZh}
+              onApplyTemplate={handleApplyTemplate}
+            />
 
             <ScroGroupDialogs
               state={scroDialog}
