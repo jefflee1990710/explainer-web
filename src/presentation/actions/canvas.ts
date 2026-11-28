@@ -36,6 +36,9 @@ import {
   serializeCanvasFolder,
 } from "@/service/canvas/use-cases/folders";
 import {
+  finishCanvasMediaUpload,
+  prepareCanvasMediaUpload,
+  type PreparedCanvasMediaUpload,
   type UploadCanvasMediaResult,
   uploadCanvasMediaFromFormData,
 } from "@/service/canvas/use-cases/media-upload";
@@ -183,11 +186,33 @@ export async function saveCanvasProjectAction(
 }
 
 // Validates local file upload (<= 15 MB, strict MIME allowlist) and persists to Vercel Blob.
+// The canvas UI does not call this: the file would be the Server Action body.
 export async function uploadCanvasMediaAction(
   formData: FormData,
 ): Promise<UploadCanvasMediaActionResult> {
   const user = await requireAppUser();
   return uploadCanvasMediaFromFormData(user.clerkUserId, formData);
+}
+
+// Checks the file and returns a Blob token. The browser uploads the bytes itself.
+export async function prepareCanvasMediaUploadAction(input: {
+  contentType: string;
+  size: number;
+  fileName: string;
+}): Promise<PreparedCanvasMediaUpload> {
+  const user = await requireAppUser();
+  return prepareCanvasMediaUpload(user.clerkUserId, input);
+}
+
+// Reads length and sound after the browser upload, and rejects a URL outside this user's folder.
+export async function finishCanvasMediaUploadAction(input: {
+  url: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}): Promise<UploadCanvasMediaActionResult> {
+  const user = await requireAppUser();
+  return finishCanvasMediaUpload(user.clerkUserId, input);
 }
 
 // Executes a single model node (deducting USD credit, persisting sync outputs, or queueing async jobs).

@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addEdge, EdgeChangeset, NodeChangeset, type Connection, type Edge } from "@xyflow/react";
 import type { CanvasEdge, CanvasNodeData } from "@/model/canvas";
-import { saveCanvasProjectAction, uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { saveCanvasProjectAction } from "@/presentation/actions/canvas";
+import { uploadCanvasMediaFile } from "@/app/app/canvas/workspace/upload-canvas-media";
 import { placeDroppedCanvasFiles } from "@/app/app/canvas/workspace/canvas-media-drop";
 import {
   adoptServerPreview,
@@ -801,12 +802,7 @@ export function useCanvasDocument(deps: CanvasDocumentHookDeps) {
             wirePhotos && list.some((file) => file.type.toLowerCase().startsWith("image/"))
               ? { x: basePos.x - 340, y: basePos.y }
               : basePos,
-          // The server action returns when the upload finishes. It does not emit a percentage.
-          upload: async (file) => {
-            const fd = new FormData();
-            fd.append("file", file);
-            return uploadCanvasMediaAction(fd);
-          },
+          upload: (file, reportProgress) => uploadCanvasMediaFile(file, reportProgress),
           onNodes: setNodes,
           onError: (message) => toast.error(message),
           onSettled: scheduleAutosave,

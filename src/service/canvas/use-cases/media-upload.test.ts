@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CANVAS_MAX_UPLOAD_BYTES,
+  finishCanvasMediaUpload,
+  prepareCanvasMediaUpload,
   uploadCanvasMediaFromFormData,
 } from "@/service/canvas/use-cases/media-upload";
 
@@ -86,5 +88,77 @@ describe("service/canvas/media-upload", () => {
         height: 1280,
       });
     }
+  });
+
+  it("signs a direct upload without reading the file bytes", async () => {
+    const prepared = await prepareCanvasMediaUpload(
+      "user-42",
+      { contentType: "video/mp4", size: 12, fileName: "Install to Local Agent - Claude.mp4" },
+      {
+        randomId: () => "fixed-uuid",
+        readWriteToken: "",
+        mintToken: async (plan) => {
+          assert.equal(plan.pathname, "canvas/uploads/user-42/fixed-uuid.mp4");
+          assert.equal(plan.maximumSizeInBytes, CANVAS_MAX_UPLOAD_BYTES);
+          assert.deepEqual(plan.allowedContentTypes, ["video/mp4"]);
+          assert.equal(plan.fileName, "Install to Local Agent - Claude.mp4");
+          return "signed-token";
+        },
+      },
+    );
+    assert.deepEqual(prepared, {
+      ok: true,
+      token: "signed-token",
+      pathname: "canvas/uploads/user-42/fixed-uuid.mp4",
+      mediaKind: "video",
+      contentType: "video/mp4",
+      fileName: "Install to Local Agent - Claude.mp4",
+    });
+  });
+
+  it("returns size and type errors before a token is minted", async () => {
+    const huge = await prepareCanvasMediaUpload("user-1", {
+      contentType: "video/mp4",
+      size: CANVAS_MAX_UPLOAD_BYTES + 1,
+      fileName: "huge.mp4",
+    });
+    assert.deepEqual(huge, { ok: false, error: "檔案大小超過 15 MB 上限" });
+
+    const pdf = await prepareCanvasMediaUpload("user-1", {
+      contentType: "application/pdf",
+      size: 20,
+      fileName: "Install to Local Agent - Claude.pdf",
+    });
+    assert.equal(pdf.ok, false);
+    if (!pdf.ok) assert.match(pdf.error, /application\/pdf/);
+
+    const missingToken = await prepareCanvasMediaUpload(
+      "user-1",
+      { contentType: "image/png", size: 4, fileName: "a.png" },
+      { readWriteToken: "" },
+    );
+    assert.deepEqual(missingToken, { ok: false, error: "尚未設定 Vercel Blob" });
+  });
+
+  it("probes only this user's uploaded video", async () => {
+    const url = "https://abc.public.blob.vercel-storage.com/canvas/uploads/user-42/id.mp4";
+    const res = await finishCanvasMediaUpload(
+      "user-42",
+      { url, fileName: "talk.mp4", contentType: "video/mp4", sizeBytes: 10 },
+      {
+        probeUrl: async () =>
+          "  Duration: 00:00:07.50, start: 0.0\n  Stream #0:0: Video: h264, yuv420p, 720x1280, 30 fps\n  Stream #0:1: Audio: aac, 48000 Hz",
+      },
+    );
+    assert.ok(res.ok);
+    if (res.ok) assert.equal(res.meta?.durationSec, 7.5);
+
+    const other = await finishCanvasMediaUpload("user-42", {
+      url: "https://abc.public.blob.vercel-storage.com/canvas/uploads/user-other/id.mp4",
+      fileName: "talk.mp4",
+      contentType: "video/mp4",
+      sizeBytes: 10,
+    });
+    assert.deepEqual(other, { ok: false, error: "上傳結果無效，請再試一次" });
   });
 });

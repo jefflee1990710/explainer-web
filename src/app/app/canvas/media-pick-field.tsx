@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { CanvasMediaKind } from "@/model/canvas";
-import { uploadCanvasMediaAction } from "@/presentation/actions/canvas";
+import { uploadCanvasMediaFile } from "@/app/app/canvas/workspace/upload-canvas-media";
 import { CanvasPreviewSelect } from "@/app/app/canvas/nodes/canvas-preview-select";
 import { DIALOG_FIELD, DIALOG_LABEL } from "./scro-dialog-shell";
 import type { MediaPickOption } from "./scro-group-options";
@@ -38,9 +38,7 @@ export function MediaPickField({ label, isZh, kind, options, value, onChange, al
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await uploadCanvasMediaAction(fd);
+      const res = await uploadCanvasMediaFile(file);
       if (!res.ok) {
         toast.error(res.error);
         return;
