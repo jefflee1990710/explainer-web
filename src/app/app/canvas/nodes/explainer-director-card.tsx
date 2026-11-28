@@ -2,7 +2,7 @@
 
 // Explainer Director: owns every Explainer parameter and the plan, with Plan / Replan and
 // three text outputs per clip (still prompt, motion prompt, voiceover).
-// Topic comes from the connected text port, not a field on the card.
+// Topic is the text field, or a connected text or Prompt node until that field is edited.
 
 import { Handle, Position } from "@xyflow/react";
 import { AlertCircle, Clapperboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
@@ -11,6 +11,7 @@ import type { CanvasLibraryCharacterOption } from "@/model/canvas-dto";
 import {
   directorHandleId,
   directorNeedsReplan,
+  directorPromptPatch,
   explainerNodeWithWiredTopic,
   readDirectorPlan,
   type DirectorOutputKind,
@@ -19,6 +20,7 @@ import { readPlannerParams } from "@/service/canvas/directors/explainer-planner"
 import { PORT_COLOR_MAP } from "@/app/app/canvas/nodes/port-colors";
 import { ExplainerDirectorFields } from "@/app/app/canvas/nodes/explainer-director-fields";
 import { ExplainerDirectorReferenceHandle } from "@/app/app/canvas/nodes/explainer-director-reference-handle";
+import { ExplainerDirectorTopicField } from "@/app/app/canvas/nodes/explainer-director-topic-field";
 import { ExplainerDirectorTopicHandle } from "@/app/app/canvas/nodes/explainer-director-topic-handle";
 import { SettingsInputRow } from "@/app/app/canvas/nodes/canvas-text-dialog-field";
 import { DirectorPlanProgress } from "@/app/app/canvas/nodes/director-plan-progress";
@@ -62,6 +64,8 @@ export function ExplainerDirectorCard({
 }: Props) {
   const topicWired = wiredPrompt !== undefined;
   const live = explainerNodeWithWiredTopic({ type: "model" as const, data }, wiredPrompt);
+  // The first edit while a wire is connected keeps that text and stops following the wire.
+  const update = (patch: Partial<CanvasNodeData>) => onUpdate(directorPromptPatch(data, patch, topicWired));
   const node = live;
   const plan = readDirectorPlan(node);
   const { planStatus, planError } = readPlannerParams({ data });
@@ -105,12 +109,18 @@ export function ExplainerDirectorCard({
       <SettingsInputRow />
 
       <div className="flex flex-col gap-2.5 p-3">
+        <ExplainerDirectorTopicField
+          prompt={live.data.prompt ?? ""}
+          isZh={isZh}
+          disabled={planning}
+          onPrompt={(prompt) => update({ prompt })}
+        />
         <ExplainerDirectorFields
           data={live.data}
           isZh={isZh}
           disabled={planning}
           characterOptions={characterOptions}
-          onUpdate={onUpdate}
+          onUpdate={update}
         />
 
         {dirty && !planning ? (

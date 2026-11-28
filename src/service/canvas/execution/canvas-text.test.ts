@@ -368,7 +368,7 @@ describe("canvas text output wires", () => {
     assert.equal(patch.toolParams?.promptEdited, true);
   });
 
-  it("keeps an Explainer topic on the connected text or prompt node", () => {
+  it("lets a wired text or prompt node supply the Explainer topic until the card is edited", () => {
     const text = modelNode("writer", CANVAS_TEXT_CLAUDE_ID, {
       status: "completed",
       outputKind: "text",
@@ -382,12 +382,17 @@ describe("canvas text output wires", () => {
     };
     const director = modelNode("dir", "scro:explainer", {
       prompt: "typed on the card",
-      toolParams: { plannerMode: true, promptEdited: true },
+      toolParams: { plannerMode: true },
     });
     const fromText = readConnectedPromptText("dir", [text, director], [edge("writer", "dir", "prompt")]);
     assert.equal(explainerNodeWithWiredTopic(director, fromText).data.prompt, "How compound interest works");
     const fromPrompt = readConnectedPromptText("dir", [prompt, director], [edge("prompt", "dir", "prompt")]);
     assert.equal(explainerNodeWithWiredTopic(director, fromPrompt).data.prompt, "From a prompt node");
+    const edited = modelNode("dir", "scro:explainer", {
+      prompt: "typed on the card",
+      toolParams: { plannerMode: true, promptEdited: true },
+    });
+    assert.equal(explainerNodeWithWiredTopic(edited, fromText).data.prompt, "typed on the card");
     assert.equal(readConnectedPromptText("dir", [director], []), undefined);
   });
 });

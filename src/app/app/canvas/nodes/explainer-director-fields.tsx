@@ -1,7 +1,7 @@
 "use client";
 
 // Explainer Director parameters: character, length, ratio, art style, languages,
-// background, presenter position, and text style. Topic comes from a connected text node.
+// background, presenter position, and text style. The topic field sits above these.
 
 import type { CanvasNodeData } from "@/model/canvas";
 import {

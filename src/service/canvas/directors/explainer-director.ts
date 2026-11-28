@@ -123,13 +123,13 @@ export function directorNodeWithWiredPrompt<T extends NodeLike>(
   return { ...node, data: { ...node.data, prompt: wiredPrompt } };
 }
 
-// Explainer topic always follows a connected text or prompt node. An older typed topic stays only when nothing is wired.
+// A connected text or prompt node supplies the Explainer topic until the user types on the card.
+// With no connection, the text already on the card is the topic.
 export function explainerNodeWithWiredTopic<T extends NodeLike>(
   node: T,
   wiredPrompt: string | undefined,
 ): T {
-  if (wiredPrompt === undefined) return node;
-  return { ...node, data: { ...node.data, prompt: wiredPrompt } };
+  return directorNodeWithWiredPrompt(node, wiredPrompt);
 }
 
 // The first edit of a wired topic keeps that text and stops following the wire.

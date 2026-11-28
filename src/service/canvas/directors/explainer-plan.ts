@@ -102,7 +102,7 @@ export async function startCanvasExplainerPlan(params: {
     loaded.canvas.edges,
     catalog,
   );
-  // Explainer topic is the connected text, even if the card was edited before. Talking Head still lets a typed script win.
+  // A wired text or prompt node supplies the topic until the card is edited. Otherwise the typed topic is used.
   const plannerNode = director
     ? explainerNodeWithWiredTopic(
         loaded.node,
@@ -120,7 +120,7 @@ export async function startCanvasExplainerPlan(params: {
     return { ok: false, error: `缺少設定：${filledTopic.missing.map((key) => promptPlaceholder(key)).join("、")}` };
   }
   if (!filledTopic.text) {
-    return { ok: false, error: isTalking ? "請先輸入講稿" : director ? "請先連接解說主題" : "請先輸入或連接解說主題" };
+    return { ok: false, error: isTalking ? "請先輸入講稿" : "請先輸入或連接解說主題" };
   }
   const inputs = director
     ? { ...resolved.inputs, prompt: explainerPlanSource(plannerNode, settingVars) }
